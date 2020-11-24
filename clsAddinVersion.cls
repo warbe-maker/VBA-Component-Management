@@ -9,5 +9,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 Dim sVersion As String
+
 Property Get Version() As String:           Version = sVersion: End Property
+
 Property Let Version(ByVal s As String):    sVersion = s:       End Property

@@ -14,7 +14,7 @@ Option Private Module
 '           GetFile     Returns a file object for a given name
 '           ToArray     Returns a file's content in an array
 '
-' Uses:     Common Components mBasic and mErrHndlr. Both are regarded available
+' Uses:     Common Components mBasic and mErH. Both are regarded available
 '           through the CompMan Addin. when the Addin is not used, both have to
 '           imported.
 '
@@ -44,16 +44,16 @@ Dim fl      As File
 Dim sPath   As String
 Dim queue   As Collection
 
-    On Error GoTo on_error
+    On Error GoTo eh
     Exists = False
     Set clt = New Collection
 
     If TypeName(vFile) <> "File" And TypeName(vFile) <> "String" _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The File (parameter vFile) for the File's existence check is neither a full path/file name nor a file object!"
+    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The File (parameter vFile) for the File's existence check is neither a full path/file name nor a file object!"
     If Not TypeName(fso) = "Nothing" And Not TypeName(fso) = "File" _
-    Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided return parameter (fso) is not a File type!"
+    Then Err.Raise mErH.AppErr(2), ErrSrc(PROC), "The provided return parameter (fso) is not a File type!"
     If Not TypeName(clt) = "Nothing" And Not TypeName(clt) = "Collection" _
-    Then Err.Raise AppErr(3), ErrSrc(PROC), "The provided return parameter (clt) is not a Collection type!"
+    Then Err.Raise mErH.AppErr(3), ErrSrc(PROC), "The provided return parameter (clt) is not a Collection type!"
 
     If TypeOf vFile Is File Then
         With New FileSystemObject
@@ -63,7 +63,7 @@ Dim queue   As Collection
             If Exists Then
                 '~~ Return the existing file as File object
                 Set fso = .GetFile(vFile.Path)
-                GoTo exit_proc
+                GoTo xt
             End If
         End With
     ElseIf VarType(vFile) = vbString Then
@@ -74,7 +74,7 @@ Dim queue   As Collection
                 If Exists Then
                     '~~ Return the existing file as File object
                     Set fso = .GetFile(vFile)
-                    GoTo exit_proc
+                    GoTo xt
                 End If
             Else
                 sPath = Replace(vFile, "\" & sFile, vbNullString)
@@ -91,7 +91,7 @@ Dim queue   As Collection
                         queue.Add sfldr ' enqueue (collect) all subfolders
                     Next sfldr
                     For Each fl In fldr.Files
-                        If InStr(fl.Name, sFile) <> 0 And Left(fl.Name, 1) <> "~" Then
+                        If InStr(fl.Name, sFile) <> 0 And left(fl.Name, 1) <> "~" Then
                             '~~ Return the existing file which meets the search criteria
                             '~~ as File object in a collection
                             clt.Add fl
@@ -103,14 +103,9 @@ Dim queue   As Collection
         End With
     End If
 
-exit_proc:
-    Exit Function
+xt: Exit Function
     
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: ' Resume
-#End If
-    mErrHndlr.ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function GetFile(ByVal sPath As String) As File
@@ -132,11 +127,11 @@ Dim sSplit  As String
 Dim fso     As File
 Dim sFile   As String
 
-    On Error GoTo on_error
+    On Error GoTo eh
     BoP ErrSrc(PROC)
     
     If Not Exists(vFile, fso) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The file object (vFile) does not exist!"
+    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The file object (vFile) does not exist!"
     
     '~~ Unload file into a test stream
     With New FileSystemObject
@@ -148,7 +143,7 @@ Dim sFile   As String
         End With
     End With
     
-    If sFile = vbNullString Then GoTo exit_proc
+    If sFile = vbNullString Then GoTo xt
     
     '~~ Get the kind of line break used
     If InStr(sFile, vbCr) <> 0 Then sSplit = vbCr
@@ -161,15 +156,10 @@ Dim sFile   As String
     mBasic.ArrayTrimm a
     ToArray = a
     
-exit_proc:
-    EoP ErrSrc(PROC)
+xt: EoP ErrSrc(PROC)
     Exit Function
     
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: ' Resume
-#End If
-    mErrHndlr.ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function ToDict(ByVal vFile As Variant) As Dictionary
@@ -187,10 +177,10 @@ Dim fso     As File
 Dim sFile   As String
 Dim i       As Long
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     If Not Exists(vFile, fso) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The file object (vFile) does not exist!"
+    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The file object (vFile) does not exist!"
     
     '~~ Unload file into a test stream
     With New FileSystemObject
@@ -202,7 +192,7 @@ Dim i       As Long
         End With
     End With
     
-    If sFile = vbNullString Then GoTo exit_proc
+    If sFile = vbNullString Then GoTo xt
     
     '~~ Get the kind of line break used
     If InStr(sFile, vbCr) <> 0 Then sSplit = vbCr
@@ -218,15 +208,10 @@ Dim i       As Long
         dct.Add i + 1, a(i)
     Next i
         
-exit_proc:
-    Set ToDict = dct
+xt: Set ToDict = dct
     Exit Function
     
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    mErrHndlr.ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function SelectFile(Optional ByVal sInitPath As String = vbNullString, _

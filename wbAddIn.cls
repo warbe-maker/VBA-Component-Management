@@ -38,13 +38,13 @@ Private Const ADDIN_VERSION     As String = "4.0"                       ' Allows
 Private Const DEVLP_WORKBOOK    As String = "CompManDev.xlsm"           ' Extension depends on Excel versions
 Private Const DEVLP_FORMAT      As Long = xlOpenXMLWorkbookMacroEnabled ' = ... needs adjustment when the above is changed
 
-Private Property Get AddInPath() As String:             AddInPath = mCommDat.CommonAddinsPath:                              End Property
+Private Property Get AddInPath() As String:             AddInPath = mCommDat.CompManAddinPath:                              End Property
 Public Property Get AddInInstanceFullName() As String:  AddInInstanceFullName = AddInPath & DBSLASH & AddInInstanceName:    End Property
 Public Property Get AddInInstanceName() As String:      AddInInstanceName = ADDIN_WORKBOOK:                                 End Property
 Public Property Get DevlpInstanceName() As String:      DevlpInstanceName = DEVLP_WORKBOOK:                                 End Property
 Public Property Get DevlpInstanceFullName() As String
 Dim fso As New FileSystemObject
-    DevlpInstanceFullName = mCommDat.CommonBasePath & DBSLASH _
+    DevlpInstanceFullName = mCommDat.CommonComponentsBasePath & DBSLASH _
                           & fso.GetBaseName(DevlpInstanceName) & DBSLASH _
                           & DevlpInstanceName
 End Property
@@ -82,16 +82,17 @@ Dim fso As New FileSystemObject
 End Sub
 
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
-Const PROC      As String = "Workbook_BeforeSave"
-Dim wb          As Workbook
-Dim sExpPath    As String
-Dim sFullName   As String
+    Const PROC      As String = "Workbook_BeforeSave"
+    
+    On Error GoTo eh
+    Dim wb          As Workbook
+    Dim sExpPath    As String
+    Dim sFullName   As String
 
-    On Error GoTo on_error
     If Not wbAddIn.IsDevlpInstance Then Exit Sub
     
     Set wb = ThisWorkbook
-    mErrHndlr.BoP ErrSrc(PROC)
+    mErH.BoP ErrSrc(PROC)
         
     Application.EnableEvents = False
     wb.Save
@@ -99,12 +100,10 @@ Dim sFullName   As String
     If Not wb.Saved Then wb.Save        ' usually not required
     Application.EnableEvents = True
 
-exit_proc:
-    EoP ErrSrc(PROC)
+xt: EoP ErrSrc(PROC)
     Exit Sub
 
-on_error:
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Private Sub Workbook_BeforeClose(Cancel As Boolean)

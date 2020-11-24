@@ -7,8 +7,8 @@ Private dat                                 As clsAppData
 Private base                                As clsAppData
                                                                                 '---------------------------
 Private Const ASPCT_BASE_CONFIG             As String = "Base_Configuration"    ' maintained in the Registry
-Private Const VALUE_COMMON_BASE_PATH        As String = "CommonBasePath"        ' maintained in the Registry
-Private Const VALUE_COMMON_ADDINS_PATH      As String = "CommonAddinsPath"      ' maintained in the Registry
+Private Const VALUE_COMMON_BASE_PATH        As String = "CommonComponentsBasePath"        ' maintained in the Registry
+Private Const VALUE_COMMON_ADDINS_PATH      As String = "CompManAddinPath"      ' maintained in the Registry
 Private Const COMMON_COMPONENTS_PATH        As String = "CommonComponentsPath"  ' maintained in the Registry
                                                                                 ' --------------------------
 Private Const COMMON_COMPONENTS_FOLDER      As String = "\Components"           '
@@ -28,7 +28,7 @@ Public Property Get CodeVersionAsOfDate( _
 Const PROC = "CodeVersionAsOfDate_Get"
 Dim v           As Variant
 
-    On Error GoTo on_error
+    On Error GoTo eh
     InitDat
     sSection = SectionComponent(sComp)
     dat.Aspect = sSection
@@ -40,11 +40,11 @@ Dim v           As Variant
     End If
     Exit Property
 
-on_error:
+eh:
 #If Debugging Then
     Stop: Resume
 #End If
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Property
 
 Public Property Let CodeVersionAsOfDate( _
@@ -59,29 +59,6 @@ Public Property Let CodeVersionAsOfDate( _
     sSection = SectionComponent(sComp)
     dat.Aspect = sSection
     dat.ValueLet sHostBaseName & ValueNameAsOfUpdateDate(sSection), dt
-End Property
-
-Public Property Get CommCompHostWorkbookFullName( _
-                    Optional ByVal sComp As String) As String
-' -----------------------------------------------------------
-' Returns a Component's (sComp) Host Workbook FullName.
-' -----------------------------------------------------------
-Dim sWbHostBaseName As String
-
-    InitDat
-    With dat
-        sSection = SectionComponent(sComp)
-        If .Exists(sAspect:=sSection) Then
-            
-            .Aspect = sSection
-            sWbHostBaseName = .ValueGet(ValueNameHostBaseName(sSection))
-            
-            sSection = SectionHostWorkbook(sWbHostBaseName)
-            .Aspect = sSection
-            CommCompHostWorkbookFullName = .ValueGet(ValueNameHostFullName(sSection))
-        End If
-    End With
-    
 End Property
 
 Public Property Get CommCompExpFileFullName( _
@@ -136,6 +113,29 @@ Public Property Let CommCompHostWorkbookBaseName( _
     dat.ValueLet ValueNameHostBaseName(sSection), sWbBaseName
 End Property
 
+Public Property Get CommCompHostWorkbookFullName( _
+                    Optional ByVal sComp As String) As String
+' -----------------------------------------------------------
+' Returns a Component's (sComp) Host Workbook FullName.
+' -----------------------------------------------------------
+Dim sWbHostBaseName As String
+
+    InitDat
+    With dat
+        sSection = SectionComponent(sComp)
+        If .Exists(sAspect:=sSection) Then
+            
+            .Aspect = sSection
+            sWbHostBaseName = .ValueGet(ValueNameHostBaseName(sSection))
+            
+            sSection = SectionHostWorkbook(sWbHostBaseName)
+            .Aspect = sSection
+            CommCompHostWorkbookFullName = .ValueGet(ValueNameHostFullName(sSection))
+        End If
+    End With
+    
+End Property
+
 Public Property Get CommCompsHostWorkbookFullName( _
                     Optional ByVal sHostBaseName As String) As String
 ' -------------------------------------------------------------------------
@@ -159,25 +159,25 @@ Public Property Let CommCompsHostWorkbookFullName( _
     dat.ValueLet ValueNameHostFullName(sSection), sHostFullName
 End Property
 
-Public Property Get CommonAddinsPath() As String
+Public Property Get CompManAddinPath() As String
     InitBaseConfig
     base.Aspect = ASPCT_BASE_CONFIG
-    CommonAddinsPath = base.ValueGet(VALUE_COMMON_ADDINS_PATH)
+    CompManAddinPath = base.ValueGet(VALUE_COMMON_ADDINS_PATH)
 End Property
 
-Public Property Get CommonBasePath() As String
-    InitBaseConfig
-    base.Aspect = ASPCT_BASE_CONFIG
-    CommonBasePath = base.ValueGet(VALUE_COMMON_BASE_PATH)
-End Property
-
-Private Property Let CommonAddinsPath(ByVal s As String)
+Private Property Let CompManAddinPath(ByVal s As String)
     InitBaseConfig
     base.Aspect = ASPCT_BASE_CONFIG
     base.ValueLet VALUE_COMMON_ADDINS_PATH, s
 End Property
 
-Private Property Let CommonBasePath(ByVal s As String)
+Public Property Get CommonComponentsBasePath() As String
+    InitBaseConfig
+    base.Aspect = ASPCT_BASE_CONFIG
+    CommonComponentsBasePath = base.ValueGet(VALUE_COMMON_BASE_PATH)
+End Property
+
+Private Property Let CommonComponentsBasePath(ByVal s As String)
     InitBaseConfig
     base.Aspect = ASPCT_BASE_CONFIG
     base.ValueLet VALUE_COMMON_BASE_PATH, s
@@ -195,7 +195,7 @@ Dim sExpFolder  As String
     dat.Aspect = sSection
     sExpFolder = dat.ValueGet(ValueNameWbExpFolder(sSection))
     If sExpFolder = vbNullString Then
-        sExpFolder = mCommDat.CommonBasePath & "\" & sHostBaseName
+        sExpFolder = mCommDat.CommonComponentsBasePath & "\" & sHostBaseName
         With New FileSystemObject
             If Not .FolderExists(sExpFolder) Then
                 .CreateFolder sExpFolder
@@ -228,13 +228,21 @@ Public Property Let HostWorkbookCodeBackUpExportFolder( _
 End Property
 
 Private Property Get SectionComponent(ByVal s As String):           SectionComponent = SECTION_COMPONENT & s:                       End Property
+
 Private Property Get SectionHostWorkbook(ByVal s As String):        SectionHostWorkbook = SECTION_HOST_WORKBOOK & s:                End Property
+
 Private Property Get ValueNameAsOfUpdateDate(ByVal s As String):    ValueNameAsOfUpdateDate = s & ".CurrentCodeVersionAsOfDate":    End Property
+
 Private Property Get ValueNameExportFile(ByVal s As String):        ValueNameExportFile = s & ".ExportFile":                        End Property
-Private Property Get ValueNameHostFullName(ByVal s As String):      ValueNameHostFullName = s & ".FullName":                        End Property
+
 Private Property Get ValueNameHostBaseName(ByVal s As String):      ValueNameHostBaseName = s & ".HostWorkbook":                    End Property
+
+Private Property Get ValueNameHostFullName(ByVal s As String):      ValueNameHostFullName = s & ".FullName":                        End Property
+
 Private Property Get ValueNameName(ByVal s As String):              ValueNameName = s & ".Name":                                    End Property
+
 Private Property Get ValueNameType(ByVal s As String):              ValueNameType = s & ".Type":                                    End Property
+
 Private Property Get ValueNameWbExpFolder(ByVal s As String):       ValueNameWbExpFolder = s & ".ExportFolder":                     End Property
 
 Public Sub AssertInitialConfiguration()
@@ -251,32 +259,32 @@ Dim sTitle          As String
     With New FileSystemObject
         
         '~~ Assert the Common Workbooks path
-        If CommonBasePath = vbNullString Then
-            CommonBasePath = mConfig.CommonBasePath
+        If CommonComponentsBasePath = vbNullString Then
+            CommonComponentsBasePath = mConfig.CommonComponentsBasePath
         Else
-            While Not .FolderExists(CommonBasePath)
-                CommonBasePath = mConfig.CommonBasePath("Then configured Common Component Workbook path does not exist. Select another one.")
+            While Not .FolderExists(CommonComponentsBasePath)
+                CommonComponentsBasePath = mConfig.CommonComponentsBasePath("Then configured Common Component Workbook path does not exist. Select another one.")
             Wend
         End If
         
         '~~ Assert the Common Addins path
-        If CommonAddinsPath = vbNullString Then
-            CommonAddinsPath = mConfig.CommonAddinsPath()
-            If CommonAddinsPath = vbNullString Then
-                CommonAddinsPath = Application.UserLibraryPath
+        If CompManAddinPath = vbNullString Then
+            CompManAddinPath = mConfig.CompManAddinPath()
+            If CompManAddinPath = vbNullString Then
+                CompManAddinPath = Application.UserLibraryPath
             End If
         Else
-            While Not .FolderExists(CommonAddinsPath)
+            While Not .FolderExists(CompManAddinPath)
                 '~~ Configured but folder not or no longer exists
-                CommonAddinsPath = mConfig.CommonAddinsPath("The configured Common Addins path does not exist. Select another one or escape for the default path")
-                If CommonAddinsPath = vbNullString Then
-                    CommonAddinsPath = Application.UserLibraryPath
+                CompManAddinPath = mConfig.CompManAddinPath("The configured Common Addins path does not exist. Select another one or escape for the default path")
+                If CompManAddinPath = vbNullString Then
+                    CompManAddinPath = Application.UserLibraryPath
                 End If
             Wend
         End If
                
         '~~ Assure trust in this location
-        mCommDat.TrustThisFolder FolderPath:=CommonAddinsPath, TrustSubfolders:=False
+        mCommDat.TrustThisFolder FolderPath:=mConfig.CompManAddinPath, TrustSubfolders:=False
               
         '~~ Assert the Export Path for ThisWorkbook regarded a Common Workbook
         '~~ though it does not host any Common Component (rather using a lot of them)
@@ -308,7 +316,7 @@ Dim dct         As Dictionary
     Set dct = dat.Aspects
     If dct.Count > 0 Then
         For Each v In dct
-            If Left(v, Len(SECTION_COMPONENT)) = SECTION_COMPONENT Then
+            If left(v, Len(SECTION_COMPONENT)) = SECTION_COMPONENT Then
                 lMax = Max(lMax, Len(v))
             End If
         Next v
@@ -318,11 +326,12 @@ Dim dct         As Dictionary
 End Function
 
 Public Sub DisplayCfg()
-Dim dct     As New Dictionary
-Dim v       As Variant
-Dim lMax    As Long
-Dim sMsg    As String
-Dim sName   As String
+
+    Dim dct     As New Dictionary
+    Dim v       As Variant
+    Dim lMax    As Long
+    Dim sMsg    As tMsg
+    Dim sName   As String
 
     InitDat
 '    dat.ValuesDisplay
@@ -334,16 +343,16 @@ Dim sName   As String
     Next v
     For Each v In dct
         sName = Split(v, ".")(1) & "." & Split(v, ".")(2)
-        sMsg = sName & String(lMax - Len(sName), " ") & " = " & dct.Item(v) & vbLf & sMsg
+        sMsg.section(1).sText = sName & String(lMax - Len(sName), " ") & " = " & dct.Item(v) & vbLf & sMsg.section(1).sText
     Next v
-    mBasic.Msg sTitle:="Current content of " & dat.Subject & " (section.valuename = value)", _
-             sMsgText:=sMsg, _
-             bFixed:=True
+    mMsg.Dsply dsply_title:="Current content of " & dat.Subject & " (section.valuename = value)", _
+               dsply_message:=sMsg
 End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCommDat" & "." & sProc
 End Function
+
                                    
 Public Function HostWorkbooks() As Dictionary
 ' -------------------------------------------
@@ -380,7 +389,7 @@ Private Sub InitDat()
         With dat
             .Location = spp_File
             .Extension = ".dat"
-            .Subject = CommonBasePath & SBJCT_FILE_NAME
+            .Subject = CommonComponentsBasePath & SBJCT_FILE_NAME
         End With
     End If
 End Sub
@@ -526,7 +535,7 @@ Dim sDate               As String
 Dim sDesc               As String
 Dim i                   As Long
     
-    On Error GoTo on_error
+    On Error GoTo eh
 
     bSubFolders = True
     bNetworkLocation = False
@@ -587,7 +596,7 @@ exit_sub:
     Set oRegistry = Nothing
     Exit Sub
 
-on_error:
+eh:
     Stop: Resume ' exit_sub
 End Sub
 

@@ -114,76 +114,9 @@ Private wbTarget    As Workbook     ' The Workbook of which the VB-Components ar
 Private wbSource    As Workbook     ' The Workbook which contains the up to date VB-Code-Modules                                    ' (yet not implemented!)
 Public asNoSynch()  As String
 
-Public Sub ExportComponent( _
-           Optional ByVal wb As Workbook = Nothing, _
-           Optional ByVal sComp As String = vbNullString)
-' -------------------------------------------------------
-'
-' -------------------------------------------------------
-Const PROC              As String = "ExportComponent"
-Dim cManagedComponent   As New clsComp
-Dim dctSelected         As Dictionary
-Dim v                   As Variant
-Dim sExported           As String
-Dim lExported           As Long
-Dim lComponents         As Long
-Dim sMsg                As String
-Dim bWhenChangedOnly    As Boolean
-
-    On Error GoTo on_error
-    
-    If wb Is Nothing Then Set wb = ActiveWorkbook
-    
-    With cManagedComponent
-        
-        If wbAddIn.IsAddinInstance _
-        Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
-        .Host = wb
-        lComponents = wb.VBProject.VBComponents.Count
-        
-        If sComp = vbNullString Then
-            For Each v In .SelectedComponents(bWhenChangedOnly)
-                .VBComp = .Host.VBProject.VBComponents(v)
-                If bWhenChangedOnly Then
-                    If .CodeChanged Then
-                        .BackUpCode
-                        sExported = .VBComp.Name & ", " & sExported
-                        lExported = lExported + 1
-                    End If
-                Else
-                    .BackUpCode
-                    sExported = .VBComp.Name & ", " & sExported
-                    lExported = lExported + 1
-                End If
-            Next v
-        Else
-            If .Exists(sComp) Then
-                .VBComp = .Host.VBProject.VBComponents(sComp)
-                .BackUpCode
-                sExported = .VBComp.Name & ", " & sExported
-                lExported = lExported + 1
-            End If
-        End If
-
-        Select Case lExported
-            Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & .Host.Name & " had been changed/exported/backed up."
-            Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 2)
-            Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 1)
-        End Select
-        If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
-        Application.StatusBar = sMsg
-    
-    End With
-    
-exit_proc:
-    Exit Sub
-    
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
-End Sub
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "mCompMan" & "." & sProc
+End Function
 
 Public Sub ExportAll( _
            Optional ByVal wb As Workbook = Nothing, _
@@ -195,12 +128,12 @@ Const PROC              As String = "ExportAll"
 Dim cManagedComponent   As New clsComp
 Dim vbc                 As VBComponent
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     If wb Is Nothing Then Set wb = ActiveWorkbook
     With cManagedComponent
         If wbAddIn.IsAddinInstance _
-        Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
+        Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
         .Host = wb
         For Each vbc In .Host.VBProject.VBComponents
             .VBComp = vbc
@@ -208,14 +141,10 @@ Dim vbc                 As VBComponent
         Next vbc
         
     End With
-exit_proc:
-    Exit Sub
+
+xt: Exit Sub
     
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub ExportChangedComponents(ByVal wb As Workbook, _
@@ -254,7 +183,7 @@ Dim lUpdated            As Long
 Dim sUpdated            As String
 Dim sMsg                As String
 
-    On Error GoTo on_error
+    On Error GoTo eh
     BoP ErrSrc(PROC)
     
     If wb Is Nothing Then Set wb = ActiveWorkbook
@@ -330,24 +259,85 @@ next_vbc:
             Next v
         End With
     
-exit_proc:
-        Select Case lExported
+xt:     Select Case lExported
             Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & .Host.Name & " had been changed/exported/backed up."
-            Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 2)
-            Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 1)
+            Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & left(sExported, Len(sExported) - 2)
+            Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & left(sExported, Len(sExported) - 1)
         End Select
-        If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
+        If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
         Application.StatusBar = sMsg
         
         EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
         Exit Sub
     End With
     
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
+End Sub
+
+Public Sub ExportComponent( _
+           Optional ByVal wb As Workbook = Nothing, _
+           Optional ByVal sComp As String = vbNullString)
+' -------------------------------------------------------
+'
+' -------------------------------------------------------
+Const PROC              As String = "ExportComponent"
+Dim cManagedComponent   As New clsComp
+Dim dctSelected         As Dictionary
+Dim v                   As Variant
+Dim sExported           As String
+Dim lExported           As Long
+Dim lComponents         As Long
+Dim sMsg                As String
+Dim bWhenChangedOnly    As Boolean
+
+    On Error GoTo eh
+    
+    If wb Is Nothing Then Set wb = ActiveWorkbook
+    
+    With cManagedComponent
+        
+        If wbAddIn.IsAddinInstance _
+        Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
+        .Host = wb
+        lComponents = wb.VBProject.VBComponents.Count
+        
+        If sComp = vbNullString Then
+            For Each v In .SelectedComponents(bWhenChangedOnly)
+                .VBComp = .Host.VBProject.VBComponents(v)
+                If bWhenChangedOnly Then
+                    If .CodeChanged Then
+                        .BackUpCode
+                        sExported = .VBComp.Name & ", " & sExported
+                        lExported = lExported + 1
+                    End If
+                Else
+                    .BackUpCode
+                    sExported = .VBComp.Name & ", " & sExported
+                    lExported = lExported + 1
+                End If
+            Next v
+        Else
+            If .Exists(sComp) Then
+                .VBComp = .Host.VBProject.VBComponents(sComp)
+                .BackUpCode
+                sExported = .VBComp.Name & ", " & sExported
+                lExported = lExported + 1
+            End If
+        End If
+
+        Select Case lExported
+            Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & .Host.Name & " had been changed/exported/backed up."
+            Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & left(sExported, Len(sExported) - 2)
+            Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & left(sExported, Len(sExported) - 1)
+        End Select
+        If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
+        Application.StatusBar = sMsg
+    
+    End With
+    
+xt: Exit Sub
+    
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
@@ -375,7 +365,7 @@ Dim lReplaced           As Long
 Dim sReplaced           As String
 Dim sMsg                As String
 
-    On Error GoTo on_error
+    On Error GoTo eh
     BoP ErrSrc(PROC)
     
     With cTarget
@@ -408,37 +398,32 @@ Dim sMsg                As String
         
     End With
     
-exit_proc:
-    Select Case lCommonUsed
+xt: Select Case lCommonUsed
         Case 0: sMsg = "No Components of " & lComponents & " had been identified as ""Common Used ""."
         Case 1
             Select Case lReplaced
                 Case 0:     sMsg = "1 Component of " & lComponents & " has been identified as ""Used Common Component "" but not updated since the code origin had not changed."
-                Case 1:     sMsg = "1 Component of " & lComponents & " has been identified as ""Used Common Component"" and updated because the code origin had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case 1:     sMsg = "1 Component of " & lComponents & " has been identified as ""Used Common Component"" and updated because the code origin had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
                End Select
         Case Else
             Select Case lReplaced
                 Case 0:     sMsg = lCommonUsed & " Components of " & lComponents & " had been identified as ""Used Common Components"". None had been updated since none of the code origins had changed."
-                Case 1:     sMsg = lCommonUsed & " Components of " & lComponents & " had been identified as ""Used Common Components"". One had been updated since the code origin had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
-                Case Else:  sMsg = lCommonUsed & " Components of " & lComponents & " had been identified as ""Used Common Components"". " & lReplaced & " have been updated because the code origin had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case 1:     sMsg = lCommonUsed & " Components of " & lComponents & " had been identified as ""Used Common Components"". One had been updated since the code origin had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case Else:  sMsg = lCommonUsed & " Components of " & lComponents & " had been identified as ""Used Common Components"". " & lReplaced & " have been updated because the code origin had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
             End Select
     End Select
-    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
+    If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
     
     EoP ErrSrc(PROC)
     Exit Sub
     
-on_error:
+eh:
 #If Debugging Then
     Debug.Print Err.Description: Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Sub
-
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mCompMan" & "." & sProc
-End Function
 
 Public Sub Version(ByVal Version As clsAddinVersion)
 ' ---------------------------------------------------------------------------------------------------------------------

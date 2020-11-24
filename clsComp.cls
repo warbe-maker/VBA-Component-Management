@@ -48,7 +48,7 @@ Private lCompMaxLen     As Long
 Private dctCommComps    As Dictionary
 
 Private Sub Class_Initialize()
-    sPathCommon = mCommDat.CommonBasePath
+    sPathCommon = mCommDat.CommonComponentsBasePath
     lCompMaxLen = mCommDat.CommCompsMaxLenght
     Set dctCommonHosted = New Dictionary
 End Sub
@@ -76,7 +76,7 @@ Const PROC  As String = "CodeChanged"
 Dim dctComp As Dictionary
 Dim dctFile As Dictionary
     
-    On Error GoTo on_error
+    On Error GoTo eh
     
     Select Case vbc.Type
         Case vbext_ct_StdModule, vbext_ct_ClassModule, vbext_ct_Document
@@ -84,7 +84,7 @@ Dim dctFile As Dictionary
             Set dctComp = CodeToDict
             Set dctFile = ExportFileToDict(flExport)
             If vbc.Name <> BaseName(flExport.Path) _
-            Then Err.Raise AppErr(1), ErrSrc(PROC), "The to be compared sources do not have the same name!"
+            Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The to be compared sources do not have the same name!"
             
             CodeChanged = mBasic.DictDiffers(dctComp, dctFile)
         
@@ -93,14 +93,9 @@ Dim dctFile As Dictionary
             CodeChanged = FormCodeAndOrDesignChanged
     End Select
 
-exit_proc:
-    Exit Property
+xt: Exit Property
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Property
 
 Private Property Get CommonOriginCodeDiffersFromCommonUsedCode( _
@@ -116,20 +111,15 @@ Const PROC  As String = "CommonOriginCodeDiffersFromCommonUsedCode"
 Dim aFile1  As Variant
 Dim aFile2  As Variant
     
-    On Error GoTo on_error
+    On Error GoTo eh
     
     aFile1 = ExportFileToArray(flOrigin) ' obtained through its name with mCommDat
     aFile2 = ExportFileToArray(flUsed)
     CommonOriginCodeDiffersFromCommonUsedCode = mBasic.ArrayDiffers(aFile1, aFile2)
 
-exit_proc:
-    Exit Property
+xt: Exit Property
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Property
 
 Public Property Get CommonOriginCodeChanged( _
@@ -309,36 +299,40 @@ Private Property Get UpdateOriginWithUsedConfirmed() As enUpdateReply
 ' -------------------------------------------------------------------
 ' Returns TRUE when the "reverse" code update is confirmed.
 ' -------------------------------------------------------------------
-Const PROC                  As String = "UpdateOriginWithUsedConfirmed"
-Const REPLY_UPDATE_ORIGIN   As String = "Update Origin Code"
-Const REPLY_DISCARD_CHANGES As String = "Discard all Code Changes"
-Const REPLY_DSPLY_DIFF      As String = "Show Difference"
-Const REPLY_ABORT           As String = "Abort"
-Dim sReplyDsplyDiff         As String
-Dim sDsplyDiffMsg           As String
-Dim sBaseMsg                As String
-
-    On Error GoTo on_error
+    Const PROC                  As String = "UpdateOriginWithUsedConfirmed"
+    Const REPLY_UPDATE_ORIGIN   As String = "Update Origin Code"
+    Const REPLY_DISCARD_CHANGES As String = "Discard all Code Changes"
+    Const REPLY_DSPLY_DIFF      As String = "Show Difference"
+    Const REPLY_ABORT           As String = "Abort"
+    
+    Dim sReplyDsplyDiff         As tMsg
+    Dim sBaseMsg                As String
+    Dim sMsg                    As tMsg
+    Dim sDsplyDiffMsg           As tMsg
+    
+    On Error GoTo eh
     
     '~~ Prepare communication message and reply option
     If mBasic.AppIsInstalled("WinMerge") Then
-        sReplyDsplyDiff = "," & REPLY_DSPLY_DIFF
-        sDsplyDiffMsg = DQUOTE & REPLY_DSPLY_DIFF & DQUOTE & " to see what has been changed and decide then (leave with Esc key)"
+        sReplyDsplyDiff.section(1).sText = "," & REPLY_DSPLY_DIFF
+        sDsplyDiffMsg.section(1).sText = DQUOTE & REPLY_DSPLY_DIFF & DQUOTE & " to see what has been changed and decide then (leave with Esc key)"
     Else
-        sReplyDsplyDiff = vbNullString
-        sDsplyDiffMsg = "."
+        sReplyDsplyDiff.section(1).sText = vbNullString
+        sDsplyDiffMsg.section(1).sText = "."
     End If
                 
     sBaseMsg = "The Common Component '" & sComponentName & "' used in this Workbook has been changed in it." & vbLf & vbLf & _
                "Reply with:" & vbLf & _
                DQUOTE & REPLY_UPDATE_ORIGIN & DQUOTE & " when the changes should become common/permanent" & vbLf & _
-               sDsplyDiffMsg & vbLf & _
+               sDsplyDiffMsg.section(1).sText & vbLf & _
                DQUOTE & REPLY_DISCARD_CHANGES & DQUOTE & " to discard all changes, i.e. (re-)instate the origin code"
     
     '~~ Offer options
-    Select Case mBasic.Msg(sTitle:="Common Component code changed in this Workbook", _
-                           sMsgText:=sBaseMsg & sDsplyDiffMsg, _
-                           vReplies:=REPLY_UPDATE_ORIGIN & sReplyDsplyDiff & "," & REPLY_DISCARD_CHANGES & "," & REPLY_ABORT)
+    sMsg.section(1).sText = sBaseMsg
+    sDsplyDiffMsg.section(1).sText = sBaseMsg & sDsplyDiffMsg.section(1).sText
+    Select Case mMsg.Dsply(dsply_title:="Common Component code changed in this Workbook", _
+                           dsply_message:=sDsplyDiffMsg, _
+                           dsply_buttons:=REPLY_UPDATE_ORIGIN & sReplyDsplyDiff.section(1).sText & "," & REPLY_DISCARD_CHANGES & "," & REPLY_ABORT)
         
         Case REPLY_UPDATE_ORIGIN    ' Update without display of the differences
             UpdateOriginWithUsedConfirmed = True
@@ -350,9 +344,9 @@ Dim sBaseMsg                As String
                         sTitleLeft:="Code of " & sComponentName & " currently hosted in Workbook/VBProject " & Me.CommonOrigin.HostBaseName, _
                         sTitleRght:="Code of " & sComponentName & " currently used in Workbook/VBProject " & Me.HostBaseName
             '~~ When the code difference display has been closed, offer update/ignore again
-            Select Case mBasic.Msg(sTitle:="Common Component code changed in this Workbook", _
-                                   sMsgText:=sBaseMsg, _
-                                   vReplies:=REPLY_UPDATE_ORIGIN & "," & REPLY_DISCARD_CHANGES & "," & REPLY_ABORT)
+            Select Case mMsg.Dsply(dsply_title:="Common Component code changed in this Workbook", _
+                                   dsply_message:=sMsg, _
+                                   dsply_buttons:=REPLY_UPDATE_ORIGIN & "," & REPLY_DISCARD_CHANGES & "," & REPLY_ABORT)
                 Case REPLY_UPDATE_ORIGIN:   UpdateOriginWithUsedConfirmed = enUpdateOriginWithUsed
                 Case REPLY_DISCARD_CHANGES: UpdateOriginWithUsedConfirmed = enUpdateUsedWithOrigin
                 Case REPLY_ABORT:           UpdateOriginWithUsedConfirmed = enUpdateNone
@@ -364,15 +358,9 @@ Dim sBaseMsg                As String
         
     End Select
                                             
-exit_proc:
-    Exit Property
+xt: Exit Property
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
-
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Property
 
 Public Property Get VBComp() As VBComponent
@@ -391,9 +379,9 @@ End Property
 Public Property Let VBComp(ByVal oComp As VBComponent)
 Const PROC  As String = "VBComp_Let"
 
-    On Error GoTo on_error
+    On Error GoTo eh
     If Me.Host Is Nothing _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "There's yet no Host Workbook assigned!"
+    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "There's yet no Host Workbook assigned!"
     
     Set vbc = oComp
     sComponentName = vbc.Name
@@ -405,15 +393,9 @@ Const PROC  As String = "VBComp_Let"
         Me.BackUpCode
     End If
     
-exit_proc:
-    Exit Property
+xt: Exit Property
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
- 
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Property
 
 Public Property Get HostBaseName() As String:                 HostBaseName = BaseName(sHostFullName):         End Property
@@ -490,7 +472,7 @@ Dim sTempPath   As String
 Dim sTempFolder As String
 Dim flTemp      As File
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     With New FileSystemObject
         sTempFolder = .GetFile(flExport.Path).ParentFolder
@@ -510,14 +492,9 @@ Dim flTemp      As File
         .GetFolder(sTempFolder).Delete
     End With
                                             
-exit_proc:
-    Exit Function
+xt: Exit Function
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function IsUsedCommonComponent() As Boolean
@@ -536,8 +513,8 @@ Public Property Get IsHostedCommonComponent() As Boolean
 End Property
 
 Public Sub LogCommonCompExport()
-    mCompLog.LogAction wbHost.Name, sComponentName & Space$(lCompMaxLen - Len(vbc.Name)) & ": The original's last update date = " & flExport.DateLastModified
-    mCompLog.LogAction wbHost.Name, sComponentName & Space$(lCompMaxLen - Len(vbc.Name)) & ": The registered last as-of used  = " & Me.CodeVersionAsOfDate
+    mCompLog.LogAction wbHost.Name, sComponentName & mBasic.Space$(lCompMaxLen - Len(vbc.Name)) & ": The original's last update date = " & flExport.DateLastModified
+    mCompLog.LogAction wbHost.Name, sComponentName & mBasic.Space$(lCompMaxLen - Len(vbc.Name)) & ": The registered last as-of used  = " & Me.CodeVersionAsOfDate
 End Sub
 
 Public Sub UpdateOriginWithUsedWhenConfirmedByUser(ByRef bUpdated As Boolean)
@@ -552,7 +529,7 @@ Dim fl      As File
 Dim sWbHost As String
 Dim sComp   As String
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     Set fl = Me.ExportFile
     With Me.CommonOrigin
@@ -584,14 +561,9 @@ Dim sComp   As String
         End Select
     End With ' Me.CommonOrigin
 
-exit_proc:
-    Exit Sub
+xt: Exit Sub
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub UpdateUsedWithOrigin()
@@ -601,7 +573,7 @@ Public Sub UpdateUsedWithOrigin()
 ' -------------------------------
 Const PROC  As String = "UpdateUsedWithOrigin"
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     With Me
 '        Select Case vbc.Type
@@ -614,17 +586,13 @@ Const PROC  As String = "UpdateUsedWithOrigin"
         '~~ Log the updated code version
         .CodeVersionAsOfDate = .CommonOrigin.ExportFile.DateLastModified
         '~~ Log the update
-        mCompLog.LogAction wbHost.Name, sComponentName & Space$(lCompMaxLen - Len(sComponentName)) & ": The original's last update date = " & .CommonOrigin.ExportFile.DateLastModified
-        mCompLog.LogAction wbHost.Name, sComponentName & Space$(lCompMaxLen - Len(sComponentName)) & ": The registered last as-of used  = " & .CodeVersionAsOfDate
+        mCompLog.LogAction wbHost.Name, sComponentName & mBasic.Space$(lCompMaxLen - Len(sComponentName)) & ": The original's last update date = " & .CommonOrigin.ExportFile.DateLastModified
+        mCompLog.LogAction wbHost.Name, sComponentName & mBasic.Space$(lCompMaxLen - Len(sComponentName)) & ": The registered last as-of used  = " & .CodeVersionAsOfDate
     End With
-exit_proc:
-    Exit Sub
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+xt: Exit Sub
+
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub SynchUsedWithOrigin()
@@ -638,7 +606,7 @@ Dim iLine   As Long
 Dim v       As Variant
 Dim vbcm    As CodeModule
 
-    On Error GoTo on_error
+    On Error GoTo eh
                 
     '~~ Remove all lines from the target component
     Set vbcm = vbc.CodeModule
@@ -654,14 +622,9 @@ Dim vbcm    As CodeModule
     Next v
     Debug.Print DebugComp & Now() & " Code in " & Me.Host.Name & " synchronized with code in " & Me.CommonOrigin.Host.Name & " ( via Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
                 
-exit_proc:
-    Exit Sub
+xt: Exit Sub
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub SynchOriginWithUsed()
@@ -677,7 +640,7 @@ Dim v       As Variant
 Dim vbcm    As CodeModule
 Dim wbHost      As Workbook
 
-    On Error GoTo on_error
+    On Error GoTo eh
                 
     Debug.Print DebugComp & Now() & " About to synch code with Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
     '~~ Remove all lines from the target component
@@ -696,21 +659,15 @@ Dim wbHost      As Workbook
     
     Debug.Print DebugComp & Now() & " Code synchronized with Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
                 
-exit_proc:
-    Exit Sub
-    
+xt: Exit Sub
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub ReplaceUsedWithOrigin()
 Const PROC  As String = "ReplaceUsedWithOrigin"
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     CleanExportFile Me.ExportFile
     vbc.Name = vbc.Name & "_Temp"
@@ -726,14 +683,9 @@ Const PROC  As String = "ReplaceUsedWithOrigin"
     wbHost.Save
     Application.EnableEvents = True
     
-exit_proc:
-    Exit Sub
+xt: Exit Sub
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub ReplaceOriginWithUsed()
@@ -745,7 +697,7 @@ Public Sub ReplaceOriginWithUsed()
 Const PROC  As String = "ReplaceOriginWithUsed"
 Dim wbHost      As Workbook
 
-    On Error GoTo on_error
+    On Error GoTo eh
     Debug.Print DebugComp & Now() & " About to replace with Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
     CleanExportFile Me.ExportFile
     With Me.CommonOrigin
@@ -756,13 +708,9 @@ Dim wbHost      As Workbook
     End With
     Debug.Print DebugComp & Now() & " Replaced with Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
 
-exit_proc:
-    Exit Sub
+xt: Exit Sub
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Private Function FileExists(ByVal sFile As String) As Boolean
@@ -792,7 +740,7 @@ Public Function TypeString() As String
 ' --------------------------------------------------------------------------
 Const PROC  As String = "TypeString"          ' This procedure's name for the error handling and execution tracing
     
-    On Error GoTo on_error
+    On Error GoTo eh
         
     Select Case vbc.Type
         Case vbext_ct_ActiveXDesigner:  TypeString = "ActiveX Designer"
@@ -803,14 +751,9 @@ Const PROC  As String = "TypeString"          ' This procedure's name for the er
         Case Else:                      TypeString = "Type '" & CStr(vbc.Type) & "' unknown"
     End Select
     
-exit_proc:
-    Exit Function
+xt: Exit Function
     
-on_error:
-#If Debugging Then
-    Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function CodeModuleIsEmpty() As Boolean
@@ -838,10 +781,10 @@ Dim va      As Variant
 Dim sLine   As String
 Dim sSplit  As String
 
-    On Error GoTo on_error
+    On Error GoTo eh
         
     With vbc.CodeModule
-        If .CountOfLines = 0 Then GoTo exit_proc
+        If .CountOfLines = 0 Then GoTo xt
         sLine = .Lines(1, .CountOfLines)
         If InStr(sLine, vbCr) <> 0 Then sSplit = vbCr
         If InStr(sLine, vbLf) <> 0 Then sSplit = sSplit & vbLf
@@ -850,16 +793,11 @@ Dim sSplit  As String
             
     mBasic.ArrayTrimm va
     
-exit_proc:
-    If Not TypeName(va) = "Empty" _
+xt: If Not TypeName(va) = "Empty" _
     Then CodeToArray = va
     Exit Function
     
-on_error:
-#If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function CodeToDict() As Dictionary
@@ -875,10 +813,10 @@ Dim sSplit  As String
 Dim i       As Long
 Dim v       As Variant
 
-    On Error GoTo on_error
+    On Error GoTo eh
         
     With vbc.CodeModule
-        If .CountOfLines = 0 Then GoTo exit_proc
+        If .CountOfLines = 0 Then GoTo xt
         sLine = .Lines(1, .CountOfLines)
         If InStr(sLine, vbCr) <> 0 Then sSplit = vbCr
         If InStr(sLine, vbLf) <> 0 Then sSplit = sSplit & vbLf
@@ -890,15 +828,10 @@ Dim v       As Variant
         dct.Add i, v
     Next v
     
-exit_proc:
-    Set CodeToDict = dct
+xt: Set CodeToDict = dct
     Exit Function
     
-on_error:
-#If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
@@ -916,13 +849,13 @@ Const ATTRIB_VB As String = "Attribute VB_"
 Dim a           As Variant
 Dim i           As Long
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     a = mFile.ToArray(fl)
     '~~ Remove the extra module information lines
     For i = UBound(a) To LBound(a) Step -1
         '~~ Find last Exported module info
-        If Left(a(i), Len(ATTRIB_VB)) = ATTRIB_VB Then
+        If left(a(i), Len(ATTRIB_VB)) = ATTRIB_VB Then
             Exit For
         End If
     Next i
@@ -938,14 +871,9 @@ Dim i           As Long
     mBasic.ArrayTrimm a
     ExportFileToArray = a
 
-exit_proc:
-    Exit Function
+xt: Exit Function
     
-on_error:
-#If Debugging Then
-    Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function ExportFileToDict(ByVal fl As File) As Dictionary
@@ -964,15 +892,15 @@ Dim cllRemove       As New Collection
 Dim sLine           As String
 Dim cll             As Collection
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     Set cll = New Collection
     Set dct = mFile.ToDict(fl)
     
     '~~ Remove the extra module information lines
     For Each v In dct
-        If Left(sLine, Len(ATTRIB_LINE)) = ATTRIB_LINE _
-        And Left(dct(v), Len(ATTRIB_LINE)) <> ATTRIB_LINE _
+        If left(sLine, Len(ATTRIB_LINE)) = ATTRIB_LINE _
+        And left(dct(v), Len(ATTRIB_LINE)) <> ATTRIB_LINE _
         Then Exit For
         cllRemove.Add v
         sLine = dct(v)
@@ -1005,15 +933,10 @@ Dim cll             As Collection
     
     Set ExportFileToDict = dct
 
-exit_proc:
-    Set cll = Nothing
+xt: Set cll = Nothing
     Exit Function
     
-on_error:
-#If Debugging Then
-    Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Sub DisplayDiff(ByVal flLeft As File, _
@@ -1030,7 +953,7 @@ Dim windowStyle     As Integer: windowStyle = 1
 Dim sCommand        As String
 
     If Not mBasic.AppIsInstalled("WinMerge") _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "Display of the difference between two files relies on WinMerge installed, which is not the case!"
+    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "Display of the difference between two files relies on WinMerge installed, which is not the case!"
     
     sCommand = "WinMergeU /e" & _
                " /dl " & DQUOTE & sTitleLeft & DQUOTE & _
@@ -1098,7 +1021,7 @@ Dim ts              As TextStream
 Dim sLine           As String
 
     a = mFile.ToArray(fl.Path)
-    Do Until Left(a(i), Len(ATTRIBUTE_ID)) <> ATTRIBUTE_ID
+    Do Until left(a(i), Len(ATTRIBUTE_ID)) <> ATTRIBUTE_ID
         i = i + 1
         If i > UBound(a) Then Exit Do
     Loop

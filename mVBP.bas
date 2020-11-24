@@ -11,7 +11,7 @@ Option Compare Text
 ' - ProcedureExists     Returns TRUE when the object exists
 ' - ReferenceExists     Returns TRUE when the object exists
 '
-' Uses:     Standard Module mErrHndlr
+' Uses:     Standard Module mErH
 '
 ' Requires: Reference to "Microsoft Scripting Runtine"
 '           Reference to "Microsoft Visual Basic for Applications Extensibility ..."
@@ -31,7 +31,7 @@ Dim iLine       As Long             ' For the existence check of a VBA procedure
 Dim sLine       As String           ' For the existence check of a VBA procedure in a CodeModule
 Dim vbProcKind  As vbext_ProcKind   ' For the existence check of a VBA procedure in a CodeModule
 
-    On Error GoTo on_error
+    On Error GoTo eh
     BoP ErrSrc(PROC)
     ProcedureExists = False
 
@@ -42,10 +42,10 @@ Dim vbProcKind  As vbext_ProcKind   ' For the existence check of a VBA procedure
                 For iLine = 1 To .CountOfLines
                     If .ProcOfLine(iLine, vbProcKind) = sName Then
                         ProcedureExists = True
-                        GoTo exit_proc
+                        GoTo xt
                     End If
                 Next iLine
-                GoTo exit_proc
+                GoTo xt
             End With
         ElseIf TypeOf v Is CodeModule Then
             Set vbcm = v
@@ -53,24 +53,19 @@ Dim vbProcKind  As vbext_ProcKind   ' For the existence check of a VBA procedure
                 For iLine = 1 To .CountOfLines
                     If .ProcOfLine(iLine, vbProcKind) = sName Then
                         ProcedureExists = True
-                        GoTo exit_proc
+                        GoTo xt
                     End If
                 Next iLine
-                GoTo exit_proc
+                GoTo xt
             End With
         End If
     End If
-    Err.Raise AppErr(1), ErrSrc(PROC), "The item (parameter v) for the Procedure's existence check is neither a Component object nor a CodeModule object!"
+    Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The item (parameter v) for the Procedure's existence check is neither a Component object nor a CodeModule object!"
 
-exit_proc:
-    EoP ErrSrc(PROC)
+xt: EoP ErrSrc(PROC)
     Exit Function
 
-on_error:
-#If Debugging = 1 Then
-'    Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function CodeModuleIsEmpty(ByVal v As Variant) As Boolean
@@ -82,12 +77,12 @@ Const PROC  As String = "CodeModuleIsEmpty"
 Dim vbc     As VBComponent
 Dim vbcm    As CodeModule
 
-    On Error GoTo on_error
+    On Error GoTo eh
 
     If Not VarType(v) = vbObject _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The parameter is not an object (VBComponwent or CodeModule)!"
+    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The parameter is not an object (VBComponwent or CodeModule)!"
     If Not TypeOf v Is VBComponent And Not TypeOf v Is CodeModule _
-    Then Err.Raise AppErr(2), ErrSrc(PROC), "The parameter (v) is neither a VBComponent nor a CodeModule object!"
+    Then Err.Raise mErH.AppErr(2), ErrSrc(PROC), "The parameter (v) is neither a VBComponent nor a CodeModule object!"
     
     If TypeOf v Is CodeModule Then
         Set vbcm = v
@@ -104,11 +99,9 @@ Dim vbcm    As CodeModule
         End If
     End With
 
-exit_proc:
-    Exit Function
+xt: Exit Function
     
-on_error:
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Sub CodeModuleTrim(ByVal v As Variant, _
@@ -126,16 +119,16 @@ Const PROC  As String = "CodeModuleTrim"
 Dim vbc     As VBComponent
 Dim vbcm    As CodeModule
 
-    On Error GoTo on_error
+    On Error GoTo eh
    
     Select Case TypeName(v)
         Case "String"
             If v = vbNullString _
-            Then Err.Raise AppErr(1), ErrSrc(PROC), "A CodeModule (v) is not provided!"
+            Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "A CodeModule (v) is not provided!"
             
             '~~ The existence check returns the VBComponent object when it exists
             If Not mVBP.ComponentExists(wb, v, vbc) _
-            Then Err.Raise AppErr(5), ErrSrc(PROC), "The CodeModule '" & v & "' (v) does not exist in the Workbook '" & wb.Name & "'!"
+            Then Err.Raise mErH.AppErr(5), ErrSrc(PROC), "The CodeModule '" & v & "' (v) does not exist in the Workbook '" & wb.Name & "'!"
             Set vbcm = vbc.CodeModule
 
         Case "VBComponent"
@@ -156,7 +149,7 @@ Dim vbcm    As CodeModule
                        vbCritical, _
                        "Empty code line cannot be removed"
             End If
-            GoTo exit_proc ' May cause Excel to crash !
+            GoTo xt ' May cause Excel to crash !
         End If
         
         '~~ Remove any leading empty code line
@@ -169,14 +162,9 @@ Dim vbcm    As CodeModule
         Loop
     End With
     
-exit_proc:
-    Exit Sub
+xt: Exit Sub
     
-on_error:
-#If Debugging Then
-    Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Function ComponentExists(ByVal vWb As Variant, _
@@ -194,7 +182,7 @@ Dim sTest   As String
 Dim sName   As String
 Dim vbc     As VBComponent
 
-    On Error GoTo on_error
+    On Error GoTo eh
     ComponentExists = False
         
     Select Case TypeName(vWb)
@@ -202,9 +190,9 @@ Dim vbc     As VBComponent
             Set wb = vWb
         Case "String"
             If Not mWrkbk.IsOpen(vWb, wb) _
-            Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided Workbook (vWb) is not open!"
+            Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The provided Workbook (vWb) is not open!"
         Case Else
-            Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (vWb) is neither an object nor a string!"
+            Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (vWb) is neither an object nor a string!"
     End Select
     
     Select Case TypeName(vComp)
@@ -213,7 +201,7 @@ Dim vbc     As VBComponent
         Case "String"
             sName = vComp
         Case Else
-            Err.Raise AppErr(3), ErrSrc(PROC), "The Component (vComp) is neither an object nor a string!"
+            Err.Raise mErH.AppErr(3), ErrSrc(PROC), "The Component (vComp) is neither an object nor a string!"
     End Select
     
     On Error Resume Next
@@ -223,14 +211,9 @@ Dim vbc     As VBComponent
         Set vbcResult = wb.VBProject.VBComponents(sName)
     End If
 
-exit_proc:
-    Exit Function
+xt: Exit Function
 
-on_error:
-#If Debugging = 1 Then
-    Stop: ' Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function CustomViewExists(ByVal vWb As Variant, _
@@ -245,12 +228,12 @@ Const PROC  As String = "CustomViewExists"      ' This procedure's name for the 
 Dim wb      As Workbook
 Dim sTest   As String
 
-    On Error GoTo on_error
+    On Error GoTo eh
     BoP ErrSrc(PROC)
     CustomViewExists = False
     
     If Not TypeName(vWb) = "Workbook" And VarType(vWb) <> vbString Then
-        Err.Raise AppErr(1), ErrSrc(PROC), "The provided Workbook paramenter (vWB) is neither a Workbook object nor a string!"
+        Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The provided Workbook paramenter (vWB) is neither a Workbook object nor a string!"
     End If
     
     If TypeName(vWb) = "Workbook" Then
@@ -260,32 +243,27 @@ Dim sTest   As String
     End If
     
     If TypeName(vCv) = "Nothing" Then
-        Err.Raise AppErr(2), ErrSrc(PROC), "The paramenter (vCv) is not provided!"
+        Err.Raise mErH.AppErr(2), ErrSrc(PROC), "The paramenter (vCv) is not provided!"
     End If
     
         If TypeOf vCv Is CustomView Then
             On Error Resume Next
             sTest = vCv.Name
             CustomViewExists = Err.Number = 0
-            GoTo exit_proc
+            GoTo xt
         End If
     If VarType(vCv) = vbString Then
         On Error Resume Next
         sTest = wb.CustomViews(vCv).Name
         CustomViewExists = Err.Number = 0
-        GoTo exit_proc
+        GoTo xt
     End If
-    Err.Raise AppErr(1), ErrSrc(PROC), "The CustomView (parameter vCv) for the CustomView's existence check is neither a string (CustomView's name) nor a CustomView object!"
+    Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The CustomView (parameter vCv) for the CustomView's existence check is neither a string (CustomView's name) nor a CustomView object!"
         
-exit_proc:
-    EoP ErrSrc(PROC)
+xt: EoP ErrSrc(PROC)
     Exit Function
     
-on_error:
-#If Debugging = 1 Then
-    Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function ReferenceExists(ByVal vWb As Variant, _
@@ -303,29 +281,29 @@ Dim ref     As Reference
 Dim refTest As Reference
 Dim wb      As Workbook
 
-    On Error GoTo on_error
+    On Error GoTo eh
     BoP ErrSrc(PROC)
     ReferenceExists = False
     
     '~~ Assert vWb
     If Not TypeName(vWb) = "Workbook" And Not TypeName(vWb) = "String" _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided Workbook (vWb) is neither an object nor a string!"
+    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The provided Workbook (vWb) is neither an object nor a string!"
     If TypeName(vWb) = "String" Then
         If Not mWrkbk.IsOpen(vWb, wb) _
-        Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided Workbook (vWb) is not open!"
+        Then Err.Raise mErH.AppErr(2), ErrSrc(PROC), "The provided Workbook (vWb) is not open!"
     Else
         Set wb = vWb
     End If
 
     If TypeName(vRef) = "Nothing" _
-    Then Err.Raise AppErr(2), ErrSrc(PROC), "The Reference (parameter vRef) for the Reference's existence check is ""Nothing""!"
+    Then Err.Raise mErH.AppErr(2), ErrSrc(PROC), "The Reference (parameter vRef) for the Reference's existence check is ""Nothing""!"
     
     If Not TypeOf vRef Is Reference And VarType(vRef) <> vbString _
-    Then Err.Raise AppErr(3), ErrSrc(PROC), "The Reference (parameter vRef) for the Reference's existence check is neither a valid GUID (a string enclosed in { } ) nor a Reference object!"
+    Then Err.Raise mErH.AppErr(3), ErrSrc(PROC), "The Reference (parameter vRef) for the Reference's existence check is neither a valid GUID (a string enclosed in { } ) nor a Reference object!"
     
     If VarType(vRef) = vbString Then
-        If Left$(vRef, 1) <> "{" Or Right$(vRef, 1) <> "}" _
-        Then Err.Raise AppErr(4), ErrSrc(PROC), "The Reference (parameter vRef) for the Reference's existence check is a string but not syntactically correct GUID (a string enclosed in { } )!"
+        If left$(vRef, 1) <> "{" Or Right$(vRef, 1) <> "}" _
+        Then Err.Raise mErH.AppErr(4), ErrSrc(PROC), "The Reference (parameter vRef) for the Reference's existence check is a string but not syntactically correct GUID (a string enclosed in { } )!"
     End If
     
     If TypeOf vRef Is Reference Then
@@ -334,7 +312,7 @@ Dim wb      As Workbook
             If ref.GUID = refTest.GUID Then
                 ReferenceExists = True
                 Set refResult = ref
-                GoTo exit_proc
+                GoTo xt
             End If
         Next ref
     ElseIf VarType(vRef) = vbString Then
@@ -342,20 +320,15 @@ Dim wb      As Workbook
             If ref.GUID = vRef Then
                 ReferenceExists = True
                 Set refResult = ref
-                GoTo exit_proc
+                GoTo xt
             End If
         Next ref
     End If
 
-exit_proc:
-    EoP ErrSrc(PROC)
+xt: EoP ErrSrc(PROC)
     Exit Function
 
-on_error:
-#If Debugging = 1 Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String

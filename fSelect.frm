@@ -58,7 +58,7 @@ Dim v       As Variant
         For Each v In dct
             .lbSelect.AddItem v
         Next v
-        .laCompsInWorkbook.Caption = Replace(.laCompsInWorkbook.Caption, "<wb>", wbHost.Name)
+        .laCompsInWorkbook.caption = Replace(.laCompsInWorkbook.caption, "<wb>", wbHost.Name)
     End With
 
 End Sub

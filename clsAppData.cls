@@ -87,14 +87,14 @@ Private Declare PtrSafe Function GetPrivateProfileString _
                              
 Private Declare PtrSafe Function DeletePrivateProfileSection _
                 Lib "kernel32" Alias "WritePrivateProfileStringA" _
-               (ByVal Section As String, _
+               (ByVal section As String, _
                 ByVal NoKey As Long, _
                 ByVal NoSetting As Long, _
                 ByVal Name As String) As Long
 
 Private Declare PtrSafe Function DeletePrivateProfileKey _
                 Lib "kernel32" Alias "WritePrivateProfileStringA" _
-               (ByVal Section As String, _
+               (ByVal section As String, _
                 ByVal Key As String, _
                 ByVal Setting As Long, _
                 ByVal Name As String) As Long
@@ -107,7 +107,7 @@ Private Declare PtrSafe Function GetPrivateProfileSectionNames _
                  
 Private Declare PtrSafe Function GetPrivateProfileSection _
                 Lib "kernel32" Alias "GetPrivateProfileSectionA" _
-               (ByVal Section As String, _
+               (ByVal section As String, _
                 ByVal Buffer As String, _
                 ByVal Size As Long, _
                 ByVal Name As String) As Long
@@ -129,49 +129,6 @@ Private sExtension  As String       ' The "Private Profile" file's extension (de
 Private sSubject    As String       ' The current effective Subject (name of the "Private Profile" file or the SubKey under the HKey)
 Private dctDefaults As Dictionary   ' Default values for value names
 
-Friend Property Get Location() As enLocation:       Location = lLocation:                       End Property
-Friend Property Get Subject() As String:            Subject = sSubject:                         End Property
-Friend Property Get Aspect() As String:             Aspect = sAspect:                           End Property
-Friend Property Get HKey() As enHKey:               HKey = lHKey:                               End Property
-Friend Property Let HKey(l As enHKey):              lHKey = l:                                  End Property
-Public Property Get MaxRegValueLength() As Long:    MaxRegValueLength = REG_MAX_VALUE_LENGTH:   End Property
-
-Public Property Let Location(l As enLocation)            ' Determines the location of the maintained properties
-    lLocation = l
-    If lLocation = spp_Registry Then
-        SubjectAdjustToRegistry
-        AspectAdjustToRegistry Aspect
-    End If
-End Property
-
-Friend Property Let Extension(s As String)         ' File extension when Location = spp_File
-    If Left$(s, 1) = "." Then sExtension = s Else sExtension = "." & s ' Prefix extension with a .
-    SubjectAdjustExtension
-End Property
-
-Public Property Let Subject(s As String)
-    sSubject = s:   If lLocation = spp_Registry Then SubjectAdjustToRegistry Else SubjectAdjustExtension
-End Property
-
-Private Property Get HKeyHex(Optional ByVal lHKey As enHKey = 0) As Long
-
-    '~~ Use the default values for not provided parameters
-    If lHKey = 0 Then lHKey = Me.HKey
-    Select Case lHKey
-        Case spp_HKEY_CLASSES_ROOT:    HKeyHex = HKEY_CLASSES_ROOT
-        Case spp_HKEY_CURRENT_CONFIG:  HKeyHex = HKEY_CURRENT_CONFIG
-        Case spp_HKEY_CURRENT_USER:    HKeyHex = HKEY_CURRENT_USER
-        Case spp_HKEY_LOCAL_MACHINE:   HKeyHex = HKEY_LOCAL_MACHINE
-        Case spp_HKEY_USERS:           HKeyHex = HKEY_USERS
-        Case Else:                     HKeyHex = HKEY_CURRENT_USER
-    End Select
-
-End Property
-
-Friend Property Let Aspect(s As String)            ' The Current Aspect's name
-    sAspect = s:    If lLocation = spp_Registry Then AspectAdjustToRegistry sAspect
-End Property
-
 Private Sub Class_Initialize()
 ' ----------------------------------------------------
 ' Proper default values are essential for all methods.
@@ -188,55 +145,297 @@ Private Sub Class_Initialize()
     
 End Sub
 
+Private Sub Class_Terminate()
+    Set dctDefaults = Nothing
+End Sub
+
+Friend Property Get Aspect() As String:             Aspect = sAspect:                           End Property
+
+Friend Property Let Aspect(s As String)            ' The Current Aspect's name
+    sAspect = s:    If lLocation = spp_Registry Then AspectAdjustToRegistry sAspect
+End Property
+
+Friend Property Let Extension(s As String)         ' File extension when Location = spp_File
+    If left$(s, 1) = "." Then sExtension = s Else sExtension = "." & s ' Prefix extension with a .
+    SubjectAdjustExtension
+End Property
+
+Friend Property Get HKey() As enHKey:               HKey = lHKey:                               End Property
+
+Friend Property Let HKey(l As enHKey):              lHKey = l:                                  End Property
+
+Private Property Get HKeyHex(Optional ByVal lHKey As enHKey = 0) As Long
+
+    '~~ Use the default values for not provided parameters
+    If lHKey = 0 Then lHKey = Me.HKey
+    Select Case lHKey
+        Case spp_HKEY_CLASSES_ROOT:    HKeyHex = HKEY_CLASSES_ROOT
+        Case spp_HKEY_CURRENT_CONFIG:  HKeyHex = HKEY_CURRENT_CONFIG
+        Case spp_HKEY_CURRENT_USER:    HKeyHex = HKEY_CURRENT_USER
+        Case spp_HKEY_LOCAL_MACHINE:   HKeyHex = HKEY_LOCAL_MACHINE
+        Case spp_HKEY_USERS:           HKeyHex = HKEY_USERS
+        Case Else:                     HKeyHex = HKEY_CURRENT_USER
+    End Select
+
+End Property
+
+Friend Property Get Location() As enLocation:       Location = lLocation:                       End Property
+
+Public Property Let Location(l As enLocation)            ' Determines the location of the maintained properties
+    lLocation = l
+    If lLocation = spp_Registry Then
+        SubjectAdjustToRegistry
+        AspectAdjustToRegistry Aspect
+    End If
+End Property
+
+Public Property Get MaxRegValueLength() As Long:    MaxRegValueLength = REG_MAX_VALUE_LENGTH:   End Property
+
+Friend Property Get Subject() As String:            Subject = sSubject:                         End Property
+
+Public Property Let Subject(s As String)
+    sSubject = s:   If lLocation = spp_Registry Then SubjectAdjustToRegistry Else SubjectAdjustExtension
+End Property
+
 Private Sub AspectAdjustToRegistry(ByRef sAspect As String)
     If Len(sAspect) > REG_MAX_VALUE_LENGTH Then
         sAspect = "..." & Right$(sAspect, REG_MAX_VALUE_LENGTH - 3)
     End If
 End Sub
 
-Private Sub SubjectAdjustExtension()
-' -------------------------------------
-' Adjust the extension when a new
-' extension or subject is specified.
-' -------------------------------------
-Dim l As Long
+Public Sub AspectRemove(Optional ByVal lLocation As enLocation = 0, _
+                        Optional ByVal sSubject As String = vbNullString, _
+                        Optional ByVal sAspect As String = vbNullString, _
+                        Optional ByVal lHKey As enHKey = 0)
+' ------------------------------------------------------------------------
+' Removes all properties of 'sAspect'.
+' lLocation=spp_File:     The 'sAspect' is represented as a section in the
+'                         file named 'Subject'
+' lLocation=spp_Registry: The 'sAspect' is represented as a subkey in the
+'                         registry path 'HKey'\'Subject'\
+' ------------------------------------------------------------------------
+Const PROC  As String = "AspectRemove"
+Dim wss     As IWshShell3
+Dim sPath   As String
 
-    If InStr(1, sSubject, "\") <> 0 Then
-        '~~> When the extension is defined 'Subject' is a file path the extension is adjusted accordingly
-        l = InStrRev(sSubject, ".")
-        If l <> 0 Then
-            '~~> Unstrip the existing extension and amend it with the new specified
-            sSubject = Left$(sSubject, l - 1) & sExtension
-        Else
-            sSubject = sSubject & sExtension
-        End If
-    End If
-
-End Sub
-
-Public Function HKeyToStrng(Optional ByVal lHKey As enHKey = 0) As String
-' -----------------------------------------------------------------------
-
+    On Error GoTo eh
+    
     '~~ Use the default values for not provided parameters
+    If lLocation = 0 Then lLocation = Me.Location
+    If sSubject = vbNullString Then sSubject = Me.Subject
+    If sAspect = vbNullString Then sAspect = Me.Aspect
     If lHKey = 0 Then lHKey = Me.HKey
     
-    Select Case lHKey
-        Case spp_HKEY_CLASSES_ROOT:     HKeyToStrng = "HKEY_CLASSES_ROOT"
-        Case spp_HKEY_CURRENT_CONFIG:   HKeyToStrng = "HKEY_CURRENT_CONFIG"
-        Case spp_HKEY_CURRENT_USER:     HKeyToStrng = "HKEY_CURRENT_USER"
-        Case spp_HKEY_LOCAL_MACHINE:    HKeyToStrng = "HKEY_LOCAL_MACHINE"
-        Case spp_HKEY_USERS:            HKeyToStrng = "HKEY_USERS"
-    End Select
     
+    Select Case lLocation
+        Case spp_File
+            If Not Exists(spp_Subjct, lLocation, sSubject, , , lHKey) Then Exit Sub
+            If Not Exists(spp_Aspect, lLocation, sSubject, sAspect, , lHKey) Then Exit Sub
+            DeletePrivateProfileSection sAspect, 0, 0, sSubject
+            
+        Case spp_Registry
+            sPath = HKeyToStrng(lHKey) & "\" & sSubject & "\" & sAspect & "\"
+            Set wss = CreateObject("WScript.Shell")
+            On Error Resume Next
+            wss.RegDelete sPath
+            Set wss = Nothing
+    End Select
+    Exit Sub
+    
+eh: mErH.ErrMsg ErrSrc(PROC)
+End Sub
+
+Public Function Aspects(Optional ByVal lLocation As enLocation = 0, _
+                        Optional ByVal sSubject As String = vbNullString, _
+                        Optional ByVal lHKey As enHKey = 0) As Dictionary
+' -------------------------------------------------------------------------
+' Returns a Dictionary of all Aspects.
+' -------------------------------------------------------------------------
+Const PROC = "Aspects"
+Dim asAspects()     As String
+Dim avKeys()        As Variant
+Dim dct             As Dictionary
+Dim i               As Long
+Dim iLen            As Long
+Dim obj             As Object
+Dim strBuffer       As String
+Dim v               As Variant
+Dim fso             As File
+
+    On Error GoTo eh
+    Set dct = New Dictionary
+    Set Aspects = dct
+    
+    '~~ Use the default values for not provided parameters
+    If lLocation = 0 Then lLocation = Me.Location
+    If sSubject = vbNullString Then sSubject = Me.Subject
+    If lHKey = 0 Then lHKey = Me.HKey
+            
+    Select Case lLocation
+        Case spp_File
+            If Not Exists(spp_Subjct, lLocation, sSubject, , , lHKey) _
+            Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The provided subject '" & sSubject & "' does not exist!"
+            With New FileSystemObject
+                If .GetFile(sSubject).Size = 0 Then Exit Function
+            End With
+            Do While (iLen = Len(strBuffer) - 2) Or (iLen = 0)
+                If strBuffer = vbNullString _
+                Then strBuffer = mBasic.Space$(256) _
+                Else strBuffer = String(Len(strBuffer) * 2, 0)
+                iLen = GetPrivateProfileSectionNames(strBuffer, Len(strBuffer), sSubject)
+            Loop
+            strBuffer = left$(strBuffer, iLen)
+            
+            If Len(strBuffer) <> 0 Then
+                i = 0
+                asAspects = Split(strBuffer, vbNullChar)
+                For i = LBound(asAspects) To UBound(asAspects)
+                    If Len(asAspects(i)) <> 0 Then
+                        mBasic.DictAdd dct, asAspects(i), asAspects(i), dct_ascending
+                    End If
+                Next i
+            End If
+    
+        Case spp_Registry
+            On Error Resume Next
+            Set obj = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & "." & "\root\default:StdRegProv")
+            If Err.Number <> 0 Then Err.Raise mErH.AppErr(2), ErrSrc(PROC), "There where no aspectes at all found in the registry!"
+            obj.EnumKey HKeyHex(lHKey), sSubject & "\", avKeys
+            For Each v In avKeys
+                '~~ An empty Aspect means no Aspects
+                If v <> vbNullString Then
+                    mBasic.DictAdd dct, v, CStr(v), dct_ascending
+                End If
+            Next v
+            
+    End Select
+    Set Aspects = dct
+    Exit Function
+    
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
-Private Sub SubjectAdjustToRegistry()
-    '~~> Make the Subject a valid registry key
-    sSubject = Replace(sSubject, "\", "/")
-    If Len(sSubject) > MaxRegValueLength Then
-        sSubject = "..." & Right$(sSubject, MaxRegValueLength - 3)
-    End If
+Public Sub AspectsDisplay(Optional ByVal lLocation As enLocation = 0, _
+                          Optional ByVal sSubject As String = vbNullString, _
+                          Optional ByVal lHKey As enHKey = 0)
+' ---------------------------------------------------------------------------
+'
+' ---------------------------------------------------------------------------
+Const PROC          As String = "DisplayAspects"
+Dim sAspects        As String
+Dim dct             As Dictionary
+Dim v               As Variant
+
+    '~~ Use the default values for not provided parameters
+    If lLocation = 0 Then lLocation = Me.Location
+    If sSubject = vbNullString Then sSubject = Me.Subject
+    If lHKey = 0 Then lHKey = Me.HKey
+    
+    If Not Exists(spp_Subjct, lLocation, sSubject, , , lHKey) _
+    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The provided subject '" & sSubject & "' does not exist!"
+    
+    Set dct = Aspects(lLocation, sSubject, lHKey)
+    sAspects = dct.Count & " Aspect(s) of subject" & vbLf & _
+               "'" & Split(sSubject, "\")(UBound(Split(sSubject, "\"))) & "':" & vbLf & vbLf
+    For Each v In dct
+        sAspects = sAspects & "- '" & v & "'" & vbLf
+    Next v
+    MsgBox sAspects, vbOKOnly, "Info about Session Persistent Properties in '" & LocationToString(lLocation) & "'"
+    Exit Sub
+    
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
+
+Private Function DefaultGet(ByVal sName As String, _
+                   Optional ByRef vTarget As Variant, _
+                   Optional ByVal sAspect As String = vbNullString) As Variant
+' ----------------------------------------------------------------------------
+' Returns the default value for a value named (sName) when it exists in the
+' dictionary of Default values (dctDefaults). When no Aspect (sAspect) is
+' provided the default available for all Aspects is returned in case one
+' exists.
+' If (vTarget) is provided and no default value exists the default for the
+' data type of vTarget is returned (Boolean=False, String=vbNullString,
+' Numeric=0).
+' When an Aspect is provided the Aspect-specific default value is returned
+' when existing.
+' Note: The function is public for testing it may be private in production.
+' ----------------------------------------------------------------------------
+Const PROC      As String = "DefaultGet"
+Dim sKey        As String
+Dim vValue      As Variant
+
+    On Error GoTo eh
+    
+    If Not dctDefaults Is Nothing Then
+        If sAspect <> vbNullString Then
+            '~~ Try to return the default value for the Aspect/Name
+            sKey = sAspect & "\" & sName
+            If dctDefaults.Exists(sKey) Then
+                DefaultGet = dctDefaults.Item(sKey)
+                Exit Function
+            End If
+        Else
+            '~~ Try to return the default value for the Name regardless of the Aspect
+            sKey = vbNullString & "\" & sName
+            If dctDefaults.Exists(sKey) Then
+                DefaultGet = dctDefaults.Item(sKey)
+                Exit Function
+            End If
+        End If
+    End If
+    
+    '~~ No default value found or no defaults available at all
+    Select Case VarType(vTarget)
+        Case vbBoolean: vTarget = False:    DefaultGet = vTarget
+        Case vbDate:    vTarget = Now():    DefaultGet = vTarget
+        Case vbByte, _
+             vbCurrency, _
+             vbDecimal, _
+             vbDouble, _
+             vbInteger, _
+             vbLong, _
+             vbSingle: vTarget = 0: DefaultGet = vTarget
+#If Win64 Then
+        Case vbLongLong
+            vTarget = 0
+            DefaultGet = vTarget
+#End If
+        Case Else:                  DefaultGet = vbNullString   ' No vTarget provided
+    End Select
+    Exit Function
+    
+eh: mErH.ErrMsg ErrSrc(PROC)
+End Function
+
+Public Sub DefaultLet(ByVal sName As String, _
+                      ByVal vValue As Variant, _
+             Optional ByVal sAspect As String = vbNullString)
+' -----------------------------------------------------------
+' Stores the default (vValue) for the value named (sName) of
+' the aspect (sAspect) in the Dictionary dctDefaults. When
+' Aspect (sAspet) is not provided the saved default wil be
+' effective for all Aspects.
+' The stored defaults comes into effect when the value named
+' (sName) is retrieved before a value with that name had been
+' saved.
+' ----------------------------------------------------------
+Dim sKey As String
+
+    If dctDefaults Is Nothing Then Set dctDefaults = New Dictionary
+    
+    sKey = sAspect & "\" & sName
+    If dctDefaults.Exists(sKey) Then
+        dctDefaults.Item(sKey) = vValue
+    Else
+        mBasic.DictAdd dctDefaults, sKey, vValue, dct_ascending
+    End If
+
+End Sub
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "mVBP" & "." & sProc
+End Function
 
 Public Function Exists(Optional ByVal sppItem As enItem = 0, _
                        Optional ByVal lLocation As enLocation = 0, _
@@ -263,7 +462,7 @@ Dim sPath   As String
 Dim avKeys  As Variant
 Dim v       As Variant
     
-    On Error GoTo on_error
+    On Error GoTo eh
 
     '~~ Use the default values for not provided parameters
     If lLocation = 0 Then lLocation = Me.Location
@@ -313,251 +512,43 @@ Dim v       As Variant
         Case spp_VaName
             lHKey = lHKey: If lHKey = 0 Then lHKey = Me.HKey
             If Not Exists(spp_Subjct, lLocation, sSubject, , , lHKey) _
-            Then Err.Raise AppErr(5), ErrSrc(PROC), "The subject '" & sSubject & "' does not exist!"
+            Then Err.Raise mErH.AppErr(5), ErrSrc(PROC), "The subject '" & sSubject & "' does not exist!"
             If Not Exists(spp_Aspect, lLocation, sSubject, sAspect, , lHKey) _
-            Then Err.Raise AppErr(6), ErrSrc(PROC), "The aspect '" & sAspect & "' does not exist under the given subject!"
+            Then Err.Raise mErH.AppErr(6), ErrSrc(PROC), "The aspect '" & sAspect & "' does not exist under the given subject!"
             
             Exists = Names(lLocation, sSubject, sAspect, lHKey).Exists(sName)
     End Select
     Exit Function
     
-on_error:
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
-Public Sub AspectRemove(Optional ByVal lLocation As enLocation = 0, _
-                        Optional ByVal sSubject As String = vbNullString, _
-                        Optional ByVal sAspect As String = vbNullString, _
-                        Optional ByVal lHKey As enHKey = 0)
-' ------------------------------------------------------------------------
-' Removes all properties of 'sAspect'.
-' lLocation=spp_File:     The 'sAspect' is represented as a section in the
-'                         file named 'Subject'
-' lLocation=spp_Registry: The 'sAspect' is represented as a subkey in the
-'                         registry path 'HKey'\'Subject'\
-' ------------------------------------------------------------------------
-Const PROC  As String = "AspectRemove"
-Dim wss     As IWshShell3
-Dim sPath   As String
+Public Function HKeyToStrng(Optional ByVal lHKey As enHKey = 0) As String
+' -----------------------------------------------------------------------
 
-    On Error GoTo on_error
-    
     '~~ Use the default values for not provided parameters
-    If lLocation = 0 Then lLocation = Me.Location
-    If sSubject = vbNullString Then sSubject = Me.Subject
-    If sAspect = vbNullString Then sAspect = Me.Aspect
     If lHKey = 0 Then lHKey = Me.HKey
     
+    Select Case lHKey
+        Case spp_HKEY_CLASSES_ROOT:     HKeyToStrng = "HKEY_CLASSES_ROOT"
+        Case spp_HKEY_CURRENT_CONFIG:   HKeyToStrng = "HKEY_CURRENT_CONFIG"
+        Case spp_HKEY_CURRENT_USER:     HKeyToStrng = "HKEY_CURRENT_USER"
+        Case spp_HKEY_LOCAL_MACHINE:    HKeyToStrng = "HKEY_LOCAL_MACHINE"
+        Case spp_HKEY_USERS:            HKeyToStrng = "HKEY_USERS"
+    End Select
     
+End Function
+
+Private Function LocationToString(Optional ByVal lLocation As enLocation = 0) As String
+
+    '~~ Use the default values for not provided parameters
+    If lLocation = 0 Then lLocation = Me.Location
     Select Case lLocation
-        Case spp_File
-            If Not Exists(spp_Subjct, lLocation, sSubject, , , lHKey) Then Exit Sub
-            If Not Exists(spp_Aspect, lLocation, sSubject, sAspect, , lHKey) Then Exit Sub
-            DeletePrivateProfileSection sAspect, 0, 0, sSubject
-            
-        Case spp_Registry
-            sPath = HKeyToStrng(lHKey) & "\" & sSubject & "\" & sAspect & "\"
-            Set wss = CreateObject("WScript.Shell")
-            On Error Resume Next
-            wss.RegDelete sPath
-            Set wss = Nothing
+        Case spp_File:      LocationToString = "File"
+        Case spp_Registry:  LocationToString = "Registry"
     End Select
-    Exit Sub
     
-on_error:
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
-End Sub
-
-Public Function Aspects(Optional ByVal lLocation As enLocation = 0, _
-                        Optional ByVal sSubject As String = vbNullString, _
-                        Optional ByVal lHKey As enHKey = 0) As Dictionary
-' -------------------------------------------------------------------------
-' Returns a Dictionary of all Aspects.
-' -------------------------------------------------------------------------
-Const PROC = "Aspects"
-Dim asAspects()     As String
-Dim avKeys()        As Variant
-Dim dct             As Dictionary
-Dim i               As Long
-Dim iLen            As Long
-Dim obj             As Object
-Dim strBuffer       As String
-Dim v               As Variant
-Dim fso             As File
-
-    On Error GoTo on_error
-    Set dct = New Dictionary
-    Set Aspects = dct
-    
-    '~~ Use the default values for not provided parameters
-    If lLocation = 0 Then lLocation = Me.Location
-    If sSubject = vbNullString Then sSubject = Me.Subject
-    If lHKey = 0 Then lHKey = Me.HKey
-            
-    Select Case lLocation
-        Case spp_File
-            If Not Exists(spp_Subjct, lLocation, sSubject, , , lHKey) _
-            Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided subject '" & sSubject & "' does not exist!"
-            With New FileSystemObject
-                If .GetFile(sSubject).Size = 0 Then Exit Function
-            End With
-            Do While (iLen = Len(strBuffer) - 2) Or (iLen = 0)
-                If strBuffer = vbNullString _
-                Then strBuffer = Space$(256) _
-                Else strBuffer = String(Len(strBuffer) * 2, 0)
-                iLen = GetPrivateProfileSectionNames(strBuffer, Len(strBuffer), sSubject)
-            Loop
-            strBuffer = Left$(strBuffer, iLen)
-            
-            If Len(strBuffer) <> 0 Then
-                i = 0
-                asAspects = Split(strBuffer, vbNullChar)
-                For i = LBound(asAspects) To UBound(asAspects)
-                    If Len(asAspects(i)) <> 0 Then
-                        mBasic.DictAdd dct, asAspects(i), asAspects(i), dct_ascending
-                    End If
-                Next i
-            End If
-    
-        Case spp_Registry
-            On Error Resume Next
-            Set obj = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & "." & "\root\default:StdRegProv")
-            If Err.Number <> 0 Then Err.Raise AppErr(2), ErrSrc(PROC), "There where no aspectes at all found in the registry!"
-            obj.EnumKey HKeyHex(lHKey), sSubject & "\", avKeys
-            For Each v In avKeys
-                '~~ An empty Aspect means no Aspects
-                If v <> vbNullString Then
-                    mBasic.DictAdd dct, v, CStr(v), dct_ascending
-                End If
-            Next v
-            
-    End Select
-    Set Aspects = dct
-    Exit Function
-    
-on_error:
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
 End Function
-
-Public Sub AspectsDisplay(Optional ByVal lLocation As enLocation = 0, _
-                          Optional ByVal sSubject As String = vbNullString, _
-                          Optional ByVal lHKey As enHKey = 0)
-' ---------------------------------------------------------------------------
-'
-' ---------------------------------------------------------------------------
-Const PROC          As String = "DisplayAspects"
-Dim sAspects        As String
-Dim dct             As Dictionary
-Dim v               As Variant
-
-    '~~ Use the default values for not provided parameters
-    If lLocation = 0 Then lLocation = Me.Location
-    If sSubject = vbNullString Then sSubject = Me.Subject
-    If lHKey = 0 Then lHKey = Me.HKey
-    
-    If Not Exists(spp_Subjct, lLocation, sSubject, , , lHKey) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided subject '" & sSubject & "' does not exist!"
-    
-    Set dct = Aspects(lLocation, sSubject, lHKey)
-    sAspects = dct.Count & " Aspect(s) of subject" & vbLf & _
-               "'" & Split(sSubject, "\")(UBound(Split(sSubject, "\"))) & "':" & vbLf & vbLf
-    For Each v In dct
-        sAspects = sAspects & "- '" & v & "'" & vbLf
-    Next v
-    MsgBox sAspects, vbOKOnly, "Info about Session Persistent Properties in '" & LocationToString(lLocation) & "'"
-    Exit Sub
-    
-on_error:
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
-End Sub
-
-Private Function DefaultGet(ByVal sName As String, _
-                   Optional ByRef vTarget As Variant, _
-                   Optional ByVal sAspect As String = vbNullString) As Variant
-' ----------------------------------------------------------------------------
-' Returns the default value for a value named (sName) when it exists in the
-' dictionary of Default values (dctDefaults). When no Aspect (sAspect) is
-' provided the default available for all Aspects is returned in case one
-' exists.
-' If (vTarget) is provided and no default value exists the default for the
-' data type of vTarget is returned (Boolean=False, String=vbNullString,
-' Numeric=0).
-' When an Aspect is provided the Aspect-specific default value is returned
-' when existing.
-' Note: The function is public for testing it may be private in production.
-' ----------------------------------------------------------------------------
-Const PROC      As String = "DefaultGet"
-Dim sKey        As String
-Dim vValue      As Variant
-
-    On Error GoTo on_error
-    
-    If Not dctDefaults Is Nothing Then
-        If sAspect <> vbNullString Then
-            '~~ Try to return the default value for the Aspect/Name
-            sKey = sAspect & "\" & sName
-            If dctDefaults.Exists(sKey) Then
-                DefaultGet = dctDefaults.Item(sKey)
-                Exit Function
-            End If
-        Else
-            '~~ Try to return the default value for the Name regardless of the Aspect
-            sKey = vbNullString & "\" & sName
-            If dctDefaults.Exists(sKey) Then
-                DefaultGet = dctDefaults.Item(sKey)
-                Exit Function
-            End If
-        End If
-    End If
-    
-    '~~ No default value found or no defaults available at all
-    Select Case VarType(vTarget)
-        Case vbBoolean: vTarget = False:    DefaultGet = vTarget
-        Case vbDate:    vTarget = Now():    DefaultGet = vTarget
-        Case vbByte, _
-             vbCurrency, _
-             vbDecimal, _
-             vbDouble, _
-             vbInteger, _
-             vbLong, _
-             vbSingle: vTarget = 0: DefaultGet = vTarget
-#If Win64 Then
-        Case vbLongLong
-            vTarget = 0
-            DefaultGet = vTarget
-#End If
-        Case Else:                  DefaultGet = vbNullString   ' No vTarget provided
-    End Select
-    Exit Function
-    
-on_error:
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
-End Function
-
-Public Sub DefaultLet(ByVal sName As String, _
-                      ByVal vValue As Variant, _
-             Optional ByVal sAspect As String = vbNullString)
-' -----------------------------------------------------------
-' Stores the default (vValue) for the value named (sName) of
-' the aspect (sAspect) in the Dictionary dctDefaults. When
-' Aspect (sAspet) is not provided the saved default wil be
-' effective for all Aspects.
-' The stored defaults comes into effect when the value named
-' (sName) is retrieved before a value with that name had been
-' saved.
-' ----------------------------------------------------------
-Dim sKey As String
-
-    If dctDefaults Is Nothing Then Set dctDefaults = New Dictionary
-    
-    sKey = sAspect & "\" & sName
-    If dctDefaults.Exists(sKey) Then
-        dctDefaults.Item(sKey) = vValue
-    Else
-        mBasic.DictAdd dctDefaults, sKey, vValue, dct_ascending
-    End If
-
-End Sub
 
 Public Sub NameRemove(ByVal sName As String, _
              Optional ByVal sAspect As String = vbNullString, _
@@ -573,7 +564,7 @@ Const PROC  As String = "NameRemove"
 Dim sPath   As String
 Dim wss     As IWshShell3
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     '~~ Use the default values for not provided parameters
     If lLocation = 0 Then lLocation = Me.Location
@@ -583,9 +574,9 @@ Dim wss     As IWshShell3
     
     '~~ Value validation
     If Not Exists(spp_Subjct, lLocation, sSubject, , , lHKey) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The subject '" & sSubject & "' does not exist!"
+    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The subject '" & sSubject & "' does not exist!"
     If Not Exists(spp_Aspect, lLocation, sSubject, sAspect, , lHKey) _
-    Then Err.Raise AppErr(2), ErrSrc(PROC), "The aspect '" & sAspect & "' does not exist!"
+    Then Err.Raise mErH.AppErr(2), ErrSrc(PROC), "The aspect '" & sAspect & "' does not exist!"
     
     If Not Exists(spp_VaName, lLocation, sSubject, sAspect, sName, lHKey) Then Exit Sub
     
@@ -600,12 +591,12 @@ Dim wss     As IWshShell3
             wss.RegDelete sPath
             Set wss = Nothing
             If Exists(spp_VaName, spp_Registry, sSubject, sAspect, sName, lHKey) _
-            Then Err.Raise AppErr(3), ErrSrc(PROC), "The name '" & sName & "' had not been removed!"
+            Then Err.Raise mErH.AppErr(3), ErrSrc(PROC), "The name '" & sName & "' had not been removed!"
     End Select
-    Exit Sub
+
+xt: Exit Sub
     
-on_error:
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Private Function Names(Optional lLocation As enLocation = 0, _
@@ -648,22 +639,22 @@ Dim vAspect         As Variant
     If lHKey = 0 Then lHKey = Me.HKey
     
     '~~ Values validation
-    If lLocation = 0 Then Err.Raise AppErr(1), ErrSrc(PROC), "There is no location provided and there is no default location either!"
+    If lLocation = 0 Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "There is no location provided and there is no default location either!"
     
     If lLocation = spp_Registry Then
-        If lHKey = 0 Then Err.Raise AppErr(2), ErrSrc(PROC), "There is no HKey provided and there is no default HKey available either!"
+        If lHKey = 0 Then Err.Raise mErH.AppErr(2), ErrSrc(PROC), "There is no HKey provided and there is no default HKey available either!"
     End If
     
     If sSubject = vbNullString Then sSubject = Me.Subject Else sSubject = sSubject
-    If sSubject = vbNullString Then Err.Raise AppErr(3), ErrSrc(PROC), "There is no subject provided and no default value available either!"
+    If sSubject = vbNullString Then Err.Raise mErH.AppErr(3), ErrSrc(PROC), "There is no subject provided and no default value available either!"
      
     Select Case lLocation
         Case spp_File
             If sAspect <> vbNullString Then
                 '~~> Retrieve the names for the provided Aspect
-                strBuffer = Space$(32767)
+                strBuffer = mBasic.Space$(32767)
                 lResult = GetPrivateProfileString(sAspect, vbNullString, vbNullString, strBuffer, Len(strBuffer), sSubject)
-                sNames = Left$(strBuffer, lResult)
+                sNames = left$(strBuffer, lResult)
             
                 If sNames <> vbNullString Then                                         ' If there were any names
                     asNames = Split(sNames, vbNullChar)                      ' have them split into an array
@@ -678,9 +669,9 @@ Dim vAspect         As Variant
                 Set dctAspects = Aspects(lLocation, sSubject, lHKey)
                 For Each v In dctAspects
                     sAspect = v
-                    strBuffer = Space$(32767)
+                    strBuffer = mBasic.Space$(32767)
                     lResult = GetPrivateProfileString(sAspect, vbNullString, vbNullString, strBuffer, Len(strBuffer), sSubject)
-                    sNames = Left$(strBuffer, lResult)
+                    sNames = left$(strBuffer, lResult)
                 
                     If sNames <> vbNullString Then                                         ' If there were any names
                         asNames = Split(sNames, vbNullChar)                      ' have them split into an array
@@ -728,10 +719,10 @@ Dim vAspect         As Variant
             Set obj = Nothing
     End Select
     Set Names = dctNames
-    Exit Function
+
+xt: Exit Function
     
-on_error:
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Sub NamesDisplay(Optional ByVal lLocation As enLocation = 0, _
@@ -753,7 +744,7 @@ Dim v       As Variant
     If sAspect = vbNullString Then sAspect = Me.Aspect
     
     If Not Exists(spp_Subjct, lLocation, sSubject, , , lHKey) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided subject '" & sSubject & "' does not exist!"
+    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The provided subject '" & sSubject & "' does not exist!"
     
     Set dct = Names(lLocation, sSubject, sAspect, lHKey)
     sNames = dct.Count & " Name(s) of subject" & vbLf & _
@@ -762,10 +753,10 @@ Dim v       As Variant
         sNames = sNames & "- '" & v & "'" & vbLf
     Next v
     MsgBox sNames, vbOKOnly, "Info about Session Persistent Properties in '" & LocationToString(lLocation) & "'"
-    Exit Sub
     
-on_error:
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
+xt: Exit Sub
+    
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Private Function RegKeyRead(ByVal sRegKey As String) As String
@@ -793,6 +784,34 @@ Private Function RegTypeStrng(ByVal lRegType As enRegDataType) As String
     End Select
 End Function
 
+Private Sub SubjectAdjustExtension()
+' -------------------------------------
+' Adjust the extension when a new
+' extension or subject is specified.
+' -------------------------------------
+Dim l As Long
+
+    If InStr(1, sSubject, "\") <> 0 Then
+        '~~> When the extension is defined 'Subject' is a file path the extension is adjusted accordingly
+        l = InStrRev(sSubject, ".")
+        If l <> 0 Then
+            '~~> Unstrip the existing extension and amend it with the new specified
+            sSubject = left$(sSubject, l - 1) & sExtension
+        Else
+            sSubject = sSubject & sExtension
+        End If
+    End If
+
+End Sub
+
+Private Sub SubjectAdjustToRegistry()
+    '~~> Make the Subject a valid registry key
+    sSubject = Replace(sSubject, "\", "/")
+    If Len(sSubject) > MaxRegValueLength Then
+        sSubject = "..." & Right$(sSubject, MaxRegValueLength - 3)
+    End If
+End Sub
+
 Public Sub SubjectRemove(Optional ByVal sSubject As String = vbNullString, _
                          Optional ByVal lLocation As enLocation = 0, _
                          Optional ByVal lHKey As enHKey = 0)
@@ -808,18 +827,18 @@ Dim dctAspects  As Dictionary
 Dim v           As Variant
 Dim wss         As IWshShell3
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     '~~ Use the default values for not provided parameters
     If lLocation = 0 Then lLocation = Me.Location
     If sSubject = vbNullString Then sSubject = Me.Subject
     If lHKey = 0 Then lHKey = Me.HKey
 
-    If lLocation = 0 Then Err.Raise AppErr(1), ErrSrc(PROC), "There is no location specified from which a subject is to be removed!"
+    If lLocation = 0 Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "There is no location specified from which a subject is to be removed!"
     If lLocation = spp_Registry Then
-        If lHKey = 0 Then Err.Raise AppErr(2), ErrSrc(PROC), "There is no HKey specified from which a subject is to be removed!"
+        If lHKey = 0 Then Err.Raise mErH.AppErr(2), ErrSrc(PROC), "There is no HKey specified from which a subject is to be removed!"
     End If
-    If sSubject = vbNullString Then Err.Raise AppErr(3), ErrSrc(PROC), "There is not subject to be removed specified!"
+    If sSubject = vbNullString Then Err.Raise mErH.AppErr(3), ErrSrc(PROC), "There is not subject to be removed specified!"
     
     Select Case lLocation
         Case spp_File
@@ -837,7 +856,7 @@ Dim wss         As IWshShell3
                     On Error Resume Next
                     .RegDelete sPath
                     If Exists(spp_Aspect, spp_Registry, sSubject, v, , lHKey) _
-                    Then Err.Raise AppErr(4), ErrSrc(PROC), "Aspect '" & v & "' (path '" & sPath & "') not deleted!"
+                    Then Err.Raise mErH.AppErr(4), ErrSrc(PROC), "Aspect '" & v & "' (path '" & sPath & "') not deleted!"
                 Next
                 '~~> Finally remove the Subject
                 sPath = HKeyToStrng & "\" & sSubject & "\"
@@ -846,12 +865,12 @@ Dim wss         As IWshShell3
             End With
             Set wss = Nothing
             If Exists(spp_Subjct, lLocation, sSubject, , , lHKey) _
-            Then Err.Raise AppErr(5), ErrSrc(PROC), "The subject '" & sSubject & "' (path '" & sPath & "') had not been deleted!"
+            Then Err.Raise mErH.AppErr(5), ErrSrc(PROC), "The subject '" & sSubject & "' (path '" & sPath & "') had not been deleted!"
     End Select
-    Exit Sub
     
-on_error:
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
+xt: Exit Sub
+    
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Function ValueGet(ByVal sName As String, _
@@ -880,7 +899,7 @@ Dim sRetVal As String
 Dim vValue  As Variant
 Dim wss     As IWshShell3
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     ValueGet = vbNullString
     '~~ Use the default values for not provided parameters
@@ -890,11 +909,11 @@ Dim wss     As IWshShell3
     If lHKey = 0 Then lHKey = Me.HKey
     
     '~~ Validate provided values
-    If lLocation = 0 Then Err.Raise AppErr(1), ErrSrc(PROC), "No location provided and there is no default location available either!"
-    If sSubject = vbNullString Then Err.Raise AppErr(2), ErrSrc(PROC), "No subject provided and there is no default subject available either!"
-    If sAspect = vbNullString Then Err.Raise AppErr(3), ErrSrc(PROC), "No aspect provided and there is no default aspect available either!   "
+    If lLocation = 0 Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "No location provided and there is no default location available either!"
+    If sSubject = vbNullString Then Err.Raise mErH.AppErr(2), ErrSrc(PROC), "No subject provided and there is no default subject available either!"
+    If sAspect = vbNullString Then Err.Raise mErH.AppErr(3), ErrSrc(PROC), "No aspect provided and there is no default aspect available either!   "
     If lLocation = spp_Registry Then
-        If lHKey = 0 Then Err.Raise AppErr(4), ErrSrc(PROC), "No HKey provided and there is no default HKey available either!"
+        If lHKey = 0 Then Err.Raise mErH.AppErr(4), ErrSrc(PROC), "No HKey provided and there is no default HKey available either!"
     End If
     
     '~~ If the either subject, aspect, or name doesn't exist a default value is returned when specified
@@ -903,7 +922,7 @@ Dim wss     As IWshShell3
             sRetVal = String(32767, 0)
             '~~> Execute the call and get the string lenght
             lResult = GetPrivateProfileString(sAspect, sName, vbNullString, sRetVal, Len(sRetVal), sSubject)
-            vValue = Left$(sRetVal, lResult)
+            vValue = left$(sRetVal, lResult)
     
         Case spp_Registry
             If Exists(spp_Aspect, lLocation, sSubject, sAspect, , lHKey) Then
@@ -936,13 +955,9 @@ Dim wss     As IWshShell3
         Case Else:                                          ValueGet = vValue       ' No vTarget provided
     End Select
     
-    Exit Function
+xt: Exit Function
     
-on_error:
-#If Debugging Then
-    Stop: Resume
-#End If
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Sub ValueLet(ByVal sName As String, _
@@ -973,7 +988,7 @@ Dim sPath       As String
 Dim wss         As IWshShell3
 Dim sRegType    As String
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     '~~ Use the default values for not provided parameters
     If lLocation = 0 Then lLocation = Me.Location
@@ -981,12 +996,12 @@ Dim sRegType    As String
     If sAspect = vbNullString Then sAspect = Me.Aspect
     If lHKey = 0 Then lHKey = Me.HKey
 
-    If lLocation = 0 Then Err.Raise AppErr(1), ErrSrc(PROC), "The location for the session persistent properties is not defined!"
+    If lLocation = 0 Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The location for the session persistent properties is not defined!"
     If lLocation = spp_Registry Then
-        If lHKey = 0 Then Err.Raise AppErr(2), ErrSrc(PROC), "The location for the session persistent properties is not defined!"
+        If lHKey = 0 Then Err.Raise mErH.AppErr(2), ErrSrc(PROC), "The location for the session persistent properties is not defined!"
     End If
-    If sSubject = vbNullString Then Err.Raise AppErr(3), ErrSrc(PROC), "The subject for the session persitent properties is not defined!"
-    If sAspect = vbNullString Then Err.Raise AppErr(4), ErrSrc(PROC), "The aspect under which the session persistent properties are to be stored is not definied!"
+    If sSubject = vbNullString Then Err.Raise mErH.AppErr(3), ErrSrc(PROC), "The subject for the session persitent properties is not defined!"
+    If sAspect = vbNullString Then Err.Raise mErH.AppErr(4), ErrSrc(PROC), "The aspect under which the session persistent properties are to be stored is not definied!"
     
     If lType = 99 Then lType = spp_REG_SZ
             
@@ -1017,13 +1032,10 @@ Dim sRegType    As String
             Set wss = Nothing
             
     End Select
-    Exit Sub
     
-on_error:
-#If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
+xt: Exit Sub
+    
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Function Values(Optional lLocation As enLocation = 0, _
@@ -1045,7 +1057,7 @@ Dim dctAspects  As Dictionary
 Dim vAspect     As Variant
 Dim sName       As String
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     Set dctValues = New Dictionary
     Set Values = dctValues
@@ -1055,17 +1067,17 @@ Dim sName       As String
     If sSubject = vbNullString Then sSubject = Me.Subject
     If lHKey = 0 Then lHKey = Me.HKey
     
-    If lLocation = 0 Then Err.Raise AppErr(1), ErrSrc(PROC), "The location for the session persistent properties is not defined!"
+    If lLocation = 0 Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The location for the session persistent properties is not defined!"
     If lLocation = spp_Registry Then
-        If lHKey = 0 Then Err.Raise AppErr(2), ErrSrc(PROC), "The location for the session persistent properties is not defined!"
+        If lHKey = 0 Then Err.Raise mErH.AppErr(2), ErrSrc(PROC), "The location for the session persistent properties is not defined!"
     End If
-    If sSubject = vbNullString Then Err.Raise AppErr(3), ErrSrc(PROC), "The subject for the session persistent properties is not defined!"
+    If sSubject = vbNullString Then Err.Raise mErH.AppErr(3), ErrSrc(PROC), "The subject for the session persistent properties is not defined!"
     If Not Exists(spp_Subjct, lLocation, sSubject, , , lHKey) _
-    Then Err.Raise AppErr(4), ErrSrc(PROC), "The subject '" & sSubject & "' does not exist!"
+    Then Err.Raise mErH.AppErr(4), ErrSrc(PROC), "The subject '" & sSubject & "' does not exist!"
         
     If sAspect <> vbNullString Then
         If Not Exists(spp_Aspect, lLocation, sSubject, sAspect, , lHKey) _
-        Then Err.Raise AppErr(5), ErrSrc(PROC), "The Aspect '" & sAspect & "' does not exist!"
+        Then Err.Raise mErH.AppErr(5), ErrSrc(PROC), "The Aspect '" & sAspect & "' does not exist!"
         '~~> Get the section's keys as an array
         Set dctNames = Names(lLocation, sSubject, sAspect, lHKey)
         For Each v In dctNames
@@ -1087,10 +1099,10 @@ Dim sName       As String
         Next vAspect
     End If
     Set Values = dctValues
-    Exit Function
     
-on_error:
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
+xt: Exit Function
+    
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Function
 
 Public Sub ValuesDisplay(Optional lLocation As enLocation = 0, _
@@ -1101,12 +1113,13 @@ Public Sub ValuesDisplay(Optional lLocation As enLocation = 0, _
 ' --------------------------------------------------------------------
 '
 ' --------------------------------------------------------------------
-Const PROC      As String = "Values"
-Dim v           As Variant
-Dim sValues     As String
-Dim dctValues   As Dictionary
-
-    On Error GoTo on_error
+    Const PROC      As String = "Values"
+    
+    Dim v           As Variant
+    Dim sValues     As String
+    Dim dctValues   As Dictionary
+    Dim sMsg        As tMsg
+    On Error GoTo eh
         
     '~~ Use the default values for not provided parameters
     If lLocation = 0 Then lLocation = Me.Location
@@ -1117,28 +1130,10 @@ Dim dctValues   As Dictionary
     For Each v In dctValues
         sValues = sValues & vbLf & v & " = " & dctValues.Item(v)
     Next v
-    mBasic.Msg sTitle:=sTitle, sMsgText:=sValues, vReplies:=vbOKOnly
+    sMsg.section(1).sText = sValues
+    mMsg.Dsply dsply_title:=sTitle, dsply_message:=sMsg, dsply_buttons:=vbOKOnly
     Exit Sub
     
-on_error:
-    mBasic.ErrMsg Err.Number, ErrSrc(PROC), Err.Description, Erl
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
-Private Function LocationToString(Optional ByVal lLocation As enLocation = 0) As String
-
-    '~~ Use the default values for not provided parameters
-    If lLocation = 0 Then lLocation = Me.Location
-    Select Case lLocation
-        Case spp_File:      LocationToString = "File"
-        Case spp_Registry:  LocationToString = "Registry"
-    End Select
-    
-End Function
-
-Private Sub Class_Terminate()
-    Set dctDefaults = Nothing
-End Sub
-
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mVBP" & "." & sProc
-End Function
