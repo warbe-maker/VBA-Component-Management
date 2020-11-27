@@ -246,7 +246,7 @@ Private Function ErrDsply( _
         .MsgButtons = err_buttons
         .Setup
         
-        .Show
+        .show
         If ErrBttns(err_buttons) = 1 Then
             ErrDsply = err_buttons ' a single reply errbuttons return value cannot be obtained since the form is unloaded with its click
         Else

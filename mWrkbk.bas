@@ -273,10 +273,9 @@ End Function
 '
 ' -----------------------------------------------------------------------------------------
 Const PROC  As String = "checkHwnds"            ' This procedure's name for the error handling and execution tracking
-Dim i       As Long
-
+    
     On Error GoTo eh
-    BoP ErrSrc(PROC)
+    Dim i   As Long
     
     If UBound(xlApps) = 0 Then GoTo xt
 
@@ -289,8 +288,7 @@ Dim i       As Long
 
     checkHwnds = True
     
-xt: EoP ErrSrc(PROC)
-    Exit Function
+xt: Exit Function
     
 eh: mErH.ErrMsg ErrSrc(PROC)
 End Function

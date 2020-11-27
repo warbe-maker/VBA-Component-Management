@@ -11,7 +11,8 @@ Option Compare Text
 ' - ProcedureExists     Returns TRUE when the object exists
 ' - ReferenceExists     Returns TRUE when the object exists
 '
-' Uses:     Standard Module mErH
+' Uses:     No other modules
+'          (modules mErH, fMsg, mMsg, mTrc are used for test only!)
 '
 ' Requires: Reference to "Microsoft Scripting Runtine"
 '           Reference to "Microsoft Visual Basic for Applications Extensibility ..."
@@ -19,65 +20,16 @@ Option Compare Text
 ' W. Rauschenberger, Berlin August 2019
 ' -----------------------------------------------------------------------------------
 
-Public Function ProcedureExists(ByVal v As Variant, _
-                                ByVal sName As String) As Boolean
-' ---------------------------------------------------------------
-' Returns TRUE when the Procedure named (sName) exists in the
-' CodeModule (vbcm).
-' ---------------------------------------------------------------
-Const PROC      As String = "ProcedureExists"       ' This procedure's name for the error handling and execution tracking
-Dim vbcm        As CodeModule
-Dim iLine       As Long             ' For the existence check of a VBA procedure in a CodeModule
-Dim sLine       As String           ' For the existence check of a VBA procedure in a CodeModule
-Dim vbProcKind  As vbext_ProcKind   ' For the existence check of a VBA procedure in a CodeModule
-
-    On Error GoTo eh
-    BoP ErrSrc(PROC)
-    ProcedureExists = False
-
-    If Not TypeName(v) = "Nothing" Then
-        If TypeOf v Is VBComponent Then
-            Set vbcm = v.CodeModule
-            With vbcm
-                For iLine = 1 To .CountOfLines
-                    If .ProcOfLine(iLine, vbProcKind) = sName Then
-                        ProcedureExists = True
-                        GoTo xt
-                    End If
-                Next iLine
-                GoTo xt
-            End With
-        ElseIf TypeOf v Is CodeModule Then
-            Set vbcm = v
-            With vbcm
-                For iLine = 1 To .CountOfLines
-                    If .ProcOfLine(iLine, vbProcKind) = sName Then
-                        ProcedureExists = True
-                        GoTo xt
-                    End If
-                Next iLine
-                GoTo xt
-            End With
-        End If
-    End If
-    Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The item (parameter v) for the Procedure's existence check is neither a Component object nor a CodeModule object!"
-
-xt: EoP ErrSrc(PROC)
-    Exit Function
-
-eh: mErH.ErrMsg ErrSrc(PROC)
-End Function
-
 Public Function CodeModuleIsEmpty(ByVal v As Variant) As Boolean
 ' --------------------------------------------------------------
 ' Returns TRUE when the CodeModule (v) has only one line with a
 ' lenght of n
 ' --------------------------------------------------------------
-Const PROC  As String = "CodeModuleIsEmpty"
-Dim vbc     As VBComponent
-Dim vbcm    As CodeModule
-
+    Const PROC = "CodeModuleIsEmpty"
+    
     On Error GoTo eh
+    Dim vbc     As VBComponent
+    Dim vbcm    As CodeModule
 
     If Not VarType(v) = vbObject _
     Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The parameter is not an object (VBComponwent or CodeModule)!"
@@ -101,7 +53,7 @@ Dim vbcm    As CodeModule
 
 xt: Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 Public Sub CodeModuleTrim(ByVal v As Variant, _
@@ -115,11 +67,11 @@ Public Sub CodeModuleTrim(ByVal v As Variant, _
 ' the Workbook may be provided as an open Workbook's name
 ' or a Workbook object.
 ' -------------------------------------------------------
-Const PROC  As String = "CodeModuleTrim"
-Dim vbc     As VBComponent
-Dim vbcm    As CodeModule
-
+    Const PROC = "CodeModuleTrim"
+    
     On Error GoTo eh
+    Dim vbc     As VBComponent
+    Dim vbcm    As CodeModule
    
     Select Case TypeName(v)
         Case "String"
@@ -164,7 +116,7 @@ Dim vbcm    As CodeModule
     
 xt: Exit Sub
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Function ComponentExists(ByVal vWb As Variant, _
@@ -176,13 +128,14 @@ Public Function ComponentExists(ByVal vWb As Variant, _
 ' in the Workbook (vWb) - which may be a Workbook object or a Workbook's
 ' name or fullname of an open Workbook.
 ' ------------------------------------------------------------------------
-Const PROC  As String = "ComponentExists"       ' This procedure's name for the error handling and execution tracking
-Dim wb      As Workbook
-Dim sTest   As String
-Dim sName   As String
-Dim vbc     As VBComponent
-
+    Const PROC = "ComponentExists"
+    
     On Error GoTo eh
+    Dim wb      As Workbook
+    Dim sTest   As String
+    Dim sName   As String
+    Dim vbc     As VBComponent
+
     ComponentExists = False
         
     Select Case TypeName(vWb)
@@ -213,7 +166,7 @@ Dim vbc     As VBComponent
 
 xt: Exit Function
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function CustomViewExists(ByVal vWb As Variant, _
@@ -224,14 +177,13 @@ Public Function CustomViewExists(ByVal vWb As Variant, _
 ' vCv is provided as CustomView object, only its name is used for
 ' the existence check in Workbook (wb).
 ' ---------------------------------------------------------------
-Const PROC  As String = "CustomViewExists"      ' This procedure's name for the error handling and execution tracking
-Dim wb      As Workbook
-Dim sTest   As String
-
-    On Error GoTo eh
-    BoP ErrSrc(PROC)
-    CustomViewExists = False
+    Const PROC  As String = "CustomViewExists"      ' This procedure's name for the error handling and execution tracking
     
+    On Error GoTo eh
+    Dim wb      As Workbook
+    Dim sTest   As String
+
+    CustomViewExists = False
     If Not TypeName(vWb) = "Workbook" And VarType(vWb) <> vbString Then
         Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The provided Workbook paramenter (vWB) is neither a Workbook object nor a string!"
     End If
@@ -260,10 +212,78 @@ Dim sTest   As String
     End If
     Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The CustomView (parameter vCv) for the CustomView's existence check is neither a string (CustomView's name) nor a CustomView object!"
         
-xt: EoP ErrSrc(PROC)
-    Exit Function
+xt: Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: ErrMsg ErrSrc(PROC)
+End Function
+
+Private Sub ErrMsg( _
+             ByVal err_source As String, _
+    Optional ByVal err_no As Long = 0, _
+    Optional ByVal err_dscrptn As String = vbNullString)
+' ------------------------------------------------------
+' This Common Component does not have its own error
+' handling. Instead it passes on any error to the
+' caller's error handling.
+' ------------------------------------------------------
+    
+    If err_no = 0 Then err_no = Err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+
+    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
+
+End Sub
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "mVBP." & sProc
+End Function
+
+Public Function ProcedureExists(ByVal v As Variant, _
+                                ByVal sName As String) As Boolean
+' ---------------------------------------------------------------
+' Returns TRUE when the Procedure named (sName) exists in the
+' CodeModule (vbcm).
+' ---------------------------------------------------------------
+    Const PROC = "ProcedureExists"
+
+    On Error GoTo eh
+    Dim vbcm        As CodeModule
+    Dim iLine       As Long             ' For the existence check of a VBA procedure in a CodeModule
+    Dim sLine       As String           ' For the existence check of a VBA procedure in a CodeModule
+    Dim vbProcKind  As vbext_ProcKind   ' For the existence check of a VBA procedure in a CodeModule
+
+    ProcedureExists = False
+
+    If Not TypeName(v) = "Nothing" Then
+        If TypeOf v Is VBComponent Then
+            Set vbcm = v.CodeModule
+            With vbcm
+                For iLine = 1 To .CountOfLines
+                    If .ProcOfLine(iLine, vbProcKind) = sName Then
+                        ProcedureExists = True
+                        GoTo xt
+                    End If
+                Next iLine
+                GoTo xt
+            End With
+        ElseIf TypeOf v Is CodeModule Then
+            Set vbcm = v
+            With vbcm
+                For iLine = 1 To .CountOfLines
+                    If .ProcOfLine(iLine, vbProcKind) = sName Then
+                        ProcedureExists = True
+                        GoTo xt
+                    End If
+                Next iLine
+                GoTo xt
+            End With
+        End If
+    End If
+    Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The item (parameter v) for the Procedure's existence check is neither a Component object nor a CodeModule object!"
+
+xt: Exit Function
+
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function ReferenceExists(ByVal vWb As Variant, _
@@ -276,13 +296,13 @@ Public Function ReferenceExists(ByVal vWb As Variant, _
 ' fullname. When vRef is provided as object only its GUID is used for
 ' the existence check in Workbook (vWb).
 ' ----------------------------------------------------------------------
-Const PROC  As String = "ReferenceExists"   ' This procedure's name for the error handling and execution tracking
-Dim ref     As Reference
-Dim refTest As Reference
-Dim wb      As Workbook
-
+    Const PROC = "ReferenceExists"
+    
     On Error GoTo eh
-    BoP ErrSrc(PROC)
+    Dim ref     As Reference
+    Dim refTest As Reference
+    Dim wb      As Workbook
+
     ReferenceExists = False
     
     '~~ Assert vWb
@@ -325,12 +345,7 @@ Dim wb      As Workbook
         Next ref
     End If
 
-xt: EoP ErrSrc(PROC)
-    Exit Function
+xt: Exit Function
 
-eh: mErH.ErrMsg ErrSrc(PROC)
-End Function
-
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = ThisWorkbook.Name & ">mVBP" & ">" & sProc
+eh: ErrMsg ErrSrc(PROC)
 End Function

@@ -20,9 +20,9 @@ End Sub
 Private Sub Test_ExportChangedComponents()
     Const PROC = "Test_ExportChangedComponents"
     
-    BoP ErrSrc(PROC)
+    mErH.BoP ErrSrc(PROC)
     mCompMan.ExportChangedComponents ThisWorkbook
-    EoP ErrSrc(PROC)
+    mErH.EoP ErrSrc(PROC)
     
 End Sub
 
@@ -32,7 +32,7 @@ Private Sub Test_CodeChanged()
     Dim cComp       As New clsComp
 
     On Error GoTo eh
-    BoP ErrSrc(PROC)
+    mErH.BoP ErrSrc(PROC)
     
     With cComp
         .Host = ThisWorkbook
@@ -42,7 +42,7 @@ Private Sub Test_CodeChanged()
         Debug.Assert .CodeChanged = False
     End With
 
-xt: EoP ErrSrc(PROC)
+xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: mErH.ErrMsg ErrSrc(PROC)
@@ -54,13 +54,13 @@ Public Sub Test_UpdateUsedCommCompsTheOriginHasChanged()
     Dim wb      As Workbook
 
     On Error GoTo eh
-    BoP ErrSrc(PROC)
+    mErH.BoP ErrSrc(PROC)
     
     Application.StatusBar = vbNullString
     Set wb = ThisWorkbook
     mCompMan.UpdateUsedCommCompsTheOriginHasChanged wb
     
-xt: EoP ErrSrc(PROC)
+xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: mErH.ErrMsg ErrSrc(PROC)

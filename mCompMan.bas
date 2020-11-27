@@ -111,24 +111,23 @@ Public dat          As clsAppData
 Public wblog        As clsAppData
 Private wbTarget    As Workbook     ' The Workbook of which the VB-Components are managed
                                     ' (the Workbook which "pulls" its up to date VB-Project from wbSource)
-Private wbSource    As Workbook     ' The Workbook which contains the up to date VB-Code-Modules                                    ' (yet not implemented!)
 Public asNoSynch()  As String
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCompMan" & "." & sProc
 End Function
 
-Public Sub ExportAll( _
-           Optional ByVal wb As Workbook = Nothing, _
-           Optional ByVal sComp As String = vbNullString)
-' -------------------------------------------------------
+Public Sub ExportAll(Optional ByVal wb As Workbook = Nothing)
+' -----------------------------------------------------------
 '
-' -------------------------------------------------------
-Const PROC              As String = "ExportAll"
-Dim cManagedComponent   As New clsComp
-Dim vbc                 As VBComponent
-
+' -----------------------------------------------------------
+    Const PROC = "ExportAll"
+    
     On Error GoTo eh
+    Dim cManagedComponent   As New clsComp
+    Dim vbc                 As VBComponent
+    
+    mErH.BoP ErrSrc(PROC)
     
     If wb Is Nothing Then Set wb = ActiveWorkbook
     With cManagedComponent
@@ -142,7 +141,8 @@ Dim vbc                 As VBComponent
         
     End With
 
-xt: Exit Sub
+xt: mErH.EoP ErrSrc(PROC)
+    Exit Sub
     
 eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
@@ -162,31 +162,34 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
 ' - The ExportFile's last access date reflects the date of the last code
 '   change. This date is logged when a used Common Component is updated.
 ' ------------------------------------------------------------------------
-Const PROC              As String = "ExportChangedComponents"
-Dim lCompMaxLen         As Long
-Dim sComp               As String
-Dim vbc                 As VBComponent
-Dim dctComps            As Dictionary
-Dim dctRemove           As Dictionary
-Dim v                   As Variant
-Dim cMngdComp           As New clsComp
-Dim fl                  As File
-Dim sFolder             As String
-Dim flOriginExportFile  As File
-Dim sOriginHostFullName As String
-Dim lComponents         As Long
-Dim lExported           As Long
-Dim lRemoved            As Long
-Dim sExported           As String
-Dim bUpdated            As Boolean
-Dim lUpdated            As Long
-Dim sUpdated            As String
-Dim sMsg                As String
-
+    Const PROC = "ExportChangedComponents"
+    
     On Error GoTo eh
-    BoP ErrSrc(PROC)
+    Dim lCompMaxLen         As Long
+    Dim sComp               As String
+    Dim vbc                 As VBComponent
+    Dim dctComps            As Dictionary
+    Dim dctRemove           As Dictionary
+    Dim v                   As Variant
+    Dim cMngdComp           As New clsComp
+    Dim fl                  As File
+    Dim sFolder             As String
+    Dim flOriginExportFile  As File
+    Dim sOriginHostFullName As String
+    Dim lComponents         As Long
+    Dim lExported           As Long
+    Dim lRemoved            As Long
+    Dim sExported           As String
+    Dim bUpdated            As Boolean
+    Dim lUpdated            As Long
+    Dim sUpdated            As String
+    Dim sMsg                As String
+
+    mErH.BoP ErrSrc(PROC)
     
     If wb Is Nothing Then Set wb = ActiveWorkbook
+    If InStr(wb.FullName, "(") <> 0 Then GoTo xt ' This is a recovered version !
+    
     Set dctComps = New Dictionary
     
     With cMngdComp
@@ -259,7 +262,7 @@ next_vbc:
             Next v
         End With
     
-xt:     Select Case lExported
+        Select Case lExported
             Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & .Host.Name & " had been changed/exported/backed up."
             Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & left(sExported, Len(sExported) - 2)
             Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & left(sExported, Len(sExported) - 1)
@@ -267,11 +270,16 @@ xt:     Select Case lExported
         If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
         Application.StatusBar = sMsg
         
-        EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
-        Exit Sub
     End With
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+xt: mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
+    Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub ExportComponent( _
@@ -280,18 +288,18 @@ Public Sub ExportComponent( _
 ' -------------------------------------------------------
 '
 ' -------------------------------------------------------
-Const PROC              As String = "ExportComponent"
-Dim cManagedComponent   As New clsComp
-Dim dctSelected         As Dictionary
-Dim v                   As Variant
-Dim sExported           As String
-Dim lExported           As Long
-Dim lComponents         As Long
-Dim sMsg                As String
-Dim bWhenChangedOnly    As Boolean
-
-    On Error GoTo eh
+    Const PROC = "ExportComponent"
     
+    On Error GoTo eh
+    Dim cManagedComponent   As New clsComp
+    Dim v                   As Variant
+    Dim sExported           As String
+    Dim lExported           As Long
+    Dim lComponents         As Long
+    Dim sMsg                As String
+    Dim bWhenChangedOnly    As Boolean
+    
+    mErH.BoP ErrSrc(PROC)
     If wb Is Nothing Then Set wb = ActiveWorkbook
     
     With cManagedComponent
@@ -335,9 +343,14 @@ Dim bWhenChangedOnly    As Boolean
     
     End With
     
-xt: Exit Sub
-    
-eh: mErH.ErrMsg ErrSrc(PROC)
+xt: mErH.EoP ErrSrc(PROC)
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
@@ -353,20 +366,22 @@ Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
 ' Note 2: The update is performed only when con-
 '         firmed in a user dialog.
 ' --------------------------------------------------
-Const PROC              As String = "UpdateUsedCommCompsTheOriginHasChanged"
-Dim vbc                 As VBComponent
-Dim lCompMaxLen         As Long
-Dim cTarget             As New clsComp
-Dim flOriginExportFile  As File
-Dim sOriginHostFullName As String
-Dim lComponents         As Long
-Dim lCommonUsed         As Long
-Dim lReplaced           As Long
-Dim sReplaced           As String
-Dim sMsg                As String
-
+    Const PROC              As String = "UpdateUsedCommCompsTheOriginHasChanged"
+    
     On Error GoTo eh
-    BoP ErrSrc(PROC)
+    Dim vbc                 As VBComponent
+    Dim lCompMaxLen         As Long
+    Dim cTarget             As New clsComp
+    Dim flOriginExportFile  As File
+    Dim sOriginHostFullName As String
+    Dim lComponents         As Long
+    Dim lCommonUsed         As Long
+    Dim lReplaced           As Long
+    Dim sReplaced           As String
+    Dim sMsg                As String
+
+    mErH.BoP ErrSrc(PROC)
+    If InStr(wbTarget.FullName, "(") <> 0 Then GoTo xt ' This is a recovered version !
     
     With cTarget
         .Host = wbTarget
@@ -398,7 +413,7 @@ Dim sMsg                As String
         
     End With
     
-xt: Select Case lCommonUsed
+    Select Case lCommonUsed
         Case 0: sMsg = "No Components of " & lComponents & " had been identified as ""Common Used ""."
         Case 1
             Select Case lReplaced
@@ -415,14 +430,14 @@ xt: Select Case lCommonUsed
     If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
     
-    EoP ErrSrc(PROC)
+xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
-    
-eh:
-#If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    mErH.ErrMsg ErrSrc(PROC)
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub Version(ByVal Version As clsAddinVersion)

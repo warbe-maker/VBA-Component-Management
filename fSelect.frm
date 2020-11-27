@@ -44,14 +44,14 @@ Dim i As Long
 End Sub
 
 Private Sub UserForm_Activate()
-Dim vbc     As VBComponent
-Dim cComp   As New clsComp
-Dim v       As Variant
+
+    Dim vbc     As VBComponent
+    Dim v       As Variant
 
     If dct Is Nothing Then Set dct = New Dictionary Else dct.RemoveAll
     
     For Each vbc In wbHost.VBProject.VBComponents
-        mBasic.DictAdd dct, vbc.Name, vbc, dct_ascending
+        mDct.DctAdd add_dct:=dct, add_key:=vbc.Name, add_item:=vbc, add_seq:=seq_ascending
     Next vbc
     
     With Me

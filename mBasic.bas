@@ -1,15 +1,24 @@
 Attribute VB_Name = "mBasic"
+Option Private Module
 Option Explicit
-#Const CustomMsg = 1 ' = 1 when the fMsg UserForm is to be used instead of the MsgBox
-' -----------------------------------------------------------------------------------
-' Standard Module mBasic
-'          Basic declarations, procedures, methods, functions im most VBProjects.
+' ----------------------------------------------------------------------------
+' Standard Module mTest: Declarations, procedures, methods and function
+'       likely to be required in any VB-Project.
+'
+' Note: 1. Procedures of the mBasic module do not use the Common VBA Error Handler.
+'          However, this test module uses the mErrHndlr module for test purpose.
+'
+'       2. This module is developed, tested, and maintained in the dedicated
+'          Common Component Workbook Basic.xlsm available on Github
+'          https://Github.com/warbe-maker/VBA-Basic-Procedures
 '
 ' Methods:
-' - AppErr              Converts a positive number into a negative error number
-'                       ensuring it not conflicts with a VB error. A negative error
-'                       number is turned back into the original positive Application
-'                       Error Number.
+' - AppErr              Converts a positive error number into a negative one which
+'                       ensures non conflicting application error numbers since
+'                       they are not mixed up with positive VB error numbers. In
+'                       return a negative error number is turned back into its
+'                       original positive Application Error Number.
+' - AppIsInstalled      Returns TRUE when a named exec is found in the system path
 ' - ArrayCompare        Compares two one-dimensional arrays. Returns an array with
 '                       al different items
 ' - ArrayIsAllocated    Returns TRUE when the provided array has at least one item
@@ -19,20 +28,14 @@ Option Explicit
 '                       to a range
 ' - ArrayTrim           Removes any leading or trailing empty items.
 ' - CleanTrim           Clears a string from any unprinable characters.
-' - Msg                 Displays a message with any possible 4 replies and the
-'                       message either with a foxed or proportional font.
-' - Msg3                Displays a message with any possible 4 replies and 3
-'                       message sections each either with a foxed or proportional
-'                       font.
-' - ErrMsg              Displays a common error message either by means of the
-'                       VB MsgBox or by means of the common method Msg.
+' - ErrMsg              Displays a common error message by means of the VB MsgBox.
 '
 ' Requires Reference to:
 ' - "Microsoft Scripting Runtime"
 ' - "Microsoft Visual Basic Application Extensibility .."
 '
-' W. Rauschenberger Berlin May 2020
-' -------------------------------------------------------------------------------
+' W. Rauschenberger, Berlin Sept 2020
+' ----------------------------------------------------------------------------
 ' Basic declarations potentially uesefull in any project
 Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Public Declare PtrSafe Function GetSystemMetrics32 Lib "user32" Alias "GetSystemMetrics" (ByVal nIndex As Long) As Long
@@ -86,24 +89,14 @@ Public Enum xlOnOff ' ------------------------------------
     xlOff = -4146   ' grouped for being used as Enum Type.
 End Enum            ' ------------------------------------
 
-Public Enum enDctMode ' Dictionary add/insert modes
-    dct_addafter = 1
-    dct_addbefore = 2
-    dct_ascending = 3
-    dct_ascendingignorecase = 4
-    dct_descending = 5
-    dct_descendingignorecase = 6
-    dct_sequence = 7
-End Enum
-
 Public Property Get MsgReply() As Variant:          MsgReply = vMsgReply:   End Property
 
 Public Property Let MsgReply(ByVal v As Variant):   vMsgReply = v:          End Property
 
 Public Function AppErr(ByVal lNo As Long) As Long
 ' -------------------------------------------------------------------------------
-' Attention: This function is dedicated for being used with Err.Raise mErH.AppErr()
-'            in conjunction with the common error handling module mErH when
+' Attention: This function is dedicated for being used with Err.Raise AppErr()
+'            in conjunction with the common error handling module mErrHndlr when
 '            the call stack is supported. The error number passed on to the entry
 '            procedure is interpreted when the error message is displayed.
 ' The function ensures that a programmed (application) error numbers never
@@ -127,52 +120,57 @@ Dim i As Long: i = 1
     AppIsInstalled = InStr(Environ$(i), sApp) <> 0
 End Function
 
-Public Function ArrayCompare(ByVal a1 As Variant, _
-                             ByVal a2 As Variant, _
-                    Optional ByVal lStopAfter As Long = 1) As Variant
-' -------------------------------------------------------------------
-' Returns an array of all lines which are different. Each element
-' contains the corresponding elements of both arrays in form:
-' linenumber: <line>||<line>. When a value for stop after
-' (lStopAfter) is provided greater 0 the comparison stops after that.
+Public Function ArrayCompare(ByVal ac_a1 As Variant, _
+                             ByVal ac_a2 As Variant, _
+                    Optional ByVal ac_stop_after As Long = 1, _
+                    Optional ByVal ac_id1 As String = vbNullString, _
+                    Optional ByVal ac_id2 As String = vbNullString) As Variant
+' ----------------------------------------------------------------------------
+' Returns an array of n (as_stop_after) lines which are different between
+' array 1 (ac_a1) and array 2 (ac_a2). Each line element contains the
+' lines which differ in the form:
+' linenumber: <ac_id1> '<line>' || <ac_id2> '<line>'
+' The comparisonWhen a value for stop after n (ac_stop_after) lines.
 ' Note: Either or both arrays may not be assigned (=empty).
-' -------------------------------------------------------------------
-Dim l       As Long
-Dim i       As Long
-Dim va()    As Variant
+' ----------------------------------------------------------------------------
+    Const PROC = "ArrayCompare"
+    
+    Dim l       As Long
+    Dim i       As Long
+    Dim va()    As Variant
 
-    If Not mBasic.ArrayIsAllocated(a1) And mBasic.ArrayIsAllocated(a2) Then
-        va = a2
-    ElseIf mBasic.ArrayIsAllocated(a1) And Not mBasic.ArrayIsAllocated(a2) Then
-        va = a1
-    ElseIf Not mBasic.ArrayIsAllocated(a1) And Not mBasic.ArrayIsAllocated(a2) Then
+    If Not mBasic.ArrayIsAllocated(ac_a1) And mBasic.ArrayIsAllocated(ac_a2) Then
+        va = ac_a2
+    ElseIf mBasic.ArrayIsAllocated(ac_a1) And Not mBasic.ArrayIsAllocated(ac_a2) Then
+        va = ac_a1
+    ElseIf Not mBasic.ArrayIsAllocated(ac_a1) And Not mBasic.ArrayIsAllocated(ac_a2) Then
         GoTo xt
     End If
     
     l = 0
-    For i = LBound(a1) To Min(UBound(a1), UBound(a2))
-        If a1(i) <> a2(i) Then
+    For i = LBound(ac_a1) To Min(UBound(ac_a1), UBound(ac_a2))
+        If ac_a1(i) <> ac_a2(i) Then
             ReDim Preserve va(l)
-            va(l) = i & ": " & DGT & a1(i) & DLT & DCONCAT & DGT & a2(i) & DLT
+            va(l) = Format(i, "000") & " " & ac_id1 & " '" & ac_a1(i) & "'  < >  '" & ac_id2 & " " & ac_a2(i) & "'"
             l = l + 1
-            If lStopAfter > 0 And l >= lStopAfter Then GoTo xt
+            If ac_stop_after > 0 And l >= ac_stop_after Then GoTo xt
         End If
     Next i
     
-    If UBound(a1) < UBound(a2) Then
-        For i = UBound(a1) + 1 To UBound(a2)
+    If UBound(ac_a1) < UBound(ac_a2) Then
+        For i = UBound(ac_a1) + 1 To UBound(ac_a2)
             ReDim Preserve va(l)
-            va(l) = i & ": " & DGT & DLT & DCONCAT & DGT & a2(i) & DLT
+            va(l) = Format(i, "000") & ac_id2 & ": '" & ac_a2(i) & "'"
             l = l + 1
-            If lStopAfter > 0 And l >= lStopAfter Then GoTo xt
+            If ac_stop_after > 0 And l >= ac_stop_after Then GoTo xt
         Next i
         
-    ElseIf UBound(a2) < UBound(a1) Then
-        For i = UBound(a2) + 1 To UBound(a1)
+    ElseIf UBound(ac_a2) < UBound(ac_a1) Then
+        For i = UBound(ac_a2) + 1 To UBound(ac_a1)
             ReDim Preserve va(l)
-            va(l) = i & ": " & DGT & a1(i) & DLT & DCONCAT & DGT & DLT
+            va(l) = Format(i, "000") & " " & ac_id1 & " '" & ac_a1(i) & "'"
             l = l + 1
-            If lStopAfter > 0 And l >= lStopAfter Then GoTo xt
+            If ac_stop_after > 0 And l >= ac_stop_after Then GoTo xt
         Next i
     End If
 
@@ -186,7 +184,6 @@ Public Function ArrayDiffers(ByVal a1 As Variant, _
 ' Returns TRUE when array (a1) differs from array (a2).
 ' ----------------------------------------------------------
 Const PROC  As String = "ArrayDiffers"
-Dim l       As Long
 Dim i       As Long
 Dim va()    As Variant
 
@@ -213,8 +210,11 @@ Dim va()    As Variant
     Next i
     
 xt: Exit Function
-    
-eh: mErH.ErrMsg ErrSrc(PROC)
+
+eh: ErrMsg err_source:=ErrSrc(PROC)
+#If Debugging Then
+    Debug.Print Err.Description: Stop: Resume
+#End If
 End Function
 
 Public Function ArrayIsAllocated(arr As Variant) As Boolean
@@ -276,22 +276,22 @@ Dim iNewUBound          As Long
     On Error GoTo eh
     
     If Not IsArray(va) Then
-        Err.Raise mErH.AppErr(1), ErrSrc(PROC), "Array not provided!"
+        Err.Raise AppErr(1), ErrSrc(PROC), "Array not provided!"
     Else
         a = va
         NoOfElementsInArray = UBound(a) - LBound(a) + 1
     End If
     If Not ArrayNoOfDims(a) = 1 Then
-        Err.Raise mErH.AppErr(2), ErrSrc(PROC), "Array must not be multidimensional!"
+        Err.Raise AppErr(2), ErrSrc(PROC), "Array must not be multidimensional!"
     End If
     If Not IsNumeric(Element) And Not IsNumeric(Index) Then
-        Err.Raise mErH.AppErr(3), ErrSrc(PROC), "Neither FromElement nor FromIndex is a numeric value!"
+        Err.Raise AppErr(3), ErrSrc(PROC), "Neither FromElement nor FromIndex is a numeric value!"
     End If
     If IsNumeric(Element) Then
         iElement = Element
         If iElement < 1 _
         Or iElement > NoOfElementsInArray Then
-            Err.Raise mErH.AppErr(4), ErrSrc(PROC), "vFromElement is not between 1 and " & NoOfElementsInArray & " !"
+            Err.Raise AppErr(4), ErrSrc(PROC), "vFromElement is not between 1 and " & NoOfElementsInArray & " !"
         Else
             iIndex = LBound(a) + iElement - 1
         End If
@@ -300,13 +300,13 @@ Dim iNewUBound          As Long
         iIndex = Index
         If iIndex < LBound(a) _
         Or iIndex > UBound(a) Then
-            Err.Raise mErH.AppErr(5), ErrSrc(PROC), "FromIndex is not between " & LBound(a) & " and " & UBound(a) & " !"
+            Err.Raise AppErr(5), ErrSrc(PROC), "FromIndex is not between " & LBound(a) & " and " & UBound(a) & " !"
         Else
             iElement = ElementOfIndex(a, iIndex)
         End If
     End If
     If iElement + NoOfElements - 1 > NoOfElementsInArray Then
-        Err.Raise mErH.AppErr(6), ErrSrc(PROC), "FromElement (" & iElement & ") plus the number of elements to remove (" & NoOfElements & ") is beyond the number of elelemnts in the array (" & NoOfElementsInArray & ")!"
+        Err.Raise AppErr(6), ErrSrc(PROC), "FromElement (" & iElement & ") plus the number of elements to remove (" & NoOfElements & ") is beyond the number of elelemnts in the array (" & NoOfElementsInArray & ")!"
     End If
     
     For i = iIndex + NoOfElements To UBound(a)
@@ -320,11 +320,10 @@ Dim iNewUBound          As Long
 xt: Exit Sub
 
 eh:
-    '~~ Global error handling is used to seamlessly monitor error conditions
 #If Debugging Then
-    Stop: Resume
+    Debug.Print Err.Description: Stop: Resume
 #End If
-    mErH.ErrMsg ErrSrc(PROC)
+    ErrMsg err_source:=ErrSrc(PROC)
 End Sub
 
 Public Sub ArrayToRange(ByVal vArr As Variant, _
@@ -338,11 +337,11 @@ Dim rTarget As Range
     If bOneCol Then
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(UBound(vArr), 1)
-        rTarget.Value = Application.Transpose(vArr)
+        rTarget.value = Application.Transpose(vArr)
     Else
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(1, UBound(vArr))
-        rTarget.Value = vArr
+        rTarget.value = vArr
     End If
     
 End Sub
@@ -384,9 +383,9 @@ xt: Exit Sub
 eh:
     '~~ Global error handling is used to seamlessly monitor error conditions
 #If Debugging Then
-    Stop: Resume
+    Debug.Print Err.Description: Stop: Resume
 #End If
-    mErH.ErrMsg ErrSrc(PROC)
+    ErrMsg err_source:=ErrSrc(PROC)
 End Sub
 
 Public Function BaseName(ByVal v As Variant) As String
@@ -396,19 +395,25 @@ Public Function BaseName(ByVal v As Variant) As String
 ' a Workbook object.
 ' -----------------------------------------------------
 Const PROC  As String = "BaseName"
+Dim fso     As New FileSystemObject
 
     On Error GoTo eh
     
     Select Case TypeName(v)
-        Case "String":      With New FileSystemObject:  BaseName = .GetBaseName(v):             End With
-        Case "Workbook":    With New FileSystemObject:  BaseName = .GetBaseName(v.FullName):    End With
-        Case "File":        With New FileSystemObject:  BaseName = .GetBaseName(v.ShortName):   End With
-        Case Else:          Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The parameter (v) is neither a string nor a File or Workbook object (TypeName = '" & TypeName(v) & "')!"
+        Case "String":      BaseName = fso.GetBaseName(v)
+        Case "Workbook":    BaseName = fso.GetBaseName(v.FullName)
+        Case "File":        BaseName = fso.GetBaseName(v.ShortName)
+        Case Else:          Err.Raise AppErr(1), ErrSrc(PROC), "The parameter (v) is neither a string nor a File or Workbook object (TypeName = '" & TypeName(v) & "')!"
     End Select
 
-xt: Exit Function
+xt:
+    Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh:
+#If Debugging Then
+    Debug.Print Err.Description: Stop: Resume
+#End If
+    ErrMsg err_source:=ErrSrc(PROC)
 End Function
 
 Public Function CleanTrim(ByVal s As String, _
@@ -429,162 +434,6 @@ Dim asToClean   As Variant
 
 End Function
 
-Public Sub DictAdd(ByRef dct As Dictionary, _
-                   ByRef vKey As Variant, _
-                   ByRef vItem As Variant, _
-                   ByVal lMode As enDctMode, _
-          Optional ByVal vTarget As Variant)
-' --------------------------------------------------
-' Universal method to add an item to the Dictionary
-' (dct), supporting ascending and descending order,
-' case and case insensitive as well as adding items
-' before or after an existing item.
-' - When the key (vKey) already exists adding will
-'   just be skipped without a warning or an error.
-' - When the dictionary (dct) is Nothing it is setup
-'   on the fly.
-'
-' W. Rauschenberger, Berlin Mar 2015
-' --------------------------------------------------
-Dim dctTemp     As Dictionary
-Dim vTempKey    As Variant
-Dim bAdd        As Boolean
-
-    If dct Is Nothing Then Set dct = New Dictionary
-    
-    With dct
-        If .Count = 0 Or lMode = dct_sequence Then
-            '~~> Very first item is just added
-            .Add vKey, vItem
-            Exit Sub
-        Else
-            ' ------------------------------------
-            ' Let's see whether the new key can be
-            ' added directly after the last key
-            ' ------------------------------------
-            vTempKey = .Keys()(.Count - 1)
-            Select Case lMode
-                Case dct_ascending
-                    If vKey > vTempKey Then
-                        .Add vKey, vItem
-                        Exit Sub                ' Done!
-                    End If
-                Case dct_ascendingignorecase
-                    If LCase$(vKey) > LCase$(vTempKey) Then
-                        .Add vKey, vItem
-                        Exit Sub                ' Done!
-                    End If
-                Case dct_descending
-                    If vKey < vTempKey Then
-                        .Add vKey, vItem
-                        Exit Sub                ' Done!
-                    End If
-                Case dct_descendingignorecase
-                    If LCase$(vKey) < LCase$(vTempKey) Then
-                        .Add vKey, vItem
-                        Exit Sub                ' Done!
-                    End If
-            End Select
-        End If
-    End With
-
-    ' ----------------------------------------------
-    ' Since the new key could not simply be added
-    ' to the dct it must be added/inserted somewhere
-    ' in between or even before the very first key.
-    ' ----------------------------------------------
-    Set dctTemp = New Dictionary
-    bAdd = True
-    For Each vTempKey In dct
-        With dctTemp
-            If bAdd Then
-                '~~> Skip this section when already added
-                If dct.Exists(vKey) Then
-                    '~~> Simply ignore add when already existing
-                    bAdd = False
-                    Exit Sub
-                End If
-                Select Case lMode
-                    Case dct_ascending
-                        If vTempKey > vKey Then
-                            .Add vKey, vItem
-                            bAdd = False ' Add done
-                        End If
-                    Case dct_ascendingignorecase
-                        If LCase$(vTempKey) > LCase$(vKey) Then
-                            .Add vKey, vItem
-                            bAdd = False ' Add done
-                        End If
-                    Case dct_addbefore
-                        If vTempKey = vTarget Then
-                            '~~> Add before vTarget key has been reached
-                            .Add vKey, vItem
-                            bAdd = True
-                        End If
-                    Case dct_descending
-                        If vTempKey < vKey Then
-                            .Add vKey, vItem
-                            bAdd = False ' Add done
-                        End If
-                    Case dct_descendingignorecase
-                        If LCase$(vTempKey) < LCase$(vKey) Then
-                            .Add vKey, vItem
-                            bAdd = False ' Add done
-                        End If
-                End Select
-            End If
-            
-            '~~> Transfer the existing item to the temporary dictionary
-            .Add vTempKey, dct.Item(vTempKey)
-            
-            If lMode = dct_addafter And bAdd Then
-                If vTempKey = vTarget Then
-                    ' ----------------------------------------
-                    ' Just add when lMode indicates add after,
-                    ' and the vTraget key has been reached
-                    ' ----------------------------------------
-                    .Add vKey, vItem
-                    bAdd = False
-                End If
-            End If
-            
-        End With
-    Next vTempKey
-    
-    '~~> Return the temporary dictionary with the new item added
-    Set dct = dctTemp
-    Set dctTemp = Nothing
-    Exit Sub
-
-End Sub
-
-Public Function DictDiffers(ByVal dct1 As Dictionary, _
-                            ByVal dct2 As Dictionary) As Boolean
-' --------------------------------------------------------------
-' Returns TRUE when array (a1) differs from array (a2).
-' --------------------------------------------------------------
-Const PROC  As String = "DictDiffers"
-Dim i       As Long
-Dim v       As Variant
-
-    On Error GoTo eh
-    If dct1.Count = dct2.Count Then
-        For Each v In dct1
-            If dct1.Item(v) <> dct2.Items(i) Then
-                DictDiffers = True
-                GoTo xt
-            End If
-            i = i + 1
-        Next v
-    Else
-        DictDiffers = True
-    End If
-       
-xt: Exit Function
-    
-eh: mErH.ErrMsg ErrSrc(PROC)
-End Function
-
 Public Function ElementOfIndex(ByVal a As Variant, _
                                 ByVal i As Long) As Long
 ' ------------------------------------------------------
@@ -597,7 +446,7 @@ Dim ia  As Long
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mBasic" & "." & sProc
+    ErrSrc = ThisWorkbook.Name & " mBasic." & sProc
 End Function
 
 Public Function IsCvName(ByVal v As Variant) As Boolean
@@ -722,7 +571,7 @@ Dim sFolder As String
     ' Open the select folder prompt
     With Application.FileDialog(msoFileDialogFolderPicker)
         .Title = sTitle
-        If .Show = -1 Then ' if OK is pressed
+        If .show = -1 Then ' if OK is pressed
             sFolder = .SelectedItems(1)
         End If
     End With
@@ -736,4 +585,22 @@ Public Function Space(ByVal l As Long) As String
 ' --------------------------------------------------
     Space = VBA.Space$(l)
 End Function
+
+Private Sub ErrMsg( _
+             ByVal err_source As String, _
+    Optional ByVal err_no As Long = 0, _
+    Optional ByVal err_dscrptn As String = vbNullString)
+' ------------------------------------------------------
+' This Common Component does not have its own error
+' handling. Instead it passes on any error to the
+' caller's error handling.
+' ------------------------------------------------------
+    
+    If err_no = 0 Then err_no = Err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+
+    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
+
+End Sub
+
 

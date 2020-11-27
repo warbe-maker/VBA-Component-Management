@@ -9,9 +9,7 @@ Private base                                As clsAppData
 Private Const ASPCT_BASE_CONFIG             As String = "Base_Configuration"    ' maintained in the Registry
 Private Const VALUE_COMMON_BASE_PATH        As String = "CommonComponentsBasePath"        ' maintained in the Registry
 Private Const VALUE_COMMON_ADDINS_PATH      As String = "CompManAddinPath"      ' maintained in the Registry
-Private Const COMMON_COMPONENTS_PATH        As String = "CommonComponentsPath"  ' maintained in the Registry
                                                                                 ' --------------------------
-Private Const COMMON_COMPONENTS_FOLDER      As String = "\Components"           '
 Private Const SBJCT_FILE_NAME               As String = "\Components.dat"       '
 Private Const SECTION_COMPONENT             As String = "Component_"            '
 Private Const SECTION_HOST_WORKBOOK         As String = "HostWorkbook_"         '
@@ -25,10 +23,11 @@ Public Property Get CodeVersionAsOfDate( _
 ' Returns a used Common Component's (sComp) code version as
 ' as-of-date of the origin code Export File.
 ' ---------------------------------------------------------
-Const PROC = "CodeVersionAsOfDate_Get"
-Dim v           As Variant
-
+    Const PROC = "CodeVersionAsOfDate_Get"
+    
     On Error GoTo eh
+    Dim v           As Variant
+
     InitDat
     sSection = SectionComponent(sComp)
     dat.Aspect = sSection
@@ -250,11 +249,12 @@ Public Sub AssertInitialConfiguration()
 ' Assert that an existing Common folder is configured
 ' and that it contains a subfolder "CommComponents".
 ' ----------------------------------------------------
-Dim sPathCommon     As String
-Dim sPathComponents As String
-Dim sPathCompMan    As String
-Dim sBaseName       As String
-Dim sTitle          As String
+    Const PROC = "AssertInitialConfiguration"
+    
+    On Error GoTo eh
+    Dim sPathCommon     As String
+    Dim sPathCompMan    As String
+    Dim sBaseName       As String
 
     With New FileSystemObject
         
@@ -300,6 +300,13 @@ Dim sTitle          As String
         
     End With
     
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub CommCompRemove(ByVal sComp As String)
@@ -308,9 +315,12 @@ Public Sub CommCompRemove(ByVal sComp As String)
 End Sub
 
 Public Function CommCompsMaxLenght() As Long
-Dim v           As Variant
-Dim lMax        As Long
-Dim dct         As Dictionary
+    Const PROC = "CommCompsMaxLenght"
+    
+    On Error GoTo eh
+    Dim v           As Variant
+    Dim lMax        As Long
+    Dim dct         As Dictionary
 
     InitDat
     Set dct = dat.Aspects
@@ -323,14 +333,24 @@ Dim dct         As Dictionary
     End If
     CommCompsMaxLenght = lMax
     
+xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Public Sub DisplayCfg()
-
+    Const PROC = "DisplayCfg"
+    
+    On Error GoTo eh
+    Dim sMsgTp  As tMsg
     Dim dct     As New Dictionary
     Dim v       As Variant
     Dim lMax    As Long
-    Dim sMsg    As tMsg
+    Dim sMsg    As String
     Dim sName   As String
 
     InitDat
@@ -343,10 +363,19 @@ Public Sub DisplayCfg()
     Next v
     For Each v In dct
         sName = Split(v, ".")(1) & "." & Split(v, ".")(2)
-        sMsg.section(1).sText = sName & String(lMax - Len(sName), " ") & " = " & dct.Item(v) & vbLf & sMsg.section(1).sText
+        sMsg = sName & String(lMax - Len(sName), " ") & " = " & dct.Item(v) & vbLf & sMsg
     Next v
     mMsg.Dsply dsply_title:="Current content of " & dat.Subject & " (section.valuename = value)", _
-               dsply_message:=sMsg
+               dsply_msg_type:=sMsgTp, _
+               dsply_msg_strng:=sMsg
+
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
@@ -359,21 +388,36 @@ Public Function HostWorkbooks() As Dictionary
 ' Returns a Dictionary wit all Workbooks
 ' which do host one or more Common Components
 ' -------------------------------------------
-Dim dct         As Dictionary
-Dim v           As Variant
-Dim sHostFullName As String
+    Const PROC = "HostWorkbooks"
+    
+    On Error GoTo eh
+    Dim dct         As Dictionary
+    Dim v           As Variant
+    Dim sHostFullName As String
 
     InitDat
     Set dct = New Dictionary
     For Each v In dat.Aspects
         If mCommDat.IsHostWorkbook(v, sHostFullName) Then
-            mBasic.DictAdd dct, v, sHostFullName, dct_ascending
+            mDct.DctAdd add_dct:=dct, add_key:=v, add_item:=sHostFullName, add_seq:=seq_ascending
         End If
     Next v
     Set HostWorkbooks = dct
+
+xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Private Sub InitBaseConfig()
+    Const PROC = "InitBaseConfig"
+    
+    On Error GoTo eh
+    
     If base Is Nothing Then
         Set base = New clsAppData
         With base
@@ -381,9 +425,21 @@ Private Sub InitBaseConfig()
             .Subject = mBasic.BaseName(ThisWorkbook)
         End With
     End If
+
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Private Sub InitDat()
+    Const PROC = "InitDat"
+    
+    On Error GoTo eh
+    
     If dat Is Nothing Then
         Set dat = New clsAppData
         With dat
@@ -392,6 +448,14 @@ Private Sub InitDat()
             .Subject = CommonComponentsBasePath & SBJCT_FILE_NAME
         End With
     End If
+
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Function IsCommonComponent( _
@@ -404,10 +468,12 @@ Public Function IsCommonComponent( _
 ' - Returns the code-baxkup Export File as object and the
 '   "hosting" Workbook's full name.
 ' --------------------------------------------------------------------
-Dim sSection    As String
-Dim dctAspects  As Dictionary
-Dim sExportFile As String
-Dim sWbHost     As String
+    Const PROC = "IsCommonComponent"
+    
+    On Error GoTo eh
+    Dim sSection    As String
+    Dim sExportFile As String
+    Dim sWbHost     As String
 
     InitDat
     With dat
@@ -426,17 +492,28 @@ Dim sWbHost     As String
         .Aspect = sSection
         sWbHostFullName = .ValueGet(ValueNameHostFullName(sSection))
     End With
-End Function
 
+xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Function
                                   
 Public Function IsHostWorkbook(ByVal sHostBaseName As String, _
                         Optional ByRef sHostFullName As String) As Boolean
 ' -------------------------------------------------------------------
 '
 ' -------------------------------------------------------------------
-Dim dctAspects  As Dictionary
-Dim sBaseName   As String
-Dim sSection    As String
+    Const PROC = "IsHostWorkbook"
+    
+    On Error GoTo eh
+    Dim dctAspects  As Dictionary
+    Dim sBaseName   As String
+    Dim sSection    As String
+    
     InitDat
     With dat
         Set dctAspects = .Aspects
@@ -449,6 +526,13 @@ Dim sSection    As String
         End If
     End With
     
+xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Public Function KnownCommonComponents() As Dictionary
@@ -456,8 +540,11 @@ Public Function KnownCommonComponents() As Dictionary
 ' - Returns the known Common Components, i.e. those
 '   registered in the Components.dat File.
 ' ----------------------------------------------------
-Dim dct As New Dictionary
-Dim v   As Variant
+    Const PROC = "KnownCommonComponents"
+    
+    On Error GoTo eh
+    Dim dct As New Dictionary
+    Dim v   As Variant
     
     InitDat
     With dat
@@ -469,6 +556,13 @@ Dim v   As Variant
     End With
     Set KnownCommonComponents = dct
 
+xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Public Function SourceUsesCommComp(ByVal sWbSourceFullName As String, _
@@ -477,9 +571,12 @@ Public Function SourceUsesCommComp(ByVal sWbSourceFullName As String, _
 ' Returns TRUE when the Common Component (sComp) is installed in (is
 ' used by) the Workbook (sWbSourceFullName).
 ' ---------------------------------------------------------------------
-Dim sHostBaseName   As String
-Dim dtAsOfUpdt      As Date
-Dim sSection        As String
+    Const PROC = "SourceUsesCommComp"
+    
+    On Error GoTo eh
+    Dim sHostBaseName   As String
+    Dim sSection        As String
+    
     sHostBaseName = mBasic.BaseName(sWbSourceFullName)
     InitDat
     With dat
@@ -492,6 +589,13 @@ Dim sSection        As String
         End If
     End With
     
+xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Public Sub TrustThisFolder(Optional ByVal FolderPath As String, _
@@ -520,22 +624,20 @@ Public Sub TrustThisFolder(Optional ByVal FolderPath As String, _
 ' 4:    Repeat step 2 or 3: the folder should be listed in the debug output
 ' 5:    If it isn't listed, disable the error-handler and record any errors
 ' -----------------------------------------------------------------------------
-Const PROC              As String = "TrustThisFolder"
-Const HKEY_CURRENT_USER = &H80000001
-Dim sKeyPath            As String
-Dim oRegistry           As Object
-Dim sSubKey             As String
-Dim oSubKeys            As Variant   ' type not specified. After it's populated, it can be iterated
-Dim oSubKey             As Variant   ' type not specified.
-Dim bSubFolders         As Boolean
-Dim bNetworkLocation    As Boolean
-Dim iTrustNetwork       As Long
-Dim sPath               As String
-Dim sDate               As String
-Dim sDesc               As String
-Dim i                   As Long
+    Const PROC = "TrustThisFolder"
+    Const HKEY_CURRENT_USER = &H80000001
     
     On Error GoTo eh
+    Dim sKeyPath            As String
+    Dim oRegistry           As Object
+    Dim sSubKey             As String
+    Dim oSubKeys            As Variant   ' type not specified. After it's populated, it can be iterated
+    Dim oSubKey             As Variant   ' type not specified.
+    Dim bSubFolders         As Boolean
+    Dim bNetworkLocation    As Boolean
+    Dim iTrustNetwork       As Long
+    Dim sPath               As String
+    Dim i                   As Long
 
     bSubFolders = True
     bNetworkLocation = False
@@ -596,7 +698,10 @@ exit_sub:
     Set oRegistry = Nothing
     Exit Sub
 
-eh:
-    Stop: Resume ' exit_sub
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 

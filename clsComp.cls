@@ -86,7 +86,7 @@ Dim dctFile As Dictionary
             If vbc.Name <> BaseName(flExport.Path) _
             Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The to be compared sources do not have the same name!"
             
-            CodeChanged = mBasic.DictDiffers(dctComp, dctFile)
+            CodeChanged = mDct.DctDiffers(dct1:=dctComp, dct2:=dctFile)
         
         Case vbext_ct_MSForm
             '~~ A UserForm change required specific investigation in order to also detect a design change
@@ -95,7 +95,11 @@ Dim dctFile As Dictionary
 
 xt: Exit Property
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Property
 
 Private Property Get CommonOriginCodeDiffersFromCommonUsedCode( _
@@ -107,11 +111,11 @@ Private Property Get CommonOriginCodeDiffersFromCommonUsedCode( _
 ' Note: Code comparison by means of the Export files allows to
 '       check the code change with a usually closed host Workbook.
 ' ----------------------------------------------------------------
-Const PROC  As String = "CommonOriginCodeDiffersFromCommonUsedCode"
-Dim aFile1  As Variant
-Dim aFile2  As Variant
+    Const PROC = "CommonOriginCodeDiffersFromCommonUsedCode"
     
     On Error GoTo eh
+    Dim aFile1  As Variant
+    Dim aFile2  As Variant
     
     aFile1 = ExportFileToArray(flOrigin) ' obtained through its name with mCommDat
     aFile2 = ExportFileToArray(flUsed)
@@ -119,7 +123,11 @@ Dim aFile2  As Variant
 
 xt: Exit Property
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Property
 
 Public Property Get CommonOriginCodeChanged( _
@@ -142,10 +150,12 @@ Public Property Get CommonOriginCodeChanged( _
             End If
         End If
     End With
+
 End Property
 
 Public Property Get ExportFile() As File
-Dim sFile As String
+    
+    Dim sFile As String
 
     If flExport Is Nothing Then
         sFile = ExportFileFullName
@@ -215,6 +225,7 @@ Public Property Get IsCommonUsed( _
             mCommDat.IsCommonComponent sComponentName, fl, s
         End If
     End If
+
 End Property
 
 Public Property Get KindOfChange( _
@@ -225,8 +236,9 @@ Public Property Get KindOfChange( _
 ' of the LastModified date of the source and a target
 ' Export File.
 ' -------------------------------------------------------
-Dim dtAsOf      As Date
-Dim fl          As File
+    
+    Dim dtAsOf      As Date
+    Dim fl          As File
 
     With Me.CommonOrigin
         .Name = sComponentName
@@ -264,22 +276,6 @@ Dim fl          As File
     
 End Property
 
-'Public Property Get KindOfComp() As enKindOfComp
-'    KindOfComp = vbcKind
-'End Property
-
-'Private Property Let KindOfComp(ByVal en As enKindOfComp)
-'    vbcKind = en
-'    If en = enKindOfComp.enCommonUsed Then
-'        '~~ Obtain the used Common Component's Workbook full name
-'        sHostFullName = mCommDat.CommCompHostWorkbookFullName(sComponentName)
-'        sHostBaseName = BaseName(sHostFullName)
-'    Else
-'        '~~ In any other case the Workbook is the target Workbook assigned directly
-'    End If
-'
-'End Property
-
 Public Property Get Name() As String:                       Name = sComponentName:                               End Property
 
 Public Property Let Name(ByVal s As String):                sComponentName = s:                                  End Property
@@ -305,34 +301,36 @@ Private Property Get UpdateOriginWithUsedConfirmed() As enUpdateReply
     Const REPLY_DSPLY_DIFF      As String = "Show Difference"
     Const REPLY_ABORT           As String = "Abort"
     
-    Dim sReplyDsplyDiff         As tMsg
+    Dim sMsgType                As tMsg
+    Dim sReplyDsplyDiff         As String
     Dim sBaseMsg                As String
-    Dim sMsg                    As tMsg
-    Dim sDsplyDiffMsg           As tMsg
+    Dim sMsg                    As String
+    Dim sDsplyDiffMsg           As String
     
     On Error GoTo eh
     
     '~~ Prepare communication message and reply option
     If mBasic.AppIsInstalled("WinMerge") Then
-        sReplyDsplyDiff.section(1).sText = "," & REPLY_DSPLY_DIFF
-        sDsplyDiffMsg.section(1).sText = DQUOTE & REPLY_DSPLY_DIFF & DQUOTE & " to see what has been changed and decide then (leave with Esc key)"
+        sReplyDsplyDiff = "," & REPLY_DSPLY_DIFF
+        sDsplyDiffMsg = DQUOTE & REPLY_DSPLY_DIFF & DQUOTE & " to see what has been changed and decide then (leave with Esc key)"
     Else
-        sReplyDsplyDiff.section(1).sText = vbNullString
-        sDsplyDiffMsg.section(1).sText = "."
+        sReplyDsplyDiff = vbNullString
+        sDsplyDiffMsg = "."
     End If
                 
     sBaseMsg = "The Common Component '" & sComponentName & "' used in this Workbook has been changed in it." & vbLf & vbLf & _
                "Reply with:" & vbLf & _
                DQUOTE & REPLY_UPDATE_ORIGIN & DQUOTE & " when the changes should become common/permanent" & vbLf & _
-               sDsplyDiffMsg.section(1).sText & vbLf & _
+               sDsplyDiffMsg & vbLf & _
                DQUOTE & REPLY_DISCARD_CHANGES & DQUOTE & " to discard all changes, i.e. (re-)instate the origin code"
     
     '~~ Offer options
-    sMsg.section(1).sText = sBaseMsg
-    sDsplyDiffMsg.section(1).sText = sBaseMsg & sDsplyDiffMsg.section(1).sText
+    sMsg = sBaseMsg
+    sDsplyDiffMsg = sBaseMsg & sDsplyDiffMsg
     Select Case mMsg.Dsply(dsply_title:="Common Component code changed in this Workbook", _
-                           dsply_message:=sDsplyDiffMsg, _
-                           dsply_buttons:=REPLY_UPDATE_ORIGIN & sReplyDsplyDiff.section(1).sText & "," & REPLY_DISCARD_CHANGES & "," & REPLY_ABORT)
+                           dsply_msg_type:=sMsgType, _
+                           dsply_msg_strng:=sDsplyDiffMsg, _
+                           dsply_buttons:=REPLY_UPDATE_ORIGIN & sReplyDsplyDiff & "," & REPLY_DISCARD_CHANGES & "," & REPLY_ABORT)
         
         Case REPLY_UPDATE_ORIGIN    ' Update without display of the differences
             UpdateOriginWithUsedConfirmed = True
@@ -345,7 +343,8 @@ Private Property Get UpdateOriginWithUsedConfirmed() As enUpdateReply
                         sTitleRght:="Code of " & sComponentName & " currently used in Workbook/VBProject " & Me.HostBaseName
             '~~ When the code difference display has been closed, offer update/ignore again
             Select Case mMsg.Dsply(dsply_title:="Common Component code changed in this Workbook", _
-                                   dsply_message:=sMsg, _
+                                   dsply_msg_type:=sMsgType, _
+                                   dsply_msg_strng:=sMsg, _
                                    dsply_buttons:=REPLY_UPDATE_ORIGIN & "," & REPLY_DISCARD_CHANGES & "," & REPLY_ABORT)
                 Case REPLY_UPDATE_ORIGIN:   UpdateOriginWithUsedConfirmed = enUpdateOriginWithUsed
                 Case REPLY_DISCARD_CHANGES: UpdateOriginWithUsedConfirmed = enUpdateUsedWithOrigin
@@ -359,8 +358,12 @@ Private Property Get UpdateOriginWithUsedConfirmed() As enUpdateReply
     End Select
                                             
 xt: Exit Property
-
-eh: mErH.ErrMsg ErrSrc(PROC)
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Property
 
 Public Property Get VBComp() As VBComponent
@@ -377,7 +380,7 @@ Public Property Get VBComp() As VBComponent
 End Property
 
 Public Property Let VBComp(ByVal oComp As VBComponent)
-Const PROC  As String = "VBComp_Let"
+    Const PROC = "VBComp_Let"
 
     On Error GoTo eh
     If Me.Host Is Nothing _
@@ -395,7 +398,11 @@ Const PROC  As String = "VBComp_Let"
     
 xt: Exit Property
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Property
 
 Public Property Get HostBaseName() As String:                 HostBaseName = BaseName(sHostFullName):         End Property
@@ -411,7 +418,9 @@ Public Property Get Host() As Workbook
 End Property
 
 Public Property Let Host(ByVal wbk As Workbook)
-Dim fso As New FileSystemObject
+    
+    Dim fso As New FileSystemObject
+    
     Set wbHost = wbk
     sHostFullName = wbHost.FullName
     sHostBaseName = fso.GetBaseName(sHostFullName)
@@ -419,6 +428,7 @@ Dim fso As New FileSystemObject
     For Each vbc In wbHost.VBProject.VBComponents
         lCompMaxLen = mBasic.Max(lCompMaxLen, Len(vbc.Name))
     Next vbc
+
 End Property
 
 Public Sub BackUpCode()
@@ -426,6 +436,7 @@ Public Sub BackUpCode()
 ' Exports the Component (vbc) to its dedicated ExportFileFullName.
 ' When the exported component
 ' --------------------------------------------------------------------
+    
     If Not vbc.CodeModule.CountOfLines = 0 Then
         vbc.Export sExportFullName
         Set flExport = GetFile(sExportFullName)
@@ -443,10 +454,10 @@ Private Function ExportFilePath() As String
 ' Workbook's base name folder.
 ' Will be created if not existent.
 ' --------------------------------------
-Dim sPath As String
+    
+    Dim sPath As String
 
     sPath = sPathCommon & "\" & sHostBaseName
-    
     '~~ Make sure the returned export path specifies an existing folder
     With New FileSystemObject
         If Not .FolderExists(sPath) Then
@@ -457,7 +468,6 @@ Dim sPath As String
 
 End Function
 
-
 Private Function FormCodeAndOrDesignChanged() As Boolean
 ' ------------------------------------------------------
 ' Whether a UserForm's code and/or design has changed
@@ -467,12 +477,12 @@ Private Function FormCodeAndOrDesignChanged() As Boolean
 ' different or the size of the .frx files are different,
 ' something has changed is considered.
 ' ------------------------------------------------------
-Const PROC      As String = "FormCodeAndOrDesignChanged"
-Dim sTempPath   As String
-Dim sTempFolder As String
-Dim flTemp      As File
-
+    Const PROC = "FormCodeAndOrDesignChanged"
+    
     On Error GoTo eh
+    Dim sTempPath   As String
+    Dim sTempFolder As String
+    Dim flTemp      As File
     
     With New FileSystemObject
         sTempFolder = .GetFile(flExport.Path).ParentFolder
@@ -485,7 +495,7 @@ Dim flTemp      As File
         
         If UserFormSizeIsDifferent(Me.ExportFile, flTemp) Then
             FormCodeAndOrDesignChanged = True
-        ElseIf mFile.Differ(flExport, flTemp) Then
+        ElseIf mFile.sDiffer(dif_file1:=flExport, dif_file2:=flTemp) Then
             FormCodeAndOrDesignChanged = True
         End If
         
@@ -494,7 +504,11 @@ Dim flTemp      As File
                                             
 xt: Exit Function
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Public Function IsUsedCommonComponent() As Boolean
@@ -524,12 +538,11 @@ Public Sub UpdateOriginWithUsedWhenConfirmedByUser(ByRef bUpdated As Boolean)
 ' TRUE is returned (bUpdated).
 ' !! Update is done either by code synch or by replace.
 ' ---------------------------------------------------------------------------
-Const PROC  As String = "UpdateOriginWithUsedWhenConfirmedByUser"
-Dim fl      As File
-Dim sWbHost As String
-Dim sComp   As String
-
+    Const PROC = "UpdateOriginWithUsedWhenConfirmedByUser"
+    
     On Error GoTo eh
+    Dim fl      As File
+    Dim sWbHost As String
     
     Set fl = Me.ExportFile
     With Me.CommonOrigin
@@ -563,7 +576,11 @@ Dim sComp   As String
 
 xt: Exit Sub
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub UpdateUsedWithOrigin()
@@ -576,12 +593,7 @@ Const PROC  As String = "UpdateUsedWithOrigin"
     On Error GoTo eh
     
     With Me
-'        Select Case vbc.Type
-'            Case vbext_ct_StdModule, vbext_ct_ClassModule, vbext_ct_Document
-'                .SynchUsedWithOrigin
-'            Case vbext_ct_MSForm
-                .ReplaceUsedWithOrigin
-'        End Select
+        .ReplaceUsedWithOrigin
         
         '~~ Log the updated code version
         .CodeVersionAsOfDate = .CommonOrigin.ExportFile.DateLastModified
@@ -592,7 +604,11 @@ Const PROC  As String = "UpdateUsedWithOrigin"
 
 xt: Exit Sub
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub SynchUsedWithOrigin()
@@ -601,12 +617,12 @@ Public Sub SynchUsedWithOrigin()
 ' Component's code with the
 ' origin's Export File.
 ' ------------------------------
-Const PROC  As String = "SynchUsedWithOrigin"
-Dim iLine   As Long
-Dim v       As Variant
-Dim vbcm    As CodeModule
+    Const PROC = "SynchUsedWithOrigin"
 
     On Error GoTo eh
+    Dim iLine   As Long
+    Dim v       As Variant
+    Dim vbcm    As CodeModule
                 
     '~~ Remove all lines from the target component
     Set vbcm = vbc.CodeModule
@@ -624,7 +640,11 @@ Dim vbcm    As CodeModule
                 
 xt: Exit Sub
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub SynchOriginWithUsed()
@@ -634,13 +654,13 @@ Public Sub SynchOriginWithUsed()
 ' the Export File of the used
 ' Common Component.
 ' ------------------------------
-Const PROC  As String = "SynchOriginWithUsed"
-Dim iLine   As Long
-Dim v       As Variant
-Dim vbcm    As CodeModule
-Dim wbHost      As Workbook
+    Const PROC = "SynchOriginWithUsed"
 
     On Error GoTo eh
+    Dim iLine   As Long
+    Dim v       As Variant
+    Dim vbcm    As CodeModule
+    Dim wbHost  As Workbook
                 
     Debug.Print DebugComp & Now() & " About to synch code with Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
     '~~ Remove all lines from the target component
@@ -661,11 +681,15 @@ Dim wbHost      As Workbook
                 
 xt: Exit Sub
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub ReplaceUsedWithOrigin()
-Const PROC  As String = "ReplaceUsedWithOrigin"
+    Const PROC = "ReplaceUsedWithOrigin"
 
     On Error GoTo eh
     
@@ -685,7 +709,11 @@ Const PROC  As String = "ReplaceUsedWithOrigin"
     
 xt: Exit Sub
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub ReplaceOriginWithUsed()
@@ -694,10 +722,11 @@ Public Sub ReplaceOriginWithUsed()
 ' origin code with the used ones
 ' Export File.
 ' --------------------------------
-Const PROC  As String = "ReplaceOriginWithUsed"
-Dim wbHost      As Workbook
+    Const PROC = "ReplaceOriginWithUsed"
 
     On Error GoTo eh
+    Dim wbHost      As Workbook
+    
     Debug.Print DebugComp & Now() & " About to replace with Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
     CleanExportFile Me.ExportFile
     With Me.CommonOrigin
@@ -710,7 +739,11 @@ Dim wbHost      As Workbook
 
 xt: Exit Sub
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Private Function FileExists(ByVal sFile As String) As Boolean
@@ -738,7 +771,7 @@ Public Function TypeString() As String
 ' --------------------------------------------------------------------------
 ' Returns the component type derived from sComp.
 ' --------------------------------------------------------------------------
-Const PROC  As String = "TypeString"          ' This procedure's name for the error handling and execution tracing
+    Const PROC = "TypeString"
     
     On Error GoTo eh
         
@@ -761,6 +794,7 @@ Public Function CodeModuleIsEmpty() As Boolean
 ' Returns TRUE when the CodeModule (v) has 0
 ' only 1 line with a lenght < 2.
 ' --------------------------------------------
+    
     With vbc.CodeModule
         If .CountOfLines = 0 Then
             CodeModuleIsEmpty = True
@@ -768,6 +802,7 @@ Public Function CodeModuleIsEmpty() As Boolean
             CodeModuleIsEmpty = True
         End If
     End With
+    
 End Function
 
 Public Function CodeToArray() As String()
@@ -776,12 +811,12 @@ Public Function CodeToArray() As String()
 ' as Array. When the Code Module is empty
 ' The CodeArray will not be assigned !!!!
 ' ---------------------------------------
-Const PROC  As String = "CodeToArray"
-Dim va      As Variant
-Dim sLine   As String
-Dim sSplit  As String
+    Const PROC = "CodeToArray"
 
     On Error GoTo eh
+    Dim va      As Variant
+    Dim sLine   As String
+    Dim sSplit  As String
         
     With vbc.CodeModule
         If .CountOfLines = 0 Then GoTo xt
@@ -797,7 +832,11 @@ xt: If Not TypeName(va) = "Empty" _
     Then CodeToArray = va
     Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Public Function CodeToDict() As Dictionary
@@ -805,15 +844,15 @@ Public Function CodeToDict() As Dictionary
 ' Returns the Component's CodeModule as
 ' Dictionary.
 ' ---------------------------------------
-Const PROC  As String = "CodeToDict"
-Dim dct     As New Dictionary
-Dim va      As Variant
-Dim sLine   As String
-Dim sSplit  As String
-Dim i       As Long
-Dim v       As Variant
+    Const PROC = "CodeToDict"
 
     On Error GoTo eh
+    Dim dct     As New Dictionary
+    Dim va      As Variant
+    Dim sLine   As String
+    Dim sSplit  As String
+    Dim i       As Long
+    Dim v       As Variant
         
     With vbc.CodeModule
         If .CountOfLines = 0 Then GoTo xt
@@ -831,7 +870,11 @@ Dim v       As Variant
 xt: Set CodeToDict = dct
     Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
@@ -844,12 +887,12 @@ Public Function ExportFileToArray(ByVal fl As File) As String()
 ' object or full file name string as array, considering any kind of
 ' line break characters.
 ' ---------------------------------------------------------------------
-Const PROC      As String = "ExportFileToArray"
-Const ATTRIB_VB As String = "Attribute VB_"
-Dim a           As Variant
-Dim i           As Long
+    Const PROC = "ExportFileToArray"
+    Const ATTRIB_VB = "Attribute VB_"
 
     On Error GoTo eh
+    Dim a           As Variant
+    Dim i           As Long
     
     a = mFile.ToArray(fl)
     '~~ Remove the extra module information lines
@@ -873,7 +916,11 @@ Dim i           As Long
 
 xt: Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Public Function ExportFileToDict(ByVal fl As File) As Dictionary
@@ -882,17 +929,16 @@ Public Function ExportFileToDict(ByVal fl As File) As Dictionary
 ' All lines preceeding "Attribute " lines and "Attribute " lines
 ' are excempted.
 ' --------------------------------------------------------------
-Const PROC          As String = "ExportFileToArray"
-Const ATTRIB_LINE   As String = "Attribute "
-Dim a               As Variant
-Dim i               As Long
-Dim dct             As Dictionary
-Dim v               As Variant
-Dim cllRemove       As New Collection
-Dim sLine           As String
-Dim cll             As Collection
+    Const PROC = "ExportFileToArray"
+    Const ATTRIB_LINE = "Attribute "
 
     On Error GoTo eh
+    Dim i               As Long
+    Dim dct             As Dictionary
+    Dim v               As Variant
+    Dim cllRemove       As New Collection
+    Dim sLine           As String
+    Dim cll             As Collection
     
     Set cll = New Collection
     Set dct = mFile.ToDict(fl)
@@ -936,7 +982,11 @@ Dim cll             As Collection
 xt: Set cll = Nothing
     Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Public Sub DisplayDiff(ByVal flLeft As File, _
@@ -947,10 +997,11 @@ Public Sub DisplayDiff(ByVal flLeft As File, _
 ' Displays the difference between file 1 (fl1) and
 ' file 2 (fl2).
 ' ------------------------------------------------
-Const PROC          As String = "DisplayDiff"
-Dim waitOnReturn    As Boolean: waitOnReturn = True
-Dim windowStyle     As Integer: windowStyle = 1
-Dim sCommand        As String
+    Const PROC = "DisplayDiff"
+    
+    Dim waitOnReturn    As Boolean: waitOnReturn = True
+    Dim windowStyle     As Integer: windowStyle = 1
+    Dim sCommand        As String
 
     If Not mBasic.AppIsInstalled("WinMerge") _
     Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "Display of the difference between two files relies on WinMerge installed, which is not the case!"
@@ -971,7 +1022,8 @@ Private Function DebugComp() As String
 ' ------------------------------------
 '
 ' ------------------------------------
-Dim lMax As Long
+    
+    Dim lMax As Long
 
     If Not wbHost Is Nothing _
     Then lMax = lCompMaxLen _
@@ -984,8 +1036,8 @@ End Function
 
 Private Function UserFormSizeIsDifferent(ByVal f1 As File, _
                                          ByVal f2 As File) As Boolean
-Dim sFrxFile1Path  As String
-Dim sFrxFile2Path  As String
+    Dim sFrxFile1Path  As String
+    Dim sFrxFile2Path  As String
 
     sFrxFile1Path = Replace$(f1.Path, ".frm", ".frx")
     sFrxFile2Path = Replace$(f2.Path, ".frm", ".frx")
@@ -1014,11 +1066,11 @@ Public Sub CleanExportFile(ByRef fl As File)
 ' Returns a clean export file, i.e. an empty
 ' line after the Attribute section removed.
 ' ------------------------------------------
-Const ATTRIBUTE_ID  As String = "Attribute "
-Dim a               As Variant
-Dim i               As Long
-Dim ts              As TextStream
-Dim sLine           As String
+    Const ATTRIBUTE_ID = "Attribute "
+    
+    Dim a   As Variant
+    Dim i   As Long
+    Dim ts  As TextStream
 
     a = mFile.ToArray(fl.Path)
     Do Until left(a(i), Len(ATTRIBUTE_ID)) <> ATTRIBUTE_ID
@@ -1052,12 +1104,10 @@ Dim vbc As VBComponent
 End Function
 
 Public Function SelectedComponents(ByRef bWhenChangedOnly As Boolean) As Dictionary
-Dim vbc As VBComponent
-Dim v   As Variant
 
     With fSelect
         .Host = Me.Host
-        .Show
+        .show
         Set SelectedComponents = .SelectedComps
         bWhenChangedOnly = .WhenChangedOnly
     End With

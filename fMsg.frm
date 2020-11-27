@@ -13,7 +13,6 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-
 Option Explicit
 ' -------------------------------------------------------------------------------
 ' UserForm fMsg
@@ -222,6 +221,10 @@ Private Sub ProvideCollection(ByRef cll As Collection)
     If Not cll Is Nothing Then Set cll = Nothing
     Set cll = New Collection
 End Sub
+
+Public Property Get NoOfDesignedMsgSections() As Long
+    NoOfDesignedMsgSections = NO_OF_DESIGNED_SECTIONS
+End Property
 
 Private Sub ProvideDictionary(ByRef dct As Dictionary)
 ' ----------------------------------------------------
@@ -958,17 +961,17 @@ Private Sub ResizeAndReposition()
 ' -----------------------------------------------------------------------------------
     On Error GoTo eh
     
-    If IsApplied(DsgnMsgArea) Then
-        ResizeAndRepositionMsgSections
-        ResizeAndRepositionMsgArea
-    End If
-    If IsApplied(DsgnButtonsArea) Then
-        ResizeAndRepositionButtons
-        ResizeAndRepositionButtonRows
-        ResizeAndRepositionButtonsFrame
-        ResizeAndRepositionButtonsArea
-    End If
-    ResizeAndRepositionAreas
+'    If IsApplied(DsgnMsgArea) Then
+'        ResizeAndRepositionMsgSections
+'        ResizeAndRepositionMsgArea
+'    End If
+'    If IsApplied(DsgnButtonsArea) Then
+'        ResizeAndRepositionButtons
+'        ResizeAndRepositionButtonRows
+'        ResizeAndRepositionButtonsFrame
+'        ResizeAndRepositionButtonsArea
+'    End If
+'    ResizeAndRepositionAreas
     
 xt: Exit Sub
     
@@ -1270,12 +1273,10 @@ Public Sub Setup()
     
     '~~ Setup monospaced message sections
     SetupMsgSectionsMonoSpaced
-    ResizeAndReposition
     Debug_Sizes "Monospaced sections setup and resized"
     
     '~~ Setup the reply buttons
     SetupButtons vbuttons
-'    ResizeAndReposition
 '    Debug_Sizes "Monospaced sections and buttons setup:"
         
     '~~ At this point the form width is final - possibly with its specified minimum width.
@@ -1285,7 +1286,10 @@ Public Sub Setup()
     '~~ Setup proportional spaced message sections (use the given width)
     SetupMsgSectionsPropSpaced
 '    Debug_Sizes "Message and buttons area setup, reposition due:"
-'    ResizeAndReposition
+    If IsApplied(DsgnMsgArea) Then
+        ResizeAndRepositionMsgSections
+        ResizeAndRepositionMsgArea
+    End If
 '    Debug_Sizes "Message and buttons area setup, repositio done:"
             
     '~~ At this point the form height is final. It may however exceed the specified maximum form height.
@@ -1300,10 +1304,13 @@ Public Sub Setup()
         Debug_Sizes "Areas had been reduced to fit specified maximum height:"
     End If
     
-    ResizeAndRepositionButtons
-    ResizeAndRepositionButtonRows
-    ResizeAndRepositionButtonsFrame
-    ResizeAndRepositionButtonsArea
+    If IsApplied(DsgnButtonsArea) Then
+        ResizeAndRepositionButtons
+        ResizeAndRepositionButtonRows
+        ResizeAndRepositionButtonsFrame
+        ResizeAndRepositionButtonsArea
+    End If
+    
     ResizeAndRepositionAreas
     Debug_Sizes "All done! Setup and (possibly) height reduced:"
 
@@ -1602,7 +1609,7 @@ Private Sub SetupMsgSectionMonoSpaced(ByVal section As Long, _
         .Font.Name = sMonoSpacedFontName
         .Font.Size = siMonoSpacedFontSize
         .AutoSize = True
-        .Value = text
+        .value = text
         .AutoSize = False
         .SelStart = 0
         .left = siHmarginFrames
@@ -1676,7 +1683,7 @@ Private Sub SetupMsgSectionPropSpaced(ByVal section As Long, _
         .AutoSize = True
         .WordWrap = True
         .width = frText.width - siHmarginFrames
-        .Value = text
+        .value = text
         .SelStart = 0
         .left = HSPACE_LEFT
         frText.width = .left + .width + siHmarginFrames

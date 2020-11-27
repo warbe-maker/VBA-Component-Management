@@ -85,9 +85,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     Const PROC      As String = "Workbook_BeforeSave"
     
     On Error GoTo eh
-    Dim wb          As Workbook
-    Dim sExpPath    As String
-    Dim sFullName   As String
+    Dim wb As Workbook
 
     If Not wbAddIn.IsDevlpInstance Then Exit Sub
     
@@ -100,7 +98,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     If Not wb.Saved Then wb.Save        ' usually not required
     Application.EnableEvents = True
 
-xt: EoP ErrSrc(PROC)
+xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: mErH.ErrMsg ErrSrc(PROC)

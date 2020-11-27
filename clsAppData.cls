@@ -291,7 +291,7 @@ Dim fso             As File
                 asAspects = Split(strBuffer, vbNullChar)
                 For i = LBound(asAspects) To UBound(asAspects)
                     If Len(asAspects(i)) <> 0 Then
-                        mBasic.DictAdd dct, asAspects(i), asAspects(i), dct_ascending
+                        mDct.DctAdd add_dct:=dct, add_key:=asAspects(i), add_item:=asAspects(i), add_seq:=seq_ascending
                     End If
                 Next i
             End If
@@ -304,7 +304,7 @@ Dim fso             As File
             For Each v In avKeys
                 '~~ An empty Aspect means no Aspects
                 If v <> vbNullString Then
-                    mBasic.DictAdd dct, v, CStr(v), dct_ascending
+                    mDct.DctAdd add_dct:=dct, add_key:=v, add_item:=CStr(v), add_seq:=seq_ascending
                 End If
             Next v
             
@@ -428,7 +428,7 @@ Dim sKey As String
     If dctDefaults.Exists(sKey) Then
         dctDefaults.Item(sKey) = vValue
     Else
-        mBasic.DictAdd dctDefaults, sKey, vValue, dct_ascending
+        mDct.DctAdd add_dct:=dctDefaults, add_key:=sKey, add_item:=vValue, add_seq:=seq_ascending
     End If
 
 End Sub
@@ -660,7 +660,7 @@ Dim vAspect         As Variant
                     asNames = Split(sNames, vbNullChar)                      ' have them split into an array
                     For i = LBound(asNames) To UBound(asNames)
                         If Len(asNames(i)) <> 0 Then
-                            mBasic.DictAdd dctNames, sAspect, asNames(i), dct_ascending
+                            mDct.DctAdd add_dct:=dctNames, add_key:=sAspect, add_item:=asNames(i), add_seq:=seq_ascending
                         End If
                     Next i
                 End If
@@ -681,7 +681,7 @@ Dim vAspect         As Variant
                                     sItem = dctNames.Item(asNames(i))
                                     dctNames.Item(asNames(i)) = sItem & "," & sAspect
                                 Else
-                                    mBasic.DictAdd dctNames, asNames(i), sAspect & "/" & asNames(i), dct_ascending
+                                    mDct.DctAdd add_dct:=dctNames, add_key:=asNames(i), add_item:=sAspect & "/" & asNames(i), add_seq:=seq_ascending
                                 End If
                             End If
                         Next i
@@ -700,7 +700,7 @@ Dim vAspect         As Variant
                 For Each v In avNames
                     '~~ An empty Name means no Names
                     If v <> vbNullString Then
-                        mBasic.DictAdd dctNames, v, CStr(v), dct_ascending
+                        mDct.DctAdd add_dct:=dctNames, add_key:=v, add_item:=CStr(v), add_seq:=seq_ascending
                     End If
                 Next v
             Else
@@ -711,7 +711,7 @@ Dim vAspect         As Variant
                     If Err.Number <> 0 Then Exit Function
                     For Each v In avNames
                         If v <> vbNullString Then
-                            mBasic.DictAdd dctNames, v, vAspect & "/" & CStr(v), dct_ascending
+                            mDct.DctAdd add_dct:=dctNames, add_key:=v, add_item:=vAspect & "/" & CStr(v), add_seq:=seq_ascending
                         End If
                     Next v
                 Next vAspect
@@ -1083,7 +1083,7 @@ Dim sName       As String
         For Each v In dctNames
             '~~> Get value of the name v
             sValue = ValueGet(v, , lLocation, sSubject, sAspect, lHKey)
-            mBasic.DictAdd dctValues, v, sValue, dct_ascending
+            mDct.DctAdd add_dct:=dctValues, add_key:=v, add_item:=sValue, add_seq:=seq_ascending
         Next v
     Else
         Set dctAspects = Me.Aspects
@@ -1094,7 +1094,7 @@ Dim sName       As String
                 '~~> Get value of the name v
                 sName = dctNames.Item(v)
                 sValue = ValueGet(sName, , lLocation, sSubject, vAspect, lHKey)
-                mBasic.DictAdd dctValues, sAspect & "." & sName, sValue, dct_ascending
+                mDct.DctAdd add_dct:=dctValues, add_key:=sAspect & "." & sName, add_item:=sValue, add_seq:=seq_ascending
             Next v
         Next vAspect
     End If
@@ -1113,13 +1113,13 @@ Public Sub ValuesDisplay(Optional lLocation As enLocation = 0, _
 ' --------------------------------------------------------------------
 '
 ' --------------------------------------------------------------------
-    Const PROC      As String = "Values"
+    Const PROC = "Values"
     
+    On Error GoTo eh
+    Dim sMsgType    As tMsg ' Dummy
     Dim v           As Variant
     Dim sValues     As String
     Dim dctValues   As Dictionary
-    Dim sMsg        As tMsg
-    On Error GoTo eh
         
     '~~ Use the default values for not provided parameters
     If lLocation = 0 Then lLocation = Me.Location
@@ -1130,8 +1130,10 @@ Public Sub ValuesDisplay(Optional lLocation As enLocation = 0, _
     For Each v In dctValues
         sValues = sValues & vbLf & v & " = " & dctValues.Item(v)
     Next v
-    sMsg.section(1).sText = sValues
-    mMsg.Dsply dsply_title:=sTitle, dsply_message:=sMsg, dsply_buttons:=vbOKOnly
+    mMsg.Dsply dsply_title:=sTitle, _
+               dsply_msg_type:=sMsgType, _
+               dsply_msg_strng:=sValues, _
+               dsply_buttons:=vbOKOnly
     Exit Sub
     
 eh: mErH.ErrMsg ErrSrc(PROC)
