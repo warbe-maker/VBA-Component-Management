@@ -2,13 +2,13 @@ Attribute VB_Name = "mCompLog"
 Option Explicit
 
 Private Const SBJCT_FILE_NAME   As String = "\Update.log"
-Private log                     As clsAppData
+Private Log                     As clsAppData
 Private lLogEntry               As Long
 
 Private Sub InitLog()
-    If log Is Nothing Then
-        Set log = New clsAppData
-        With log
+    If Log Is Nothing Then
+        Set Log = New clsAppData
+        With Log
             .Location = spp_File
             .Extension = ".log"
             .Subject = mCommDat.CommonComponentsBasePath & SBJCT_FILE_NAME
@@ -22,7 +22,7 @@ Public Sub LogAction(ByVal sWbName As String, _
 ' Log the action (sLog) started at (dtLog).
 ' ---------------------------------------------
     InitLog
-    With log
+    With Log
         .Aspect = sWbName
         lLogEntry = lLogEntry + 1
         .ValueLet sName:=sWbName & "_" & Format(lLogEntry, "00"), vValue:=sLog
@@ -32,7 +32,7 @@ End Sub
                        
 Public Sub StartLog(ByRef sWbName As String)
     InitLog
-    log.AspectRemove sAspect:=sWbName
+    Log.AspectRemove sAspect:=sWbName
     lLogEntry = 0 ' Reset dat entry counter
 End Sub
 

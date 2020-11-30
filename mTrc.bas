@@ -996,7 +996,7 @@ Private Sub ErrMsg( _
                     err_dscrptn & vbLf & vbLf & _
                    "Error source/details:" & vbLf & _
                    sDetails, _
-           buttons:=vbOKOnly, _
+           Buttons:=vbOKOnly, _
            Title:=sTitle
     mTrc.Finish sTitle
     mTrc.Terminate

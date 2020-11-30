@@ -66,34 +66,53 @@ End Property
 Public Property Let ComponentName(ByVal s As String):   sComponentName = s:             End Property
 Public Property Get ComponentName() As String:          ComponentName = sComponentName: End Property
 
-Public Property Get CodeChanged() As Boolean
-' ------------------------------------------
-' Returns TRUE when the code of the Component
-' compared with the last Export File
-' indicates a change.
-' ------------------------------------------
-Const PROC  As String = "CodeChanged"
-Dim dctComp As Dictionary
-Dim dctFile As Dictionary
-    
+Public Property Get CodeChanged( _
+                 Optional ByVal ignore_empty_lines As Boolean = False) As Boolean
+' -------------------------------------------------------------------------------
+' Returns TRUE
+' - when the temporary export file of the Component compared with its last Export
+'   File indicates a  change
+' - when the Export File does not exist.
+' For the compare the Component is temporary exported !
+' -------------------------------------------------------------------------------
+    Const PROC  As String = "CodeChanged"
+       
     On Error GoTo eh
+    Dim dctComp As Dictionary
+    Dim dctFile As Dictionary
+    Dim fso     As New FileSystemObject
+    Dim sTmpExp As String
+    Dim a1()    As String
+    Dim a2()    As String
     
+    sTmpExp = Replace(Me.ExportFileFullName, Me.Extension, "_Temp" & Me.Extension)
+    With fso
+        If Not .FileExists(Me.ExportFileFullName) Then
+            CodeChanged = True
+            GoTo xt
+        End If
+    End With
+        
     Select Case vbc.Type
         Case vbext_ct_StdModule, vbext_ct_ClassModule, vbext_ct_Document
         
-            Set dctComp = CodeToDict
-            Set dctFile = ExportFileToDict(flExport)
             If vbc.Name <> BaseName(flExport.Path) _
             Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The to be compared sources do not have the same name!"
             
-            CodeChanged = mDct.DctDiffers(dct1:=dctComp, dct2:=dctFile)
+            Me.VBComp.Export sTmpExp ' any existing would be overwritten
+            CodeChanged = _
+            mFile.sDiffer(dif_file1:=fso.GetFile(sTmpExp) _
+                        , dif_file2:=flExport _
+                        , dif_ignore_empty_records:=ignore_empty_lines _
+                         )
         
         Case vbext_ct_MSForm
             '~~ A UserForm change required specific investigation in order to also detect a design change
-            CodeChanged = FormCodeAndOrDesignChanged
+            CodeChanged = FormCodeAndOrDesignChanged(ignore_empty_lines:=ignore_empty_lines)
     End Select
 
-xt: Exit Property
+xt: If fso.FileExists(sTmpExp) Then fso.DeleteFile sTmpExp ' cleanup
+    Exit Property
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -138,9 +157,9 @@ Public Property Get CommonOriginCodeChanged( _
 ' the used code's as-of-date registered with the last update.
 ' --------------------------------------------------------------------------------
     With Me
-        If .CodeChanged Then
-            '~~ Just in case the used and changed code has yet not been exported
-            .BackUpCode
+        If .CodeChanged(ignore_empty_lines:=True) Then
+            '~~ Any difference constituted only by empty code lines is ignored!
+            .BackUpCode ' Just in case the used and changed code has yet not been exported
         End If
         If .IsCommonUsed(flCommonOriginExportFile, sCommonOriginHostFullName) Then
             If flCommonOriginExportFile.DateLastModified <> .CodeVersionAsOfDate Then
@@ -189,7 +208,7 @@ Public Property Get ExportFileFullName() As String
 End Property
 
 Public Property Get ExportFolder() As Folder:               Set ExportFolder = foExport:                End Property
-Private Property Get Extension() As String:                 Extension = TypeExtention(vbc):             End Property
+Public Property Get Extension() As String:                  Extension = TypeExtention(vbc):             End Property
 
 Public Property Let HostedCommonComponents( _
                     ByVal sHosted As String)
@@ -301,7 +320,6 @@ Private Property Get UpdateOriginWithUsedConfirmed() As enUpdateReply
     Const REPLY_DSPLY_DIFF      As String = "Show Difference"
     Const REPLY_ABORT           As String = "Abort"
     
-    Dim sMsgType                As tMsg
     Dim sReplyDsplyDiff         As String
     Dim sBaseMsg                As String
     Dim sMsg                    As String
@@ -327,11 +345,10 @@ Private Property Get UpdateOriginWithUsedConfirmed() As enUpdateReply
     '~~ Offer options
     sMsg = sBaseMsg
     sDsplyDiffMsg = sBaseMsg & sDsplyDiffMsg
-    Select Case mMsg.Dsply(dsply_title:="Common Component code changed in this Workbook", _
-                           dsply_msg_type:=sMsgType, _
-                           dsply_msg_strng:=sDsplyDiffMsg, _
-                           dsply_buttons:=REPLY_UPDATE_ORIGIN & sReplyDsplyDiff & "," & REPLY_DISCARD_CHANGES & "," & REPLY_ABORT)
-        
+    Select Case mMsg.Box(dsply_title:="Common Component code changed in this Workbook", _
+                         dsply_msg:=sDsplyDiffMsg, _
+                         dsply_buttons:=mMsg.Buttons(REPLY_UPDATE_ORIGIN & sReplyDsplyDiff, REPLY_DISCARD_CHANGES, REPLY_ABORT) _
+                        )
         Case REPLY_UPDATE_ORIGIN    ' Update without display of the differences
             UpdateOriginWithUsedConfirmed = True
             Exit Property
@@ -342,10 +359,10 @@ Private Property Get UpdateOriginWithUsedConfirmed() As enUpdateReply
                         sTitleLeft:="Code of " & sComponentName & " currently hosted in Workbook/VBProject " & Me.CommonOrigin.HostBaseName, _
                         sTitleRght:="Code of " & sComponentName & " currently used in Workbook/VBProject " & Me.HostBaseName
             '~~ When the code difference display has been closed, offer update/ignore again
-            Select Case mMsg.Dsply(dsply_title:="Common Component code changed in this Workbook", _
-                                   dsply_msg_type:=sMsgType, _
-                                   dsply_msg_strng:=sMsg, _
-                                   dsply_buttons:=REPLY_UPDATE_ORIGIN & "," & REPLY_DISCARD_CHANGES & "," & REPLY_ABORT)
+            Select Case mMsg.Box(dsply_title:="Common Component code changed in this Workbook", _
+                                 dsply_msg:=sMsg, _
+                                 dsply_buttons:=mMsg.Buttons(REPLY_UPDATE_ORIGIN, REPLY_DISCARD_CHANGES, REPLY_ABORT) _
+                                )
                 Case REPLY_UPDATE_ORIGIN:   UpdateOriginWithUsedConfirmed = enUpdateOriginWithUsed
                 Case REPLY_DISCARD_CHANGES: UpdateOriginWithUsedConfirmed = enUpdateUsedWithOrigin
                 Case REPLY_ABORT:           UpdateOriginWithUsedConfirmed = enUpdateNone
@@ -432,13 +449,15 @@ Public Property Let Host(ByVal wbk As Workbook)
 End Property
 
 Public Sub BackUpCode()
-' --------------------------------------------------------------------
-' Exports the Component (vbc) to its dedicated ExportFileFullName.
-' When the exported component
-' --------------------------------------------------------------------
+' -------------------------------------
+' Exports the VBComponent (vbc)
+' provided the CodeModule is not empty.
+' -------------------------------------
     
     If Not vbc.CodeModule.CountOfLines = 0 Then
-        vbc.Export sExportFullName
+        If Me.CodeChanged Then
+            vbc.Export sExportFullName
+        End If
         Set flExport = GetFile(sExportFullName)
     End If
     mCompLog.LogAction wbHost.Name, sLog:=DebugComp
@@ -468,15 +487,14 @@ Private Function ExportFilePath() As String
 
 End Function
 
-Private Function FormCodeAndOrDesignChanged() As Boolean
-' ------------------------------------------------------
-' Whether a UserForm's code and/or design has changed
-' can only be checked by the comparison of the size of
-' the current and a temporary ExportFile of the UserForm.
-' When either the size and content of the .frm files are
-' different or the size of the .frx files are different,
-' something has changed is considered.
-' ------------------------------------------------------
+Private Function FormCodeAndOrDesignChanged( _
+                             Optional ByVal ignore_empty_lines As Boolean = True) As Boolean
+' ------------------------------------------------------------------------------------------
+' Whether a UserForm's code and/or design has changed can only be checked by the comparison
+' of the size of the current and a temporary ExportFile of the UserForm. When either the
+' size and content of the .frm files are different or the size of the .frx files are
+' different, a change is considered.
+' ------------------------------------------------------------------------------------------
     Const PROC = "FormCodeAndOrDesignChanged"
     
     On Error GoTo eh
@@ -495,7 +513,11 @@ Private Function FormCodeAndOrDesignChanged() As Boolean
         
         If UserFormSizeIsDifferent(Me.ExportFile, flTemp) Then
             FormCodeAndOrDesignChanged = True
-        ElseIf mFile.sDiffer(dif_file1:=flExport, dif_file2:=flTemp) Then
+        ElseIf mFile.sDiffer(dif_file1:=flExport _
+                           , dif_file2:=flTemp _
+                           , dif_ignore_empty_records:=ignore_empty_lines _
+                            ) _
+        Then
             FormCodeAndOrDesignChanged = True
         End If
         

@@ -214,7 +214,7 @@ Public Sub ControlItemRenewAdd()
     Set cmb = Application.CommandBars("Worksheet Menu Bar")
     Set cmbb = cmb.Controls.Add(Type:=msoControlButton, id:=2950)
     With cmbb
-        .caption = CONTROL_CAPTION
+        .Caption = CONTROL_CAPTION
         .Style = msoButtonCaption
         .TooltipText = "Saves the development instance as Addin"
         .OnAction = "wbAddIn.Renew"
@@ -329,7 +329,6 @@ End Sub
 Private Sub DisplayRenewResult()
 
     Dim sMsg        As String
-    Dim sMsgType    As tMsg
     Dim i           As Long
 
     If cllLog.Count > 0 Then
@@ -338,14 +337,12 @@ Private Sub DisplayRenewResult()
             sMsg = sMsg & vbLf & cllLog.Item(i)
         Next i
         If bSucceeded _
-        Then mMsg.Dsply dsply_title:="Successful! The Addin '" & wbAddIn.AddInInstanceName & "' has been renewed by the development instance '" & wbAddIn.DevlpInstanceName & "' (see details below)" _
-                      , dsply_msg_type:=sMsgType _
-                      , dsply_msg_strng:=sMsg _
-                      , dsply_msg_strng_monospaced:=True _
-        Else mMsg.Dsply dsply_title:="Failed! Renewing the Addin " & wbAddIn.AddInInstanceName & " by the development instance failed (see details below)" _
-                      , dsply_msg_type:=sMsgType _
-                      , dsply_msg_strng:=sMsg _
-                      , dsply_msg_strng_monospaced:=True
+        Then mMsg.Box dsply_title:="Successful! The Addin '" & wbAddIn.AddInInstanceName & "' has been renewed by the development instance '" & wbAddIn.DevlpInstanceName & "' (see details below)" _
+                    , dsply_msg:=sMsg _
+                    , dsply_msg_monospaced:=True _
+        Else mMsg.Box dsply_title:="Failed! Renewing the Addin " & wbAddIn.AddInInstanceName & " by the development instance failed (see details below)" _
+                    , dsply_msg:=sMsg _
+                    , dsply_msg_monospaced:=True
     End If
     Application.StatusBar = vbNullString
     lStep = 0
@@ -354,7 +351,6 @@ End Sub
 
 Private Sub DisplaySaveAsDevResult()
 
-    Dim sMsgType    As tMsg
     Dim sMsg        As String
     Dim i           As Long
 
@@ -364,14 +360,12 @@ Private Sub DisplaySaveAsDevResult()
             sMsg = sMsg & vbLf & cllLog.Item(i)
         Next i
         If bSucceeded _
-        Then mMsg.Dsply dsply_title:="Successful! The Addin '" & wbAddIn.AddInInstanceName & "' has been saved as Development instance Workbook '" & wbAddIn.DevlpInstanceName & "' (see details below)" _
-                      , dsply_msg_type:=sMsgType _
-                      , dsply_msg_strng:=sMsg _
-                      , dsply_msg_strng_monospaced:=True _
-        Else mMsg.Dsply dsply_title:="Failed! Saving the Addin " & wbAddIn.AddInInstanceName & " as Development instance Workbook failed (see details below)" _
-                      , dsply_msg_type:=sMsgType _
-                      , dsply_msg_strng:=sMsg _
-                      , dsply_msg_strng_monospaced:=True
+        Then mMsg.Box dsply_title:="Successful! The Addin '" & wbAddIn.AddInInstanceName & "' has been saved as Development instance Workbook '" & wbAddIn.DevlpInstanceName & "' (see details below)" _
+                    , dsply_msg:=sMsg _
+                    , dsply_msg_monospaced:=True _
+        Else mMsg.Box dsply_title:="Failed! Saving the Addin " & wbAddIn.AddInInstanceName & " as Development instance Workbook failed (see details below)" _
+                    , dsply_msg:=sMsg _
+                    , dsply_msg_monospaced:=True
     End If
     Application.StatusBar = vbNullString
     lStep = 0

@@ -188,7 +188,9 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
     mErH.BoP ErrSrc(PROC)
     
     If wb Is Nothing Then Set wb = ActiveWorkbook
-    If InStr(wb.FullName, "(") <> 0 Then GoTo xt ' This is a recovered version !
+    '~~ Prevent any action for a Workbook opened with any irregularity
+    If InStr(ActiveWindow.Caption, "(") <> 0 Then GoTo xt
+    If InStr(wb.FullName, "(") <> 0 Then GoTo xt
     
     Set dctComps = New Dictionary
     
@@ -219,7 +221,7 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
                 End If
             End If
             
-            If .CodeChanged Then
+            If .CodeChanged Then ' any inconsistency with the Component's Export File is regarded a code change
                 .BackUpCode
                 lExported = lExported + 1
                 sExported = .Name & ", " & sExported
@@ -381,7 +383,9 @@ Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
     Dim sMsg                As String
 
     mErH.BoP ErrSrc(PROC)
-    If InStr(wbTarget.FullName, "(") <> 0 Then GoTo xt ' This is a recovered version !
+    '~~ Prevent any action for a Workbook opened with any irregularity
+    If InStr(ActiveWindow.Caption, "(") <> 0 Then GoTo xt
+    If InStr(wbTarget.FullName, "(") <> 0 Then GoTo xt
     
     With cTarget
         .Host = wbTarget

@@ -1116,7 +1116,6 @@ Public Sub ValuesDisplay(Optional lLocation As enLocation = 0, _
     Const PROC = "Values"
     
     On Error GoTo eh
-    Dim sMsgType    As tMsg ' Dummy
     Dim v           As Variant
     Dim sValues     As String
     Dim dctValues   As Dictionary
@@ -1130,10 +1129,9 @@ Public Sub ValuesDisplay(Optional lLocation As enLocation = 0, _
     For Each v In dctValues
         sValues = sValues & vbLf & v & " = " & dctValues.Item(v)
     Next v
-    mMsg.Dsply dsply_title:=sTitle, _
-               dsply_msg_type:=sMsgType, _
-               dsply_msg_strng:=sValues, _
-               dsply_buttons:=vbOKOnly
+    mMsg.Box dsply_title:=sTitle, _
+             dsply_msg:=sValues, _
+             dsply_buttons:=vbOKOnly
     Exit Sub
     
 eh: mErH.ErrMsg ErrSrc(PROC)

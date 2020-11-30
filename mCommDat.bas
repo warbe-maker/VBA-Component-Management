@@ -346,7 +346,6 @@ Public Sub DisplayCfg()
     Const PROC = "DisplayCfg"
     
     On Error GoTo eh
-    Dim sMsgTp  As tMsg
     Dim dct     As New Dictionary
     Dim v       As Variant
     Dim lMax    As Long
@@ -365,9 +364,8 @@ Public Sub DisplayCfg()
         sName = Split(v, ".")(1) & "." & Split(v, ".")(2)
         sMsg = sName & String(lMax - Len(sName), " ") & " = " & dct.Item(v) & vbLf & sMsg
     Next v
-    mMsg.Dsply dsply_title:="Current content of " & dat.Subject & " (section.valuename = value)", _
-               dsply_msg_type:=sMsgTp, _
-               dsply_msg_strng:=sMsg
+    mMsg.Box dsply_title:="Current content of " & dat.Subject & " (section.valuename = value)", _
+             dsply_msg:=sMsg
 
 xt: Exit Sub
 
