@@ -189,7 +189,7 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
     
     If wb Is Nothing Then Set wb = ActiveWorkbook
     '~~ Prevent any action for a Workbook opened with any irregularity
-    If InStr(ActiveWindow.Caption, "(") <> 0 Then GoTo xt
+    If InStr(ActiveWindow.caption, "(") <> 0 Then GoTo xt
     If InStr(wb.FullName, "(") <> 0 Then GoTo xt
     
     Set dctComps = New Dictionary
@@ -384,7 +384,7 @@ Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
 
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
-    If InStr(ActiveWindow.Caption, "(") <> 0 Then GoTo xt
+    If InStr(ActiveWindow.caption, "(") <> 0 Then GoTo xt
     If InStr(wbTarget.FullName, "(") <> 0 Then GoTo xt
     
     With cTarget

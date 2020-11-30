@@ -96,11 +96,11 @@ Dim fso As New FileSystemObject
     AddInInstanceWorkbookExists = fso.FileExists(wbAddIn.AddInInstanceFullName)
 End Function
 
-Private Function AddInInstanceWorkbookIsOpen() As Boolean
-    On Error Resume Next
-    Set wbTarget = Application.Workbooks(wbAddIn.AddInInstanceName)
-    AddInInstanceWorkbookIsOpen = Err.Number = 0
-End Function
+'Private Function AddInInstanceWorkbookIsOpen() As Boolean
+'    On Error Resume Next
+'    Set wbTarget = Application.Workbooks(wbAddIn.AddInInstanceName)
+'    AddInInstanceWorkbookIsOpen = Err.Number = 0
+'End Function
 
 Private Sub AddinInstanceWorkbookOpen()
 
@@ -173,11 +173,12 @@ Private Function AssertUpToDateVersion() As Boolean
 ' ByRef parameter is not supported by this method the value is returned via the Version class object.
 ' See: http://www.tushar-mehta.com/publish_train/xl_vba_cases/1022_ByRef_Argument_with_the_Application_Run_method.shtml
 ' ---------------------------------------------------------------------------------------------------------------------
+    Const PROC = "AssertUpToDateVersion"
     
+    On Error GoTo eh
     Dim lStep       As Long
     Dim cVersion    As clsAddinVersion
 
-    On Error GoTo eh
     Set cVersion = New clsAddinVersion
     lStep = Step
     Application.StatusBar = lStep & ". Assert the up-to-date version"
@@ -196,25 +197,28 @@ Private Function AssertUpToDateVersion() As Boolean
 
 xt: Exit Function
     
-eh: Debug.Print Err.Description: Stop: Resume
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Public Sub ControlItemRenewAdd()
 '------------------------------------
 ' Add control to "Add_Ins" popup menu
 '------------------------------------
+    Const PROC = "ControlItemRenewAdd"
     
+    On Error GoTo eh
     Dim cmb   As CommandBar
     Dim cmbb  As CommandBarButton
-
-    On Error GoTo eh
     
     mAddIn.ControlItemRenewRemove
-    
     Set cmb = Application.CommandBars("Worksheet Menu Bar")
     Set cmbb = cmb.Controls.Add(Type:=msoControlButton, id:=2950)
     With cmbb
-        .Caption = CONTROL_CAPTION
+        .caption = CONTROL_CAPTION
         .Style = msoButtonCaption
         .TooltipText = "Saves the development instance as Addin"
         .OnAction = "wbAddIn.Renew"
@@ -223,7 +227,11 @@ Public Sub ControlItemRenewAdd()
     
 xt: Exit Sub
 
-eh: Debug.Print Err.Description: Stop: Resume
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub ControlItemRenewRemove()
@@ -406,8 +414,35 @@ Private Sub ReferencesToAddInRestore()
     
 xt: Exit Sub
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
+
+Public Function AddInInstanceWorkbookIsOpen() As Boolean
+    Const PROC = "AddInInstanceWorkbookIsOpen"
+    
+    On Error GoTo eh
+    Dim i As Long
+    
+    AddInInstanceWorkbookIsOpen = False
+    For i = 1 To Application.AddIns2.Count
+        If Application.AddIns2(i).Name = wbAddIn.AddInInstanceName Then
+            AddInInstanceWorkbookIsOpen = True
+            GoTo xt
+        End If
+    Next i
+    
+xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Function
 
 Private Function ReferencesToAddInSaveAndRemove() As Boolean
 ' ----------------------------------------------------------------
@@ -465,7 +500,11 @@ Private Function ReferencesToAddInSaveAndRemove() As Boolean
     
 xt: Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Public Sub Renew()

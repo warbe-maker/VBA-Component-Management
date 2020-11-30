@@ -99,7 +99,11 @@ Public Sub Test_01_01_CodeChanged()
 xt: Cleanup exp_file:=sExpFile, vbc:=cComp.VBComp
     Exit Sub
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub Test_01_02_CodeChanged()
@@ -144,7 +148,11 @@ Public Sub Test_01_02_CodeChanged()
 xt: Cleanup exp_file:=sExpFile, vbc:=cComp.VBComp
     Exit Sub
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub Test_01_03_CodeChanged()
@@ -190,7 +198,11 @@ Public Sub Test_01_03_CodeChanged()
 xt: Cleanup exp_file:=sExpFile, vbc:=cComp.VBComp
     Exit Sub
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 
@@ -237,7 +249,11 @@ Public Sub Test_01_04_CodeChanged()
 xt: Cleanup exp_file:=sExpFile, vbc:=cComp.VBComp
     Exit Sub
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub Test_UpdateUsedCommCompsTheOriginHasChanged()
@@ -255,7 +271,11 @@ Public Sub Test_UpdateUsedCommCompsTheOriginHasChanged()
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub Test_Refs()

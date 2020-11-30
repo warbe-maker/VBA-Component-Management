@@ -37,13 +37,14 @@ Public Property Get CodeVersionAsOfDate( _
             CodeVersionAsOfDate = v
         End If
     End If
-    Exit Property
+    
+xt: Exit Property
 
-eh:
-#If Debugging Then
-    Stop: Resume
-#End If
-    mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Property
 
 Public Property Let CodeVersionAsOfDate( _

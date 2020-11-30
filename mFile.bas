@@ -279,7 +279,7 @@ Public Function sDiffer( _
                   ByVal dif_file2 As File, _
          Optional ByVal dif_stop_after As Long = 1, _
          Optional ByVal dif_ignore_empty_records As Boolean = False, _
-         Optional ByVal dif_lines As Variant) As Boolean
+         Optional ByRef dif_lines As Variant) As Boolean
 ' -----------------------------------------------------------------------------
 ' Returns TRUE when the content of file (dif_file1) differs from the content in
 ' file (dif_file2). The comparison stops after (dif_stop_after) detected
@@ -292,7 +292,7 @@ Public Function sDiffer( _
 
     a1 = mFile.ToArray(ta_file:=dif_file1, ta_exclude_empty_records:=dif_ignore_empty_records)
     a2 = mFile.ToArray(ta_file:=dif_file2, ta_exclude_empty_records:=dif_ignore_empty_records)
-    vLines = mBasic.ArrayCompare(a1, a2, dif_stop_after)
+    vLines = mBasic.ArrayCompare(ac_a1:=a1, ac_a2:=a2, ac_stop_after:=dif_stop_after)
     If mBasic.ArrayIsAllocated(arr:=vLines) Then
         sDiffer = True
     End If

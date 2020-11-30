@@ -174,7 +174,8 @@ Public Function ArrayCompare(ByVal ac_a1 As Variant, _
         Next i
     End If
 
-xt: ArrayCompare = va
+xt:
+    ArrayCompare = va
     
 End Function
 

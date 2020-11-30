@@ -808,7 +808,11 @@ Public Function TypeString() As String
     
 xt: Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Public Function CodeModuleIsEmpty() As Boolean

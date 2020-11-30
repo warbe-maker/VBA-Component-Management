@@ -23,7 +23,7 @@ Option Compare Text
 '
 ' Uses:
 ' - Common Components:
-'   - mBasic and mErH, both regarded available through the CompMan Addin. When this
+'   - mBasic and mErrHndlr, both regarded available through the CompMan Addin. When this
 '                           Addin is not used, both need to be imported
 '   - mFile
 '
@@ -55,6 +55,23 @@ Const ERR_GOW01 = "A Workbook with the provided name (parameter vWb) is open. Ho
 Const ERR_GOW02 = "A Workbook named '<>' (parameter vWb) is not open. A full name must be provided to get it opened!"
 Const ERR_GOW03 = "A Workbook file named '<>' (parameter vWb) does not exist!"
 
+Public Function AppErr(ByVal err_no As Long) As Long
+' -----------------------------------------------------------------
+' Used with Err.Raise AppErr(<l>).
+' When the error number <l> is > 0 it is considered an "Application
+' Error Number and vbObjectErrror is added to it into a negative
+' number in order not to confuse with a VB runtime error.
+' When the error number <l> is negative it is considered an
+' Application Error and vbObjectError is added to convert it back
+' into its origin positive number.
+' ------------------------------------------------------------------
+    If err_no < 0 Then
+        AppErr = err_no - vbObjectError
+    Else
+        AppErr = vbObjectError + err_no
+    End If
+End Function
+
 Public Function IsName(ByVal v As Variant) As Boolean
 Dim sExt As String
 
@@ -70,6 +87,23 @@ Dim sExt As String
     End If
 
 End Function
+
+Private Sub ErrMsg( _
+             ByVal err_source As String, _
+    Optional ByVal err_no As Long = 0, _
+    Optional ByVal err_dscrptn As String = vbNullString)
+' ------------------------------------------------------
+' This Common Component does not have its own error
+' handling. Instead it passes on any error to the
+' caller's error handling.
+' ------------------------------------------------------
+    
+    If err_no = 0 Then err_no = Err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+
+    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
+
+End Sub
 
 Public Function IsFullName(ByVal v As Variant) As Boolean
 ' -------------------------------------------------------
@@ -110,16 +144,16 @@ Public Function IsOpen(ByVal vWb As Variant, _
 ' der) the Workbook is regarded moved and thus is returned as
 ' open object(wbResult).
 ' -----------------------------------------------------------
-Const PROC      As String = "IsOpen"    ' Procedure's name for error handling and execution tracing
-Dim sWbBaseName As String
-Dim wb          As Workbook
-Dim dctOpen     As Dictionary
-Dim wbOpen      As Workbook
-
+    Const PROC = "IsOpen"    ' Procedure's name for error handling and execution tracing
+    
     On Error GoTo eh
+    Dim sWbBaseName As String
+    Dim wb          As Workbook
+    Dim dctOpen     As Dictionary
+    Dim wbOpen      As Workbook
     
     If Not mWrkbk.IsObject(vWb) And Not mWrkbk.IsFullName(vWb) And Not mWrkbk.IsName(vWb) And Not TypeName(vWb) = "String" _
-    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is neither a Workbook object nor a Workbook's name or fullname)!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is neither a Workbook object nor a Workbook's name or fullname)!"
     sWbBaseName = mBasic.BaseName(vWb)
     
     Set dctOpen = Opened
@@ -157,7 +191,7 @@ Dim wbOpen      As Workbook
     
 xt: Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function Opened() As Dictionary
@@ -217,7 +251,7 @@ Dim i       As Long
 
 xt: Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 #If Win64 Then
@@ -236,10 +270,12 @@ End Function
 ' -----------------------------------------------------------------------------------
 '
 ' -----------------------------------------------------------------------------------
-Dim sText   As String
-Dim lRet    As Long
-Dim iid     As UUID
-Dim ob      As Object
+    Const PROC = "GetExcelObjectFromHwnd"
+    
+    Dim sText   As String
+    Dim lRet    As Long
+    Dim iid     As UUID
+    Dim ob      As Object
     
     hWndDesk = FindWindowEx(hWndMain, 0&, "XLDESK", vbNullString)
 
@@ -261,7 +297,9 @@ Dim ob      As Object
         
     End If
     
-xt:
+xt: Exit Function
+    
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 #If Win64 Then
@@ -272,10 +310,10 @@ End Function
 ' -----------------------------------------------------------------------------------------
 '
 ' -----------------------------------------------------------------------------------------
-Const PROC  As String = "checkHwnds"            ' This procedure's name for the error handling and execution tracking
+    Const PROC = "checkHwnds"            ' This procedure's name for the error handling and execution tracking
     
     On Error GoTo eh
-    Dim i   As Long
+    Dim i       As Long
     
     If UBound(xlApps) = 0 Then GoTo xt
 
@@ -290,7 +328,7 @@ Const PROC  As String = "checkHwnds"            ' This procedure's name for the 
     
 xt: Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function GetOpen(ByVal vWb As Variant) As Workbook
@@ -300,17 +338,18 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
 ' is not open it is opened.
 ' Note: A ReadOnly mode has to be set by the caller.
 ' -------------------------------------------------------
-Const PROC      As String = "GetOpen"   ' This procedure's name for the error handling and execution tracking
-Dim sTest       As String
-Dim sWbBaseName As String
-Dim sPath       As String
-Dim wb          As Workbook
-
+    Const PROC = "GetOpen"
+    
     On Error GoTo eh
+    Dim sTest       As String
+    Dim sWbBaseName As String
+    Dim sPath       As String
+    Dim wb          As Workbook
+
     Set GetOpen = Nothing
     
     If Not mWrkbk.IsName(vWb) And Not mWrkbk.IsFullName(vWb) And Not mWrkbk.IsObject(vWb) _
-    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is neither a Workbook object nor a string (name or fullname)!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is neither a Workbook object nor a string (name or fullname)!"
     sWbBaseName = mBasic.BaseName(vWb)
 
     If mWrkbk.IsObject(vWb) Then
@@ -324,7 +363,7 @@ Dim wb          As Workbook
                     '~~ The open Workook with the same name is from a different location
                     If mFile.Exists(vWb) Then
                         '~~ The file still exists on the provided location
-                        Err.Raise mErH.AppErr(3), ErrSrc(PROC), Replace(Replace$(ERR_GOW01, "<>1", wb.Path), "<>2", sPath)
+                        Err.Raise AppErr(3), ErrSrc(PROC), Replace(Replace$(ERR_GOW01, "<>1", wb.Path), "<>2", sPath)
                     Else
                         '~~ The Workbook file does not or no longer exist at the provivded location.
                         '~~ The open one is apparenty the ment Workbook just moved to the new location.
@@ -339,7 +378,7 @@ Dim wb          As Workbook
                 If mFile.Exists(vWb) Then
                     Set GetOpen = Workbooks.Open(vWb)
                 Else
-                    Err.Raise mErH.AppErr(4), ErrSrc(PROC), Replace(ERR_GOW03, "<>", CStr(vWb))
+                    Err.Raise AppErr(4), ErrSrc(PROC), Replace(ERR_GOW03, "<>", CStr(vWb))
                 End If
             End If
         End With
@@ -348,14 +387,14 @@ Dim wb          As Workbook
             If .Exists(sWbBaseName) Then
                 Set GetOpen = .Item(sWbBaseName)
             Else
-                Err.Raise mErH.AppErr(5), ErrSrc(PROC), "A Workbook named '" & sWbBaseName & "' is not open and it cannot be opened since only the name is provided (a full name would be required)!"
+                Err.Raise AppErr(5), ErrSrc(PROC), "A Workbook named '" & sWbBaseName & "' is not open and it cannot be opened since only the name is provided (a full name would be required)!"
             End If
         End With
     End If
     
 xt: Exit Function
     
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 Private Function TestSheet(ByVal wb As Workbook, _

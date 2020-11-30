@@ -12,7 +12,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 Option Explicit
 ' -------------------------------------------------------------------------------
 ' UserForm fMsg
@@ -853,7 +852,7 @@ Private Sub DisplayFramesWithCaptions( _
     If Not b Then
         For Each ctl In Me.Controls
             If TypeName(ctl) = "Frame" Then
-                ctl.Caption = vbNullString
+                ctl.caption = vbNullString
             End If
         Next ctl
     End If
@@ -1339,7 +1338,7 @@ Private Sub SetupButton(ByVal buttonrow As Long, _
         .Visible = True
         .AutoSize = True
         .WordWrap = False ' the longest line determines the buttonindex's width
-        .Caption = buttoncaption
+        .caption = buttoncaption
         .AutoSize = False
         .Height = .Height + 1 ' safety margin to ensure proper multilin caption display
         siMaxButtonHeight = Max(siMaxButtonHeight, .Height)
@@ -1565,7 +1564,7 @@ Private Sub SetupMsgSection(ByVal section As Long)
             Set la = DsgnSectionLabel(section)
             With la
                 .width = Me.InsideWidth - (siHmarginFrames * 2)
-                .Caption = sLabel
+                .caption = sLabel
             End With
             frText.top = la.top + la.Height
             AppliedControl = la
@@ -1751,7 +1750,7 @@ Private Sub SetupTitle()
                     .Font.Size = sTitleFontSize
                 End If
                 .AutoSize = True
-                .Caption = " " & sTitle    ' some left margin
+                .caption = " " & sTitle    ' some left margin
                 siTitleWidth = .width + HSPACE_RIGHT
             End With
             AppliedControl = .laMsgTitle
@@ -1766,10 +1765,10 @@ Private Sub SetupTitle()
                 End With
                 .Visible = False
                 .AutoSize = True
-                .Caption = " " & sTitle    ' some left margin
+                .caption = " " & sTitle    ' some left margin
                 siTitleWidth = .width + 30
             End With
-            .Caption = " " & sTitle    ' some left margin
+            .caption = " " & sTitle    ' some left margin
             .laMsgTitleSpaceBottom.Visible = False
         End If
                 

@@ -104,7 +104,7 @@ Private Sub Workbook_Open()
     If IsDevlpInstance Then
         mAddIn.ControlItemRenewAdd
         mCommDat.AssertInitialConfiguration
-        If mWrkbk.IsOpen(wbAddIn.AddInInstanceName) Then
+        If mAddIn.AddInInstanceWorkbookIsOpen Then
             '~~ Essential! When the Development instance Workbook is opened, used Common Components
             '~~ the origin code has changed can only be updated when the Addin instance Workbook is
             '~~ open as well. However, since the VBProject has no reference to the Addin the Addin
