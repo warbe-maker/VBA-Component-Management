@@ -59,7 +59,7 @@ Public Function Exists(ByVal xst_file As Variant, _
     If TypeOf xst_file Is File Then
         With New FileSystemObject
             On Error Resume Next
-            sTest = xst_file.Name
+            sTest = xst_file.name
             Exists = Err.Number = 0
             If Exists Then
                 '~~ Return the existing file as File object
@@ -92,7 +92,7 @@ Public Function Exists(ByVal xst_file As Variant, _
                         queue.Add sfldr ' enqueue (collect) all subfolders
                     Next sfldr
                     For Each fl In fldr.Files
-                        If InStr(fl.Name, sFile) <> 0 And left(fl.Name, 1) <> "~" Then
+                        If InStr(fl.name, sFile) <> 0 And Left(fl.name, 1) <> "~" Then
                             '~~ Return the existing file which meets the search criteria
                             '~~ as File object in a collection
                             xst_cll.Add fl
@@ -364,5 +364,5 @@ Private Sub ErrMsg( _
 End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = ThisWorkbook.Name & ": mFile." & sProc
+    ErrSrc = ThisWorkbook.name & ": mFile." & sProc
 End Function

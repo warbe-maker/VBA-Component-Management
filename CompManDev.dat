@@ -4,9 +4,6 @@ BackUpRenewed=14.04.2020 14:16:09
 [clsVBProc]
 BackedUpInExportFile=E:\Ablage\Excel VBA\DevAndTest\Common\CompManDevAndTest\clsVBProc.cls
 BackUpRenewed=13.05.2020 18:03:40
-[clsCallStackItem]
-BackedUpInExportFile=E:\Ablage\Excel VBA\DevAndTest\Common\CompManDevAndTest\clsCallStackItem.cls
-BackUpRenewed=13.05.2020 18:03:44
 [mTest]
 BackedUpInExportFile=E:\Ablage\Excel VBA\DevAndTest\Common\CompManDevAndTest\mTest.bas
 BackUpRenewed=14.05.2020 17:59:21
@@ -60,9 +57,6 @@ BackedUpInExportFile=E:\Ablage\Excel VBA\DevAndTest\Common\CompManDevAndTest\mCo
 BackUpRenewed=07.04.2020 12:13:09
 [mErrHndlr]
 BackedUpInExportFile=E:\Ablage\Excel VBA\DevAndTest\Common\CompManDevAndTest\mErrHndlr.bas
-BackUpRenewed=13.05.2020 18:04:06
-[clsCallStack]
-BackedUpInExportFile=E:\Ablage\Excel VBA\DevAndTest\Common\CompManDevAndTest\clsCallStack.cls
 BackUpRenewed=13.05.2020 18:04:06
 [mCompLog]
 BackedUpInExportFile=E:\Ablage\Excel VBA\DevAndTest\Common\CompManDevAndTest\mCompLog.bas

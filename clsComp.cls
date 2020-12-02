@@ -48,7 +48,7 @@ Private lCompMaxLen     As Long
 Private dctCommComps    As Dictionary
 
 Private Sub Class_Initialize()
-    sPathCommon = mCommDat.CommonComponentsBasePath
+    sPathCommon = mConfig.CommonComponentsBasePath
     lCompMaxLen = mCommDat.CommCompsMaxLenght
     Set dctCommonHosted = New Dictionary
 End Sub
@@ -96,7 +96,7 @@ Public Property Get CodeChanged( _
     Select Case vbc.Type
         Case vbext_ct_StdModule, vbext_ct_ClassModule, vbext_ct_Document
         
-            If vbc.Name <> BaseName(flExport.Path) _
+            If vbc.name <> BaseName(flExport.Path) _
             Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The to be compared sources do not have the same name!"
             
             Me.VBComp.Export sTmpExp ' any existing would be overwritten
@@ -225,7 +225,7 @@ Dim sComp   As String
         dctCommonHosted.Add sComp, sComp
     Next v
     If dctCommonHosted.Count <> 0 Then
-        mCommDat.CommCompsHostWorkbookFullName(BaseName(wbHost.Name)) = wbHost.FullName
+        mCommDat.CommCompsHostWorkbookFullName(BaseName(wbHost.name)) = wbHost.FullName
     End If
     
 End Property
@@ -260,7 +260,7 @@ Public Property Get KindOfChange( _
     Dim fl          As File
 
     With Me.CommonOrigin
-        .Name = sComponentName
+        .name = sComponentName
         With New FileSystemObject
             Set fl = .GetFile(mCommDat.CommCompExpFileFullName(sComponentName))
         End With
@@ -295,9 +295,9 @@ Public Property Get KindOfChange( _
     
 End Property
 
-Public Property Get Name() As String:                       Name = sComponentName:                               End Property
+Public Property Get name() As String:                       name = sComponentName:                               End Property
 
-Public Property Let Name(ByVal s As String):                sComponentName = s:                                  End Property
+Public Property Let name(ByVal s As String):                sComponentName = s:                                  End Property
 
 Public Property Get CommonOrigin() As clsComp
     If cCommonOrigin Is Nothing Then Set cCommonOrigin = New clsComp
@@ -404,7 +404,7 @@ Public Property Let VBComp(ByVal oComp As VBComponent)
     Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "There's yet no Host Workbook assigned!"
     
     Set vbc = oComp
-    sComponentName = vbc.Name
+    sComponentName = vbc.name
     sExportFullName = ExportFilePath & "\" & sComponentName & ExportFileExtention
     If FileExists(sExportFullName) Then
         Set flExport = GetFile(sExportFullName)
@@ -443,7 +443,7 @@ Public Property Let Host(ByVal wbk As Workbook)
     sHostBaseName = fso.GetBaseName(sHostFullName)
     Set foExport = fso.GetFolder(ExportFilePath)
     For Each vbc In wbHost.VBProject.VBComponents
-        lCompMaxLen = mBasic.Max(lCompMaxLen, Len(vbc.Name))
+        lCompMaxLen = mBasic.Max(lCompMaxLen, Len(vbc.name))
     Next vbc
 
 End Property
@@ -460,8 +460,8 @@ Public Sub BackUpCode()
         End If
         Set flExport = GetFile(sExportFullName)
     End If
-    mCompLog.LogAction wbHost.Name, sLog:=DebugComp
-    mCompLog.LogAction wbHost.Name, sLog:=DebugComp & "Code has changed, code-backup (ExportFile) re-newed"
+    mCompLog.LogAction wbHost.name, sLog:=DebugComp
+    mCompLog.LogAction wbHost.name, sLog:=DebugComp & "Code has changed, code-backup (ExportFile) re-newed"
 
 End Sub
 
@@ -507,7 +507,7 @@ Private Function FormCodeAndOrDesignChanged( _
         sTempFolder = sTempFolder & "\Temp"
         If Not .FolderExists(sTempFolder) Then .CreateFolder sTempFolder
         
-        sTempPath = sTempFolder & "\" & vbc.Name & TypeExtention(vbc)
+        sTempPath = sTempFolder & "\" & vbc.name & TypeExtention(vbc)
         vbc.Export sTempPath
         Set flTemp = mFile.GetFile(sTempPath)
         
@@ -549,8 +549,8 @@ Public Property Get IsHostedCommonComponent() As Boolean
 End Property
 
 Public Sub LogCommonCompExport()
-    mCompLog.LogAction wbHost.Name, sComponentName & mBasic.Space$(lCompMaxLen - Len(vbc.Name)) & ": The original's last update date = " & flExport.DateLastModified
-    mCompLog.LogAction wbHost.Name, sComponentName & mBasic.Space$(lCompMaxLen - Len(vbc.Name)) & ": The registered last as-of used  = " & Me.CodeVersionAsOfDate
+    mCompLog.LogAction wbHost.name, sComponentName & mBasic.Space$(lCompMaxLen - Len(vbc.name)) & ": The original's last update date = " & flExport.DateLastModified
+    mCompLog.LogAction wbHost.name, sComponentName & mBasic.Space$(lCompMaxLen - Len(vbc.name)) & ": The registered last as-of used  = " & Me.CodeVersionAsOfDate
 End Sub
 
 Public Sub UpdateOriginWithUsedWhenConfirmedByUser(ByRef bUpdated As Boolean)
@@ -620,8 +620,8 @@ Const PROC  As String = "UpdateUsedWithOrigin"
         '~~ Log the updated code version
         .CodeVersionAsOfDate = .CommonOrigin.ExportFile.DateLastModified
         '~~ Log the update
-        mCompLog.LogAction wbHost.Name, sComponentName & mBasic.Space$(lCompMaxLen - Len(sComponentName)) & ": The original's last update date = " & .CommonOrigin.ExportFile.DateLastModified
-        mCompLog.LogAction wbHost.Name, sComponentName & mBasic.Space$(lCompMaxLen - Len(sComponentName)) & ": The registered last as-of used  = " & .CodeVersionAsOfDate
+        mCompLog.LogAction wbHost.name, sComponentName & mBasic.Space$(lCompMaxLen - Len(sComponentName)) & ": The original's last update date = " & .CommonOrigin.ExportFile.DateLastModified
+        mCompLog.LogAction wbHost.name, sComponentName & mBasic.Space$(lCompMaxLen - Len(sComponentName)) & ": The registered last as-of used  = " & .CodeVersionAsOfDate
     End With
 
 xt: Exit Sub
@@ -658,7 +658,7 @@ Public Sub SynchUsedWithOrigin()
         iLine = iLine + 1
         vbcm.InsertLines iLine, v
     Next v
-    Debug.Print DebugComp & Now() & " Code in " & Me.Host.Name & " synchronized with code in " & Me.CommonOrigin.Host.Name & " ( via Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
+    Debug.Print DebugComp & Now() & " Code in " & Me.Host.name & " synchronized with code in " & Me.CommonOrigin.Host.name & " ( via Export File '" & Me.CommonOrigin.ExportFile.name & "'."
                 
 xt: Exit Sub
 
@@ -684,7 +684,7 @@ Public Sub SynchOriginWithUsed()
     Dim vbcm    As CodeModule
     Dim wbHost  As Workbook
                 
-    Debug.Print DebugComp & Now() & " About to synch code with Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
+    Debug.Print DebugComp & Now() & " About to synch code with Export File '" & Me.CommonOrigin.ExportFile.name & "'."
     '~~ Remove all lines from the target component
     Set wbHost = mWrkbk.GetOpen(Me.CommonOrigin.HostFullName)
     Set vbcm = wbHost.VBProject.VBComponents(sComponentName).CodeModule
@@ -699,7 +699,7 @@ Public Sub SynchOriginWithUsed()
         vbcm.InsertLines iLine, v
     Next v
     
-    Debug.Print DebugComp & Now() & " Code synchronized with Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
+    Debug.Print DebugComp & Now() & " Code synchronized with Export File '" & Me.CommonOrigin.ExportFile.name & "'."
                 
 xt: Exit Sub
 
@@ -716,15 +716,15 @@ Public Sub ReplaceUsedWithOrigin()
     On Error GoTo eh
     
     CleanExportFile Me.ExportFile
-    vbc.Name = vbc.Name & "_Temp"
+    vbc.name = vbc.name & "_Temp"
     With wbHost.VBProject.VBComponents
         .Import Me.CommonOrigin.ExportFile.Path
         .Remove vbc
     End With
     Set vbc = wbHost.VBProject.VBComponents(sComponentName)
     On Error Resume Next
-    Debug.Print DebugComp & Now() & " Replaced with Export File '" & Me.CommonOrigin.ExportFile.Name & "' from Workbook " & Me.CommonOrigin.Host.Name
-    If Err.Number <> 0 Then Debug.Print DebugComp & Now() & " Replaced with Export File '" & Me.CommonOrigin.ExportFile.Name & "' from Workbook " & Me.CommonOrigin.Host.Name
+    Debug.Print DebugComp & Now() & " Replaced with Export File '" & Me.CommonOrigin.ExportFile.name & "' from Workbook " & Me.CommonOrigin.Host.name
+    If Err.Number <> 0 Then Debug.Print DebugComp & Now() & " Replaced with Export File '" & Me.CommonOrigin.ExportFile.name & "' from Workbook " & Me.CommonOrigin.Host.name
     Application.EnableEvents = False
     wbHost.Save
     Application.EnableEvents = True
@@ -749,7 +749,7 @@ Public Sub ReplaceOriginWithUsed()
     On Error GoTo eh
     Dim wbHost      As Workbook
     
-    Debug.Print DebugComp & Now() & " About to replace with Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
+    Debug.Print DebugComp & Now() & " About to replace with Export File '" & Me.CommonOrigin.ExportFile.name & "'."
     CleanExportFile Me.ExportFile
     With Me.CommonOrigin
         Set wbHost = mWrkbk.GetOpen(.HostFullName)
@@ -757,7 +757,7 @@ Public Sub ReplaceOriginWithUsed()
         wbHost.Import Me.ExportFile.Path
         .VBComp = wbHost.VBProject.VBComponents(sComponentName)
     End With
-    Debug.Print DebugComp & Now() & " Replaced with Export File '" & Me.CommonOrigin.ExportFile.Name & "'."
+    Debug.Print DebugComp & Now() & " Replaced with Export File '" & Me.CommonOrigin.ExportFile.name & "'."
 
 xt: Exit Sub
 
@@ -924,7 +924,7 @@ Public Function ExportFileToArray(ByVal fl As File) As String()
     '~~ Remove the extra module information lines
     For i = UBound(a) To LBound(a) Step -1
         '~~ Find last Exported module info
-        If left(a(i), Len(ATTRIB_VB)) = ATTRIB_VB Then
+        If Left(a(i), Len(ATTRIB_VB)) = ATTRIB_VB Then
             Exit For
         End If
     Next i
@@ -971,8 +971,8 @@ Public Function ExportFileToDict(ByVal fl As File) As Dictionary
     
     '~~ Remove the extra module information lines
     For Each v In dct
-        If left(sLine, Len(ATTRIB_LINE)) = ATTRIB_LINE _
-        And left(dct(v), Len(ATTRIB_LINE)) <> ATTRIB_LINE _
+        If Left(sLine, Len(ATTRIB_LINE)) = ATTRIB_LINE _
+        And Left(dct(v), Len(ATTRIB_LINE)) <> ATTRIB_LINE _
         Then Exit For
         cllRemove.Add v
         sLine = dct(v)
@@ -1099,7 +1099,7 @@ Public Sub CleanExportFile(ByRef fl As File)
     Dim ts  As TextStream
 
     a = mFile.ToArray(fl.Path)
-    Do Until left(a(i), Len(ATTRIBUTE_ID)) <> ATTRIBUTE_ID
+    Do Until Left(a(i), Len(ATTRIBUTE_ID)) <> ATTRIBUTE_ID
         i = i + 1
         If i > UBound(a) Then Exit Do
     Loop

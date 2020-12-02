@@ -212,19 +212,19 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
                 GoTo next_vbc
             End If
             lComponents = lComponents + 1
-            dctComps.Add .Name, vbc
+            dctComps.Add .name, vbc
             If .IsHostedCommonComponent Then
                 If Not .IsUsedCommonComponent Then
                     '~~ Register the hosted Common Component yet not registered
-                    mCommDat.CommCompHostWorkbookBaseName(.Name) = .HostBaseName
-                    mCommDat.CommCompExpFileFullName(.Name) = .ExportFileFullName
+                    mCommDat.CommCompHostWorkbookBaseName(.name) = .HostBaseName
+                    mCommDat.CommCompExpFileFullName(.name) = .ExportFileFullName
                 End If
             End If
             
             If .CodeChanged Then ' any inconsistency with the Component's Export File is regarded a code change
                 .BackUpCode
                 lExported = lExported + 1
-                sExported = .Name & ", " & sExported
+                sExported = .name & ", " & sExported
                 If .IsCommonUsed(flOriginExportFile, sOriginHostFullName) Then
                     '~~ This is regarded an unusual code change because instead of maintaining the origin code
                     '~~ of a Common Component in ist "host" VBProject it had been changed in the using VBProject.
@@ -237,7 +237,7 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
                     .UpdateOriginWithUsedWhenConfirmedByUser bUpdated ' when confirmed in user dialog
                     If bUpdated Then
                         lUpdated = lUpdated + 1
-                        sUpdated = .Name & ", " & sUpdated
+                        sUpdated = .name & ", " & sUpdated
                     End If
                 End If
             End If
@@ -253,7 +253,7 @@ next_vbc:
                     Case "bas", "cls", "frm", "frx"
                         sComp = .GetBaseName(fl.Path)
                         If Not dctComps.Exists(sComp) Then
-                            dctRemove.Add fl, fl.Name
+                            dctRemove.Add fl, fl.name
                         End If
                 End Select
             Next fl
@@ -265,11 +265,11 @@ next_vbc:
         End With
     
         Select Case lExported
-            Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & .Host.Name & " had been changed/exported/backed up."
-            Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & left(sExported, Len(sExported) - 2)
-            Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & left(sExported, Len(sExported) - 1)
+            Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & .Host.name & " had been changed/exported/backed up."
+            Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Host.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 2)
+            Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Host.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 1)
         End Select
-        If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
+        If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
         Application.StatusBar = sMsg
         
     End With
@@ -317,12 +317,12 @@ Public Sub ExportComponent( _
                 If bWhenChangedOnly Then
                     If .CodeChanged Then
                         .BackUpCode
-                        sExported = .VBComp.Name & ", " & sExported
+                        sExported = .VBComp.name & ", " & sExported
                         lExported = lExported + 1
                     End If
                 Else
                     .BackUpCode
-                    sExported = .VBComp.Name & ", " & sExported
+                    sExported = .VBComp.name & ", " & sExported
                     lExported = lExported + 1
                 End If
             Next v
@@ -330,17 +330,17 @@ Public Sub ExportComponent( _
             If .Exists(sComp) Then
                 .VBComp = .Host.VBProject.VBComponents(sComp)
                 .BackUpCode
-                sExported = .VBComp.Name & ", " & sExported
+                sExported = .VBComp.name & ", " & sExported
                 lExported = lExported + 1
             End If
         End If
 
         Select Case lExported
-            Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & .Host.Name & " had been changed/exported/backed up."
-            Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & left(sExported, Len(sExported) - 2)
-            Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Host.Name & " had been exported/backed up: " & left(sExported, Len(sExported) - 1)
+            Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & .Host.name & " had been changed/exported/backed up."
+            Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Host.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 2)
+            Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Host.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 1)
         End Select
-        If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
+        If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
         Application.StatusBar = sMsg
     
     End With
@@ -394,7 +394,7 @@ Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
     
         For Each vbc In wbTarget.VBProject.VBComponents
             .VBComp = vbc
-            Debug.Print .Name
+            Debug.Print .name
             lComponents = lComponents + 1
             If .IsUsedCommonComponent Then
                 If .IsCommonUsed(flOriginExportFile, sOriginHostFullName) Then
@@ -406,7 +406,7 @@ Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
                     If .CommonOriginCodeChanged Then
                         .UpdateUsedWithOrigin
                         lReplaced = lReplaced + 1
-                        sReplaced = .Name & ", " & sReplaced
+                        sReplaced = .name & ", " & sReplaced
                         '~~ Register the update being used to identify a potentially relevant
                         '~~ change of the origin code
                         .CodeVersionAsOfDate = .ExportFile.DateLastModified
@@ -422,16 +422,16 @@ Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
         Case 1
             Select Case lReplaced
                 Case 0:     sMsg = "1 Component of " & lComponents & " has been identified as ""Used Common Component "" but not updated since the code origin had not changed."
-                Case 1:     sMsg = "1 Component of " & lComponents & " has been identified as ""Used Common Component"" and updated because the code origin had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case 1:     sMsg = "1 Component of " & lComponents & " has been identified as ""Used Common Component"" and updated because the code origin had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
                End Select
         Case Else
             Select Case lReplaced
                 Case 0:     sMsg = lCommonUsed & " Components of " & lComponents & " had been identified as ""Used Common Components"". None had been updated since none of the code origins had changed."
-                Case 1:     sMsg = lCommonUsed & " Components of " & lComponents & " had been identified as ""Used Common Components"". One had been updated since the code origin had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
-                Case Else:  sMsg = lCommonUsed & " Components of " & lComponents & " had been identified as ""Used Common Components"". " & lReplaced & " have been updated because the code origin had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case 1:     sMsg = lCommonUsed & " Components of " & lComponents & " had been identified as ""Used Common Components"". One had been updated since the code origin had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case Else:  sMsg = lCommonUsed & " Components of " & lComponents & " had been identified as ""Used Common Components"". " & lReplaced & " have been updated because the code origin had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
             End Select
     End Select
-    If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
+    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
     
 xt: mErH.EoP ErrSrc(PROC)

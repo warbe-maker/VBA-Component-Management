@@ -73,8 +73,8 @@ Public Sub Test_01_01_CodeChanged()
     
     '~~ Begin of test preparation
     With cTest
-        .TestProcedure = ThisWorkbook.Name & ": " & ErrSrc(PROC)
-        .TestItem = ThisWorkbook.Name & ".clsComp.CodeChanged"
+        .TestProcedure = ThisWorkbook.name & ": " & ErrSrc(PROC)
+        .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
         .TestedByTheWay = "clsComp.ExportFileFullName"
         Set wbTest = mWrkbk.GetOpen(ThisWorkbook.Path & "\" & "Test\Test1.xlsm")
         .ResultExpected = True
@@ -121,8 +121,8 @@ Public Sub Test_01_02_CodeChanged()
     
     '~~ Test preparation
     With cTest
-        .TestProcedure = ThisWorkbook.Name & ": " & ErrSrc(PROC)
-        .TestItem = ThisWorkbook.Name & ".clsComp.CodeChanged"
+        .TestProcedure = ThisWorkbook.name & ": " & ErrSrc(PROC)
+        .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
         .TestedByTheWay = "clsComp.ExportFileFullName"
         Set wbTest = mWrkbk.GetOpen(ThisWorkbook.Path & "\" & "Test\Test1.xlsm")
         .ResultExpected = False
@@ -170,8 +170,8 @@ Public Sub Test_01_03_CodeChanged()
     
     '~~ Test preparation
     With cTest
-        .TestProcedure = ThisWorkbook.Name & "." & ErrSrc(PROC)
-        .TestItem = ThisWorkbook.Name & ".clsComp.CodeChanged"
+        .TestProcedure = ThisWorkbook.name & "." & ErrSrc(PROC)
+        .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
         .TestedByTheWay = "clsComp.ExportFileFullName"
         .Details = "Export File outdated, CodeModule changed (additional line)"
         .ResultExpected = True
@@ -221,8 +221,8 @@ Public Sub Test_01_04_CodeChanged()
     
     '~~ Test preparation
     With cTest
-        .TestProcedure = ThisWorkbook.Name & "." & ErrSrc(PROC)
-        .TestItem = ThisWorkbook.Name & ".clsComp.CodeChanged"
+        .TestProcedure = ThisWorkbook.name & "." & ErrSrc(PROC)
+        .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
         .TestedByTheWay = "clsComp.ExportFileFullName"
         .Details = "Additional empty line in CodeModule is not considered a change though the Export File is outdated"
         .ResultExpected = False
@@ -361,12 +361,12 @@ Public Sub Test_CodeModuleTrimm()
     
     Set wb = ActiveWorkbook
     Set vbc = wb.VBProject.VBComponents("mCommon")
-    Debug.Print "Trim CodeModule 'mCommon' in Workbook '" & wb.Name & "'"
+    Debug.Print "Trim CodeModule 'mCommon' in Workbook '" & wb.name & "'"
     mVBP.CodeModuleTrim vbc, wb
     
     Set wb = ThisWorkbook
     Set vbc = wb.VBProject.VBComponents("mCommon")
-    Debug.Print "Trim CodeModule 'mCommon' in Workbook '" & wb.Name & "'"
+    Debug.Print "Trim CodeModule 'mCommon' in Workbook '" & wb.name & "'"
     mVBP.CodeModuleTrim vbc, wb
     
 End Sub

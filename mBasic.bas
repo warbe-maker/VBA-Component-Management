@@ -114,7 +114,7 @@ End Function
 
 Public Function AppIsInstalled(ByVal sApp As String) As Boolean
 Dim i As Long: i = 1
-    Do Until left(Environ$(i), 5) = "Path="
+    Do Until Left(Environ$(i), 5) = "Path="
         i = i + 1
     Loop
     AppIsInstalled = InStr(Environ$(i), sApp) <> 0
@@ -447,7 +447,7 @@ Dim ia  As Long
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = ThisWorkbook.Name & " mBasic." & sProc
+    ErrSrc = ThisWorkbook.name & " mBasic." & sProc
 End Function
 
 Public Function IsCvName(ByVal v As Variant) As Boolean

@@ -11,7 +11,7 @@ Private Sub InitLog()
         With Log
             .Location = spp_File
             .Extension = ".log"
-            .Subject = mCommDat.CommonComponentsBasePath & SBJCT_FILE_NAME
+            .Subject = mConfig.CommonComponentsBasePath & SBJCT_FILE_NAME
         End With
     End If
 End Sub

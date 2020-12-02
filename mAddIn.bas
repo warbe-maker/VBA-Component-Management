@@ -119,9 +119,9 @@ Private Sub AddinInstanceWorkbookOpen()
             Set wb = Application.Workbooks.Open(wbAddIn.AddInInstanceFullName)
             If Err.Number = 0 Then
                 With fso
-                    sBaseAddinName = .GetBaseName(wb.Name)
-                    sBaseDevName = .GetBaseName(ThisWorkbook.Name)
-                    wb.VBProject.Name = sBaseAddinName
+                    sBaseAddinName = .GetBaseName(wb.name)
+                    sBaseDevName = .GetBaseName(ThisWorkbook.name)
+                    wb.VBProject.name = sBaseAddinName
                 End With
                 cllLog.Add lStep & ". Addin Workbook successfully (re)opened/(re)activated and renamed from " & sBaseDevName & " to " & sBaseAddinName
  _
@@ -151,7 +151,7 @@ Private Sub AddinInstanceWorkbookSaveAsDevlp()
             
             If Not mWrkbk.IsOpen(wbAddIn.DevlpInstanceName, wbDevlp) _
             Then Stop _
-            Else wbDevlp.VBProject.Name = fso.GetBaseName(wbAddIn.DevlpInstanceName)
+            Else wbDevlp.VBProject.name = fso.GetBaseName(wbAddIn.DevlpInstanceName)
             
             If Err.Number <> 0 Then
                 cllLog.Add lStep & ". Addin instance (version " & wbAddIn.AddInVersion & " could not be saved as Development instance Workbook"
@@ -185,7 +185,7 @@ Private Function AssertUpToDateVersion() As Boolean
     
     Application.StatusBar = lStep & ". Assert the up-to-date version"
     If mAddIn.AddInInstanceWorkbookIsOpen Then
-        Application.Run wbTarget.Name & "!mCompMan.Version", cVersion
+        Application.Run wbTarget.name & "!mCompMan.Version", cVersion
         If cVersion.Version = wbAddIn.AddInVersion Then
             cllLog.Add lStep & ". Renew of the Addin (version " & cVersion.Version & ") successfull! Addin is open again and active :-)"
             bSucceeded = True
@@ -400,12 +400,12 @@ Private Sub ReferencesToAddInRestore()
     For Each v In dctAddInRefs
         Set wb = v
         wb.VBProject.References.AddFromFile wbAddIn.AddInInstanceFullName
-        sWbs = wb.Name & ", " & sWbs
+        sWbs = wb.name & ", " & sWbs
         bOneRestored = True
     Next v
     
     If bOneRestored Then
-        sWbs = left(sWbs, Len(sWbs) - 2)
+        sWbs = Left(sWbs, Len(sWbs) - 2)
         cllLog.Add lStep & ". Reference to the Addin in open Workbooks restored"
         cllLog.Add "   (" & sWbs & ")"
     Else
@@ -429,7 +429,7 @@ Public Function AddInInstanceWorkbookIsOpen() As Boolean
     
     AddInInstanceWorkbookIsOpen = False
     For i = 1 To Application.AddIns2.Count
-        If Application.AddIns2(i).Name = wbAddIn.AddInInstanceName Then
+        If Application.AddIns2(i).name = wbAddIn.AddInInstanceName Then
             AddInInstanceWorkbookIsOpen = True
             GoTo xt
         End If
@@ -472,9 +472,9 @@ Private Function ReferencesToAddInSaveAndRemove() As Boolean
             Set wb = dct.Item(v)
             
             For Each ref In wb.VBProject.References
-                If InStr(ref.Name, fso.GetBaseName(wbAddIn.AddInInstanceName)) <> 0 Then
+                If InStr(ref.name, fso.GetBaseName(wbAddIn.AddInInstanceName)) <> 0 Then
                     dctAddInRefs.Add wb, ref
-                    sWbs = wb.Name & ", " & sWbs
+                    sWbs = wb.name & ", " & sWbs
                 End If
             Next ref
         Next v
@@ -489,7 +489,7 @@ Private Function ReferencesToAddInSaveAndRemove() As Boolean
     End With
     
     If bOneRemoved Then
-        sWbs = left(sWbs, Len(sWbs) - 2)
+        sWbs = Left(sWbs, Len(sWbs) - 2)
         cllLog.Add lStep & ". Reference to the Addin from open Workbooks saved and removed"
         cllLog.Add "   (" & sWbs & ")"
     Else
@@ -522,6 +522,7 @@ Public Sub Renew()
     Dim lStep   As Long
 
     mErH.BoP ErrSrc(PROC)
+        
     Set cllLog = New Collection
     
     '~~ Assert ThisWorkbook is the development instance of the CompMan Addin
@@ -532,6 +533,9 @@ Public Sub Renew()
     Else
         cllLog.Add lStep & ". Execution of the ""Renew"" procedure from within the Development instance Workbook (" & wbAddIn.DevlpInstanceName & ") asserted"
     End If
+                     
+    '~~ Get the current CompMan's base configuration confirmed or changed
+    mConfig.Confirm
                      
     '~~ Assert no Workbooks are open referring to the Addin
     ReferencesToAddInSaveAndRemove

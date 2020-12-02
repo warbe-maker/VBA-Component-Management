@@ -31,26 +31,26 @@ Private Const ADDIN_WORKBOOK    As String = "CompMan.xlam"              ' Extens
 Private Const ADDIN_FORMAT      As Long = xlOpenXMLAddIn                ' = ... needs adjustment when the above is changed
 Private Const ADDIN_VERSION     As String = "4.0"                       ' Allows to check the success of an Addin renew
 Private Const DEVLP_WORKBOOK    As String = "CompManDev.xlsm"           ' Extension depends on Excel versions
-Private Const DEVLP_FORMAT      As Long = xlOpenXMLWorkbookMacroEnabled ' = ... needs adjustment when the above is changed
+Private Const DEVLP_FORMAT As Long = xlOpenXMLWorkbookMacroEnabled ' = ... needs adjustment when the above is changed
 
 Public Property Get AddInInstanceFullName() As String:  AddInInstanceFullName = AddInPath & DBSLASH & AddInInstanceName:    End Property
 
 Public Property Get AddInInstanceName() As String:      AddInInstanceName = ADDIN_WORKBOOK:                                 End Property
 
-Private Property Get AddInPath() As String:             AddInPath = mCommDat.CompManAddinPath:                              End Property
+Private Property Get AddInPath() As String:             AddInPath = mConfig.CompManAddinPath:                               End Property
 
 Public Property Get DevlpInstanceFullName() As String
 Dim fso As New FileSystemObject
-    DevlpInstanceFullName = mCommDat.CommonComponentsBasePath & DBSLASH _
+    DevlpInstanceFullName = mConfig.CommonComponentsBasePath & DBSLASH _
                           & fso.GetBaseName(DevlpInstanceName) & DBSLASH _
                           & DevlpInstanceName
 End Property
 
 Public Property Get DevlpInstanceName() As String:      DevlpInstanceName = DEVLP_WORKBOOK:                                 End Property
 
-Public Property Get IsAddinInstance() As Boolean:       IsAddinInstance = ThisWorkbook.Name = AddInInstanceName:            End Property
+Public Property Get IsAddinInstance() As Boolean:       IsAddinInstance = ThisWorkbook.name = AddInInstanceName:            End Property
 
-Public Property Get IsDevlpInstance() As Boolean:       IsDevlpInstance = ThisWorkbook.Name = Me.DevlpInstanceName:         End Property
+Public Property Get IsDevlpInstance() As Boolean:       IsDevlpInstance = ThisWorkbook.name = Me.DevlpInstanceName:         End Property
 
 Public Property Get xlAddInFormat() As Long:            xlAddInFormat = ADDIN_FORMAT:                                       End Property
 
@@ -103,7 +103,7 @@ Private Sub Workbook_Open()
 
     If IsDevlpInstance Then
         mAddIn.ControlItemRenewAdd
-        mCommDat.AssertInitialConfiguration
+        mConfig.Asserted ' assert a valid CompMan basic configuratuion
         If mAddIn.AddInInstanceWorkbookIsOpen Then
             '~~ Essential! When the Development instance Workbook is opened, used Common Components
             '~~ the origin code has changed can only be updated when the Addin instance Workbook is
@@ -118,7 +118,7 @@ Private Sub Workbook_Open()
         '~~ Make sure the VBProject name is the Workbook's base name
         '~~ Note that this is required to correctly identify (save, remove, restore) any reference
         '~~ to the Addin in open Workbook when Renew or SaveAsAddin is performed (see module mAddin)
-        If .VBProject.Name <> fso.GetBaseName(.Name) Then .VBProject.Name = fso.GetBaseName(.Name)
+        If .VBProject.name <> fso.GetBaseName(.name) Then .VBProject.name = fso.GetBaseName(.name)
         '~~ Unporotecting (the Addin) allows directly modify code in it - and saving it subsequently
         '~~ as new Development instance (see method SaveasDev in module mAddin)
         .Unprotect

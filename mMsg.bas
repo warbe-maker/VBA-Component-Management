@@ -45,6 +45,7 @@ Public Function Box(ByVal dsply_title As String, _
         .MinButtonWidth = dsply_min_button_width
         .MsgTitle = dsply_title
         .MsgText(1) = dsply_msg
+        .MsgMonoSpaced(1) = dsply_msg_monospaced
         .MsgButtons = dsply_buttons
         '+------------------------------------------------------------------------+
         '|| Setup prior showing the form improves the performance significantly  ||

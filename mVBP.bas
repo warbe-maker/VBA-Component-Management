@@ -80,7 +80,7 @@ Public Sub CodeModuleTrim(ByVal v As Variant, _
             
             '~~ The existence check returns the VBComponent object when it exists
             If Not mVBP.ComponentExists(wb, v, vbc) _
-            Then Err.Raise mErH.AppErr(5), ErrSrc(PROC), "The CodeModule '" & v & "' (v) does not exist in the Workbook '" & wb.Name & "'!"
+            Then Err.Raise mErH.AppErr(5), ErrSrc(PROC), "The CodeModule '" & v & "' (v) does not exist in the Workbook '" & wb.name & "'!"
             Set vbcm = vbc.CodeModule
 
         Case "VBComponent"
@@ -93,8 +93,8 @@ Public Sub CodeModuleTrim(ByVal v As Variant, _
     With vbcm
         If wb Is ThisWorkbook Then
             If Len(.Lines(1, 1)) = 0 Then
-                MsgBox "The CodeModule of '" & vbcm.Parent.Name & "' has an empty code line at the top " & _
-                       "which cannot be removed since the Workbook is ME! (" & wb.Name & ")." & vbLf & _
+                MsgBox "The CodeModule of '" & vbcm.Parent.name & "' has an empty code line at the top " & _
+                       "which cannot be removed since the Workbook is ME! (" & wb.name & ")." & vbLf & _
                        "Since the check whether the code has changed or not is done by comparing the code " & _
                        "with its ExportFile (which is done by transferring both into anarray). " & _
                        "This comparison may indicate a code change though the relevant code has not changed.", _
@@ -150,7 +150,7 @@ Public Function ComponentExists(ByVal vWb As Variant, _
     
     Select Case TypeName(vComp)
         Case "VBComponent"
-            sName = vComp.Name
+            sName = vComp.name
         Case "String"
             sName = vComp
         Case Else
@@ -158,7 +158,7 @@ Public Function ComponentExists(ByVal vWb As Variant, _
     End Select
     
     On Error Resume Next
-    sName = wb.VBProject.VBComponents(sName).Name
+    sName = wb.VBProject.VBComponents(sName).name
     If Err.Number = 0 Then
         ComponentExists = True
         Set vbcResult = wb.VBProject.VBComponents(sName)
@@ -200,13 +200,13 @@ Public Function CustomViewExists(ByVal vWb As Variant, _
     
         If TypeOf vCv Is CustomView Then
             On Error Resume Next
-            sTest = vCv.Name
+            sTest = vCv.name
             CustomViewExists = Err.Number = 0
             GoTo xt
         End If
     If VarType(vCv) = vbString Then
         On Error Resume Next
-        sTest = wb.CustomViews(vCv).Name
+        sTest = wb.CustomViews(vCv).name
         CustomViewExists = Err.Number = 0
         GoTo xt
     End If
@@ -322,7 +322,7 @@ Public Function ReferenceExists(ByVal vWb As Variant, _
     Then Err.Raise mErH.AppErr(3), ErrSrc(PROC), "The Reference (parameter vRef) for the Reference's existence check is neither a valid GUID (a string enclosed in { } ) nor a Reference object!"
     
     If VarType(vRef) = vbString Then
-        If left$(vRef, 1) <> "{" Or Right$(vRef, 1) <> "}" _
+        If Left$(vRef, 1) <> "{" Or Right$(vRef, 1) <> "}" _
         Then Err.Raise mErH.AppErr(4), ErrSrc(PROC), "The Reference (parameter vRef) for the Reference's existence check is a string but not syntactically correct GUID (a string enclosed in { } )!"
     End If
     

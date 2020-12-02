@@ -285,7 +285,7 @@ End Function
         Do While hWnd <> 0
             sText = String$(100, Chr$(0))
             lRet = CLng(GetClassName(hWnd, sText, 100))
-            If left$(sText, lRet) = "EXCEL7" Then
+            If Left$(sText, lRet) = "EXCEL7" Then
                 Call IIDFromString(StrPtr(IID_IDispatch), iid)
                 If AccessibleObjectFromWindow(hWnd, OBJID_NATIVEOM, iid, ob) = 0 Then 'S_OK
                     Set GetExcelObjectFromHwnd = ob.Application
