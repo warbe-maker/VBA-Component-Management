@@ -3,14 +3,14 @@ Option Explicit
 ' ---------------------------------------------------------
 ' Standard Module mCommDat Maintains Common Component data.
 ' ---------------------------------------------------------
-Private dat                                 As clsAppData
-Private cfg                                 As clsAppData
+Private dat                         As clsAppData
+Private cfg                         As clsAppData
                                                                                 
-Private Const SBJCT_FILE_NAME               As String = "\Components.dat"
-Private Const SECTION_COMPONENT             As String = "Component_"
-Private Const SECTION_HOST_WORKBOOK         As String = "HostWorkbook_"
+Private Const SBJCT_FILE_NAME       As String = "\Components.dat"
+Private Const SECTION_COMPONENT     As String = "Component_"
+Private Const SECTION_HOST_WORKBOOK As String = "HostWorkbook_"
                                     
-Private sSection                            As String
+Private sSection                    As String
 
 Public Property Get CodeVersionAsOfDate( _
                     Optional ByVal sHostBaseName As String, _
@@ -168,7 +168,7 @@ Public Property Get HostWorkbookCodeBackUpExportFolder( _
     dat.Aspect = sSection
     sExpFolder = dat.ValueGet(ValueNameWbExpFolder(sSection))
     If sExpFolder = vbNullString Then
-        sExpFolder = mConfig.CommonComponentsBasePath & "\" & sHostBaseName
+        sExpFolder = mCompManCfg.CommonComponentsBasePath & "\" & sHostBaseName
         With New FileSystemObject
             If Not .FolderExists(sExpFolder) Then
                 .CreateFolder sExpFolder

@@ -37,11 +37,11 @@ Public Property Get AddInInstanceFullName() As String:  AddInInstanceFullName = 
 
 Public Property Get AddInInstanceName() As String:      AddInInstanceName = ADDIN_WORKBOOK:                                 End Property
 
-Private Property Get AddInPath() As String:             AddInPath = mConfig.CompManAddinPath:                               End Property
+Private Property Get AddInPath() As String:             AddInPath = mCompManCfg.CompManAddinPath:                           End Property
 
 Public Property Get DevlpInstanceFullName() As String
 Dim fso As New FileSystemObject
-    DevlpInstanceFullName = mConfig.CommonComponentsBasePath & DBSLASH _
+    DevlpInstanceFullName = mCompManCfg.CommonComponentsBasePath & DBSLASH _
                           & fso.GetBaseName(DevlpInstanceName) & DBSLASH _
                           & DevlpInstanceName
 End Property
@@ -103,7 +103,7 @@ Private Sub Workbook_Open()
 
     If IsDevlpInstance Then
         mAddIn.ControlItemRenewAdd
-        mConfig.Asserted ' assert a valid CompMan basic configuratuion
+        mCompManCfg.Asserted ' assert a valid CompMan basic configuratuion
         If mAddIn.AddInInstanceWorkbookIsOpen Then
             '~~ Essential! When the Development instance Workbook is opened, used Common Components
             '~~ the origin code has changed can only be updated when the Addin instance Workbook is

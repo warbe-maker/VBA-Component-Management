@@ -124,17 +124,17 @@ Public Sub ExportAll(Optional ByVal wb As Workbook = Nothing)
     Const PROC = "ExportAll"
     
     On Error GoTo eh
-    Dim cManagedComponent   As New clsComp
-    Dim vbc                 As VBComponent
+    Dim cComp   As New clsComp
+    Dim vbc     As VBComponent
     
     mErH.BoP ErrSrc(PROC)
     
     If wb Is Nothing Then Set wb = ActiveWorkbook
-    With cManagedComponent
+    With cComp
         If wbAddIn.IsAddinInstance _
         Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
-        .Host = wb
-        For Each vbc In .Host.VBProject.VBComponents
+        .Wrkbk = wb
+        For Each vbc In .Wrkbk.VBProject.VBComponents
             .VBComp = vbc
             .BackUpCode
         Next vbc
@@ -171,7 +171,7 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
     Dim dctComps            As Dictionary
     Dim dctRemove           As Dictionary
     Dim v                   As Variant
-    Dim cMngdComp           As New clsComp
+    Dim cCompUsed           As New clsComp
     Dim fl                  As File
     Dim sFolder             As String
     Dim flOriginExportFile  As File
@@ -194,26 +194,24 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
     
     Set dctComps = New Dictionary
     
-    With cMngdComp
-        .Host = wb
+    With cCompUsed
+        .Wrkbk = wb
         .HostedCommonComponents = sHosted
         lCompMaxLen = mCommDat.CommCompsMaxLenght
         
         '~~ Keep a record when this Workbook hosts one or more Common Components
         If sHosted <> vbNullString Then .RegisterAsHostWorkbook
         
-        For Each vbc In wb.VBProject.VBComponents
+        For Each vbc In .Wrkbk.VBProject.VBComponents
             .VBComp = vbc
             '~~ Register the Component when it is regarded Common for other VBProjects which
             '~~ is a primary precondition to get it automatically updated by means of CompMan in VBProjects using it.
-            If .IsHostedCommonComponent Then .RegisterAsCommonComponent
-
-            If .CodeModuleIsEmpty Then
-                GoTo next_vbc
-            End If
+            If .IsHostedCommon Then .RegisterAsHostedCommon
+            If .CodeModuleIsEmpty Then GoTo next_vbc
+            
             lComponents = lComponents + 1
             dctComps.Add .name, vbc
-            If .IsHostedCommonComponent Then
+            If .IsHostedCommon Then
                 If Not .IsUsedCommonComponent Then
                     '~~ Register the hosted Common Component yet not registered
                     mCommDat.CommCompHostWorkbookBaseName(.name) = .HostBaseName
@@ -229,8 +227,8 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
                     '~~ This is regarded an unusual code change because instead of maintaining the origin code
                     '~~ of a Common Component in ist "host" VBProject it had been changed in the using VBProject.
                     '~~ Nevertheless updating the origin code with this change is possible when explicitely confirmed.
-                    .CommonOrigin.ComponentName = .ComponentName
-                    With .CommonOrigin
+                    .CompOrigin.ComponentName = .ComponentName
+                    With .CompOrigin
                         .ExportFile = flOriginExportFile
                         .HostFullName = sOriginHostFullName
                     End With
@@ -265,9 +263,9 @@ next_vbc:
         End With
     
         Select Case lExported
-            Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & .Host.name & " had been changed/exported/backed up."
-            Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Host.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 2)
-            Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Host.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 1)
+            Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & .Wrkbk.name & " had been changed/exported/backed up."
+            Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Wrkbk.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 2)
+            Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Wrkbk.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 1)
         End Select
         If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
         Application.StatusBar = sMsg
@@ -284,91 +282,16 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub ExportComponent( _
-           Optional ByVal wb As Workbook = Nothing, _
-           Optional ByVal sComp As String = vbNullString)
-' -------------------------------------------------------
-'
-' -------------------------------------------------------
-    Const PROC = "ExportComponent"
-    
-    On Error GoTo eh
-    Dim cManagedComponent   As New clsComp
-    Dim v                   As Variant
-    Dim sExported           As String
-    Dim lExported           As Long
-    Dim lComponents         As Long
-    Dim sMsg                As String
-    Dim bWhenChangedOnly    As Boolean
-    
-    mErH.BoP ErrSrc(PROC)
-    If wb Is Nothing Then Set wb = ActiveWorkbook
-    
-    With cManagedComponent
-        
-        If wbAddIn.IsAddinInstance _
-        Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
-        .Host = wb
-        lComponents = wb.VBProject.VBComponents.Count
-        
-        If sComp = vbNullString Then
-            For Each v In .SelectedComponents(bWhenChangedOnly)
-                .VBComp = .Host.VBProject.VBComponents(v)
-                If bWhenChangedOnly Then
-                    If .CodeChanged Then
-                        .BackUpCode
-                        sExported = .VBComp.name & ", " & sExported
-                        lExported = lExported + 1
-                    End If
-                Else
-                    .BackUpCode
-                    sExported = .VBComp.name & ", " & sExported
-                    lExported = lExported + 1
-                End If
-            Next v
-        Else
-            If .Exists(sComp) Then
-                .VBComp = .Host.VBProject.VBComponents(sComp)
-                .BackUpCode
-                sExported = .VBComp.name & ", " & sExported
-                lExported = lExported + 1
-            End If
-        End If
-
-        Select Case lExported
-            Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & .Host.name & " had been changed/exported/backed up."
-            Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & .Host.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 2)
-            Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & .Host.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 1)
-        End Select
-        If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
-        Application.StatusBar = sMsg
-    
-    End With
-    
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
-    End Select
-End Sub
-
 Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
-           ByVal wbTarget As Workbook, _
-  Optional ByVal sHosted As String = vbNullString)
-' --------------------------------------------------
-' Updates in the target Workbook (wbTarget) any used
-' Common Component's code.
-' Note 1: Known Common Components are those which
-'         had been logged as "hosted" with the
-'         ExportChangedComponents procedure per-
-'         formed with the "Before_Save" event.
-' Note 2: The update is performed only when con-
-'         firmed in a user dialog.
-' --------------------------------------------------
-    Const PROC              As String = "UpdateUsedCommCompsTheOriginHasChanged"
+                                             ByVal wbTarget As Workbook, _
+                                    Optional ByVal sHosted As String = vbNullString)
+' ------------------------------------------------------------------------------------
+' Updates in the target Workbook (wbTarget) any used Common Component's code.
+' Note 1: Known Common Components are those which had been logged as "hosted" with the
+'         ExportChangedComponents procedure performed with the "Before_Save" event.
+' Note 2: The update is performed only when confirmed in a user dialog.
+' ------------------------------------------------------------------------------------
+    Const PROC = "UpdateUsedCommCompsTheOriginHasChanged"
     
     On Error GoTo eh
     Dim vbc                 As VBComponent
@@ -388,7 +311,7 @@ Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
     If InStr(wbTarget.FullName, "(") <> 0 Then GoTo xt
     
     With cTarget
-        .Host = wbTarget
+        .Wrkbk = wbTarget
         .HostedCommonComponents = sHosted
         lCompMaxLen = mCommDat.CommCompsMaxLenght
     
@@ -399,7 +322,7 @@ Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
             If .IsUsedCommonComponent Then
                 If .IsCommonUsed(flOriginExportFile, sOriginHostFullName) Then
                     lCommonUsed = lCommonUsed + 1
-                    With .CommonOrigin
+                    With .CompOrigin
                         .ExportFile = flOriginExportFile
                         .HostFullName = sOriginHostFullName
                     End With

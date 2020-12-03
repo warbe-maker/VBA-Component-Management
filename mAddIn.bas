@@ -62,9 +62,9 @@ Private Sub AddinInstanceWorkbookClose()
     Application.StatusBar = lStep & ". Close the Addin instance Workbook"
 
     If Err.Number <> 0 _
-    Then cllLog.Add lStep & ". The Addin Workbook could't be closed" & vbLf & _
+    Then cllLog.Add lStep & ". Close the Addin Workbook failed: unable to close!" & vbLf & _
                  "  (" & Err.Description & ")" _
-    Else cllLog.Add lStep & ". Addin Workbook closed"
+    Else cllLog.Add lStep & ". Close Addin Workbook passed"
 
 End Sub
 
@@ -81,11 +81,11 @@ Private Sub AddInInstanceWorkbookDelete()
         If .FileExists(wbAddIn.AddInInstanceFullName) Then
             .DeleteFile wbAddIn.AddInInstanceFullName
             If Err.Number = 0 _
-            Then cllLog.Add lStep & ". Addin Workbook file deleted" _
-            Else cllLog.Add lStep & ". Deleting the Addin Workbook file failed" & vbLf & _
+            Then cllLog.Add lStep & ". Delete Addin Workbook passed." _
+            Else cllLog.Add lStep & ". Delete Addin Workbook file failed: " & vbLf & _
                          "  (" & Err.Description & ")"
         Else
-            cllLog.Add lStep & ". Addin Workbook file were already deleted"
+            cllLog.Add lStep & ". Delete Addin Workbook passed: already deleted"
         End If
     End With
     
@@ -95,12 +95,6 @@ Private Function AddInInstanceWorkbookExists() As Boolean
 Dim fso As New FileSystemObject
     AddInInstanceWorkbookExists = fso.FileExists(wbAddIn.AddInInstanceFullName)
 End Function
-
-'Private Function AddInInstanceWorkbookIsOpen() As Boolean
-'    On Error Resume Next
-'    Set wbTarget = Application.Workbooks(wbAddIn.AddInInstanceName)
-'    AddInInstanceWorkbookIsOpen = Err.Number = 0
-'End Function
 
 Private Sub AddinInstanceWorkbookOpen()
 
@@ -123,10 +117,10 @@ Private Sub AddinInstanceWorkbookOpen()
                     sBaseDevName = .GetBaseName(ThisWorkbook.name)
                     wb.VBProject.name = sBaseAddinName
                 End With
-                cllLog.Add lStep & ". Addin Workbook successfully (re)opened/(re)activated and renamed from " & sBaseDevName & " to " & sBaseAddinName
+                cllLog.Add lStep & ". (Re)open Addin Workbook passed: successfully (re)opened/(re)activated and renamed from " & sBaseDevName & " to " & sBaseAddinName
  _
             Else
-                cllLog.Add lStep & ". Addin Workbook could't be (re)opened." & _
+                cllLog.Add lStep & ". (Re)open the Addin Workbook failed: could't be (re)opened." & _
                          vbLf & "  (" & Err.Description & ")"
             End If
         End If
@@ -154,9 +148,9 @@ Private Sub AddinInstanceWorkbookSaveAsDevlp()
             Else wbDevlp.VBProject.name = fso.GetBaseName(wbAddIn.DevlpInstanceName)
             
             If Err.Number <> 0 Then
-                cllLog.Add lStep & ". Addin instance (version " & wbAddIn.AddInVersion & " could not be saved as Development instance Workbook"
+                cllLog.Add lStep & ". Save Addin instance (version " & wbAddIn.AddInVersion & " as Development instance Workbook failed!"
             Else
-                cllLog.Add lStep & ". Addin instance Workbook (version " & wbAddIn.AddInVersion & " saved as Development instance Workbook"
+                cllLog.Add lStep & ". Save Addin instance Workbook (version " & wbAddIn.AddInVersion & " saved as Development instance Workbook passed."
             End If
             .EnableEvents = True
         Else ' file still exists
@@ -179,6 +173,7 @@ Private Function AssertUpToDateVersion() As Boolean
     Dim lStep       As Long
     Dim cVersion    As clsAddinVersion
 
+    If cllLog Is Nothing Then Set cllLog = New Collection
     Set cVersion = New clsAddinVersion
     lStep = Step
     Application.StatusBar = lStep & ". Assert the up-to-date version"
@@ -253,9 +248,9 @@ Private Sub DevlpInstanceWorkbookClose()
     wbDevlp.Activate
     wbDevlp.Close False
     If Err.Number <> 0 _
-    Then cllLog.Add lStep & ". The Development instance Workbook of the Addin could't be closed" & vbLf & _
+    Then cllLog.Add lStep & ". Close Development instance Workbook failed: Unable to close" & vbLf & _
                  "  (" & Err.Description & ")" _
-    Else cllLog.Add lStep & ". Development instance Workbook closed"
+    Else cllLog.Add lStep & ". Close Development instance Workbook passed"
 End Sub
 
 Private Sub DevlpInstanceWorkbookDelete()
@@ -271,11 +266,11 @@ Private Sub DevlpInstanceWorkbookDelete()
         If .FileExists(wbAddIn.DevlpInstanceFullName) Then
             .DeleteFile wbAddIn.DevlpInstanceFullName
             If Err.Number = 0 _
-            Then cllLog.Add lStep & ". Development instance Workbook file deleted" _
-            Else cllLog.Add lStep & ". Deleting the Development instance Workbook file failed" & vbLf & _
+            Then cllLog.Add lStep & ". Delete Development instance Workbook passed" _
+            Else cllLog.Add lStep & ". Delete Development instance Workbook failed!" & vbLf & _
                          "  (" & Err.Description & ")"
         Else
-            cllLog.Add lStep & ". Development instance Workbook file were already deleted"
+            cllLog.Add lStep & ". Development instance Workbook already deleted"
         End If
     End With
 End Sub
@@ -303,7 +298,7 @@ Private Sub DevlpInstanceWorkbookSave()
     wbSource.Save
     Application.EnableEvents = True
     wbSource.Activate
-    cllLog.Add lStep & ". Development instance Workbook of the Addin saved"
+    cllLog.Add lStep & ". Save Development instance Workbook passed"
 
 End Sub
 
@@ -321,14 +316,14 @@ Private Sub DevlpInstanceWorkbookSaveAsAddin()
             On Error Resume Next
             wbSource.SaveAs wbAddIn.AddInInstanceFullName, FileFormat:=wbAddIn.xlAddInFormat
             If Err.Number <> 0 Then
-                cllLog.Add lStep & ". Development instance of the Addin (version " & wbAddIn.AddInVersion & " could not be saved as Addin"
+                cllLog.Add lStep & ". Save Development instance (version " & wbAddIn.AddInVersion & ") as Addin failed!"
             Else
-                cllLog.Add lStep & ". Development instance of the Addin (version " & wbAddIn.AddInVersion & " saved as Addin"
+                cllLog.Add lStep & ". Save Development instance (version " & wbAddIn.AddInVersion & ") as Addin passed"
             End If
             .EnableEvents = True
             mCompMan.ExportChangedComponents wbDevlp
         Else ' file still exists
-            cllLog.Add lStep & ". Renewing the Addin with version " & wbAddIn.AddInVersion & " of the development instance failed"
+            cllLog.Add lStep & ". Setup/renew of the Addin with version " & wbAddIn.AddInVersion & " of the development instance failed"
         End If
     End With
     
@@ -430,7 +425,9 @@ Public Function AddInInstanceWorkbookIsOpen() As Boolean
     AddInInstanceWorkbookIsOpen = False
     For i = 1 To Application.AddIns2.Count
         If Application.AddIns2(i).name = wbAddIn.AddInInstanceName Then
-            AddInInstanceWorkbookIsOpen = True
+            On Error Resume Next
+            Set wbTarget = Application.Workbooks(wbAddIn.AddInInstanceName)
+            AddInInstanceWorkbookIsOpen = Err.Number = 0
             GoTo xt
         End If
     Next i
@@ -528,14 +525,14 @@ Public Sub Renew()
     '~~ Assert ThisWorkbook is the development instance of the CompMan Addin
     lStep = Step
     If Not wbAddIn.IsDevlpInstance() Then
-        cllLog.Add lStep & ". Execution of the ""Renew"" procedure failed because it had not been executed from within the Development instance Workbook (" & wbAddIn.DevlpInstanceName & ")!"
+        cllLog.Add lStep & ". ""Renew"" not asserted: Execution of the ""Renew"" procedure failed because it had not been executed from within the Development instance Workbook (" & wbAddIn.DevlpInstanceName & ")!"
         GoTo xt
     Else
-        cllLog.Add lStep & ". Execution of the ""Renew"" procedure from within the Development instance Workbook (" & wbAddIn.DevlpInstanceName & ") asserted"
+        cllLog.Add lStep & ". ""Renew asserted: Procedure is executed from within the Development instance Workbook (" & wbAddIn.DevlpInstanceName & ") asserted"
     End If
                      
     '~~ Get the current CompMan's base configuration confirmed or changed
-    mConfig.Confirm
+    mCompManCfg.Confirm
                      
     '~~ Assert no Workbooks are open referring to the Addin
     ReferencesToAddInSaveAndRemove
@@ -602,10 +599,10 @@ Public Sub SaveAsDev()
     '~~ Assert ThisWorkbook is the development instance of the CompMan Addin
     lStep = Step
     If Not wbAddIn.IsAddinInstance() Then
-        cllLog.Add lStep & ". Execution of the ""SaveAsDev"" procedure failed because it had not been executed from within the Addin instance Workbook!"
+        cllLog.Add lStep & ". Save as Development instance failed: It had not been executed from within the Addin instance Workbook!"
         GoTo xt
     Else
-        cllLog.Add lStep & ". Execution of the ""SaveAsDev"" procedure from within the Addin instance Workbook asserted"
+        cllLog.Add lStep & ". Save as Development instance passed"
     End If
     Set wbSource = Application.Workbooks(wbAddIn.AddInInstanceName)
     

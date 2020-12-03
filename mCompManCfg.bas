@@ -1,4 +1,4 @@
-Attribute VB_Name = "mConfig"
+Attribute VB_Name = "mCompManCfg"
 Option Explicit
 Option Private Module
 
@@ -78,17 +78,17 @@ Public Function Asserted() As Boolean
     Dim fl              As File
     
     With New FileSystemObject
-        If .FolderExists(mConfig.CompManAddinPath) _
-        And .FolderExists(mConfig.CommonComponentsBasePath) _
-        And mFile.Exists(xst_file:=mConfig.CommonComponentsBasePath & "\" & mConfig.HostedCommCompsFileName & "*") _
+        If .FolderExists(mCompManCfg.CompManAddinPath) _
+        And .FolderExists(mCompManCfg.CommonComponentsBasePath) _
+        And mFile.Exists(xst_file:=mCompManCfg.CommonComponentsBasePath & "\" & mCompManCfg.HostedCommCompsFileName & "*") _
         Then
             Asserted = True
-            .CopyFile Source:=CFG_FILE_NAME, Destination:=mConfig.CompManAddinPath & "\CompMan.cfg", OverWriteFiles:=True
+            .CopyFile Source:=CFG_FILE_NAME, Destination:=mCompManCfg.CompManAddinPath & "\CompMan.cfg", OverWriteFiles:=True
             GoTo xt
         End If
                 
         '~~ Assert the folder for the CompMan AddIn
-        sPathCompMan = mConfig.CompManAddinPath
+        sPathCompMan = mCompManCfg.CompManAddinPath
         If sPathCompMan = vbNullString Then
             sPathCompMan = mBasic.SelectFolder( _
                            sTitle:="Select the folder for the AddIn instance of the CompManDev Workbook (escape to use the Application.UserLibraryPath)")
@@ -97,7 +97,7 @@ Public Function Asserted() As Boolean
             Else
                 '~~ Assure trust in this location and save it to the CompMan.cfg file
                 mCommDat.TrustThisFolder FolderPath:=sPathCompMan, TrustSubfolders:=False
-                mConfig.CompManAddinPath = sPathCompMan
+                mCompManCfg.CompManAddinPath = sPathCompMan
             End If
         Else
             While Not .FolderExists(sPathCompMan)
@@ -109,34 +109,34 @@ Public Function Asserted() As Boolean
                 Else
                     '~~ Assure trust in this location and save it to the CompMan.cfg file
                     mCommDat.TrustThisFolder FolderPath:=sPathCompMan, TrustSubfolders:=False
-                    mConfig.CompManAddinPath = sPathCompMan
+                    mCompManCfg.CompManAddinPath = sPathCompMan
                 End If
             Wend
         End If
                    
         '~~ Assert the Common Workbooks path
-        sPathCommon = mConfig.CommonComponentsBasePath
+        sPathCommon = mCompManCfg.CommonComponentsBasePath
         If sPathCommon = vbNullString Then
             sPathCommon = mBasic.SelectFolder("Select the root folder for the ""Common Component Workbooks""")
-            mConfig.CommonComponentsBasePath = sPathCommon
+            mCompManCfg.CommonComponentsBasePath = sPathCommon
         Else
             While Not .FolderExists(sPathCommon)
                 sPathCommon = mBasic.SelectFolder( _
                 sTitle:="Then current configured Common Component Workbook path does not exist. Select another one.")
             Wend
-            If mConfig.CommonComponentsBasePath <> sPathCommon Then mConfig.CommonComponentsBasePath = sPathCommon
+            If mCompManCfg.CommonComponentsBasePath <> sPathCommon Then mCompManCfg.CommonComponentsBasePath = sPathCommon
         End If
         
         '~~ Assert the name for the Hosted Common Components file name
-        sHostedName = mConfig.HostedCommCompsFileName
+        sHostedName = mCompManCfg.HostedCommCompsFileName
         If sHostedName = vbNullString Then
             If mFile.SelectFile( _
-                                sel_init_path:=mConfig.CommonComponentsBasePath _
+                                sel_init_path:=mCompManCfg.CommonComponentsBasePath _
                               , sel_title:="Select a file which - for example - is one indicating a Common Component(s) hosted in the coresponding Workbook." _
                               , sel_result:=fl _
                               ) _
             Then sHostedName = fl.ShortName
-            mConfig.HostedCommCompsFileName = sHostedName
+            mCompManCfg.HostedCommCompsFileName = sHostedName
         End If
     
     End With
@@ -163,14 +163,14 @@ Public Sub Confirm()
     
     With sMsg
         .section(1).sLabel = "Location (path) for the AddIn instance of the CompManDev Workbook:"
-        .section(1).sText = mConfig.CompManAddinPath & vbLf & _
+        .section(1).sText = mCompManCfg.CompManAddinPath & vbLf & _
                             "(when the selection is returned with no folder selected the path will default to """ & Application.UserLibraryPath & """)"
         .section(1).bMonspaced = True
         .section(2).sLabel = "Root folder for Common Component Workbooks:"
-        .section(2).sText = mConfig.CommonComponentsBasePath
+        .section(2).sText = mCompManCfg.CommonComponentsBasePath
         .section(2).bMonspaced = True
         .section(3).sLabel = "Name of the ""hosted"" files (those which contains a Common Component Workbook's ""hosted"" Components):"
-        .section(3).sText = mConfig.HostedCommCompsFileName
+        .section(3).sText = mCompManCfg.HostedCommCompsFileName
         .section(3).bMonspaced = True
     End With
     
@@ -187,24 +187,24 @@ Public Sub Confirm()
                     sPathCompMan = Application.UserLibraryPath ' Default because user escaped the selection
                 Else
                     '~~ Assure trust in this location and save it to the CompMan.cfg file
-                    mConfig.CompManAddinPath = sPathCompMan
+                    mCompManCfg.CompManAddinPath = sPathCompMan
                 End If
             
             Case CFG_CHANGE_COMM_COMPS_PATH
                 sPathCommon = mBasic.SelectFolder("Select the root folder for the ""Common Component Workbooks""")
-                mConfig.CommonComponentsBasePath = sPathCommon
+                mCompManCfg.CommonComponentsBasePath = sPathCommon
 
             Case CFG_CHANGE_HOSTED_FILENAME
                 If mFile.SelectFile( _
-                                    sel_init_path:=mConfig.CommonComponentsBasePath _
+                                    sel_init_path:=mCompManCfg.CommonComponentsBasePath _
                                   , sel_title:="Select a file which - for example - is one indicating a Common Component(s) hosted in the coresponding Workbook." _
                                   , sel_result:=fl _
                                    ) _
-                Then mConfig.HostedCommCompsFileName = fl.ShortName
+                Then mCompManCfg.HostedCommCompsFileName = fl.ShortName
         End Select
     Wend
     
-    mCommDat.TrustThisFolder FolderPath:=mConfig.CompManAddinPath, TrustSubfolders:=False
+    mCommDat.TrustThisFolder FolderPath:=mCompManCfg.CompManAddinPath, TrustSubfolders:=False
 
 xt: Exit Sub
 
@@ -234,7 +234,7 @@ Public Function HostedCommComps() As Collection
     Dim cllHosted       As New Collection
     Dim cllWbk          As New Collection
     
-    mFile.Exists xst_file:=mConfig.CommonComponentsBasePath & "\" & mConfig.HostedCommCompsFileName & "*" _
+    mFile.Exists xst_file:=mCompManCfg.CommonComponentsBasePath & "\" & mCompManCfg.HostedCommCompsFileName & "*" _
                , xst_cll:=cll
     
     For Each v In cll
@@ -254,7 +254,7 @@ Public Function HostedCommComps() As Collection
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = ThisWorkbook.name & ": mConfig." & sProc
+    ErrSrc = ThisWorkbook.name & ": mCompManCfg." & sProc
 End Function
 
 Private Function ValueGet( _

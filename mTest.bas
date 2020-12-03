@@ -82,8 +82,8 @@ Public Sub Test_01_01_CodeChanged()
     End With
     
     With cComp
-        .Host = wbTest
-        .VBComp = .Host.VBProject.VBComponents("mTest")
+        .Wrkbk = wbTest
+        .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
         sExpFile = .ExportFileFullName
         If fso.FileExists(sExpFile) Then fso.DeleteFile (sExpFile)
     End With
@@ -130,8 +130,8 @@ Public Sub Test_01_02_CodeChanged()
     End With
     
     With cComp
-        .Host = wbTest
-        .VBComp = .Host.VBProject.VBComponents("mTest")
+        .Wrkbk = wbTest
+        .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
         sExpFile = .ExportFileFullName
         If .VBComp.CodeModule.Lines(1, 1) = TEST_CHANGE Then .VBComp.CodeModule.DeleteLines 1, 1
         .VBComp.Export sExpFile
@@ -179,8 +179,8 @@ Public Sub Test_01_03_CodeChanged()
     Set wbTest = mWrkbk.GetOpen(ThisWorkbook.Path & "\" & "Test\Test1.xlsm")
     
     With cComp
-        .Host = wbTest
-        .VBComp = .Host.VBProject.VBComponents("mTest")
+        .Wrkbk = wbTest
+        .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
         sExpFile = .ExportFileFullName
         If .VBComp.CodeModule.Lines(1, 1) = TEST_CHANGE Then .VBComp.CodeModule.DeleteLines 1, 1
         .VBComp.Export sExpFile ' Overwrites any existing
@@ -230,8 +230,8 @@ Public Sub Test_01_04_CodeChanged()
     Set wbTest = mWrkbk.GetOpen(ThisWorkbook.Path & "\" & "Test\Test1.xlsm")
     
     With cComp
-        .Host = wbTest
-        .VBComp = .Host.VBProject.VBComponents("mTest")
+        .Wrkbk = wbTest
+        .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
         sExpFile = .ExportFileFullName
         If .VBComp.CodeModule.Lines(1, 1) = TEST_CHANGE Then .VBComp.CodeModule.DeleteLines 1, 1
         .VBComp.Export sExpFile ' Overwrites any existing
@@ -308,8 +308,8 @@ Public Sub Test_DisplayDiff()
     Dim cComp As New clsComp
 
     With cComp
-        .Host = ThisWorkbook
-        .VBComp = .Host.VBProject.VBComponents("mBasic")
+        .Wrkbk = ThisWorkbook
+        .VBComp = .Wrkbk.VBProject.VBComponents("mBasic")
         .DisplayDiff .ExportFile, .ExportFile, "Test title left", "Test title right"
     End With
     
@@ -340,18 +340,6 @@ Private Sub Cleanup(Optional ByVal exp_file As String = vbNullString, _
     On Error Resume Next: wbSrc.Close SaveChanges:=False
     On Error Resume Next: wbTrgt.Close SaveChanges:=False
 
-End Sub
-
-Public Sub Test_CleanExportFile()
-    
-    Dim cComp As New clsComp
-
-    With cComp
-        .Host = ThisWorkbook
-        .VBComp = ThisWorkbook.VBProject.VBComponents("mFile")
-        .CleanExportFile .ExportFile
-    End With
-    
 End Sub
 
 Public Sub Test_CodeModuleTrimm()
