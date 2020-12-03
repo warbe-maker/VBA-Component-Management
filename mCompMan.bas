@@ -403,7 +403,7 @@ Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
                         .ExportFile = flOriginExportFile
                         .HostFullName = sOriginHostFullName
                     End With
-                    If .CommonOriginCodeChanged Then
+                    If .OriginCodeHasChanged Then
                         .UpdateUsedWithOrigin
                         lReplaced = lReplaced + 1
                         sReplaced = .name & ", " & sReplaced

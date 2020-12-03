@@ -78,12 +78,8 @@ Public Property Get CodeChanged( _
     Const PROC  As String = "CodeChanged"
        
     On Error GoTo eh
-    Dim dctComp As Dictionary
-    Dim dctFile As Dictionary
     Dim fso     As New FileSystemObject
     Dim sTmpExp As String
-    Dim a1()    As String
-    Dim a2()    As String
     
     sTmpExp = Replace(Me.ExportFileFullName, Me.Extension, "_Temp" & Me.Extension)
     With fso
@@ -121,52 +117,22 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Private Property Get CommonOriginCodeDiffersFromCommonUsedCode( _
-                    ByVal flOrigin As File, _
-                    ByVal flUsed As File) As Boolean
-' ----------------------------------------------------------------
-' Returns TRUE when the used Common Component's Export File
-' differs from the origin Common Component's Export File.
-' Note: Code comparison by means of the Export files allows to
-'       check the code change with a usually closed host Workbook.
-' ----------------------------------------------------------------
-    Const PROC = "CommonOriginCodeDiffersFromCommonUsedCode"
-    
-    On Error GoTo eh
-    Dim aFile1  As Variant
-    Dim aFile2  As Variant
-    
-    aFile1 = ExportFileToArray(flOrigin) ' obtained through its name with mCommDat
-    aFile2 = ExportFileToArray(flUsed)
-    CommonOriginCodeDiffersFromCommonUsedCode = mBasic.ArrayDiffers(aFile1, aFile2)
-
-xt: Exit Property
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
-    End Select
-End Property
-
-Public Property Get CommonOriginCodeChanged( _
-                    Optional ByRef flCommonOriginExportFile As File, _
-                    Optional ByRef sCommonOriginHostFullName As String) As Boolean
-' --------------------------------------------------------------------------------
-' Returns TRUE when the common origin code's ExportFile date is no longer equal to
-' the used code's as-of-date registered with the last update.
-' --------------------------------------------------------------------------------
+Public Property Get OriginCodeHasChanged() As Boolean
+' -------------------------------------------------------------------------------
+' Returns TRUE when the common origin code's ExportFile date is no longer equal
+' to the used code's as-of-date registered with the last update. Only performed
+' for used component which is regarded Common, i.e. the origin code comes from
+' a Workbook which "hosts" the component.
+' -------------------------------------------------------------------------------
     With Me
-        If .CodeChanged(ignore_empty_lines:=True) Then
-            '~~ Any difference constituted only by empty code lines is ignored!
-            .BackUpCode ' Just in case the used and changed code has yet not been exported
-        End If
-        If .IsCommonUsed(flCommonOriginExportFile, sCommonOriginHostFullName) Then
-            If flCommonOriginExportFile.DateLastModified <> .CodeVersionAsOfDate Then
-                If CommonOriginCodeDiffersFromCommonUsedCode(.CommonOrigin.ExportFile, .ExportFile) Then
-                    CommonOriginCodeChanged = True
-                End If
-            End If
+        If .CodeChanged() Then .BackUpCode ' just in case ...
+        If .ExportFile.DateLastModified <> .CommonOrigin.ExportFile.DateLastModified Then
+            '~~ Empty code lines do not constitute a relevant code change even when the used
+            '~~ component has been backed up - which is also considering empty code lines
+            If mFile.sDiffer(dif_file1:=.CommonOrigin.ExportFile _
+                           , dif_file2:=.ExportFile _
+                           , dif_ignore_empty_records:=True) _
+            Then OriginCodeHasChanged = True
         End If
     End With
 
@@ -310,69 +276,72 @@ Public Property Get UpdatedAsOf() As Date:                  UpdatedAsOf = dtUpda
 
 Public Property Let UpdatedAsOf(ByVal dt As Date):          dtUpdatedAsOf = dt:                         End Property
 
-Private Property Get UpdateOriginWithUsedConfirmed() As enUpdateReply
-' -------------------------------------------------------------------
+Private Property Get UpdateOriginWithUsedConfirmed() As Boolean
+' -------------------------------------------------------------
 ' Returns TRUE when the "reverse" code update is confirmed.
-' -------------------------------------------------------------------
-    Const PROC                  As String = "UpdateOriginWithUsedConfirmed"
-    Const REPLY_UPDATE_ORIGIN   As String = "Update Origin Code"
-    Const REPLY_DISCARD_CHANGES As String = "Discard all Code Changes"
-    Const REPLY_DSPLY_DIFF      As String = "Show Difference"
-    Const REPLY_ABORT           As String = "Abort"
-    
-    Dim sReplyDsplyDiff         As String
-    Dim sBaseMsg                As String
-    Dim sMsg                    As String
-    Dim sDsplyDiffMsg           As String
+' --------------------------------------------------------------
+    Const PROC = "UpdateOriginWithUsedConfirmed"
     
     On Error GoTo eh
+    Dim sReplyUpdateOrigin      As String
+    Dim sReplyDsplyDiff         As String
+    Dim sReplyIgnore            As String
+    Dim sBaseMsg                As String
+    Dim sMsg                    As tMsg
+    Dim sDsplyDiffMsg           As String
+    Dim cllButtons              As Collection
+    Dim sTitle                  As String
+    Dim sReply                  As String
     
     '~~ Prepare communication message and reply option
-    If mBasic.AppIsInstalled("WinMerge") Then
-        sReplyDsplyDiff = "," & REPLY_DSPLY_DIFF
-        sDsplyDiffMsg = DQUOTE & REPLY_DSPLY_DIFF & DQUOTE & " to see what has been changed and decide then (leave with Esc key)"
-    Else
-        sReplyDsplyDiff = vbNullString
-        sDsplyDiffMsg = "."
-    End If
-                
-    sBaseMsg = "The Common Component '" & sComponentName & "' used in this Workbook has been changed in it." & vbLf & vbLf & _
-               "Reply with:" & vbLf & _
-               DQUOTE & REPLY_UPDATE_ORIGIN & DQUOTE & " when the changes should become common/permanent" & vbLf & _
-               sDsplyDiffMsg & vbLf & _
-               DQUOTE & REPLY_DISCARD_CHANGES & DQUOTE & " to discard all changes, i.e. (re-)instate the origin code"
+    sTitle = "A ""Common Component's"" code has been changed in this Workbook"
+    sReplyUpdateOrigin = "Update the origin code:" & vbLf & vbLf & _
+                         "Replace (remove and re-import) the component " & vbLf & _
+                         "" & _
+                         "in Workbook " & vbLf & _
+                         "" & vbLf & _
+                         " with this component's Export File. I.e. the changes" & vbLf & _
+                         "made will become ""permanent"""
+    sReplyDsplyDiff = "Display the difference:" & vbLf & vbLf & _
+                      "The installed ""WinMerge"" is used. Empty code" & vbLf & _
+                      "lines are ignored and the compare is case-insensitive."
+    sReplyIgnore = "Ignore the code change:" & vbLf & vbLf & _
+                   "The change will be overwritten by the" & vbLf & _
+                   "next open of this Workbook."
+    Set cllButtons = mMsg.Buttons(sReplyUpdateOrigin, sReplyDsplyDiff, sReplyIgnore)
     
     '~~ Offer options
-    sMsg = sBaseMsg
-    sDsplyDiffMsg = sBaseMsg & sDsplyDiffMsg
-    Select Case mMsg.Box(dsply_title:="Common Component code changed in this Workbook", _
-                         dsply_msg:=sDsplyDiffMsg, _
-                         dsply_buttons:=mMsg.Buttons(REPLY_UPDATE_ORIGIN & sReplyDsplyDiff, REPLY_DISCARD_CHANGES, REPLY_ABORT) _
-                        )
-        Case REPLY_UPDATE_ORIGIN    ' Update without display of the differences
-            UpdateOriginWithUsedConfirmed = True
-            Exit Property
+    With sMsg
+        .section(1).sLabel = "About this Component:"
+        .section(1).sText = "The module is regarded ""Common"" because it is indacted ""hosted"" in another Workbook."
+        .section(2).sLabel = "About this code change:"
+        .section(2).sText = "The module, updated when this Workbook has opened, is no longer identical with its origin. " & _
+                            "I.e. the component's code has been changed in this Workbook using it instead of in the " & _
+                            "Workbook the origin is ""hosted""."
+        .section(3).sText = "Take your decission or postpone it after having displayed the difference."
+    End With
         
-        Case REPLY_DSPLY_DIFF
-            DisplayDiff flLeft:=Me.CommonOrigin.ExportFile, _
-                        flRght:=flExport, _
-                        sTitleLeft:="Code of " & sComponentName & " currently hosted in Workbook/VBProject " & Me.CommonOrigin.HostBaseName, _
-                        sTitleRght:="Code of " & sComponentName & " currently used in Workbook/VBProject " & Me.HostBaseName
-            '~~ When the code difference display has been closed, offer update/ignore again
-            Select Case mMsg.Box(dsply_title:="Common Component code changed in this Workbook", _
-                                 dsply_msg:=sMsg, _
-                                 dsply_buttons:=mMsg.Buttons(REPLY_UPDATE_ORIGIN, REPLY_DISCARD_CHANGES, REPLY_ABORT) _
-                                )
-                Case REPLY_UPDATE_ORIGIN:   UpdateOriginWithUsedConfirmed = enUpdateOriginWithUsed
-                Case REPLY_DISCARD_CHANGES: UpdateOriginWithUsedConfirmed = enUpdateUsedWithOrigin
-                Case REPLY_ABORT:           UpdateOriginWithUsedConfirmed = enUpdateNone
-            End Select
-         
-        Case REPLY_UPDATE_ORIGIN:   UpdateOriginWithUsedConfirmed = enUpdateOriginWithUsed
-        Case REPLY_DISCARD_CHANGES: UpdateOriginWithUsedConfirmed = enUpdateUsedWithOrigin
-        Case REPLY_ABORT:           UpdateOriginWithUsedConfirmed = enUpdateNone
+    Do
+        sReply = mMsg.Dsply(dsply_title:=sTitle, _
+                            dsply_msg:=sMsg, _
+                            dsply_buttons:=cllButtons _
+                           )
+        Select Case sReply
+            Case sReplyUpdateOrigin
+                UpdateOriginWithUsedConfirmed = True
+                Exit Do
         
-    End Select
+            Case sReplyDsplyDiff
+                DisplayDiff flLeft:=Me.CommonOrigin.ExportFile, _
+                            flRght:=flExport, _
+                            sTitleLeft:="Code of " & sComponentName & " currently hosted in Workbook/VBProject " & Me.CommonOrigin.HostBaseName, _
+                            sTitleRght:="Code of " & sComponentName & " currently used in Workbook/VBProject " & Me.HostBaseName
+                ' The question is re-displayed for a decison
+            Case sReplyIgnore
+                UpdateOriginWithUsedConfirmed = False
+                Exit Do
+        End Select
+    Loop
                                             
 xt: Exit Property
     
@@ -568,32 +537,19 @@ Public Sub UpdateOriginWithUsedWhenConfirmedByUser(ByRef bUpdated As Boolean)
     
     Set fl = Me.ExportFile
     With Me.CommonOrigin
-        Select Case UpdateOriginWithUsedConfirmed
-            Case enUpdateOriginWithUsed
-                '~~ Get the origin host Workbook open
-                sWbHost = mCommDat.CommCompHostWorkbookFullName(sComponentName)
-                .Host = mWrkbk.GetOpen(sWbHost)
-                .VBComp = .Host.VBProject.VBComponents(sComponentName)
-                Select Case .VBComp.Type
-                    Case vbext_ct_ClassModule, vbext_ct_Document, vbext_ct_StdModule
-                        .SynchOriginWithUsed
-                    Case vbext_ct_MSForm
-                        .ReplaceOriginWithUsed
-                End Select
-                bUpdated = True
-            
-            Case enUpdateUsedWithOrigin
-                '~~ Discard changes by updating the used code with the origin code
-                Debug.Print "Re-establish the origin code from its export/backup file"
-                Select Case .VBComp.Type
-                    Case vbext_ct_ClassModule, vbext_ct_Document, vbext_ct_StdModule
-                        .SynchUsedWithOrigin
-                    Case vbext_ct_MSForm
-                        .ReplaceUsedWithOrigin
-                End Select
-            
-            Case enUpdateNone
-        End Select
+        If UpdateOriginWithUsedConfirmed Then
+            '~~ Get the origin host Workbook open
+            sWbHost = mCommDat.CommCompHostWorkbookFullName(sComponentName)
+            .Host = mWrkbk.GetOpen(sWbHost)
+            .VBComp = .Host.VBProject.VBComponents(sComponentName)
+            Select Case .VBComp.Type
+                Case vbext_ct_ClassModule, vbext_ct_Document, vbext_ct_StdModule
+                    .SynchOriginWithUsed
+                Case vbext_ct_MSForm
+                    .ReplaceOriginWithUsed
+            End Select
+            bUpdated = True
+       End If
     End With ' Me.CommonOrigin
 
 xt: Exit Sub
