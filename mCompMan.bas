@@ -111,34 +111,36 @@ Public dat          As clsAppData
 Public wblog        As clsAppData
 Private wbTarget    As Workbook     ' The Workbook of which the VB-Components are managed
                                     ' (the Workbook which "pulls" its up to date VB-Project from wbSource)
+Public cRaw         As clsComp      ' refers to the code source for a kind of "used" Common Component
+Public cUsed        As clsComp
+
 Public asNoSynch()  As String
 
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mCompMan" & "." & sProc
+Private Function ErrSrc(ByVal es_proc As String) As String
+    ErrSrc = "mCompMan" & "." & es_proc
 End Function
 
-Public Sub ExportAll(Optional ByVal wb As Workbook = Nothing)
+Public Sub ExportAll(Optional ByVal exp_wrkbk As Workbook = Nothing)
 ' -----------------------------------------------------------
 '
 ' -----------------------------------------------------------
     Const PROC = "ExportAll"
     
     On Error GoTo eh
-    Dim cComp   As New clsComp
     Dim vbc     As VBComponent
     
     mErH.BoP ErrSrc(PROC)
     
-    If wb Is Nothing Then Set wb = ActiveWorkbook
-    With cComp
+    If exp_wrkbk Is Nothing Then Set exp_wrkbk = ActiveWorkbook
+    
+    With New clsComp
         If wbAddIn.IsAddinInstance _
         Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
-        .Wrkbk = wb
+        .Wrkbk = exp_wrkbk
         For Each vbc In .Wrkbk.VBProject.VBComponents
             .VBComp = vbc
             .BackUpCode
         Next vbc
-        
     End With
 
 xt: mErH.EoP ErrSrc(PROC)
@@ -147,8 +149,8 @@ xt: mErH.EoP ErrSrc(PROC)
 eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
-Public Sub ExportChangedComponents(ByVal wb As Workbook, _
-                          Optional ByVal sHosted As String = vbNullString)
+Public Sub ExportChangedComponents(ByVal cc_wb As Workbook, _
+                          Optional ByVal cc_hosted As String = vbNullString)
 ' ------------------------------------------------------------------------
 ' - Exports/backs up any Component the code differs from its corresponding
 '   backup/export file.
@@ -171,11 +173,10 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
     Dim dctComps            As Dictionary
     Dim dctRemove           As Dictionary
     Dim v                   As Variant
-    Dim cCompUsed           As New clsComp
     Dim fl                  As File
     Dim sFolder             As String
-    Dim flOriginExportFile  As File
-    Dim sOriginHostFullName As String
+    Dim flRawExportFile  As File
+    Dim sRawHostFullName As String
     Dim lComponents         As Long
     Dim lExported           As Long
     Dim lRemoved            As Long
@@ -187,20 +188,20 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
 
     mErH.BoP ErrSrc(PROC)
     
-    If wb Is Nothing Then Set wb = ActiveWorkbook
+    If cc_wb Is Nothing Then Set cc_wb = ActiveWorkbook
     '~~ Prevent any action for a Workbook opened with any irregularity
     If InStr(ActiveWindow.caption, "(") <> 0 Then GoTo xt
-    If InStr(wb.FullName, "(") <> 0 Then GoTo xt
+    If InStr(cc_wb.FullName, "(") <> 0 Then GoTo xt
     
     Set dctComps = New Dictionary
     
-    With cCompUsed
-        .Wrkbk = wb
-        .HostedCommonComponents = sHosted
+    With New clsComp
+        .Wrkbk = cc_wb
+        .HostedCommonComponents = cc_hosted
         lCompMaxLen = mCommDat.CommCompsMaxLenght
         
         '~~ Keep a record when this Workbook hosts one or more Common Components
-        If sHosted <> vbNullString Then .RegisterAsHostWorkbook
+        If cc_hosted <> vbNullString Then .RegisterAsHostWorkbook
         
         For Each vbc In .Wrkbk.VBProject.VBComponents
             .VBComp = vbc
@@ -210,32 +211,33 @@ Public Sub ExportChangedComponents(ByVal wb As Workbook, _
             If .CodeModuleIsEmpty Then GoTo next_vbc
             
             lComponents = lComponents + 1
-            dctComps.Add .name, vbc
-            If .IsHostedCommon Then
-                If Not .IsUsedCommonComponent Then
-                    '~~ Register the hosted Common Component yet not registered
-                    mCommDat.CommCompHostWorkbookBaseName(.name) = .HostBaseName
-                    mCommDat.CommCompExpFileFullName(.name) = .ExportFileFullName
-                End If
+            dctComps.Add .CompName, vbc
+            If .IsHostedCommon _
+            And Not .IsUsedCommonComponent _
+            Then
+                '~~ Register the hosted Common Component yet not registered
+                mCommDat.CommCompHostWorkbookBaseName(sComp:=.CompName) = .WrkbkBaseName
+                mCommDat.CommCompExpFileFullName(.CompName) = .ExportFileFullName
             End If
             
             If .CodeChanged Then ' any inconsistency with the Component's Export File is regarded a code change
                 .BackUpCode
                 lExported = lExported + 1
-                sExported = .name & ", " & sExported
-                If .IsCommonUsed(flOriginExportFile, sOriginHostFullName) Then
+                sExported = .CompName & ", " & sExported
+                If .IsCommonUsed(cu_exp_file:=flRawExportFile, cu_host_full_name:=sRawHostFullName) Then
                     '~~ This is regarded an unusual code change because instead of maintaining the origin code
                     '~~ of a Common Component in ist "host" VBProject it had been changed in the using VBProject.
                     '~~ Nevertheless updating the origin code with this change is possible when explicitely confirmed.
-                    .CompOrigin.ComponentName = .ComponentName
-                    With .CompOrigin
-                        .ExportFile = flOriginExportFile
-                        .HostFullName = sOriginHostFullName
+                    Set cRaw = New clsComp
+                    cRaw.ComponentName = .ComponentName
+                    With cRaw
+                        .ExportFile = flRawExportFile
+                        .WrkbkFullName = sRawHostFullName
                     End With
-                    .UpdateOriginWithUsedWhenConfirmedByUser bUpdated ' when confirmed in user dialog
+                    .UpdateRawWithUsedWhenConfirmedByUser rwu_updated:=bUpdated ' when confirmed in user dialog
                     If bUpdated Then
                         lUpdated = lUpdated + 1
-                        sUpdated = .name & ", " & sUpdated
+                        sUpdated = .CompName & ", " & sUpdated
                     End If
                 End If
             End If
@@ -282,23 +284,23 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
-                                             ByVal wbTarget As Workbook, _
-                                    Optional ByVal sHosted As String = vbNullString)
+Public Sub UpdateUsedCommCompsTheRawHasChanged( _
+                                         ByVal urhc_wrkbk As Workbook, _
+                                Optional ByVal urhc_hosted As String = vbNullString)
 ' ------------------------------------------------------------------------------------
-' Updates in the target Workbook (wbTarget) any used Common Component's code.
+' Updates in the target Workbook (urhc_wrkbk) any used Common Component's code.
 ' Note 1: Known Common Components are those which had been logged as "hosted" with the
 '         ExportChangedComponents procedure performed with the "Before_Save" event.
 ' Note 2: The update is performed only when confirmed in a user dialog.
 ' ------------------------------------------------------------------------------------
-    Const PROC = "UpdateUsedCommCompsTheOriginHasChanged"
+    Const PROC = "UpdateUsedCommCompsTheRawHasChanged"
     
     On Error GoTo eh
     Dim vbc                 As VBComponent
     Dim lCompMaxLen         As Long
     Dim cTarget             As New clsComp
-    Dim flOriginExportFile  As File
-    Dim sOriginHostFullName As String
+    Dim flRawExportFile  As File
+    Dim sRawHostFullName As String
     Dim lComponents         As Long
     Dim lCommonUsed         As Long
     Dim lReplaced           As Long
@@ -308,28 +310,28 @@ Public Sub UpdateUsedCommCompsTheOriginHasChanged( _
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
     If InStr(ActiveWindow.caption, "(") <> 0 Then GoTo xt
-    If InStr(wbTarget.FullName, "(") <> 0 Then GoTo xt
+    If InStr(urhc_wrkbk.FullName, "(") <> 0 Then GoTo xt
     
     With cTarget
-        .Wrkbk = wbTarget
-        .HostedCommonComponents = sHosted
+        .Wrkbk = urhc_wrkbk
+        .HostedCommonComponents = urhc_hosted
         lCompMaxLen = mCommDat.CommCompsMaxLenght
     
-        For Each vbc In wbTarget.VBProject.VBComponents
+        For Each vbc In urhc_wrkbk.VBProject.VBComponents
             .VBComp = vbc
-            Debug.Print .name
             lComponents = lComponents + 1
             If .IsUsedCommonComponent Then
-                If .IsCommonUsed(flOriginExportFile, sOriginHostFullName) Then
+                If .IsCommonUsed(flRawExportFile, sRawHostFullName) Then
                     lCommonUsed = lCommonUsed + 1
-                    With .CompOrigin
-                        .ExportFile = flOriginExportFile
-                        .HostFullName = sOriginHostFullName
+                    Set cRaw = New clsComp
+                    With cRaw
+                        .ExportFile = flRawExportFile
+                        .WrkbkFullName = sRawHostFullName
                     End With
                     If .OriginCodeHasChanged Then
-                        .UpdateUsedWithOrigin
+                        .ReplaceUsedWithRaw ru_vbc:=vbc
                         lReplaced = lReplaced + 1
-                        sReplaced = .name & ", " & sReplaced
+                        sReplaced = .CompName & ", " & sReplaced
                         '~~ Register the update being used to identify a potentially relevant
                         '~~ change of the origin code
                         .CodeVersionAsOfDate = .ExportFile.DateLastModified
@@ -367,12 +369,12 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Version(ByVal Version As clsAddinVersion)
+Public Sub Version(ByVal c_version As clsAddinVersion)
 ' ---------------------------------------------------------------------------------------------------------------------
 ' Called by the development instance via Application.Run. Because the version value cannot be returned to the call via
 ' a ByRef argument, a class object is used instead.
 ' See: http://www.tushar-mehta.com/publish_train/xl_vba_cases/1022_ByRef_Argument_with_the_Application_Run_method.shtml
 ' ---------------------------------------------------------------------------------------------------------------------
-    Version.Version = wbAddIn.AddInVersion
+    c_version.Version = wbAddIn.AddInVersion
 End Sub
 

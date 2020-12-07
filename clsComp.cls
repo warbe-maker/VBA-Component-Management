@@ -10,11 +10,11 @@ Attribute VB_Exposed = False
 Option Explicit
 ' -----------------------------------------------------------------------------------
 ' Class Module clsComp
-'       Represents a VBComponent with extended (Management) properties and methods.
+'       Represents a VB-Project's Component with extended (Management) properties and methods.
 '       The Component may be of either of the following kinds:
-'       - a used Common Component
-'       - a hosted Common Component, i.e. the origin code of a Common Component
-'       - neither of the above, i.e. a "normal" VBProject Component
+'       - a used Component which may also be a used Common Component
+'       - the original/raw of a Common Component, i.e. a Component of which the original is
+'         hosted in a dedicated Common Component Workbookorigin code of a Common Component
 '
 ' Properties:
 ' - ExportFile              R/W File object created by menas of the BackUpCode method
@@ -31,10 +31,9 @@ Option Explicit
 '
 '
 ' -----------------------------------------------------------------------------------
-Private cOrigin         As clsComp      ' refers to the code source for a kind of "used" Common Component
-Private sHostBaseName   As String       ' Common Component host Workbook's base name
-Private sHostFullName   As String       ' Common Component host Workbook's full name
-Private sComponentName  As String       ' The class module's global component name
+Private sWrkbkBaseName  As String       ' Common Component host Workbook's base name
+Private sWrkbkFullName  As String       ' Common Component host Workbook's full name
+Private sCompName  As String       ' The class module's global component name
 Private wb              As Workbook     ' The class' Workbook
 Private vbc             As VBComponent  ' VBComponent managed by this Class Module
 Private dtUpdatedAsOf   As Date
@@ -52,18 +51,14 @@ Private Sub Class_Initialize()
     Set dctCommonHosted = New Dictionary
 End Sub
 
-Private Sub Class_Terminate()
-    Set cOrigin = Nothing
-End Sub
-
 Public Property Get CodeVersionAsOfDate() As Date
-    CodeVersionAsOfDate = mCommDat.CodeVersionAsOfDate(sHostBaseName, sComponentName)
+    CodeVersionAsOfDate = mCommDat.CodeVersionAsOfDate(sWrkbkBaseName, sCompName)
 End Property
 Public Property Let CodeVersionAsOfDate(ByVal dtAsOf As Date):
-    mCommDat.CodeVersionAsOfDate(sHostBaseName, sComponentName) = dtAsOf
+    mCommDat.CodeVersionAsOfDate(sWrkbkBaseName, sCompName) = dtAsOf
 End Property
-Public Property Let ComponentName(ByVal s As String):   sComponentName = s:             End Property
-Public Property Get ComponentName() As String:          ComponentName = sComponentName: End Property
+Public Property Let ComponentName(ByVal s As String):   sCompName = s:             End Property
+Public Property Get ComponentName() As String:          ComponentName = sCompName: End Property
 
 Public Property Get CodeChanged( _
                  Optional ByVal ignore_empty_lines As Boolean = False) As Boolean
@@ -125,10 +120,10 @@ Public Property Get OriginCodeHasChanged() As Boolean
 ' -------------------------------------------------------------------------------
     With Me
         If .CodeChanged() Then .BackUpCode ' just in case ...
-        If .ExportFile.DateLastModified <> .CompOrigin.ExportFile.DateLastModified Then
+        If .ExportFile.DateLastModified <> cRaw.ExportFile.DateLastModified Then
             '~~ Empty code lines do not constitute a relevant code change even when the used
             '~~ component has been backed up - which is also considering empty code lines
-            If mFile.sDiffer(dif_file1:=.CompOrigin.ExportFile _
+            If mFile.sDiffer(dif_file1:=cRaw.ExportFile _
                            , dif_file2:=.ExportFile _
                            , dif_ignore_empty_records:=True) _
             Then OriginCodeHasChanged = True
@@ -196,17 +191,16 @@ Dim sComp   As String
 End Property
 
 Public Property Get IsCommonUsed( _
-                    ByRef fl As File, _
-                    ByRef s As String) As Boolean
-' -----------------------------------------------
-' IsCommonUsed is the oposite of IsHostedCommon.
-' When the Component is a Common used one the
-' Export File object is returned.
-' -----------------------------------------------
+                           ByRef cu_exp_file As File, _
+                           ByRef cu_host_full_name As String) As Boolean
+' ----------------------------------------------------------------------
+' IsCommonUsed is the oposite of IsHostedCommon. When the Component is a
+' Common used one the Export File is returned as object.
+' ----------------------------------------------------------------------
     If Me.IsUsedCommonComponent Then
         If Not IsHostedCommon Then
             IsCommonUsed = True
-            mCommDat.IsCommonComponent sComponentName, fl, s
+            mCommDat.IsCommonComponent sComp:=sCompName, flExpFile:=cu_exp_file, sWbHostFullName:=cu_host_full_name
         End If
     End If
 
@@ -224,15 +218,15 @@ Public Property Get KindOfChange( _
     Dim dtAsOf      As Date
     Dim fl          As File
 
-    With Me.CompOrigin
-        .name = sComponentName
+    With cRaw
+        .CompName = cUsed.CompName
         With New FileSystemObject
-            Set fl = .GetFile(mCommDat.CommCompExpFileFullName(sComponentName))
+            Set fl = .GetFile(mCommDat.CommCompExpFileFullName(sCompName))
         End With
         Set flExport = fl
     End With
     
-    If IsMissing(dtSource) Then dtSource = cOrigin.ExportFile.DateLastModified
+    If IsMissing(dtSource) Then dtSource = cRaw.ExportFile.DateLastModified
     If IsMissing(dtTarget) Then dtTarget = flExport.DateLastModified
     
     dtAsOf = Me.UpdatedAsOf
@@ -260,26 +254,19 @@ Public Property Get KindOfChange( _
     
 End Property
 
-Public Property Get name() As String:                       name = sComponentName:                      End Property
+Public Property Get CompName() As String:                       CompName = sCompName:                   End Property
 
-Public Property Let name(ByVal s As String):                sComponentName = s:                         End Property
+Public Property Let CompName(ByVal s As String):                CompName = s:                           End Property
 
-Public Property Get CompOrigin() As clsComp
-    If cOrigin Is Nothing Then Set cOrigin = New clsComp
-    Set CompOrigin = cOrigin
-End Property
+Public Property Get UpdatedAsOf() As Date:                      UpdatedAsOf = dtUpdatedAsOf:            End Property
 
-Public Property Let CompOrigin(ByVal c As clsComp):         Set cOrigin = c:                            End Property
+Public Property Let UpdatedAsOf(ByVal dt As Date):              dtUpdatedAsOf = dt:                     End Property
 
-Public Property Get UpdatedAsOf() As Date:                  UpdatedAsOf = dtUpdatedAsOf:                End Property
-
-Public Property Let UpdatedAsOf(ByVal dt As Date):          dtUpdatedAsOf = dt:                         End Property
-
-Private Property Get UpdateOriginWithUsedConfirmed() As Boolean
+Private Property Get UpdateRawWithUsedConfirmed() As Boolean
 ' -------------------------------------------------------------
 ' Returns TRUE when the "reverse" code update is confirmed.
 ' --------------------------------------------------------------
-    Const PROC = "UpdateOriginWithUsedConfirmed"
+    Const PROC = "UpdateRawWithUsedConfirmed"
     
     On Error GoTo eh
     Dim sReplyUpdateOrigin      As String
@@ -327,17 +314,17 @@ Private Property Get UpdateOriginWithUsedConfirmed() As Boolean
                            )
         Select Case sReply
             Case sReplyUpdateOrigin
-                UpdateOriginWithUsedConfirmed = True
+                UpdateRawWithUsedConfirmed = True
                 Exit Do
         
             Case sReplyDsplyDiff
-                DisplayDiff flLeft:=Me.CompOrigin.ExportFile, _
+                DisplayDiff flLeft:=cRaw.ExportFile, _
                             flRght:=flExport, _
-                            sTitleLeft:="Code of " & sComponentName & " currently hosted in Workbook/VBProject " & Me.CompOrigin.HostBaseName, _
-                            sTitleRght:="Code of " & sComponentName & " currently used in Workbook/VBProject " & Me.HostBaseName
+                            sTitleLeft:="Code of " & sCompName & " currently hosted in Workbook/VBProject " & cRaw.WrkbkBaseName, _
+                            sTitleRght:="Code of " & sCompName & " currently used in Workbook/VBProject " & Me.WrkbkBaseName
                 ' The question is re-displayed for a decison
             Case sReplyIgnore
-                UpdateOriginWithUsedConfirmed = False
+                UpdateRawWithUsedConfirmed = False
                 Exit Do
         End Select
     Loop
@@ -360,7 +347,7 @@ Public Property Get VBComp() As VBComponent
 ' FullName.
 ' -----------------------------------------
     If vbc Is Nothing _
-    Then Set VBComp = Me.CompOrigin.Wrkbk.VBProject.VBComponents(sComponentName) _
+    Then Set VBComp = cRaw.Wrkbk.VBProject.VBComponents(sCompName) _
     Else Set VBComp = vbc
 End Property
 
@@ -372,8 +359,8 @@ Public Property Let VBComp(ByVal oComp As VBComponent)
     Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "There's yet no Wrkbk Workbook assigned!"
     
     Set vbc = oComp
-    sComponentName = vbc.name
-    sExportFullName = ExportFilePath & "\" & sComponentName & ExportFileExtention
+    sCompName = vbc.name
+    sExportFullName = ExportFilePath & "\" & sCompName & ExportFileExtention
     If FileExists(sExportFullName) Then
         Set flExport = GetFile(sExportFullName)
     Else
@@ -390,15 +377,15 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get HostBaseName() As String:                 HostBaseName = BaseName(sHostFullName):         End Property
+Public Property Get WrkbkBaseName() As String:                 WrkbkBaseName = BaseName(sWrkbkFullName):        End Property
 
-Public Property Get HostFullName() As String:                 HostFullName = sHostFullName:                   End Property
+Public Property Get WrkbkFullName() As String:                 WrkbkFullName = sWrkbkFullName:                  End Property
 
-Public Property Let HostFullName(ByVal s As String):          sHostFullName = s:                            End Property
+Public Property Let WrkbkFullName(ByVal s As String):          sWrkbkFullName = s:                              End Property
 
 Public Property Get Wrkbk() As Workbook
     If wb Is Nothing _
-    Then Set wb = mWrkbk.GetOpen(sHostFullName) _
+    Then Set wb = mWrkbk.GetOpen(sWrkbkFullName) _
     Else Set Wrkbk = wb
 End Property
 
@@ -407,8 +394,8 @@ Public Property Let Wrkbk(ByVal wbk As Workbook)
     Dim fso As New FileSystemObject
     
     Set wb = wbk
-    sHostFullName = wb.FullName
-    sHostBaseName = fso.GetBaseName(sHostFullName)
+    sWrkbkFullName = wb.FullName
+    sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
     Set foExport = fso.GetFolder(ExportFilePath)
     For Each vbc In wb.VBProject.VBComponents
         lCompMaxLen = mBasic.Max(lCompMaxLen, Len(vbc.name))
@@ -444,7 +431,7 @@ Private Function ExportFilePath() As String
     
     Dim sPath As String
 
-    sPath = sPathCommon & "\" & sHostBaseName
+    sPath = sPathCommon & "\" & sWrkbkBaseName
     '~~ Make sure the returned export path specifies an existing folder
     With New FileSystemObject
         If Not .FolderExists(sPath) Then
@@ -479,7 +466,7 @@ Private Function FormCodeAndOrDesignChanged( _
         vbc.Export sTempPath
         Set flTemp = mFile.GetFile(sTempPath)
         
-        If UserFormSizeIsDifferent(Me.ExportFile, flTemp) Then
+        If UserFormSizeIsDifferent(sid_file_1:=Me.ExportFile, sid_file_2:=flTemp) Then
             FormCodeAndOrDesignChanged = True
         ElseIf mFile.sDiffer(dif_file1:=flExport _
                            , dif_file2:=flTemp _
@@ -504,47 +491,49 @@ End Function
 Public Function IsUsedCommonComponent() As Boolean
 ' -------------------------------------------------------------
 ' Returns:
-' - TRUE when the Component (sComponentName) is a known Common Component
+' - TRUE when the Component (sCompName) is a known Common Component
 ' - When TRUE, the name of the Export File as file object (fl)
 '   and the full name of the host Workbook (s).
 ' -------------------------------------------------------------
     If dctCommComps Is Nothing Then Set dctCommComps = mCommDat.KnownCommonComponents
-    IsUsedCommonComponent = dctCommComps.Exists(sComponentName)
+    IsUsedCommonComponent = dctCommComps.Exists(sCompName)
 End Function
 
 Public Property Get IsHostedCommon() As Boolean
-    IsHostedCommon = dctCommonHosted.Exists(sComponentName)
+    IsHostedCommon = dctCommonHosted.Exists(sCompName)
 End Property
 
-Public Sub UpdateOriginWithUsedWhenConfirmedByUser(ByRef bUpdated As Boolean)
+Public Sub UpdateRawWithUsedWhenConfirmedByUser(ByRef rwu_updated As Boolean)
 ' ---------------------------------------------------------------------------
 ' Updates the Common Component's origin code with the used Common Component's
 ' Export File provided the user confirmed this "reverse" update. When updated,
 ' TRUE is returned (bUpdated).
 ' !! Update is done either by code synch or by replace.
 ' ---------------------------------------------------------------------------
-    Const PROC = "UpdateOriginWithUsedWhenConfirmedByUser"
+    Const PROC = "UpdateRawWithUsedWhenConfirmedByUser"
     
     On Error GoTo eh
-    Dim fl      As File
-    Dim sWbHost As String
+    Dim fUsedExpFile        As File
+    Dim sWrkbkRawFullName   As String
     
-    Set fl = Me.ExportFile
-    With Me.CompOrigin
-        If UpdateOriginWithUsedConfirmed Then
+    Set fUsedExpFile = Me.ExportFile
+    With cRaw
+        If UpdateRawWithUsedConfirmed Then
             '~~ Get the origin host Workbook open
-            sWbHost = mCommDat.CommCompHostWorkbookFullName(sComponentName)
-            .Wrkbk = mWrkbk.GetOpen(sWbHost)
-            .VBComp = .Wrkbk.VBProject.VBComponents(sComponentName)
+            sWrkbkRawFullName = mCommDat.CommCompHostWorkbookFullName(sCompName)
+            .Wrkbk = mWrkbk.GetOpen(sWrkbkRawFullName)
+            .VBComp = .Wrkbk.VBProject.VBComponents(sCompName)
             Select Case .VBComp.Type
                 Case vbext_ct_ClassModule, vbext_ct_Document, vbext_ct_StdModule
-                    .SynchOriginWithUsed
+                    .SynchRawWithUsed
                 Case vbext_ct_MSForm
-                    .ReplaceOriginWithUsed
+                    .ReplaceRawWithUsed raw_comp_name:=.VBComp.name _
+                                      , raw_wrkbk_full_name:=sWrkbkRawFullName _
+                                      , used_exp_file:=fUsedExpFile
             End Select
-            bUpdated = True
+            rwu_updated = True
        End If
-    End With ' Me.CompOrigin
+    End With ' cRaw
 
 xt: Exit Sub
 
@@ -555,34 +544,34 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub UpdateUsedWithOrigin()
-' --------------------------------------------------
-' Update is done either by code synch or by replace.
-' --------------------------------------------------
-    Const PROC = "UpdateUsedWithOrigin"
-
-    On Error GoTo eh
-    
-    With Me ' The used class
-        .ReplaceUsedWithOrigin vbc
-        
-        '~~ Log the updated code version
-        .CodeVersionAsOfDate = .CompOrigin.ExportFile.DateLastModified
-        '~~ Log the update
-        mCompManLog.LogAction log_wb:=Me.Wrkbk.name _
-                            , log_action:=DebugComp & "The original's last update date = " & .CompOrigin.ExportFile.DateLastModified
-        mCompManLog.LogAction log_wb:=Me.Wrkbk.name _
-                            , log_action:=DebugComp & "The registered last as-of used  = " & .CodeVersionAsOfDate
-    End With
-
-xt: Exit Sub
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
-    End Select
-End Sub
+'Public Sub UpdateUsedWithOrigin()
+'' --------------------------------------------------
+'' Update is done either by code synch or by replace.
+'' --------------------------------------------------
+'    Const PROC = "UpdateUsedWithOrigin"
+'
+'    On Error GoTo eh
+'
+'    With Me ' The used class
+'        .ReplaceUsedWithRaw vbc
+'
+'        '~~ Log the updated code version
+'        .CodeVersionAsOfDate = cRaw.ExportFile.DateLastModified
+'        '~~ Log the update
+'        mCompManLog.LogAction log_wb:=Me.Wrkbk.name _
+'                            , log_action:=DebugComp & "The original's last update date = " & cRaw.ExportFile.DateLastModified
+'        mCompManLog.LogAction log_wb:=Me.Wrkbk.name _
+'                            , log_action:=DebugComp & "The registered last as-of used  = " & .CodeVersionAsOfDate
+'    End With
+'
+'xt: Exit Sub
+'
+'eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+'        Case mErH.DebugOpt1ResumeError: Stop: Resume
+'        Case mErH.DebugOpt2ResumeNext: Resume Next
+'        Case mErH.ErrMsgDefaultButton: End
+'    End Select
+'End Sub
 
 Public Sub SynchUsedWithOrigin()
 ' ------------------------------
@@ -605,11 +594,11 @@ Public Sub SynchUsedWithOrigin()
     
     '~~ Insert/copy all code lines from the source to the target component
     iLine = 0
-    For Each v In ExportFileToArray(Me.CompOrigin.ExportFile)
+    For Each v In ExportFileToArray(cRaw.ExportFile)
         iLine = iLine + 1
         vbcm.InsertLines iLine, v
     Next v
-    Debug.Print DebugComp & Now() & " Code in " & Me.Wrkbk.name & " synchronized with code in " & Me.CompOrigin.Wrkbk.name & " ( via Export File '" & Me.CompOrigin.ExportFile.name & "'."
+    Debug.Print DebugComp & Now() & " Code in " & Me.Wrkbk.name & " synchronized with code in " & cRaw.Wrkbk.name & " ( via Export File '" & cRaw.ExportFile.name & "'."
                 
 xt: Exit Sub
 
@@ -629,14 +618,14 @@ Private Function Space(ByVal l As Long) As String
     Space = VBA.Space$(l)
 End Function
 
-Public Sub SynchOriginWithUsed()
+Public Sub SynchRawWithUsed()
 ' ------------------------------
 ' Synchronizes the Common
 ' Component's origin code with
 ' the Export File of the used
 ' Common Component.
 ' ------------------------------
-    Const PROC = "SynchOriginWithUsed"
+    Const PROC = "SynchRawWithUsed"
 
     On Error GoTo eh
     Dim iLine   As Long
@@ -644,22 +633,22 @@ Public Sub SynchOriginWithUsed()
     Dim vbcm    As CodeModule
     Dim wb  As Workbook
                 
-    Debug.Print DebugComp & Now() & " About to synch code with Export File '" & Me.CompOrigin.ExportFile.name & "'."
+    Debug.Print DebugComp & Now() & " About to synch code with Export File '" & cRaw.ExportFile.name & "'."
     '~~ Remove all lines from the target component
-    Set wb = mWrkbk.GetOpen(Me.CompOrigin.HostFullName)
-    Set vbcm = wb.VBProject.VBComponents(sComponentName).CodeModule
+    Set wb = mWrkbk.GetOpen(cRaw.WrkbkFullName)
+    Set vbcm = wb.VBProject.VBComponents(sCompName).CodeModule
     With vbcm
         .DeleteLines 1, .CountOfLines
     End With
     
     '~~ Insert/copy all code lines from the source to the target component
     iLine = 0
-    For Each v In ExportFileToArray(Me.CompOrigin.ExportFile)
+    For Each v In ExportFileToArray(cRaw.ExportFile)
         iLine = iLine + 1
         vbcm.InsertLines iLine, v
     Next v
     
-    Debug.Print DebugComp & Now() & " Code synchronized with Export File '" & Me.CompOrigin.ExportFile.name & "'."
+    Debug.Print DebugComp & Now() & " Code synchronized with Export File '" & cRaw.ExportFile.name & "'."
                 
 xt: Exit Sub
 
@@ -670,27 +659,49 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub ReplaceUsedWithOrigin(ByVal used_vbc As VBComponent)
-' -------------------------------------------------------------
+Public Sub ReplaceUsedWithRaw(ByVal ru_vbc As VBComponent)
+' ----------------------------------------------------------
 '
-' -------------------------------------------------------------
-    Const PROC = "ReplaceUsedWithOrigin"
+' ----------------------------------------------------------
+    Const PROC = "ReplaceUsedWithRaw"
 
     On Error GoTo eh
+    Dim sTempName   As String: sTempName = ru_vbc.name & "_Temp"
+    Dim i           As Long
     
-    used_vbc.name = used_vbc.name & "_Temp"
+    While mVBP.ComponentExists(vWb:=wb, vComp:=sTempName)
+        i = i + 1
+        sTempName = sTempName & i
+    Wend
+    
+    ru_vbc.name = sTempName
     With wb.VBProject.VBComponents
-        .Import Me.CompOrigin.ExportFile.Path
-        .Remove used_vbc
+        .Import cRaw.ExportFile.Path
     End With
-    Set vbc = wb.VBProject.VBComponents(sComponentName) ' renew the vbc object to point to the new imported component
+    Set vbc = wb.VBProject.VBComponents(sCompName) ' renew the vbc object to point to the new imported component
+    
+    sTempName = vbc.name & "_Temp"
+    While mVBP.ComponentExists(vWb:=wb, vComp:=sTempName)
+        wb.VBProject.VBComponents.Remove wb.VBProject.VBComponents(sTempName)
+        i = i + 1
+        sTempName = sTempName & i
+    Wend
     
     On Error Resume Next
-    
     Application.EnableEvents = False
     wb.Save
     Application.EnableEvents = True
     
+    With Me ' The used class
+        '~~ Log the updated code version
+        .CodeVersionAsOfDate = cRaw.ExportFile.DateLastModified
+        '~~ Log the update
+        mCompManLog.LogAction log_wb:=Me.Wrkbk.name _
+                            , log_action:=DebugComp & "The original's last update date = " & cRaw.ExportFile.DateLastModified
+        mCompManLog.LogAction log_wb:=Me.Wrkbk.name _
+                            , log_action:=DebugComp & "The registered last as-of used  = " & .CodeVersionAsOfDate
+    End With
+
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -700,26 +711,41 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub ReplaceOriginWithUsed()
-' --------------------------------
-' Replace the Common Component's
-' origin code with the used ones
-' Export File.
-' --------------------------------
-    Const PROC = "ReplaceOriginWithUsed"
+Public Sub ReplaceRawWithUsed( _
+                        ByVal raw_comp_name As String, _
+                        ByVal raw_wrkbk_full_name As String, _
+                        ByVal used_exp_file As File)
+' ---------------------------------------------------------
+' Replace the Common Component's raw with the code of the
+' used Common Component by means of its Export File.
+' ---------------------------------------------------------
+    Const PROC = "ReplaceRawWithUsed"
 
     On Error GoTo eh
-    Dim wbOrigin    As Workbook
-    Dim vbcOrigin   As VBComponent
+    Dim wb          As Workbook
+    Dim vbc         As VBComponent
+    Dim sTempName   As String: sTempName = raw_comp_name & "_Temp"
+    Dim i           As Long
     
-    With Me.CompOrigin ' Me is the Active Workbook using a Common Component
-        Set wbOrigin = mWrkbk.GetOpen(.HostFullName) ' Wrkbk is the Workbook hosting the Common Component
-        .VBComp.name = .VBComp.name & "_temp"
-        wbOrigin.VBProject.VBComponents.Import Me.ExportFile.Path
-        .VBComp = wb.VBProject.VBComponents(sComponentName)
+    '~~ Find a non-existing temp name
+    While mVBP.ComponentExists(vWb:=wb, vComp:=sTempName)
+        i = i + 1
+        sTempName = sTempName & i
+    Wend
+    
+    Set wb = mWrkbk.GetOpen(raw_wrkbk_full_name) ' Wrkbk is the Workbook hosting the Common Component
+    Set vbc = wb.VBProject.VBComponents(raw_comp_name)
+    vbc.name = vbc.name & "_temp"
+    wb.VBProject.VBComponents.Import used_exp_file.Path
+    cRaw.VBComp = wb.VBProject.VBComponents(raw_comp_name)
         
-    End With
-    Debug.Print DebugComp & Now() & " Replaced with Export File '" & Me.CompOrigin.ExportFile.name & "'."
+    sTempName = vbc.name & "_Temp"
+    While mVBP.ComponentExists(vWb:=wb, vComp:=sTempName)
+        wb.VBProject.VBComponents.Remove wb.VBProject.VBComponents(sTempName)
+        i = i + 1
+        sTempName = sTempName & i
+    Wend
+    Debug.Print DebugComp & Now() & " Used Component replaced with Export File '" & used_exp_file.Path & "'."
 
 xt: Exit Sub
 
@@ -742,8 +768,8 @@ Private Function BaseName(ByVal s As String) As String
     With New FileSystemObject:  BaseName = .GetBaseName(s): End With
 End Function
 
-Public Function TypeExtention(ByVal vbc As VBComponent) As String
-    Select Case vbc.Type
+Public Function TypeExtention(ByVal te_vbc As VBComponent) As String
+    Select Case te_vbc.Type
         Case vbext_ct_StdModule:    TypeExtention = ".bas"
         Case vbext_ct_ClassModule:  TypeExtention = ".cls"
         Case vbext_ct_MSForm:       TypeExtention = ".frm"
@@ -1018,21 +1044,22 @@ Private Function DebugComp() As String
     Else lMax = mCommDat.CommCompsMaxLenght
     
     If lMax > 0 _
-    Then DebugComp = sComponentName & " " & String(lMax - Len(sComponentName), ".") & ": " _
-    Else DebugComp = sComponentName & " : "
+    Then DebugComp = sCompName & " " & String(lMax - Len(sCompName), ".") & ": " _
+    Else DebugComp = sCompName & " : "
 
 End Function
 
-Private Function UserFormSizeIsDifferent(ByVal f1 As File, _
-                                         ByVal f2 As File) As Boolean
+Private Function UserFormSizeIsDifferent( _
+                                   ByVal sid_file_1 As File, _
+                                   ByVal sid_file_2 As File) As Boolean
     Dim sFrxFile1Path  As String
     Dim sFrxFile2Path  As String
 
-    sFrxFile1Path = Replace$(f1.Path, ".frm", ".frx")
-    sFrxFile2Path = Replace$(f2.Path, ".frm", ".frx")
+    sFrxFile1Path = Replace$(sid_file_1.Path, ".frm", ".frx")
+    sFrxFile2Path = Replace$(sid_file_2.Path, ".frm", ".frx")
     
     With New FileSystemObject
-        If f1.Size <> f2.Size Then
+        If sid_file_1.Size <> sid_file_2.Size Then
             UserFormSizeIsDifferent = True
         ElseIf .GetFile(sFrxFile1Path).Size <> .GetFile(sFrxFile2Path).Size Then
             UserFormSizeIsDifferent = True
@@ -1042,12 +1069,12 @@ Private Function UserFormSizeIsDifferent(ByVal f1 As File, _
 End Function
 
 Public Sub RegisterAsHostWorkbook()
-    mCommDat.CommCompsHostWorkbookFullName(sHostBaseName) = sHostFullName
+    mCommDat.CommCompsHostWorkbookFullName(sWrkbkBaseName) = sWrkbkFullName
 End Sub
 
 Public Sub RegisterAsHostedCommon()
-    mCommDat.CommCompExpFileFullName(sComponentName) = sExportFullName
-    mCommDat.CommCompHostWorkbookBaseName(sComponentName) = sHostBaseName
+    mCommDat.CommCompExpFileFullName(sCompName) = sExportFullName
+    mCommDat.CommCompHostWorkbookBaseName(sCompName) = sWrkbkBaseName
 End Sub
 
 Public Function Exists(ByVal sComp As String) As Boolean

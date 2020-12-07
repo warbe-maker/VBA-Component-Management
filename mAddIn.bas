@@ -674,7 +674,7 @@ Public Sub UpdateUsedCommComps()
 ' -------------------------------------------------
     If wbAddIn.IsDevlpInstance Then
         If mAddIn.AddInInstanceWorkbookIsOpen Then
-            Application.Run wbAddIn.AddInInstanceName & "!mCompMan.UpdateUsedCommCompsTheOriginHasChanged", ThisWorkbook
+            Application.Run wbAddIn.AddInInstanceName & "!mCompMan.UpdateUsedCommCompsTheRawHasChanged", ThisWorkbook
         End If
     End If
 End Sub

@@ -24,6 +24,13 @@ Public Sub Test_Temp()
     
 End Sub
     
+Public Sub Test()
+    With New FileSystemObject
+        Debug.Print .GetFile(ThisWorkbook.FullName).Path
+        Debug.Print .GetFile(ThisWorkbook.FullName).name
+    End With
+End Sub
+
 Public Sub Test_CompOriginHasChanged()
 
 End Sub
@@ -256,7 +263,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_UpdateUsedCommCompsTheOriginHasChanged()
+Public Sub Test_UpdateUsedCommCompsTheRawHasChanged()
     Const PROC  As String = "Test_UpdateCommonModules"
     
     Dim wb      As Workbook
@@ -266,7 +273,7 @@ Public Sub Test_UpdateUsedCommCompsTheOriginHasChanged()
     
     Application.StatusBar = vbNullString
     Set wb = ThisWorkbook
-    mCompMan.UpdateUsedCommCompsTheOriginHasChanged wb
+    mCompMan.UpdateUsedCommCompsTheRawHasChanged wb
     
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
