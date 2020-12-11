@@ -306,17 +306,17 @@ Private Property Get DsgnButtonsFrame() As MSForms.Frame:                       
 
 Private Property Get DsgnMsgArea() As MSForms.Frame:                                    Set DsgnMsgArea = cllDsgnAreas(1):                                          End Property
 
-Private Property Get DsgnSection(Optional section As Long) As MSForms.Frame:            Set DsgnSection = cllDsgnSections(section):                                 End Property
+Private Property Get DsgnSection(Optional Section As Long) As MSForms.Frame:            Set DsgnSection = cllDsgnSections(Section):                                 End Property
 
-Private Property Get DsgnSectionLabel(Optional section As Long) As MSForms.Label:       Set DsgnSectionLabel = cllDsgnSectionsLabel(section):                       End Property
+Private Property Get DsgnSectionLabel(Optional Section As Long) As MSForms.Label:       Set DsgnSectionLabel = cllDsgnSectionsLabel(Section):                       End Property
 
 Private Property Get DsgnSections() As Collection:                                      Set DsgnSections = cllDsgnSections:                                         End Property
 
-Private Property Get DsgnSectionText(Optional section As Long) As MSForms.TextBox:      Set DsgnSectionText = cllDsgnSectionsText(section):                         End Property
+Private Property Get DsgnSectionText(Optional Section As Long) As MSForms.TextBox:      Set DsgnSectionText = cllDsgnSectionsText(Section):                         End Property
 
-Private Property Get DsgnSectionTextFrame(Optional ByVal section As Long):              Set DsgnSectionTextFrame = cllDsgnSectionsTextFrame(section):               End Property
+Private Property Get DsgnSectionTextFrame(Optional ByVal Section As Long):              Set DsgnSectionTextFrame = cllDsgnSectionsTextFrame(Section):               End Property
 
-Private Property Get DsgnTextFrame(Optional ByVal section As Long) As MSForms.Frame:    Set DsgnTextFrame = cllDsgnSectionsTextFrame(section):                      End Property
+Private Property Get DsgnTextFrame(Optional ByVal Section As Long) As MSForms.Frame:    Set DsgnTextFrame = cllDsgnSectionsTextFrame(Section):                      End Property
 
 Private Property Get DsgnTextFrames() As Collection:                                    Set DsgnTextFrames = cllDsgnSectionsTextFrame:                              End Property
 
@@ -401,7 +401,7 @@ Friend Property Let Msg(ByRef tMsg As tMsg)
     
     With tMsg
         For i = 1 To NO_OF_DESIGNED_SECTIONS
-            MsgLabel(i) = .section(i).sLabel: MsgText(i) = .section(i).sText:   MsgMonoSpaced(i) = .section(i).bMonspaced
+            MsgLabel(i) = .Section(i).sLabel: MsgText(i) = .Section(i).sText:   MsgMonoSpaced(i) = .Section(i).bMonspaced
         Next i
     End With
 End Property
@@ -413,49 +413,49 @@ Public Property Let MsgButtons(ByVal v As Variant)
     End Select
 End Property
 
-Public Property Get MsgLabel(Optional ByVal section As Long) As String
+Public Property Get MsgLabel(Optional ByVal Section As Long) As String
     If dctSectionsLabel Is Nothing _
     Then MsgLabel = vbNullString _
-    Else MsgLabel = IIf(dctSectionsLabel.Exists(section), dctSectionsLabel(section), vbNullString)
+    Else MsgLabel = IIf(dctSectionsLabel.Exists(Section), dctSectionsLabel(Section), vbNullString)
 End Property
 
-Public Property Let MsgLabel(Optional ByVal section As Long, ByVal s As String)
+Public Property Let MsgLabel(Optional ByVal Section As Long, ByVal s As String)
     If dctSectionsLabel Is Nothing Then Set dctSectionsLabel = New Dictionary
-    dctSectionsLabel(section) = s
+    dctSectionsLabel(Section) = s
 End Property
 
-Public Property Get MsgMonoSpaced(Optional ByVal section As Long) As Boolean
+Public Property Get MsgMonoSpaced(Optional ByVal Section As Long) As Boolean
     If dctSectionsMonoSpaced Is Nothing Then
         MsgMonoSpaced = False
     Else
         With dctSectionsMonoSpaced
-            If .Exists(section) _
-            Then MsgMonoSpaced = .Item(section) _
+            If .Exists(Section) _
+            Then MsgMonoSpaced = .Item(Section) _
             Else MsgMonoSpaced = False
         End With
     End If
 End Property
 
-Public Property Let MsgMonoSpaced(Optional ByVal section As Long, ByVal b As Boolean)
+Public Property Let MsgMonoSpaced(Optional ByVal Section As Long, ByVal b As Boolean)
     If dctSectionsMonoSpaced Is Nothing Then Set dctSectionsMonoSpaced = New Dictionary
-    dctSectionsMonoSpaced(section) = b
+    dctSectionsMonoSpaced(Section) = b
 End Property
 
-Public Property Get MsgText(Optional ByVal section As Long) As String
+Public Property Get MsgText(Optional ByVal Section As Long) As String
     If dctSectionsText Is Nothing Then
         MsgText = vbNullString
     Else
         With dctSectionsText
-            If .Exists(section) _
-            Then MsgText = .Item(section) _
+            If .Exists(Section) _
+            Then MsgText = .Item(Section) _
             Else MsgText = vbNullString
         End With
     End If
 End Property
 
-Public Property Let MsgText(Optional ByVal section As Long, ByVal s As String)
+Public Property Let MsgText(Optional ByVal Section As Long, ByVal s As String)
     If dctSectionsText Is Nothing Then Set dctSectionsText = New Dictionary
-    dctSectionsText(section) = s
+    dctSectionsText(Section) = s
 End Property
 
 Public Property Let MsgTitle(ByVal s As String):                                        sTitle = s: SetupTitle:                                                     End Property
@@ -1526,7 +1526,7 @@ End Sub
 ' Note: All height adjustments except the one for the text box
 '       are done by the ResizeAndReposition
 ' -------------------------------------------------------------
-Private Sub SetupMsgSection(ByVal section As Long)
+Private Sub SetupMsgSection(ByVal Section As Long)
     On Error GoTo eh
     
     Dim frArea      As MSForms.Frame
@@ -1539,14 +1539,14 @@ Private Sub SetupMsgSection(ByVal section As Long)
     Dim bMonospaced As Boolean
 
     Set frArea = DsgnMsgArea
-    Set frSection = DsgnSection(section)
-    Set la = DsgnSectionLabel(section)
-    Set tbText = DsgnSectionText(section)
-    Set frText = DsgnTextFrame(section)
+    Set frSection = DsgnSection(Section)
+    Set la = DsgnSectionLabel(Section)
+    Set tbText = DsgnSectionText(Section)
+    Set frText = DsgnTextFrame(Section)
     
-    sLabel = Me.MsgLabel(section)
-    sText = Me.MsgText(section)
-    bMonospaced = Me.MsgMonoSpaced(section)
+    sLabel = Me.MsgLabel(Section)
+    sText = Me.MsgText(Section)
+    bMonospaced = Me.MsgMonoSpaced(Section)
     
     frSection.Width = frArea.Width
     la.Width = frSection.Width
@@ -1561,7 +1561,7 @@ Private Sub SetupMsgSection(ByVal section As Long)
         AppliedControl = tbText
                 
         If sLabel <> vbNullString Then
-            Set la = DsgnSectionLabel(section)
+            Set la = DsgnSectionLabel(Section)
             With la
                 .Width = Me.InsideWidth - (siHmarginFrames * 2)
                 .caption = sLabel
@@ -1573,9 +1573,9 @@ Private Sub SetupMsgSection(ByVal section As Long)
         End If
         
         If bMonospaced Then
-            SetupMsgSectionMonoSpaced section, sText  ' returns the maximum width required for monospaced section
+            SetupMsgSectionMonoSpaced Section, sText  ' returns the maximum width required for monospaced section
         Else ' proportional spaced
-            SetupMsgSectionPropSpaced section, sText
+            SetupMsgSectionPropSpaced Section, sText
         End If
         tbText.SelStart = 0
         
@@ -1591,14 +1591,14 @@ End Sub
 ' Note: All height adjustments except the one for the text box
 '       are done by the ResizeAndReposition
 ' --------------------------------------------------------------------
-Private Sub SetupMsgSectionMonoSpaced(ByVal section As Long, _
+Private Sub SetupMsgSectionMonoSpaced(ByVal Section As Long, _
                                        ByVal text As String)
     On Error GoTo eh
     
     Dim frArea          As MSForms.Frame:   Set frArea = DsgnMsgArea
-    Dim frText          As MSForms.Frame:   Set frText = DsgnSectionTextFrame(section)
-    Dim tbText          As MSForms.TextBox: Set tbText = DsgnSectionText(section)
-    Dim frSection       As MSForms.Frame:   Set frSection = DsgnSection(section)
+    Dim frText          As MSForms.Frame:   Set frText = DsgnSectionTextFrame(Section)
+    Dim tbText          As MSForms.TextBox: Set tbText = DsgnSectionText(Section)
+    Dim frSection       As MSForms.Frame:   Set frSection = DsgnSection(Section)
     
     '~~ Setup the textbox
     With tbText
@@ -1608,7 +1608,7 @@ Private Sub SetupMsgSectionMonoSpaced(ByVal section As Long, _
         .Font.name = sMonoSpacedFontName
         .Font.Size = siMonoSpacedFontSize
         .AutoSize = True
-        .value = text
+        .Value = text
         .AutoSize = False
         .SelStart = 0
         .Left = siHmarginFrames
@@ -1652,7 +1652,7 @@ End Sub
 ' Note 2: All height adjustments except the one for the text box
 '         are done by the ResizeAndReposition
 ' -----------------------------------------------------------------------------
-Private Sub SetupMsgSectionPropSpaced(ByVal section As Long, _
+Private Sub SetupMsgSectionPropSpaced(ByVal Section As Long, _
                                         ByVal text As String)
     
     Dim frArea      As MSForms.Frame
@@ -1661,9 +1661,9 @@ Private Sub SetupMsgSectionPropSpaced(ByVal section As Long, _
     Dim tbText      As MSForms.TextBox
     
     Set frArea = DsgnMsgArea
-    Set frSection = DsgnSection(section)
-    Set frText = DsgnSectionTextFrame(section)
-    Set tbText = DsgnSectionText(section)
+    Set frSection = DsgnSection(Section)
+    Set frText = DsgnSectionTextFrame(Section)
+    Set tbText = DsgnSectionText(Section)
         
     '~~ For proportional spaced message sections the width is determined by the area width
     With frSection
@@ -1682,7 +1682,7 @@ Private Sub SetupMsgSectionPropSpaced(ByVal section As Long, _
         .AutoSize = True
         .WordWrap = True
         .Width = frText.Width - siHmarginFrames
-        .value = text
+        .Value = text
         .SelStart = 0
         .Left = HSPACE_LEFT
         frText.Width = .Left + .Width + siHmarginFrames
@@ -1702,7 +1702,7 @@ Private Sub SetupMsgSectionsMonoSpaced()
     Dim i As Long
     
     For i = 1 To NO_OF_DESIGNED_SECTIONS
-        If MsgText(i) <> vbNullString And MsgMonoSpaced(i) = True Then SetupMsgSection section:=i
+        If MsgText(i) <> vbNullString And MsgMonoSpaced(i) = True Then SetupMsgSection Section:=i
     Next i
     bDoneMonoSpacedSections = True
     
@@ -1716,7 +1716,7 @@ Private Sub SetupMsgSectionsPropSpaced()
     Dim i As Long
     
     For i = 1 To NO_OF_DESIGNED_SECTIONS
-        If MsgText(i) <> vbNullString And MsgMonoSpaced(i) = False Then SetupMsgSection section:=i
+        If MsgText(i) <> vbNullString And MsgMonoSpaced(i) = False Then SetupMsgSection Section:=i
     Next i
     bDonePropSpacedSections = True
     bDoneMsgArea = True

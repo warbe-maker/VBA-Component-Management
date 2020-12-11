@@ -3,47 +3,45 @@ Option Explicit
 Option Private Module
 
 Private Const TEST_CHANGE = "' Test code change"
+
 Private cTest   As clsTestService
 Private cComp   As New clsComp
-Private wbTest   As Workbook
+Private wbTest  As Workbook
 Private wbSrc   As Workbook
 Private wbTrgt  As Workbook
 Private vbc     As VBComponent
 Private vbcm    As CodeModule
 
-Public Sub Test_Temp()
+Private Sub Cleanup(Optional ByVal exp_file As String = vbNullString, _
+                    Optional ByRef vbc As VBComponent = Nothing)
+        
+    If exp_file <> vbNullString Then
+        With New FileSystemObject
+            If .FileExists(exp_file) Then .DeleteFile exp_file
+        End With
+    End If
+    
+    If Not vbc Is Nothing Then
+        With vbc.CodeModule
+            If .Lines(1, 1) = TEST_CHANGE Then .DeleteLines 1, 1
+            While Len(.Lines(1, 1)) = 0
+                .DeleteLines 1.1
+            Wend
+        End With
+    End If
+    
+    If Not cComp Is Nothing Then Set cComp = Nothing
+    If Not vbcm Is Nothing Then Set vbcm = Nothing
+    If Not vbc Is Nothing Then Set vbc = Nothing
+    On Error Resume Next: wbTest.Close SaveChanges:=False
+    On Error Resume Next: wbSrc.Close SaveChanges:=False
+    On Error Resume Next: wbTrgt.Close SaveChanges:=False
 
-    Set wbTest = ThisWorkbook
-    Set vbc = wbTest.VBProject.VBComponents("mFile")
-    Set vbcm = vbc.CodeModule
-    
-    Debug.Print vbc.Properties(1)
-    Debug.Print vbcm.Parent.Properties(1)
-    
-    Cleanup
-    
-End Sub
-    
-Public Sub Test()
-    With New FileSystemObject
-        Debug.Print .GetFile(ThisWorkbook.FullName).Path
-        Debug.Print .GetFile(ThisWorkbook.FullName).name
-    End With
-End Sub
-
-Public Sub Test_CompOriginHasChanged()
-
-End Sub
-
-Public Sub Test_02_ExportChangedComponents()
-    Const PROC = "Test_ExportChangedComponents"
-    
-    mErH.BoP ErrSrc(PROC)
-    mCompMan.ExportChangedComponents ThisWorkbook
-    mErH.EoP ErrSrc(PROC)
-    
 End Sub
 
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "mTest" & "." & sProc
+End Function
 
 Public Sub Regression()
 ' -----------------------------------------------------------------
@@ -55,19 +53,82 @@ Public Sub Regression()
     cTest.Regression = True
     
     mErH.BoP ErrSrc(PROC)
-    Test_01_01_CodeChanged
-    Test_01_02_CodeChanged
-    Test_01_03_CodeChanged
-    Test_01_04_CodeChanged
+    Test_01_KindOfComp
+    Test_05_01_CodeChanged
+    Test_05_02_CodeChanged
+    Test_05_03_CodeChanged
+    Test_05_04_CodeChanged
     mErH.EoP ErrSrc(PROC)
     
 End Sub
 
-Public Sub Test_01_01_CodeChanged()
+    
+Public Sub Test()
+    With New FileSystemObject
+        Debug.Print "File-Path          : " & .GetFile(ThisWorkbook.FullName).PATH
+        Debug.Print "File-Name          : " & .GetFile(ThisWorkbook.FullName).name
+        Debug.Print "File-BaseName      : " & .GetBaseName(.GetFile(ThisWorkbook.FullName).PATH)
+        Debug.Print "File-Extension     : " & .GetExtensionName(.GetFile(ThisWorkbook.FullName).PATH)
+        Debug.Print "File-Parent-Folder : " & .GetParentFolderName(.GetFile(ThisWorkbook.FullName))
+    End With
+End Sub
+
+Public Sub Test_01_KindOfComp()
+    Const PROC = "Test_01_KindOfComp"
+
+    Dim wb          As Workbook
+    Dim fso         As New FileSystemObject
+    Dim lKindOfComp As enKindOfComp
+    Dim cComp       As clsComp
+    Dim sComp       As String
+    
+    Set wb = mWrkbk.GetOpen(fso.GetParentFolderName(ThisWorkbook.PATH) & "\File\File.xlsm")
+
+    sComp = "mFile"
+    Set cComp = Nothing
+    Set cComp = New clsComp
+    With cComp
+        .Wrkbk = wb
+        .VBComp = wb.VBProject.VBComponents(sComp)
+        Debug.Assert .KindOfComp() = enRemoteRaw
+    End With
+
+    sComp = "fMsg"
+    Set cComp = Nothing
+    Set cComp = New clsComp
+    With cComp
+        .Wrkbk = wb
+        .VBComp = wb.VBProject.VBComponents(sComp)
+        Debug.Assert .KindOfComp() = enClonedRaw
+    End With
+    
+    sComp = "mTest"
+    Set cComp = Nothing
+    Set cComp = New clsComp
+    With cComp
+        .Wrkbk = wb
+        .VBComp = wb.VBProject.VBComponents(sComp)
+        Debug.Assert .KindOfComp() = enNoRaw
+    End With
+    
+xt: wb.Close SaveChanges:=False
+    Set cComp = Nothing
+    Set fso = Nothing
+    Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+    
+End Sub
+
+Public Sub Test_05_01_CodeChanged()
 '-----------------------------------------------
 '
 ' ----------------------------------------------
-    Const PROC = "Test_01_01_CodeChanged"
+    Const PROC = "Test_05_01_CodeChanged"
     
     On Error GoTo eh
     Dim fso         As New FileSystemObject
@@ -83,7 +144,7 @@ Public Sub Test_01_01_CodeChanged()
         .TestProcedure = ThisWorkbook.name & ": " & ErrSrc(PROC)
         .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
         .TestedByTheWay = "clsComp.ExportFileFullName"
-        Set wbTest = mWrkbk.GetOpen(ThisWorkbook.Path & "\" & "Test\Test1.xlsm")
+        Set wbTest = mWrkbk.GetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
         .ResultExpected = True
         .Details = "Export File does not exist, CodeModule not/never exported"
     End With
@@ -113,11 +174,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_01_02_CodeChanged()
+Public Sub Test_05_02_CodeChanged()
 '-----------------------------------------------
 '
 ' ----------------------------------------------
-    Const PROC = "Test_01_02_CodeChanged"
+    Const PROC = "Test_05_02_CodeChanged"
     
     On Error GoTo eh
     Dim sExpFile    As String
@@ -131,7 +192,7 @@ Public Sub Test_01_02_CodeChanged()
         .TestProcedure = ThisWorkbook.name & ": " & ErrSrc(PROC)
         .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
         .TestedByTheWay = "clsComp.ExportFileFullName"
-        Set wbTest = mWrkbk.GetOpen(ThisWorkbook.Path & "\" & "Test\Test1.xlsm")
+        Set wbTest = mWrkbk.GetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
         .ResultExpected = False
         .Details = "Export File is identical with CodeModule"
     End With
@@ -162,11 +223,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_01_03_CodeChanged()
+Public Sub Test_05_03_CodeChanged()
 '-----------------------------------------------
 '
 ' ----------------------------------------------
-    Const PROC = "Test_01_03_CodeChanged"
+    Const PROC = "Test_05_03_CodeChanged"
     
     On Error GoTo eh
     Dim sExpFile    As String
@@ -183,7 +244,7 @@ Public Sub Test_01_03_CodeChanged()
         .Details = "Export File outdated, CodeModule changed (additional line)"
         .ResultExpected = True
     End With
-    Set wbTest = mWrkbk.GetOpen(ThisWorkbook.Path & "\" & "Test\Test1.xlsm")
+    Set wbTest = mWrkbk.GetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
     
     With cComp
         .Wrkbk = wbTest
@@ -212,12 +273,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-
-Public Sub Test_01_04_CodeChanged()
+Public Sub Test_05_04_CodeChanged()
 '-----------------------------------------------
 '
 ' ----------------------------------------------
-    Const PROC = "Test_01_04_CodeChanged"
+    Const PROC = "Test_05_04_CodeChanged"
     
     On Error GoTo eh
     Dim sExpFile    As String
@@ -234,7 +294,7 @@ Public Sub Test_01_04_CodeChanged()
         .Details = "Additional empty line in CodeModule is not considered a change though the Export File is outdated"
         .ResultExpected = False
     End With
-    Set wbTest = mWrkbk.GetOpen(ThisWorkbook.Path & "\" & "Test\Test1.xlsm")
+    Set wbTest = mWrkbk.GetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
     
     With cComp
         .Wrkbk = wbTest
@@ -263,25 +323,149 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_UpdateUsedCommCompsTheRawHasChanged()
-    Const PROC  As String = "Test_UpdateCommonModules"
+Public Sub Test_10_ExportChangedComponents()
+    Const PROC = "Test_ExportChangedComponents"
     
-    Dim wb      As Workbook
+    mErH.BoP ErrSrc(PROC)
+    mCompMan.ExportChangedComponents ThisWorkbook
+    mErH.EoP ErrSrc(PROC)
+    
+End Sub
 
+Public Sub Test_CodeModuleTrimm()
+
+    Dim vbc As VBComponent
+    Dim wb  As Workbook
+    
+    Set wb = ActiveWorkbook
+    Set vbc = wb.VBProject.VBComponents("mCommon")
+    Debug.Print "Trim CodeModule 'mCommon' in Workbook '" & wb.name & "'"
+    mVBP.CodeModuleTrim vbc, wb
+    
+    Set wb = ThisWorkbook
+    Set vbc = wb.VBProject.VBComponents("mCommon")
+    Debug.Print "Trim CodeModule 'mCommon' in Workbook '" & wb.name & "'"
+    mVBP.CodeModuleTrim vbc, wb
+    
+End Sub
+
+Public Sub Test_CompOriginHasChanged()
+
+End Sub
+
+Public Sub Test_File_Compare()
+    
+    Const FILE_LEFT = "E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas"
+    Const FILE_RIGHT = "E:\Ablage\Excel VBA\DevAndTest\Common\CompManDev\mFl.bas"
+    
+    Debug.Print mFl.Compare(file_left_full_name:=FILE_LEFT _
+                          , file_right_full_name:=FILE_RIGHT _
+                          , file_left_title:=FILE_LEFT _
+                          , file_right_title:=FILE_RIGHT _
+                           )
+    
+    Debug.Print mFl.Compare(file_left_full_name:=FILE_LEFT _
+                          , file_right_full_name:=FILE_LEFT _
+                          , file_left_title:=FILE_LEFT _
+                          , file_right_title:=FILE_LEFT _
+                           )
+    
+End Sub
+
+Public Sub Test_File_SectionNames()
+    Const PROC = "Test_File_SectionNames"
+
+    Dim sFile As String
+    Dim v   As Variant
+    
+    For Each v In mFl.SectionNames(sn_file:=mCfg.CompManAddinPath & "\CompMan.dat")
+        Debug.Print "[" & v & "]"
+    Next v
+    
+End Sub
+
+Public Sub Test_File_ValueNames()
+    Const PROC = "Test_File_Names"
+
+    Dim sFile As String
+    Dim v   As Variant
+    
+    For Each v In mFl.ValueNames(vn_file:=mCfg.CompManAddinPath & "\CompMan.dat")
+        Debug.Print """" & v & """"
+    Next v
+    
+End Sub
+
+Public Sub Test_File_Values()
+    Const PROC = "Test_File_Values"
+    
+    Dim dctValues   As Dictionary
+    Dim v           As Variant
+    Dim sFile       As String
+    
+    sFile = mCfg.CompManAddinPath & "\CompMan.dat"
+    Set dctValues = mFl.Values(vl_file:=sFile _
+                             , vl_section:=mFl.SectionNames(sn_file:=sFile).Items()(0))
+    For Each v In dctValues
+        Debug.Print v & " = " & dctValues(v)
+    Next v
+
+
+End Sub
+
+Public Sub Test_File_Sections_Transfer_By_LetGet()
+' ------------------------------------------------
+' This test relies on the Value (Let) service.
+' ------------------------------------------------
+    Const PROC = "Test_File_Sections_Transfer_By_LetGet"
+    Const vbTemporaryFolder = 2
+    
     On Error GoTo eh
+    Dim fso             As New FileSystemObject
+    Dim sPath           As String
+    Dim sFileGet        As String
+    Dim sFileLet        As String
+    Dim i               As Long
+    Dim j               As Long
+    Dim arSections()    As Variant
+    Dim sSectionName    As String
+    Dim dctSections     As Dictionary
+    
+    '~~ Test preparation
+    sFileGet = fso.GetSpecialFolder(SpecialFolder:=vbTemporaryFolder) & "\" & fso.GetTempName
+    sFileLet = fso.GetSpecialFolder(SpecialFolder:=vbTemporaryFolder) & "\" & fso.GetTempName
+    
+    For i = 1 To 3
+        sSectionName = "Section-" & i
+        ReDim Preserve arSections(i - 1)
+        arSections(i - 1) = sSectionName
+        For j = 1 To 5
+            mFl.Value(vl_file:=sFileGet _
+                    , vl_section:=sSectionName _
+                    , vl_value_name:="Value-" & j _
+                     ) = CStr(i & "-" & j)
+        Next j
+    Next i
+    
+    '~~ Test
     mErH.BoP ErrSrc(PROC)
     
-    Application.StatusBar = vbNullString
-    Set wb = ThisWorkbook
-    mCompMan.UpdateUsedCommCompsTheRawHasChanged wb
+    mFl.SectionsCopy sc_section_names:=arSections, sc_file_from:=sFileGet, sc_file_to:=sFileLet
+    Debug.Assert mFl.sDiffer(dif_file1:=fso.GetFile(sFileGet), dif_file2:=fso.GetFile(sFileLet)) = False
     
-xt: mErH.EoP ErrSrc(PROC)
+    mErH.EoP ErrSrc(PROC)
+    
+xt: '~~ Test cleanup
+    With fso
+        If .FileExists(sFileGet) Then .DeleteFile (sFileGet)
+        If .FileExists(sFileGet) Then .DeleteFile (sFileLet)
+    End With
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
         Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
 
@@ -310,62 +494,51 @@ Public Sub Test_Refs()
     
 End Sub
 
-Public Sub Test_DisplayDiff()
+Public Sub Test_Temp()
+    Const PROC = "Test_Temp"
     
-    Dim cComp As New clsComp
+    On Error GoTo eh
+    Dim cll As New Collection
+    Dim dct As New Dictionary
+    
+    Set wbTest = ThisWorkbook
+    Set vbc = wbTest.VBProject.VBComponents("mFile")
+    Set vbcm = vbc.CodeModule
+    
+    Debug.Print vbc.Properties(1)
+    Debug.Print vbcm.Parent.Properties(1)
+    
+    Cleanup
 
-    With cComp
-        .Wrkbk = ThisWorkbook
-        .VBComp = .Wrkbk.VBProject.VBComponents("mBasic")
-        .DisplayDiff .ExportFile, .ExportFile, "Test title left", "Test title right"
-    End With
+xt: mErH.EoP ErrSrc(PROC)
+    Exit Sub
     
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
-Private Sub Cleanup(Optional ByVal exp_file As String = vbNullString, _
-                    Optional ByRef vbc As VBComponent = Nothing)
-        
-    If exp_file <> vbNullString Then
-        With New FileSystemObject
-            If .FileExists(exp_file) Then .DeleteFile exp_file
-        End With
-    End If
+Public Sub Test_UpdateRawClonesTheRemoteRawHasChanged()
+    Const PROC  As String = "Test_UpdateCommonModules"
     
-    If Not vbc Is Nothing Then
-        With vbc.CodeModule
-            If .Lines(1, 1) = TEST_CHANGE Then .DeleteLines 1, 1
-            While Len(.Lines(1, 1)) = 0
-                .DeleteLines 1.1
-            Wend
-        End With
-    End If
-    
-    If Not cComp Is Nothing Then Set cComp = Nothing
-    If Not vbcm Is Nothing Then Set vbcm = Nothing
-    If Not vbc Is Nothing Then Set vbc = Nothing
-    On Error Resume Next: wbTest.Close SaveChanges:=False
-    On Error Resume Next: wbSrc.Close SaveChanges:=False
-    On Error Resume Next: wbTrgt.Close SaveChanges:=False
+    Dim wb      As Workbook
 
-End Sub
-
-Public Sub Test_CodeModuleTrimm()
-
-    Dim vbc As VBComponent
-    Dim wb  As Workbook
+    On Error GoTo eh
+    mErH.BoP ErrSrc(PROC)
     
-    Set wb = ActiveWorkbook
-    Set vbc = wb.VBProject.VBComponents("mCommon")
-    Debug.Print "Trim CodeModule 'mCommon' in Workbook '" & wb.name & "'"
-    mVBP.CodeModuleTrim vbc, wb
-    
+    Application.StatusBar = vbNullString
     Set wb = ThisWorkbook
-    Set vbc = wb.VBProject.VBComponents("mCommon")
-    Debug.Print "Trim CodeModule 'mCommon' in Workbook '" & wb.name & "'"
-    mVBP.CodeModuleTrim vbc, wb
+    mCompMan.UpdateClonedRawsTheRemoteRawHasChanged wb
     
+xt: mErH.EoP ErrSrc(PROC)
+    Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mTest" & "." & sProc
-End Function

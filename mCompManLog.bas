@@ -39,7 +39,7 @@ Public Sub LogAction(ByVal log_action As String, _
     ValueLet vl_section:=log_wb _
            , vl_value_name:=Format(Now, "yyyy-mm-dd hh:mm:ss") _
            , vl_value:=log_action _
-           , vl_file:=mCompManCfg.CompManAddinPath & "\CompMan.log"
+           , vl_file:=mCfg.CompManAddinPath & "\CompMan.log"
 End Sub
 
 Private Function ValueGet( _

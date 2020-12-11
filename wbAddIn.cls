@@ -37,11 +37,11 @@ Public Property Get AddInInstanceFullName() As String:  AddInInstanceFullName = 
 
 Public Property Get AddInInstanceName() As String:      AddInInstanceName = ADDIN_WORKBOOK:                                 End Property
 
-Private Property Get AddInPath() As String:             AddInPath = mCompManCfg.CompManAddinPath:                           End Property
+Private Property Get AddInPath() As String:             AddInPath = mCfg.CompManAddinPath:                           End Property
 
 Public Property Get DevlpInstanceFullName() As String
 Dim fso As New FileSystemObject
-    DevlpInstanceFullName = mCompManCfg.CommonComponentsBasePath & DBSLASH _
+    DevlpInstanceFullName = mCfg.CommonComponentsBasePath & DBSLASH _
                           & fso.GetBaseName(DevlpInstanceName) & DBSLASH _
                           & DevlpInstanceName
 End Property
@@ -87,10 +87,14 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
         
     Application.EnableEvents = False
     wb.Save
-    mCompMan.ExportChangedComponents wb ' includes management of updated used Common Components
-    If Not wb.Saved Then wb.Save        ' usually not required
     Application.EnableEvents = True
-
+    mCompMan.ExportChangedComponents wb ' includes management of updated used Common Components
+    If Not wb.Saved Then
+        Application.EnableEvents = False
+        wb.Save        ' usually not required
+        Application.EnableEvents = True
+    End If
+    
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -103,7 +107,7 @@ Private Sub Workbook_Open()
 
     If IsDevlpInstance Then
         mAddIn.ControlItemRenewAdd
-        mCompManCfg.Asserted ' assert a valid CompMan basic configuratuion
+        mCfg.Asserted ' assert a valid CompMan basic configuratuion
         If mAddIn.AddInInstanceWorkbookIsOpen Then
             '~~ Essential! When the Development instance Workbook is opened, used Common Components
             '~~ the origin code has changed can only be updated when the Addin instance Workbook is

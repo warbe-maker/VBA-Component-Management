@@ -13,7 +13,7 @@ Public Type tMsgSection                 ' ---------------------
        bMonspaced As Boolean            ' area which consists
 End Type                                ' of 4 message sections
 Public Type tMsg                        ' Attention: 4 is a
-       section(1 To 4) As tMsgSection   ' design constant!
+       Section(1 To 4) As tMsgSection   ' design constant!
 End Type                                ' ---------------------
 
 Public Function Box(ByVal dsply_title As String, _
@@ -144,9 +144,9 @@ Public Function Dsply(ByVal dsply_title As String, _
         .MinButtonWidth = dsply_min_button_width
         .MsgTitle = dsply_title
         For i = 1 To fMsg.NoOfDesignedMsgSections
-            .MsgLabel(i) = dsply_msg.section(i).sLabel
-            .MsgText(i) = dsply_msg.section(i).sText
-            .MsgMonoSpaced(i) = dsply_msg.section(i).bMonspaced
+            .MsgLabel(i) = dsply_msg.Section(i).sLabel
+            .MsgText(i) = dsply_msg.Section(i).sText
+            .MsgMonoSpaced(i) = dsply_msg.Section(i).bMonspaced
         Next i
         
         .MsgButtons = dsply_buttons

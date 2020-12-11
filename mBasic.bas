@@ -338,11 +338,11 @@ Dim rTarget As Range
     If bOneCol Then
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(UBound(vArr), 1)
-        rTarget.value = Application.Transpose(vArr)
+        rTarget.Value = Application.Transpose(vArr)
     Else
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(1, UBound(vArr))
-        rTarget.value = vArr
+        rTarget.Value = vArr
     End If
     
 End Sub

@@ -892,11 +892,11 @@ Private Function DsplyTcksDffToScs(ByVal beginticks As Currency, _
 End Function
 
 Private Function DsplyValue(ByVal entry As Collection, _
-                            ByVal value As Variant, _
+                            ByVal Value As Variant, _
                             ByVal frmt As String) As String
-    If NtryIsBegin(entry) And value = 0 _
+    If NtryIsBegin(entry) And Value = 0 _
     Then DsplyValue = Space$(Len(frmt)) _
-    Else DsplyValue = IIf(value >= 0, Format(value, frmt), Space$(Len(frmt)))
+    Else DsplyValue = IIf(Value >= 0, Format(Value, frmt), Space$(Len(frmt)))
 End Function
 
 Private Function DsplyValueFormat(ByRef thisformat As String, _

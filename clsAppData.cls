@@ -87,14 +87,14 @@ Private Declare PtrSafe Function GetPrivateProfileString _
                              
 Private Declare PtrSafe Function DeletePrivateProfileSection _
                 Lib "kernel32" Alias "WritePrivateProfileStringA" _
-               (ByVal section As String, _
+               (ByVal Section As String, _
                 ByVal NoKey As Long, _
                 ByVal NoSetting As Long, _
                 ByVal name As String) As Long
 
 Private Declare PtrSafe Function DeletePrivateProfileKey _
                 Lib "kernel32" Alias "WritePrivateProfileStringA" _
-               (ByVal section As String, _
+               (ByVal Section As String, _
                 ByVal Key As String, _
                 ByVal Setting As Long, _
                 ByVal name As String) As Long
@@ -107,7 +107,7 @@ Private Declare PtrSafe Function GetPrivateProfileSectionNames _
                  
 Private Declare PtrSafe Function GetPrivateProfileSection _
                 Lib "kernel32" Alias "GetPrivateProfileSectionA" _
-               (ByVal section As String, _
+               (ByVal Section As String, _
                 ByVal Buffer As String, _
                 ByVal Size As Long, _
                 ByVal name As String) As Long
@@ -260,7 +260,7 @@ Dim iLen            As Long
 Dim obj             As Object
 Dim strBuffer       As String
 Dim v               As Variant
-Dim fso             As File
+Dim fso             As FILE
 
     On Error GoTo eh
     Set dct = New Dictionary

@@ -532,7 +532,7 @@ Public Sub Renew()
     End If
                      
     '~~ Get the current CompMan's base configuration confirmed or changed
-    mCompManCfg.Confirm
+    mCfg.Confirm
                      
     '~~ Assert no Workbooks are open referring to the Addin
     ReferencesToAddInSaveAndRemove
@@ -674,7 +674,7 @@ Public Sub UpdateUsedCommComps()
 ' -------------------------------------------------
     If wbAddIn.IsDevlpInstance Then
         If mAddIn.AddInInstanceWorkbookIsOpen Then
-            Application.Run wbAddIn.AddInInstanceName & "!mCompMan.UpdateUsedCommCompsTheRawHasChanged", ThisWorkbook
+            Application.Run wbAddIn.AddInInstanceName & "!mCompMan.UpdateRawClonesTheRemoteRawHasChanged", ThisWorkbook
         End If
     End If
 End Sub

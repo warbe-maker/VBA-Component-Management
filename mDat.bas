@@ -1,12 +1,17 @@
-Attribute VB_Name = "mCommDat"
+Attribute VB_Name = "mDat"
 Option Explicit
 ' ---------------------------------------------------------
-' Standard Module mCommDat Maintains Common Component data.
+' Standard Module mDat Maintains all CompMan's .dat files.
+'
+' .dat Files: - RawsCloned.dat [<workbook-name>}
+'                              <component-name>=<export-file-full-name>
+'             - RawsHosted.dat [<workbook-name>}
+'                              <component-name>=<export-file-full-name>
 ' ---------------------------------------------------------
 Private dat                         As clsAppData
 Private cfg                         As clsAppData
                                                                                 
-Private Const SBJCT_FILE_NAME       As String = "\Components.dat"
+Private Const SBJCT_FILE_NAME       As String = "\CompMan.dat"
 Private Const SECTION_COMPONENT     As String = "Component_"
 Private Const SECTION_HOST_WORKBOOK As String = "HostWorkbook_"
                                     
@@ -84,6 +89,7 @@ Public Property Let CommCompExpFileFullName( _
             Stop ' sExportFile does not exist
         End If
     End With
+
 End Property
 
 Public Property Get CommCompHostWorkbookBaseName( _
@@ -168,7 +174,7 @@ Public Property Get HostWorkbookCodeBackUpExportFolder( _
     dat.Aspect = sSection
     sExpFolder = dat.ValueGet(ValueNameWbExpFolder(sSection))
     If sExpFolder = vbNullString Then
-        sExpFolder = mCompManCfg.CommonComponentsBasePath & "\" & sHostBaseName
+        sExpFolder = mCfg.CommonComponentsBasePath & "\" & sHostBaseName
         With New FileSystemObject
             If Not .FolderExists(sExpFolder) Then
                 .CreateFolder sExpFolder
@@ -224,13 +230,17 @@ Public Sub CommCompRemove(ByVal sComp As String)
 End Sub
 
 Public Function CommCompsMaxLenght() As Long
+' --------------------------------------------------
+' Returns a dictionary with all known raw component
+' names plus the length of the longest name
+' --------------------------------------------------
     Const PROC = "CommCompsMaxLenght"
     
     On Error GoTo eh
-    Dim v           As Variant
-    Dim lMax        As Long
-    Dim dct         As Dictionary
-
+    Dim v       As Variant
+    Dim lMax    As Long
+    Dim dct     As Dictionary
+    
     InitDat
     Set dct = dat.Aspects
     If dct.Count > 0 Then
@@ -243,6 +253,38 @@ Public Function CommCompsMaxLenght() As Long
     CommCompsMaxLenght = lMax
     
 xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Function
+
+Public Function RawComps() As Dictionary
+' --------------------------------------
+' Returns a dictionary with all known
+' raw component names
+' --------------------------------------
+    Const PROC = "RawComps"
+    
+    On Error GoTo eh
+    Dim v       As Variant
+    Dim dct     As Dictionary
+    Dim dctRaws As New Dictionary
+    
+    InitDat
+    Set dct = dat.Aspects
+    If dct.Count > 0 Then
+        For Each v In dct
+            If Left(v, Len(SECTION_COMPONENT)) = SECTION_COMPONENT Then
+                dctRaws.Add Replace(v, SECTION_COMPONENT, vbNullString), Replace(v, SECTION_COMPONENT, vbNullString)
+            End If
+        Next v
+    End If
+    
+xt: Set RawComps = dctRaws
+    Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -287,10 +329,9 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mCommDat" & "." & sProc
+    ErrSrc = "mDat" & "." & sProc
 End Function
-
-                                   
+                               
 Public Function HostWorkbooks() As Dictionary
 ' -------------------------------------------
 ' Returns a Dictionary wit all Workbooks
@@ -306,8 +347,8 @@ Public Function HostWorkbooks() As Dictionary
     InitDat
     Set dct = New Dictionary
     For Each v In dat.Aspects
-        If mCommDat.IsHostWorkbook(v, sHostFullName) Then
-            mDct.DctAdd add_dct:=dct, add_key:=v, add_item:=sHostFullName, add_seq:=seq_ascending
+        If mDat.IsHostWorkbook(v, sHostFullName) Then
+            mDct.DctAdd add_dct:=dct, add_key:=Replace(v, SECTION_HOST_WORKBOOK, vbNullString), add_item:=sHostFullName, add_seq:=seq_ascending
         End If
     Next v
     Set HostWorkbooks = dct
@@ -335,7 +376,7 @@ Private Sub InitCompManCfg()
             '            which for the AddIn instance of this Workbook is the configured Addin folder.
             '            Thus, when the AddIn instance is setup/renewed this cfg file must be copied
             '            to the AddIn folder
-            .Subject = ThisWorkbook.Path & "\CompMan.cfg"
+            .Subject = ThisWorkbook.PATH & "\CompMan.cfg"
         End With
     End If
 
@@ -358,7 +399,7 @@ Private Sub InitDat()
         With dat
             .Location = spp_File
             .Extension = ".dat"
-            .Subject = CommonComponentsBasePath & SBJCT_FILE_NAME
+            .Subject = mCfg.CompManAddinPath & SBJCT_FILE_NAME
         End With
     End If
 
@@ -371,17 +412,17 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function IsCommonComponent( _
-                ByVal sComp As String, _
-       Optional ByRef flExpFile As File, _
-       Optional ByRef sWbHostFullName As String) As Boolean
+Public Function IsRaw( _
+                ByVal raw_comp_name As String, _
+       Optional ByRef raw_exp_file As FILE, _
+       Optional ByRef raw_host_full_name As String) As Boolean
 ' ---------------------------------------------------------
 ' - Returns TRUE when the Common Component (sComp) is known
 '   in the Components.dat File
 ' - Returns the code-baxkup Export File as object and the
 '   "hosting" Workbook's full name.
 ' --------------------------------------------------------------------
-    Const PROC = "IsCommonComponent"
+    Const PROC = "IsRaw"
     
     On Error GoTo eh
     Dim sSection    As String
@@ -390,20 +431,20 @@ Public Function IsCommonComponent( _
 
     InitDat
     With dat
-        sSection = SectionComponent(sComp)
+        sSection = SectionComponent(raw_comp_name)
         If Not .Aspects.Exists(sSection) Then Exit Function
         .Aspect = sSection
         sExportFile = .ValueGet(ValueNameExportFile(sSection))
         sWbHost = .ValueGet(ValueNameHostBaseName(sSection))
          With New FileSystemObject
              If .FileExists(sExportFile) Then
-                 Set flExpFile = .GetFile(sExportFile)
-                 IsCommonComponent = True
+                 Set raw_exp_file = .GetFile(sExportFile)
+                 IsRaw = True
              End If
          End With
         sSection = SectionHostWorkbook(sWbHost)
         .Aspect = sSection
-        sWbHostFullName = .ValueGet(ValueNameHostFullName(sSection))
+        raw_host_full_name = .ValueGet(ValueNameHostFullName(sSection))
     End With
 
 xt: Exit Function
@@ -557,7 +598,7 @@ Public Sub TrustThisFolder(Optional ByVal FolderPath As String, _
 
     With New FileSystemObject
         If FolderPath = "" Then
-            FolderPath = .GetSpecialFolder(2).Path
+            FolderPath = .GetSpecialFolder(2).PATH
             If sDescription = "" Then
                 sDescription = "The user's local temp folder"
             End If
