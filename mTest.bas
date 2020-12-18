@@ -12,7 +12,7 @@ Private wbTrgt  As Workbook
 Private vbc     As VBComponent
 Private vbcm    As CodeModule
 
-Private Sub Cleanup(Optional ByVal exp_file As String = vbNullString, _
+Public Sub Cleanup(Optional ByVal exp_file As String = vbNullString, _
                     Optional ByRef vbc As VBComponent = Nothing)
         
     If exp_file <> vbNullString Then
@@ -54,10 +54,10 @@ Public Sub Regression()
     
     mErH.BoP ErrSrc(PROC)
     Test_01_KindOfComp
-    Test_05_01_CodeChanged
-    Test_05_02_CodeChanged
-    Test_05_03_CodeChanged
-    Test_05_04_CodeChanged
+    Test_05_01_KindOfCodeChange_NoRaw_UsedOnly
+    Test_05_02_KindOfCodeChange_NoRaw_NoCodeChange
+    Test_05_03_KindOfCodeChange_NoRaw_UsedOnly
+    Test_05_04_KindOfCodeChange_NoRaw_UsedOnly
     mErH.EoP ErrSrc(PROC)
     
 End Sub
@@ -90,7 +90,7 @@ Public Sub Test_01_KindOfComp()
     With cComp
         .Wrkbk = wb
         .VBComp = wb.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = enRemoteRaw
+        Debug.Assert .KindOfComp() = enKindOfComp.enRawRemote
     End With
 
     sComp = "fMsg"
@@ -99,7 +99,7 @@ Public Sub Test_01_KindOfComp()
     With cComp
         .Wrkbk = wb
         .VBComp = wb.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = enClonedRaw
+        Debug.Assert .KindOfComp() = enRawClone
     End With
     
     sComp = "mTest"
@@ -124,11 +124,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     
 End Sub
 
-Public Sub Test_05_01_CodeChanged()
+Public Sub Test_05_01_KindOfCodeChange_NoRaw_UsedOnly()
 '-----------------------------------------------
 '
 ' ----------------------------------------------
-    Const PROC = "Test_05_01_CodeChanged"
+    Const PROC = "Test_05_01_KindOfCodeChange_NoRaw_UsedOnly"
     
     On Error GoTo eh
     Dim fso         As New FileSystemObject
@@ -154,16 +154,14 @@ Public Sub Test_05_01_CodeChanged()
         .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
         sExpFile = .ExportFileFullName
         If fso.FileExists(sExpFile) Then fso.DeleteFile (sExpFile)
+        
+        ' Test: Code is regarded changed because there is no export file
+        mErH.BoP ErrSrc(PROC)
+        Debug.Assert .KindOfCodeChange = enUsedOnly
+        mErH.EoP ErrSrc(PROC)
+    
     End With
-    
-    ' Test: Code is regarded changed because there is no export file
-    mErH.BoP ErrSrc(PROC)
-    vResult = cComp.CodeChanged
-    mErH.EoP ErrSrc(PROC)
-    
-    ' Evaluating the result
-    If cTest.Evaluated(vResult) = cTest.FAILED Then Stop
-    
+        
 xt: Cleanup exp_file:=sExpFile, vbc:=cComp.VBComp
     Exit Sub
     
@@ -174,11 +172,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_05_02_CodeChanged()
+Public Sub Test_05_02_KindOfCodeChange_NoRaw_NoCodeChange()
 '-----------------------------------------------
 '
 ' ----------------------------------------------
-    Const PROC = "Test_05_02_CodeChanged"
+    Const PROC = "Test_05_02_KindOfCodeChange_NoRaw_NoCodeChange"
     
     On Error GoTo eh
     Dim sExpFile    As String
@@ -207,7 +205,7 @@ Public Sub Test_05_02_CodeChanged()
     
     ' Test: Code has not changed because it is identical with the export file
     mErH.BoP ErrSrc(PROC)
-    vResult = cComp.CodeChanged
+    Debug.Assert cComp.KindOfCodeChange = enNoCodeChange
     mErH.EoP ErrSrc(PROC)
     
     ' Evaluating the result
@@ -223,11 +221,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_05_03_CodeChanged()
+Public Sub Test_05_03_KindOfCodeChange_NoRaw_UsedOnly()
 '-----------------------------------------------
 '
 ' ----------------------------------------------
-    Const PROC = "Test_05_03_CodeChanged"
+    Const PROC = "Test_05_03_KindOfCodeChange_NoRaw_UsedOnly"
     
     On Error GoTo eh
     Dim sExpFile    As String
@@ -257,12 +255,9 @@ Public Sub Test_05_03_CodeChanged()
     
     '~~ Test: Code is regarded changed because it is not identical with the Export File
     mErH.BoP ErrSrc(PROC)
-    vResult = cComp.CodeChanged
+    Debug.Assert cComp.KindOfCodeChange = enUsedOnly
     mErH.EoP ErrSrc(PROC)
-    
-    ' Evaluating the result
-    If cTest.Evaluated(vResult) = cTest.FAILED Then Stop
-           
+               
 xt: Cleanup exp_file:=sExpFile, vbc:=cComp.VBComp
     Exit Sub
     
@@ -273,11 +268,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_05_04_CodeChanged()
+Public Sub Test_05_04_KindOfCodeChange_NoRaw_UsedOnly()
 '-----------------------------------------------
 '
 ' ----------------------------------------------
-    Const PROC = "Test_05_04_CodeChanged"
+    Const PROC = "Test_05_04_KindOfCodeChange_NoRaw_UsedOnly"
     
     On Error GoTo eh
     Dim sExpFile    As String
@@ -307,7 +302,7 @@ Public Sub Test_05_04_CodeChanged()
     
     '~~ Test: Code is regarded changed because it is not identical with the Export File
     mErH.BoP ErrSrc(PROC)
-    vResult = cComp.CodeChanged(ignore_empty_lines:=True)
+    Debug.Assert cComp.KindOfCodeChange(ignore_empty_lines:=True) = enUsedOnly
     mErH.EoP ErrSrc(PROC)
     
     ' Evaluating the result
@@ -410,7 +405,79 @@ Public Sub Test_File_Values()
         Debug.Print v & " = " & dctValues(v)
     Next v
 
+End Sub
 
+Public Sub Test_File_Value()
+' ------------------------------------------------
+' This test relies on the Value (Let) service.
+' ------------------------------------------------
+    Const PROC = "Test_File_Value"
+    Const vbTemporaryFolder = 2
+    
+    On Error GoTo eh
+    Dim fso             As New FileSystemObject
+    Dim sPath           As String
+    Dim sFile           As String
+    Dim i               As Long
+    Dim j               As Long
+    Dim arSections()    As Variant
+    Dim sSectionName    As String
+    Dim dctSections     As Dictionary
+    Dim sComment        As String
+    Dim cyValue         As Currency: cyValue = 12345.6789
+    
+    '~~ Test preparation
+    sFile = fso.GetSpecialFolder(SpecialFolder:=vbTemporaryFolder) & "\" & fso.GetTempName
+        
+    mErH.BoP ErrSrc(PROC)
+    
+    '~~ Test step 1: Write commented values
+    sComment = "My comment"
+    mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
+    sComment = "This is a boolean True"
+    mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
+    sComment = "This is a boolean False"
+    mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
+    sComment = "This is a currency value"
+    mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_vartype:=vbCurrency) = cyValue
+    
+    '~~ Display written test values
+    mMsg.Box msg_title:="Content of file '" & sFile & "'" _
+           , msg_text:=fso.OpenTextFile(sFile).ReadAll _
+           , msg_text_monospaced:=True
+    
+    '~~ Test step 2: Read commented values
+    sComment = vbNullString
+    Debug.Print "Test.Value-1 = '" & mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) & "'"
+    Debug.Assert mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
+    Debug.Assert sComment = "My comment"
+    
+    sComment = vbNullString
+    Debug.Assert mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
+    Debug.Assert sComment = "This is a boolean True"
+    
+    sComment = vbNullString
+    Debug.Assert mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
+    Debug.Assert sComment = "This is a boolean False"
+    
+    sComment = vbNullString
+    Debug.Assert mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment) = cyValue
+    Debug.Assert sComment = vbNullString
+    Debug.Assert VarType(mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment)) = vbCurrency
+    
+    mErH.EoP ErrSrc(PROC)
+    
+xt: '~~ Test cleanup
+    With fso
+        If .FileExists(sFile) Then .DeleteFile (sFile)
+    End With
+    Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Sub
 
 Public Sub Test_File_Sections_Transfer_By_LetGet()
@@ -529,8 +596,7 @@ Public Sub Test_UpdateRawClonesTheRemoteRawHasChanged()
     mErH.BoP ErrSrc(PROC)
     
     Application.StatusBar = vbNullString
-    Set wb = ThisWorkbook
-    mCompMan.UpdateClonedRawsTheRemoteRawHasChanged wb
+    mCompMan.UpdateClonesTheRawHasChanged ThisWorkbook
     
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub

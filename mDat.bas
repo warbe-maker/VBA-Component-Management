@@ -62,7 +62,7 @@ Public Property Let CodeVersionAsOfDate( _
     dat.ValueLet sHostBaseName & ValueNameAsOfUpdateDate(sSection), dt
 End Property
 
-Public Property Get CommCompExpFileFullName( _
+Public Property Get RawExpFileFullName( _
                     Optional ByVal sComp As String) As String
 ' -----------------------------------------------------------
 ' Returns a Common Component's (sComp) Export File full name.
@@ -70,10 +70,10 @@ Public Property Get CommCompExpFileFullName( _
     InitDat
     sSection = SectionComponent(sComp)
     dat.Aspect = sSection
-    CommCompExpFileFullName = dat.ValueGet(ValueNameExportFile(sSection))
+    RawExpFileFullName = dat.ValueGet(ValueNameExportFile(sSection))
 End Property
 
-Public Property Let CommCompExpFileFullName( _
+Public Property Let RawExpFileFullName( _
                     Optional ByVal sComp As String, _
                              ByVal sExportFile As String)
 ' -------------------------------------------------------
@@ -92,7 +92,7 @@ Public Property Let CommCompExpFileFullName( _
 
 End Property
 
-Public Property Get CommCompHostWorkbookBaseName( _
+Public Property Get RawHostBaseName( _
                     Optional ByVal sComp As String) As String
 ' -----------------------------------------------------------
 ' Returns a Common Component's (sComp) Host BaseName.
@@ -100,10 +100,10 @@ Public Property Get CommCompHostWorkbookBaseName( _
     InitDat
     sSection = SectionComponent(sComp)
     dat.Aspect = sSection
-    CommCompHostWorkbookBaseName = dat.ValueGet(ValueNameHostBaseName(sSection))
+    RawHostBaseName = dat.ValueGet(ValueNameHostBaseName(sSection))
 End Property
 
-Public Property Let CommCompHostWorkbookBaseName( _
+Public Property Let RawHostBaseName( _
                     Optional ByVal sComp As String, _
                              ByVal sWbBaseName As String)
 ' -----------------------------------------------------------------
@@ -245,7 +245,7 @@ Public Function CommCompsMaxLenght() As Long
     Set dct = dat.Aspects
     If dct.Count > 0 Then
         For Each v In dct
-            If Left(v, Len(SECTION_COMPONENT)) = SECTION_COMPONENT Then
+            If left(v, Len(SECTION_COMPONENT)) = SECTION_COMPONENT Then
                 lMax = Max(lMax, Len(v))
             End If
         Next v
@@ -277,7 +277,7 @@ Public Function RawComps() As Dictionary
     Set dct = dat.Aspects
     If dct.Count > 0 Then
         For Each v In dct
-            If Left(v, Len(SECTION_COMPONENT)) = SECTION_COMPONENT Then
+            If left(v, Len(SECTION_COMPONENT)) = SECTION_COMPONENT Then
                 dctRaws.Add Replace(v, SECTION_COMPONENT, vbNullString), Replace(v, SECTION_COMPONENT, vbNullString)
             End If
         Next v
@@ -315,9 +315,9 @@ Public Sub DisplayCfg()
         sName = Split(v, ".")(1) & "." & Split(v, ".")(2)
         sMsg = sName & String(lMax - Len(sName), " ") & " = " & dct.Item(v) & vbLf & sMsg
     Next v
-    mMsg.Box dsply_title:="Current content of " & dat.Subject & " (section.valuename = value)", _
-             dsply_msg:=sMsg, _
-             dsply_msg_monospaced:=True
+    mMsg.Box msg_title:="Current content of " & dat.Subject & " (section.valuename = value)", _
+             msg_text:=sMsg, _
+             msg_text_monospaced:=True
 
 xt: Exit Sub
 

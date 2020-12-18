@@ -102,9 +102,13 @@ eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Private Sub Workbook_Open()
-
+    Const PROC = "Workbook_Open"
+    
+    On Error GoTo eh
     Dim fso As New FileSystemObject
 
+    mErH.BoP ErrSrc(PROC)
+    
     If IsDevlpInstance Then
         mAddIn.ControlItemRenewAdd
         mCfg.Asserted ' assert a valid CompMan basic configuratuion
@@ -127,6 +131,15 @@ Private Sub Workbook_Open()
         '~~ as new Development instance (see method SaveasDev in module mAddin)
         .Unprotect
     End With
+    
+    
+xt: mErH.BoP ErrSrc(PROC)
+    Exit Sub
 
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 

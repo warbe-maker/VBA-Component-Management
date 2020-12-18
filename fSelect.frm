@@ -58,7 +58,7 @@ Private Sub UserForm_Activate()
         For Each v In dct
             .lbSelect.AddItem v
         Next v
-        .laCompsInWorkbook.caption = Replace(.laCompsInWorkbook.caption, "<wb>", wbHost.name)
+        .laCompsInWorkbook.Caption = Replace(.laCompsInWorkbook.Caption, "<wb>", wbHost.name)
     End With
 
 End Sub

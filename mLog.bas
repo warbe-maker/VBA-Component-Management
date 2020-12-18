@@ -1,7 +1,7 @@
-Attribute VB_Name = "mCompManLog"
+Attribute VB_Name = "mLog"
 Option Explicit
 ' ------------------------------------------------
-' Standard Module mCompManLog:
+' Standard Module mLog:
 ' Logging of any of the CompMan AddIn's activities
 '
 ' Services: LogAction
@@ -65,7 +65,7 @@ Private Function ValueGet( _
                                     , nSize:=Len(sRetVal) _
                                     , lpg_FileName:=vg_file _
                                      )
-    vValue = Left$(sRetVal, lResult)
+    vValue = left$(sRetVal, lResult)
     ValueGet = vValue
     
 xt: Exit Function

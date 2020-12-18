@@ -146,22 +146,22 @@ Public Sub Confirm()
     Dim fl              As FILE
     
     With sMsg
-        .Section(1).sLabel = "Location (path) for the AddIn instance of the CompManDev Workbook:"
-        .Section(1).sText = mCfg.CompManAddinPath & vbLf & _
+        .section(1).sLabel = "Location (path) for the AddIn instance of the CompManDev Workbook:"
+        .section(1).sText = mCfg.CompManAddinPath & vbLf & _
                             "(when the selection is returned with no folder selected the path will default to """ & Application.UserLibraryPath & """)"
-        .Section(1).bMonspaced = True
-        .Section(2).sLabel = "Root folder for Common Component Workbooks:"
-        .Section(2).sText = mCfg.CommonComponentsBasePath
-        .Section(2).bMonspaced = True
-        .Section(3).sLabel = "Name of the ""hosted"" files (those which contains a Common Component Workbook's ""hosted"" Components):"
-        .Section(3).sText = mCfg.HostedCommCompsFileName
-        .Section(3).bMonspaced = True
+        .section(1).bMonspaced = True
+        .section(2).sLabel = "Root folder for Common Component Workbooks:"
+        .section(2).sText = mCfg.CommonComponentsBasePath
+        .section(2).bMonspaced = True
+        .section(3).sLabel = "Name of the ""hosted"" files (those which contains a Common Component Workbook's ""hosted"" Components):"
+        .section(3).sText = mCfg.HostedCommCompsFileName
+        .section(3).bMonspaced = True
     End With
     
     While sReply <> CFG_CONFIRMED
-        sReply = mMsg.Dsply(dsply_title:="Confirm or change the current Component Management's basic configuration" _
-                          , dsply_msg:=sMsg _
-                          , dsply_buttons:=mMsg.Buttons(CFG_CONFIRMED, vbLf, CFG_CHANGE_ADDIN_PATH, CFG_CHANGE_COMM_COMPS_PATH, CFG_CHANGE_HOSTED_FILENAME) _
+        sReply = mMsg.Dsply(msg_title:="Confirm or change the current Component Management's basic configuration" _
+                          , msg_sections:=sMsg _
+                          , msg_buttons:=mMsg.Buttons(CFG_CONFIRMED, vbLf, CFG_CHANGE_ADDIN_PATH, CFG_CHANGE_COMM_COMPS_PATH, CFG_CHANGE_HOSTED_FILENAME) _
                            )
         Select Case sReply
             Case CFG_CHANGE_ADDIN_PATH

@@ -322,7 +322,7 @@ Public Function ReferenceExists(ByVal vWb As Variant, _
     Then Err.Raise mErH.AppErr(3), ErrSrc(PROC), "The Reference (parameter vRef) for the Reference's existence check is neither a valid GUID (a string enclosed in { } ) nor a Reference object!"
     
     If VarType(vRef) = vbString Then
-        If Left$(vRef, 1) <> "{" Or Right$(vRef, 1) <> "}" _
+        If left$(vRef, 1) <> "{" Or Right$(vRef, 1) <> "}" _
         Then Err.Raise mErH.AppErr(4), ErrSrc(PROC), "The Reference (parameter vRef) for the Reference's existence check is a string but not syntactically correct GUID (a string enclosed in { } )!"
     End If
     

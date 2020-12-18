@@ -213,7 +213,7 @@ Public Sub ControlItemRenewAdd()
     Set cmb = Application.CommandBars("Worksheet Menu Bar")
     Set cmbb = cmb.Controls.Add(Type:=msoControlButton, id:=2950)
     With cmbb
-        .caption = CONTROL_CAPTION
+        .Caption = CONTROL_CAPTION
         .Style = msoButtonCaption
         .TooltipText = "Saves the development instance as Addin"
         .OnAction = "wbAddIn.Renew"
@@ -340,12 +340,12 @@ Private Sub DisplayRenewResult()
             sMsg = sMsg & vbLf & cllLog.Item(i)
         Next i
         If bSucceeded _
-        Then mMsg.Box dsply_title:="Successful! The Addin '" & wbAddIn.AddInInstanceName & "' has been renewed by the development instance '" & wbAddIn.DevlpInstanceName & "' (see details below)" _
-                    , dsply_msg:=sMsg _
-                    , dsply_msg_monospaced:=True _
-        Else mMsg.Box dsply_title:="Failed! Renewing the Addin " & wbAddIn.AddInInstanceName & " by the development instance failed (see details below)" _
-                    , dsply_msg:=sMsg _
-                    , dsply_msg_monospaced:=True
+        Then mMsg.Box msg_title:="Successful! The Addin '" & wbAddIn.AddInInstanceName & "' has been renewed by the development instance '" & wbAddIn.DevlpInstanceName & "' (see details below)" _
+                    , msg_text:=sMsg _
+                    , msg_text_monospaced:=True _
+        Else mMsg.Box msg_title:="Failed! Renewing the Addin " & wbAddIn.AddInInstanceName & " by the development instance failed (see details below)" _
+                    , msg_text:=sMsg _
+                    , msg_text_monospaced:=True
     End If
     Application.StatusBar = vbNullString
     lStep = 0
@@ -363,12 +363,12 @@ Private Sub DisplaySaveAsDevResult()
             sMsg = sMsg & vbLf & cllLog.Item(i)
         Next i
         If bSucceeded _
-        Then mMsg.Box dsply_title:="Successful! The Addin '" & wbAddIn.AddInInstanceName & "' has been saved as Development instance Workbook '" & wbAddIn.DevlpInstanceName & "' (see details below)" _
-                    , dsply_msg:=sMsg _
-                    , dsply_msg_monospaced:=True _
-        Else mMsg.Box dsply_title:="Failed! Saving the Addin " & wbAddIn.AddInInstanceName & " as Development instance Workbook failed (see details below)" _
-                    , dsply_msg:=sMsg _
-                    , dsply_msg_monospaced:=True
+        Then mMsg.Box msg_title:="Successful! The Addin '" & wbAddIn.AddInInstanceName & "' has been saved as Development instance Workbook '" & wbAddIn.DevlpInstanceName & "' (see details below)" _
+                    , msg_text:=sMsg _
+                    , msg_text_monospaced:=True _
+        Else mMsg.Box msg_title:="Failed! Saving the Addin " & wbAddIn.AddInInstanceName & " as Development instance Workbook failed (see details below)" _
+                    , msg_text:=sMsg _
+                    , msg_text_monospaced:=True
     End If
     Application.StatusBar = vbNullString
     lStep = 0
@@ -400,7 +400,7 @@ Private Sub ReferencesToAddInRestore()
     Next v
     
     If bOneRestored Then
-        sWbs = Left(sWbs, Len(sWbs) - 2)
+        sWbs = left(sWbs, Len(sWbs) - 2)
         cllLog.Add lStep & ". Reference to the Addin in open Workbooks restored"
         cllLog.Add "   (" & sWbs & ")"
     Else
@@ -486,7 +486,7 @@ Private Function ReferencesToAddInSaveAndRemove() As Boolean
     End With
     
     If bOneRemoved Then
-        sWbs = Left(sWbs, Len(sWbs) - 2)
+        sWbs = left(sWbs, Len(sWbs) - 2)
         cllLog.Add lStep & ". Reference to the Addin from open Workbooks saved and removed"
         cllLog.Add "   (" & sWbs & ")"
     Else
@@ -672,10 +672,24 @@ Public Sub UpdateUsedCommComps()
 '   (the latter will not be the case when Excel
 '   is opend only for the Development Instance!)
 ' -------------------------------------------------
+    Const PROC = "UpdateUsedCommComps"
+    
+    On Error GoTo eh
+    mErH.BoP ErrSrc(PROC)
+    
     If wbAddIn.IsDevlpInstance Then
         If mAddIn.AddInInstanceWorkbookIsOpen Then
-            Application.Run wbAddIn.AddInInstanceName & "!mCompMan.UpdateRawClonesTheRemoteRawHasChanged", ThisWorkbook
+            Application.Run wbAddIn.AddInInstanceName & "!mCompMan.UpdateClonesTheRawHasChanged", ActiveWorkbook
         End If
     End If
+    
+xt: mErH.BoP ErrSrc(PROC)
+    Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 

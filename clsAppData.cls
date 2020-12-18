@@ -87,14 +87,14 @@ Private Declare PtrSafe Function GetPrivateProfileString _
                              
 Private Declare PtrSafe Function DeletePrivateProfileSection _
                 Lib "kernel32" Alias "WritePrivateProfileStringA" _
-               (ByVal Section As String, _
+               (ByVal section As String, _
                 ByVal NoKey As Long, _
                 ByVal NoSetting As Long, _
                 ByVal name As String) As Long
 
 Private Declare PtrSafe Function DeletePrivateProfileKey _
                 Lib "kernel32" Alias "WritePrivateProfileStringA" _
-               (ByVal Section As String, _
+               (ByVal section As String, _
                 ByVal Key As String, _
                 ByVal Setting As Long, _
                 ByVal name As String) As Long
@@ -107,7 +107,7 @@ Private Declare PtrSafe Function GetPrivateProfileSectionNames _
                  
 Private Declare PtrSafe Function GetPrivateProfileSection _
                 Lib "kernel32" Alias "GetPrivateProfileSectionA" _
-               (ByVal Section As String, _
+               (ByVal section As String, _
                 ByVal Buffer As String, _
                 ByVal Size As Long, _
                 ByVal name As String) As Long
@@ -156,7 +156,7 @@ Friend Property Let Aspect(s As String)            ' The Current Aspect's name
 End Property
 
 Friend Property Let Extension(s As String)         ' File extension when Location = spp_File
-    If Left$(s, 1) = "." Then sExtension = s Else sExtension = "." & s ' Prefix extension with a .
+    If left$(s, 1) = "." Then sExtension = s Else sExtension = "." & s ' Prefix extension with a .
     SubjectAdjustExtension
 End Property
 
@@ -284,7 +284,7 @@ Dim fso             As FILE
                 Else strBuffer = String(Len(strBuffer) * 2, 0)
                 iLen = GetPrivateProfileSectionNames(strBuffer, Len(strBuffer), sSubject)
             Loop
-            strBuffer = Left$(strBuffer, iLen)
+            strBuffer = left$(strBuffer, iLen)
             
             If Len(strBuffer) <> 0 Then
                 i = 0
@@ -654,7 +654,7 @@ Dim vAspect         As Variant
                 '~~> Retrieve the names for the provided Aspect
                 strBuffer = mBasic.Space$(32767)
                 lResult = GetPrivateProfileString(sAspect, vbNullString, vbNullString, strBuffer, Len(strBuffer), sSubject)
-                sNames = Left$(strBuffer, lResult)
+                sNames = left$(strBuffer, lResult)
             
                 If sNames <> vbNullString Then                                         ' If there were any names
                     asNames = Split(sNames, vbNullChar)                      ' have them split into an array
@@ -671,7 +671,7 @@ Dim vAspect         As Variant
                     sAspect = v
                     strBuffer = mBasic.Space$(32767)
                     lResult = GetPrivateProfileString(sAspect, vbNullString, vbNullString, strBuffer, Len(strBuffer), sSubject)
-                    sNames = Left$(strBuffer, lResult)
+                    sNames = left$(strBuffer, lResult)
                 
                     If sNames <> vbNullString Then                                         ' If there were any names
                         asNames = Split(sNames, vbNullChar)                      ' have them split into an array
@@ -796,7 +796,7 @@ Dim l As Long
         l = InStrRev(sSubject, ".")
         If l <> 0 Then
             '~~> Unstrip the existing extension and amend it with the new specified
-            sSubject = Left$(sSubject, l - 1) & sExtension
+            sSubject = left$(sSubject, l - 1) & sExtension
         Else
             sSubject = sSubject & sExtension
         End If
@@ -922,7 +922,7 @@ Dim wss     As IWshShell3
             sRetVal = String(32767, 0)
             '~~> Execute the call and get the string lenght
             lResult = GetPrivateProfileString(sAspect, sName, "", sRetVal, Len(sRetVal), sSubject)
-            vValue = Left$(sRetVal, lResult)
+            vValue = left$(sRetVal, lResult)
     
         Case spp_Registry
             If Exists(spp_Aspect, lLocation, sSubject, sAspect, , lHKey) Then
@@ -1129,9 +1129,9 @@ Public Sub ValuesDisplay(Optional lLocation As enLocation = 0, _
     For Each v In dctValues
         sValues = sValues & vbLf & v & " = " & dctValues.Item(v)
     Next v
-    mMsg.Box dsply_title:=sTitle, _
-             dsply_msg:=sValues, _
-             dsply_buttons:=vbOKOnly
+    mMsg.Box msg_title:=sTitle, _
+             msg_text:=sValues, _
+             msg_buttons:=vbOKOnly
     Exit Sub
     
 eh: mErH.ErrMsg ErrSrc(PROC)

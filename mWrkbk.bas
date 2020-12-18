@@ -151,6 +151,7 @@ Public Function IsOpen(ByVal vWb As Variant, _
     Dim wb          As Workbook
     Dim dctOpen     As Dictionary
     Dim wbOpen      As Workbook
+    Dim fso         As New FileSystemObject
     
     If Not mWrkbk.IsObject(vWb) And Not mWrkbk.IsFullName(vWb) And Not mWrkbk.IsName(vWb) And Not TypeName(vWb) = "String" _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is neither a Workbook object nor a Workbook's name or fullname)!"
@@ -167,12 +168,12 @@ Public Function IsOpen(ByVal vWb As Variant, _
         If dctOpen.Exists(sWbBaseName) Then
             Set wb = dctOpen.Item(sWbBaseName)
             If wb.FullName = vWb Then
-                '~~ The already open Workbook is the Workbook requestedr
+                '~~ The already open Workbook is the Workbook requested
                 IsOpen = True
                 Set wbResult = dctOpen.Item(sWbBaseName)
             Else
                 '~~ The open Workbook has the requested name but the path/location is different
-                If Not mFl.Exists(vWb) Then
+                If Not fso.FileExists(vWb) Then
                     '~~ The requested Workbook does not or no longer exist at the given but at the other location
                     IsOpen = True
                     Set wbResult = dctOpen.Item(sWbBaseName)
@@ -189,7 +190,8 @@ Public Function IsOpen(ByVal vWb As Variant, _
         End If
     End If
     
-xt: Exit Function
+xt: Set fso = Nothing
+    Exit Function
     
 eh: ErrMsg ErrSrc(PROC)
 End Function
@@ -285,7 +287,7 @@ End Function
         Do While hWnd <> 0
             sText = String$(100, Chr$(0))
             lRet = CLng(GetClassName(hWnd, sText, 100))
-            If Left$(sText, lRet) = "EXCEL7" Then
+            If left$(sText, lRet) = "EXCEL7" Then
                 Call IIDFromString(StrPtr(IID_IDispatch), iid)
                 If AccessibleObjectFromWindow(hWnd, OBJID_NATIVEOM, iid, ob) = 0 Then 'S_OK
                     Set GetExcelObjectFromHwnd = ob.Application
