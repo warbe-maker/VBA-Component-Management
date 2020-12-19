@@ -608,3 +608,17 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Public Sub Test_Log()
+    Const PROC = "Test_Log"
+    
+    Dim cLog As New clsLog
+    With cLog
+        .Reset
+        .Service = ErrSrc(PROC)
+        .Serviced = ThisWorkbook.name & ": " & "Mine"
+        .Action = "Tested"
+    End With
+    Set cLog = Nothing
+
+End Sub
+

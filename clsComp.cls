@@ -171,6 +171,7 @@ Public Property Get KindOfCodeChange( _
     Dim sTempPath           As String
     Dim sTempFolder         As String
     Dim flTemp              As FILE
+    Dim arDiff              As Variant
     
     If lKindOfCodeChange = enKindUnknown Then
         
@@ -186,6 +187,7 @@ Public Property Get KindOfCodeChange( _
                         mFl.sDiffer(dif_file1:=Me.ExpFile _
                                     , dif_file2:=cRaw.ExpFile _
                                     , dif_ignore_empty_records:=ignore_empty_lines _
+                                    , dif_lines:=arDiff _
                                      )
                     Case vbext_ct_MSForm
                         With fso
@@ -201,6 +203,7 @@ Public Property Get KindOfCodeChange( _
                             ElseIf mFl.sDiffer(dif_file1:=flTemp _
                                                , dif_file2:=cRaw.ExpFile _
                                                , dif_ignore_empty_records:=ignore_empty_lines _
+                                               , dif_lines:=arDiff _
                                                 ) Then
                                 bRawRemoteChanged = True
                             End If
@@ -220,6 +223,7 @@ Public Property Get KindOfCodeChange( _
                             bRawClonedChanged = mFl.sDiffer(dif_file1:=fso.GetFile(sTempExp) _
                                                          , dif_file2:=Me.ExpFile _
                                                          , dif_ignore_empty_records:=ignore_empty_lines _
+                                                         , dif_lines:=arDiff _
                                                           )
                             If fso.FileExists(sTempExp) Then fso.DeleteFile sTempExp
                         End If
@@ -237,6 +241,7 @@ Public Property Get KindOfCodeChange( _
                             ElseIf mFl.sDiffer(dif_file1:=flExport _
                                                , dif_file2:=flTemp _
                                                , dif_ignore_empty_records:=ignore_empty_lines _
+                                               , dif_lines:=arDiff _
                                                 ) Then
                                 bRawClonedChanged = True
                             End If
@@ -255,6 +260,7 @@ Public Property Get KindOfCodeChange( _
                             bCodeChanged = mFl.sDiffer(dif_file1:=fso.GetFile(sTempExp) _
                                                      , dif_file2:=Me.ExpFile _
                                                      , dif_ignore_empty_records:=False _
+                                                     , dif_lines:=arDiff _
                                                       )
                             If fso.FileExists(sTempExp) Then fso.DeleteFile sTempExp
                         End If
@@ -272,6 +278,7 @@ Public Property Get KindOfCodeChange( _
                             ElseIf mFl.sDiffer(dif_file1:=flExport _
                                                , dif_file2:=flTemp _
                                                , dif_ignore_empty_records:=ignore_empty_lines _
+                                               , dif_lines:=arDiff _
                                                 ) Then
                                 bCodeChanged = True
                             End If
@@ -298,6 +305,10 @@ Public Property Get KindOfCodeChange( _
                     lKindOfCodeChange = enNoCodeChange
                 End If
         End Select
+        cLog.Action = "Kind of code change = " & KoCCStrng(lKindOfCodeChange)
+        If lKindOfCodeChange <> enNoCodeChange Then
+        cLog.Action = "1. Line changed: " & arDiff(0)
+        End If
     End If
     
     KindOfCodeChange = lKindOfCodeChange
@@ -310,6 +321,17 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Property
+
+Private Function KoCCStrng(ByVal kocc As enKindOfCodeChange) As String
+    Select Case kocc
+        Case enKindUnknown:         KoCCStrng = "Unknown"
+        Case enNoCodeChange:        KoCCStrng = "No code change"
+        Case enRawCloneAndRemote:   KoCCStrng = "Raw and Clone code changed"
+        Case enRawCloneOnly:        KoCCStrng = "Only Clone code changed"
+        Case enRawRemoteOnly:       KoCCStrng = "Only Raw code changed"
+        Case enUsedOnly:            KoCCStrng = "The used component's code changed"
+    End Select
+End Function
 
 Public Property Get KindOfComp() As enKindOfComp
     Const PROC = "KindOfComp"
@@ -335,6 +357,7 @@ Public Property Get KindOfComp() As enKindOfComp
             Case enRawClone
 '                RegisterAsCloneWorkbook
         End Select
+        cLog.Action = "Kind of Component = " & KoCStrng(lKindOfComp)
     End If
     KindOfComp = lKindOfComp
     
@@ -347,6 +370,17 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Property
+
+
+Private Function KoCStrng(ByVal koc As enKindOfComp) As String
+    Select Case koc
+        Case enKoCunknown:  KoCStrng = "Unknown"
+        Case enNoRaw:       KoCStrng = "No Raw"
+        Case enRawClone:    KoCStrng = "Raw Clone"
+        Case enRawHosted:   KoCStrng = "Raw Hosted"
+        Case enRawRemote:   KoCStrng = "Raw Remote"
+    End Select
+End Function
 
 Private Property Get ReplaceRemoteWithClonedRawConfirmed() As Boolean
 ' -------------------------------------------------------------
@@ -510,8 +544,6 @@ Public Sub BackUpCode()
         If Not .VBComp.CodeModule.CountOfLines = 0 Then
             .VBComp.Export .ExportFileFullName
             .ExpFile = GetFile(sExportFullName)
-            mLog.LogAction log_wb:=.WrkbkBaseName _
-                         , log_action:=DebugComp & "Code change backed-up (exported)"
         End If
     End With
 
@@ -967,14 +999,19 @@ Public Sub ReplaceClonedWithRemoteRaw(ByVal ru_vbc As VBComponent)
     Wend
     
     ru_vbc.name = sTempName
+    cLog.Action = "Renamed to '" & sTempName & "'"
     With wb.VBProject.VBComponents
         .Import cRaw.ExpFileFullName
+        cLog.Action = "Re-imported '" & cRaw.ExpFileFullName & "'"
     End With
     Set vbc = wb.VBProject.VBComponents(sCompName) ' renew the vbc object to point to the new imported component
     
     sTempName = vbc.name & "_Temp"
+    cLog.Action = "Renamed to '" & sTempName & "'"
+
     While mVBP.ComponentExists(vWb:=wb, vComp:=sTempName)
         wb.VBProject.VBComponents.Remove wb.VBProject.VBComponents(sTempName)
+        cLog.Action = "Temporary renamed '" & sTempName & "' removed"
         i = i + 1
         sTempName = sTempName & i
     Wend
@@ -988,10 +1025,6 @@ Public Sub ReplaceClonedWithRemoteRaw(ByVal ru_vbc As VBComponent)
         '~~ Log the updated code version
         .CodeVersionAsOfDate = cRaw.ExpFile.DateLastModified
         '~~ Log the update
-        mLog.LogAction log_wb:=Me.Wrkbk.name _
-                            , log_action:=DebugComp & "The original's last update date = " & cRaw.ExpFile.DateLastModified
-        mLog.LogAction log_wb:=Me.Wrkbk.name _
-                            , log_action:=DebugComp & "The registered last as-of used  = " & .CodeVersionAsOfDate
     End With
 
 xt: Exit Sub
