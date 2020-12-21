@@ -1130,7 +1130,7 @@ Public Sub ValuesDisplay(Optional lLocation As enLocation = 0, _
         sValues = sValues & vbLf & v & " = " & dctValues.Item(v)
     Next v
     mMsg.Box msg_title:=sTitle, _
-             msg_text:=sValues, _
+             msg:=sValues, _
              msg_buttons:=vbOKOnly
     Exit Sub
     

@@ -341,11 +341,11 @@ Private Sub DisplayRenewResult()
         Next i
         If bSucceeded _
         Then mMsg.Box msg_title:="Successful! The Addin '" & wbAddIn.AddInInstanceName & "' has been renewed by the development instance '" & wbAddIn.DevlpInstanceName & "' (see details below)" _
-                    , msg_text:=sMsg _
-                    , msg_text_monospaced:=True _
+                    , msg:=sMsg _
+                    , msg_monospaced:=True _
         Else mMsg.Box msg_title:="Failed! Renewing the Addin " & wbAddIn.AddInInstanceName & " by the development instance failed (see details below)" _
-                    , msg_text:=sMsg _
-                    , msg_text_monospaced:=True
+                    , msg:=sMsg _
+                    , msg_monospaced:=True
     End If
     Application.StatusBar = vbNullString
     lStep = 0
@@ -364,11 +364,11 @@ Private Sub DisplaySaveAsDevResult()
         Next i
         If bSucceeded _
         Then mMsg.Box msg_title:="Successful! The Addin '" & wbAddIn.AddInInstanceName & "' has been saved as Development instance Workbook '" & wbAddIn.DevlpInstanceName & "' (see details below)" _
-                    , msg_text:=sMsg _
-                    , msg_text_monospaced:=True _
+                    , msg:=sMsg _
+                    , msg_monospaced:=True _
         Else mMsg.Box msg_title:="Failed! Saving the Addin " & wbAddIn.AddInInstanceName & " as Development instance Workbook failed (see details below)" _
-                    , msg_text:=sMsg _
-                    , msg_text_monospaced:=True
+                    , msg:=sMsg _
+                    , msg_monospaced:=True
     End If
     Application.StatusBar = vbNullString
     lStep = 0

@@ -160,7 +160,7 @@ Public Sub Confirm()
     
     While sReply <> CFG_CONFIRMED
         sReply = mMsg.Dsply(msg_title:="Confirm or change the current Component Management's basic configuration" _
-                          , msg_sections:=sMsg _
+                          , msg:=sMsg _
                           , msg_buttons:=mMsg.Buttons(CFG_CONFIRMED, vbLf, CFG_CHANGE_ADDIN_PATH, CFG_CHANGE_COMM_COMPS_PATH, CFG_CHANGE_HOSTED_FILENAME) _
                            )
         Select Case sReply

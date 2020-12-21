@@ -443,8 +443,8 @@ Public Sub Test_File_Value()
     
     '~~ Display written test values
     mMsg.Box msg_title:="Content of file '" & sFile & "'" _
-           , msg_text:=fso.OpenTextFile(sFile).ReadAll _
-           , msg_text_monospaced:=True
+           , msg:=fso.OpenTextFile(sFile).ReadAll _
+           , msg_monospaced:=True
     
     '~~ Test step 2: Read commented values
     sComment = vbNullString

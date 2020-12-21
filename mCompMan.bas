@@ -151,8 +151,8 @@ xt: mErH.EoP ErrSrc(PROC)
 eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
-Public Sub ExportChangedComponents(ByVal cc_wb As Workbook, _
-                          Optional ByVal cc_hosted As String = vbNullString)
+Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
+                          Optional ByVal ec_hosted As String = vbNullString)
 ' ------------------------------------------------------------------------
 ' Exclusively performed/trigered by the Before_Save event:
 ' - Any code change (detected by the comparison of a temporary export file
@@ -198,10 +198,10 @@ Public Sub ExportChangedComponents(ByVal cc_wb As Workbook, _
     
     mErH.BoP ErrSrc(PROC)
     
-    If cc_wb Is Nothing Then Set cc_wb = ActiveWorkbook
+    If ec_wb Is Nothing Then Set ec_wb = ActiveWorkbook
     '~~ Prevent any action for a Workbook opened with any irregularity
     If InStr(ActiveWindow.Caption, "(") <> 0 Then GoTo xt
-    If InStr(cc_wb.FullName, "(") <> 0 Then GoTo xt
+    If InStr(ec_wb.FullName, "(") <> 0 Then GoTo xt
     
     Set dctComps = New Dictionary
     Set cComp = New clsComp
@@ -210,18 +210,18 @@ Public Sub ExportChangedComponents(ByVal cc_wb As Workbook, _
     cLog.Service = ErrSrc(PROC)
     
     lCompMaxLen = mDat.CommCompsMaxLenght()
-    If cc_hosted <> vbNullString Then
+    If ec_hosted <> vbNullString Then
         '~~ Keep a record when this Workbook hosts one or more Common Components
-        mDat.CommCompsHostWorkbookFullName(fso.GetBaseName(cc_wb.FullName)) = cc_wb.FullName
+        mDat.CommCompsHostWorkbookFullName(fso.GetBaseName(ec_wb.FullName)) = ec_wb.FullName
     End If
     
-    For Each vbc In cc_wb.VBProject.VBComponents
-        Application.StatusBar = "Export of changed components: " & Format(lExported, "##") & String$((cc_wb.VBProject.VBComponents.Count + 1) - lComponents - lExported, ".")
+    For Each vbc In ec_wb.VBProject.VBComponents
+        Application.StatusBar = "Export of changed components: " & Format(lExported, "##") & String$((ec_wb.VBProject.VBComponents.Count + 1) - lComponents - lExported, ".")
         mTrc.BoC ErrSrc(PROC) & " " & vbc.name
         Set cComp = New clsComp
         With cComp
-            .Wrkbk = cc_wb
-            .HostedRawComps = cc_hosted
+            .Wrkbk = ec_wb
+            .HostedRawComps = ec_hosted
             .VBComp = vbc
             .ComponentName = vbc.name
             sServiced = .Wrkbk.name & " Component """ & vbc.name & """"
@@ -300,7 +300,7 @@ next_vbc:
     '~~ Remove Export Files of no longer existent components
     Set dctRemove = New Dictionary
     Set cComp = New clsComp
-    cComp.Wrkbk = cc_wb
+    cComp.Wrkbk = ec_wb
     sFolder = cComp.ExportFolder
     With New FileSystemObject
         For Each fl In .GetFolder(sFolder).Files
@@ -321,9 +321,9 @@ next_vbc:
     Set cComp = Nothing
 
     Select Case lExported
-        Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & cc_wb.name & " had been changed/exported/backed up."
-        Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & cc_wb.name & " had been exported/backed up: " & left(sExported, Len(sExported) - 2)
-        Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & cc_wb.name & " had been exported/backed up: " & left(sExported, Len(sExported) - 1)
+        Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & ec_wb.name & " had been changed/exported/backed up."
+        Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & left(sExported, Len(sExported) - 2)
+        Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & left(sExported, Len(sExported) - 1)
     End Select
     If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
@@ -339,8 +339,8 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub UpdateClonesTheRawHasChanged( _
-                                  ByVal cc_wb As Workbook, _
-                         Optional ByVal updt_hosted_raws As String = vbNullString)
+                                  ByVal uc_wb As Workbook, _
+                         Optional ByVal uc_hosted As String = vbNullString)
 ' -------------------------------------------------------------------------------
 ' Updates any cloned raw component in the target Workbook (updt_wrkbk) where the
 ' code of the remote raw component hosted in another Workbook has changed (the
@@ -365,8 +365,8 @@ Public Sub UpdateClonesTheRawHasChanged( _
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
     If InStr(ActiveWindow.Caption, "(") <> 0 Then GoTo xt
-    If InStr(ActiveWorkbook.FullName, "(") <> 0 Then GoTo xt
-    Set wb = ActiveWorkbook
+    If InStr(uc_wb.FullName, "(") <> 0 Then GoTo xt
+    Set wb = uc_wb
     
     lCompMaxLen = mDat.CommCompsMaxLenght()
     Set cLog = New clsLog
@@ -375,7 +375,7 @@ Public Sub UpdateClonesTheRawHasChanged( _
     For Each vbc In wb.VBProject.VBComponents
         Set cComp = New clsComp
         cComp.Wrkbk = wb
-        cComp.HostedRawComps = updt_hosted_raws
+        cComp.HostedRawComps = uc_hosted
         cComp.VBComp = vbc
         lComponents = lComponents + 1
         sServiced = cComp.Wrkbk.name & " Component """ & vbc.name & """"

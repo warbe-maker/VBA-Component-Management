@@ -316,8 +316,8 @@ Public Sub DisplayCfg()
         sMsg = sName & String(lMax - Len(sName), " ") & " = " & dct.Item(v) & vbLf & sMsg
     Next v
     mMsg.Box msg_title:="Current content of " & dat.Subject & " (section.valuename = value)", _
-             msg_text:=sMsg, _
-             msg_text_monospaced:=True
+             msg:=sMsg, _
+             msg_monospaced:=True
 
 xt: Exit Sub
 

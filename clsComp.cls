@@ -433,7 +433,7 @@ Private Property Get ReplaceRemoteWithClonedRawConfirmed() As Boolean
     sReply = sReplyDsplyDiff
     Do
         sReply = mMsg.Dsply(msg_title:=sTitle, _
-                            msg_sections:=sMsg, _
+                            msg:=sMsg, _
                             msg_buttons:=cllButtons _
                            )
         Select Case sReply
