@@ -538,6 +538,9 @@ Public Function ErrMsg( _
     End If
     
 xt:
+#If ExecTrace Then
+    mTrc.Continue
+#End If
 End Function
 
 Private Sub ErrMsgMatter(ByVal err_source As String, _

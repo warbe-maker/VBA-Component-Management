@@ -12,7 +12,6 @@ Option Explicit
 Private sService    As String
 Private sServiced   As String
 Private sFile       As String
-Private tsFile      As TextStream
 
 Public Property Let Service(ByVal s As String)
     sService = ThisWorkbook.name & "/" & s
@@ -26,15 +25,9 @@ Public Property Let Action(ByVal s As String)
 ' -------------------------------------------
 ' Appen an Action line to the log file.
 ' -------------------------------------------
-    Dim fso As New FileSystemObject
-    
-    If Not fso.FileExists(sFile) Then fso.CreateTextFile sFile
-    Set tsFile = fso.OpenTextFile(sFile, IOMode:=ForAppending)
-    tsFile.WriteLine Now() & " " & sServiced & ": " & s
-    tsFile.Close
-    Set fso = Nothing
-    Set tsFile = Nothing
-
+    mFile.Txt(tx_file_full_name:=sFile _
+            , tx_append:=True _
+             ) = Now() & " " & sServiced & ": " & s
 End Property
 
 

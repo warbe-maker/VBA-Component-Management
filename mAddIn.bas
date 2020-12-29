@@ -41,11 +41,6 @@ Private bAllRemoved     As Boolean
 Private dctAddInRefs    As Dictionary
 Private lStep           As Long
 
-Private Enum enSaveRestore
-    enSaveAndOff
-    enRestore
-End Enum
-
 Private Property Get Step() As Long
     If lStep = 0 Then lStep = 1 Else lStep = lStep + 1
     Step = lStep
@@ -400,7 +395,7 @@ Private Sub ReferencesToAddInRestore()
     Next v
     
     If bOneRestored Then
-        sWbs = left(sWbs, Len(sWbs) - 2)
+        sWbs = Left(sWbs, Len(sWbs) - 2)
         cllLog.Add lStep & ". Reference to the Addin in open Workbooks restored"
         cllLog.Add "   (" & sWbs & ")"
     Else
@@ -486,7 +481,7 @@ Private Function ReferencesToAddInSaveAndRemove() As Boolean
     End With
     
     If bOneRemoved Then
-        sWbs = left(sWbs, Len(sWbs) - 2)
+        sWbs = Left(sWbs, Len(sWbs) - 2)
         cllLog.Add lStep & ". Reference to the Addin from open Workbooks saved and removed"
         cllLog.Add "   (" & sWbs & ")"
     Else
@@ -679,7 +674,7 @@ Public Sub UpdateUsedCommComps()
     
     If wbAddIn.IsDevlpInstance Then
         If mAddIn.AddInInstanceWorkbookIsOpen Then
-            Application.Run wbAddIn.AddInInstanceName & "!mCompMan.UpdateClonesTheRawHasChanged", ActiveWorkbook
+            Application.Run wbAddIn.AddInInstanceName & "!mCompMan.UpdateClonesTheRawHasChanged", ActiveWorkbook, wbAddIn.HOSTED_RAWS
         End If
     End If
     

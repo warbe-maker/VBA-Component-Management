@@ -3,46 +3,33 @@ Option Explicit
 Option Private Module
 
 Private Const SECTION_BASE_CONFIG   As String = "BaseConfiguration"
-Private Const COMMON_BASE_PATH      As String = "CommCompsBasePath"
-Private Const COMPMAN_ADDIN_PATH    As String = "AddInPath"
-Private Const HOSTED_FILE_NAME      As String = "HostedFileName"
+Private Const VB_DEV_PROJECTS_ROOT  As String = "VBDevProjectsRoot"
+Private Const COMPMAN_ADDIN_PATH    As String = "CompManAddInPath"
 
 Private Property Get CFG_CHANGE_ADDIN_PATH() As String
-    CFG_CHANGE_ADDIN_PATH = "Change AddIn Path:" & vbLf & vbLf & "Select another folder"
+    CFG_CHANGE_ADDIN_PATH = "Change CompMan" & vbLf & "AddIn Path"
 End Property
 
-Private Property Get CFG_CHANGE_COMM_COMPS_PATH() As String
-    CFG_CHANGE_COMM_COMPS_PATH = "Change Common Component Workbooks Path:" & vbLf & vbLf & "Select another root folder"
-End Property
-
-Private Property Get CFG_CHANGE_HOSTED_FILENAME() As String
-     CFG_CHANGE_HOSTED_FILENAME = "Change the name of the ""hosted"" files:" & vbLf & vbLf & "Select another ""hosted"" file example"
+Private Property Get CFG_CHANGE_DEVELOPMENT_ROOT() As String
+    CFG_CHANGE_DEVELOPMENT_ROOT = "Change development" & vbLf & "root folder"
 End Property
 
 Private Property Get CFG_FILE_NAME() As String: CFG_FILE_NAME = ThisWorkbook.PATH & "\CompMan.cfg": End Property
 
 Public Property Get CompManAddinPath() As String
-    CompManAddinPath = mFl.Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH, vl_file:=CFG_FILE_NAME)
+    CompManAddinPath = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH)
 End Property
 
 Public Property Let CompManAddinPath(ByVal s As String)
-    mFl.Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH, vl_file:=CFG_FILE_NAME) = s
+    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH) = s
 End Property
 
-Public Property Get HostedCommCompsFileName() As String
-    HostedCommCompsFileName = mFl.Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=HOSTED_FILE_NAME, vl_file:=CFG_FILE_NAME)
+Public Property Get VBProjectsDevRoot() As String
+    VBProjectsDevRoot = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT)
 End Property
 
-Public Property Let HostedCommCompsFileName(ByVal s As String)
-    mFl.Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=HOSTED_FILE_NAME, vl_file:=CFG_FILE_NAME) = s
-End Property
-
-Public Property Get CommonComponentsBasePath() As String
-    CommonComponentsBasePath = mFl.Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMMON_BASE_PATH, vl_file:=CFG_FILE_NAME)
-End Property
-
-Public Property Let CommonComponentsBasePath(ByVal s As String)
-    mFl.Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMMON_BASE_PATH, vl_file:=CFG_FILE_NAME) = s
+Public Property Let VBProjectsDevRoot(ByVal s As String)
+    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT) = s
 End Property
 
 Public Function Asserted() As Boolean
@@ -55,16 +42,11 @@ Public Function Asserted() As Boolean
     Const PROC = "Assert"
     
     On Error GoTo eh
-    Dim sPathCommon     As String
-    Dim sPathCompMan    As String
-    Dim sHostedName     As String
-    Dim v               As Variant
-    Dim fl              As FILE
+    Dim sPathCompMan As String
     
     With New FileSystemObject
         If .FolderExists(mCfg.CompManAddinPath) _
-        And .FolderExists(mCfg.CommonComponentsBasePath) _
-        And mFl.Exists(xst_file:=mCfg.CommonComponentsBasePath & "\" & mCfg.HostedCommCompsFileName & "*") _
+        And .FolderExists(mCfg.VBProjectsDevRoot) _
         Then
             Asserted = True
             .CopyFile Source:=CFG_FILE_NAME, Destination:=mCfg.CompManAddinPath & "\CompMan.cfg", OverWriteFiles:=True
@@ -80,7 +62,7 @@ Public Function Asserted() As Boolean
                 sPathCompMan = Application.UserLibraryPath ' Default because user escaped the selection
             Else
                 '~~ Assure trust in this location and save it to the CompMan.cfg file
-                mDat.TrustThisFolder FolderPath:=sPathCompMan, TrustSubfolders:=False
+                mCfg.TrustThisFolder FolderPath:=sPathCompMan
                 mCfg.CompManAddinPath = sPathCompMan
             End If
         Else
@@ -92,35 +74,15 @@ Public Function Asserted() As Boolean
                     sPathCompMan = Application.UserLibraryPath
                 Else
                     '~~ Assure trust in this location and save it to the CompMan.cfg file
-                    mDat.TrustThisFolder FolderPath:=sPathCompMan, TrustSubfolders:=False
+                    mCfg.TrustThisFolder FolderPath:=sPathCompMan
                     mCfg.CompManAddinPath = sPathCompMan
                 End If
             Wend
         End If
                    
-        '~~ Assert the Common Workbooks path
-        sPathCommon = mCfg.CommonComponentsBasePath
-        If sPathCommon = vbNullString Then
-            sPathCommon = mBasic.SelectFolder("Select the root folder for the ""Common Component Workbooks""")
-            mCfg.CommonComponentsBasePath = sPathCommon
-        Else
-            While Not .FolderExists(sPathCommon)
-                sPathCommon = mBasic.SelectFolder( _
-                sTitle:="Then current configured Common Component Workbook path does not exist. Select another one.")
-            Wend
-            If mCfg.CommonComponentsBasePath <> sPathCommon Then mCfg.CommonComponentsBasePath = sPathCommon
-        End If
-        
-        '~~ Assert the name for the Hosted Common Components file name
-        sHostedName = mCfg.HostedCommCompsFileName
-        If sHostedName = vbNullString Then
-            If mFl.SelectFile( _
-                                sel_init_path:=mCfg.CommonComponentsBasePath _
-                              , sel_title:="Select a file which - for example - is one indicating a Common Component(s) hosted in the coresponding Workbook." _
-                              , sel_result:=fl _
-                              ) _
-            Then sHostedName = fl.ShortName
-            mCfg.HostedCommCompsFileName = sHostedName
+        '~~ Assert the root for VB-Development-Projects
+        If mCfg.VBProjectsDevRoot = vbNullString Then
+            mCfg.VBProjectsDevRoot = mBasic.SelectFolder(sTitle:="Select the root folder for any VB development/maintenance project which is to be supported by CompMan")
         End If
     
     End With
@@ -141,55 +103,37 @@ Public Sub Confirm()
     On Error GoTo eh
     Dim sMsg            As tMsg
     Dim sReply          As String
-    Dim sPathCompMan    As String
-    Dim sPathCommon     As String
-    Dim fl              As FILE
     
     With sMsg
-        .section(1).sLabel = "Location (path) for the AddIn instance of the CompManDev Workbook:"
-        .section(1).sText = mCfg.CompManAddinPath & vbLf & _
-                            "(when the selection is returned with no folder selected the path will default to """ & Application.UserLibraryPath & """)"
+        .section(1).sLabel = "Location (path) for the CompMan AddIn (the AddIn instance of the CompManDev Workbook):"
+        .section(1).sText = mCfg.CompManAddinPath
         .section(1).bMonspaced = True
-        .section(2).sLabel = "Root folder for Common Component Workbooks:"
-        .section(2).sText = mCfg.CommonComponentsBasePath
+        .section(2).sLabel = "Root folder for any VB-Project in status development/maintenance about to be supported by CompMan:"
+        .section(2).sText = mCfg.VBProjectsDevRoot
         .section(2).bMonspaced = True
-        .section(3).sLabel = "Name of the ""hosted"" files (those which contains a Common Component Workbook's ""hosted"" Components):"
-        .section(3).sText = mCfg.HostedCommCompsFileName
-        .section(3).bMonspaced = True
     End With
     
     While sReply <> CFG_CONFIRMED
         sReply = mMsg.Dsply(msg_title:="Confirm or change the current Component Management's basic configuration" _
                           , msg:=sMsg _
-                          , msg_buttons:=mMsg.Buttons(CFG_CONFIRMED, vbLf, CFG_CHANGE_ADDIN_PATH, CFG_CHANGE_COMM_COMPS_PATH, CFG_CHANGE_HOSTED_FILENAME) _
+                          , msg_buttons:=mMsg.Buttons(CFG_CONFIRMED, vbLf, CFG_CHANGE_ADDIN_PATH, CFG_CHANGE_DEVELOPMENT_ROOT) _
                            )
         Select Case sReply
             Case CFG_CHANGE_ADDIN_PATH
-                sPathCompMan = mBasic.SelectFolder( _
-                               sTitle:="Select the folder for the AddIn instance of the CompManDev Workbook (escape to use the Application.UserLibraryPath)")
-                If sPathCompMan = vbNullString Then
-                    sPathCompMan = Application.UserLibraryPath ' Default because user escaped the selection
-                Else
-                    '~~ Assure trust in this location and save it to the CompMan.cfg file
-                    mCfg.CompManAddinPath = sPathCompMan
-                End If
+                Do
+                    mCfg.CompManAddinPath = mBasic.SelectFolder("Select the ""obligatory!"" folder for the AddIn instance of the CompManDev Workbook")
+                    If mCfg.CompManAddinPath <> vbNullString Then Exit Do
+                Loop
+                mCfg.TrustThisFolder FolderPath:=mCfg.CompManAddinPath
             
-            Case CFG_CHANGE_COMM_COMPS_PATH
-                sPathCommon = mBasic.SelectFolder("Select the root folder for the ""Common Component Workbooks""")
-                mCfg.CommonComponentsBasePath = sPathCommon
-
-            Case CFG_CHANGE_HOSTED_FILENAME
-                If mFl.SelectFile( _
-                                    sel_init_path:=mCfg.CommonComponentsBasePath _
-                                  , sel_title:="Select a file which - for example - is one indicating a Common Component(s) hosted in the coresponding Workbook." _
-                                  , sel_result:=fl _
-                                   ) _
-                Then mCfg.HostedCommCompsFileName = fl.ShortName
+            Case CFG_CHANGE_DEVELOPMENT_ROOT
+                Do
+                    mCfg.VBProjectsDevRoot = mBasic.SelectFolder("Select the ""obligatory!"" root folder for VB development projects about to be supported by CompMan")
+                    If mCfg.VBProjectsDevRoot <> vbNullString Then Exit Do
+                Loop
         End Select
     Wend
     
-    mDat.TrustThisFolder FolderPath:=mCfg.CompManAddinPath, TrustSubfolders:=False
-
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -199,45 +143,133 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-
-Public Function HostedCommComps() As Collection
-' -------------------------------------------------
-' Returns a collection of file objects which
-' specify hosted Common Components.
-' -------------------------------------------------
-            
-    Dim cll             As New Collection
-    Dim fso             As New FileSystemObject
-    Dim fl              As FILE
-    Dim v               As Variant
-    Dim s               As String
-    Dim ts              As TextStream
-    Dim aNames()        As String
-    Dim sParentFolder   As String
-    Dim i               As Long
-    Dim cllHosted       As New Collection
-    Dim cllWbk          As New Collection
-    
-    mFl.Exists xst_file:=mCfg.CommonComponentsBasePath & "\" & mCfg.HostedCommCompsFileName & "*" _
-               , xst_cll:=cll
-    
-    For Each v In cll
-        Set fl = v
-        sParentFolder = fl.ParentFolder
-        mFl.Exists xst_file:=sParentFolder & "\*.xlsm", xst_cll:=cllWbk
-'        Debug.Print cllWbk(1)
-        
-        Set ts = fl.OpenAsTextStream
-        aNames = Split(ts.ReadAll, vbLf)
-        Set ts = Nothing
-        For i = LBound(aNames) To UBound(aNames)
-            Debug.Print fl.ParentFolder & ": " & aNames(i)
-        Next i
-    Next v
-    
-End Function
-
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = ThisWorkbook.name & ": mCfg." & sProc
 End Function
+
+Public Sub TrustThisFolder(Optional ByVal FolderPath As String, _
+                           Optional ByVal TrustNetworkFolders As Boolean = False, _
+                           Optional ByVal sDescription As String)
+' ---------------------------------------------------------------------------
+' Add a folder to the 'Trusted Locations' list so that your project's VBA can
+' open Excel files without raising errors like "Office has detected a problem
+' with this file. To help protect your computer this file cannot be opened."
+' Ths function has been implemented to fail silently on error: if you suspect
+' that users don't have permission to assign 'Trusted Location' status in all
+' locations, reformulate this as a function returning True or False
+'
+' Nigel Heffernan January 2015
+'
+' Based on code published by Daniel Pineault in DevHut.net on June 23, 2010:
+' www.devhut.net\2010\06\23\vbscript-createset-trusted-location-using-vbscript\
+' **** **** **** ****  THIS CODE IS IN THE PUBLIC DOMAIN  **** **** **** ****
+' UNIT TESTING:
+'
+' 1:    Reinstate the commented-out line 'Debug.Print sSubKey & vbTab & sPath
+' 2:    Open the Immediate Window and run this command:
+'           TrustThisFolder "Z:\", True, True, "The user's home directory"
+' 3:    If  "Z:\"  is already in the list, choose another folder
+' 4:    Repeat step 2 or 3: the folder should be listed in the debug output
+' 5:    If it isn't listed, disable the error-handler and record any errors
+' -----------------------------------------------------------------------------
+    Const PROC = "TrustThisFolder"
+    Const HKEY_CURRENT_USER = &H80000001
+    
+    On Error GoTo eh
+    Dim sKeyPath            As String
+    Dim oRegistry           As Object
+    Dim sSubKey             As String
+    Dim oSubKeys            As Variant   ' type not specified. After it's populated, it can be iterated
+    Dim oSubKey             As Variant   ' type not specified.
+    Dim bSubFolders         As Boolean
+    Dim bNetworkLocation    As Boolean
+    Dim iTrustNetwork       As Long
+    Dim sPath               As String
+    Dim i                   As Long
+
+    bSubFolders = True
+    bNetworkLocation = False
+
+    With New FileSystemObject
+        If FolderPath = "" Then
+            FolderPath = .GetSpecialFolder(2).PATH
+            If sDescription = "" Then
+                sDescription = "The user's local temp folder"
+            End If
+        End If
+    End With
+
+    If Right(FolderPath, 1) <> "\" Then
+        FolderPath = FolderPath & "\"
+    End If
+
+    sKeyPath = ""
+    sKeyPath = sKeyPath & "SOFTWARE\Microsoft\Office\"
+    sKeyPath = sKeyPath & Application.Version
+    sKeyPath = sKeyPath & "\Excel\Security\Trusted Locations\"
+     
+    Set oRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & "." & "\root\default:StdRegProv")
+    '~~ Note: not the usual \root\cimv2  for WMI scripting: the StdRegProv isn't in that folder
+    oRegistry.EnumKey HKEY_CURRENT_USER, sKeyPath, oSubKeys
+    
+    For Each oSubKey In oSubKeys
+        sSubKey = CStr(oSubKey)
+        oRegistry.GetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Path", sPath
+        If sPath = FolderPath Then
+            Exit For
+        End If
+    Next oSubKey
+    
+    If sPath <> FolderPath Then
+        If IsNumeric(Replace(sSubKey, "Location", "")) _
+        Then i = CLng(Replace(sSubKey, "Location", "")) + 1 _
+        Else i = UBound(oSubKeys) + 1
+        
+        sSubKey = "Location" & CStr(i)
+        
+        If TrustNetworkFolders Then
+            iTrustNetwork = 1
+            oRegistry.GetDWORDValue HKEY_CURRENT_USER, sKeyPath, "AllowNetworkLocations", iTrustNetwork
+            If iTrustNetwork = 0 Then
+                oRegistry.SetDWORDValue HKEY_CURRENT_USER, sKeyPath, "AllowNetworkLocations", 1
+            End If
+        End If
+        
+        oRegistry.CreateKey HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey
+        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Path", FolderPath
+        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Description", sDescription
+        oRegistry.SetDWORDValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "AllowSubFolders", 1
+
+    End If
+
+exit_sub:
+    Set oRegistry = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Sub
+
+Private Property Get Value( _
+           Optional ByVal vl_section As String, _
+           Optional ByVal vl_value_name As String) As Variant
+    
+    Value = mFile.Value(vl_file:=CFG_FILE_NAME _
+                      , vl_section:=vl_section _
+                      , vl_value_name:=vl_value_name _
+                       )
+End Property
+
+Private Property Let Value( _
+           Optional ByVal vl_section As String, _
+           Optional ByVal vl_value_name As String, _
+                    ByVal vl_value As Variant)
+    mFile.Value(vl_file:=CFG_FILE_NAME _
+              , vl_section:=vl_section _
+              , vl_value_name:=vl_value_name _
+               ) = vl_value
+End Property
 

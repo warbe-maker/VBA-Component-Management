@@ -135,6 +135,7 @@ Public Function ArrayCompare(ByVal ac_a1 As Variant, _
 ' ----------------------------------------------------------------------------
     Const PROC = "ArrayCompare"
     
+    
     Dim l       As Long
     Dim i       As Long
     Dim va()    As Variant

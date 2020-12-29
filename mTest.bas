@@ -78,7 +78,6 @@ Public Sub Test_01_KindOfComp()
 
     Dim wb          As Workbook
     Dim fso         As New FileSystemObject
-    Dim lKindOfComp As enKindOfComp
     Dim cComp       As clsComp
     Dim sComp       As String
     
@@ -90,7 +89,7 @@ Public Sub Test_01_KindOfComp()
     With cComp
         .Wrkbk = wb
         .VBComp = wb.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = enKindOfComp.enRawRemote
+        Debug.Assert .KindOfComp() = enKindOfComp.enRawClone
     End With
 
     sComp = "fMsg"
@@ -108,7 +107,7 @@ Public Sub Test_01_KindOfComp()
     With cComp
         .Wrkbk = wb
         .VBComp = wb.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = enNoRaw
+        Debug.Assert .KindOfComp() = enNoneSpecific
     End With
     
 xt: wb.Close SaveChanges:=False
@@ -134,7 +133,6 @@ Public Sub Test_05_01_KindOfCodeChange_NoRaw_UsedOnly()
     Dim fso         As New FileSystemObject
     Dim wbTest      As Workbook
     Dim sExpFile    As String
-    Dim vResult     As Variant
     
     If cTest Is Nothing Then Set cTest = New clsTestService
     If cComp Is Nothing Then Set cComp = New clsComp
@@ -229,7 +227,6 @@ Public Sub Test_05_03_KindOfCodeChange_NoRaw_UsedOnly()
     
     On Error GoTo eh
     Dim sExpFile    As String
-    Dim vResult     As Variant
     
     If cTest Is Nothing Then Set cTest = New clsTestService
     If cComp Is Nothing Then Set cComp = New clsComp
@@ -348,18 +345,34 @@ Public Sub Test_CompOriginHasChanged()
 
 End Sub
 
+Public Sub Test_File_sAreEqual()
+
+    Debug.Assert _
+    mFile.sAreEqual( _
+                  fc_file1:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
+                , fc_file2:="E:\Ablage\Excel VBA\DevAndTest\Common\CompManDev\mFile.bas" _
+                 ) = False
+    
+'    Debug.Assert _
+'    mFile.sAreEqual( _
+'                  fc_file1:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
+'                , fc_file2:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
+'                 ) = True
+
+End Sub
+
 Public Sub Test_File_Compare()
     
     Const FILE_LEFT = "E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas"
-    Const FILE_RIGHT = "E:\Ablage\Excel VBA\DevAndTest\Common\CompManDev\mFl.bas"
+    Const FILE_RIGHT = "E:\Ablage\Excel VBA\DevAndTest\Common\CompManDev\mFile.bas"
     
-    Debug.Print mFl.Compare(file_left_full_name:=FILE_LEFT _
+    Debug.Print mFile.Compare(file_left_full_name:=FILE_LEFT _
                           , file_right_full_name:=FILE_RIGHT _
                           , file_left_title:=FILE_LEFT _
                           , file_right_title:=FILE_RIGHT _
                            )
     
-    Debug.Print mFl.Compare(file_left_full_name:=FILE_LEFT _
+    Debug.Print mFile.Compare(file_left_full_name:=FILE_LEFT _
                           , file_right_full_name:=FILE_LEFT _
                           , file_left_title:=FILE_LEFT _
                           , file_right_title:=FILE_LEFT _
@@ -370,41 +383,63 @@ End Sub
 Public Sub Test_File_SectionNames()
     Const PROC = "Test_File_SectionNames"
 
-    Dim sFile As String
+    On Error GoTo eh
     Dim v   As Variant
     
-    For Each v In mFl.SectionNames(sn_file:=mCfg.CompManAddinPath & "\CompMan.dat")
+    For Each v In mFile.SectionNames(sn_file:=mCfg.CompManAddinPath & "\CompMan.dat")
         Debug.Print "[" & v & "]"
     Next v
+
+xt: Exit Sub
     
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Sub
 
 Public Sub Test_File_ValueNames()
-    Const PROC = "Test_File_Names"
+    Const PROC = "Test_File_ValueNames"
 
-    Dim sFile As String
+    On Error GoTo eh
     Dim v   As Variant
     
-    For Each v In mFl.ValueNames(vn_file:=mCfg.CompManAddinPath & "\CompMan.dat")
+    For Each v In mFile.ValueNames(vn_file:=mCfg.CompManAddinPath & "\CompMan.dat")
         Debug.Print """" & v & """"
     Next v
     
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Sub
 
 Public Sub Test_File_Values()
     Const PROC = "Test_File_Values"
     
+    On Error GoTo eh
     Dim dctValues   As Dictionary
     Dim v           As Variant
     Dim sFile       As String
     
     sFile = mCfg.CompManAddinPath & "\CompMan.dat"
-    Set dctValues = mFl.Values(vl_file:=sFile _
-                             , vl_section:=mFl.SectionNames(sn_file:=sFile).Items()(0))
+    Set dctValues = mFile.Values(vl_file:=sFile _
+                             , vl_section:=mFile.SectionNames(sn_file:=sFile).Items()(0))
     For Each v In dctValues
         Debug.Print v & " = " & dctValues(v)
     Next v
 
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Sub
 
 Public Sub Test_File_Value()
@@ -416,13 +451,7 @@ Public Sub Test_File_Value()
     
     On Error GoTo eh
     Dim fso             As New FileSystemObject
-    Dim sPath           As String
     Dim sFile           As String
-    Dim i               As Long
-    Dim j               As Long
-    Dim arSections()    As Variant
-    Dim sSectionName    As String
-    Dim dctSections     As Dictionary
     Dim sComment        As String
     Dim cyValue         As Currency: cyValue = 12345.6789
     
@@ -433,13 +462,13 @@ Public Sub Test_File_Value()
     
     '~~ Test step 1: Write commented values
     sComment = "My comment"
-    mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
+    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
     sComment = "This is a boolean True"
-    mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
+    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
     sComment = "This is a boolean False"
-    mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
+    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
     sComment = "This is a currency value"
-    mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_vartype:=vbCurrency) = cyValue
+    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4") = cyValue
     
     '~~ Display written test values
     mMsg.Box msg_title:="Content of file '" & sFile & "'" _
@@ -448,22 +477,22 @@ Public Sub Test_File_Value()
     
     '~~ Test step 2: Read commented values
     sComment = vbNullString
-    Debug.Print "Test.Value-1 = '" & mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) & "'"
-    Debug.Assert mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
+    Debug.Print "Test.Value-1 = '" & mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) & "'"
+    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
     Debug.Assert sComment = "My comment"
     
     sComment = vbNullString
-    Debug.Assert mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
+    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
     Debug.Assert sComment = "This is a boolean True"
     
     sComment = vbNullString
-    Debug.Assert mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
+    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
     Debug.Assert sComment = "This is a boolean False"
     
     sComment = vbNullString
-    Debug.Assert mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment) = cyValue
+    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment) = cyValue
     Debug.Assert sComment = vbNullString
-    Debug.Assert VarType(mFl.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment)) = vbCurrency
+    Debug.Assert VarType(mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment)) = vbCurrency
     
     mErH.EoP ErrSrc(PROC)
     
@@ -489,14 +518,12 @@ Public Sub Test_File_Sections_Transfer_By_LetGet()
     
     On Error GoTo eh
     Dim fso             As New FileSystemObject
-    Dim sPath           As String
     Dim sFileGet        As String
     Dim sFileLet        As String
     Dim i               As Long
     Dim j               As Long
     Dim arSections()    As Variant
     Dim sSectionName    As String
-    Dim dctSections     As Dictionary
     
     '~~ Test preparation
     sFileGet = fso.GetSpecialFolder(SpecialFolder:=vbTemporaryFolder) & "\" & fso.GetTempName
@@ -507,7 +534,7 @@ Public Sub Test_File_Sections_Transfer_By_LetGet()
         ReDim Preserve arSections(i - 1)
         arSections(i - 1) = sSectionName
         For j = 1 To 5
-            mFl.Value(vl_file:=sFileGet _
+            mFile.Value(vl_file:=sFileGet _
                     , vl_section:=sSectionName _
                     , vl_value_name:="Value-" & j _
                      ) = CStr(i & "-" & j)
@@ -517,8 +544,8 @@ Public Sub Test_File_Sections_Transfer_By_LetGet()
     '~~ Test
     mErH.BoP ErrSrc(PROC)
     
-    mFl.SectionsCopy sc_section_names:=arSections, sc_file_from:=sFileGet, sc_file_to:=sFileLet
-    Debug.Assert mFl.sDiffer(dif_file1:=fso.GetFile(sFileGet), dif_file2:=fso.GetFile(sFileLet)) = False
+    mFile.SectionsCopy sc_section_names:=arSections, sc_file_from:=sFileGet, sc_file_to:=sFileLet
+    Debug.Assert mFile.sDiffer(dif_file1:=fso.GetFile(sFileGet), dif_file2:=fso.GetFile(sFileLet)) = False
     
     mErH.EoP ErrSrc(PROC)
     
@@ -565,8 +592,6 @@ Public Sub Test_Temp()
     Const PROC = "Test_Temp"
     
     On Error GoTo eh
-    Dim cll As New Collection
-    Dim dct As New Dictionary
     
     Set wbTest = ThisWorkbook
     Set vbc = wbTest.VBProject.VBComponents("mFile")
@@ -590,8 +615,6 @@ End Sub
 Public Sub Test_UpdateRawClonesTheRemoteRawHasChanged()
     Const PROC  As String = "Test_UpdateCommonModules"
     
-    Dim wb      As Workbook
-
     On Error GoTo eh
     mErH.BoP ErrSrc(PROC)
     

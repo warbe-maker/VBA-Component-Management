@@ -75,11 +75,10 @@ Option Compare Text
 ' W. Rauschenberger Berlin August 2019
 ' -------------------------------------------------------------------------------
 Public Enum enKindOfComp                ' The kind of Component in the sense of CompMan
-        enKoCunknown = 0
-        enRawRemote = 1                 ' The Component is a hosted raw one
-        enRawHosted = 2
-        enRawClone = 3                 ' The Component is a used raw, i.e. the raw is hosted by another Workbook
-        enNoRaw = 4                     ' Neither a hosted nor a used Raw Common Component
+        enUnknown = 0
+        enHostedRaw = 1
+        enRawClone = 2                 ' The Component is a used raw, i.e. the raw is hosted by another Workbook
+        enNoneSpecific = 3             ' Neither a hosted nor a used Raw Common Component
 End Enum
 
 Public Enum enUpdateReply
@@ -98,24 +97,46 @@ Public Enum vbcmType
 End Enum
 
 Public Enum enKindOfCodeChange  ' Kind of code change
-    enKindUnknown
-    enUsedOnly                  ' A component which is neither a remote raw nor a cloned raw has changed
-    enRawRemoteOnly             ' Only the remote raw code hosted in another Workbook had changed
-    enRawCloneOnly              ' Only the code of the target Component had changed
-    enRawCloneAndRemote         ' Both, the code of the remote raw and the raw clone had changed
-    enNoCodeChange              ' No code change at all
+    enUnknown
+    enUsedOnly              ' A component which is neither a hosted raw nor a raw's clone has changed
+    enRawOnly               ' Only the remote raw code hosted in another Workbook had changed
+    enCloneOnly             ' Only the code of the target Component had changed
+    enRawAndClone           ' Both, the code of the remote raw and the raw clone had changed
+    enNoCodeChange          ' No code change at all
+    enPendingExportOnly     ' A modified raw may have been re-imported already
 End Enum
 
-Public dat          As clsAppData
-Public wblog        As clsAppData
-Private wbTarget    As Workbook     ' The Workbook of which the VB-Components are managed
-                                    ' (the Workbook which "pulls" its up to date VB-Project from wbSource)
-Public cComp        As clsComp
-Public cRaw         As clsRaw
-Public cLog         As clsLog
-Public asNoSynch()  As String
-Public dctRaws      As Dictionary
-Public dctRawHosts  As Dictionary
+Public cComp            As clsComp
+Public cRaw             As clsRaw
+Public cLog             As clsLog
+Public asNoSynch()      As String
+Public dctRawComponents As Dictionary
+Public dctRawHosts      As Dictionary
+
+Private dctHostedRaws   As Dictionary
+Private lMaxCompLength  As Long
+
+Public Property Get HostedRaws() As Variant
+    Set HostedRaws = dctHostedRaws
+End Property
+
+Private Property Let HostedRaws(ByVal vhosted As Variant)
+' -------------------------------------------------------
+' Saves the names of the hosted raw components
+' (hosted_raws) to the Dictionary (dctRawComponents).
+' -------------------------------------------------
+    Dim v               As Variant
+    Dim sComp           As String
+    
+    If dctHostedRaws Is Nothing Then Set dctHostedRaws = New Dictionary
+    For Each v In Split(vhosted, ",")
+        sComp = Trim$(v)
+        If Not dctHostedRaws.Exists(sComp) Then
+            dctHostedRaws.Add sComp, sComp
+        End If
+    Next v
+    
+End Property
 
 Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mCompMan" & "." & es_proc
@@ -181,7 +202,6 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
     Dim v                   As Variant
     Dim fl                  As FILE
     Dim sFolder             As String
-    Dim flRawExportFile     As FILE
     Dim lComponents         As Long
     Dim lExported           As Long
     Dim lRemoved            As Long
@@ -190,11 +210,9 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
     Dim lUpdated            As Long
     Dim sUpdated            As String
     Dim sMsg                As String
-    Dim lKindOfComp         As enKindOfComp
-    Dim flRawExpFile        As FILE
-    Dim sRawHostFullName    As String
     Dim fso                 As New FileSystemObject
     Dim sServiced           As String
+    Dim sProgress           As String
     
     mErH.BoP ErrSrc(PROC)
     
@@ -203,25 +221,27 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
     If InStr(ActiveWindow.Caption, "(") <> 0 Then GoTo xt
     If InStr(ec_wb.FullName, "(") <> 0 Then GoTo xt
     
+    lCompMaxLen = MaxCompLength(wb:=ec_wb)
     Set dctComps = New Dictionary
     Set cComp = New clsComp
     Set cLog = New clsLog
     cLog.Reset
     cLog.Service = ErrSrc(PROC)
     
-    lCompMaxLen = mDat.CommCompsMaxLenght()
-    If ec_hosted <> vbNullString Then
-        '~~ Keep a record when this Workbook hosts one or more Common Components
-        mDat.CommCompsHostWorkbookFullName(fso.GetBaseName(ec_wb.FullName)) = ec_wb.FullName
+    HostedRaws = ec_hosted
+    If HostedRaws.Count <> 0 Then
+        '~~ Keep a record when this Workbook hosts one or more Raw components
+        mHost.FullName(fso.GetBaseName(ec_wb.FullName)) = ec_wb.FullName
     End If
     
+    sProgress = String$(ec_wb.VBProject.VBComponents.Count + 1, ".")
     For Each vbc In ec_wb.VBProject.VBComponents
-        Application.StatusBar = "Export of changed components: " & Format(lExported, "##") & String$((ec_wb.VBProject.VBComponents.Count + 1) - lComponents - lExported, ".")
+        sProgress = Left(sProgress, Len(sProgress) - 1)
+        Application.StatusBar = "Export of changed components: " & Format(lExported, "##") & sProgress
         mTrc.BoC ErrSrc(PROC) & " " & vbc.name
         Set cComp = New clsComp
         With cComp
             .Wrkbk = ec_wb
-            .HostedRawComps = ec_hosted
             .VBComp = vbc
             .ComponentName = vbc.name
             sServiced = .Wrkbk.name & " Component """ & vbc.name & """"
@@ -234,14 +254,13 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
         dctComps.Add vbc.name, vbc
         
         Select Case cComp.KindOfComp
-            Case enNoRaw ' This is a 'normal' component which is neither a hosted nor a cloned raw component
+            Case enNoneSpecific, enHostedRaw ' This is a 'normal' component which is neither a hosted nor a cloned raw component
                 If Not cComp.KindOfCodeChange = enNoCodeChange Then
                     mTrc.BoC ErrSrc(PROC) & " Backup No-Raw " & vbc.name
                     cComp.BackUpCode
                     lExported = lExported + 1
                     sExported = vbc.name & ", " & sExported
                     mTrc.EoC ErrSrc(PROC) & " Backup No-Raw" & vbc.name
-                    cLog.Action = "Exported to '" & cComp.ExportFileFullName & "'"
                     GoTo next_vbc
                 End If
 
@@ -249,11 +268,10 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
                 '~~ Establish a component class object which represents the cloned raw's remote instance
                 '~~ which is hosted in another Workbook
                 Set cRaw = New clsRaw
-                mDat.IsRaw raw_comp_name:=cComp.CompName, raw_exp_file:=flRawExpFile, raw_host_full_name:=sRawHostFullName
                 With cRaw ' Provide all available information rearding the remote raw component
-                    .ExpFile = flRawExpFile
-                    .HostFullName = sRawHostFullName
                     .CompName = cComp.CompName
+                    .ExpFile = fso.GetFile(mRaw.ExpFileFullName(comp_name:=.CompName))
+                    .HostFullName = mRaw.HostFullName(comp_name:=.CompName)
                 End With
                 
                 With cComp
@@ -261,16 +279,16 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
                         Case enNoCodeChange
                             cLog.Action = "No action performed"
 
-                        Case enRawCloneAndRemote
+                        Case enRawAndClone
                             '~~ The user will decide which of the code modification will go to the raw and the raw will be
                             '~~ updated with the final result
                             cLog.Action = "No action performed"
                             
-                        Case enRawCloneOnly
+                        Case enCloneOnly
                             '~~ This is regarded an unusual code change because instead of maintaining the origin code
                             '~~ of a Common Component in ist "host" VBProject it had been changed in the using VBProject.
                             '~~ Nevertheless updating the origin code with this change is possible when explicitely confirmed.
-                            mFl.Compare file_left_full_name:=cComp.ExportFileFullName _
+                            mFile.Compare file_left_full_name:=cComp.ExportFileFullName _
                                       , file_left_title:=cComp.ExportFileFullName _
                                       , file_right_full_name:=cRaw.ExpFileFullName _
                                       , file_right_title:=cRaw.ExpFileFullName
@@ -281,7 +299,7 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
                                 sUpdated = vbc.name & ", " & sUpdated
                                 cLog.Action = """Remote Raw"" has been updated with code of ""Raw Clone"""
                             End If
-                        Case enRawRemoteOnly
+                        Case enRawOnly
                             Debug.Print "Remote raw " & vbc.name & " has changed and will update the used in the VB-Project the next time it is opened."
                             '~~ The changed remote raw will be used to update the clone the next time the Workbook is openend
                             cLog.Action = "No action performed"
@@ -290,6 +308,10 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
                     End Select
                 End With
         End Select
+        
+        If cComp.KindOfCodeChange = enPendingExportOnly Then
+            cComp.BackUpCode
+        End If
                         
 next_vbc:
         Set cComp = Nothing
@@ -322,10 +344,10 @@ next_vbc:
 
     Select Case lExported
         Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & ec_wb.name & " had been changed/exported/backed up."
-        Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & left(sExported, Len(sExported) - 2)
-        Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & left(sExported, Len(sExported) - 1)
+        Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 2)
+        Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 1)
     End Select
-    If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
+    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
     
 xt: mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
@@ -352,30 +374,32 @@ Public Sub UpdateClonesTheRawHasChanged( _
     Dim wb                  As Workbook
     Dim vbc                 As VBComponent
     Dim lCompMaxLen         As Long
-    Dim flRawExportFile     As FILE
-    Dim sRawHostFullName    As String
     Dim lComponents         As Long
     Dim lClonedRaw          As Long
     Dim lReplaced           As Long
     Dim sReplaced           As String
     Dim sMsg                As String
-    Dim lKindOfComp         As enKindOfComp
     Dim sServiced           As String
-
+    Dim fso                 As New FileSystemObject
+    
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
     If InStr(ActiveWindow.Caption, "(") <> 0 Then GoTo xt
     If InStr(uc_wb.FullName, "(") <> 0 Then GoTo xt
     Set wb = uc_wb
     
-    lCompMaxLen = mDat.CommCompsMaxLenght()
+    HostedRaws = uc_hosted
+    If HostedRaws.Count <> 0 Then
+        mHost.FullName(BaseName(wb.name)) = wb.FullName
+    End If
+    
+    lCompMaxLen = MaxCompLength(wb:=wb)
     Set cLog = New clsLog
     cLog.Service = ErrSrc(PROC)
     
     For Each vbc In wb.VBProject.VBComponents
         Set cComp = New clsComp
         cComp.Wrkbk = wb
-        cComp.HostedRawComps = uc_hosted
         cComp.VBComp = vbc
         lComponents = lComponents + 1
         sServiced = cComp.Wrkbk.name & " Component """ & vbc.name & """"
@@ -386,17 +410,16 @@ Public Sub UpdateClonesTheRawHasChanged( _
             '~~ Establish a component class object which represents the cloned raw's remote instance
             '~~ which is hosted in another Workbook
             Set cRaw = New clsRaw
-            mDat.IsRaw raw_comp_name:=cComp.CompName, raw_exp_file:=flRawExportFile, raw_host_full_name:=sRawHostFullName
             With cRaw ' Provide all available information rearding the remote raw component
-                .ExpFile = flRawExportFile
-                .HostFullName = sRawHostFullName
                 .CompName = cComp.CompName
+                .ExpFile = fso.GetFile(FilePath:=mRaw.ExpFileFullName(.CompName))
+                .HostFullName = mRaw.HostFullName(comp_name:=.CompName)
             End With
 
             With cComp
                 If .KindOfComp = enRawClone Then lClonedRaw = lClonedRaw + 1
-                If .KindOfCodeChange = enRawRemoteOnly _
-                Or .KindOfCodeChange = enRawCloneAndRemote Then
+                If .KindOfCodeChange = enRawOnly _
+                Or .KindOfCodeChange = enRawAndClone Then
                     '~~ Attention!! The cloned raw's code is updated disregarding any code changed in it.
                     '~~ A code change in the cloned raw is only considered when the Workbook is about to
                     '~~ be closed - where it may be ignored to make exactly this happens.
@@ -405,8 +428,7 @@ Public Sub UpdateClonesTheRawHasChanged( _
                     sReplaced = .CompName & ", " & sReplaced
                     '~~ Register the update being used to identify a potentially relevant
                     '~~ change of the origin code
-                    .CodeVersionAsOfDate = .ExpFile.DateLastModified
-                    cLog.Action = "Replaced (re-imported) with the remote raw's export file '" & cRaw.ExpFileFullName & "'"
+                    cLog.Action = "Replaced! The remote raw's export file '" & cRaw.ExpFileFullName & "' has been imported."
                     .BackUpCode
                 End If
             End With
@@ -419,16 +441,16 @@ Public Sub UpdateClonesTheRawHasChanged( _
         Case 1
             Select Case lReplaced
                 Case 0:     sMsg = "1 of " & lComponents & " has been identified as ""Cloned Raw Component"" but has not been updated since the raw had not changed."
-                Case 1:     sMsg = "1 Component of " & lComponents & " has been identified as ""Cloned Raw Component"" and updated because the raw had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case 1:     sMsg = "1 Component of " & lComponents & " has been identified as ""Cloned Raw Component"" and updated because the raw had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
                End Select
         Case Else
             Select Case lReplaced
                 Case 0:     sMsg = lClonedRaw & " Components of " & lComponents & " had been identified as ""Cloned Raw Components"". None had been updated since none of the raws had changed."
-                Case 1:     sMsg = lClonedRaw & " Components of " & lComponents & " had been identified as ""Cloned Raw Components"". One had been updated since the raw's code had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
-                Case Else:  sMsg = lClonedRaw & " Components of " & lComponents & " had been identified as ""Cloned Raw Components"". " & lReplaced & " have been updated because the raw's code had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case 1:     sMsg = lClonedRaw & " Components of " & lComponents & " had been identified as ""Cloned Raw Components"". One had been updated since the raw's code had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case Else:  sMsg = lClonedRaw & " Components of " & lComponents & " had been identified as ""Cloned Raw Components"". " & lReplaced & " have been updated because the raw's code had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
             End Select
     End Select
-    If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
+    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
     
 xt: Set cRaw = Nothing
@@ -450,4 +472,82 @@ Public Sub Version(ByVal c_version As clsAddinVersion)
 ' ---------------------------------------------------------------------------------------------------------------------
     c_version.Version = wbAddIn.AddInVersion
 End Sub
+
+Public Property Get MaxCompLength(Optional ByVal wb As Workbook) As Long
+    Dim vbc As VBComponent
+    If lMaxCompLength = 0 Then
+        For Each vbc In wb.VBProject.VBComponents
+            lMaxCompLength = mBasic.Max(lMaxCompLength, Len(vbc.name))
+        Next vbc
+    End If
+    MaxCompLength = lMaxCompLength
+End Property
+
+Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
+' -----------------------------------------------------------
+'
+' -----------------------------------------------------------
+    Const PROC = "CompareCloneWithRaw"
+    
+    On Error GoTo eh
+    Dim sExpFileClone   As String
+    Dim sExpFileRaw     As String
+    Dim wb              As Workbook
+    Dim cComp           As New clsComp
+    
+    Set wb = ActiveWorkbook
+    With cComp
+        .Wrkbk = wb
+        .CompName = cmp_comp_name
+        .VBComp = wb.VBProject.VBComponents(.CompName)
+        sExpFileRaw = mRaw.ExpFileFullName(comp_name:=cmp_comp_name)
+        sExpFileClone = .ExportFileFullName
+    
+        mFile.Compare file_left_full_name:=sExpFileClone _
+                    , file_right_full_name:=sExpFileRaw _
+                    , file_left_title:="The cloned raw's current code in Workbook/VBProject " & cComp.WrkbkBaseName & " (" & sExpFileClone & ")" _
+                    , file_right_title:="The remote raw's current code in Workbook/VBProject " & mBasic.BaseName(mRaw.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
+
+    End With
+    Set cComp = Nothing
+
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Sub
+
+Public Sub Merge(Optional ByVal fl_1 As String = vbNullString, _
+                 Optional ByVal fl_2 As String = vbNullString)
+' -----------------------------------------------------------
+'
+' -----------------------------------------------------------
+    Const PROC = "Merge"
+    
+    On Error GoTo eh
+    Dim fl_left         As FILE
+    Dim fl_right        As FILE
+    
+    If fl_1 = vbNullString Then mFile.SelectFile sel_result:=fl_left
+    If fl_2 = vbNullString Then mFile.SelectFile sel_result:=fl_right
+    fl_1 = fl_left.PATH
+    fl_2 = fl_right.PATH
+    
+    mFile.Compare file_left_full_name:=fl_1 _
+                , file_right_full_name:=fl_2 _
+                , file_left_title:=fl_1 _
+                , file_right_title:=fl_2
+
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Sub
+
 

@@ -287,7 +287,7 @@ End Function
         Do While hWnd <> 0
             sText = String$(100, Chr$(0))
             lRet = CLng(GetClassName(hWnd, sText, 100))
-            If left$(sText, lRet) = "EXCEL7" Then
+            If Left$(sText, lRet) = "EXCEL7" Then
                 Call IIDFromString(StrPtr(IID_IDispatch), iid)
                 If AccessibleObjectFromWindow(hWnd, OBJID_NATIVEOM, iid, ob) = 0 Then 'S_OK
                     Set GetExcelObjectFromHwnd = ob.Application
@@ -363,7 +363,7 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
                 Set wb = .Item(sWbBaseName)
                 If wb.FullName <> vWb Then
                     '~~ The open Workook with the same name is from a different location
-                    If mFl.Exists(vWb) Then
+                    If mFile.Exists(vWb) Then
                         '~~ The file still exists on the provided location
                         Err.Raise AppErr(3), ErrSrc(PROC), Replace(Replace$(ERR_GOW01, "<>1", wb.PATH), "<>2", sPath)
                     Else
@@ -377,7 +377,7 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
                 End If
             Else
                 '~~ The Workbook is yet not open
-                If mFl.Exists(vWb) Then
+                If mFile.Exists(vWb) Then
                     Set GetOpen = Workbooks.Open(vWb)
                 Else
                     Err.Raise AppErr(4), ErrSrc(PROC), Replace(ERR_GOW03, "<>", CStr(vWb))

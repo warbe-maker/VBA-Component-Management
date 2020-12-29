@@ -69,8 +69,6 @@ Private Declare PtrSafe Function GetPrivateProfileSectionNames _
 '                ByVal Size As Long, _
 '                ByVal name As String) As Long
 
-Private dctSection As Dictionary
-
 Public Enum enVarType
     vbEmpty = 0       ' Empty (nicht initialisiert)
     vbNull = 1        ' Null (keine gültigen Daten)
@@ -86,12 +84,194 @@ Public Enum enVarType
     vbBoolean = 11    ' Boolescher Wert
 End Enum
 
+Public Property Get Arry( _
+           Optional ByVal fa_file_full_name As String, _
+           Optional ByVal fa_exclude_empty_records As Boolean = False) As Variant
+' ------------------------------------------------------------------------------------
+' Returns the content of the file (vFile) - which may be provided as file object or
+' full file name - as array by considering any kind of line break characters.
+' ------------------------------------------------------------------------------------
+    Const PROC  As String = "Arry"
+    
+    On Error GoTo eh
+    Dim ts      As TextStream
+    Dim a       As Variant
+    Dim a1()    As String
+    Dim sSplit  As String
+    Dim fso     As FILE
+    Dim sFile   As String
+    Dim i       As Long
+    Dim j       As Long
+    
+    If Not Exists(fa_file_full_name, fso) _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The file object (vFile) does not exist!"
+    
+    '~~ Unload file into a test stream
+    With New FileSystemObject
+        Set ts = .OpenTextFile(fso.PATH, 1)
+        With ts
+            On Error Resume Next ' may be empty
+            sFile = .ReadAll
+            .Close
+        End With
+    End With
+    
+    If sFile = vbNullString Then GoTo xt
+    
+    '~~ Get the kind of line break used
+    If InStr(sFile, vbCr) <> 0 Then sSplit = vbCr
+    If InStr(sFile, vbLf) <> 0 Then sSplit = sSplit & vbLf
+    
+    '~~ Test stream to array
+    a = Split(sFile, sSplit)
+    
+    '~~ Remove any leading or trailing empty items
+    mBasic.ArrayTrimm a
+    
+    If Not fa_exclude_empty_records Then
+        Arry = a
+    Else
+        '~~ Count empty records
+        j = 0
+        For i = LBound(a) To UBound(a)
+            If Len(Trim$(a(i))) = 0 Then j = j + 1
+        Next i
+        j = UBound(a) - j
+        ReDim a1(j - 1)
+        j = 0
+        For i = LBound(a) To UBound(a)
+            If Len(Trim$(a(i))) > 0 Then
+                a1(j) = a(i)
+                j = j + 1
+            End If
+        Next i
+        Arry = a1
+    End If
+    
+xt: Exit Property
+    
+eh: ErrMsg ErrSrc(PROC)
+End Property
+
+Public Property Get SectionNames(Optional ByVal sn_file As String) As Dictionary
+' ------------------------------------------------------------------------------
+' Returns a Dictionary of all section names [.....] in a file.
+' ------------------------------------------------------------------------------
+    Const PROC = "SectionNames"
+    
+    On Error GoTo eh
+    Dim asSections()     As String
+    Dim dct             As Dictionary
+    Dim i               As Long
+    Dim iLen            As Long
+    Dim strBuffer       As String
+    Dim sSectionName    As String
+    
+    Set dct = New Dictionary
+    Set SectionNames = New Dictionary
+    
+    Do While (iLen = Len(strBuffer) - 2) Or (iLen = 0)
+        If strBuffer = vbNullString _
+        Then strBuffer = mBasic.Space$(256) _
+        Else strBuffer = String(Len(strBuffer) * 2, 0)
+        iLen = GetPrivateProfileSectionNames(strBuffer, Len(strBuffer), sn_file)
+    Loop
+    strBuffer = Left$(strBuffer, iLen)
+    
+    If Len(strBuffer) <> 0 Then
+        i = 0
+        asSections = Split(strBuffer, vbNullChar)
+        For i = LBound(asSections) To UBound(asSections)
+            sSectionName = asSections(i)
+            If Len(sSectionName) <> 0 Then
+                If Not dct.Exists(sSectionName) _
+                Then mDct.DctAdd add_dct:=dct, add_key:=sSectionName, add_item:=sSectionName, add_seq:=seq_ascending
+            End If
+        Next i
+    End If
+    
+    Set SectionNames = dct
+
+xt: Exit Property
+    
+eh: ErrMsg ErrSrc(PROC)
+End Property
+
+Public Property Get Txt( _
+         Optional ByVal tx_file_full_name As String, _
+         Optional ByVal tx_append As Boolean = True, _
+         Optional ByRef tx_split As String) As String
+' ----------------------------------------------------------
+' Returns the content of the text file (tx_file_full_name)
+' as string plus the line split character/string (tx_split).
+' ----------------------------------------------------------
+    Const PROC = "TxtGet"
+    
+    On Error GoTo eh
+    Dim fso As New FileSystemObject
+    Dim ts  As TextStream
+    
+    tx_append = tx_append ' not used! just for the coincidence with tLet
+    If Not fso.FileExists(tx_file_full_name) _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The file '" & tx_file_full_name & "' does not exist!"
+
+    Set ts = fso.OpenTextFile(FileName:=tx_file_full_name, IOMode:=ForReading)
+    Txt = ts.ReadAll
+    If InStr(Txt, vbCrLf) <> 0 Then
+        tx_split = vbCrLf
+    ElseIf InStr(Txt, vbCr) <> 0 Then
+        tx_split = vbCr
+    ElseIf InStr(Txt, vbLf) <> 0 Then
+        tx_split = vbLf
+    End If
+xt: Exit Property
+
+eh: ErrMsg ErrSrc(PROC)
+End Property
+
+Public Property Let Txt( _
+         Optional ByVal tx_file_full_name As String, _
+         Optional ByVal tx_append As Boolean = True, _
+         Optional ByRef tx_split As String, _
+                  ByVal tx_string As String)
+' -------------------------------------------------------
+' Write the test string (tx_string) to the file
+' (tx_file_full_name) optionally appended.
+' -------------------------------------------------------
+    Const PROC = "TxtLet"
+    
+    On Error GoTo eh
+    Dim fso As New FileSystemObject
+    Dim ts  As TextStream
+    
+    tx_split = tx_split ' not used! just for coincidence with Get
+    With fso
+        If tx_append Then
+            If Not .FileExists(tx_file_full_name) Then .CreateTextFile tx_file_full_name
+            Set ts = .OpenTextFile(tx_file_full_name, IOMode:=ForAppending)
+        Else
+            If .FileExists(tx_file_full_name) Then .DeleteFile (tx_file_full_name)
+            .CreateTextFile tx_file_full_name
+            Set ts = .OpenTextFile(FileName:=tx_file_full_name _
+                                 , IOMode:=ForWriting _
+                                  )
+        End If
+    End With
+    ts.WriteLine tx_string
+
+xt: ts.Close
+    Set fso = Nothing
+    Set ts = Nothing
+    Exit Property
+    
+eh: ErrMsg ErrSrc(PROC)
+End Property
+
 Public Property Get Value( _
            Optional ByVal vl_file As String, _
            Optional ByVal vl_section As String, _
            Optional ByVal vl_value_name As String, _
-           Optional ByRef vl_comment As String, _
-           Optional ByVal vl_vartype As enVarType) As Variant
+           Optional ByRef vl_comment As String) As Variant
 ' -----------------------------------------------------------
 ' Read a value with a specific name from a section
 ' [section]
@@ -113,7 +293,7 @@ Public Property Get Value( _
                                     , nSize:=Len(sRetVal) _
                                     , lpg_FileName:=vl_file _
                                      )
-    vValue = left$(sRetVal, lResult)
+    vValue = Left$(sRetVal, lResult)
     
     '~~ Unstrip and return a possibly added comment provided it's not a VarType= comment
     '~~ which indicates which kind of vartype is to be returned
@@ -151,7 +331,6 @@ Public Property Let Value( _
            Optional ByVal vl_section As String, _
            Optional ByVal vl_value_name As String, _
            Optional ByRef vl_comment As String, _
-           Optional ByVal vl_vartype As enVarType, _
                     ByVal vl_value As Variant)
 ' --------------------------------------------------
 ' Write a value under a name into a section in a
@@ -169,8 +348,6 @@ Public Property Let Value( _
         sComment = " ; " & vl_comment
         sComment = Replace(sComment, VALUE_COMMENT & VALUE_COMMENT, VALUE_COMMENT)
         sComment = Replace(sComment, ";;", ";")
-    ElseIf Not IsMissing(vl_vartype) Then
-        sComment = VALUE_COMMENT & "VarType=" & vl_vartype
     End If
     
     Select Case VarType(vl_value)
@@ -221,7 +398,7 @@ Private Function AppIsInstalled(ByVal sApp As String) As Boolean
     
     Dim i As Long: i = 1
     
-    Do Until left(Environ$(i), 5) = "Path="
+    Do Until Left(Environ$(i), 5) = "Path="
         i = i + 1
     Loop
     AppIsInstalled = InStr(Environ$(i), sApp) <> 0
@@ -244,6 +421,7 @@ Private Function ArrayCompare(ByVal ac_a1 As Variant, _
 ' ----------------------------------------------------------------------------
     Const PROC = "ArrayCompare"
     
+    On Error GoTo eh
     Dim l           As Long
     Dim i           As Long
     Dim va()        As Variant
@@ -286,9 +464,10 @@ Private Function ArrayCompare(ByVal ac_a1 As Variant, _
         Next i
     End If
 
-xt:
-    ArrayCompare = va
+xt: ArrayCompare = va
+    Exit Function
 
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function Compare(ByVal file_left_full_name As String, _
@@ -449,7 +628,7 @@ Public Function Exists(ByVal xst_file As Variant, _
                         queue.Add sfldr ' enqueue (collect) all subfolders
                     Next sfldr
                     For Each fl In fldr.Files
-                        If InStr(fl.name, sFile) <> 0 And left(fl.name, 1) <> "~" Then
+                        If InStr(fl.name, sFile) <> 0 And Left(fl.name, 1) <> "~" Then
                             '~~ Return the existing file which meets the search criteria
                             '~~ as File object in a collection
                             xst_cll.Add fl
@@ -510,6 +689,14 @@ xt: Exit Function
 eh: ErrMsg ErrSrc(PROC)
 End Function
 
+Public Property Get Temp(Optional ByVal tmp_extension As String = ".tmp") As String
+    Dim fso As New FileSystemObject
+    If Left(tmp_extension, 1) <> "." Then tmp_extension = "." & tmp_extension
+    Temp = Replace(fso.GetTempName, ".tmp", tmp_extension)
+    Temp = fso.GetParentFolderName(ActiveWorkbook.FullName) & "\" & Temp
+    Set fso = Nothing
+End Property
+
 Public Function GetFile(ByVal gf_path As String) As FILE
     With New FileSystemObject
         Set GetFile = .GetFile(gf_path)
@@ -527,7 +714,6 @@ End Sub
 
 Public Function sAreEqual(ByVal fc_file1 As String, fc_file2 As String) As Variant
     Const PROC = "Fc"
-    Const vbTemporaryFolder = 2
     
     On Error GoTo eh
     Dim bWaitOnReturn   As Boolean: bWaitOnReturn = True
@@ -538,8 +724,6 @@ Public Function sAreEqual(ByVal fc_file1 As String, fc_file2 As String) As Varia
     Dim sTempResult     As String
     Dim sTempFcBat      As String
     Dim sTempFcVbs      As String
-    Dim sCmd            As String
-    Dim wss             As WshShell
     
     If Not fso.FileExists(fc_file1) _
     Then Err.Raise Number:=AppErr(2) _
@@ -559,18 +743,21 @@ Public Function sAreEqual(ByVal fc_file1 As String, fc_file2 As String) As Varia
                """" & fc_file2 & """"
     sTempFcBat = Replace(fso.GetTempName, ".tmp", ".bat")
     sTempFcBat = fso.GetParentFolderName(ThisWorkbook.FullName) & "\" & sTempFcBat
-    mFile.WriteText wt_file:=sTempFcBat, wt_text:=sFcBat
+    mFile.Txt(tx_file_full_name:=sTempFcBat _
+            , tx_append:=False _
+             ) = sFcBat
     
     vResult = ShellRun("nircmd exec2 hide " & sTempFcBat & " " & sTempResult)
     
-    On Error Resume Next
-    fso.DeleteFile sTempFcBat
-    On Error Resume Next
-    fso.DeleteFile sTempFcVbs
-    On Error Resume Next
-    fso.DeleteFile sTempResult
-    
-xt: Exit Function
+xt: With fso
+        On Error Resume Next
+        .DeleteFile sTempFcBat
+        On Error Resume Next
+        .DeleteFile sTempFcVbs
+        On Error Resume Next
+        .DeleteFile sTempResult
+    End With
+    Exit Function
 
 eh: ErrMsg ErrSrc(PROC)
 End Function
@@ -610,50 +797,6 @@ End Function
 Public Sub SectionMove()
 
 End Sub
-
-Public Function SectionNames(ByVal sn_file As String) As Dictionary
-' -----------------------------------------------------------------
-' Returns a Dictionary of all section names [.....] in a file.
-' -----------------------------------------------------------------
-    Const PROC = "SectionNames"
-    
-    On Error GoTo eh
-    Dim asSections()     As String
-    Dim dct             As Dictionary
-    Dim i               As Long
-    Dim iLen            As Long
-    Dim strBuffer       As String
-    Dim sSectionName    As String
-    
-    Set dct = New Dictionary
-    Set SectionNames = New Dictionary
-    
-    Do While (iLen = Len(strBuffer) - 2) Or (iLen = 0)
-        If strBuffer = vbNullString _
-        Then strBuffer = mBasic.Space$(256) _
-        Else strBuffer = String(Len(strBuffer) * 2, 0)
-        iLen = GetPrivateProfileSectionNames(strBuffer, Len(strBuffer), sn_file)
-    Loop
-    strBuffer = left$(strBuffer, iLen)
-    
-    If Len(strBuffer) <> 0 Then
-        i = 0
-        asSections = Split(strBuffer, vbNullChar)
-        For i = LBound(asSections) To UBound(asSections)
-            sSectionName = asSections(i)
-            If Len(sSectionName) <> 0 Then
-                If Not dct.Exists(sSectionName) _
-                Then mDct.DctAdd add_dct:=dct, add_key:=sSectionName, add_item:=sSectionName, add_seq:=seq_ascending
-            End If
-        Next i
-    End If
-    
-    Set SectionNames = dct
-
-xt: Exit Function
-    
-eh: ErrMsg ErrSrc(PROC)
-End Function
 
 Public Sub SectionReplace()
 
@@ -709,9 +852,9 @@ xt: Set cll = Nothing
 eh: ErrMsg ErrSrc(PROC)
 End Sub
 
-Private Function SectionsGet( _
-                       ByVal sg_file As String, _
-                       ByVal sg_section_names As Variant) As Dictionary
+Public Function SectionsGet( _
+                      ByVal sg_file As String, _
+             Optional ByVal sg_section_names As Variant) As Dictionary
 ' -----------------------------------------------------------------------
 ' Returns a Dictionary with complete sections, one for each provided
 ' section name (sg_section_names). Each section is identified by the key
@@ -726,46 +869,49 @@ Private Function SectionsGet( _
     Dim dctValues   As Dictionary
     Dim i           As Long
     Dim sSection    As String
-    Dim vSections   As Variant
     Dim cll         As New Collection
     
-    Select Case VarType(sg_section_names)
-        Case Is >= vbArray
-            For i = LBound(sg_section_names) To UBound(sg_section_names)
-                cll.Add sg_section_names(i)
-            Next i
-            Set dctSections = SectionsGet(sg_file:=sg_file, sg_section_names:=cll)
-            GoTo xt
-        Case vbString
-            For i = LBound(Split(sg_section_names, ",")) To UBound(Split(sg_section_names, ","))
-                cll.Add Split(sg_section_names, ",")(i)
-            Next i
-            Set dctSections = SectionsGet(sg_file:=sg_file, sg_section_names:=cll)
-            GoTo xt
-        Case vbObject
-            Select Case TypeName(sg_section_names)
-                Case "Dictionary"
-                    For i = 0 To sg_section_names.Count
-                        cll.Add sg_section_names.Items()(i)
-                    Next i
-                    Set dctSections = SectionsGet(sg_file:=sg_file, sg_section_names:=cll)
-                    GoTo xt
-                Case "Collection"
-                    Set dctSections = New Dictionary
-                    Set cll = sg_section_names
-                    For i = 1 To cll.Count
-                        sSection = cll(i)
-                        Set dctValues = mFile.Values(vl_file:=sg_file _
-                                                 , vl_section:=sSection _
-                                                  )
-                        dctSections.Add Key:=sSection _
-                                     , Item:=dctValues
-                    Next i
-                    GoTo xt
-                Case Else: GoTo xt
-            End Select
-    End Select
-            
+    If Not IsMissing(sg_section_names) Then
+        Select Case VarType(sg_section_names)
+            Case Is >= vbArray
+                For i = LBound(sg_section_names) To UBound(sg_section_names)
+                    cll.Add sg_section_names(i)
+                Next i
+                Set dctSections = SectionsGet(sg_file:=sg_file, sg_section_names:=cll)
+                GoTo xt
+            Case vbString
+                For i = LBound(Split(sg_section_names, ",")) To UBound(Split(sg_section_names, ","))
+                    cll.Add Split(sg_section_names, ",")(i)
+                Next i
+                Set dctSections = SectionsGet(sg_file:=sg_file, sg_section_names:=cll)
+                GoTo xt
+            Case vbObject
+                Select Case TypeName(sg_section_names)
+                    Case "Dictionary"
+                        For i = 0 To sg_section_names.Count
+                            cll.Add sg_section_names.Items()(i)
+                        Next i
+                        Set dctSections = SectionsGet(sg_file:=sg_file, sg_section_names:=cll)
+                        GoTo xt
+                    Case "Collection"
+                        Set dctSections = New Dictionary
+                        Set cll = sg_section_names
+                        For i = 1 To cll.Count
+                            sSection = cll(i)
+                            Set dctValues = mFile.Values(vl_file:=sg_file _
+                                                     , vl_section:=sSection _
+                                                      )
+                            dctSections.Add Key:=sSection _
+                                         , Item:=dctValues
+                        Next i
+                        GoTo xt
+                    Case Else: GoTo xt
+                End Select
+        End Select
+    Else
+        '~~ Return all sections
+        
+    End If
 xt: Set cll = Nothing
     If dctSections.Count = 0 _
     Then Err.Raise Number:=AppErr(1) _
@@ -778,9 +924,9 @@ xt: Set cll = Nothing
 eh: ErrMsg ErrSrc(PROC)
 End Function
 
-Private Sub SectionsLet( _
-                  ByVal sl_sections As Dictionary, _
-                  ByVal sl_file As String)
+Public Sub SectionsLet( _
+                 ByVal sl_file As String, _
+                 ByVal sl_sections As Dictionary)
 ' -----------------------------------------------------
 ' Writes for each item in the Dictionary (sl_sections
 ' provided by the SectionsGet service) a complete
@@ -909,6 +1055,31 @@ Public Function SelectFile( _
 xt: Exit Function
 
 eh: ErrMsg ErrSrc(PROC)
+End Function
+
+Public Function ShellRun(sCmd As String) As String
+' ------------------------------------------------------
+' Run a shell command, returning the output as a string.
+' ------------------------------------------------------
+    Dim oShell As Object
+    Set oShell = CreateObject("WScript.Shell")
+
+    'run command
+    Dim oExec As Object
+    Dim oOutput As Object
+    Set oExec = oShell.Exec(sCmd)
+    Set oOutput = oExec.StdOut
+
+    'handle the results as they are written to and read from the StdOut object
+    Dim s As String
+    Dim sLine As String
+    While Not oOutput.AtEndOfStream
+        sLine = oOutput.ReadLine
+        If sLine <> "" Then s = s & sLine & vbCrLf
+    Wend
+
+    ShellRun = s
+
 End Function
 
 Public Function ToArray(ByVal ta_file As Variant, _
@@ -1066,7 +1237,7 @@ Public Function ValueNames( _
                                         , nSize:=Len(strBuffer) _
                                         , lpg_FileName:=vn_file _
                                          )
-        sNames = left$(strBuffer, lResult)
+        sNames = Left$(strBuffer, lResult)
     
         If sNames <> vbNullString Then                                         ' If there were any names
             asNames = Split(sNames, vbNullChar)                      ' have them split into an array
@@ -1090,7 +1261,7 @@ Public Function ValueNames( _
                                             , nSize:=Len(strBuffer) _
                                             , lpg_FileName:=vn_file _
                                              )
-            sNames = left$(strBuffer, lResult)
+            sNames = Left$(strBuffer, lResult)
         
             If sNames <> vbNullString Then                                         ' If there were any names
                 asNames = Split(sNames, vbNullChar)                      ' have them split into an array
@@ -1133,51 +1304,3 @@ Public Function Values( _
     Set Values = dctValues
     
 End Function
-
-Public Sub WriteText(ByVal wt_file As String, _
-                     ByVal wt_text As String, _
-                     Optional wt_append As Boolean = True)
-' ---------------------------------------------------------
-' Write test (s) to the file (wt_file) optionally appended.
-' ---------------------------------------------------------
-    Dim fso As New FileSystemObject
-    Dim ts  As TextStream
-    
-    If Not fso.FileExists(wt_file) Then fso.CreateTextFile wt_file
-    If wt_append Then
-        Set ts = fso.OpenTextFile(wt_file, IOMode:=ForAppending)
-    Else
-        Set ts = fso.OpenTextFile(wt_file)
-    End If
-    ts.WriteLine wt_text
-    ts.Close
-    Set fso = Nothing
-    Set ts = Nothing
-
-End Sub
-
-Public Function ShellRun(sCmd As String) As String
-' ------------------------------------------------------
-' Run a shell command, returning the output as a string.
-' ------------------------------------------------------
-    Dim oShell As Object
-    Set oShell = CreateObject("WScript.Shell")
-
-    'run command
-    Dim oExec As Object
-    Dim oOutput As Object
-    Set oExec = oShell.Exec(sCmd)
-    Set oOutput = oExec.StdOut
-
-    'handle the results as they are written to and read from the StdOut object
-    Dim s As String
-    Dim sLine As String
-    While Not oOutput.AtEndOfStream
-        sLine = oOutput.ReadLine
-        If sLine <> "" Then s = s & sLine & vbCrLf
-    Wend
-
-    ShellRun = s
-
-End Function
-

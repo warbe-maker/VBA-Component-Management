@@ -17,8 +17,8 @@ Public Type tMsg                        ' Attention: 4 is a
 End Type                                ' ---------------------
 
 Public Function Box(ByVal msg_title As String, _
-           Optional ByVal msg_text As String = vbNullString, _
-           Optional ByVal msg_text_monospaced As Boolean = False, _
+           Optional ByVal msg As String = vbNullString, _
+           Optional ByVal msg_monospaced As Boolean = False, _
            Optional ByVal msg_buttons As Variant = vbOKOnly, _
            Optional ByVal msg_returnindex As Boolean = False, _
            Optional ByVal msg_min_width As Long = 300, _
@@ -41,8 +41,8 @@ Public Function Box(ByVal msg_title As String, _
         .MinFormWidth = msg_min_width                     ' defaults to 300 pt. the absolute minimum is 200 pt
         .MinButtonWidth = msg_min_button_width
         .MsgTitle = msg_title
-        .MsgText(1) = msg_text
-        .MsgMonoSpaced(1) = msg_text_monospaced
+        .MsgText(1) = msg
+        .MsgMonoSpaced(1) = msg_monospaced
         .MsgButtons = msg_buttons
         '+------------------------------------------------------------------------+
         '|| Setup prior showing the form improves the performance significantly  ||
@@ -114,7 +114,7 @@ xt: Set Buttons = cll
 End Function
                                      
 Public Function Dsply(ByVal msg_title As String, _
-                      ByRef msg_sections As tMsg, _
+                      ByRef msg As tMsg, _
              Optional ByVal msg_buttons As Variant = vbOKOnly, _
              Optional ByVal msg_returnindex As Boolean = False, _
              Optional ByVal msg_min_width As Long = 300, _
@@ -125,8 +125,8 @@ Public Function Dsply(ByVal msg_title As String, _
 ' Common VBA Message Display: A service using the Common VBA Message Form as an
 ' alternative MsgBox.
 ' Note: In case there is only one single string to be displayed the argument
-'       msg_sections_type will remain unused while the messag is provided via the
-'       msg_sections_strng and msg_sections_strng_monospaced arguments instead.
+'       msg_type will remain unused while the messag is provided via the
+'       msg_strng and msg_strng_monospaced arguments instead.
 '
 ' See: https://warbe-maker.github.io/vba/common/2020/11/17/Common-VBA-Message-Form.html
 '
@@ -141,9 +141,9 @@ Public Function Dsply(ByVal msg_title As String, _
         .MinButtonWidth = msg_min_button_width
         .MsgTitle = msg_title
         For i = 1 To fMsg.NoOfDesignedMsgSections
-            .MsgLabel(i) = msg_sections.section(i).sLabel
-            .MsgText(i) = msg_sections.section(i).sText
-            .MsgMonoSpaced(i) = msg_sections.section(i).bMonspaced
+            .MsgLabel(i) = msg.section(i).sLabel
+            .MsgText(i) = msg.section(i).sText
+            .MsgMonoSpaced(i) = msg.section(i).bMonspaced
         Next i
         
         .MsgButtons = msg_buttons

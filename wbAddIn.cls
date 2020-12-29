@@ -33,15 +33,17 @@ Private Const ADDIN_VERSION     As String = "4.0"                       ' Allows
 Private Const DEVLP_WORKBOOK    As String = "CompManDev.xlsm"           ' Extension depends on Excel versions
 Private Const DEVLP_FORMAT As Long = xlOpenXMLWorkbookMacroEnabled ' = ... needs adjustment when the above is changed
 
+Public Property Get HOSTED_RAWS() As String:            HOSTED_RAWS = "":                                                End Property
+
 Public Property Get AddInInstanceFullName() As String:  AddInInstanceFullName = AddInPath & DBSLASH & AddInInstanceName:    End Property
 
 Public Property Get AddInInstanceName() As String:      AddInInstanceName = ADDIN_WORKBOOK:                                 End Property
 
-Private Property Get AddInPath() As String:             AddInPath = mCfg.CompManAddinPath:                           End Property
+Private Property Get AddInPath() As String:             AddInPath = mCfg.CompManAddinPath:                                  End Property
 
 Public Property Get DevlpInstanceFullName() As String
 Dim fso As New FileSystemObject
-    DevlpInstanceFullName = mCfg.CommonComponentsBasePath & DBSLASH _
+    DevlpInstanceFullName = mCfg.VBProjectsDevRoot & DBSLASH _
                           & fso.GetBaseName(DevlpInstanceName) & DBSLASH _
                           & DevlpInstanceName
 End Property
@@ -88,7 +90,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     Application.EnableEvents = False
     wb.Save
     Application.EnableEvents = True
-    mCompMan.ExportChangedComponents wb ' includes management of updated used Common Components
+    mCompMan.ExportChangedComponents wb, HOSTED_RAWS ' includes management of updated used Common Components
     If Not wb.Saved Then
         Application.EnableEvents = False
         wb.Save        ' usually not required
