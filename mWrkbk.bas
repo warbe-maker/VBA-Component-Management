@@ -347,7 +347,8 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
     Dim sWbBaseName As String
     Dim sPath       As String
     Dim wb          As Workbook
-
+    Dim fso         As New FileSystemObject
+    
     Set GetOpen = Nothing
     
     If Not mWrkbk.IsName(vWb) And Not mWrkbk.IsFullName(vWb) And Not mWrkbk.IsObject(vWb) _
@@ -358,12 +359,12 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
         Set GetOpen = vWb
     ElseIf mWrkbk.IsFullName(vWb) Then
         With Opened
-            If .Exists(sWbBaseName) Then
+            If fso.FileExists(sWbBaseName) Then
                 '~~ A Workbook with the same name is open
                 Set wb = .Item(sWbBaseName)
                 If wb.FullName <> vWb Then
                     '~~ The open Workook with the same name is from a different location
-                    If mFile.Exists(vWb) Then
+                    If fso.FileExists(vWb) Then
                         '~~ The file still exists on the provided location
                         Err.Raise AppErr(3), ErrSrc(PROC), Replace(Replace$(ERR_GOW01, "<>1", wb.PATH), "<>2", sPath)
                     Else
@@ -377,7 +378,7 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
                 End If
             Else
                 '~~ The Workbook is yet not open
-                If mFile.Exists(vWb) Then
+                If fso.FileExists(vWb) Then
                     Set GetOpen = Workbooks.Open(vWb)
                 Else
                     Err.Raise AppErr(4), ErrSrc(PROC), Replace(ERR_GOW03, "<>", CStr(vWb))
