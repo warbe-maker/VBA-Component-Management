@@ -114,7 +114,6 @@ End Property
 Private Property Get DsplyLnIndnttn(Optional ByRef entry As Collection) As String
     DsplyLnIndnttn = Repeat("|  ", ItmLvl(entry))
 End Property
-
 Private Property Get ItmArgs(Optional ByRef entry As Collection) As Variant
     ItmArgs = entry("I")(POS_ITMARGS)
 End Property
@@ -467,6 +466,10 @@ eh: ErrMsg err_source:=ErrSrc(PROC)
     Set cllTrc = Nothing
 End Function
 
+Public Sub Pause()
+    cyTcksPauseStart = SysCrrntTcks
+End Sub
+
 Public Sub Continue()
     cyTcksPaused = cyTcksPaused + (SysCrrntTcks - cyTcksPauseStart)
 End Sub
@@ -533,8 +536,8 @@ Private Function DsplyAbout() As String
     dblOvrhdPcntg = (dblTtlScsOvrhdNtry / NtryScsElpsd(NtryLst)) * 100
     
     DsplyAbout = "> The trace itself, i.e. the collection of the begin and end data for each traced item " & _
-                 "(procedure or code) caused a performance loss of " & Format(dblTtlScsOvrhdNtry, sFrmtScsOvrhdItm) & _
-                 " seconds (=" & Format(dblOvrhdPcntg, "0.00") & "%). " _
+                 "(procedure or code) caused a performance loss of " & Format$(dblTtlScsOvrhdNtry, sFrmtScsOvrhdItm) & _
+                 " seconds (=" & Format$(dblOvrhdPcntg, "0.00") & "%). " _
                & "For a best possible execution time precision the overhead per traced item " _
                & "has been deducted from each of the " & cllTrc.Count / 2 & " traced item's execution time." _
       & vbLf _
@@ -549,65 +552,12 @@ Private Function DsplyAbout() As String
 
 End Function
 
-Private Function DsplyArgName(ByVal s As String) As Boolean
-    If Right(s, 1) = ":" _
-    Or Right(s, 1) = "=" _
-    Or Right(s, 2) = ": " _
-    Or Right(s, 2) = " :" _
-    Or Right(s, 2) = "= " _
-    Or Right(s, 2) = " =" _
-    Or Right(s, 3) = " : " _
-    Or Right(s, 3) = " = " _
-    Then DsplyArgName = True
-End Function
-
-Private Function DsplyArgs(ByVal entry As Collection) As String
-' -------------------------------------------------------------
-' Returns a string with the collection of the traced arguments
-' Any entry ending with a ":" or "=" is an arguments name with
-' its value in the subsequent item.
-' -------------------------------------------------------------
-    Dim va()    As Variant
-    Dim i       As Long
-    Dim sL      As String
-    Dim sR      As String
-    
-    On Error Resume Next
-    va = ItmArgs(entry)
-    If Err.Number <> 0 Then Exit Function
-    i = LBound(va)
-    If Err.Number <> 0 Then Exit Function
-    
-    For i = i To UBound(va)
-        If DsplyArgs = vbNullString Then
-            ' This is the very first argument
-            If DsplyArgName(va(i)) Then
-                ' The element is the name of an argument followed by a subsequent value
-                DsplyArgs = "|  " & va(i) & CStr(va(i + 1))
-                i = i + 1
-            Else
-                sL = ">": sR = "<"
-                DsplyArgs = "|  Argument values: " & sL & va(i) & sR
-            End If
-        Else
-            If DsplyArgName(va(i)) Then
-                ' The element is the name of an argument followed by a subsequent value
-                DsplyArgs = DsplyArgs & ", " & va(i) & CStr(va(i + 1))
-                i = i + 1
-            Else
-                sL = ">": sR = "<"
-                DsplyArgs = DsplyArgs & "  " & sL & va(i) & sR
-            End If
-        End If
-    Next i
-End Function
-
 Private Function DsplyFtr(ByVal lLenHeaderData As Long) ' Displayed trace footer
     DsplyFtr = _
         Space$(lLenHeaderData) _
       & DIR_END_PROC _
       & " End execution trace " _
-      & Format(Now(), "hh:mm:ss")
+      & Format$(Now(), "hh:mm:ss")
 End Function
 
 Private Function DsplyHdr(ByRef lLenHeaderData As Long) As String
@@ -631,7 +581,7 @@ Private Function DsplyHdr(ByRef lLenHeaderData As Long) As String
     sHeaderTrace = _
       DIR_BEGIN_PROC _
     & " Begin execution trace " _
-    & Format(dtTraceBegin, "hh:mm:ss") _
+    & Format$(dtTraceBegin, "hh:mm:ss") _
     & " (exec time in seconds)"
 
     Select Case DisplayedInfo
@@ -726,6 +676,59 @@ Public Function DsplyHdrCntrAbv(ByVal s1 As String, _
         DsplyHdrCntrAbv = sLeft & DsplyHdrCntrAbv & sRight
     End If
     
+End Function
+
+Private Function DsplyArgs(ByVal entry As Collection) As String
+' -------------------------------------------------------------
+' Returns a string with the collection of the traced arguments
+' Any entry ending with a ":" or "=" is an arguments name with
+' its value in the subsequent item.
+' -------------------------------------------------------------
+    Dim va()    As Variant
+    Dim i       As Long
+    Dim sL      As String
+    Dim sR      As String
+    
+    On Error Resume Next
+    va = ItmArgs(entry)
+    If Err.Number <> 0 Then Exit Function
+    i = LBound(va)
+    If Err.Number <> 0 Then Exit Function
+    
+    For i = i To UBound(va)
+        If DsplyArgs = vbNullString Then
+            ' This is the very first argument
+            If DsplyArgName(va(i)) Then
+                ' The element is the name of an argument followed by a subsequent value
+                DsplyArgs = "|  " & va(i) & CStr(va(i + 1))
+                i = i + 1
+            Else
+                sL = ">": sR = "<"
+                DsplyArgs = "|  Argument values: " & sL & va(i) & sR
+            End If
+        Else
+            If DsplyArgName(va(i)) Then
+                ' The element is the name of an argument followed by a subsequent value
+                DsplyArgs = DsplyArgs & ", " & va(i) & CStr(va(i + 1))
+                i = i + 1
+            Else
+                sL = ">": sR = "<"
+                DsplyArgs = DsplyArgs & "  " & sL & va(i) & sR
+            End If
+        End If
+    Next i
+End Function
+
+Private Function DsplyArgName(ByVal s As String) As Boolean
+    If Right(s, 1) = ":" _
+    Or Right(s, 1) = "=" _
+    Or Right(s, 2) = ": " _
+    Or Right(s, 2) = " :" _
+    Or Right(s, 2) = "= " _
+    Or Right(s, 2) = " =" _
+    Or Right(s, 3) = " : " _
+    Or Right(s, 3) = " = " _
+    Then DsplyArgName = True
 End Function
 
 Private Function DsplyLn(ByVal entry As Collection) As String
@@ -892,11 +895,11 @@ Private Function DsplyTcksDffToScs(ByVal beginticks As Currency, _
 End Function
 
 Private Function DsplyValue(ByVal entry As Collection, _
-                            ByVal Value As Variant, _
+                            ByVal value As Variant, _
                             ByVal frmt As String) As String
-    If NtryIsBegin(entry) And Value = 0 _
+    If NtryIsBegin(entry) And value = 0 _
     Then DsplyValue = Space$(Len(frmt)) _
-    Else DsplyValue = IIf(Value >= 0, Format(Value, frmt), Space$(Len(frmt)))
+    Else DsplyValue = IIf(value >= 0, Format$(value, frmt), Space$(Len(frmt)))
 End Function
 
 Private Function DsplyValueFormat(ByRef thisformat As String, _
@@ -1193,10 +1196,6 @@ Private Function NtryTcksOvrhdItmMax() As Double
 
 End Function
 
-Public Sub Pause()
-    cyTcksPauseStart = SysCrrntTcks
-End Sub
-
 Private Function Repeat(ByVal s As String, _
                         ByVal n As Long) As String
 ' ------------------------------------------------
@@ -1208,14 +1207,6 @@ Private Function Repeat(ByVal s As String, _
         Repeat = Repeat & s
     Next i
     
-End Function
-
-Public Function Space(ByVal l As Long) As String
-' --------------------------------------------------
-' Unifies the VB differences SPACE$ and Space$ which
-' leads to code diferences where there aren't any.
-' --------------------------------------------------
-    Space = VBA.Space$(l)
 End Function
 
 Private Function StckEd(ByVal id As String, _
@@ -1296,6 +1287,11 @@ Public Sub Terminate()
     Set cllStck = Nothing
     cyTcksPaused = 0
 End Sub
+
+Private Function TrcLast() As Collection
+    If cllTrc.Count <> 0 _
+    Then Set TrcLast = cllTrc(cllTrc.Count)
+End Function
 
 Private Sub TrcAdd(ByVal id As String, _
                    ByVal tcks As Currency, _
@@ -1397,10 +1393,5 @@ End Sub
 Private Function TrcIsEmpty() As Boolean
     TrcIsEmpty = cllTrc Is Nothing
     If Not TrcIsEmpty Then TrcIsEmpty = cllTrc.Count = 0
-End Function
-
-Private Function TrcLast() As Collection
-    If cllTrc.Count <> 0 _
-    Then Set TrcLast = cllTrc(cllTrc.Count)
 End Function
 

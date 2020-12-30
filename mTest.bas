@@ -107,7 +107,7 @@ Public Sub Test_01_KindOfComp()
     With cComp
         .Wrkbk = wb
         .VBComp = wb.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = enNoneSpecific
+        Debug.Assert .KindOfComp() = enInternal
     End With
     
 xt: wb.Close SaveChanges:=False
@@ -462,13 +462,13 @@ Public Sub Test_File_Value()
     
     '~~ Test step 1: Write commented values
     sComment = "My comment"
-    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
+    mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
     sComment = "This is a boolean True"
-    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
+    mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
     sComment = "This is a boolean False"
-    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
+    mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
     sComment = "This is a currency value"
-    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4") = cyValue
+    mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4") = cyValue
     
     '~~ Display written test values
     mMsg.Box msg_title:="Content of file '" & sFile & "'" _
@@ -477,22 +477,22 @@ Public Sub Test_File_Value()
     
     '~~ Test step 2: Read commented values
     sComment = vbNullString
-    Debug.Print "Test.Value-1 = '" & mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) & "'"
-    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
+    Debug.Print "Test.Value-1 = '" & mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) & "'"
+    Debug.Assert mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
     Debug.Assert sComment = "My comment"
     
     sComment = vbNullString
-    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
+    Debug.Assert mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
     Debug.Assert sComment = "This is a boolean True"
     
     sComment = vbNullString
-    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
+    Debug.Assert mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
     Debug.Assert sComment = "This is a boolean False"
     
     sComment = vbNullString
-    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment) = cyValue
+    Debug.Assert mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment) = cyValue
     Debug.Assert sComment = vbNullString
-    Debug.Assert VarType(mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment)) = vbCurrency
+    Debug.Assert VarType(mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment)) = vbCurrency
     
     mErH.EoP ErrSrc(PROC)
     
@@ -534,7 +534,7 @@ Public Sub Test_File_Sections_Transfer_By_LetGet()
         ReDim Preserve arSections(i - 1)
         arSections(i - 1) = sSectionName
         For j = 1 To 5
-            mFile.Value(vl_file:=sFileGet _
+            mFile.value(vl_file:=sFileGet _
                     , vl_section:=sSectionName _
                     , vl_value_name:="Value-" & j _
                      ) = CStr(i & "-" & j)

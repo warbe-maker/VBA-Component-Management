@@ -24,7 +24,7 @@ Option Explicit
 '                         development and test instance
 ' - xlAddInFormat         The file format for the SaveAs operation
 '
-' W. Rauschenberger, Berlin Nov 2020
+' W. Rauschenberger, Berlin Dec 2020
 ' See Github repo
 ' ---------------------------------------------------------------------------
 Private Const ADDIN_WORKBOOK    As String = "CompMan.xlam"              ' Extension adjusted when the above is saved as addin

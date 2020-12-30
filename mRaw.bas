@@ -13,37 +13,37 @@ Private Property Get DAT_FILE() As String:  DAT_FILE = mCfg.CompManAddinPath & "
 
 Public Property Get ExpFileFullName( _
                      Optional ByVal comp_name As String) As String
-    ExpFileFullName = Value(vl_section:=comp_name, vl_value_name:=VALUE_EXP_FILE_FULL_NAME)
+    ExpFileFullName = value(vl_section:=comp_name, vl_value_name:=VALUE_EXP_FILE_FULL_NAME)
 End Property
 
 Public Property Let ExpFileFullName( _
                      Optional ByVal comp_name As String, _
                               ByVal ef_full_name As String)
-    Value(vl_section:=comp_name) = ef_full_name
+    value(vl_section:=comp_name, vl_value_name:=VALUE_EXP_FILE_FULL_NAME) = ef_full_name
 End Property
 
 Public Property Get HostFullName( _
                      Optional ByVal comp_name As String) As String
-    HostFullName = Value(vl_section:=comp_name, vl_value_name:=VALUE_HOST_FULL_NAME)
+    HostFullName = value(vl_section:=comp_name, vl_value_name:=VALUE_HOST_FULL_NAME)
 End Property
 
 Public Property Let HostFullName( _
                      Optional ByVal comp_name As String, _
                               ByVal hst_full_name As String)
-    Value(vl_section:=comp_name) = hst_full_name
+    value(vl_section:=comp_name, vl_value_name:=VALUE_HOST_FULL_NAME) = hst_full_name
 End Property
 
-Private Property Get Value( _
+Private Property Get value( _
            Optional ByVal vl_section As String, _
            Optional ByVal vl_value_name As String) As Variant
     
-    Value = mFile.Value(vl_file:=DAT_FILE _
+    value = mFile.value(vl_file:=DAT_FILE _
                       , vl_section:=vl_section _
                       , vl_value_name:=vl_value_name _
                        )
 End Property
 
-Private Property Let Value( _
+Private Property Let value( _
            Optional ByVal vl_section As String, _
            Optional ByVal vl_value_name As String, _
                     ByVal vl_value As Variant)
@@ -52,7 +52,7 @@ Private Property Let Value( _
 ' into the file RAWS_DAT_FILE.
 ' --------------------------------------------------
     
-    mFile.Value(vl_file:=DAT_FILE _
+    mFile.value(vl_file:=DAT_FILE _
               , vl_section:=vl_section _
               , vl_value_name:=vl_value_name _
                ) = vl_value
@@ -92,4 +92,10 @@ End Function
 Public Function Components() As Dictionary
     Set Components = mFile.SectionNames(sn_file:=DAT_FILE)
 End Function
+
+Public Sub Remove(ByVal comp_name As String)
+    mFile.SectionsRemove sr_file:=DAT_FILE _
+                       , sr_section_names:=comp_name
+End Sub
+
 

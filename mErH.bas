@@ -34,7 +34,9 @@ Option Private Module
 '
 ' W. Rauschenberger, Berlin, Nov 2020
 ' -----------------------------------------------------------------------------------------------
+
 Public Const CONCAT         As String = "||"
+
 Private cllErrPath          As Collection
 Private cllErrorPath        As Collection   ' managed by ErrPath... procedures exclusively
 Private dctStck             As Dictionary
@@ -539,7 +541,7 @@ Public Function ErrMsg( _
     
 xt:
 #If ExecTrace Then
-    mTrc.Continue
+'    mTrc.Continue
 #End If
 End Function
 
@@ -574,7 +576,7 @@ Private Sub ErrMsgMatter(ByVal err_source As String, _
     msg_details = IIf(err_line <> 0, msg_type & msg_no & " in " & err_source & " (at line " & err_line & ")", msg_type & msg_no & " in " & err_source)
     msg_dscrptn = IIf(InStr(err_dscrptn, CONCAT) <> 0, Split(err_dscrptn, CONCAT)(0), err_dscrptn)
     If InStr(err_dscrptn, CONCAT) <> 0 Then msg_info = Split(err_dscrptn, CONCAT)(1)
-    msg_source = Application.name & ":  " & Application.ActiveWindow.Caption & ":  " & err_source
+    msg_source = Application.name & ":  " & Application.ActiveWindow.caption & ":  " & err_source
     
 End Sub
 
@@ -609,7 +611,7 @@ Private Function ErrPathErrMsg(ByVal msg_details As String, _
             s = cllErrorPath.TrcEntryItem(i)
             If i = cllErrorPath.Count _
             Then ErrPathErrMsg = s _
-            Else ErrPathErrMsg = ErrPathErrMsg & vbLf & Space(j * 2) & "|_" & s
+            Else ErrPathErrMsg = ErrPathErrMsg & vbLf & Space$(j * 2) & "|_" & s
             j = j + 1
         Next i
     Else
@@ -617,7 +619,7 @@ Private Function ErrPathErrMsg(ByVal msg_details As String, _
         If Not StckIsEmpty Then
             For i = 0 To dctStck.Count - 1
                 If ErrPathErrMsg <> vbNullString Then
-                   ErrPathErrMsg = ErrPathErrMsg & vbLf & Space((i - 1) * 2) & "|_" & dctStck.Items()(i)
+                   ErrPathErrMsg = ErrPathErrMsg & vbLf & Space$((i - 1) * 2) & "|_" & dctStck.Items()(i)
                 Else
                    ErrPathErrMsg = dctStck.Items()(i)
                 End If
@@ -647,14 +649,6 @@ End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mErH." & sProc
-End Function
-
-Public Function Space(ByVal l As Long) As String
-' --------------------------------------------------
-' Unifies the VB differences SPACE$ and Space$ which
-' lead to code diferences where there aren't any.
-' --------------------------------------------------
-    Space = VBA.Space$(l)
 End Function
 
 Private Function StckBottom() As String

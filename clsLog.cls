@@ -15,7 +15,7 @@ Private sFile       As String
 
 Public Property Let Service(ByVal s As String)
     sService = ThisWorkbook.name & "/" & s
-    sFile = ThisWorkbook.PATH & "\" & s & ".log"
+    sFile = ActiveWorkbook.PATH & "\" & s & ".log"
     Reset
 End Property
 

@@ -17,19 +17,19 @@ End Property
 Private Property Get CFG_FILE_NAME() As String: CFG_FILE_NAME = ThisWorkbook.PATH & "\CompMan.cfg": End Property
 
 Public Property Get CompManAddinPath() As String
-    CompManAddinPath = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH)
+    CompManAddinPath = value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH)
 End Property
 
 Public Property Let CompManAddinPath(ByVal s As String)
-    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH) = s
+    value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH) = s
 End Property
 
 Public Property Get VBProjectsDevRoot() As String
-    VBProjectsDevRoot = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT)
+    VBProjectsDevRoot = value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT)
 End Property
 
 Public Property Let VBProjectsDevRoot(ByVal s As String)
-    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT) = s
+    value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT) = s
 End Property
 
 Public Function Asserted() As Boolean
@@ -253,21 +253,21 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Property Get Value( _
+Private Property Get value( _
            Optional ByVal vl_section As String, _
            Optional ByVal vl_value_name As String) As Variant
     
-    Value = mFile.Value(vl_file:=CFG_FILE_NAME _
+    value = mFile.value(vl_file:=CFG_FILE_NAME _
                       , vl_section:=vl_section _
                       , vl_value_name:=vl_value_name _
                        )
 End Property
 
-Private Property Let Value( _
+Private Property Let value( _
            Optional ByVal vl_section As String, _
            Optional ByVal vl_value_name As String, _
                     ByVal vl_value As Variant)
-    mFile.Value(vl_file:=CFG_FILE_NAME _
+    mFile.value(vl_file:=CFG_FILE_NAME _
               , vl_section:=vl_section _
               , vl_value_name:=vl_value_name _
                ) = vl_value

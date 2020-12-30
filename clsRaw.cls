@@ -14,12 +14,12 @@ Private sHostFullName       As String
 Private sExpFileFullName    As String
 Private flExpFile           As FILE
 Private sCompName           As String
-Private fso                 As New FileSystemObject
 Private vbcRaw              As VBComponent
+Private fso                 As New FileSystemObject
 
-Public Property Get RawType() As vbext_ComponentType:   RawType = vbcRaw.Type:                          End Property
-Public Property Get RawVbc() As VBComponent:            Set RawVbc = vbcRaw:                            End Property
-Public Property Let RawVbc(ByVal vbc As VBComponent):   Set vbcRaw = vbc:                               End Property
+Private Sub Class_Terminate()
+    Set fso = Nothing
+End Sub
 
 Public Property Get CodeAsOfDate() As String:           CodeAsOfDate = flExpFile.DateLastModified:      End Property
 
@@ -35,13 +35,18 @@ Public Property Get ExpFileFullName() As String:        ExpFileFullName = sExpFi
 
 Public Property Let ExpFileFullName(ByVal s As String): sExpFileFullName = s:                           End Property
 
-Public Property Get RawHost() As Workbook:              Set RawHost = wbRawHost:                        End Property
-
-Public Property Let RawHost(ByVal wb As Workbook):      Set wbRawHost = wb:                             End Property
-
 Public Property Get HostFullName() As String:           HostFullName = sHostFullName:                   End Property
 
 Public Property Let HostFullName(ByVal s As String):    sHostFullName = s:                              End Property
 
-Public Property Get WrkbkBaseName() As String:          WrkbkBaseName = fso.GetBaseName(sHostFullName): End Property
+Public Property Get RawHost() As Workbook:              Set RawHost = wbRawHost:                        End Property
 
+Public Property Let RawHost(ByVal wb As Workbook):      Set wbRawHost = wb:                             End Property
+
+Public Property Get RawType() As vbext_ComponentType:   RawType = vbcRaw.Type:                          End Property
+
+Public Property Get RawVbc() As VBComponent:            Set RawVbc = vbcRaw:                            End Property
+
+Public Property Let RawVbc(ByVal vbc As VBComponent):   Set vbcRaw = vbc:                               End Property
+
+Public Property Get WrkbkBaseName() As String:          WrkbkBaseName = fso.GetBaseName(sHostFullName): End Property

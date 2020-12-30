@@ -208,7 +208,7 @@ Public Sub ControlItemRenewAdd()
     Set cmb = Application.CommandBars("Worksheet Menu Bar")
     Set cmbb = cmb.Controls.Add(Type:=msoControlButton, id:=2950)
     With cmbb
-        .Caption = CONTROL_CAPTION
+        .caption = CONTROL_CAPTION
         .Style = msoButtonCaption
         .TooltipText = "Saves the development instance as Addin"
         .OnAction = "wbAddIn.Renew"

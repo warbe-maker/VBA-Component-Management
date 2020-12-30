@@ -78,7 +78,7 @@ Public Enum enKindOfComp                ' The kind of Component in the sense of 
         enUnknown = 0
         enHostedRaw = 1
         enRawClone = 2                 ' The Component is a used raw, i.e. the raw is hosted by another Workbook
-        enNoneSpecific = 3             ' Neither a hosted nor a used Raw Common Component
+        enInternal = 3             ' Neither a hosted nor a used Raw Common Component
 End Enum
 
 Public Enum enUpdateReply
@@ -166,7 +166,8 @@ Public Sub ExportAll(Optional ByVal exp_wrkbk As Workbook = Nothing)
         Next vbc
     End With
 
-xt: mErH.EoP ErrSrc(PROC)
+xt: Set cComp = Nothing
+    mErH.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: mErH.ErrMsg ErrSrc(PROC)
@@ -218,7 +219,7 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
     
     If ec_wb Is Nothing Then Set ec_wb = ActiveWorkbook
     '~~ Prevent any action for a Workbook opened with any irregularity
-    If InStr(ActiveWindow.Caption, "(") <> 0 Then GoTo xt
+    If InStr(ActiveWindow.caption, "(") <> 0 Then GoTo xt
     If InStr(ec_wb.FullName, "(") <> 0 Then GoTo xt
     
     lCompMaxLen = MaxCompLength(wb:=ec_wb)
@@ -228,11 +229,8 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
     cLog.Reset
     cLog.Service = ErrSrc(PROC)
     
-    HostedRaws = ec_hosted
-    If HostedRaws.Count <> 0 Then
-        '~~ Keep a record when this Workbook hosts one or more Raw components
-        mHost.FullName(fso.GetBaseName(ec_wb.FullName)) = ec_wb.FullName
-    End If
+    MaintainHostedRaws mh_hosted:=ec_hosted _
+                     , mh_wb:=ec_wb
     
     sProgress = String$(ec_wb.VBProject.VBComponents.Count + 1, ".")
     For Each vbc In ec_wb.VBProject.VBComponents
@@ -254,14 +252,23 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
         dctComps.Add vbc.name, vbc
         
         Select Case cComp.KindOfComp
-            Case enNoneSpecific, enHostedRaw ' This is a 'normal' component which is neither a hosted nor a cloned raw component
-                If Not cComp.KindOfCodeChange = enNoCodeChange Then
-                    mTrc.BoC ErrSrc(PROC) & " Backup No-Raw " & vbc.name
-                    cComp.BackUpCode
-                    lExported = lExported + 1
-                    sExported = vbc.name & ", " & sExported
-                    mTrc.EoC ErrSrc(PROC) & " Backup No-Raw" & vbc.name
-                    GoTo next_vbc
+            Case enInternal, enHostedRaw
+                '~~ This is a raw component's clone
+                Select Case cComp.KindOfCodeChange
+                    Case enCloneOnly, enPendingExportOnly, enRawAndClone, enRawOnly, enUsedOnly
+                        mTrc.BoC ErrSrc(PROC) & " Backup No-Raw " & vbc.name
+                        cComp.BackUpCode
+                        lExported = lExported + 1
+                        sExported = vbc.name & ", " & sExported
+                        mTrc.EoC ErrSrc(PROC) & " Backup No-Raw" & vbc.name
+                        GoTo next_vbc
+                End Select
+                
+                If cComp.KindOfComp = enHostedRaw Then
+                    If mRaw.ExpFileFullName(comp_name:=cComp.CompName) <> cComp.ExportFileFullName Then
+                        mRaw.ExpFileFullName(comp_name:=cComp.CompName) = cComp.ExportFileFullName
+                        cLog.Action = "Component's Export File Full Name registered"
+                    End If
                 End If
 
             Case enRawClone
@@ -271,11 +278,20 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
                 With cRaw ' Provide all available information rearding the remote raw component
                     .CompName = cComp.CompName
                     .ExpFile = fso.GetFile(mRaw.ExpFileFullName(comp_name:=.CompName))
+                    .ExpFileFullName = .ExpFile.PATH
                     .HostFullName = mRaw.HostFullName(comp_name:=.CompName)
                 End With
                 
                 With cComp
                     Select Case .KindOfCodeChange
+                        Case enPendingExportOnly
+                            mTrc.BoC ErrSrc(PROC) & " Backup Clone " & vbc.name
+                            cComp.BackUpCode
+                            lExported = lExported + 1
+                            sExported = vbc.name & ", " & sExported
+                            mTrc.EoC ErrSrc(PROC) & " Backup Clone" & vbc.name
+                            GoTo next_vbc
+                        
                         Case enNoCodeChange
                             cLog.Action = "No action performed"
 
@@ -308,11 +324,7 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
                     End Select
                 End With
         End Select
-        
-        If cComp.KindOfCodeChange = enPendingExportOnly Then
-            cComp.BackUpCode
-        End If
-                        
+                                
 next_vbc:
         Set cComp = Nothing
         Set cRaw = Nothing
@@ -322,9 +334,12 @@ next_vbc:
     '~~ Remove Export Files of no longer existent components
     Set dctRemove = New Dictionary
     Set cComp = New clsComp
-    cComp.Wrkbk = ec_wb
-    sFolder = cComp.ExportFolder
-    With New FileSystemObject
+    With cComp
+        .Wrkbk = ec_wb
+        sFolder = .ExportFolder
+    End With
+    
+    With fso
         For Each fl In .GetFolder(sFolder).Files
             Select Case .GetExtensionName(fl.PATH)
                 Case "bas", "cls", "frm", "frx"
@@ -360,6 +375,61 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Sub MaintainHostedRaws(ByVal mh_hosted As String, _
+                               ByVal mh_wb As Workbook)
+' ---------------------------------------------------------
+'
+' ---------------------------------------------------------
+    Const PROC = "MaintainHostedRaws"
+    
+    On Error GoTo eh
+    Dim v   As Variant
+    Dim fso As New FileSystemObject
+    
+    mErH.BoP ErrSrc(PROC)
+
+    HostedRaws = mh_hosted
+    If HostedRaws.Count <> 0 Then
+        If Not mHost.Exists(raw_host_base_name:=fso.GetBaseName(mh_wb.FullName)) _
+        Or mHost.FullName(host_base_name:=fso.GetBaseName(mh_wb.FullName)) <> mh_wb.FullName Then
+            '~~ Keep a record when this Workbook hosts one or more Raw components and not is already registered
+            mHost.FullName(host_base_name:=fso.GetBaseName(mh_wb.FullName)) = mh_wb.FullName
+            cLog.Action = "Workbook registered as a host for at least one raw component"
+        End If
+    
+        For Each v In HostedRaws
+            '~~ Keep a record for each of the raw components hosted by this Workbook
+            If Not mRaw.Exists(raw_comp_name:=v) _
+            Or mRaw.HostFullName(comp_name:=v) <> mh_wb.FullName Then
+                mRaw.HostFullName(comp_name:=v) = mh_wb.FullName
+                cLog.Action = "Raws components's host Workbook registered"
+            End If
+        Next v
+    Else
+        '~~ Remove any raws still existing and pointing to this Workbook as host
+        For Each v In mRaw.Components
+            If mRaw.HostFullName(comp_name:=v) = mh_wb.FullName Then
+                mRaw.Remove comp_name:=v
+                cLog.Action = "Component removed from '" & mHost.DAT_FILE & "'"
+            End If
+        Next v
+        If mHost.Exists(fso.GetBaseName(mh_wb.FullName)) Then
+            mHost.Remove (fso.GetBaseName(mh_wb.FullName))
+            cLog.Action = "Workbook no longer a host for at least one raw component removed from '" & mHost.DAT_FILE & "'"
+        End If
+    End If
+
+xt: Set fso = Nothing
+    mErH.EoP ErrSrc(PROC)
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Sub
+
 Public Sub UpdateClonesTheRawHasChanged( _
                                   ByVal uc_wb As Workbook, _
                          Optional ByVal uc_hosted As String = vbNullString)
@@ -384,14 +454,12 @@ Public Sub UpdateClonesTheRawHasChanged( _
     
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
-    If InStr(ActiveWindow.Caption, "(") <> 0 Then GoTo xt
+    If InStr(ActiveWindow.caption, "(") <> 0 Then GoTo xt
     If InStr(uc_wb.FullName, "(") <> 0 Then GoTo xt
     Set wb = uc_wb
     
-    HostedRaws = uc_hosted
-    If HostedRaws.Count <> 0 Then
-        mHost.FullName(BaseName(wb.name)) = wb.FullName
-    End If
+    MaintainHostedRaws mh_hosted:=uc_hosted _
+                     , mh_wb:=uc_wb
     
     lCompMaxLen = MaxCompLength(wb:=wb)
     Set cLog = New clsLog
@@ -413,6 +481,7 @@ Public Sub UpdateClonesTheRawHasChanged( _
             With cRaw ' Provide all available information rearding the remote raw component
                 .CompName = cComp.CompName
                 .ExpFile = fso.GetFile(FilePath:=mRaw.ExpFileFullName(.CompName))
+                .ExpFileFullName = .ExpFile.PATH
                 .HostFullName = mRaw.HostFullName(comp_name:=.CompName)
             End With
 
@@ -520,6 +589,55 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Public Sub DisplayCodeChange(ByVal cmp_comp_name As String)
+' -----------------------------------------------------------
+'
+' -----------------------------------------------------------
+    Const PROC = "DisplayCodeChange"
+    
+    On Error GoTo eh
+    Dim sExpFileTemp    As String
+    Dim wb              As Workbook
+    Dim cComp           As New clsComp
+    Dim fso             As New FileSystemObject
+    Dim sTempFolder     As String
+    Dim flExpTemp       As FILE
+    
+    Set wb = ActiveWorkbook
+    With cComp
+        .Wrkbk = wb
+        .CompName = cmp_comp_name
+        .VBComp = wb.VBProject.VBComponents(.CompName)
+    End With
+    
+    With fso
+        sTempFolder = .GetFile(cComp.ExportFileFullName).ParentFolder & "\Temp"
+        If Not .FolderExists(sTempFolder) Then .CreateFolder sTempFolder
+        sExpFileTemp = sTempFolder & "\" & cComp.CompName & cComp.TypeExtention(cComp.VBComp)
+        cComp.VBComp.Export sExpFileTemp
+        Set flExpTemp = .GetFile(sExpFileTemp)
+    End With
+
+    With cComp
+        mFile.Compare file_left_full_name:=sExpFileTemp _
+                    , file_right_full_name:=.ExportFileFullName _
+                    , file_left_title:="The component's current code in Workbook/VBProject " & cComp.WrkbkBaseName & " ('" & sExpFileTemp & "')" _
+                    , file_right_title:="The component's currently exported code in '" & .ExportFileFullName & "'"
+
+    End With
+    
+xt: If fso.FolderExists(sTempFolder) Then fso.DeleteFolder (sTempFolder)
+    Set cComp = Nothing
+    Set fso = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Sub
+
 Public Sub Merge(Optional ByVal fl_1 As String = vbNullString, _
                  Optional ByVal fl_2 As String = vbNullString)
 ' -----------------------------------------------------------
@@ -549,5 +667,4 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
-
 

@@ -852,7 +852,7 @@ Private Sub DisplayFramesWithCaptions( _
     If Not b Then
         For Each ctl In Me.Controls
             If TypeName(ctl) = "Frame" Then
-                ctl.Caption = vbNullString
+                ctl.caption = vbNullString
             End If
         Next ctl
     End If
@@ -1338,7 +1338,7 @@ Private Sub SetupButton(ByVal buttonrow As Long, _
         .Visible = True
         .AutoSize = True
         .WordWrap = False ' the longest line determines the buttonindex's width
-        .Caption = buttoncaption
+        .caption = buttoncaption
         .AutoSize = False
         .Height = .Height + 1 ' safety margin to ensure proper multilin caption display
         siMaxButtonHeight = Max(siMaxButtonHeight, .Height)
@@ -1564,7 +1564,7 @@ Private Sub SetupMsgSection(ByVal section As Long)
             Set la = DsgnSectionLabel(section)
             With la
                 .Width = Me.InsideWidth - (siHmarginFrames * 2)
-                .Caption = sLabel
+                .caption = sLabel
             End With
             frText.top = la.top + la.Height
             AppliedControl = la
@@ -1608,7 +1608,7 @@ Private Sub SetupMsgSectionMonoSpaced(ByVal section As Long, _
         .Font.name = sMonoSpacedFontName
         .Font.Size = siMonoSpacedFontSize
         .AutoSize = True
-        .Value = text
+        .value = text
         .AutoSize = False
         .SelStart = 0
         .Left = siHmarginFrames
@@ -1682,7 +1682,7 @@ Private Sub SetupMsgSectionPropSpaced(ByVal section As Long, _
         .AutoSize = True
         .WordWrap = True
         .Width = frText.Width - siHmarginFrames
-        .Value = text
+        .value = text
         .SelStart = 0
         .Left = HSPACE_LEFT
         frText.Width = .Left + .Width + siHmarginFrames
@@ -1750,7 +1750,7 @@ Private Sub SetupTitle()
                     .Font.Size = sTitleFontSize
                 End If
                 .AutoSize = True
-                .Caption = " " & sTitle    ' some left margin
+                .caption = " " & sTitle    ' some left margin
                 siTitleWidth = .Width + HSPACE_RIGHT
             End With
             AppliedControl = .laMsgTitle
@@ -1765,10 +1765,10 @@ Private Sub SetupTitle()
                 End With
                 .Visible = False
                 .AutoSize = True
-                .Caption = " " & sTitle    ' some left margin
+                .caption = " " & sTitle    ' some left margin
                 siTitleWidth = .Width + 30
             End With
-            .Caption = " " & sTitle    ' some left margin
+            .caption = " " & sTitle    ' some left margin
             .laMsgTitleSpaceBottom.Visible = False
         End If
                 
