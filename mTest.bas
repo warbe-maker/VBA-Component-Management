@@ -141,7 +141,7 @@ Public Sub Test_05_01_KindOfCodeChange_NoRaw_UsedOnly()
     With cTest
         .TestProcedure = ThisWorkbook.name & ": " & ErrSrc(PROC)
         .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
-        .TestedByTheWay = "clsComp.ExportFileFullName"
+        .TestedByTheWay = "clsComp.ExpFileFullName"
         Set wbTest = mWrkbk.GetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
         .ResultExpected = True
         .Details = "Export File does not exist, CodeModule not/never exported"
@@ -150,12 +150,12 @@ Public Sub Test_05_01_KindOfCodeChange_NoRaw_UsedOnly()
     With cComp
         .Wrkbk = wbTest
         .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
-        sExpFile = .ExportFileFullName
+        sExpFile = .ExpFileFullName
         If fso.FileExists(sExpFile) Then fso.DeleteFile (sExpFile)
         
         ' Test: Code is regarded changed because there is no export file
         mErH.BoP ErrSrc(PROC)
-        Debug.Assert .KindOfCodeChange = enUsedOnly
+        Debug.Assert .KindOfCodeChange = enInternalOnly
         mErH.EoP ErrSrc(PROC)
     
     End With
@@ -187,7 +187,7 @@ Public Sub Test_05_02_KindOfCodeChange_NoRaw_NoCodeChange()
     With cTest
         .TestProcedure = ThisWorkbook.name & ": " & ErrSrc(PROC)
         .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
-        .TestedByTheWay = "clsComp.ExportFileFullName"
+        .TestedByTheWay = "clsComp.ExpFileFullName"
         Set wbTest = mWrkbk.GetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
         .ResultExpected = False
         .Details = "Export File is identical with CodeModule"
@@ -196,7 +196,7 @@ Public Sub Test_05_02_KindOfCodeChange_NoRaw_NoCodeChange()
     With cComp
         .Wrkbk = wbTest
         .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
-        sExpFile = .ExportFileFullName
+        sExpFile = .ExpFileFullName
         If .VBComp.CodeModule.Lines(1, 1) = TEST_CHANGE Then .VBComp.CodeModule.DeleteLines 1, 1
         .VBComp.Export sExpFile
     End With
@@ -235,7 +235,7 @@ Public Sub Test_05_03_KindOfCodeChange_NoRaw_UsedOnly()
     With cTest
         .TestProcedure = ThisWorkbook.name & "." & ErrSrc(PROC)
         .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
-        .TestedByTheWay = "clsComp.ExportFileFullName"
+        .TestedByTheWay = "clsComp.ExpFileFullName"
         .Details = "Export File outdated, CodeModule changed (additional line)"
         .ResultExpected = True
     End With
@@ -244,7 +244,7 @@ Public Sub Test_05_03_KindOfCodeChange_NoRaw_UsedOnly()
     With cComp
         .Wrkbk = wbTest
         .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
-        sExpFile = .ExportFileFullName
+        sExpFile = .ExpFileFullName
         If .VBComp.CodeModule.Lines(1, 1) = TEST_CHANGE Then .VBComp.CodeModule.DeleteLines 1, 1
         .VBComp.Export sExpFile ' Overwrites any existing
         .VBComp.CodeModule.InsertLines 1, TEST_CHANGE
@@ -252,7 +252,7 @@ Public Sub Test_05_03_KindOfCodeChange_NoRaw_UsedOnly()
     
     '~~ Test: Code is regarded changed because it is not identical with the Export File
     mErH.BoP ErrSrc(PROC)
-    Debug.Assert cComp.KindOfCodeChange = enUsedOnly
+    Debug.Assert cComp.KindOfCodeChange = enInternalOnly
     mErH.EoP ErrSrc(PROC)
                
 xt: Cleanup exp_file:=sExpFile, vbc:=cComp.VBComp
@@ -282,7 +282,7 @@ Public Sub Test_05_04_KindOfCodeChange_NoRaw_UsedOnly()
     With cTest
         .TestProcedure = ThisWorkbook.name & "." & ErrSrc(PROC)
         .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
-        .TestedByTheWay = "clsComp.ExportFileFullName"
+        .TestedByTheWay = "clsComp.ExpFileFullName"
         .Details = "Additional empty line in CodeModule is not considered a change though the Export File is outdated"
         .ResultExpected = False
     End With
@@ -291,7 +291,7 @@ Public Sub Test_05_04_KindOfCodeChange_NoRaw_UsedOnly()
     With cComp
         .Wrkbk = wbTest
         .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
-        sExpFile = .ExportFileFullName
+        sExpFile = .ExpFileFullName
         If .VBComp.CodeModule.Lines(1, 1) = TEST_CHANGE Then .VBComp.CodeModule.DeleteLines 1, 1
         .VBComp.Export sExpFile ' Overwrites any existing
         .VBComp.CodeModule.InsertLines 1, vbLf
@@ -299,7 +299,7 @@ Public Sub Test_05_04_KindOfCodeChange_NoRaw_UsedOnly()
     
     '~~ Test: Code is regarded changed because it is not identical with the Export File
     mErH.BoP ErrSrc(PROC)
-    Debug.Assert cComp.KindOfCodeChange(ignore_empty_lines:=True) = enUsedOnly
+    Debug.Assert cComp.KindOfCodeChange(ignore_empty_lines:=True) = enInternalOnly
     mErH.EoP ErrSrc(PROC)
     
     ' Evaluating the result

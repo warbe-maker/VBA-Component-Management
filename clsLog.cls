@@ -27,7 +27,7 @@ Public Property Let Action(ByVal s As String)
 ' -------------------------------------------
     mFile.Txt(tx_file_full_name:=sFile _
             , tx_append:=True _
-             ) = Now() & " " & sServiced & ": " & s
+             ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sServiced & ": " & s
 End Property
 
 

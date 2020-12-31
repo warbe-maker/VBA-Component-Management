@@ -77,7 +77,7 @@ Public Function Buttons(ParamArray msg_buttons() As Variant) As Collection
     
     On Error Resume Next
     i = LBound(msg_buttons)
-    If Err.Number <> 0 Then GoTo xt
+    If err.Number <> 0 Then GoTo xt
     For i = LBound(msg_buttons) To UBound(msg_buttons)
         If (k = 7 And j = 7) Or l = 49 Then GoTo xt
         Select Case msg_buttons(i)

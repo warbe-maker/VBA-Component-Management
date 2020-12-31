@@ -146,7 +146,7 @@ Public Sub BoP(ByVal bop_id As String, _
 
 xt: Exit Sub
 
-eh: MsgBox Err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
+eh: MsgBox err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
     Stop: Resume
 End Sub
 
@@ -165,7 +165,7 @@ Public Sub BoTP(ByVal botp_id As String, _
 
 xt: Exit Sub
 
-eh: MsgBox Err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
+eh: MsgBox err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
     Stop: Resume
 End Sub
 
@@ -271,9 +271,9 @@ Private Function ErrArgs() As String
     
     On Error Resume Next
     va = vArguments
-    If Err.Number <> 0 Then Exit Function
+    If err.Number <> 0 Then Exit Function
     i = LBound(va)
-    If Err.Number <> 0 Then Exit Function
+    If err.Number <> 0 Then Exit Function
     
     For i = i To UBound(va)
         If ErrArgs = vbNullString Then
@@ -458,8 +458,8 @@ Public Function ErrMsg( _
     Dim lNo                 As Long
     Dim sLine               As String
         
-    If err_number = 0 Then err_number = Err.Number
-    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_number = 0 Then err_number = err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = err.Description
     If err_line = 0 Then err_line = Erl
     
     If ErrHndlrFailed(err_number, err_source, err_buttons) Then GoTo xt
@@ -498,7 +498,7 @@ Public Function ErrMsg( _
 #End If
         mErH.StckPop Itm:=err_source
         sInitErrInfo = vbNullString
-        Err.Raise err_number, err_source, err_dscrptn
+        err.Raise err_number, err_source, err_dscrptn
     End If
     
     If ErrBttns(err_buttons) > 1 _
@@ -685,7 +685,7 @@ Private Function StckPop( _
     
 xt: Exit Function
 
-eh: MsgBox Err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
+eh: MsgBox err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
 End Function
 
 Private Sub StckPush(ByVal s As String)

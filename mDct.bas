@@ -92,7 +92,7 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
     Select Case add_order
         Case order_byitem:  bOrderByItem = True:    bOrderByKey = False
         Case order_bykey:   bOrderByItem = False:   bOrderByKey = True
-        Case Else: Err.Raise AppErr(1), ErrSrc(PROC), "Vaue for argument add_order neither add_item nor add_key!"
+        Case Else: err.Raise AppErr(1), ErrSrc(PROC), "Vaue for argument add_order neither add_item nor add_key!"
     End Select
     
     Select Case add_seq
@@ -101,17 +101,17 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
         Case seq_entry:        bSeqAscending = False: bSeqDescending = False: bEntrySequence = True:  bSeqAfterTrgt = False: bSeqBeforeTrgt = False
         Case seq_aftertarget:  bSeqAscending = False: bSeqDescending = False: bEntrySequence = False: bSeqAfterTrgt = True:  bSeqBeforeTrgt = False
         Case seq_beforetarget: bSeqAscending = False: bSeqDescending = False: bEntrySequence = False: bSeqAfterTrgt = False: bSeqBeforeTrgt = True
-        Case Else: Err.Raise AppErr(2), ErrSrc(PROC), "Vaue for argument add_seq neither ascending, descendingy, after, before!"
+        Case Else: err.Raise AppErr(2), ErrSrc(PROC), "Vaue for argument add_seq neither ascending, descendingy, after, before!"
     End Select
     
     Select Case add_sense
         Case sense_caseignored:     bCaseIgnored = True:    bCaseSensitive = False
         Case sense_casesensitive:   bCaseIgnored = False:    bCaseSensitive = True
-        Case Else: Err.Raise AppErr(3), ErrSrc(PROC), "Vaue for argument add_sense neither case sensitive nor case ignored!"
+        Case Else: err.Raise AppErr(3), ErrSrc(PROC), "Vaue for argument add_sense neither case sensitive nor case ignored!"
     End Select
     
     If bOrderByKey And (bSeqBeforeTrgt Or bSeqAfterTrgt) And add_dct.Exists(add_key) _
-    Then Err.Raise AppErr(4), ErrSrc(PROC), "The to be added add_key (add_order value = '" & DctAddOrderValue(add_key, add_item) & "') for an add before/after already exists!"
+    Then err.Raise AppErr(4), ErrSrc(PROC), "The to be added add_key (add_order value = '" & DctAddOrderValue(add_key, add_item) & "') for an add before/after already exists!"
 
     '~~ When no add_target is specified for add before/after add_seq descending/ascending is used instead
     If IsMissing(add_target) Then
@@ -121,10 +121,10 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
         '~~ When a add_target is specified it must exist
         If (bSeqAfterTrgt Or bSeqBeforeTrgt) And bOrderByKey Then
             If Not add_dct.Exists(add_target) _
-            Then Err.Raise mBasic.AppErr(5), ErrSrc(PROC), "The add_target add_key for an add before/after add_key does not exists!"
+            Then err.Raise mBasic.AppErr(5), ErrSrc(PROC), "The add_target add_key for an add before/after add_key does not exists!"
         ElseIf (bSeqAfterTrgt Or bSeqBeforeTrgt) And bOrderByItem Then
             If Not DctAddItemExists(add_dct, add_target) _
-            Then Err.Raise AppErr(6), ErrSrc(PROC), "The add_target itemfor an add before/after add_item does not exists!"
+            Then err.Raise AppErr(6), ErrSrc(PROC), "The add_target itemfor an add before/after add_item does not exists!"
         End If
         vValueTarget = DctAddOrderValue(add_target, add_target)
     End If
@@ -152,15 +152,15 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
         If VarType(add_key) = vbObject Then
             On Error Resume Next
             add_key.name = add_key.name
-            If Err.Number <> 0 _
-            Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
+            If err.Number <> 0 _
+            Then err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
         End If
     ElseIf bOrderByItem Then
         If VarType(add_item) = vbObject Then
             On Error Resume Next
             add_item.name = add_item.name
-            If Err.Number <> 0 _
-            Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
+            If err.Number <> 0 _
+            Then err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
         End If
     End If
     
@@ -228,9 +228,9 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
     '~~ Return the temporary dictionary with the new add_item added and all exiting items in add_dct transfered to it
     '~~ provided ther was not a add before/after error
     If bSeqBeforeTrgt And Not bAddedBefore _
-    Then Err.Raise AppErr(9), ErrSrc(PROC), "The add_key/add_item couldn't be added before because the add_target add_key/add_item did not exist!"
+    Then err.Raise AppErr(9), ErrSrc(PROC), "The add_key/add_item couldn't be added before because the add_target add_key/add_item did not exist!"
     If bSeqAfterTrgt And Not bAddedAfter _
-    Then Err.Raise AppErr(10), ErrSrc(PROC), "The add_key/add_item couldn't be added before because the add_target add_key/add_item did not exist!"
+    Then err.Raise AppErr(10), ErrSrc(PROC), "The add_key/add_item couldn't be added before because the add_target add_key/add_item did not exist!"
     
     Set add_dct = dctTemp
     Set dctTemp = Nothing
@@ -240,9 +240,9 @@ end_proc:
 
 on_error:
 #If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
+    Debug.Print err.Description: Stop: Resume
 #End If
-    ErrMsg errnumber:=Err.Number, errsource:=ErrSrc(PROC), errdscrptn:=Err.Description, errline:=Erl
+    ErrMsg errnumber:=err.Number, errsource:=ErrSrc(PROC), errdscrptn:=err.Description, errline:=Erl
 End Sub
 
 Private Sub ErrMsg(ByVal errnumber As Long, _
@@ -277,10 +277,10 @@ Private Function ErrMsgErrType( _
 ' Err.Source and the error number.
 ' ------------------------------------------
 
-   If InStr(1, Err.Source, "DAO") <> 0 _
-   Or InStr(1, Err.Source, "ODBC Teradata Driver") <> 0 _
-   Or InStr(1, Err.Source, "ODBC") <> 0 _
-   Or InStr(1, Err.Source, "Oracle") <> 0 Then
+   If InStr(1, err.Source, "DAO") <> 0 _
+   Or InStr(1, err.Source, "ODBC Teradata Driver") <> 0 _
+   Or InStr(1, err.Source, "ODBC") <> 0 _
+   Or InStr(1, err.Source, "Oracle") <> 0 Then
       ErrMsgErrType = "Database Error"
    Else
       If errnumber > 0 _
@@ -403,9 +403,9 @@ exit_proc:
     
 on_error:
 #If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
+    Debug.Print err.Description: Stop: Resume
 #End If
-    ErrMsg errnumber:=Err.Number, errsource:=ErrSrc(PROC), errdscrptn:=Err.Description, errline:=Erl
+    ErrMsg errnumber:=err.Number, errsource:=ErrSrc(PROC), errdscrptn:=err.Description, errline:=Erl
 End Function
 
 Private Function DctAddItemExists( _
