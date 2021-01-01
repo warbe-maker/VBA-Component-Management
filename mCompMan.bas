@@ -112,9 +112,9 @@ Public cLog             As clsLog
 Public asNoSynch()      As String
 Public dctRawComponents As Dictionary
 Public dctRawHosts      As Dictionary
+Public lMaxCompLength   As Long
 
 Private dctHostedRaws   As Dictionary
-Private lMaxCompLength  As Long
 
 Public Property Get HostedRaws() As Variant
     Set HostedRaws = dctHostedRaws
@@ -158,7 +158,7 @@ Public Sub ExportAll(Optional ByVal exp_wrkbk As Workbook = Nothing)
     
     With cComp
         If wbAddIn.IsAddinInstance _
-        Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
+        Then err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
         .Wrkbk = exp_wrkbk
         For Each vbc In .Wrkbk.VBProject.VBComponents
             .VBComp = vbc
@@ -366,7 +366,8 @@ next_vbc:
     If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
     
-xt: mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
+xt: Set dctHostedRaws = Nothing
+    mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -389,6 +390,7 @@ Private Sub MaintainHostedRaws(ByVal mh_hosted As String, _
     
     mErH.BoP ErrSrc(PROC)
 
+    Set dctHostedRaws = New Dictionary
     HostedRaws = mh_hosted
     If HostedRaws.Count <> 0 Then
         If Not mHost.Exists(raw_host_base_name:=fso.GetBaseName(mh_wb.FullName)) _
@@ -403,7 +405,7 @@ Private Sub MaintainHostedRaws(ByVal mh_hosted As String, _
             If Not mRaw.Exists(raw_comp_name:=v) _
             Or mRaw.HostFullName(comp_name:=v) <> mh_wb.FullName Then
                 mRaw.HostFullName(comp_name:=v) = mh_wb.FullName
-                cLog.Action = "Raws components's host Workbook registered"
+                cLog.Action = "Raw component '" & v & "' hosted in this Workbook registered"
             End If
         Next v
     Else
@@ -442,7 +444,6 @@ Public Sub UpdateClonesTheRawHasChanged( _
     Const PROC = "UpdateClonesTheRawHasChanged"
     
     On Error GoTo eh
-    Dim wb                  As Workbook
     Dim vbc                 As VBComponent
     Dim lCompMaxLen         As Long
     Dim lComponents         As Long
@@ -457,18 +458,17 @@ Public Sub UpdateClonesTheRawHasChanged( _
     '~~ Prevent any action for a Workbook opened with any irregularity
     If InStr(ActiveWindow.caption, "(") <> 0 Then GoTo xt
     If InStr(uc_wb.FullName, "(") <> 0 Then GoTo xt
-    Set wb = uc_wb
-    
-    MaintainHostedRaws mh_hosted:=uc_hosted _
-                     , mh_wb:=uc_wb
-    
-    lCompMaxLen = MaxCompLength(wb:=wb)
+    lCompMaxLen = MaxCompLength(wb:=uc_wb)
     Set cLog = New clsLog
     cLog.Service = ErrSrc(PROC)
     
-    For Each vbc In wb.VBProject.VBComponents
+    MaintainHostedRaws mh_hosted:=uc_hosted _
+                     , mh_wb:=uc_wb
+        
+    For Each vbc In uc_wb.VBProject.VBComponents
         Set cComp = New clsComp
-        cComp.Wrkbk = wb
+        cComp.Wrkbk = uc_wb
+        cComp.CompName = vbc.name
         cComp.VBComp = vbc
         lComponents = lComponents + 1
         sServiced = cComp.Wrkbk.name & " Component """ & vbc.name & """"
@@ -524,6 +524,7 @@ Public Sub UpdateClonesTheRawHasChanged( _
     Application.StatusBar = sMsg
     
 xt: Set cRaw = Nothing
+    Set dctHostedRaws = Nothing
     mErH.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -543,15 +544,14 @@ Public Sub Version(ByVal c_version As clsAddinVersion)
     c_version.Version = wbAddIn.AddInVersion
 End Sub
 
-Public Property Get MaxCompLength(Optional ByVal wb As Workbook) As Long
+Private Function MaxCompLength(Optional ByVal wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
         For Each vbc In wb.VBProject.VBComponents
-            lMaxCompLength = mBasic.Max(lMaxCompLength, Len(vbc.name))
+            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
         Next vbc
     End If
-    MaxCompLength = lMaxCompLength
-End Property
+End Function
 
 Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
 ' -----------------------------------------------------------

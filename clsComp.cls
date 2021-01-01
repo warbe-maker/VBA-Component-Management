@@ -575,8 +575,8 @@ Private Function DebugComp() As String
 '
 ' ------------------------------------
         
-    If MaxCompLength > 0 _
-    Then DebugComp = sCompName & " " & String(mCompMan.MaxCompLength(cComp.Wrkbk) - Len(sCompName), ".") & ": " _
+    If lMaxCompLength > 0 _
+    Then DebugComp = sCompName & " " & String(lMaxCompLength - Len(sCompName), ".") & ": " _
     Else DebugComp = sCompName & " : "
 
 End Function
