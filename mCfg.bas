@@ -42,9 +42,10 @@ Public Function Asserted() As Boolean
     Const PROC = "Assert"
     
     On Error GoTo eh
-    Dim sPathCompMan As String
+    Dim sPathCompMan    As String
+    Dim fso             As New FileSystemObject
     
-    With New FileSystemObject
+    With fso
         If .FolderExists(mCfg.CompManAddinPath) _
         And .FolderExists(mCfg.VBProjectsDevRoot) _
         Then
@@ -87,12 +88,13 @@ Public Function Asserted() As Boolean
     
     End With
 
-xt: Exit Function
+xt: Set fso = Nothing
+    Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
         Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Function
 
@@ -186,11 +188,12 @@ Public Sub TrustThisFolder(Optional ByVal FolderPath As String, _
     Dim iTrustNetwork       As Long
     Dim sPath               As String
     Dim i                   As Long
-
+    Dim fso                 As New FileSystemObject
+    
     bSubFolders = True
     bNetworkLocation = False
 
-    With New FileSystemObject
+    With fso
         If FolderPath = "" Then
             FolderPath = .GetSpecialFolder(2).PATH
             If sDescription = "" Then
@@ -242,14 +245,14 @@ Public Sub TrustThisFolder(Optional ByVal FolderPath As String, _
 
     End If
 
-exit_sub:
+xt: Set fso = Nothing
     Set oRegistry = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
         Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
 

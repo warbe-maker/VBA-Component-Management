@@ -47,7 +47,9 @@ Private Sub Class_Initialize()
     Dim fso As New FileSystemObject
     
     sFile = ThisWorkbook.PATH & "\" & fso.GetBaseName(ThisWorkbook.FullName) & ".log"
-    If Not fso.FileExists(sFile) Then fso.CreateTextFile (sFile)
+    With fso
+        If Not .FileExists(sFile) Then .CreateTextFile (sFile)
+    End With
     Set fso = Nothing
     
 End Sub

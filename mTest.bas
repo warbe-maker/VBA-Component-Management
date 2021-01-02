@@ -1,7 +1,16 @@
 Attribute VB_Name = "mTest"
 Option Explicit
 Option Private Module
-
+' -------------------------------------------------------
+' Standard module mTest
+'                 Provides the means to test the services
+'                 of the CompMan AddIn Workbook.
+'
+' Uses:
+' - mVBP
+'
+' W. Rauschenberger Berlin, Jan 2021
+' -------------------------------------------------------
 Private Const TEST_CHANGE = "' Test code change"
 
 Private cTest   As clsTestService
@@ -593,17 +602,17 @@ Public Sub Test_Temp()
     
     On Error GoTo eh
     
-    Set wbTest = ThisWorkbook
-    Set vbc = wbTest.VBProject.VBComponents("mFile")
-    Set vbcm = vbc.CodeModule
-    
-    Debug.Print vbc.Properties(1)
-    Debug.Print vbcm.Parent.Properties(1)
-    
-    Cleanup
+    Dim wbTemp  As Workbook
 
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+    Set wbTemp = Workbooks.Add
+    wbTemp.Activate
+    Debug.Print ActiveWorkbook.name
+    ActiveWorkbook.Windows(1).Visible = False
+    Debug.Print ActiveWorkbook.name
+    wbTemp.Close SaveChanges:=False
+    Set wbTemp = Nothing
+
+xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
