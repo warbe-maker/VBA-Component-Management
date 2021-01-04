@@ -10,6 +10,6 @@ Public Property Get CloneWorkbooks() As Dictionary
 End Property
 
 Private Property Get DAT_FILE() As String
-    DAT_FILE = mCfg.CompManAddinPath & "\RawsCloned.dat"
+    DAT_FILE = mMe.CompManAddinPath & "\RawsCloned.dat"
 End Property
 

@@ -9,7 +9,7 @@ Option Explicit
 Private Const VALUE_HOST_FULL_NAME = "HostFullName"
 Private Const VALUE_EXP_FILE_FULL_NAME = "ExpFileFullName"
 
-Private Property Get DAT_FILE() As String:  DAT_FILE = mCfg.CompManAddinPath & "\Raws.dat":     End Property
+Private Property Get DAT_FILE() As String:  DAT_FILE = mMe.CompManAddinPath & "\Raws.dat":     End Property
 
 Public Property Get ExpFileFullName( _
                      Optional ByVal comp_name As String) As String

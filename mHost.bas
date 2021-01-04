@@ -8,7 +8,7 @@ Option Explicit
 
 Private Const VALUE_HOST_FULL_NAME = "HostFullName"
 
-Public Property Get DAT_FILE() As String: DAT_FILE = mCfg.CompManAddinPath & "\Hosts.dat":   End Property
+Public Property Get DAT_FILE() As String: DAT_FILE = mMe.CompManAddinPath & "\Hosts.dat":   End Property
 
 Public Property Get FullName( _
                      Optional ByVal host_base_name As String) As String

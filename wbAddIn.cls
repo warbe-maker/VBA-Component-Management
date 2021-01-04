@@ -27,53 +27,15 @@ Option Explicit
 ' W. Rauschenberger, Berlin Dec 2020
 ' See Github repo
 ' ---------------------------------------------------------------------------
-Private Const ADDIN_WORKBOOK    As String = "CompMan.xlam"              ' Extension adjusted when the above is saved as addin
-Private Const ADDIN_FORMAT      As Long = xlOpenXMLAddIn                ' = ... needs adjustment when the above is changed
-Private Const ADDIN_VERSION     As String = "4.0"                       ' Allows to check the success of an Addin renew
-Private Const DEVLP_WORKBOOK    As String = "CompManDev.xlsm"           ' Extension depends on Excel versions
-Private Const DEVLP_FORMAT As Long = xlOpenXMLWorkbookMacroEnabled ' = ... needs adjustment when the above is changed
 
 Public Property Get HOSTED_RAWS() As String:            HOSTED_RAWS = "":                                                End Property
-
-Public Property Get AddInInstanceFullName() As String:  AddInInstanceFullName = AddInPath & DBSLASH & AddInInstanceName:    End Property
-
-Public Property Get AddInInstanceName() As String:      AddInInstanceName = ADDIN_WORKBOOK:                                 End Property
-
-Private Property Get AddInPath() As String:             AddInPath = mCfg.CompManAddinPath:                                  End Property
-
-Public Property Get DevlpInstanceFullName() As String
-Dim fso As New FileSystemObject
-    DevlpInstanceFullName = mCfg.VBProjectsDevRoot & DBSLASH _
-                          & fso.GetBaseName(DevlpInstanceName) & DBSLASH _
-                          & DevlpInstanceName
-End Property
-
-Public Property Get DevlpInstanceName() As String:      DevlpInstanceName = DEVLP_WORKBOOK:                                 End Property
-
-Public Property Get IsAddinInstance() As Boolean:       IsAddinInstance = ThisWorkbook.name = AddInInstanceName:            End Property
-
-Public Property Get IsDevlpInstance() As Boolean:       IsDevlpInstance = ThisWorkbook.name = Me.DevlpInstanceName:         End Property
-
-Public Property Get xlAddInFormat() As Long:            xlAddInFormat = ADDIN_FORMAT:                                       End Property
-
-Public Property Get xlDevlpFormat() As Long:            xlDevlpFormat = DEVLP_FORMAT:                                       End Property
-
-Public Function AddInVersion(Optional ByRef sVersion As String) As String
-    sVersion = ADDIN_VERSION
-    AddInVersion = sVersion
-End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "wbCompMan" & "." & sProc
 End Function
 
-Public Sub Renew()
-    Me.Activate
-    mAddIn.Renew ' The mAddin is declared private by intention and thus not available ti the menu bar
-End Sub
-
 Private Sub Workbook_BeforeClose(Cancel As Boolean)
-    If IsDevlpInstance Then mAddIn.ControlItemRenewRemove
+    If mMe.IsDevInstnc Then mMe.ControlItemRenewRemove
 End Sub
 
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
@@ -82,7 +44,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     On Error GoTo eh
     Dim wb As Workbook
 
-    If Not wbAddIn.IsDevlpInstance Then Exit Sub
+    If Not mMe.IsDevInstnc Then Exit Sub
     
     Set wb = ThisWorkbook
     mErH.BoP ErrSrc(PROC)
@@ -112,16 +74,16 @@ Private Sub Workbook_Open()
     
     mErH.BoP ErrSrc(PROC)
     
-    If IsDevlpInstance Then
-        mAddIn.ControlItemRenewAdd
-        mCfg.Asserted ' assert a valid CompMan basic configuratuion
-        If mAddIn.AddInInstanceWorkbookIsOpen Then
+    If mMe.IsDevInstnc Then
+        mMe.ControlItemRenewAdd
+        mMe.ConfigAsserted ' assert a valid CompMan basic configuratuion
+        If mMe.AddInInstncWrkbkIsOpen Then
             '~~ Essential! When the Development instance Workbook is opened, used Common Components
             '~~ the origin code has changed can only be updated when the Addin instance Workbook is
             '~~ open as well. However, since the VBProject has no reference to the Addin the Addin
             '~~ will not be opened when the Development instance is the only Workbook open.
             '~~ I.e. only when a Workbook referring to the Addin is opened the Addin will be opened as well.
-            mAddIn.UpdateUsedCommComps
+            mMe.UpdateUsedCommComps
         End If
     End If
         

@@ -6,9 +6,6 @@ Option Private Module
 '                 Provides the means to test the services
 '                 of the CompMan AddIn Workbook.
 '
-' Uses:
-' - mVBP
-'
 ' W. Rauschenberger Berlin, Jan 2021
 ' -------------------------------------------------------
 Private Const TEST_CHANGE = "' Test code change"
@@ -333,23 +330,6 @@ Public Sub Test_10_ExportChangedComponents()
     
 End Sub
 
-Public Sub Test_CodeModuleTrimm()
-
-    Dim vbc As VBComponent
-    Dim wb  As Workbook
-    
-    Set wb = ActiveWorkbook
-    Set vbc = wb.VBProject.VBComponents("mCommon")
-    Debug.Print "Trim CodeModule 'mCommon' in Workbook '" & wb.name & "'"
-    mVBP.CodeModuleTrim vbc, wb
-    
-    Set wb = ThisWorkbook
-    Set vbc = wb.VBProject.VBComponents("mCommon")
-    Debug.Print "Trim CodeModule 'mCommon' in Workbook '" & wb.name & "'"
-    mVBP.CodeModuleTrim vbc, wb
-    
-End Sub
-
 Public Sub Test_CompOriginHasChanged()
 
 End Sub
@@ -395,7 +375,7 @@ Public Sub Test_File_SectionNames()
     On Error GoTo eh
     Dim v   As Variant
     
-    For Each v In mFile.SectionNames(sn_file:=mCfg.CompManAddinPath & "\CompMan.dat")
+    For Each v In mFile.SectionNames(sn_file:=mMe.CompManAddinPath & "\CompMan.dat")
         Debug.Print "[" & v & "]"
     Next v
 
@@ -414,7 +394,7 @@ Public Sub Test_File_ValueNames()
     On Error GoTo eh
     Dim v   As Variant
     
-    For Each v In mFile.ValueNames(vn_file:=mCfg.CompManAddinPath & "\CompMan.dat")
+    For Each v In mFile.ValueNames(vn_file:=mMe.CompManAddinPath & "\CompMan.dat")
         Debug.Print """" & v & """"
     Next v
     
@@ -435,7 +415,7 @@ Public Sub Test_File_Values()
     Dim v           As Variant
     Dim sFile       As String
     
-    sFile = mCfg.CompManAddinPath & "\CompMan.dat"
+    sFile = mMe.CompManAddinPath & "\CompMan.dat"
     Set dctValues = mFile.Values(vl_file:=sFile _
                              , vl_section:=mFile.SectionNames(sn_file:=sFile).Items()(0))
     For Each v In dctValues

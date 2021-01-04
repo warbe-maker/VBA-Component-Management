@@ -47,7 +47,7 @@ Private lKindOfCodeChange   As enKindOfCodeChange
 Private sExtension          As String
 
 Private Sub Class_Initialize()
-    sPathCommon = mCfg.VBProjectsDevRoot
+    sPathCommon = mMe.VBProjectsDevRoot
     Set dctRawComponents = mRaw.Components
     Set dctRawHosts = mHost.Hosts
 End Sub
@@ -802,6 +802,76 @@ Private Function GetFile(ByVal sFile As String) As FILE
     With fso:  Set GetFile = .GetFile(sFile):  End With
     Set fso = Nothing
 End Function
+
+Public Sub Renew(ByVal rn_exp_file_full_name As String)
+' ---------------------------------------------------------
+' Renews the component (sCompName) in the Workbook (wb)
+' by re-importing the Export File (rn_exp_file_full_name).
+' - When the Workbook (wb) is the ActiveWorkbook the
+'   service is aborted without notice.
+' - When the base name of the provided Export File is not
+'   identical with the current component's name (sCompName)
+'   the sevice is aborted without notice.
+'
+' W. Rauschenberger Berlin, Jan 2021
+' ---------------------------------------------------------
+    Const PROC = "Renew"
+    
+    On Error GoTo eh
+    Dim sTempName   As String
+    Dim i           As Long
+    Dim j           As Long
+    Dim fso         As New FileSystemObject
+    
+    If wb Is ActiveWorkbook Then GoTo xt
+    If fso.GetBaseName(rn_exp_file_full_name) <> sCompName Then GoTo xt
+    
+    With wb.VBProject
+        ' -----------------------------------------------------------------------------
+        '~~ 1. Step: Rename and remove the component
+        '~~ Note: Though the component will not be removed before this service has
+        '~~       ended it will be out of the way for the re-import of the Export File.
+        '~~ ---------------------------------------------------------------------------
+        sTempName = sCompName & "_Temp"
+        Do
+            '~~ When the primarily set temp name for the to-be-replace component is already existing
+            '~~ a yet non-existing temp name has to be found
+            For i = 1 To .VBComponents.Count
+                If .VBComponents(i).name = sTempName Then
+                    .VBComponents.Remove .VBComponents(sTempName) ' left over from any previous aborted service
+                    j = j + 1: sTempName = sTempName & j
+                    GoTo lp
+                End If
+            Next i
+lp:         If i > .VBComponents.Count Then Exit Do
+            Loop
+        Set vbc = .VBComponents(sCompName)
+        vbc.name = sTempName
+        .VBComponents.Remove vbc ' will take place when this service has ended
+    
+        '~~ ----------------------------------
+        '~~ 2. Step: Re-Import the Export File
+        '~~ ----------------------------------
+        .VBComponents.Import rn_exp_file_full_name
+        On Error Resume Next ' logging may fail when cLog is not estblished
+        cLog.Action = "Component replaced by re-importing Export File '" & rn_exp_file_full_name & "'."
+        
+        '~~ 3. Step: Re-export the component in case the provided Export File was not
+        '~~          identical with the component's origin Export File
+        If rn_exp_file_full_name <> sExpFileFullName _
+        Then .VBComponents(sCompName).Export sExpFileFullName
+
+    End With
+
+xt: Set fso = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
 
 Public Sub ReplaceClonedWithRemoteRaw(ByVal ru_vbc As VBComponent)
 ' ----------------------------------------------------------------

@@ -63,7 +63,6 @@ Option Compare Text
 ' Uses Common Components: - mBasic
 '                         - mErrhndlr
 '                         - mFile
-'                         - mVBP
 '                         - mWrkbk
 ' Requires:
 ' - Reference to: - "Microsoft Visual Basic for Applications Extensibility ..."
@@ -149,6 +148,58 @@ Public Function CompExists( _
     Debug.Print ce_wb.VBProject.VBComponents(ce_comp_name).name
     CompExists = err.Number = 0
 End Function
+
+Private Sub DeleteObsoleteExpFiles(ByVal ro_wb As Workbook)
+' --------------------------------------------------------------
+' Delete Export Files the component does not or no longer exist.
+' --------------------------------------------------------------
+    Const PROC = "DeleteObsoleteExpFiles"
+    
+    On Error GoTo eh
+    Dim cllRemove   As New Collection
+    Dim sFolder     As String
+    Dim fso         As New FileSystemObject
+    Dim fl          As FILE
+    Dim v           As Variant
+    Dim cComp       As New clsComp
+    Dim cLog        As New clsLog
+    
+    With cComp
+        .Wrkbk = ro_wb ' assigment provides the Workbook's dedicated Export Folder
+        sFolder = .ExpFolder
+    End With
+    cLog.Service = ErrSrc(PROC) ' for the logging of deleted Export Files
+    
+    With fso
+        '~~ Collect obsolete Export Files
+        For Each fl In .GetFolder(sFolder).Files
+            Select Case .GetExtensionName(fl.PATH)
+                Case "bas", "cls", "frm", "frx"
+                    If Not cComp.Exists(sComp:=.GetBaseName(fl.PATH)) Then
+                        cllRemove.Add fl.PATH
+                    End If
+            End Select
+        Next fl
+    
+        For Each v In cllRemove
+            .DeleteFile v
+            cLog.Action = "Obsolete Export File '" & v & "' deleted"
+        Next v
+    End With
+    
+xt: Set cComp = Nothing
+    Set cllRemove = Nothing
+    Set fso = Nothing
+    Set cLog = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Sub
+
 Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
 ' -----------------------------------------------------------
 '
@@ -254,7 +305,7 @@ Public Sub ExportAll(Optional ByVal exp_wrkbk As Workbook = Nothing)
     Set cComp = New clsComp
     
     With cComp
-        If wbAddIn.IsAddinInstance _
+        If mMe.IsAddinInstnc _
         Then err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
         .Wrkbk = exp_wrkbk
         For Each vbc In .Wrkbk.VBProject.VBComponents
@@ -293,16 +344,9 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
     
     On Error GoTo eh
     Dim lCompMaxLen         As Long
-    Dim sComp               As String
     Dim vbc                 As VBComponent
-    Dim dctComps            As Dictionary
-    Dim dctRemove           As Dictionary
-    Dim v                   As Variant
-    Dim fl                  As FILE
-    Dim sFolder             As String
     Dim lComponents         As Long
     Dim lExported           As Long
-    Dim lRemoved            As Long
     Dim sExported           As String
     Dim bUpdated            As Boolean
     Dim lUpdated            As Long
@@ -319,9 +363,9 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
     If InStr(ActiveWindow.caption, "(") <> 0 Then GoTo xt
     If InStr(ec_wb.FullName, "(") <> 0 Then GoTo xt
     
+    DeleteObsoleteExpFiles ec_wb
+    
     lCompMaxLen = MaxCompLength(wb:=ec_wb)
-    Set dctComps = New Dictionary
-    Set cComp = New clsComp
     Set cLog = New clsLog
     cLog.Reset
     cLog.Service = ErrSrc(PROC)
@@ -331,6 +375,9 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
     
     sProgress = String$(ec_wb.VBProject.VBComponents.Count + 1, ".")
     For Each vbc In ec_wb.VBProject.VBComponents
+        Set cComp = Nothing
+        Set cRaw = Nothing
+        Set cComp = New clsComp
         sProgress = Left(sProgress, Len(sProgress) - 1)
         Application.StatusBar = "Export of changed components: " & Format(lExported, "##") & sProgress
         mTrc.BoC ErrSrc(PROC) & " " & vbc.name
@@ -345,7 +392,6 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
         End With
         
         lComponents = lComponents + 1
-        dctComps.Add vbc.name, vbc
         
         Select Case cComp.KindOfComp
             Case enInternal, enHostedRaw
@@ -424,37 +470,9 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
         End Select
                                 
 next_vbc:
-        Set cComp = Nothing
-        Set cRaw = Nothing
         mTrc.EoC ErrSrc(PROC) & " " & vbc.name
     Next vbc
         
-    '~~ Remove Export Files of no longer existent components
-    Set dctRemove = New Dictionary
-    Set cComp = New clsComp
-    With cComp
-        .Wrkbk = ec_wb
-        sFolder = .ExpFolder
-    End With
-    
-    With fso
-        For Each fl In .GetFolder(sFolder).Files
-            Select Case .GetExtensionName(fl.PATH)
-                Case "bas", "cls", "frm", "frx"
-                    sComp = .GetBaseName(fl.PATH)
-                    If Not dctComps.Exists(sComp) Then
-                        dctRemove.Add fl, fl.name
-                    End If
-            End Select
-        Next fl
-    
-        For Each v In dctRemove
-            .DeleteFile v.PATH
-            lRemoved = lRemoved + 1
-        Next v
-    End With
-    Set cComp = Nothing
-
     Select Case lExported
         Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & ec_wb.name & " had been changed/exported/backed up."
         Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 2)
@@ -464,6 +482,8 @@ next_vbc:
     Application.StatusBar = sMsg
     
 xt: Set dctHostedRaws = Nothing
+    Set cComp = Nothing
+    Set cRaw = Nothing
     Set fso = Nothing
     mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
@@ -575,42 +595,40 @@ Public Sub RenewComp( _
       Optional ByVal rc_comp_name As String = vbNullString, _
       Optional ByVal rc_wb As Workbook = Nothing)
 ' --------------------------------------------------------------------
-' This is the key service of the Component Management! It replaces in
-' the Workbook (rc_wb) the component either identified by the provided
-' name (rc_comp_name) or by the Export File's (rc_exp_file_full_name)
-' by re-importing it.
-' - When the Export File (rc_exp_file_full_name) does not
-'   exist the service exits without an eror.
-' - When the Workbook (rc_wb) is omitted it defaults to
-'   the ActiveWorkbook.
-' - When the ActiveWorkbook or the provided Workbook is
-'   ThisWorkbook the service exits without an error
+' This is one of the key services of the Component Management! It
+' replaces in the Workbook (rc_wb) the component either identified by
+' the provided component's name (rc_comp_name) or by the Export File's
+' full name (rc_exp_file_full_name) by re-importing it.
+' - When the provided Export File (rc_exp_file_full_name) does exist
+'   but a component name has been provided a file selection dialog is
+'   displayed with the possible files already filtered. When no
+'   Export File is selected the service terminates without notice.
+' - When the Workbook (rc_wb) is omitted it defaults to the
+'   ActiveWorkbook.
+' - When the ActiveWorkbook or the provided Workbook is ThisWorkbook
+'   the service terminates without notice
 '
-' Uses:
+' Uses private component:
 ' - clsComp provides all required properties
+'
+' Uses Common Components:
 ' - mErH    Common Error Handling services
 '           (may be replaced by any other!)
-' - mVBP    For the existence check of a provided component name
 '
-' Requires:
-' Reference to 'Microsoft Scripting Runtime'
+' Requires: - Reference to 'Microsoft Scripting Runtime'
 '
 ' W. Rauschenberger Berlin, Jan 2021
-' -------------------------------------------------------
+' --------------------------------------------------------------------
     Const PROC = "RenewComp"
 
     On Error GoTo eh
-    Dim sTempName   As String
-    Dim i           As Long
-    Dim j           As Long
-    Dim vbc         As VBComponent
     Dim fso         As New FileSystemObject
     Dim sCompName   As String
     Dim cComp       As New clsComp
     Dim flFile      As FILE
     Dim wbTemp      As Workbook
-    Dim wdw         As Window
     Dim wbActive    As Workbook
+    Dim sBaseName   As String
     
     If rc_wb Is Nothing Then Set rc_wb = ActiveWorkbook
     cComp.Wrkbk = rc_wb
@@ -635,57 +653,61 @@ Public Sub RenewComp( _
     
     If rc_exp_file_full_name = vbNullString _
     And rc_comp_name = vbNullString Then
+        '~~ ---------------------------------------------
         '~~ Select the Export File for the re-new service
+        '~~ of which the base name will be regared as the component to be renewed.
+        '~~ --------------------------------------------------------
         If mFile.SelectFile(sel_init_path:=cComp.ExpPath _
                           , sel_filters:="*.bas,*.cls,*.frm" _
                           , sel_filter_name:="File" _
                           , sel_title:="Select the Export File for the re-new service" _
                           , sel_result:=flFile) _
         Then rc_exp_file_full_name = flFile.PATH
-        If rc_exp_file_full_name = vbNullString Then GoTo xt ' no Export File selected
-        Select Case fso.GetExtensionName(rc_exp_file_full_name)
-        End Select
     End If
     
-    If Not fso.FileExists(rc_exp_file_full_name) Then GoTo xt
-    sCompName = fso.GetBaseName(rc_exp_file_full_name)
+    If rc_comp_name <> vbNullString _
+    And rc_exp_file_full_name = vbNullString Then
+        '~~ ------------------------------------------------
+        '~~ Select the component's corresponding Export File
+        '~~ ------------------------------------------------
+        sBaseName = fso.GetBaseName(rc_exp_file_full_name)
+        '~~ Select the Export File for the re-new service
+        If mFile.SelectFile(sel_init_path:=cComp.ExpPath _
+                          , sel_filters:=sBaseName & ".bas," & sBaseName & ".cls," & sBaseName & ".frm" _
+                          , sel_filter_name:="File" _
+                          , sel_title:="Select the Export File for the provided component '" & rc_comp_name & "'!" _
+                          , sel_result:=flFile) _
+        Then rc_exp_file_full_name = flFile.PATH
+    End If
     
-    cComp.CompName = sCompName
+    If rc_exp_file_full_name = vbNullString Then
+        MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
+             , Prompt:="Service '" & ErrSrc(PROC) & "' will be aborted because no " & _
+                       "existing Export File has been provided!" _
+             , Buttons:=vbOKOnly
+        GoTo xt ' no Export File selected
+    End If
+    
+    If rc_comp_name <> vbNullString Then
+        If fso.GetBaseName(rc_exp_file_full_name) <> rc_comp_name Then
+            MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
+                 , Prompt:="Service '" & ErrSrc(PROC) & "' will be aborted because the " & _
+                           "Export File '" & rc_exp_file_full_name & "' and the component name " & _
+                           "'" & rc_comp_name & "' do not indicate the same component!" _
+                 , Buttons:=vbOKOnly
+            GoTo xt
+        End If
+        cComp.CompName = rc_comp_name
+    Else
+        sCompName = fso.GetBaseName(rc_exp_file_full_name)
+    End If
     
     If cComp.Wrkbk Is ActiveWorkbook Then
         Set wbActive = ActiveWorkbook
         Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
     End If
     
-    With rc_wb.VBProject
-        '~~ 1. Step: Rename and remove the component
-        '~~ Note: Though the component will not be removed before this service has ended
-        '~~       it will be out of the way for the re-import of the Export File
-        sTempName = sCompName & "_Temp"
-        Do
-            '~~ When the primarily set temp name for the to-be-replace component is already existing
-            '~~ a yet non-existing temp name has to be found
-            For i = 1 To .VBComponents.Count
-                If .VBComponents(i).name = sTempName Then
-                    j = j + 1: sTempName = sTempName & j
-                    GoTo lp
-                End If
-            Next i
-lp:         If i > .VBComponents.Count Then Exit Do
-            Loop
-        Set vbc = .VBComponents(sCompName)
-        vbc.name = sTempName
-        .VBComponents.Remove vbc
-    
-        '~~ 2. Step: Re-Import the Export File
-        .VBComponents.Import rc_exp_file_full_name
-        If Not cLog Is Nothing _
-        Then cLog.Action = "Component replaced by re-importing Export File '" & rc_exp_file_full_name & "'."
-        .VBComponents.Remove vbc
-        If rc_exp_file_full_name <> cComp.ExpFileFullName _
-        Then .VBComponents(sCompName).Export cComp.ExpFileFullName
-
-    End With
+    cComp.Renew rn_exp_file_full_name:=rc_exp_file_full_name
 
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
@@ -815,6 +837,6 @@ Public Sub Version(ByVal c_version As clsAddinVersion)
 ' a ByRef argument, a class object is used instead.
 ' See: http://www.tushar-mehta.com/publish_train/xl_vba_cases/1022_ByRef_Argument_with_the_Application_Run_method.shtml
 ' ---------------------------------------------------------------------------------------------------------------------
-    c_version.Version = wbAddIn.AddInVersion
+    c_version.Version = mMe.AddInVersion
 End Sub
 
