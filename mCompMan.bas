@@ -115,20 +115,22 @@ Public lMaxCompLength   As Long
 
 Private dctHostedRaws   As Dictionary
 
-Public Property Get HostedRaws() As Variant
-    Set HostedRaws = dctHostedRaws
-End Property
+Public Property Get HostedRaws() As Variant:    Set HostedRaws = dctHostedRaws:     End Property
 
-Private Property Let HostedRaws(ByVal vhosted As Variant)
-' -------------------------------------------------------
-' Saves the names of the hosted raw components
-' (hosted_raws) to the Dictionary (dctRawComponents).
-' -------------------------------------------------
-    Dim v               As Variant
-    Dim sComp           As String
+Private Property Let HostedRaws(ByVal hr As Variant)
+' ---------------------------------------------------
+' Saves the names of the hosted raw components (hr)
+' to the Dictionary (dctHostedRaws).
+' ---------------------------------------------------
+    Dim v       As Variant
+    Dim sComp   As String
     
-    If dctHostedRaws Is Nothing Then Set dctHostedRaws = New Dictionary
-    For Each v In Split(vhosted, ",")
+    If dctHostedRaws Is Nothing Then
+        Set dctHostedRaws = New Dictionary
+    Else
+        dctHostedRaws.RemoveAll
+    End If
+    For Each v In Split(hr, ",")
         sComp = Trim$(v)
         If Not dctHostedRaws.Exists(sComp) Then
             dctHostedRaws.Add sComp, sComp
@@ -146,10 +148,11 @@ Public Function CompExists( _
 ' -----------------------------------------------------------
     On Error Resume Next
     Debug.Print ce_wb.VBProject.VBComponents(ce_comp_name).name
-    CompExists = err.Number = 0
+    CompExists = Err.Number = 0
 End Function
 
-Private Sub DeleteObsoleteExpFiles(ByVal ro_wb As Workbook)
+Private Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook, _
+                                   ByVal do_log As clsLog)
 ' --------------------------------------------------------------
 ' Delete Export Files the component does not or no longer exist.
 ' --------------------------------------------------------------
@@ -162,13 +165,11 @@ Private Sub DeleteObsoleteExpFiles(ByVal ro_wb As Workbook)
     Dim fl          As FILE
     Dim v           As Variant
     Dim cComp       As New clsComp
-    Dim cLog        As New clsLog
     
     With cComp
-        .Wrkbk = ro_wb ' assigment provides the Workbook's dedicated Export Folder
+        .Wrkbk = do_wb ' assignment provides the Workbook's dedicated Export Folder
         sFolder = .ExpFolder
     End With
-    cLog.Service = ErrSrc(PROC) ' for the logging of deleted Export Files
     
     With fso
         '~~ Collect obsolete Export Files
@@ -183,14 +184,13 @@ Private Sub DeleteObsoleteExpFiles(ByVal ro_wb As Workbook)
     
         For Each v In cllRemove
             .DeleteFile v
-            cLog.Action = "Obsolete Export File '" & v & "' deleted"
+            do_log.Action = "Obsolete Export File '" & v & "' deleted"
         Next v
     End With
     
 xt: Set cComp = Nothing
     Set cllRemove = Nothing
     Set fso = Nothing
-    Set cLog = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -306,7 +306,7 @@ Public Sub ExportAll(Optional ByVal exp_wrkbk As Workbook = Nothing)
     
     With cComp
         If mMe.IsAddinInstnc _
-        Then err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
+        Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
         .Wrkbk = exp_wrkbk
         For Each vbc In .Wrkbk.VBProject.VBComponents
             .VBComp = vbc
@@ -363,12 +363,13 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
     If InStr(ActiveWindow.caption, "(") <> 0 Then GoTo xt
     If InStr(ec_wb.FullName, "(") <> 0 Then GoTo xt
     
-    DeleteObsoleteExpFiles ec_wb
-    
     lCompMaxLen = MaxCompLength(wb:=ec_wb)
     Set cLog = New clsLog
     cLog.Reset
     cLog.Service = ErrSrc(PROC)
+    cLog.Serviced = ec_wb.name
+
+    DeleteObsoleteExpFiles do_wb:=ec_wb, do_log:=cLog
     
     MaintainHostedRaws mh_hosted:=ec_hosted _
                      , mh_wb:=ec_wb
@@ -378,7 +379,7 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
         Set cComp = Nothing
         Set cRaw = Nothing
         Set cComp = New clsComp
-        sProgress = Left(sProgress, Len(sProgress) - 1)
+        sProgress = left(sProgress, Len(sProgress) - 1)
         Application.StatusBar = "Export of changed components: " & Format(lExported, "##") & sProgress
         mTrc.BoC ErrSrc(PROC) & " " & vbc.name
         Set cComp = New clsComp
@@ -475,10 +476,10 @@ next_vbc:
         
     Select Case lExported
         Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & ec_wb.name & " had been changed/exported/backed up."
-        Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 2)
-        Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & Left(sExported, Len(sExported) - 1)
+        Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & left(sExported, Len(sExported) - 2)
+        Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & left(sExported, Len(sExported) - 1)
     End Select
-    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
+    If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
     
 xt: Set dctHostedRaws = Nothing
@@ -707,7 +708,9 @@ Public Sub RenewComp( _
         Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
     End If
     
-    cComp.Renew rn_exp_file_full_name:=rc_exp_file_full_name
+    cComp.Renew rn_wb:=rc_wb _
+              , rn_comp_name:=rc_comp_name _
+              , rn_exp_file_full_name:=rc_exp_file_full_name
 
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
@@ -739,15 +742,17 @@ Public Sub UpdateClonesTheRawHasChanged( _
     Const PROC = "UpdateClonesTheRawHasChanged"
     
     On Error GoTo eh
-    Dim vbc         As VBComponent
+    Dim fso         As New FileSystemObject
+    Dim lClonedRaw  As Long
     Dim lCompMaxLen As Long
     Dim lComponents As Long
-    Dim lClonedRaw  As Long
     Dim lReplaced   As Long
-    Dim sReplaced   As String
     Dim sMsg        As String
+    Dim sReplaced   As String
     Dim sServiced   As String
-    Dim fso         As New FileSystemObject
+    Dim vbc         As VBComponent
+    Dim wbActive    As Workbook
+    Dim wbTemp      As Workbook
     
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
@@ -760,6 +765,12 @@ Public Sub UpdateClonesTheRawHasChanged( _
     MaintainHostedRaws mh_hosted:=uc_hosted _
                      , mh_wb:=uc_wb
         
+    If uc_wb Is ActiveWorkbook Then
+        '~~ De-activate the ActiveWorkbook by creating a temporary Workbook
+        Set wbActive = uc_wb
+        Set wbTemp = Workbooks.Add
+    End If
+    
     For Each vbc In uc_wb.VBProject.VBComponents
         Set cComp = New clsComp
         cComp.Wrkbk = uc_wb
@@ -788,17 +799,19 @@ Public Sub UpdateClonesTheRawHasChanged( _
                     '~~ Attention!! The cloned raw's code is updated disregarding any code changed in it.
                     '~~ A code change in the cloned raw is only considered when the Workbook is about to
                     '~~ be closed - where it may be ignored to make exactly this happens.
-                    .ReplaceClonedWithRemoteRaw ru_vbc:=vbc
+                    .Renew rn_wb:=.Wrkbk _
+                         , rn_comp_name:=.CompName _
+                         , rn_exp_file_full_name:=cRaw.ExpFileFullName
+                    cLog.Action = "Replaced by re-import of the remote raw's export file '" & cRaw.ExpFileFullName & "'"
                     lReplaced = lReplaced + 1
                     sReplaced = .CompName & ", " & sReplaced
                     '~~ Register the update being used to identify a potentially relevant
                     '~~ change of the origin code
-                    cLog.Action = "Replaced! The remote raw's export file '" & cRaw.ExpFileFullName & "' has been imported."
-                    .BackUpCode
                 End If
             End With
         End If
         Set cComp = Nothing
+        Set cRaw = Nothing
     Next vbc
         
     Select Case lClonedRaw
@@ -806,22 +819,28 @@ Public Sub UpdateClonesTheRawHasChanged( _
         Case 1
             Select Case lReplaced
                 Case 0:     sMsg = "1 of " & lComponents & " has been identified as ""Cloned Raw Component"" but has not been updated since the raw had not changed."
-                Case 1:     sMsg = "1 Component of " & lComponents & " has been identified as ""Cloned Raw Component"" and updated because the raw had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case 1:     sMsg = "1 Component of " & lComponents & " has been identified as ""Cloned Raw Component"" and updated because the raw had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
                End Select
         Case Else
             Select Case lReplaced
                 Case 0:     sMsg = lClonedRaw & " Components of " & lComponents & " had been identified as ""Cloned Raw Components"". None had been updated since none of the raws had changed."
-                Case 1:     sMsg = lClonedRaw & " Components of " & lComponents & " had been identified as ""Cloned Raw Components"". One had been updated since the raw's code had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
-                Case Else:  sMsg = lClonedRaw & " Components of " & lComponents & " had been identified as ""Cloned Raw Components"". " & lReplaced & " have been updated because the raw's code had changed (" & Left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case 1:     sMsg = lClonedRaw & " Components of " & lComponents & " had been identified as ""Cloned Raw Components"". One had been updated since the raw's code had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
+                Case Else:  sMsg = lClonedRaw & " Components of " & lComponents & " had been identified as ""Cloned Raw Components"". " & lReplaced & " have been updated because the raw's code had changed (" & left(sReplaced, Len(sReplaced) - 2) & ")."
             End Select
     End Select
-    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
+    If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
     
-xt: Set cRaw = Nothing
+xt: If Not wbTemp Is Nothing Then
+        wbTemp.Close SaveChanges:=False
+        Set wbTemp = Nothing
+        If Not ActiveWorkbook Is wbActive Then
+            wbActive.Activate
+            Set wbActive = Nothing
+        End If
+    End If
     Set dctHostedRaws = Nothing
     Set fso = Nothing
-    mErH.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -839,4 +858,67 @@ Public Sub Version(ByVal c_version As clsAddinVersion)
 ' ---------------------------------------------------------------------------------------------------------------------
     c_version.Version = mMe.AddInVersion
 End Sub
+
+Public Function WbkIsOpen( _
+           Optional ByVal io_name As String = vbNullString, _
+           Optional ByVal io_full_name As String) As Boolean
+' ------------------------------------------------------------
+' When the full name is provided the check spans all Excel
+' instances else only the current one.
+' ------------------------------------------------------------
+    Const PROC = ""
+    
+    On Error GoTo eh
+    Dim fso     As New FileSystemObject
+    Dim xlApp   As Excel.Application
+    
+    If io_name = vbNullString And io_full_name = vbNullString Then GoTo xt
+    
+    If io_full_name <> vbNullString Then
+        '~~ With the full name the open test spans all application instances
+        If Not fso.FileExists(io_full_name) Then GoTo xt
+        If io_name = vbNullString Then io_name = fso.GetFileName(io_full_name)
+        On Error Resume Next
+        Set xlApp = GetObject(io_full_name).Application
+        WbkIsOpen = Err.Number = 0
+    Else
+        On Error Resume Next
+        io_name = Application.Workbooks(io_name).name
+        WbkIsOpen = Err.Number = 0
+    End If
+
+xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Function
+
+Public Function WbkGetOpen(ByVal go_wb_full_name) As Workbook
+    Const PROC = "WbkGetOpen"
+    
+    On Error GoTo eh
+    Dim fso     As New FileSystemObject
+    Dim sWbName As String
+    
+    If Not fso.FileExists(go_wb_full_name) Then GoTo xt
+    sWbName = fso.GetFileName(go_wb_full_name)
+    If mCompMan.WbkIsOpen(io_name:=sWbName) Then
+        Set WbkGetOpen = Application.Workbooks(sWbName)
+    Else
+        Set WbkGetOpen = Application.Workbooks.Open(go_wb_full_name)
+    End If
+
+xt: Set fso = Nothing
+    Exit Function
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Function
+
 

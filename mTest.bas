@@ -87,7 +87,7 @@ Public Sub Test_01_KindOfComp()
     Dim cComp       As clsComp
     Dim sComp       As String
     
-    Set wb = mWrkbk.GetOpen(fso.GetParentFolderName(ThisWorkbook.PATH) & "\File\File.xlsm")
+    Set wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.PATH) & "\File\File.xlsm")
 
     sComp = "mFile"
     Set cComp = Nothing
@@ -148,7 +148,7 @@ Public Sub Test_05_01_KindOfCodeChange_NoRaw_UsedOnly()
         .TestProcedure = ThisWorkbook.name & ": " & ErrSrc(PROC)
         .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
         .TestedByTheWay = "clsComp.ExpFileFullName"
-        Set wbTest = mWrkbk.GetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
+        Set wbTest = mCompMan.WbkGetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
         .ResultExpected = True
         .Details = "Export File does not exist, CodeModule not/never exported"
     End With
@@ -194,7 +194,7 @@ Public Sub Test_05_02_KindOfCodeChange_NoRaw_NoCodeChange()
         .TestProcedure = ThisWorkbook.name & ": " & ErrSrc(PROC)
         .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
         .TestedByTheWay = "clsComp.ExpFileFullName"
-        Set wbTest = mWrkbk.GetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
+        Set wbTest = mCompMan.WbkGetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
         .ResultExpected = False
         .Details = "Export File is identical with CodeModule"
     End With
@@ -245,7 +245,7 @@ Public Sub Test_05_03_KindOfCodeChange_NoRaw_UsedOnly()
         .Details = "Export File outdated, CodeModule changed (additional line)"
         .ResultExpected = True
     End With
-    Set wbTest = mWrkbk.GetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
+    Set wbTest = mCompMan.WbkGetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
     
     With cComp
         .Wrkbk = wbTest
@@ -292,7 +292,7 @@ Public Sub Test_05_04_KindOfCodeChange_NoRaw_UsedOnly()
         .Details = "Additional empty line in CodeModule is not considered a change though the Export File is outdated"
         .ResultExpected = False
     End With
-    Set wbTest = mWrkbk.GetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
+    Set wbTest = mCompMan.WbkGetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
     
     With cComp
         .Wrkbk = wbTest

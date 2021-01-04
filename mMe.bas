@@ -158,9 +158,9 @@ Private Sub AddinInstncWorkbookClose()
     lStep = Step
     Application.StatusBar = lStep & ". Close the Addin instance Workbook"
 
-    If err.Number <> 0 _
+    If Err.Number <> 0 _
     Then cllLog.Add lStep & ". Close the Addin Workbook failed: unable to close!" & vbLf & _
-                 "  (" & err.Description & ")" _
+                 "  (" & Err.Description & ")" _
     Else cllLog.Add lStep & ". Close Addin Workbook passed"
 
 End Sub
@@ -177,10 +177,10 @@ Private Sub AddInInstanceWorkbookDelete()
     With fso
         If .FileExists(AddInInstanceFullName) Then
             .DeleteFile AddInInstanceFullName
-            If err.Number = 0 _
+            If Err.Number = 0 _
             Then cllLog.Add lStep & ". Delete Addin Workbook passed." _
             Else cllLog.Add lStep & ". Delete Addin Workbook file failed: " & vbLf & _
-                         "  (" & err.Description & ")"
+                         "  (" & Err.Description & ")"
         Else
             cllLog.Add lStep & ". Delete Addin Workbook passed: already deleted"
         End If
@@ -204,7 +204,7 @@ Public Function AddInInstncWrkbkIsOpen() As Boolean
         If Application.AddIns2(i).name = AddInInstanceName Then
             On Error Resume Next
             Set wbTarget = Application.Workbooks(AddInInstanceName)
-            AddInInstncWrkbkIsOpen = err.Number = 0
+            AddInInstncWrkbkIsOpen = Err.Number = 0
             GoTo xt
         End If
     Next i
@@ -233,7 +233,7 @@ Private Sub AddinInstncWorkbookOpen()
         If AddInInstncWrkbkExists Then
             On Error Resume Next
             Set wb = Application.Workbooks.Open(AddInInstanceFullName)
-            If err.Number = 0 Then
+            If Err.Number = 0 Then
                 With fso
                     sBaseAddinName = .GetBaseName(wb.name)
                     sBaseDevName = .GetBaseName(ThisWorkbook.name)
@@ -243,7 +243,7 @@ Private Sub AddinInstncWorkbookOpen()
  _
             Else
                 cllLog.Add lStep & ". (Re)open the Addin Workbook failed: could't be (re)opened." & _
-                         vbLf & "  (" & err.Description & ")"
+                         vbLf & "  (" & Err.Description & ")"
             End If
         End If
     End If
@@ -265,11 +265,11 @@ Private Sub AddinInstncWorkbookSaveAsDevlp()
             On Error Resume Next
             wbAddIn.SaveAs DevInstncFullName, FileFormat:=xlDevlpFormat, ReadOnlyRecommended:=False
             
-            If Not mWrkbk.IsOpen(DevInstncName, wbDevlp) _
+            If Not mCompMan.WbkIsOpen(io_name:=DevInstncName) _
             Then Stop _
             Else wbDevlp.VBProject.name = fso.GetBaseName(DevInstncName)
             
-            If err.Number <> 0 Then
+            If Err.Number <> 0 Then
                 cllLog.Add lStep & ". Save Addin instance (version " & AddInVersion & " as Development instance Workbook failed!"
             Else
                 cllLog.Add lStep & ". Save Addin instance Workbook (version " & AddInVersion & " saved as Development instance Workbook passed."
@@ -396,12 +396,14 @@ Public Sub ConfirmConfig()
     Dim sReply          As String
     
     With sMsg
-        .section(1).sLabel = "Location (path) for the CompMan AddIn (the AddIn instance of the CompManDev Workbook):"
-        .section(1).sText = CompManAddinPath
-        .section(1).bMonspaced = True
-        .section(2).sLabel = "Root folder for any VB-Project in status development/maintenance about to be supported by CompMan:"
-        .section(2).sText = VBProjectsDevRoot
+        .section(1).sText = "Confirm or (re-)configure the location (path) for the CompMan AddIn instance Workbook which currently is:"
+        .section(2).sText = CompManAddinPath
         .section(2).bMonspaced = True
+        .section(3).sText = "Confirm or (re-)configure the root folder for any VB-Project in status development/maintenance. " & _
+                            "Only Workbooks(VB-Projects in any subfolder will be supported by CompMan!" & vbLf & _
+                            "The current root folder is:"
+        .section(4).sText = VBProjectsDevRoot
+        .section(4).bMonspaced = True
     End With
     
     While sReply <> CFG_CONFIRMED
@@ -451,7 +453,7 @@ Public Sub ControlItemRenewAdd()
         .caption = CONTROL_CAPTION
         .Style = msoButtonCaption
         .TooltipText = "Saves the development instance as Addin"
-        .OnAction = "Me.RenewAddIn"
+        .OnAction = "RenewAddIn"
         .Visible = True
     End With
     
@@ -482,9 +484,9 @@ Private Sub DevInstncWorkbookClose()
 
     wbDevlp.Activate
     wbDevlp.Close False
-    If err.Number <> 0 _
+    If Err.Number <> 0 _
     Then cllLog.Add lStep & ". Close Development instance Workbook failed: Unable to close" & vbLf & _
-                 "  (" & err.Description & ")" _
+                 "  (" & Err.Description & ")" _
     Else cllLog.Add lStep & ". Close Development instance Workbook passed"
 End Sub
 
@@ -500,10 +502,10 @@ Private Sub DevInstncWorkbookDelete()
     With fso
         If .FileExists(DevInstncFullName) Then
             .DeleteFile DevInstncFullName
-            If err.Number = 0 _
+            If Err.Number = 0 _
             Then cllLog.Add lStep & ". Delete Development instance Workbook passed" _
             Else cllLog.Add lStep & ". Delete Development instance Workbook failed!" & vbLf & _
-                         "  (" & err.Description & ")"
+                         "  (" & Err.Description & ")"
         Else
             cllLog.Add lStep & ". Development instance Workbook already deleted"
         End If
@@ -518,7 +520,7 @@ End Function
 Private Function DevInstncWorkbookIsOpen() As Boolean
     On Error Resume Next
     Set wbDevlp = Application.Workbooks(DevInstncName)
-    DevInstncWorkbookIsOpen = err.Number = 0
+    DevInstncWorkbookIsOpen = Err.Number = 0
 End Function
 
 Private Sub DevInstncWorkbookSave()
@@ -550,7 +552,7 @@ Private Sub DevInstncWorkbookSaveAsAddin()
             .EnableEvents = False
             On Error Resume Next
             wbSource.SaveAs AddInInstanceFullName, FileFormat:=xlAddInFormat
-            If err.Number <> 0 Then
+            If Err.Number <> 0 Then
                 cllLog.Add lStep & ". Save Development instance (version " & AddInVersion & ") as Addin failed!"
             Else
                 cllLog.Add lStep & ". Save Development instance (version " & AddInVersion & ") as Addin passed"
@@ -635,7 +637,7 @@ Private Sub ReferencesToAddInRestore()
     Next v
     
     If bOneRestored Then
-        sWbs = Left(sWbs, Len(sWbs) - 2)
+        sWbs = left(sWbs, Len(sWbs) - 2)
         cllLog.Add lStep & ". Reference to the Addin in open Workbooks restored"
         cllLog.Add "   (" & sWbs & ")"
     Else
@@ -673,11 +675,10 @@ Private Function ReferencesToAddInSaveAndRemove() As Boolean
     Application.StatusBar = lStep & ". Save and remove references to the Addin from open Workbooks"
     
     With Application
-        Set dct = mWrkbk.Opened ' Returns a Dictionary with all open Workbooks in any application insance
+        Set dct = mWrkbk.Opened ' Returns a Dictionary with all open Workbooks in any application instance
         Set dctAddInRefs = New Dictionary
         For Each v In dct
             Set wb = dct.Item(v)
-            
             For Each ref In wb.VBProject.References
                 If InStr(ref.name, fso.GetBaseName(AddInInstanceName)) <> 0 Then
                     dctAddInRefs.Add wb, ref
@@ -696,7 +697,7 @@ Private Function ReferencesToAddInSaveAndRemove() As Boolean
     End With
     
     If bOneRemoved Then
-        sWbs = Left(sWbs, Len(sWbs) - 2)
+        sWbs = left(sWbs, Len(sWbs) - 2)
         cllLog.Add lStep & ". Reference to the Addin from open Workbooks saved and removed"
         cllLog.Add "   (" & sWbs & ")"
     Else
