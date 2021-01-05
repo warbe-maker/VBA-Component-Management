@@ -6,10 +6,10 @@ Option Explicit
 '                 component name the values HostFullName and ExpFileFullName.
 ' ---------------------------------------------------------------------------
 
-Private Const VALUE_HOST_FULL_NAME = "HostFullName"
-Private Const VALUE_EXP_FILE_FULL_NAME = "ExpFileFullName"
+Private Const VALUE_HOST_FULL_NAME      As String = "HostFullName"
+Private Const VALUE_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
-Private Property Get DAT_FILE() As String:  DAT_FILE = mMe.CompManAddinPath & "\Raws.dat":     End Property
+Public Property Get DAT_FILE() As String: DAT_FILE = mMe.CompManAddinPath & "\Raws.dat":   End Property
 
 Public Property Get ExpFileFullName( _
                      Optional ByVal comp_name As String) As String
@@ -36,11 +36,20 @@ End Property
 Private Property Get value( _
            Optional ByVal vl_section As String, _
            Optional ByVal vl_value_name As String) As Variant
+    Const PROC = "Value_Let"
     
+    On Error GoTo eh
     value = mFile.value(vl_file:=DAT_FILE _
                       , vl_section:=vl_section _
                       , vl_value_name:=vl_value_name _
                        )
+xt: Exit Property
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: Exit Property
+    End Select
 End Property
 
 Private Property Let value( _
@@ -51,12 +60,21 @@ Private Property Let value( _
 ' Write the value (vl_value) named (vl_value_name)
 ' into the file RAWS_DAT_FILE.
 ' --------------------------------------------------
+    Const PROC = "Value_Let"
     
+    On Error GoTo eh
     mFile.value(vl_file:=DAT_FILE _
               , vl_section:=vl_section _
               , vl_value_name:=vl_value_name _
                ) = vl_value
 
+xt: Exit Property
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: Exit Property
+    End Select
 End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String

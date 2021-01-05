@@ -366,7 +366,7 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
     lCompMaxLen = MaxCompLength(wb:=ec_wb)
     Set cLog = New clsLog
     cLog.Reset
-    cLog.Service = ErrSrc(PROC)
+    cLog.Service(sv_wb:=ec_wb) = ErrSrc(PROC)
     cLog.Serviced = ec_wb.name
 
     DeleteObsoleteExpFiles do_wb:=ec_wb, do_log:=cLog
@@ -611,6 +611,7 @@ Public Sub RenewComp( _
 '
 ' Uses private component:
 ' - clsComp provides all required properties
+' - clsLog  provided logging services
 '
 ' Uses Common Components:
 ' - mErH    Common Error Handling services
@@ -626,6 +627,7 @@ Public Sub RenewComp( _
     Dim fso         As New FileSystemObject
     Dim sCompName   As String
     Dim cComp       As New clsComp
+    Dim cLog        As New clsLog
     Dim flFile      As FILE
     Dim wbTemp      As Workbook
     Dim wbActive    As Workbook
@@ -640,6 +642,7 @@ Public Sub RenewComp( _
     End If
     
     If Not rc_comp_name <> vbNullString Then
+        cComp.CompName = rc_comp_name
         If Not CompExists(ce_wb:=rc_wb, ce_comp_name:=rc_comp_name) Then
             If rc_exp_file_full_name <> vbNullString Then
                 rc_comp_name = fso.GetBaseName(rc_exp_file_full_name)
@@ -668,13 +671,14 @@ Public Sub RenewComp( _
     
     If rc_comp_name <> vbNullString _
     And rc_exp_file_full_name = vbNullString Then
+        cComp.CompName = rc_comp_name
         '~~ ------------------------------------------------
         '~~ Select the component's corresponding Export File
         '~~ ------------------------------------------------
         sBaseName = fso.GetBaseName(rc_exp_file_full_name)
         '~~ Select the Export File for the re-new service
         If mFile.SelectFile(sel_init_path:=cComp.ExpPath _
-                          , sel_filters:=sBaseName & ".bas," & sBaseName & ".cls," & sBaseName & ".frm" _
+                          , sel_filters:="*" & cComp.Extension _
                           , sel_filter_name:="File" _
                           , sel_title:="Select the Export File for the provided component '" & rc_comp_name & "'!" _
                           , sel_result:=flFile) _
@@ -689,29 +693,36 @@ Public Sub RenewComp( _
         GoTo xt ' no Export File selected
     End If
     
-    If rc_comp_name <> vbNullString Then
-        If fso.GetBaseName(rc_exp_file_full_name) <> rc_comp_name Then
-            MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
-                 , Prompt:="Service '" & ErrSrc(PROC) & "' will be aborted because the " & _
-                           "Export File '" & rc_exp_file_full_name & "' and the component name " & _
-                           "'" & rc_comp_name & "' do not indicate the same component!" _
-                 , Buttons:=vbOKOnly
-            GoTo xt
+    With cComp
+        If rc_comp_name <> vbNullString Then
+            If fso.GetBaseName(rc_exp_file_full_name) <> rc_comp_name Then
+                MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
+                     , Prompt:="Service '" & ErrSrc(PROC) & "' will be aborted because the " & _
+                               "Export File '" & rc_exp_file_full_name & "' and the component name " & _
+                               "'" & rc_comp_name & "' do not indicate the same component!" _
+                     , Buttons:=vbOKOnly
+                GoTo xt
+            End If
+            .CompName = rc_comp_name
+        Else
+            .CompName = fso.GetBaseName(rc_exp_file_full_name)
         End If
-        cComp.CompName = rc_comp_name
-    Else
-        sCompName = fso.GetBaseName(rc_exp_file_full_name)
-    End If
+        
+        If .Wrkbk Is ActiveWorkbook Then
+            Set wbActive = ActiveWorkbook
+            Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
+        End If
     
-    If cComp.Wrkbk Is ActiveWorkbook Then
-        Set wbActive = ActiveWorkbook
-        Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
-    End If
-    
-    cComp.Renew rn_wb:=rc_wb _
-              , rn_comp_name:=rc_comp_name _
-              , rn_exp_file_full_name:=rc_exp_file_full_name
+        cLog.Service = ErrSrc(PROC)
+        cLog.Serviced = .Wrkbk
+        
+        .Renew rn_wb:=.Wrkbk _
+             , rn_comp_name:=.CompName _
+             , rn_exp_file_full_name:=rc_exp_file_full_name _
+             , rn_log:=cLog
 
+    End With
+    
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
         Set wbTemp = Nothing
@@ -721,6 +732,7 @@ xt: If Not wbTemp Is Nothing Then
         End If
     End If
     Set cComp = Nothing
+    Set cLog = Nothing
     Set fso = Nothing
     Exit Sub
 
