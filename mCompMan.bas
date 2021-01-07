@@ -454,7 +454,7 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
                                       , file_right_full_name:=cRaw.ExpFileFullName _
                                       , file_right_title:=cRaw.ExpFileFullName
                                       
-                            .ReplaceRemoteWithClonedRawWhenConfirmed rwu_updated:=bUpdated ' when confirmed in user dialog
+                            .ReplaceRemoteWithClonedRawWhenConfirmed rwu_updated:=bUpdated, rwu_log:=cLog ' when confirmed in user dialog
                             If bUpdated Then
                                 lUpdated = lUpdated + 1
                                 sUpdated = vbc.name & ", " & sUpdated
@@ -596,26 +596,38 @@ Public Sub RenewComp( _
       Optional ByVal rc_comp_name As String = vbNullString, _
       Optional ByVal rc_wb As Workbook = Nothing)
 ' --------------------------------------------------------------------
-' This is one of the key services of the Component Management! It
-' replaces in the Workbook (rc_wb) the component either identified by
-' the provided component's name (rc_comp_name) or by the Export File's
-' full name (rc_exp_file_full_name) by re-importing it.
-' - When the provided Export File (rc_exp_file_full_name) does exist
-'   but a component name has been provided a file selection dialog is
-'   displayed with the possible files already filtered. When no
-'   Export File is selected the service terminates without notice.
-' - When the Workbook (rc_wb) is omitted it defaults to the
-'   ActiveWorkbook.
-' - When the ActiveWorkbook or the provided Workbook is ThisWorkbook
-'   the service terminates without notice
+' This service renews a component by re-importing an Export File.
+' When the provided Export File (rc_exp_file_full_name) does exist but
+' a component name has been provided a file selection dialog is
+' displayed with the possible files already filtered. When no Export
+' File is selected the service terminates without notice.
+' When the Workbook (rc_wb) is omitted it defaults to the
+' ActiveWorkbook.
+' When the ActiveWorkbook or the provided Workbook is ThisWorkbook
+' the service terminates without notice
 '
 ' Uses private component:
-' - clsComp provides all required properties
+' - clsComp provides all required properties and the RenewByIport service
 ' - clsLog  provided logging services
 '
 ' Uses Common Components:
 ' - mErH    Common Error Handling services
 '           (may be replaced by any other!)
+'
+' The service must be called from the Workbook of which a component should be
+' renewed as follows:
+'
+' Application.Run CompManDev.xlsm!mCompMan.RenewComp" _
+                , <exp_file_full_name> _
+                , <comp_name> _
+                , <serviced_workbook_object>
+'
+' in case the CompManDev.xlsm is established as AddIn it can be called
+' from any Workbook provided the AddIn is referenced:
+'
+' mCompMan.RenewComp [rc_exp_file_full_name:=....] _
+'                  , [rc_comp_name:=....] _
+'                  , [rc_wb:=the_serviced_workbook_object]
 '
 ' Requires: - Reference to 'Microsoft Scripting Runtime'
 '
@@ -713,10 +725,10 @@ Public Sub RenewComp( _
             Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
         End If
     
-        cLog.Service = ErrSrc(PROC)
-        cLog.Serviced = .Wrkbk
+        cLog.Service(sv_wb:=.Wrkbk) = ErrSrc(PROC)
+        cLog.Serviced = .CompName
         
-        .Renew rn_wb:=.Wrkbk _
+        .RenewByImport rn_wb:=.Wrkbk _
              , rn_comp_name:=.CompName _
              , rn_exp_file_full_name:=rc_exp_file_full_name _
              , rn_log:=cLog
@@ -744,13 +756,13 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub UpdateClonesTheRawHasChanged( _
-                                  ByVal uc_wb As Workbook, _
-                         Optional ByVal uc_hosted As String = vbNullString)
-' -------------------------------------------------------------------------------
-' Updates any cloned raw component in the target Workbook (updt_wrkbk) where the
-' code of the remote raw component hosted in another Workbook has changed (the
-' export files differ).
-' -------------------------------------------------------------------------------
+           ByVal uc_wb As Workbook, _
+  Optional ByVal uc_hosted As String = vbNullString)
+' --------------------------------------------------
+' Updates a clone component with the Export File
+' of the remote raw component provided the raw's
+' code has changed.
+' --------------------------------------------------
     Const PROC = "UpdateClonesTheRawHasChanged"
     
     On Error GoTo eh
@@ -772,7 +784,7 @@ Public Sub UpdateClonesTheRawHasChanged( _
     If InStr(uc_wb.FullName, "(") <> 0 Then GoTo xt
     lCompMaxLen = MaxCompLength(wb:=uc_wb)
     Set cLog = New clsLog
-    cLog.Service = ErrSrc(PROC)
+    cLog.Service(sv_wb:=uc_wb) = ErrSrc(PROC)
     
     MaintainHostedRaws mh_hosted:=uc_hosted _
                      , mh_wb:=uc_wb
@@ -811,9 +823,10 @@ Public Sub UpdateClonesTheRawHasChanged( _
                     '~~ Attention!! The cloned raw's code is updated disregarding any code changed in it.
                     '~~ A code change in the cloned raw is only considered when the Workbook is about to
                     '~~ be closed - where it may be ignored to make exactly this happens.
-                    .Renew rn_wb:=.Wrkbk _
+                    .RenewByImport rn_wb:=.Wrkbk _
                          , rn_comp_name:=.CompName _
-                         , rn_exp_file_full_name:=cRaw.ExpFileFullName
+                         , rn_exp_file_full_name:=cRaw.ExpFileFullName _
+                         , rn_log:=cLog
                     cLog.Action = "Replaced by re-import of the remote raw's export file '" & cRaw.ExpFileFullName & "'"
                     lReplaced = lReplaced + 1
                     sReplaced = .CompName & ", " & sReplaced

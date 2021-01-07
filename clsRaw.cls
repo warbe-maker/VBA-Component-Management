@@ -8,18 +8,17 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
-
+' ---------------------------------------------------------
+' Class Module clsRaw Properties of a remote raw component.
+'
+' W. Rauschenberger Berlin, Jan 2021 (last revised)
+' ---------------------------------------------------------
 Private wbRawHost           As Workbook
 Private sHostFullName       As String
 Private sExpFileFullName    As String
 Private flExpFile           As FILE
 Private sCompName           As String
 Private vbcRaw              As VBComponent
-Private fso                 As New FileSystemObject
-
-Private Sub Class_Terminate()
-    Set fso = Nothing
-End Sub
 
 Public Property Get CodeAsOfDate() As String:           CodeAsOfDate = flExpFile.DateLastModified:      End Property
 
@@ -49,4 +48,8 @@ Public Property Get RawVbc() As VBComponent:            Set RawVbc = vbcRaw:    
 
 Public Property Let RawVbc(ByVal vbc As VBComponent):   Set vbcRaw = vbc:                               End Property
 
-Public Property Get WrkbkBaseName() As String:          WrkbkBaseName = fso.GetBaseName(sHostFullName): End Property
+Public Property Get WrkbkBaseName() As String
+    Dim fso As New FileSystemObject
+    WrkbkBaseName = fso.GetBaseName(sHostFullName)
+    Set fso = Nothing
+End Property

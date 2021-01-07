@@ -334,22 +334,6 @@ Public Sub Test_CompOriginHasChanged()
 
 End Sub
 
-Public Sub Test_File_sAreEqual()
-
-    Debug.Assert _
-    mFile.sAreEqual( _
-                  fc_file1:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
-                , fc_file2:="E:\Ablage\Excel VBA\DevAndTest\Common\CompManDev\mFile.bas" _
-                 ) = False
-    
-'    Debug.Assert _
-'    mFile.sAreEqual( _
-'                  fc_file1:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
-'                , fc_file2:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
-'                 ) = True
-
-End Sub
-
 Public Sub Test_File_Compare()
     
     Const FILE_LEFT = "E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas"
@@ -367,6 +351,22 @@ Public Sub Test_File_Compare()
                           , file_right_title:=FILE_LEFT _
                            )
     
+End Sub
+
+Public Sub Test_File_sAreEqual()
+
+    Debug.Assert _
+    mFile.sAreEqual( _
+                  fc_file1:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
+                , fc_file2:="E:\Ablage\Excel VBA\DevAndTest\Common\CompManDev\mFile.bas" _
+                 ) = False
+    
+'    Debug.Assert _
+'    mFile.sAreEqual( _
+'                  fc_file1:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
+'                , fc_file2:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
+'                 ) = True
+
 End Sub
 
 Public Sub Test_File_SectionNames()
@@ -388,41 +388,52 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_File_ValueNames()
-    Const PROC = "Test_File_ValueNames"
-
-    On Error GoTo eh
-    Dim v   As Variant
-    
-    For Each v In mFile.ValueNames(vn_file:=mMe.CompManAddinPath & "\CompMan.dat")
-        Debug.Print """" & v & """"
-    Next v
-    
-xt: Exit Sub
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Sub
-
-Public Sub Test_File_Values()
-    Const PROC = "Test_File_Values"
+Public Sub Test_File_Sections_Transfer_By_LetGet()
+' ------------------------------------------------
+' This test relies on the Value (Let) service.
+' ------------------------------------------------
+    Const PROC = "Test_File_Sections_Transfer_By_LetGet"
+    Const vbTemporaryFolder = 2
     
     On Error GoTo eh
-    Dim dctValues   As Dictionary
-    Dim v           As Variant
-    Dim sFile       As String
+    Dim fso             As New FileSystemObject
+    Dim sFileGet        As String
+    Dim sFileLet        As String
+    Dim i               As Long
+    Dim j               As Long
+    Dim arSections()    As Variant
+    Dim sSectionName    As String
     
-    sFile = mMe.CompManAddinPath & "\CompMan.dat"
-    Set dctValues = mFile.Values(vl_file:=sFile _
-                             , vl_section:=mFile.SectionNames(sn_file:=sFile).Items()(0))
-    For Each v In dctValues
-        Debug.Print v & " = " & dctValues(v)
-    Next v
-
-xt: Exit Sub
+    '~~ Test preparation
+    sFileGet = fso.GetSpecialFolder(SpecialFolder:=vbTemporaryFolder) & "\" & fso.GetTempName
+    sFileLet = fso.GetSpecialFolder(SpecialFolder:=vbTemporaryFolder) & "\" & fso.GetTempName
+    
+    For i = 1 To 3
+        sSectionName = "Section-" & i
+        ReDim Preserve arSections(i - 1)
+        arSections(i - 1) = sSectionName
+        For j = 1 To 5
+            mFile.value(vl_file:=sFileGet _
+                    , vl_section:=sSectionName _
+                    , vl_value_name:="Value-" & j _
+                     ) = CStr(i & "-" & j)
+        Next j
+    Next i
+    
+    '~~ Test
+    mErH.BoP ErrSrc(PROC)
+    
+    mFile.SectionsCopy sc_section_names:=arSections, sc_file_from:=sFileGet, sc_file_to:=sFileLet
+    Debug.Assert mFile.sDiffer(dif_file1:=fso.GetFile(sFileGet), dif_file2:=fso.GetFile(sFileLet)) = False
+    
+    mErH.EoP ErrSrc(PROC)
+    
+xt: '~~ Test cleanup
+    With fso
+        If .FileExists(sFileGet) Then .DeleteFile (sFileGet)
+        If .FileExists(sFileGet) Then .DeleteFile (sFileLet)
+    End With
+    Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -498,58 +509,61 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_File_Sections_Transfer_By_LetGet()
-' ------------------------------------------------
-' This test relies on the Value (Let) service.
-' ------------------------------------------------
-    Const PROC = "Test_File_Sections_Transfer_By_LetGet"
-    Const vbTemporaryFolder = 2
+Public Sub Test_File_ValueNames()
+    Const PROC = "Test_File_ValueNames"
+
+    On Error GoTo eh
+    Dim v   As Variant
+    
+    For Each v In mFile.ValueNames(vn_file:=mMe.CompManAddinPath & "\CompMan.dat")
+        Debug.Print """" & v & """"
+    Next v
+    
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
+Public Sub Test_File_Values()
+    Const PROC = "Test_File_Values"
     
     On Error GoTo eh
-    Dim fso             As New FileSystemObject
-    Dim sFileGet        As String
-    Dim sFileLet        As String
-    Dim i               As Long
-    Dim j               As Long
-    Dim arSections()    As Variant
-    Dim sSectionName    As String
+    Dim dctValues   As Dictionary
+    Dim v           As Variant
+    Dim sFile       As String
     
-    '~~ Test preparation
-    sFileGet = fso.GetSpecialFolder(SpecialFolder:=vbTemporaryFolder) & "\" & fso.GetTempName
-    sFileLet = fso.GetSpecialFolder(SpecialFolder:=vbTemporaryFolder) & "\" & fso.GetTempName
-    
-    For i = 1 To 3
-        sSectionName = "Section-" & i
-        ReDim Preserve arSections(i - 1)
-        arSections(i - 1) = sSectionName
-        For j = 1 To 5
-            mFile.value(vl_file:=sFileGet _
-                    , vl_section:=sSectionName _
-                    , vl_value_name:="Value-" & j _
-                     ) = CStr(i & "-" & j)
-        Next j
-    Next i
-    
-    '~~ Test
-    mErH.BoP ErrSrc(PROC)
-    
-    mFile.SectionsCopy sc_section_names:=arSections, sc_file_from:=sFileGet, sc_file_to:=sFileLet
-    Debug.Assert mFile.sDiffer(dif_file1:=fso.GetFile(sFileGet), dif_file2:=fso.GetFile(sFileLet)) = False
-    
-    mErH.EoP ErrSrc(PROC)
-    
-xt: '~~ Test cleanup
-    With fso
-        If .FileExists(sFileGet) Then .DeleteFile (sFileGet)
-        If .FileExists(sFileGet) Then .DeleteFile (sFileLet)
-    End With
-    Exit Sub
+    sFile = mMe.CompManAddinPath & "\CompMan.dat"
+    Set dctValues = mFile.Values(vl_file:=sFile _
+                             , vl_section:=mFile.SectionNames(sn_file:=sFile).Items()(0))
+    For Each v In dctValues
+        Debug.Print v & " = " & dctValues(v)
+    Next v
+
+xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
         Case mErH.DebugOpt2ResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
+End Sub
+
+Public Sub Test_Log()
+    Const PROC = "Test_Log"
+    
+    Dim cLog As New clsLog
+    With cLog
+        .Reset
+        .Service(sv_wb:=ThisWorkbook) = ErrSrc(PROC)
+        .Serviced = ThisWorkbook.name & ": " & "Mine"
+        .Action = "Tested"
+    End With
+    Set cLog = Nothing
+
 End Sub
 
 Public Sub Test_Refs()
@@ -575,6 +589,149 @@ Public Sub Test_Refs()
         End With
     Next ref
     
+End Sub
+
+Public Sub Test_RenewComp_Standard_Module()
+' ----------------------------------------------------------------------------
+' This is a kind of "burn-in" test in order to prove that a Standard Module
+' can be renewed by the re-import of an Export File.
+' The test asserts that a Workbook is able to renew its own VBA code provided
+' it is not active when it is done.
+' ----------------------------------------------------------------------------
+    Const PROC = "Test_RenewComp_Standard_Module"
+    Const REPEAT = 5
+    Const TEST_COMP_NAME = "mRaw"
+    
+    On Error GoTo eh
+    Dim cComp   As New clsComp
+    Dim i       As Long
+    
+    If mMe.IsDevInstnc Then
+        If mMe.AddInInstncWrkbkIsOpen Then
+            ' ---------------------------------
+            '~~ Arguments for the Run:
+            '~~ rc_exp_file_full_name As String
+            '~~ rc_comp_name As String
+            '~~ rc_wb As Workbook
+            '~~ -------------------------------
+            mErH.BoP ErrSrc(PROC)
+            With cComp
+                .Wrkbk = ThisWorkbook
+                .CompName = TEST_COMP_NAME
+            
+                For i = 1 To REPEAT
+                    Application.Run _
+                    AddInInstanceName & "!mCompMan.RenewComp", .ExpFileFullName, .CompName, .Wrkbk
+                Next i
+            End With
+            mErH.EoP ErrSrc(PROC)
+        End If
+    End If
+    
+xt: Set cComp = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Sub
+
+Public Sub Test_RenewComp_Class_Module()
+' ----------------------------------------------------------------------------
+' This is a kind of "burn-in" test in order to prove that a Standard Module
+' can be renewed by the re-import of an Export File.
+' The test asserts that a Workbook is able to renew its own VBA code provided
+' it is not active when it is done.
+' ----------------------------------------------------------------------------
+    Const PROC = "Test_RenewComp_Class_Module"
+    Const REPEAT = 5
+    Const TEST_COMP_NAME = "clsRaw"
+    
+    On Error GoTo eh
+    Dim cComp   As New clsComp
+    Dim i       As Long
+    
+    If mMe.IsDevInstnc Then
+        If mMe.AddInInstncWrkbkIsOpen Then
+            ' ---------------------------------
+            '~~ Arguments for the Run:
+            '~~ rc_exp_file_full_name As String
+            '~~ rc_comp_name As String
+            '~~ rc_wb As Workbook
+            '~~ -------------------------------
+            mErH.BoP ErrSrc(PROC)
+            With cComp
+                .Wrkbk = ThisWorkbook
+                .CompName = TEST_COMP_NAME
+            
+                For i = 1 To REPEAT
+                    Application.Run _
+                    AddInInstanceName & "!mCompMan.RenewComp", .ExpFileFullName, .CompName, .Wrkbk
+                Next i
+            End With
+            mErH.EoP ErrSrc(PROC)
+        End If
+    End If
+    
+xt: Set cComp = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Sub
+
+Public Sub Test_RenewComp_UserForm()
+' ----------------------------------------------------------------------------
+' This is a kind of "burn-in" test in order to prove that a Standard Module
+' can be renewed by the re-import of an Export File.
+' The test asserts that a Workbook is able to renew its own VBA code provided
+' it is not active when it is done.
+' ----------------------------------------------------------------------------
+    Const PROC = "Test_RenewComp_Class_Module"
+    Const REPEAT = 1
+    Const TEST_COMP_NAME = "fMsg"
+    
+    On Error GoTo eh
+    Dim cComp   As New clsComp
+    Dim i       As Long
+    
+    If mMe.IsDevInstnc Then
+        If mMe.AddInInstncWrkbkIsOpen Then
+            ' ---------------------------------
+            '~~ Arguments for the Run:
+            '~~ rc_exp_file_full_name As String
+            '~~ rc_comp_name As String
+            '~~ rc_wb As Workbook
+            '~~ -------------------------------
+            mErH.BoP ErrSrc(PROC)
+            With cComp
+                .Wrkbk = ThisWorkbook
+                .CompName = TEST_COMP_NAME
+            
+                For i = 1 To REPEAT
+'                    Application.Run _
+'                    AddInInstanceName & "!mCompMan.RenewComp", .ExpFileFullName, .CompName, .Wrkbk
+                    Application.Run _
+                    AddInInstanceName & "!mCompMan.RenewComp", , .CompName, .Wrkbk
+                Next i
+            End With
+            mErH.EoP ErrSrc(PROC)
+        End If
+    End If
+    
+xt: Set cComp = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub Test_Temp()
@@ -618,19 +775,5 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt2ResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
-End Sub
-
-Public Sub Test_Log()
-    Const PROC = "Test_Log"
-    
-    Dim cLog As New clsLog
-    With cLog
-        .Reset
-        .Service = ErrSrc(PROC)
-        .Serviced = ThisWorkbook.name & ": " & "Mine"
-        .Action = "Tested"
-    End With
-    Set cLog = Nothing
-
 End Sub
 

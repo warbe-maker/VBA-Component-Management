@@ -90,7 +90,7 @@ Private Sub Workbook_Open()
     With ThisWorkbook
         '~~ Make sure the VBProject name is the Workbook's base name
         '~~ Note that this is required to correctly identify (save, remove, restore) any reference
-        '~~ to the Addin in open Workbook when Renew or SaveAsAddin is performed (see module mAddin)
+        '~~ to the Addin in open Workbook when RenewByImport or SaveAsAddin is performed (see module mAddin)
         If .VBProject.name <> fso.GetBaseName(.name) Then .VBProject.name = fso.GetBaseName(.name)
         '~~ Unporotecting (the Addin) allows directly modify code in it - and saving it subsequently
         '~~ as new Development instance (see method SaveasDev in module mAddin)

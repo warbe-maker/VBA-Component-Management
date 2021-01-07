@@ -14,7 +14,7 @@ Private sServiced   As String
 Private sFile       As String
 
 Public Property Let Service( _
-             Optional ByVal sv_wb As Workbook, _
+                      ByVal sv_wb As Workbook, _
                       ByVal s As String)
     sService = sv_wb.name & "/" & s
     sFile = sv_wb.PATH & "\" & s & ".log"

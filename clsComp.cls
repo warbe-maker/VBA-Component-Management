@@ -814,27 +814,27 @@ Private Function GetFile(ByVal sFile As String) As FILE
     Set fso = Nothing
 End Function
 
-Public Sub Renew(ByVal rn_wb As Workbook, _
+Public Sub RenewByImport(ByVal rn_wb As Workbook, _
                  ByVal rn_comp_name As String, _
                  ByVal rn_exp_file_full_name As String, _
         Optional ByRef rn_log As clsLog)
-' -----------------------------------------------------------
-' Renews the component (rn_comp_name) in the Workbook (rn_wb)
+' --------------------------------------------------------
+' Renews the component (rn_comp_name) in Workbook (rn_wb)
 ' by re-importing the Export File (rn_exp_file_full_name).
-' - When the Workbook (wb) is the ActiveWorkbook the service
-'   is aborted without notice. I.e. de-activating the active
-'   Workbook is with the caller
+' - When the Workbook (wb) is the ActiveWorkbook the
+'   service is aborted without notice. I.e. de-activating
+'   the active Workbook is with the caller
 ' - When the base name of the provided Export File is not
 '   identical with the current component's name
 '   (rn_comp_name) the service is aborted without notice.
-'
-' Precondition:
-' The component exists and is not a Data Module type which can
-' only be renewed by replacing the code by line.
+' - When the component exists but is a Data Module type
+'   the service is terminated without notic
+' - Logging of the process is recommended in order to see
+'   at which state it may have failed.
 '
 ' W. Rauschenberger Berlin, Jan 2021
-' --------------------------------------------------------------
-    Const PROC = "Renew"
+' --------------------------------------------------------
+    Const PROC = "RenewByImport"
     
     On Error GoTo eh
     Dim sTempName   As String
@@ -843,18 +843,128 @@ Public Sub Renew(ByVal rn_wb As Workbook, _
     Dim fso         As New FileSystemObject
     Dim vbc         As VBComponent
     
+    '~~ Preconditions
     If rn_wb Is ActiveWorkbook Then GoTo xt
-    If Not mCompMan.CompExists(ce_wb:=rn_wb, ce_comp_name:=rn_comp_name) Then GoTo xt
     If fso.GetBaseName(rn_exp_file_full_name) <> rn_comp_name Then GoTo xt
+    If Not mCompMan.CompExists(ce_wb:=rn_wb, ce_comp_name:=rn_comp_name) Then GoTo xt
+    If rn_wb.VBProject.VBComponents(rn_comp_name).Type = vbext_ct_Document Then GoTo xt
     
+    sTempName = AvailableCompTempName(ac_vbp:=rn_wb.VBProject, ac_comp_name:=rn_comp_name)
     With rn_wb.VBProject
-        If .VBComponents(rn_comp_name).Type = vbext_ct_Document Then GoTo xt
-        ' -----------------------------------------------------------------------------
-        '~~ 1. Step: Rename and remove the component
-        '~~ Note: Though the component will not be removed before this service has
-        '~~       ended it will be out of the way for the re-import of the Export File.
-        '~~ ---------------------------------------------------------------------------
-        sTempName = rn_comp_name & "_Temp"
+        ' --------------------------------------------------------------------
+        '~~ 1. Step: Rename and remove the component (though the component may
+        '~~          not be removed before this this service has ended it will
+        '~~          be out of the way for the re-import of the Export File.
+        '~~ ------------------------------------------------------------------
+        On Error Resume Next
+        .VBComponents(rn_comp_name).name = sTempName
+        If Err.Number <> 0 Then
+            '~~ When the component cannot be renamed it is removed and the import
+            '~~ is postponed to the mPending.Resolve service
+            If Not rn_log Is Nothing Then rn_log.Action = "Renaming component to '" & sTempName & "' failed with '" & Err.Description & "' (err-no = " & Err.Number
+            mPending.Serviced = rn_wb
+            mPending.Import(im_wb:=rn_wb _
+                          , im_exp_file_full_name:=rn_exp_file_full_name _
+                          , im_comp_type:=.VBComponents(rn_comp_name).Type _
+                           ) = rn_comp_name
+            If Not rn_log Is Nothing Then rn_log.Action = "Renew postponed, i.e. import of '" & rn_exp_file_full_name & "' is pending"
+            
+            On Error Resume Next
+            .VBComponents.Remove .VBComponents(rn_comp_name)
+            If Err.Number <> 0 Then
+                If Not rn_log Is Nothing Then rn_log.Action = "Removal failed with  '" & Err.Description & "' (err-no = " & Err.Number
+            Else
+                If Not rn_log Is Nothing Then rn_log.Action = "Component '" & rn_comp_name & "' removed"
+            End If
+            
+            If mCompMan.CompExists(ce_wb:=rn_wb, ce_comp_name:=sTempName) Then
+                On Error Resume Next
+                .VBComponents.Remove .VBComponents(sTempName)
+                If Err.Number <> 0 Then
+                    If Not rn_log Is Nothing Then rn_log.Action = "Removal of '" & sTempName & "' failed with  '" & Err.Description & "' (err-no = " & Err.Number
+                Else
+                    If Not rn_log Is Nothing Then rn_log.Action = "Component '" & sTempName & "' removed"
+                End If
+            End If
+            GoTo xt
+        Else
+            If Not rn_log Is Nothing Then rn_log.Action = "Component renamed to '" & sTempName & "'"
+            On Error Resume Next
+            .VBComponents.Remove .VBComponents(sTempName) ' will take place when this service has ended
+            If Err.Number <> 0 Then
+                If Not rn_log Is Nothing Then rn_log.Action = "Removal of '" & sTempName & "' failed with '" & Err.Description & "' (err-no = " & Err.Number
+            Else
+                If Not rn_log Is Nothing Then rn_log.Action = "Component '" & sTempName & "' removed"
+            End If
+        End If
+        
+        '~~ ----------------------------------
+        '~~ 2. Step: Re-Import the Export File
+        '~~ ----------------------------------
+        RenewWaitAndSaveWbk rs_wb:=rn_wb, rs_log:=rn_log, rs_wait_msec:=5
+        On Error Resume Next
+        .VBComponents.Import rn_exp_file_full_name
+        If Err.Number <> 0 Then
+            If Not rn_log Is Nothing Then rn_log.Action = "Renew by import of Export File '" & rn_exp_file_full_name & "' failed with '" & Err.Description & "' (err-no = " & Err.Number
+        Else
+            If Not rn_log Is Nothing Then rn_log.Action = "Component renewed by re-import of Export File '" & rn_exp_file_full_name & "'"
+        End If
+        RenewWaitAndSaveWbk rs_wb:=rn_wb, rs_log:=rn_log, rs_wait_msec:=5
+        
+        '~~ ------------------------------------------------------------------
+        '~~ 3. Step: Re-export the component in case the provided Export File
+        '~~          was not identical with the component's origin Export File
+        '~~ ------------------------------------------------------------------
+        If rn_exp_file_full_name <> sExpFileFullName Then
+            .VBComponents(rn_comp_name).Export sExpFileFullName
+        End If
+        
+    End With
+
+xt: Set fso = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
+Private Sub RenewWaitAndSaveWbk( _
+                          ByRef rs_wb As Workbook, _
+                 Optional ByVal rs_wait_msec As Long = 0, _
+                 Optional ByRef rs_log As clsLog)
+' ---------------------------------------------------------
+'
+' ---------------------------------------------------------
+    DoEvents
+    Application.Wait Now() + (rs_wait_msec * 0.00000001)
+    Application.EnableEvents = False
+    On Error Resume Next
+    rs_wb.Save
+    If Err.Number <> 0 Then
+        If Not rs_log Is Nothing Then rs_log.Action = "Workbook save failed with '" & Err.Description & "' (err-no = " & Err.Number
+    Else
+        If Not rs_log Is Nothing Then rs_log.Action = "Waited for " & rs_wait_msec & " milliseconds and Workbook saved (with EnableEvents = False)"
+    End If
+    Application.EnableEvents = True
+    
+End Sub
+
+Private Function AvailableCompTempName( _
+                 ByVal ac_vbp As VBProject, _
+                 ByVal ac_comp_name As String) As String
+' -------------------------------------------------
+    Const PROC = ""
+    
+    On Error GoTo eh
+    Dim sTempName   As String
+    Dim i           As Long
+    Dim j           As Long
+    
+    sTempName = ac_comp_name & "_Temp"
+    With ac_vbp
         Do
             '~~ When the primarily set temp name for the to-be-replace component is already existing
             '~~ a yet non-existing temp name has to be found
@@ -867,77 +977,25 @@ Public Sub Renew(ByVal rn_wb As Workbook, _
             Next i
 lp:         If i > .VBComponents.Count Then Exit Do
         Loop
-        
-        On Error Resume Next
-        .VBComponents(rn_comp_name).name = sTempName
-        If Err.Number <> 0 Then
-            '~~ When the component cannot be renamed its very likely a UserForm module
-            '~~ These modules can only be renwed in a two step process:
-            '~~ Deleted and registered as pending import and resolving any pending imports
-            '~~ with the next Workbook Open event or with the Berfore_Save event
-            If Not rn_log Is Nothing Then rn_log.Action = "Renaming component renamed to '" & sTempName & "' failed."
-            mPending.Serviced = rn_wb
-            mPending.Import(im_wb:=rn_wb _
-                          , im_exp_file_full_name:=rn_exp_file_full_name _
-                          , im_comp_type:=.VBComponents(rn_comp_name).Type _
-                           ) = rn_comp_name
-            If Not rn_log Is Nothing Then rn_log.Action = "Renew postponed to pending import of '" & rn_exp_file_full_name & "'"
-            .VBComponents.Remove .VBComponents(rn_comp_name)
-            If Not rn_log Is Nothing Then rn_log.Action = "Component '" & rn_comp_name & "' removed"
-            If mCompMan.CompExists(ce_wb:=rn_wb, ce_comp_name:=sTempName) Then
-                .VBComponents.Remove .VBComponents(sTempName)
-                If Not rn_log Is Nothing Then rn_log.Action = "Component '" & sTempName & "' removed"
-            End If
-            GoTo xt
-        Else
-            If Not rn_log Is Nothing Then rn_log.Action = "Component renamed to '" & sTempName & "'"
-            .VBComponents.Remove .VBComponents(sTempName) ' will take place when this service has ended
-            If Not rn_log Is Nothing Then rn_log.Action = "Component '" & sTempName & "' removed"
-        End If
-        '~~ ----------------------------------
-        '~~ 2. Step: Re-Import the Export File
-        '~~ ----------------------------------
-        Application.EnableEvents = False
-        On Error Resume Next
-        rn_wb.Save
-        If Err.Number <> 0 Then Debug.Print "Not saved after rename"
-        Application.EnableEvents = True
-        
-        .VBComponents.Import rn_exp_file_full_name
-        Application.EnableEvents = False
-        On Error Resume Next
-        rn_wb.Save
-        If Err.Number <> 0 Then Debug.Print "Not saved after re-import"
-        Application.EnableEvents = True
-        
-        '~~ 3. Step: Re-export the component in case the provided Export File was not
-        '~~          identical with the component's origin Export File
-        If rn_exp_file_full_name <> sExpFileFullName Then
-            .VBComponents(rn_comp_name).Export sExpFileFullName
-        End If
-        
     End With
-
-    On Error Resume Next
-    Application.EnableEvents = False
-    wb.Save
-    Application.EnableEvents = True
-
-xt: Set fso = Nothing
-    Exit Sub
+    
+xt: AvailableCompTempName = sTempName
+    Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
         Case mErH.DebugOpt2ResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
-End Sub
+End Function
 
-Public Sub ReplaceRemoteWithClonedRaw(ByVal raw_remote_comp_name As String)
-' -------------------------------------------------------------------------
-' Replace the Common Component's raw with the code of the used Common
-' Component by means of its Export File.
-' -------------------------------------------------------------------------
+Public Sub ReplaceRemoteWithClonedRaw( _
+           ByVal raw_remote_comp_name As String, _
+           ByRef rr_log As clsLog)
+' -------------------------------------------------
+' Replace the raw component's code with the Export
+' File of the clone component.
+' -------------------------------------------------
     Const PROC = "ReplaceRemoteWithClonedRaw"
 
     On Error GoTo eh
@@ -956,9 +1014,9 @@ Public Sub ReplaceRemoteWithClonedRaw(ByVal raw_remote_comp_name As String)
     Set wbRemoteRaw = mCompMan.WbkGetOpen(cRaw.HostFullName) ' Wrkbk is the Workbook hosting the raw Component
     Set vbcRaw = wbRemoteRaw.VBProject.VBComponents(sCompName)
     
-    cComp.Renew rn_wb:=wbRemoteRaw _
-              , rn_comp_name:=sCompName _
-              , rn_exp_file_full_name:=sExpFileFullName
+    Me.RenewByImport rn_wb:=wbRemoteRaw _
+                      , rn_comp_name:=sCompName _
+                      , rn_exp_file_full_name:=sExpFileFullName
     cLog.Action = "Remote raw replaced by re-import of the clone's export file '" & sExpFileFullName & "'"
 
 xt: Exit Sub
@@ -971,7 +1029,8 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub ReplaceRemoteWithClonedRawWhenConfirmed( _
-                                             ByRef rwu_updated As Boolean)
+           ByRef rwu_updated As Boolean, _
+           ByRef rwu_log As clsLog)
 ' ------------------------------------------------------------------------
 ' Provided confirmed by the user, replaces the raw code in the hosting
 ' Workbook with the cloned raw component's code in its Export File.
@@ -1000,7 +1059,7 @@ Public Sub ReplaceRemoteWithClonedRawWhenConfirmed( _
                     '~~ structure and design of the underlying Workbook or Worksheet has changed.
                     cComp.SynchRemoteWithClonedRaw
                 Case vbext_ct_ClassModule, vbext_ct_StdModule, vbext_ct_MSForm
-                    cComp.ReplaceRemoteWithClonedRaw raw_remote_comp_name:=.CompName
+                    Me.ReplaceRemoteWithClonedRaw raw_remote_comp_name:=.CompName, rr_log:=rwu_log
             End Select
             rwu_updated = True
         End With ' cRaw
