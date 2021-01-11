@@ -104,7 +104,7 @@ Public Property Get Arry( _
     Dim j       As Long
     
     If Not Exists(fa_file_full_name, fso) _
-    Then err.Raise AppErr(1), ErrSrc(PROC), "The file object (vFile) does not exist!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The file object (vFile) does not exist!"
     
     '~~ Unload file into a test stream
     With New FileSystemObject
@@ -160,7 +160,7 @@ Public Property Get SectionNames(Optional ByVal sn_file As String) As Dictionary
     Const PROC = "SectionNames"
     
     On Error GoTo eh
-    Dim asSections()     As String
+    Dim asSections()    As String
     Dim dct             As Dictionary
     Dim i               As Long
     Dim iLen            As Long
@@ -170,13 +170,15 @@ Public Property Get SectionNames(Optional ByVal sn_file As String) As Dictionary
     Set dct = New Dictionary
     Set SectionNames = New Dictionary
     
+    If Len(mFile.Txt(sn_file)) = 0 Then GoTo xt
+    
     Do While (iLen = Len(strBuffer) - 2) Or (iLen = 0)
         If strBuffer = vbNullString _
         Then strBuffer = Space$(256) _
         Else strBuffer = String(Len(strBuffer) * 2, 0)
         iLen = GetPrivateProfileSectionNames(strBuffer, Len(strBuffer), sn_file)
     Loop
-    strBuffer = Left$(strBuffer, iLen)
+    strBuffer = left$(strBuffer, iLen)
     
     If Len(strBuffer) <> 0 Then
         i = 0
@@ -190,9 +192,8 @@ Public Property Get SectionNames(Optional ByVal sn_file As String) As Dictionary
         Next i
     End If
     
-    Set SectionNames = dct
-
-xt: Exit Property
+xt: Set SectionNames = dct
+    Exit Property
     
 eh: ErrMsg ErrSrc(PROC)
 End Property
@@ -200,7 +201,7 @@ End Property
 Public Property Get Txt( _
          Optional ByVal tx_file_full_name As String, _
          Optional ByVal tx_append As Boolean = True, _
-         Optional ByRef tx_split As String) As String
+         Optional ByRef tx_split As String = vbCrLf) As String
 ' ----------------------------------------------------------
 ' Returns the content of the text file (tx_file_full_name)
 ' as string plus the line split character/string (tx_split).
@@ -211,19 +212,18 @@ Public Property Get Txt( _
     Dim fso As New FileSystemObject
     Dim ts  As TextStream
     
-    tx_append = tx_append ' not used! just for the coincidence with tLet
+    tx_append = tx_append ' not used! just for the synch with the Let property
     If Not fso.FileExists(tx_file_full_name) _
-    Then err.Raise AppErr(1), ErrSrc(PROC), "The file '" & tx_file_full_name & "' does not exist!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The file '" & tx_file_full_name & "' does not exist!"
 
     Set ts = fso.OpenTextFile(FileName:=tx_file_full_name, IOMode:=ForReading)
-    Txt = ts.ReadAll
-    If InStr(Txt, vbCrLf) <> 0 Then
-        tx_split = vbCrLf
-    ElseIf InStr(Txt, vbCr) <> 0 Then
-        tx_split = vbCr
-    ElseIf InStr(Txt, vbLf) <> 0 Then
-        tx_split = vbLf
+    If Not ts.AtEndOfStream Then
+        Txt = ts.ReadAll
+    Else
+        Txt = vbNullString
     End If
+    If Txt = vbCrLf Then Txt = vbNullString
+
 xt: Exit Property
 
 eh: ErrMsg ErrSrc(PROC)
@@ -293,7 +293,7 @@ Public Property Get value( _
                                     , nSize:=Len(sRetVal) _
                                     , lpg_FileName:=vl_file _
                                      )
-    vValue = Left$(sRetVal, lResult)
+    vValue = left$(sRetVal, lResult)
     
     '~~ Unstrip and return a possibly added comment provided it's not a VarType= comment
     '~~ which indicates which kind of vartype is to be returned
@@ -398,7 +398,7 @@ Private Function AppIsInstalled(ByVal sApp As String) As Boolean
     
     Dim i As Long: i = 1
     
-    Do Until Left(Environ$(i), 5) = "Path="
+    Do Until left(Environ$(i), 5) = "Path="
         i = i + 1
     Loop
     AppIsInstalled = InStr(Environ$(i), sApp) <> 0
@@ -488,18 +488,18 @@ Public Function Compare(ByVal file_left_full_name As String, _
     Dim wshShell        As Object
     
     If Not AppIsInstalled("WinMerge") _
-    Then err.Raise Number:=AppErr(1) _
+    Then Err.Raise Number:=AppErr(1) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
     If Not fso.FileExists(file_left_full_name) _
-    Then err.Raise Number:=AppErr(2) _
+    Then Err.Raise Number:=AppErr(2) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & file_left_full_name & """ does not exist!"
     
     If Not fso.FileExists(file_right_full_name) _
-    Then err.Raise Number:=AppErr(3) _
+    Then Err.Raise Number:=AppErr(3) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & file_right_full_name & """ does not exist!"
     
@@ -550,10 +550,10 @@ Private Sub ErrMsg( _
 ' caller's error handling.
 ' ------------------------------------------------------
     
-    If err_no = 0 Then err_no = err.Number
-    If err_dscrptn = vbNullString Then err_dscrptn = err.Description
+    If err_no = 0 Then err_no = Err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
 
-    err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
+    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
 
 End Sub
 
@@ -588,17 +588,17 @@ Public Function Exists(ByVal xst_file As Variant, _
     Set xst_cll = New Collection
 
     If TypeName(xst_file) <> "File" And TypeName(xst_file) <> "String" _
-    Then err.Raise AppErr(1), ErrSrc(PROC), "The File (parameter xst_file) for the File's existence check is neither a full path/file name nor a file object!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The File (parameter xst_file) for the File's existence check is neither a full path/file name nor a file object!"
     If Not TypeName(xst_fso) = "Nothing" And Not TypeName(xst_fso) = "File" _
-    Then err.Raise AppErr(2), ErrSrc(PROC), "The provided return parameter (xst_fso) is not a File type!"
+    Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided return parameter (xst_fso) is not a File type!"
     If Not TypeName(xst_cll) = "Nothing" And Not TypeName(xst_cll) = "Collection" _
-    Then err.Raise AppErr(3), ErrSrc(PROC), "The provided return parameter (xst_cll) is not a Collection type!"
+    Then Err.Raise AppErr(3), ErrSrc(PROC), "The provided return parameter (xst_cll) is not a Collection type!"
 
     If TypeOf xst_file Is FILE Then
         With New FileSystemObject
             On Error Resume Next
             sTest = xst_file.name
-            Exists = err.Number = 0
+            Exists = Err.Number = 0
             If Exists Then
                 '~~ Return the existing file as File object
                 Set xst_fso = .GetFile(xst_file.PATH)
@@ -630,7 +630,7 @@ Public Function Exists(ByVal xst_file As Variant, _
                         queue.Add sfldr ' enqueue (collect) all subfolders
                     Next sfldr
                     For Each fl In fldr.Files
-                        If InStr(fl.name, sFile) <> 0 And Left(fl.name, 1) <> "~" Then
+                        If InStr(fl.name, sFile) <> 0 And left(fl.name, 1) <> "~" Then
                             '~~ Return the existing file which meets the search criteria
                             '~~ as File object in a collection
                             xst_cll.Add fl
@@ -670,12 +670,12 @@ Private Function Fc(ByVal fc_file1 As String, fc_file2 As String)
     Dim wshShell        As Object
     
     If Not fso.FileExists(fc_file1) _
-    Then err.Raise Number:=AppErr(2) _
+    Then Err.Raise Number:=AppErr(2) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file1 & """ does not exist!"
     
     If Not fso.FileExists(fc_file2) _
-    Then err.Raise Number:=AppErr(3) _
+    Then Err.Raise Number:=AppErr(3) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file2 & """ does not exist!"
     
@@ -695,7 +695,7 @@ End Function
 
 Public Property Get Temp(Optional ByVal tmp_extension As String = ".tmp") As String
     Dim fso As New FileSystemObject
-    If Left(tmp_extension, 1) <> "." Then tmp_extension = "." & tmp_extension
+    If left(tmp_extension, 1) <> "." Then tmp_extension = "." & tmp_extension
     Temp = Replace(fso.GetTempName, ".tmp", tmp_extension)
     Temp = fso.GetParentFolderName(ActiveWorkbook.FullName) & "\" & Temp
     Set fso = Nothing
@@ -730,12 +730,12 @@ Public Function sAreEqual(ByVal fc_file1 As String, fc_file2 As String) As Varia
     Dim sTempFcVbs      As String
     
     If Not fso.FileExists(fc_file1) _
-    Then err.Raise Number:=AppErr(2) _
+    Then Err.Raise Number:=AppErr(2) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file1 & """ does not exist!"
     
     If Not fso.FileExists(fc_file2) _
-    Then err.Raise Number:=AppErr(3) _
+    Then Err.Raise Number:=AppErr(3) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file2 & """ does not exist!"
         
@@ -918,7 +918,7 @@ Public Function SectionsGet( _
     End If
 xt: Set cll = Nothing
     If dctSections.Count = 0 _
-    Then err.Raise Number:=AppErr(1) _
+    Then Err.Raise Number:=AppErr(1) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The name of the section(s) is provided neither as a comma delimited " & _
                                 "string, nor an array of strings, nor a Dictionary, nor a Collection!"
@@ -1105,7 +1105,7 @@ Public Function ToArray(ByVal ta_file As Variant, _
     Dim j       As Long
     
     If Not Exists(ta_file, fso) _
-    Then err.Raise AppErr(1), ErrSrc(PROC), "The file object (vFile) does not exist!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The file object (vFile) does not exist!"
     
     '~~ Unload file into a test stream
     With New FileSystemObject
@@ -1172,7 +1172,7 @@ Public Function ToDict(ByVal td_file As Variant) As Dictionary
     Dim i       As Long
     
     If Not Exists(td_file, fso) _
-    Then err.Raise AppErr(1), ErrSrc(PROC), "The file object (td_file) does not exist!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The file object (td_file) does not exist!"
     
     '~~ Unload file into a test stream
     With New FileSystemObject
@@ -1241,7 +1241,7 @@ Public Function ValueNames( _
                                         , nSize:=Len(strBuffer) _
                                         , lpg_FileName:=vn_file _
                                          )
-        sNames = Left$(strBuffer, lResult)
+        sNames = left$(strBuffer, lResult)
     
         If sNames <> vbNullString Then                                         ' If there were any names
             asNames = Split(sNames, vbNullChar)                      ' have them split into an array
@@ -1265,7 +1265,7 @@ Public Function ValueNames( _
                                             , nSize:=Len(strBuffer) _
                                             , lpg_FileName:=vn_file _
                                              )
-            sNames = Left$(strBuffer, lResult)
+            sNames = left$(strBuffer, lResult)
         
             If sNames <> vbNullString Then                                         ' If there were any names
                 asNames = Split(sNames, vbNullChar)                      ' have them split into an array

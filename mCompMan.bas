@@ -109,8 +109,6 @@ Public cComp            As clsComp
 Public cRaw             As clsRaw
 Public cLog             As clsLog
 Public asNoSynch()      As String
-Public dctRawComponents As Dictionary
-Public dctRawHosts      As Dictionary
 Public lMaxCompLength   As Long
 
 Private dctHostedRaws   As Dictionary
@@ -165,6 +163,7 @@ Private Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook, _
     Dim fl          As FILE
     Dim v           As Variant
     Dim cComp       As New clsComp
+    Dim sComp       As String
     
     With cComp
         .Wrkbk = do_wb ' assignment provides the Workbook's dedicated Export Folder
@@ -176,7 +175,9 @@ Private Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook, _
         For Each fl In .GetFolder(sFolder).Files
             Select Case .GetExtensionName(fl.PATH)
                 Case "bas", "cls", "frm", "frx"
-                    If Not cComp.Exists(sComp:=.GetBaseName(fl.PATH)) Then
+                    sComp = .GetBaseName(fl.PATH)
+                    If Not cComp.Exists(sComp) _
+                    And Not mPending.Still(sComp) Then
                         cllRemove.Add fl.PATH
                     End If
             End Select
@@ -321,9 +322,10 @@ xt: Set cComp = Nothing
 eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
-Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
+Public Sub ExportChangedComponents( _
+                          Optional ByVal ec_wb As Workbook = Nothing, _
                           Optional ByVal ec_hosted As String = vbNullString)
-' ------------------------------------------------------------------------
+' --------------------------------------------------------------------------
 ' Exclusively performed/trigered by the Before_Save event:
 ' - Any code change (detected by the comparison of a temporary export file
 '   with the current export file) is backed-up, i.e. exported
@@ -339,7 +341,7 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
 ' - This procedure is preferrably triggered by the Before_Save event.
 ' - The ExportFile's last access date reflects the date of the last code
 '   change. This date is logged when a used Common Component is updated.
-' ------------------------------------------------------------------------
+' --------------------------------------------------------------------------
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
@@ -357,17 +359,16 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
     Dim sProgress           As String
     
     mErH.BoP ErrSrc(PROC)
-    
-    If ec_wb Is Nothing Then Set ec_wb = ActiveWorkbook
     '~~ Prevent any action for a Workbook opened with any irregularity
+    '~~ indicated by an '(' in the active window or workbook fullname.
     If InStr(ActiveWindow.caption, "(") <> 0 Then GoTo xt
+    If ec_wb Is Nothing Then Set ec_wb = ActiveWorkbook
     If InStr(ec_wb.FullName, "(") <> 0 Then GoTo xt
     
+    mPending.Resolve ec_wb
     lCompMaxLen = MaxCompLength(wb:=ec_wb)
     Set cLog = New clsLog
-    cLog.Reset
-    cLog.Service(sv_wb:=ec_wb) = ErrSrc(PROC)
-    cLog.Serviced = ec_wb.name
+    cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=ec_wb, svp_new_log:=False) = ErrSrc(PROC)
 
     DeleteObsoleteExpFiles do_wb:=ec_wb, do_log:=cLog
     
@@ -388,7 +389,7 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
             .CompName = vbc.name
             sServiced = .Wrkbk.name & " Component " & .CompName & " "
             sServiced = sServiced & String(lCompMaxLen - Len(.CompName), ".")
-            cLog.Serviced = sServiced
+            cLog.ServicedItem = sServiced
             If .CodeModuleIsEmpty Then GoTo next_vbc
         End With
         
@@ -449,7 +450,7 @@ Public Sub ExportChangedComponents(ByVal ec_wb As Workbook, _
                             '~~ This is regarded an unusual code change because instead of maintaining the origin code
                             '~~ of a Common Component in ist "host" VBProject it had been changed in the using VBProject.
                             '~~ Nevertheless updating the origin code with this change is possible when explicitely confirmed.
-                            mFile.Compare file_left_full_name:=cComp.ExpFileFullName _
+'                            mFile.Compare file_left_full_name:=cComp.ExpFileFullName _
                                       , file_left_title:=cComp.ExpFileFullName _
                                       , file_right_full_name:=cRaw.ExpFileFullName _
                                       , file_right_title:=cRaw.ExpFileFullName
@@ -723,10 +724,11 @@ Public Sub RenewComp( _
         If .Wrkbk Is ActiveWorkbook Then
             Set wbActive = ActiveWorkbook
             Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
+            cLog.Action = "Active Workbook de-activated by creating a temporary Workbook"
         End If
     
-        cLog.Service(sv_wb:=.Wrkbk) = ErrSrc(PROC)
-        cLog.Serviced = .CompName
+        cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=.Wrkbk, svp_new_log:=False) = ErrSrc(PROC)
+        cLog.ServicedItem = .CompName
         
         .RenewByImport rn_wb:=.Wrkbk _
              , rn_comp_name:=.CompName _
@@ -737,9 +739,11 @@ Public Sub RenewComp( _
     
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
+        cLog.Action = "Temporary created Workbook closed without save"
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
+            cLog.Action = "De-activated Workbook '" & wbActive.name & "' re-activated"
             Set wbActive = Nothing
         End If
     End If
@@ -756,13 +760,12 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub UpdateClonesTheRawHasChanged( _
-           ByVal uc_wb As Workbook, _
-  Optional ByVal uc_hosted As String = vbNullString)
-' --------------------------------------------------
-' Updates a clone component with the Export File
-' of the remote raw component provided the raw's
-' code has changed.
-' --------------------------------------------------
+                         Optional ByVal uc_wb As Workbook = Nothing, _
+                         Optional ByVal uc_hosted As String = vbNullString)
+' -------------------------------------------------------------------------
+' Updates a clone component with the Export File of the remote raw
+' component provided the raw's code has changed.
+' -------------------------------------------------------------------------
     Const PROC = "UpdateClonesTheRawHasChanged"
     
     On Error GoTo eh
@@ -781,10 +784,14 @@ Public Sub UpdateClonesTheRawHasChanged( _
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
     If InStr(ActiveWindow.caption, "(") <> 0 Then GoTo xt
+    If uc_wb Is Nothing Then Set uc_wb = ActiveWorkbook
     If InStr(uc_wb.FullName, "(") <> 0 Then GoTo xt
+    
+    mPending.Resolve uc_wb
+    
     lCompMaxLen = MaxCompLength(wb:=uc_wb)
     Set cLog = New clsLog
-    cLog.Service(sv_wb:=uc_wb) = ErrSrc(PROC)
+    cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=uc_wb, svp_new_log:=True) = ErrSrc(PROC)
     
     MaintainHostedRaws mh_hosted:=uc_hosted _
                      , mh_wb:=uc_wb
@@ -803,7 +810,7 @@ Public Sub UpdateClonesTheRawHasChanged( _
         lComponents = lComponents + 1
         sServiced = cComp.Wrkbk.name & " Component """ & vbc.name & """"
         sServiced = sServiced & String(lCompMaxLen - Len(vbc.name), ".")
-        cLog.Serviced = sServiced
+        cLog.ServicedItem = sServiced
             
         If cComp.KindOfComp = enRawClone Then
             '~~ Establish a component class object which represents the cloned raw's remote instance

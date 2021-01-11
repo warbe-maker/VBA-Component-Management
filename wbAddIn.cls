@@ -70,7 +70,6 @@ Private Sub Workbook_Open()
     
     On Error GoTo eh
     Dim fso As New FileSystemObject
-    Dim cLog As New clsLog: cLog.Reset: Set cLog = Nothing
     
     mErH.BoP ErrSrc(PROC)
     

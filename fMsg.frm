@@ -1423,13 +1423,13 @@ Private Sub SetupButtons(ByVal vbuttons As Variant)
     End Select
                 
     If frArea.width > MaxButtonsAreaWidth Then
-        Debug_Sizes "Buttons area width exceeds maximum width specified:"
+'        Debug_Sizes "Buttons area width exceeds maximum width specified:"
         ApplyScrollBarHorizontal fr:=frArea, widthnew:=MaxButtonsAreaWidth
         bHscrollbarButtonsArea = True
         Me.width = siMaxFormWidth
         frArea.Height = frArea.Height + VSPACE_SCROLLBAR
         CenterHorizontal frArea
-        Debug_Sizes "Buttons area width decremented:"
+'        Debug_Sizes "Buttons area width decremented:"
     End If
 
     bDoneButtonsArea = True
@@ -1685,7 +1685,7 @@ Private Sub SetupMsgSectionMonoSpaced(ByVal section As Long, _
     AppliedControl = frText
     AppliedControl = tbText
     
-    Debug_Sizes "Monospaced sections setup:", frSection
+'    Debug_Sizes "Monospaced sections setup:", frSection
     
 xt: Exit Sub
     
