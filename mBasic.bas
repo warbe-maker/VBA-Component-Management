@@ -105,26 +105,32 @@ Public Function AppErr(ByVal lNo As Long) As Long
 ' Application error number. The latter is the reason why this function must never
 ' be used with a true VB error number.
 ' -------------------------------------------------------------------------------
+    
     If lNo < 0 Then
         AppErr = lNo - vbObjectError
     Else
         AppErr = vbObjectError + lNo
     End If
+
 End Function
 
 Public Function AppIsInstalled(ByVal sApp As String) As Boolean
-Dim i As Long: i = 1
-    Do Until Left(Environ$(i), 5) = "Path="
+    
+    Dim i As Long: i = 1
+    
+    Do Until Left$(Environ$(i), 5) = "Path="
         i = i + 1
     Loop
     AppIsInstalled = InStr(Environ$(i), sApp) <> 0
+
 End Function
 
 Public Function ArrayCompare(ByVal ac_a1 As Variant, _
                              ByVal ac_a2 As Variant, _
                     Optional ByVal ac_stop_after As Long = 1, _
                     Optional ByVal ac_id1 As String = vbNullString, _
-                    Optional ByVal ac_id2 As String = vbNullString) As Variant
+                    Optional ByVal ac_id2 As String = vbNullString, _
+                    Optional ByVal ac_ignore_case As Boolean = True) As Variant
 ' ----------------------------------------------------------------------------
 ' Returns an array of n (as_stop_after) lines which are different between
 ' array 1 (ac_a1) and array 2 (ac_a2). Each line element contains the
@@ -135,10 +141,14 @@ Public Function ArrayCompare(ByVal ac_a1 As Variant, _
 ' ----------------------------------------------------------------------------
     Const PROC = "ArrayCompare"
     
+    On Error GoTo eh
     Dim l       As Long
     Dim i       As Long
     Dim va()    As Variant
-
+    Dim lMethod As VbCompareMethod
+    
+    If ac_ignore_case Then lMethod = vbTextCompare Else lMethod = vbBinaryCompare
+    
     If Not mBasic.ArrayIsAllocated(ac_a1) And mBasic.ArrayIsAllocated(ac_a2) Then
         va = ac_a2
     ElseIf mBasic.ArrayIsAllocated(ac_a1) And Not mBasic.ArrayIsAllocated(ac_a2) Then
@@ -149,9 +159,9 @@ Public Function ArrayCompare(ByVal ac_a1 As Variant, _
     
     l = 0
     For i = LBound(ac_a1) To Min(UBound(ac_a1), UBound(ac_a2))
-        If ac_a1(i) <> ac_a2(i) Then
+        If StrComp(ac_a1(i), ac_a2(i), lMethod) <> 0 Then
             ReDim Preserve va(l)
-            va(l) = Format(i, "000") & " " & ac_id1 & " '" & ac_a1(i) & "'  < >  '" & ac_id2 & " " & ac_a2(i) & "'"
+            va(l) = Format$(i, "000") & " " & ac_id1 & " '" & ac_a1(i) & "'  < >  '" & ac_id2 & " " & ac_a2(i) & "'"
             l = l + 1
             If ac_stop_after > 0 And l >= ac_stop_after Then GoTo xt
         End If
@@ -160,7 +170,7 @@ Public Function ArrayCompare(ByVal ac_a1 As Variant, _
     If UBound(ac_a1) < UBound(ac_a2) Then
         For i = UBound(ac_a1) + 1 To UBound(ac_a2)
             ReDim Preserve va(l)
-            va(l) = Format(i, "000") & ac_id2 & ": '" & ac_a2(i) & "'"
+            va(l) = Format$(i, "000") & ac_id2 & ": '" & ac_a2(i) & "'"
             l = l + 1
             If ac_stop_after > 0 And l >= ac_stop_after Then GoTo xt
         Next i
@@ -168,15 +178,16 @@ Public Function ArrayCompare(ByVal ac_a1 As Variant, _
     ElseIf UBound(ac_a2) < UBound(ac_a1) Then
         For i = UBound(ac_a2) + 1 To UBound(ac_a1)
             ReDim Preserve va(l)
-            va(l) = Format(i, "000") & " " & ac_id1 & " '" & ac_a1(i) & "'"
+            va(l) = Format$(i, "000") & " " & ac_id1 & " '" & ac_a1(i) & "'"
             l = l + 1
             If ac_stop_after > 0 And l >= ac_stop_after Then GoTo xt
         Next i
     End If
 
-xt:
-    ArrayCompare = va
+xt: ArrayCompare = va
+    Exit Function
     
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function ArrayDiffers(ByVal a1 As Variant, _
@@ -184,9 +195,10 @@ Public Function ArrayDiffers(ByVal a1 As Variant, _
 ' ----------------------------------------------------------
 ' Returns TRUE when array (a1) differs from array (a2).
 ' ----------------------------------------------------------
-Const PROC  As String = "ArrayDiffers"
-Dim i       As Long
-Dim va()    As Variant
+    Const PROC  As String = "ArrayDiffers"
+    
+    Dim i       As Long
+    Dim va()    As Variant
 
     On Error GoTo eh
     
@@ -200,7 +212,7 @@ Dim va()    As Variant
     
     On Error Resume Next
     ArrayDiffers = Join(a1) <> Join(a2)
-    If Err.Number = 0 Then GoTo xt
+    If err.Number = 0 Then GoTo xt
     
     '~~ At least one of the joins resulted in a string exeeding the maximum possible lenght
     For i = LBound(a1) To Min(UBound(a1), UBound(a2))
@@ -212,17 +224,17 @@ Dim va()    As Variant
     
 xt: Exit Function
 
-eh: ErrMsg err_source:=ErrSrc(PROC)
-#If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function ArrayIsAllocated(arr As Variant) As Boolean
+    
     On Error Resume Next
-    ArrayIsAllocated = IsArray(arr) And _
-                       Not IsError(LBound(arr, 1)) And _
-                       LBound(arr, 1) <= UBound(arr, 1)
+    ArrayIsAllocated = _
+    IsArray(arr) _
+    And Not IsError(LBound(arr, 1)) _
+    And LBound(arr, 1) <= UBound(arr, 1)
+    
 End Function
 
 Public Function ArrayNoOfDims(arr As Variant) As Integer
@@ -231,18 +243,19 @@ Public Function ArrayNoOfDims(arr As Variant) As Integer
 ' allocated dynamic array has 0 dimensions. This may as
 ' as well be tested by means of ArrayIsAllocated.
 ' ------------------------------------------------------
-Dim Ndx As Integer
-Dim Res As Integer
 
     On Error Resume Next
+    Dim Ndx As Integer
+    Dim Res As Integer
+    
     ' Loop, increasing the dimension index Ndx, until an error occurs.
     ' An error will occur when Ndx exceeds the number of dimension
     ' in the array. Return Ndx - 1.
     Do
         Ndx = Ndx + 1
         Res = UBound(arr, Ndx)
-    Loop Until Err.Number <> 0
-    Err.Clear
+    Loop Until err.Number <> 0
+    err.Clear
     ArrayNoOfDims = Ndx - 1
 
 End Function
@@ -266,33 +279,33 @@ Public Sub ArrayRemoveItems(ByRef va As Variant, _
 '
 ' W. Rauschenberger, Berlin Jan 2020
 ' ------------------------------------------------------
-Const PROC              As String = "ArrayRemoveItems"
-Dim a                   As Variant
-Dim iElement            As Long
-Dim iIndex              As Long
-Dim NoOfElementsInArray    As Long
-Dim i                   As Long
-Dim iNewUBound          As Long
+    Const PROC = "ArrayRemoveItems"
 
     On Error GoTo eh
+    Dim a                   As Variant
+    Dim iElement            As Long
+    Dim iIndex              As Long
+    Dim NoOfElementsInArray    As Long
+    Dim i                   As Long
+    Dim iNewUBound          As Long
     
     If Not IsArray(va) Then
-        Err.Raise AppErr(1), ErrSrc(PROC), "Array not provided!"
+        err.Raise AppErr(1), ErrSrc(PROC), "Array not provided!"
     Else
         a = va
         NoOfElementsInArray = UBound(a) - LBound(a) + 1
     End If
     If Not ArrayNoOfDims(a) = 1 Then
-        Err.Raise AppErr(2), ErrSrc(PROC), "Array must not be multidimensional!"
+'        Err.Raise AppErr(2), ErrSrc(PROC), "Array must not be multidimensional!"
     End If
     If Not IsNumeric(Element) And Not IsNumeric(Index) Then
-        Err.Raise AppErr(3), ErrSrc(PROC), "Neither FromElement nor FromIndex is a numeric value!"
+        err.Raise AppErr(3), ErrSrc(PROC), "Neither FromElement nor FromIndex is a numeric value!"
     End If
     If IsNumeric(Element) Then
         iElement = Element
         If iElement < 1 _
         Or iElement > NoOfElementsInArray Then
-            Err.Raise AppErr(4), ErrSrc(PROC), "vFromElement is not between 1 and " & NoOfElementsInArray & " !"
+            err.Raise AppErr(4), ErrSrc(PROC), "vFromElement is not between 1 and " & NoOfElementsInArray & " !"
         Else
             iIndex = LBound(a) + iElement - 1
         End If
@@ -301,13 +314,13 @@ Dim iNewUBound          As Long
         iIndex = Index
         If iIndex < LBound(a) _
         Or iIndex > UBound(a) Then
-            Err.Raise AppErr(5), ErrSrc(PROC), "FromIndex is not between " & LBound(a) & " and " & UBound(a) & " !"
+            err.Raise AppErr(5), ErrSrc(PROC), "FromIndex is not between " & LBound(a) & " and " & UBound(a) & " !"
         Else
             iElement = ElementOfIndex(a, iIndex)
         End If
     End If
     If iElement + NoOfElements - 1 > NoOfElementsInArray Then
-        Err.Raise AppErr(6), ErrSrc(PROC), "FromElement (" & iElement & ") plus the number of elements to remove (" & NoOfElements & ") is beyond the number of elelemnts in the array (" & NoOfElementsInArray & ")!"
+        err.Raise AppErr(6), ErrSrc(PROC), "FromElement (" & iElement & ") plus the number of elements to remove (" & NoOfElements & ") is beyond the number of elelemnts in the array (" & NoOfElementsInArray & ")!"
     End If
     
     For i = iIndex + NoOfElements To UBound(a)
@@ -320,11 +333,7 @@ Dim iNewUBound          As Long
     
 xt: Exit Sub
 
-eh:
-#If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrMsg err_source:=ErrSrc(PROC)
+eh: ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub ArrayToRange(ByVal vArr As Variant, _
@@ -333,18 +342,24 @@ Public Sub ArrayToRange(ByVal vArr As Variant, _
 ' -------------------------------------------------------
 ' Copy the content of the Arry (vArr) to the range (r).
 ' -------------------------------------------------------
-Dim rTarget As Range
+    Const PROC = "ArrayToRange"
+    
+    On Error GoTo eh
+    Dim rTarget As Range
 
     If bOneCol Then
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(UBound(vArr), 1)
-        rTarget.Value = Application.Transpose(vArr)
+        rTarget.value = Application.Transpose(vArr)
     Else
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(1, UBound(vArr))
-        rTarget.Value = vArr
+        rTarget.value = vArr
     End If
     
+xt: Exit Sub
+
+eh: ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub ArrayTrimm(ByRef a As Variant)
@@ -355,10 +370,10 @@ Public Sub ArrayTrimm(ByRef a As Variant)
 ' When the array contains only blank
 ' items the returned array is erased.
 ' ---------------------------------------
-Const PROC  As String = "ArrayTrimm"
-Dim i       As Long
+    Const PROC  As String = "ArrayTrimm"
 
     On Error GoTo eh
+    Dim i As Long
     
     '~~ Eliminate leading blank lines
     If Not mBasic.ArrayIsAllocated(a) Then Exit Sub
@@ -381,12 +396,7 @@ Dim i       As Long
 
 xt: Exit Sub
     
-eh:
-    '~~ Global error handling is used to seamlessly monitor error conditions
-#If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrMsg err_source:=ErrSrc(PROC)
+eh: ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Function BaseName(ByVal v As Variant) As String
@@ -395,26 +405,23 @@ Public Function BaseName(ByVal v As Variant) As String
 ' a file name a file path (full name) a File object or
 ' a Workbook object.
 ' -----------------------------------------------------
-Const PROC  As String = "BaseName"
-Dim fso     As New FileSystemObject
-
+    Const PROC  As String = "BaseName"
+    
     On Error GoTo eh
+    Dim fso As New FileSystemObject
     
-    Select Case TypeName(v)
-        Case "String":      BaseName = fso.GetBaseName(v)
-        Case "Workbook":    BaseName = fso.GetBaseName(v.FullName)
-        Case "File":        BaseName = fso.GetBaseName(v.ShortName)
-        Case Else:          Err.Raise AppErr(1), ErrSrc(PROC), "The parameter (v) is neither a string nor a File or Workbook object (TypeName = '" & TypeName(v) & "')!"
-    End Select
+    With fso
+        Select Case TypeName(v)
+            Case "String":      BaseName = .GetBaseName(v)
+            Case "Workbook":    BaseName = .GetBaseName(v.FullName)
+            Case "File":        BaseName = .GetBaseName(v.ShortName)
+            Case Else:          err.Raise AppErr(1), ErrSrc(PROC), "The parameter (v) is neither a string nor a File or Workbook object (TypeName = '" & TypeName(v) & "')!"
+        End Select
+    End With
 
-xt:
-    Exit Function
+xt: Exit Function
     
-eh:
-#If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrMsg err_source:=ErrSrc(PROC)
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function CleanTrim(ByVal s As String, _
@@ -422,8 +429,11 @@ Public Function CleanTrim(ByVal s As String, _
 ' ----------------------------------------------------------------------------------
 ' Returns the string 's' cleaned from any non-printable characters.
 ' ----------------------------------------------------------------------------------
-Dim l           As Long
-Dim asToClean   As Variant
+    Const PROC = "CleanTrim"
+    
+    On Error GoTo eh
+    Dim l           As Long
+    Dim asToClean   As Variant
     
     asToClean = Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, _
                      21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 127, 129, 141, 143, 144, 157)
@@ -431,8 +441,11 @@ Dim asToClean   As Variant
     For l = LBound(asToClean) To UBound(asToClean)
         If InStr(s, Chr$(asToClean(l))) Then s = Replace(s, Chr$(asToClean(l)), vbNullString)
     Next
-    CleanTrim = s
-
+    
+xt: CleanTrim = s
+    Exit Function
+    
+eh: ErrMsg ErrSrc(PROC)
 End Function
 
 Public Function ElementOfIndex(ByVal a As Variant, _
@@ -440,10 +453,13 @@ Public Function ElementOfIndex(ByVal a As Variant, _
 ' ------------------------------------------------------
 ' Returns the element number of index (i) in array (a).
 ' ------------------------------------------------------
-Dim ia  As Long
+    
+    Dim ia  As Long
+    
     For ia = LBound(a) To i
         ElementOfIndex = ElementOfIndex + 1
     Next ia
+    
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
@@ -468,7 +484,7 @@ Public Function IsPath(ByVal v As Variant) As Boolean
     
     If VarType(v) = vbString Then
         If InStr(v, "\") <> 0 Then
-            If InStr(Right(v, 6), ".") = 0 Then
+            If InStr(Right$(v, 6), ".") = 0 Then
                 IsPath = True
             End If
         End If
@@ -484,78 +500,61 @@ Public Sub MakeFormResizable()
 '                                                                           |
 ' All credits belong to him                                                 |
 ' ---------------------------------------------------------------------------
-Const WS_THICKFRAME = &H40000
-Const GWL_STYLE As Long = (-16)
-Dim lStyle As LongPtr
-Dim hWnd As LongPtr
-Dim RetVal
+    Const WS_THICKFRAME = &H40000
+    Const GWL_STYLE As Long = (-16)
+    
+    Dim lStyle As LongPtr
+    Dim hWnd As LongPtr
+    Dim RetVal
 
     hWnd = GetForegroundWindow
     
     lStyle = GetWindowLongPtr(hWnd, GWL_STYLE Or WS_THICKFRAME)
     RetVal = SetWindowLongPtr(hWnd, GWL_STYLE, lStyle)
+
 End Sub
 
-Public Function Max(ByVal v1 As Variant, _
-                    ByVal v2 As Variant, _
-           Optional ByVal v3 As Variant = 0, _
-           Optional ByVal v4 As Variant = 0, _
-           Optional ByVal v5 As Variant = 0, _
-           Optional ByVal v6 As Variant = 0, _
-           Optional ByVal v7 As Variant = 0, _
-           Optional ByVal v8 As Variant = 0, _
-           Optional ByVal v9 As Variant = 0) As Variant
-' -----------------------------------------------------
-' Returns the maximum (biggest) of all provided values.
-' -----------------------------------------------------
-Dim dMax As Double
-    dMax = v1
-    If v2 > dMax Then dMax = v2
-    If v3 > dMax Then dMax = v3
-    If v4 > dMax Then dMax = v4
-    If v5 > dMax Then dMax = v5
-    If v6 > dMax Then dMax = v6
-    If v7 > dMax Then dMax = v7
-    If v8 > dMax Then dMax = v8
-    If v9 > dMax Then dMax = v9
-    Max = dMax
+Public Function Max(ParamArray va() As Variant) As Variant
+' --------------------------------------------------------
+' Returns the maximum value of all values provided (va).
+' --------------------------------------------------------
+    
+    Dim v As Variant
+    
+    Max = va(LBound(va)): If LBound(va) = UBound(va) Then Exit Function
+    For Each v In va
+        If v > Max Then Max = v
+    Next v
+    
 End Function
 
-Public Function Min(ByVal v1 As Variant, _
-                    ByVal v2 As Variant, _
-           Optional ByVal v3 As Variant = Nothing, _
-           Optional ByVal v4 As Variant = Nothing, _
-           Optional ByVal v5 As Variant = Nothing, _
-           Optional ByVal v6 As Variant = Nothing, _
-           Optional ByVal v7 As Variant = Nothing, _
-           Optional ByVal v8 As Variant = Nothing, _
-           Optional ByVal v9 As Variant = Nothing) As Variant
-' ------------------------------------------------------
+Public Function Min(ParamArray va() As Variant) As Variant
+' --------------------------------------------------------
 ' Returns the minimum (smallest) of all provided values.
-' ------------------------------------------------------
-Dim dMin As Double
-    dMin = v1
-    If v2 < dMin Then dMin = v2
-    If TypeName(v3) <> "Nothing" Then If v3 < dMin Then dMin = v3
-    If TypeName(v4) <> "Nothing" Then If v4 < dMin Then dMin = v4
-    If TypeName(v5) <> "Nothing" Then If v5 < dMin Then dMin = v5
-    If TypeName(v6) <> "Nothing" Then If v6 < dMin Then dMin = v6
-    If TypeName(v7) <> "Nothing" Then If v7 < dMin Then dMin = v7
-    If TypeName(v8) <> "Nothing" Then If v8 < dMin Then dMin = v8
-    If TypeName(v9) <> "Nothing" Then If v9 < dMin Then dMin = v9
-    Min = dMin
+' --------------------------------------------------------
+    
+    Dim v As Variant
+    
+    Min = va(LBound(va)): If LBound(va) = UBound(va) Then Exit Function
+    For Each v In va
+        If v < Min Then Min = v
+    Next v
+    
 End Function
 
 Public Function PointsPerPixel() As Double
 ' ----------------------------------------
 ' Return DPI
 ' ----------------------------------------
-Dim hDC             As Long
-Dim lDotsPerInch    As Long
+    
+    Dim hDC             As Long
+    Dim lDotsPerInch    As Long
+    
     hDC = GetDC(0)
     lDotsPerInch = GetDeviceCaps(hDC, LOGPIXELSX)
     PointsPerPixel = POINTS_PER_INCH / lDotsPerInch
     ReleaseDC 0, hDC
+
 End Function
 
 Public Function ProgramIsInstalled(ByVal sProgram As String) As Boolean
@@ -567,7 +566,9 @@ Public Function SelectFolder( _
 ' ----------------------------------------------------------------------------
 ' Returns the selected folder or a vbNullString if none had been selected.
 ' ----------------------------------------------------------------------------
-Dim sFolder As String
+    
+    Dim sFolder As String
+    
     SelectFolder = vbNullString
     ' Open the select folder prompt
     With Application.FileDialog(msoFileDialogFolderPicker)
@@ -577,14 +578,7 @@ Dim sFolder As String
         End If
     End With
     SelectFolder = sFolder
-End Function
 
-Public Function Space(ByVal l As Long) As String
-' --------------------------------------------------
-' Unifies the VB differences SPACE$ and Space$ which
-' lead to code diferences where there aren't any.
-' --------------------------------------------------
-    Space = VBA.Space$(l)
 End Function
 
 Private Sub ErrMsg( _
@@ -597,10 +591,10 @@ Private Sub ErrMsg( _
 ' caller's error handling.
 ' ------------------------------------------------------
     
-    If err_no = 0 Then err_no = Err.Number
-    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_no = 0 Then err_no = err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = err.Description
 
-    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
+    err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
 
 End Sub
 

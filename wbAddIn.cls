@@ -24,54 +24,18 @@ Option Explicit
 '                         development and test instance
 ' - xlAddInFormat         The file format for the SaveAs operation
 '
-' W. Rauschenberger, Berlin Nov 2020
+' W. Rauschenberger, Berlin Dec 2020
 ' See Github repo
 ' ---------------------------------------------------------------------------
-Private Const ADDIN_WORKBOOK    As String = "CompMan.xlam"              ' Extension adjusted when the above is saved as addin
-Private Const ADDIN_FORMAT      As Long = xlOpenXMLAddIn                ' = ... needs adjustment when the above is changed
-Private Const ADDIN_VERSION     As String = "4.0"                       ' Allows to check the success of an Addin renew
-Private Const DEVLP_WORKBOOK    As String = "CompManDev.xlsm"           ' Extension depends on Excel versions
-Private Const DEVLP_FORMAT As Long = xlOpenXMLWorkbookMacroEnabled ' = ... needs adjustment when the above is changed
 
-Public Property Get AddInInstanceFullName() As String:  AddInInstanceFullName = AddInPath & DBSLASH & AddInInstanceName:    End Property
-
-Public Property Get AddInInstanceName() As String:      AddInInstanceName = ADDIN_WORKBOOK:                                 End Property
-
-Private Property Get AddInPath() As String:             AddInPath = mCfg.CompManAddinPath:                           End Property
-
-Public Property Get DevlpInstanceFullName() As String
-Dim fso As New FileSystemObject
-    DevlpInstanceFullName = mCfg.CommonComponentsBasePath & DBSLASH _
-                          & fso.GetBaseName(DevlpInstanceName) & DBSLASH _
-                          & DevlpInstanceName
-End Property
-
-Public Property Get DevlpInstanceName() As String:      DevlpInstanceName = DEVLP_WORKBOOK:                                 End Property
-
-Public Property Get IsAddinInstance() As Boolean:       IsAddinInstance = ThisWorkbook.name = AddInInstanceName:            End Property
-
-Public Property Get IsDevlpInstance() As Boolean:       IsDevlpInstance = ThisWorkbook.name = Me.DevlpInstanceName:         End Property
-
-Public Property Get xlAddInFormat() As Long:            xlAddInFormat = ADDIN_FORMAT:                                       End Property
-
-Public Property Get xlDevlpFormat() As Long:            xlDevlpFormat = DEVLP_FORMAT:                                       End Property
-
-Public Function AddInVersion(Optional ByRef sVersion As String) As String
-    sVersion = ADDIN_VERSION
-    AddInVersion = sVersion
-End Function
+Public Property Get HOSTED_RAWS() As String:            HOSTED_RAWS = "":                                                End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "wbCompMan" & "." & sProc
 End Function
 
-Public Sub Renew()
-    Me.Activate
-    mAddIn.Renew ' The mAddin is declared private by intention and thus not available ti the menu bar
-End Sub
-
 Private Sub Workbook_BeforeClose(Cancel As Boolean)
-    If IsDevlpInstance Then mAddIn.ControlItemRenewRemove
+    If mMe.IsDevInstnc Then mMe.ControlItemRenewRemove
 End Sub
 
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
@@ -80,7 +44,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     On Error GoTo eh
     Dim wb As Workbook
 
-    If Not wbAddIn.IsDevlpInstance Then Exit Sub
+    If Not mMe.IsDevInstnc Then Exit Sub
     
     Set wb = ThisWorkbook
     mErH.BoP ErrSrc(PROC)
@@ -88,7 +52,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     Application.EnableEvents = False
     wb.Save
     Application.EnableEvents = True
-    mCompMan.ExportChangedComponents wb ' includes management of updated used Common Components
+    mCompMan.ExportChangedComponents wb, HOSTED_RAWS ' includes management of updated used Common Components
     If Not wb.Saved Then
         Application.EnableEvents = False
         wb.Save        ' usually not required
@@ -102,31 +66,45 @@ eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Private Sub Workbook_Open()
-
+    Const PROC = "Workbook_Open"
+    
+    On Error GoTo eh
     Dim fso As New FileSystemObject
-
-    If IsDevlpInstance Then
-        mAddIn.ControlItemRenewAdd
-        mCfg.Asserted ' assert a valid CompMan basic configuratuion
-        If mAddIn.AddInInstanceWorkbookIsOpen Then
+    Dim cLog As New clsLog: cLog.Reset: Set cLog = Nothing
+    
+    mErH.BoP ErrSrc(PROC)
+    
+    If mMe.IsDevInstnc Then
+        mMe.ControlItemRenewAdd
+        mMe.ConfigAsserted ' assert a valid CompMan basic configuratuion
+        If mMe.AddInInstncWrkbkIsOpen Then
             '~~ Essential! When the Development instance Workbook is opened, used Common Components
             '~~ the origin code has changed can only be updated when the Addin instance Workbook is
             '~~ open as well. However, since the VBProject has no reference to the Addin the Addin
             '~~ will not be opened when the Development instance is the only Workbook open.
             '~~ I.e. only when a Workbook referring to the Addin is opened the Addin will be opened as well.
-            mAddIn.UpdateUsedCommComps
+            mMe.UpdateUsedCommComps
         End If
     End If
         
     With ThisWorkbook
         '~~ Make sure the VBProject name is the Workbook's base name
         '~~ Note that this is required to correctly identify (save, remove, restore) any reference
-        '~~ to the Addin in open Workbook when Renew or SaveAsAddin is performed (see module mAddin)
+        '~~ to the Addin in open Workbook when RenewByImport or SaveAsAddin is performed (see module mAddin)
         If .VBProject.name <> fso.GetBaseName(.name) Then .VBProject.name = fso.GetBaseName(.name)
         '~~ Unporotecting (the Addin) allows directly modify code in it - and saving it subsequently
         '~~ as new Development instance (see method SaveasDev in module mAddin)
         .Unprotect
     End With
+    
+    
+xt: mErH.BoP ErrSrc(PROC)
+    Exit Sub
 
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 

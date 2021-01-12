@@ -34,7 +34,9 @@ Option Private Module
 '
 ' W. Rauschenberger, Berlin, Nov 2020
 ' -----------------------------------------------------------------------------------------------
+
 Public Const CONCAT         As String = "||"
+
 Private cllErrPath          As Collection
 Private cllErrorPath        As Collection   ' managed by ErrPath... procedures exclusively
 Private dctStck             As Dictionary
@@ -144,7 +146,7 @@ Public Sub BoP(ByVal bop_id As String, _
 
 xt: Exit Sub
 
-eh: MsgBox Err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
+eh: MsgBox err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
     Stop: Resume
 End Sub
 
@@ -163,7 +165,7 @@ Public Sub BoTP(ByVal botp_id As String, _
 
 xt: Exit Sub
 
-eh: MsgBox Err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
+eh: MsgBox err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
     Stop: Resume
 End Sub
 
@@ -269,9 +271,9 @@ Private Function ErrArgs() As String
     
     On Error Resume Next
     va = vArguments
-    If Err.Number <> 0 Then Exit Function
+    If err.Number <> 0 Then Exit Function
     i = LBound(va)
-    If Err.Number <> 0 Then Exit Function
+    If err.Number <> 0 Then Exit Function
     
     For i = i To UBound(va)
         If ErrArgs = vbNullString Then
@@ -456,8 +458,8 @@ Public Function ErrMsg( _
     Dim lNo                 As Long
     Dim sLine               As String
         
-    If err_number = 0 Then err_number = Err.Number
-    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_number = 0 Then err_number = err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = err.Description
     If err_line = 0 Then err_line = Erl
     
     If ErrHndlrFailed(err_number, err_source, err_buttons) Then GoTo xt
@@ -496,7 +498,7 @@ Public Function ErrMsg( _
 #End If
         mErH.StckPop Itm:=err_source
         sInitErrInfo = vbNullString
-        Err.Raise err_number, err_source, err_dscrptn
+        err.Raise err_number, err_source, err_dscrptn
     End If
     
     If ErrBttns(err_buttons) > 1 _
@@ -538,6 +540,9 @@ Public Function ErrMsg( _
     End If
     
 xt:
+#If ExecTrace Then
+'    mTrc.Continue
+#End If
 End Function
 
 Private Sub ErrMsgMatter(ByVal err_source As String, _
@@ -606,7 +611,7 @@ Private Function ErrPathErrMsg(ByVal msg_details As String, _
             s = cllErrorPath.TrcEntryItem(i)
             If i = cllErrorPath.Count _
             Then ErrPathErrMsg = s _
-            Else ErrPathErrMsg = ErrPathErrMsg & vbLf & Space(j * 2) & "|_" & s
+            Else ErrPathErrMsg = ErrPathErrMsg & vbLf & Space$(j * 2) & "|_" & s
             j = j + 1
         Next i
     Else
@@ -614,7 +619,7 @@ Private Function ErrPathErrMsg(ByVal msg_details As String, _
         If Not StckIsEmpty Then
             For i = 0 To dctStck.Count - 1
                 If ErrPathErrMsg <> vbNullString Then
-                   ErrPathErrMsg = ErrPathErrMsg & vbLf & Space((i - 1) * 2) & "|_" & dctStck.Items()(i)
+                   ErrPathErrMsg = ErrPathErrMsg & vbLf & Space$((i - 1) * 2) & "|_" & dctStck.Items()(i)
                 Else
                    ErrPathErrMsg = dctStck.Items()(i)
                 End If
@@ -644,14 +649,6 @@ End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mErH." & sProc
-End Function
-
-Public Function Space(ByVal l As Long) As String
-' --------------------------------------------------
-' Unifies the VB differences SPACE$ and Space$ which
-' lead to code diferences where there aren't any.
-' --------------------------------------------------
-    Space = VBA.Space$(l)
 End Function
 
 Private Function StckBottom() As String
@@ -688,7 +685,7 @@ Private Function StckPop( _
     
 xt: Exit Function
 
-eh: MsgBox Err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
+eh: MsgBox err.Description, vbOKOnly, "Error in " & ErrSrc(PROC)
 End Function
 
 Private Sub StckPush(ByVal s As String)
