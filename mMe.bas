@@ -48,25 +48,32 @@ Option Private Module
 ' Requires:
 ' W. Rauschenberger, Berlin Nov 2020
 ' ---------------------------------------------------------------------------
-Private Const CONTROL_CAPTION       As String = "Renew Addin"
+Private Const CONTROL_CAPTION_RENEW As String = "Renew Addin"
+Private Const CONTROL_CAPTION_PAUSE As String = "Pause Addin"
 Private Const SECTION_BASE_CONFIG   As String = "BaseConfiguration"
 Private Const VB_DEV_PROJECTS_ROOT  As String = "VBDevProjectsRoot"
 Private Const COMPMAN_ADDIN_PATH    As String = "CompManAddInPath"
 
-Private Const ADDIN_WORKBOOK        As String = "CompMan.xlam"              ' Extension adjusted when the above is saved as addin
-Private Const ADDIN_FORMAT          As Long = xlOpenXMLAddIn                ' = ... needs adjustment when the above is changed
-Private Const ADDIN_VERSION         As String = "4.0"                       ' Allows to check the success of an Addin renew
-Private Const DEVLP_WORKBOOK        As String = "CompManDev.xlsm"           ' Extension depends on Excel versions
-Private Const DEVLP_FORMAT          As Long = xlOpenXMLWorkbookMacroEnabled ' = ... needs adjustment when the above is changed
+Private Const ADDIN_WORKBOOK        As String = "CompMan.xlam"      ' Extension adjusted when the above is saved as addin
+Private Const ADDIN_VERSION         As String = "5.0"               ' Allows to check the success of an Addin renew
+Private Const DEVLP_WORKBOOK        As String = "CompManDev.xlsb"   ' Extension depends on Excel versions
+Private cllLog                      As Collection                   ' log records of the RenewAddIn and/or SaveAsDev process
+Private wbDevlp                     As Workbook
+Private wbSource                    As Workbook                     ' This development instance as the renew source
+Private wbTarget                    As Workbook                     ' The Addin instance as renew target
+Private bSucceeded                  As Boolean
+Private bAllRemoved                 As Boolean
+Private dctAddInRefs                As Dictionary
+Private lStep                       As Long
+Private bAddInPaused                As Boolean
 
-Private cllLog          As Collection                   ' log records of the RenewAddIn and/or SaveAsDev process
-Private wbDevlp         As Workbook
-Private wbSource        As Workbook                     ' This development instance as the renew source
-Private wbTarget        As Workbook                     ' The Addin instance as renew target
-Private bSucceeded      As Boolean
-Private bAllRemoved     As Boolean
-Private dctAddInRefs    As Dictionary
-Private lStep           As Long
+Private Property Get DEVLP_FORMAT() As XlFileFormat  ' = .xlsb ! may require adjustment when the above is changed
+    DEVLP_FORMAT = xlExcel12
+End Property
+
+Private Property Get ADDIN_FORMAT() As XlFileFormat ' = ... needs adjustment when the above is changed
+    ADDIN_FORMAT = xlOpenXMLAddIn
+End Property
 
 Public Property Get ServicesLogFile(Optional ByVal slf_serviced_wb As Workbook) As String
     Dim fso As New FileSystemObject
@@ -119,11 +126,11 @@ End Property
 Private Property Get CFG_FILE_NAME() As String: CFG_FILE_NAME = ThisWorkbook.PATH & "\CompMan.cfg": End Property
 
 Public Property Get CompManAddinPath() As String
-    CompManAddinPath = value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH)
+    CompManAddinPath = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH)
 End Property
 
 Public Property Let CompManAddinPath(ByVal s As String)
-    value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH) = s
+    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH) = s
 End Property
 
 Private Property Get Step() As Long
@@ -131,32 +138,32 @@ Private Property Get Step() As Long
     Step = lStep
 End Property
 
-Private Property Get value( _
+Private Property Get Value( _
            Optional ByVal vl_section As String, _
            Optional ByVal vl_value_name As String) As Variant
     
-    value = mFile.value(vl_file:=CFG_FILE_NAME _
+    Value = mFile.Value(vl_file:=CFG_FILE_NAME _
                       , vl_section:=vl_section _
                       , vl_value_name:=vl_value_name _
                        )
 End Property
 
-Private Property Let value( _
+Private Property Let Value( _
            Optional ByVal vl_section As String, _
            Optional ByVal vl_value_name As String, _
                     ByVal vl_value As Variant)
-    mFile.value(vl_file:=CFG_FILE_NAME _
+    mFile.Value(vl_file:=CFG_FILE_NAME _
               , vl_section:=vl_section _
               , vl_value_name:=vl_value_name _
                ) = vl_value
 End Property
 
 Public Property Get VBProjectsDevRoot() As String
-    VBProjectsDevRoot = value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT)
+    VBProjectsDevRoot = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT)
 End Property
 
 Public Property Let VBProjectsDevRoot(ByVal s As String)
-    value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT) = s
+    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT) = s
 End Property
 
 Private Sub CloseAddinInstncWorkbook()
@@ -172,9 +179,9 @@ Private Sub CloseAddinInstncWorkbook()
     Application.StatusBar = "RenewAddIn " & lStep & ". Close the Addin instance Workbook"
 
     If Err.Number <> 0 _
-    Then cllLog.Add "RenewAddIn " & lStep & ". Close the Addin Workbook failed: unable to close!" & vbLf & _
+    Then cllLog.Add "RenewAddIn " & lStep & ". Failed! Closing the Addin instance Workbook '" & AddInInstanceName & "' failed with:" & vbLf & _
                  "  (" & Err.Description & ")" _
-    Else cllLog.Add "RenewAddIn " & lStep & ". Close Addin Workbook passed"
+    Else cllLog.Add "RenewAddIn " & lStep & ". Passed! Addin Workbook instance successfully closed"
 
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
@@ -202,11 +209,11 @@ Private Sub DeleteAddInInstanceWorkbook()
         If .FileExists(AddInInstanceFullName) Then
             .DeleteFile AddInInstanceFullName
             If Err.Number = 0 _
-            Then cllLog.Add "RenewAddIn " & lStep & ". Delete Addin Workbook passed." _
-            Else cllLog.Add "RenewAddIn " & lStep & ". Delete Addin Workbook file failed: " & vbLf & _
+            Then cllLog.Add "RenewAddIn " & lStep & ". Passed! The Addin instance Workbook '" & AddInInstanceName & "' had successfully been removed." _
+            Else cllLog.Add "RenewAddIn " & lStep & ". Failed! Deleting the Addin instance Workbook '" & AddInInstanceName & "' failed with:" & vbLf & _
                          "  (" & Err.Description & ")"
         Else
-            cllLog.Add "RenewAddIn " & lStep & ". Delete Addin Workbook passed: already deleted"
+            cllLog.Add "RenewAddIn " & lStep & ". Passed! The Addin instance Workbook '" & AddInInstanceName & "' was found already deleted"
         End If
     End With
     
@@ -276,10 +283,9 @@ Private Sub OpenAddinInstncWorkbook()
                     sBaseDevName = .GetBaseName(ThisWorkbook.name)
                     wb.VBProject.name = sBaseAddinName
                 End With
-                cllLog.Add "RenewAddIn " & lStep & ". (Re)open Addin Workbook passed: successfully (re)opened/(re)activated and renamed from " & sBaseDevName & " to " & sBaseAddinName
- _
+                cllLog.Add "RenewAddIn " & lStep & ". Passed! The Addin Workbook instance '" & AddInInstanceName & "' has successfully been (re)opened."
             Else
-                cllLog.Add "RenewAddIn " & lStep & ". (Re)open the Addin Workbook failed: could't be (re)opened." & _
+                cllLog.Add "RenewAddIn " & lStep & ". Failed! (Re)opening the Addin Workbook '" & AddInInstanceName & "' failed with:" & _
                          vbLf & "  (" & Err.Description & ")"
             End If
         End If
@@ -318,13 +324,13 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             Else wbDevlp.VBProject.name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
-                cllLog.Add "RenewAddIn " & lStep & ". Save Addin instance (version " & AddInVersion & " as Development instance Workbook failed!"
+                cllLog.Add "RenewAddIn " & lStep & ". Failed! Saving the Addin instance Workbook '" & AddInInstanceName & "' (version " & AddInVersion & " as Development instance Workbook '" & DevInstncName & "' failed!"
             Else
-                cllLog.Add "RenewAddIn " & lStep & ". Save Addin instance Workbook (version " & AddInVersion & " saved as Development instance Workbook passed."
+                cllLog.Add "RenewAddIn " & lStep & ". Passed! The Addin instance Workbook '" & AddInInstanceName & "' (version " & AddInVersion & " has successfully been saved as Development instance Workbook '" & DevInstncName & "'"
             End If
             .EnableEvents = True
         Else ' file still exists
-            cllLog.Add "RenewAddIn " & lStep & ". Saving Addin with version " & AddInVersion & " as Development instance Workbook failed"
+            cllLog.Add "RenewAddIn " & lStep & ". Failed! Saving the Addin instance Workbook '" & AddInInstanceName & "' (version " & AddInVersion & " as Development instance Workbook '" & DevInstncName & "' failed!"
         End If
     End With
 
@@ -415,7 +421,7 @@ Private Function AssertUpToDateVersion() As Boolean
     
     On Error GoTo eh
     Dim lStep       As Long
-    Dim cVersion    As clsAddinVersion
+    Dim cVersion    As New clsAddinVersion
 
     mErH.BoP ErrSrc(PROC)
     If cllLog Is Nothing Then Set cllLog = New Collection
@@ -427,10 +433,10 @@ Private Function AssertUpToDateVersion() As Boolean
     If AddInInstncWrkbkIsOpen Then
         Application.Run wbTarget.name & "!mCompMan.Version", cVersion
         If cVersion.Version = AddInVersion Then
-            cllLog.Add "RenewAddIn " & lStep & ". Renew of the Addin (version " & cVersion.Version & ") successfull! Addin is open again and active :-)"
+            cllLog.Add "RenewAddIn " & lStep & ". Passed! Renew of the Addin (version " & cVersion.Version & ") successfull! Addin is open again and active :-)"
             bSucceeded = True
         Else
-            cllLog.Add "RenewAddIn " & lStep & ". Renew of the Addin failed (is still version " & cVersion.Version & ":-("
+            cllLog.Add "RenewAddIn " & lStep & ". Failed! Renew of the Addin failed (is still version " & cVersion.Version & ":-("
             bSucceeded = False
         End If
     End If
@@ -494,26 +500,36 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub ControlItemRenewAdd()
+Public Sub ControlItemsAdd()
 '------------------------------------
 ' Add control to "Add_Ins" popup menu
 '------------------------------------
-    Const PROC = "ControlItemRenewAdd"
+    Const PROC = "ControlItemsAdd"
     
     On Error GoTo eh
     Dim cmb   As CommandBar
     Dim cmbb  As CommandBarButton
     
-    ControlItemRenewRemove
+    ControlItemsRemove
     Set cmb = Application.CommandBars("Worksheet Menu Bar")
     Set cmbb = cmb.Controls.Add(Type:=msoControlButton, id:=2950)
     With cmbb
-        .caption = CONTROL_CAPTION
+        .caption = CONTROL_CAPTION_RENEW
         .Style = msoButtonCaption
-        .TooltipText = "Saves the development instance as Addin"
+        .TooltipText = "Saves the development instance '" & DevInstncName & "' as '" & AddInInstanceName & "' Addin"
         .OnAction = "RenewAddIn"
         .Visible = True
     End With
+    
+    Set cmbb = cmb.Controls.Add(Type:=msoControlButton, id:=2950)
+    With cmbb
+        .caption = CONTROL_CAPTION_PAUSE
+        .Style = msoButtonCaption
+        .TooltipText = "Pauses (temporarily removes) the " & AddInInstanceName & " Addin"
+        .OnAction = "PauseAddIn"
+        .Visible = True
+    End With
+    
     
 xt: Exit Sub
 
@@ -524,12 +540,13 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub ControlItemRenewRemove()
+Public Sub ControlItemsRemove()
 '--------------------------------------------------------------
 ' Remove the "RenewAddIn" control item from the "Add_Ins" popup menu
 '--------------------------------------------------------------
     On Error Resume Next
-    Application.CommandBars("Worksheet Menu Bar").Controls(CONTROL_CAPTION).Delete
+    Application.CommandBars("Worksheet Menu Bar").Controls(CONTROL_CAPTION_RENEW).Delete
+    Application.CommandBars("Worksheet Menu Bar").Controls(CONTROL_CAPTION_PAUSE).Delete
 End Sub
 
 Private Sub DevInstncWorkbookClose()
@@ -546,9 +563,9 @@ Private Sub DevInstncWorkbookClose()
     wbDevlp.Activate
     wbDevlp.Close False
     If Err.Number <> 0 _
-    Then cllLog.Add "RenewAddIn " & lStep & ". Close Development instance Workbook failed: Unable to close" & vbLf & _
-                 "  (" & Err.Description & ")" _
-    Else cllLog.Add "RenewAddIn " & lStep & ". Close Development instance Workbook passed"
+    Then cllLog.Add "RenewAddIn " & lStep & ". Failed! Closing the Development instance Workbook '" & DevInstncName & "' failed with:" & vbLf & _
+                    "  (" & Err.Description & ")" _
+    Else cllLog.Add "RenewAddIn " & lStep & ". Passed! Development instance Workbook '" & DevInstncName & "' successfully closed"
 
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
@@ -576,11 +593,11 @@ Private Sub DevInstncWorkbookDelete()
         If .FileExists(DevInstncFullName) Then
             .DeleteFile DevInstncFullName
             If Err.Number = 0 _
-            Then cllLog.Add "RenewAddIn " & lStep & ". Delete Development instance Workbook passed" _
-            Else cllLog.Add "RenewAddIn " & lStep & ". Delete Development instance Workbook failed!" & vbLf & _
+            Then cllLog.Add "RenewAddIn " & lStep & ". Passed! Development instance Workbook '" & DevInstncName & "' successfully deleted" _
+            Else cllLog.Add "RenewAddIn " & lStep & ". Failed! Deleting the Development instance Workbook '" & DevInstncName & "' failed with:" & vbLf & _
                          "  (" & Err.Description & ")"
         Else
-            cllLog.Add "RenewAddIn " & lStep & ". Development instance Workbook already deleted"
+            cllLog.Add "RenewAddIn " & lStep & ". Passed! Development instance Workbook '" & DevInstncName & "' found already deleted"
         End If
     End With
 
@@ -621,7 +638,7 @@ Private Sub DevInstncWorkbookSave()
     wbSource.Save
     Application.EnableEvents = True
     wbSource.Activate
-    cllLog.Add "RenewAddIn " & lStep & ". Save Development instance Workbook passed"
+    cllLog.Add "RenewAddIn " & lStep & ". Passed! The Development instance Workbook '" & DevInstncName & "' has successfully been svaed"
 
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
@@ -650,14 +667,14 @@ Private Sub SaveDevInstncWorkbookAsAddin()
             On Error Resume Next
             wbSource.SaveAs AddInInstanceFullName, FileFormat:=xlAddInFormat
             If Err.Number <> 0 Then
-                cllLog.Add "RenewAddIn " & lStep & ". Save Development instance (version " & AddInVersion & ") as Addin failed!"
+                cllLog.Add "RenewAddIn " & lStep & ". Failed! Save Development instance (version " & AddInVersion & ") as Addin failed!"
             Else
-                cllLog.Add "RenewAddIn " & lStep & ". Save Development instance (version " & AddInVersion & ") as Addin passed"
+                cllLog.Add "RenewAddIn " & lStep & ". Passed! The Development instance (version " & AddInVersion & ") has successfully been saved as Addin instance Workbook '" & AddInInstanceName & "'"
             End If
             .EnableEvents = True
 '            mCompMan.ExportChangedComponents wbDevlp
         Else ' file still exists
-            cllLog.Add "RenewAddIn " & lStep & ". Setup/renew of the Addin with version " & AddInVersion & " of the development instance failed"
+            cllLog.Add "RenewAddIn " & lStep & ". Failed! Setup/renew of the Addin with version " & AddInVersion & " of the development instance failed"
         End If
     End With
     
@@ -675,19 +692,26 @@ Private Sub DisplayRenewResult()
 
     Dim sMsg        As String
     Dim i           As Long
-
+    Dim sTitle      As String
+    
+    If bSucceeded And Not bAddInPaused Then
+        sTitle = "Successful! The Addin '" & AddInInstanceName & "' has been renewed by the development instance '" & DevInstncName & "' (see details below)"
+    ElseIf bSucceeded And bAddInPaused Then
+        sTitle = "Successful! The Addin is now paused (removed!) until the next renew"
+    ElseIf Not bSucceeded And Not bAddInPaused Then
+        sTitle = "Failed! Renewing the Addin '" & AddInInstanceName & "' by the development instance failed (see details below)"
+    ElseIf Not bSucceeded And bAddInPaused Then
+        sTitle = "Failed! Pausing the Addin instance of '" & AddInInstanceName & "' failed!"
+    End If
+    
     If cllLog.Count > 0 Then
         sMsg = cllLog.Item(1)
         For i = 2 To cllLog.Count
             sMsg = sMsg & vbLf & cllLog.Item(i)
         Next i
-        If bSucceeded _
-        Then mMsg.Box msg_title:="Successful! The Addin '" & AddInInstanceName & "' has been renewed by the development instance '" & DevInstncName & "' (see details below)" _
-                    , msg:=sMsg _
-                    , msg_monospaced:=True _
-        Else mMsg.Box msg_title:="Failed! Renewing the Addin " & AddInInstanceName & " by the development instance failed (see details below)" _
-                    , msg:=sMsg _
-                    , msg_monospaced:=True
+        mMsg.Box msg_title:=sTitle _
+               , msg:=sMsg _
+               , msg_monospaced:=True
     End If
     Application.StatusBar = vbNullString
     lStep = 0
@@ -744,10 +768,10 @@ Private Sub RestoreReferencesToAddIn()
     
     If bOneRestored Then
         sWbs = left(sWbs, Len(sWbs) - 2)
-        cllLog.Add "RenewAddIn " & lStep & ". Reference to the Addin in open Workbooks restored"
+        cllLog.Add "RenewAddIn " & lStep & ". Passed! Saved references to the Addin in open Workbooks have been restored"
         cllLog.Add "   (" & sWbs & ")"
     Else
-        cllLog.Add "RenewAddIn " & lStep & ". Reference to the Addin in none of the open Workbooks restored (none originally referred to the Addin)"
+        cllLog.Add "RenewAddIn " & lStep & ". Passed! Restoring references did not find any saved to restore"
     End If
     
 xt: mErH.EoP ErrSrc(PROC)
@@ -806,10 +830,10 @@ Private Sub SaveAndRemoveReferencesToAddIn()
     
     If bOneRemoved Then
         sWbs = left(sWbs, Len(sWbs) - 2)
-        cllLog.Add "RenewAddIn " & lStep & ". Reference to the Addin from open Workbooks saved and removed"
+        cllLog.Add "RenewAddIn " & lStep & ". Passed! References to the Addin from open Workbooks saved and removed"
         cllLog.Add "   (" & sWbs & ")"
     Else
-        cllLog.Add "RenewAddIn " & lStep & ". Removing reference to the Addin from open Workbooks not required (none referred to the Addin)."
+        cllLog.Add "RenewAddIn " & lStep & ". Passed! None of the open Workbooks referred to the Addin '" & AddInInstanceName & "'"
     End If
     
 xt: mErH.EoP ErrSrc(PROC)
@@ -822,7 +846,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub RenewAddIn()
+Public Sub PauseAddIn()
+    RenewAddIn bPause:=True
+End Sub
+
+Public Sub RenewAddIn(Optional ByVal bPause As Boolean = False)
 ' -----------------------------------------------------------
 ' Renews the code of the Addin instance of this Workbook with
 ' this Workbook's code by displaying a detailed result of the
@@ -842,35 +870,44 @@ Public Sub RenewAddIn()
     '~~ Assert ThisWorkbook is the development instance of the CompMan Addin
     lStep = Step
     If Not IsDevInstnc() Then
-        cllLog.Add "RenewAddIn " & lStep & ". ""Renew"" not asserted: Execution of the ""Renew"" procedure failed because it had not been executed from within the Development instance Workbook (" & DevInstncName & ")!"
+        cllLog.Add "RenewAddIn " & lStep & ". Failed! The 'RenewAddIn' service had not been executed from within the development instance Workbook (" & DevInstncName & ")!"
         GoTo xt
     Else
-        cllLog.Add "RenewAddIn " & lStep & ". ""Renew asserted: Procedure is executed from within the Development instance Workbook (" & DevInstncName & ") asserted"
+        cllLog.Add "RenewAddIn " & lStep & ". Passed! The 'RenewAddIn service has been initiated from within the Development instance Workbook (" & DevInstncName & ") asserted"
     End If
                      
-    '~~ Get the current CompMan's base configuration confirmed or changed
-    ConfirmConfig
-                     
-    '~~ Assert no Workbooks are open referring to the Addin
-    SaveAndRemoveReferencesToAddIn
-    If Not bAllRemoved Then GoTo xt
-
-    '~~ Assure the current version of the AddIn's development instance has been saved
-    '~~ Note: Unconditionally saving the Workbook does an incredible trick:
-    '~~       The un-unstalled and IsAddin=False Workbook is released from the Application
-    '~~       and no longer considered "used"
-    DevInstncWorkbookSave
-    wbSource.Activate
-          
-    '~~ Attempt to turn Addin to "IsAddin=False", uninstall and close it
-    If AddInInstncWrkbkIsOpen Then
-        Set_IsAddin_ToFalse wbTarget
-        CloseAddinInstncWorkbook
+    If Not bAddInPaused Then
+        '~~ Get the current CompMan's base configuration confirmed or changed
+        ConfirmConfig
+                         
+        '~~ Assert no Workbooks are open referring to the Addin
+        SaveAndRemoveReferencesToAddIn
+        If Not bAllRemoved Then GoTo xt
+    
+        '~~ Assure the current version of the AddIn's development instance has been saved
+        '~~ Note: Unconditionally saving the Workbook does an incredible trick:
+        '~~       The un-unstalled and IsAddin=False Workbook is released from the Application
+        '~~       and no longer considered "used"
+        DevInstncWorkbookSave
+        wbSource.Activate
+              
+        '~~ Attempt to turn Addin to "IsAddin=False", uninstall and close it
+        If AddInInstncWrkbkIsOpen Then
+            Set_IsAddin_ToFalse wbTarget
+            CloseAddinInstncWorkbook
+        End If
+        
+        '~~ Attempt to delete the Addin Workbook file
+        DeleteAddInInstanceWorkbook
     End If
     
-    '~~ Attempt to delete the Addin Workbook file
-    DeleteAddInInstanceWorkbook
+    If bPause Then
+        bAddInPaused = True
+        If Not AddInInstncWrkbkIsOpen And Not bSucceeded Then bSucceeded = True
+        GoTo xt
+    End If
     
+    bAddInPaused = False
     '~~ Attempt to save the development instance as Addin
     SaveDevInstncWorkbookAsAddin
     
@@ -916,10 +953,10 @@ Public Sub SaveAsDev()
     '~~ Assert ThisWorkbook is the development instance of the CompMan Addin
     lStep = Step
     If Not IsAddinInstnc() Then
-        cllLog.Add "RenewAddIn " & lStep & ". Save as Development instance failed: It had not been executed from within the Addin instance Workbook!"
+        cllLog.Add "RenewAddIn " & lStep & ". Failed! Saving the '" & AddInInstanceName & "' as Development instance failed: It may have not been executed from within the Addin instance Workbook!"
         GoTo xt
     Else
-        cllLog.Add "RenewAddIn " & lStep & ". Save as Development instance passed"
+        cllLog.Add "RenewAddIn " & lStep & ". Passed! The Addin instance '" & AddInInstanceName & "' has been saved as Development instance '" & DevInstncName & "'"
     End If
     Set wbSource = Application.Workbooks(AddInInstanceName)
     
@@ -973,9 +1010,9 @@ Private Sub Set_IsAddin_ToFalse(ByVal wb As Workbook)
     Application.StatusBar = "RenewAddIn " & lStep & ". Set the IsAddin property to False"
     If wb.IsAddin = True Then
         wb.IsAddin = False
-        cllLog.Add "RenewAddIn " & lStep & ". " & DQUOTE & "IsAddin" & DQUOTE & " property of the Addin Workbook set to FALSE"
+        cllLog.Add "RenewAddIn " & lStep & ". Passed! The 'IsAddin' property of the Addin Workbook has been set to FALSE"
     Else
-        cllLog.Add "RenewAddIn " & lStep & ". " & DQUOTE & "IsAddin" & DQUOTE & " property of the Addin Workbook set to FALSE (were already done)"
+        cllLog.Add "RenewAddIn " & lStep & ". Passed! The 'IsAddin' property of the Addin Workbook was already set to FALSE"
     End If
     
 xt: mErH.EoP ErrSrc(PROC)

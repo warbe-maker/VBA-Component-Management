@@ -8,10 +8,11 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
-' ---------------------------------------------------------------------------
-' Common Component Workbook CompManDev.xlsm
-' - When setup this Workbook also exists as AddIn Workbook CompMan.xlma
-' - When renewed, this Workbook is open as Addin Workbook CompMan.xlma
+' ------------------------------------------------------------------
+' !! This Workbook exists as two instances:                       !!
+' !! 1. CompManDev.xlsb as the development instance               !!
+' !! 2. CompMan.xlma as the AddIn instance which is setup/renewed !!
+' !!    via the development instance service mAddIn.Renew         !!
 '
 ' Properties:
 ' - AddInInstanceFullName Full path/file name of the Addin Instance
@@ -26,7 +27,7 @@ Option Explicit
 '
 ' W. Rauschenberger, Berlin Dec 2020
 ' See Github repo
-' ---------------------------------------------------------------------------
+' ------------------------------------------------------------------
 
 Public Property Get HOSTED_RAWS() As String:            HOSTED_RAWS = "":                                                End Property
 
@@ -35,7 +36,7 @@ Private Function ErrSrc(ByVal sProc As String) As String
 End Function
 
 Private Sub Workbook_BeforeClose(Cancel As Boolean)
-    If mMe.IsDevInstnc Then mMe.ControlItemRenewRemove
+    If mMe.IsDevInstnc Then mMe.ControlItemsRemove
 End Sub
 
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
@@ -74,7 +75,7 @@ Private Sub Workbook_Open()
     mErH.BoP ErrSrc(PROC)
     
     If mMe.IsDevInstnc Then
-        mMe.ControlItemRenewAdd
+        mMe.ControlItemsAdd
         mMe.ConfigAsserted ' assert a valid CompMan basic configuratuion
         If mMe.AddInInstncWrkbkIsOpen Then
             '~~ Essential! When the Development instance Workbook is opened, used Common Components

@@ -419,7 +419,7 @@ Public Sub Test_File_Sections_Transfer_By_LetGet()
         ReDim Preserve arSections(i - 1)
         arSections(i - 1) = sSectionName
         For j = 1 To 5
-            mFile.value(vl_file:=sFileGet _
+            mFile.Value(vl_file:=sFileGet _
                     , vl_section:=sSectionName _
                     , vl_value_name:="Value-" & j _
                      ) = CStr(i & "-" & j)
@@ -430,7 +430,8 @@ Public Sub Test_File_Sections_Transfer_By_LetGet()
     mErH.BoP ErrSrc(PROC)
     
     mFile.SectionsCopy sc_section_names:=arSections, sc_file_from:=sFileGet, sc_file_to:=sFileLet
-    Debug.Assert mFile.sDiffer(dif_file1:=fso.GetFile(sFileGet), dif_file2:=fso.GetFile(sFileLet)) = False
+    Debug.Assert mFile.sDiffer(dif_file1:=fso.GetFile(sFileGet) _
+                             , dif_file2:=fso.GetFile(sFileLet)) = False
     
     mErH.EoP ErrSrc(PROC)
     
@@ -458,7 +459,6 @@ Public Sub Test_File_Value()
     On Error GoTo eh
     Dim fso             As New FileSystemObject
     Dim sFile           As String
-    Dim sComment        As String
     Dim cyValue         As Currency: cyValue = 12345.6789
     
     '~~ Test preparation
@@ -467,14 +467,10 @@ Public Sub Test_File_Value()
     mErH.BoP ErrSrc(PROC)
     
     '~~ Test step 1: Write commented values
-    sComment = "My comment"
-    mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
-    sComment = "This is a boolean True"
-    mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
-    sComment = "This is a boolean False"
-    mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
-    sComment = "This is a currency value"
-    mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4") = cyValue
+    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1") = "Test Value"
+    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2") = True
+    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3") = False
+    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4") = cyValue
     
     '~~ Display written test values
     mMsg.Box msg_title:="Content of file '" & sFile & "'" _
@@ -482,23 +478,12 @@ Public Sub Test_File_Value()
            , msg_monospaced:=True
     
     '~~ Test step 2: Read commented values
-    sComment = vbNullString
-    Debug.Print "Test.Value-1 = '" & mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) & "'"
-    Debug.Assert mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1", vl_comment:=sComment) = "Test Value"
-    Debug.Assert sComment = "My comment"
-    
-    sComment = vbNullString
-    Debug.Assert mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2", vl_comment:=sComment) = True
-    Debug.Assert sComment = "This is a boolean True"
-    
-    sComment = vbNullString
-    Debug.Assert mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3", vl_comment:=sComment) = False
-    Debug.Assert sComment = "This is a boolean False"
-    
-    sComment = vbNullString
-    Debug.Assert mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment) = cyValue
-    Debug.Assert sComment = vbNullString
-    Debug.Assert VarType(mFile.value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4", vl_comment:=sComment)) = vbCurrency
+    Debug.Print "Test.Value-1 = '" & mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1") & "'"
+    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1") = "Test Value"
+    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2") = True
+    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3") = False
+    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4") = cyValue
+    Debug.Assert VarType(mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4")) = vbCurrency
     
     mErH.EoP ErrSrc(PROC)
     
@@ -652,10 +637,9 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     
         cLog.ServicedItem = .CompName
         
-        .RenewByImport rn_wb:=.Wrkbk _
-             , rn_comp_name:=.CompName _
-             , rn_exp_file_full_name:=rnc_exp_file_full_name _
-             , rn_log:=cLog
+        mRenew.ByImport rn_wb:=.Wrkbk _
+                      , rn_comp_name:=.CompName _
+                      , rn_exp_file_full_name:=rnc_exp_file_full_name
 
     End With
     
