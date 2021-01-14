@@ -359,6 +359,7 @@ Public Sub ExportChangedComponents( _
     Dim sServiced           As String
     Dim sProgressDots       As String
     Dim sStatus             As String
+    Dim sService            As String
     
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
@@ -369,7 +370,8 @@ Public Sub ExportChangedComponents( _
                     "' are not supported by CompMan service '" & ErrSrc(PROC) & "'!"
         GoTo xt
     End If
-    sStatus = ErrSrc(PROC) & ": "
+    sService = "CompMan Service '" & PROC & "': "
+    sStatus = sService
     
     Application.StatusBar = sStatus & "Resolve pending imports if any"
     mPending.Resolve ec_wb
@@ -491,11 +493,11 @@ next_vbc:
         mTrc.EoC ErrSrc(PROC) & " " & vbc.name
         lCompsRemaining = lCompsRemaining - 1
     Next vbc
-        
+    sMsg = sService
     Select Case lExported
-        Case 0:     sMsg = "None of the " & lComponents & " Components in Workbook " & ec_wb.name & " had been changed/exported/backed up."
-        Case 1:     sMsg = " 1 Component (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & left(sExported, Len(sExported) - 2)
-        Case Else:  sMsg = lExported & " Components (of " & lComponents & ") in Workbook " & ec_wb.name & " had been exported/backed up: " & left(sExported, Len(sExported) - 1)
+        Case 0:     sMsg = sMsg & "None of the " & lComponents & " Components in Workbook " & ec_wb.name & " has been changed/exported/backed up."
+        Case 1:     sMsg = sMsg & "1 of " & lComponents & " components in Workbook " & ec_wb.name & " has been exported/backed up: " & left(sExported, Len(sExported) - 2)
+        Case Else:  sMsg = sMsg & lExported & " of " & lComponents & " components in Workbook " & ec_wb.name & " has been exported/backed up: " & left(sExported, Len(sExported) - 1)
     End Select
     If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
@@ -579,7 +581,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function MaxCompLength(Optional ByVal wb As Workbook) As Long
+Private Function MaxCompLength(ByVal wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
         For Each vbc In wb.VBProject.VBComponents
@@ -663,7 +665,6 @@ Public Sub RenewComp( _
 
     On Error GoTo eh
     Dim fso         As New FileSystemObject
-    Dim sCompName   As String
     Dim cComp       As New clsComp
     Dim cLog        As New clsLog
     Dim flFile      As FILE
@@ -793,21 +794,14 @@ Public Sub UpdateClonesTheRawHasChanged( _
     Const PROC = "UpdateClonesTheRawHasChanged"
     
     On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim lClonedRaws  As Long
-    Dim lCompMaxLen As Long
-    Dim lComponents As Long
-    Dim lReplaced   As Long
-    Dim sServiced   As String
-    Dim vbc         As VBComponent
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
-    Dim sReplaced   As String
     Dim sStatus     As String
+    Dim sService    As String
     
     mErH.BoP ErrSrc(PROC)
-    sStatus = ErrSrc(PROC) & ": "
-    '~~ Prevent any action for a Workbook opened with any irregularity
+    
+    sService = "CompMan Service '" & PROC & "': "
     If uc_wb Is Nothing Then Set uc_wb = ActiveWorkbook
     If WbkIsRestoredBySystem(uc_wb) Or Not WbkInDevRoot(uc_wb) Then
         Debug.Print "Workbooks restored by Excel or not in '" & mMe.VBProjectsDevRoot & _
@@ -815,10 +809,6 @@ Public Sub UpdateClonesTheRawHasChanged( _
         GoTo xt
     End If
     
-    Application.StatusBar = sStatus & "Resolve pending imports"
-    mPending.Resolve uc_wb
-    
-    lCompMaxLen = MaxCompLength(wb:=uc_wb)
     Set cLog = New clsLog
     cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=uc_wb, svp_new_log:=True) = ErrSrc(PROC)
     
@@ -833,59 +823,11 @@ Public Sub UpdateClonesTheRawHasChanged( _
         Set wbTemp = Workbooks.Add
     End If
     
-    For Each vbc In uc_wb.VBProject.VBComponents
-        Set cComp = New clsComp
-        cComp.Wrkbk = uc_wb
-        cComp.CompName = vbc.name
+    mUpdate.ClonesTheRawHasChanged uc_wb:=uc_wb _
+                                 , uc_comp_max_len:=MaxCompLength(wb:=uc_wb) _
+                                 , uc_service:=sService _
+                                 , uc_log:=cLog
 
-        Application.StatusBar = sStatus & vbc.name & " "
-        cComp.VBComp = vbc
-        lComponents = lComponents + 1
-        sServiced = cComp.Wrkbk.name & " Component """ & vbc.name & """"
-        sServiced = sServiced & String(lCompMaxLen - Len(vbc.name), ".")
-        cLog.ServicedItem = sServiced
-            
-        If cComp.KindOfComp = enRawClone Then
-            '~~ Establish a component class object which represents the cloned raw's remote instance
-            '~~ which is hosted in another Workbook
-            Set cRaw = New clsRaw
-            With cRaw ' Provide all available information rearding the remote raw component
-                .CompName = cComp.CompName
-                .ExpFile = fso.GetFile(FilePath:=mRaw.ExpFileFullName(.CompName))
-                .ExpFileFullName = .ExpFile.PATH
-                .HostFullName = mRaw.HostFullName(comp_name:=.CompName)
-            End With
-
-            With cComp
-                If .KindOfComp = enRawClone Then lClonedRaws = lClonedRaws + 1
-                If .KindOfCodeChange = enRawOnly _
-                Or .KindOfCodeChange = enRawAndClone Then
-                    '~~ Attention!! The cloned raw's code is updated disregarding any code changed in it.
-                    '~~ A code change in the cloned raw is only considered when the Workbook is about to
-                    '~~ be closed - where it may be ignored to make exactly this happens.
-                    mRenew.ByImport rn_wb:=.Wrkbk _
-                         , rn_comp_name:=.CompName _
-                         , rn_exp_file_full_name:=cRaw.ExpFileFullName _
-                         , rn_status:=sStatus & " " & .CompName & " "
-                    cLog.Action = "Clone component renewed/updated by (re-)import of '" & cRaw.ExpFileFullName & "'"
-                    lReplaced = lReplaced + 1
-                    sReplaced = .CompName & ", " & sReplaced
-                    '~~ Register the update being used to identify a potentially relevant
-                    '~~ change of the origin code
-                End If
-                sStatus = sStatus & " " & .CompName & ", "
-            End With
-        End If
-        Set cComp = Nothing
-        Set cRaw = Nothing
-        
-    Next vbc
-    DsplyStatusUpdateClonesResult sp_total_comps:=lComponents _
-                                , sp_cloned_raws:=lClonedRaws _
-                                , sp_no_replaced:=lReplaced _
-                                , sp_replaced:=sReplaced
-        
-    
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
         Set wbTemp = Nothing
@@ -895,7 +837,7 @@ xt: If Not wbTemp Is Nothing Then
         End If
     End If
     Set dctHostedRaws = Nothing
-    Set fso = Nothing
+    mErH.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -905,35 +847,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub DsplyStatusUpdateClonesResult( _
-                           ByVal sp_total_comps As Long, _
-                           ByVal sp_cloned_raws As Long, _
-                           ByVal sp_no_replaced As Long, _
-                           ByRef sp_replaced As String)
-' --------------------------------------------------------
-' Display the service progress
-' --------------------------------------------------------
-    Const SERVICE = "Update clones the raw has changed: "
-    Dim sMsg As String
-    
-    Select Case sp_cloned_raws
-        Case 0: sMsg = SERVICE & "None of " & sp_total_comps & " had been identified as ""Cloned Raw Component""."
-        Case 1
-            Select Case sp_no_replaced
-                Case 0:     sMsg = SERVICE & "1 of " & sp_total_comps & " has been identified as ""Cloned Raw Component"" but has not been updated since the raw had not changed."
-                Case 1:     sMsg = SERVICE & "1 Component of " & sp_total_comps & " has been identified as ""Cloned Raw Component"" and updated because the raw had changed (" & left(sp_replaced, Len(sp_replaced) - 2) & ")."
-            End Select
-        Case Else
-            Select Case sp_no_replaced
-                Case 0:     sMsg = SERVICE & sp_cloned_raws & " Components of " & sp_total_comps & " had been identified as ""Cloned Raw Components"". None had been updated since none of the raws had changed."
-                Case 1:     sMsg = SERVICE & sp_cloned_raws & " Components of " & sp_total_comps & " had been identified as ""Cloned Raw Components"". One had been updated since the raw's code had changed (" & left(sp_replaced, Len(sp_replaced) - 2) & ")."
-                Case Else:  sMsg = SERVICE & sp_cloned_raws & " Components of " & sp_total_comps & " had been identified as ""Cloned Raw Components"". " & sp_replaced & " have been updated because the raw's code had changed (" & left(sp_replaced, Len(sp_replaced) - 2) & ")."
-            End Select
-    End Select
-    If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
-    Application.StatusBar = sMsg
-
-End Sub
 Public Sub Version(ByRef c_version As clsAddinVersion)
 ' ---------------------------------------------------------------------------------------------------------------------
 ' Called by the development instance via Application.Run. Because the version value cannot be returned to the call via

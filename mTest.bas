@@ -19,9 +19,11 @@ Private vbc     As VBComponent
 Private vbcm    As CodeModule
 
 Private Property Get RenewService() As String
-    With New FileSystemObject
-        RenewService = AddInInstanceName & "!mRenew.ByImport"
-    End With
+    RenewService = AddInInstanceName & "!mRenew.ByImport"
+End Property
+
+Private Property Get UpdateClonesService() As String
+    UpdateClonesService = AddInInstanceName & "!mUpdate.ClonesTheRawHasChanged"
 End Property
 
 Public Sub Cleanup(Optional ByVal exp_file As String = vbNullString, _
@@ -967,17 +969,34 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_UpdateRawClonesTheRemoteRawHasChanged()
-    Const PROC  As String = "Test_UpdateCommonModules"
+Public Sub Test_UpdateClonesTheRawHasChanged()
+    Const PROC  As String = "Test_UpdateClonesTheRawHasChanged"
     
     On Error GoTo eh
-    mErH.BoP ErrSrc(PROC)
+    Dim sService    As String
+    Dim lMaxCompLen As Long
     
-    Application.StatusBar = vbNullString
-    mCompMan.UpdateClonesTheRawHasChanged ThisWorkbook
+    sService = "CompMan Service '" & PROC & "': "
+
+    If mMe.IsAddinInstnc Then Exit Sub
+    If mMe.IsDevInstnc Then
+        If mMe.AddInInstncWrkbkIsOpen Then
+            lMaxCompLen = MaxCompLength(wb:=ThisWorkbook)
+            ' ---------------------------------
+            '~~ Arguments for the Run:
+            '~~ uc_wb As Workbook, _
+            '~~ uc_comp_max_len As Long, _
+            '~~ uc_service As String, _
+            '~~ -------------------------------
+            mErH.BoP ErrSrc(PROC)
+            Application.Run UpdateClonesService _
+                          , lMaxCompLen _
+                          , sService
+            mErH.EoP ErrSrc(PROC)
+        End If
+    End If
     
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -985,4 +1004,13 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
+
+Private Function MaxCompLength(ByVal wb As Workbook) As Long
+    Dim vbc As VBComponent
+    If lMaxCompLength = 0 Then
+        For Each vbc In wb.VBProject.VBComponents
+            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
+        Next vbc
+    End If
+End Function
 
