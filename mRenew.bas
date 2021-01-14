@@ -3,16 +3,18 @@ Option Explicit
 
 Public Sub ByImport(ByVal rn_wb As Workbook, _
                     ByVal rn_comp_name As String, _
-                    ByVal rn_exp_file_full_name As String)
-' --------------------------------------------------------
+                    ByVal rn_exp_file_full_name As String, _
+           Optional ByVal rn_status As String = vbNullString)
+' -----------------------------------------------------------
 ' Renews the component (rn_comp_name) in Workbook (rn_wb)
 ' by importing the Export File (rn_exp_file_full_name).
-' --------------------------------------------------------
+' -----------------------------------------------------------
     Dim sTempName           As String
     Dim sExpFileFullName    As String
     Dim fso                 As New FileSystemObject
 
     Debug.Print NowMsec & " =========================="
+    If rn_status <> vbNullString Then Application.StatusBar = rn_status & "Save and wait"
     SaveWbk rn_wb
     DoEvents:  Application.Wait Now() + 0.0000001 ' wait for 10 milliseconds
     With rn_wb.VBProject
@@ -20,36 +22,27 @@ Public Sub ByImport(ByVal rn_wb As Workbook, _
             '~~ Find a free/unused temporary name
             sTempName = GetTempName(ac_wb:=rn_wb, ac_comp_name:=rn_comp_name)
             '~~ Rename the component when it already exists
+            If rn_status <> vbNullString Then Application.StatusBar = rn_status & "Rename '" & rn_comp_name & "' to '" & sTempName & "'"
             .VBComponents(rn_comp_name).name = sTempName
             Debug.Print NowMsec & " '" & rn_comp_name & "' renamed to '" & sTempName & "'"
 '           DoEvents:  Application.Wait Now() + 0.0000001 ' wait for 10 milliseconds
+            If rn_status <> vbNullString Then Application.StatusBar = rn_status & "Remove '" & sTempName & "'"
             .VBComponents.Remove .VBComponents(sTempName) ' will not take place until process has ended!
             Debug.Print NowMsec & " '" & sTempName & "' removed (may be postponed by the system however)"
         End If
     
         '~~ (Re-)import the component
+        If rn_status <> vbNullString Then Application.StatusBar = rn_status & "(Re-)import '" & rn_exp_file_full_name & "'"
         .VBComponents.Import rn_exp_file_full_name
         Debug.Print NowMsec & " '" & rn_comp_name & "' (re-)imported"
         sExpFileFullName = rn_wb.PATH & "\" & rn_comp_name & Extension(ext_wb:=rn_wb, ext_comp_name:=rn_comp_name)
         If Not fso.FileExists(sExpFileFullName) Or rn_exp_file_full_name <> sExpFileFullName Then
+            If rn_status <> vbNullString Then Application.StatusBar = rn_status & "Export '" & rn_comp_name & "' to '" & sExpFileFullName & "'"
             .VBComponents(rn_comp_name).Export sExpFileFullName
             Debug.Print NowMsec & " '" & rn_comp_name & "' exported to '" & sExpFileFullName & "'"
         End If
     End With
-    
-'    If rn_wb.VBProject.VBComponents(rn_comp_name).Type = vbext_ct_MSForm Then
-'        SaveWbk rn_wb
-'        DoEvents:  Application.Wait Now() + 0.0000005 ' wait for 50 milliseconds
-'        With rn_wb.VBProject.VBComponents(rn_comp_name).CodeModule
-'            While Trim$(.Lines(1, 1)) = vbNullString
-'                .DeleteLines 1
-'            Wend
-'        End With
-'        SaveWbk rn_wb
-'        DoEvents:  Application.Wait Now() + 0.0000005 ' wait for 50 milliseconds
-'        rn_wb.VBProject.VBComponents(rn_comp_name).Export sExpFileFullName
-'    End If
-      
+          
     Set fso = Nothing
     
 End Sub

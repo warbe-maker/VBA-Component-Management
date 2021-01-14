@@ -357,7 +357,8 @@ Public Sub ExportChangedComponents( _
     Dim sMsg                As String
     Dim fso                 As New FileSystemObject
     Dim sServiced           As String
-    Dim sProgressDots           As String
+    Dim sProgressDots       As String
+    Dim sStatus             As String
     
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
@@ -368,14 +369,18 @@ Public Sub ExportChangedComponents( _
                     "' are not supported by CompMan service '" & ErrSrc(PROC) & "'!"
         GoTo xt
     End If
+    sStatus = ErrSrc(PROC) & ": "
     
+    Application.StatusBar = sStatus & "Resolve pending imports if any"
     mPending.Resolve ec_wb
     lCompMaxLen = MaxCompLength(wb:=ec_wb)
     Set cLog = New clsLog
     cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=ec_wb, svp_new_log:=False) = ErrSrc(PROC)
 
+    Application.StatusBar = sStatus & "Delete obsolete export files"
     DeleteObsoleteExpFiles do_wb:=ec_wb, do_log:=cLog
     
+    Application.StatusBar = sStatus & "Maintain hosted raws"
     MaintainHostedRaws mh_hosted:=ec_hosted _
                      , mh_wb:=ec_wb
     
@@ -386,7 +391,7 @@ Public Sub ExportChangedComponents( _
         Set cRaw = Nothing
         Set cComp = New clsComp
         sProgressDots = left(sProgressDots, Len(sProgressDots) - 1)
-        Application.StatusBar = "Export of changed components: " & Format(lExported, "##") & left(sProgressDots, lCompsRemaining - Len(Format(lExported, "##")))
+        Application.StatusBar = sStatus & vbc.name & " "
         mTrc.BoC ErrSrc(PROC) & " " & vbc.name
         Set cComp = New clsComp
         With cComp
@@ -406,7 +411,9 @@ Public Sub ExportChangedComponents( _
                 Select Case cComp.KindOfCodeChange
                     Case enCloneOnly, enPendingExportOnly, enRawAndClone, enRawOnly, enInternalOnly
                         mTrc.BoC ErrSrc(PROC) & " Backup No-Raw " & vbc.name
+                        Application.StatusBar = sStatus & vbc.name & " Export to '" & cComp.ExpFileFullName & "'"
                         vbc.Export cComp.ExpFileFullName
+                        sStatus = sStatus & vbc.name & ", "
                         cLog.Action = "Changes exported to '" & cComp.ExpFileFullName & "'"
                         lExported = lExported + 1
                         sExported = vbc.name & ", " & sExported
@@ -438,7 +445,9 @@ Public Sub ExportChangedComponents( _
                     Select Case .KindOfCodeChange
                         Case enPendingExportOnly
                             mTrc.BoC ErrSrc(PROC) & " Backup Clone " & .CompName
+                            Application.StatusBar = sStatus & vbc.name & " Export to '" & .ExpFileFullName & "'"
                             vbc.Export .ExpFileFullName
+                            sStatus = sStatus & vbc.name & ", "
                             cLog.Action = "Component exported to '" & .ExpFileFullName & "'"
                             lExported = lExported + 1
                             sExported = vbc.name & ", " & sExported
@@ -794,8 +803,10 @@ Public Sub UpdateClonesTheRawHasChanged( _
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
     Dim sReplaced   As String
+    Dim sStatus     As String
     
     mErH.BoP ErrSrc(PROC)
+    sStatus = ErrSrc(PROC) & ": "
     '~~ Prevent any action for a Workbook opened with any irregularity
     If uc_wb Is Nothing Then Set uc_wb = ActiveWorkbook
     If WbkIsRestoredBySystem(uc_wb) Or Not WbkInDevRoot(uc_wb) Then
@@ -804,15 +815,18 @@ Public Sub UpdateClonesTheRawHasChanged( _
         GoTo xt
     End If
     
+    Application.StatusBar = sStatus & "Resolve pending imports"
     mPending.Resolve uc_wb
     
     lCompMaxLen = MaxCompLength(wb:=uc_wb)
     Set cLog = New clsLog
     cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=uc_wb, svp_new_log:=True) = ErrSrc(PROC)
     
+    Application.StatusBar = sStatus & "Maintain hosted raws"
     MaintainHostedRaws mh_hosted:=uc_hosted _
                      , mh_wb:=uc_wb
         
+    Application.StatusBar = sStatus & "De-activate '" & uc_wb.name & "'"
     If uc_wb Is ActiveWorkbook Then
         '~~ De-activate the ActiveWorkbook by creating a temporary Workbook
         Set wbActive = uc_wb
@@ -823,6 +837,8 @@ Public Sub UpdateClonesTheRawHasChanged( _
         Set cComp = New clsComp
         cComp.Wrkbk = uc_wb
         cComp.CompName = vbc.name
+
+        Application.StatusBar = sStatus & vbc.name & " "
         cComp.VBComp = vbc
         lComponents = lComponents + 1
         sServiced = cComp.Wrkbk.name & " Component """ & vbc.name & """"
@@ -849,13 +865,15 @@ Public Sub UpdateClonesTheRawHasChanged( _
                     '~~ be closed - where it may be ignored to make exactly this happens.
                     mRenew.ByImport rn_wb:=.Wrkbk _
                          , rn_comp_name:=.CompName _
-                         , rn_exp_file_full_name:=cRaw.ExpFileFullName
+                         , rn_exp_file_full_name:=cRaw.ExpFileFullName _
+                         , rn_status:=sStatus & " " & .CompName & " "
                     cLog.Action = "Clone component renewed/updated by (re-)import of '" & cRaw.ExpFileFullName & "'"
                     lReplaced = lReplaced + 1
                     sReplaced = .CompName & ", " & sReplaced
                     '~~ Register the update being used to identify a potentially relevant
                     '~~ change of the origin code
                 End If
+                sStatus = sStatus & " " & .CompName & ", "
             End With
         End If
         Set cComp = Nothing
