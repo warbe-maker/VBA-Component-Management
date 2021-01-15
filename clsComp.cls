@@ -150,7 +150,7 @@ Public Property Get KindOfCodeChange( _
         Select Case Me.KindOfComp
             Case enRawClone
                 '~~ The modified raw may have been re-imported already and thus only the export is pending
-                mTrc.BoC ErrSrc(PROC) & " File compare '" & flTempExport.PATH & "' with '" & cRaw.ExpFileFullName & "'"
+                mTrc.BoC ErrSrc(PROC) & " File compare '" & flTempExport.PATH & "' with '" & cRaw.ExpFile.PATH & "'"
                 If Not mFile.sDiffer(dif_file1:=flTempExport _
                                    , dif_file2:=cRaw.ExpFile _
                                    , dif_ignore_empty_records:=True _
@@ -694,7 +694,7 @@ Public Function ExpFileToArray(ByVal fl As FILE) As String()
     '~~ Remove the extra module information lines
     For i = UBound(a) To LBound(a) Step -1
         '~~ Find last Exported module info
-        If Left(a(i), Len(ATTRIB_VB)) = ATTRIB_VB Then
+        If left(a(i), Len(ATTRIB_VB)) = ATTRIB_VB Then
             Exit For
         End If
     Next i
@@ -741,8 +741,8 @@ Public Function ExpFileToDict(ByVal fl As FILE) As Dictionary
     
     '~~ Remove the extra module information lines
     For Each v In dct
-        If Left(sLine, Len(ATTRIB_LINE)) = ATTRIB_LINE _
-        And Left(dct(v), Len(ATTRIB_LINE)) <> ATTRIB_LINE _
+        If left(sLine, Len(ATTRIB_LINE)) = ATTRIB_LINE _
+        And left(dct(v), Len(ATTRIB_LINE)) <> ATTRIB_LINE _
         Then Exit For
         cllRemove.Add v
         sLine = dct(v)
@@ -803,7 +803,7 @@ Public Sub ReplaceRemoteWithClonedRaw( _
     On Error GoTo eh
     Dim wbRawHost   As Workbook
         
-    Application.EnableEvents = False ' prevent the UpdateClonesTheRawHasChanged service
+    Application.EnableEvents = False ' prevent the UpdateRawClones service
     Set wbRawHost = mCompMan.WbkGetOpen(cRaw.HostFullName) ' Wrkbk is the Workbook hosting the raw Component
     Application.EnableEvents = True
     

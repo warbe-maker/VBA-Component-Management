@@ -83,7 +83,7 @@ Private Sub Workbook_Open()
             '~~ open as well. However, since the VBProject has no reference to the Addin the Addin
             '~~ will not be opened when the Development instance is the only Workbook open.
             '~~ I.e. only when a Workbook referring to the Addin is opened the Addin will be opened as well.
-            mMe.UpdateUsedCommComps
+            mMe.UpdateRawClones
         End If
     End If
         

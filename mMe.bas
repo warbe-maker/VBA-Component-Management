@@ -32,7 +32,7 @@ Option Private Module
 '                           || modified directly - instead of through the       ||
 '                           || Development instance Workbook                    ||
 '                           + -------------------------------------------------- +
-' - UpdateUsedCommComps     Exclusively used by the Development instance
+' - UpdateRawClones     Exclusively used by the Development instance
 '                           Workbook to update its own used Common Components
 '                           of which the origin code had changed - via the
 '                           Addin - provided it is open - by means of the
@@ -1132,7 +1132,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub UpdateUsedCommComps()
+Public Sub UpdateRawClones()
 ' -------------------------------------------------
 ' Update Common Components used by this VBProject
 ' via the CompMan AddIn required to change any code
@@ -1144,14 +1144,14 @@ Public Sub UpdateUsedCommComps()
 '   (the latter will not be the case when Excel
 '   is opend only for the Development Instance!)
 ' -------------------------------------------------
-    Const PROC = "UpdateUsedCommComps"
+    Const PROC = "UpdateRawClones"
     
     On Error GoTo eh
     mErH.BoP ErrSrc(PROC)
     
     If IsDevInstnc Then
         If AddInInstncWrkbkIsOpen Then
-            Application.Run AddInInstanceName & "!mCompMan.UpdateClonesTheRawHasChanged", ActiveWorkbook, wbAddIn.HOSTED_RAWS
+            Application.Run AddInInstanceName & "!mCompMan.UpdateRawClones", ActiveWorkbook, wbAddIn.HOSTED_RAWS
         End If
     End If
     

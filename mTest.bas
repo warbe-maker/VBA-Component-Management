@@ -23,7 +23,7 @@ Private Property Get RenewService() As String
 End Property
 
 Private Property Get UpdateClonesService() As String
-    UpdateClonesService = AddInInstanceName & "!mUpdate.ClonesTheRawHasChanged"
+    UpdateClonesService = AddInInstanceName & "!mUpdate.RawClones"
 End Property
 
 Public Sub Cleanup(Optional ByVal exp_file As String = vbNullString, _
@@ -969,8 +969,8 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_UpdateClonesTheRawHasChanged()
-    Const PROC  As String = "Test_UpdateClonesTheRawHasChanged"
+Public Sub Test_UpdateRawClones()
+    Const PROC  As String = "Test_UpdateRawClones"
     
     On Error GoTo eh
     Dim sService    As String

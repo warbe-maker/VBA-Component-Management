@@ -149,6 +149,54 @@ Public Function CompExists( _
     CompExists = Err.Number = 0
 End Function
 
+Public Function Clones( _
+                  ByVal cl_wb As Workbook) As Dictionary
+' ------------------------------------------------------
+' Returns a Dictionary with clone components as the key
+' and their kind of code change as item.
+' ------------------------------------------------------
+    Const PROC = "Clones"
+    
+    On Error GoTo eh
+    Dim vbc As VBComponent
+    Dim dct As New Dictionary
+    Dim fso As New FileSystemObject
+    
+    mErH.BoP ErrSrc(PROC)
+    If cLog Is Nothing Then
+        Set cLog = New clsLog
+        cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=cl_wb) = ErrSrc(PROC)
+    End If
+    For Each vbc In cl_wb.VBProject.VBComponents
+        Set cComp = New clsComp
+        With cComp
+            .Wrkbk = cl_wb
+            .CompName = vbc.name
+            If .KindOfComp = enRawClone Then
+                Set cRaw = New clsRaw
+                cRaw.CompName = .CompName
+                cRaw.ExpFile = fso.GetFile(FilePath:=mRaw.ExpFileFullName(.CompName))
+                cRaw.ExpFileFullName = .ExpFile.PATH
+                cRaw.HostFullName = mRaw.HostFullName(comp_name:=.CompName)
+                dct.Add vbc, .KindOfCodeChange
+            End If
+        End With
+        Set cComp = Nothing
+        Set cRaw = Nothing
+    Next vbc
+
+xt: mErH.EoP ErrSrc(PROC)
+    Set Clones = dct
+    Set fso = Nothing
+    Exit Function
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Function
+
 Private Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook, _
                                    ByVal do_log As clsLog)
 ' --------------------------------------------------------------
@@ -784,14 +832,14 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub UpdateClonesTheRawHasChanged( _
-                         Optional ByVal uc_wb As Workbook = Nothing, _
-                         Optional ByVal uc_hosted As String = vbNullString)
-' -------------------------------------------------------------------------
-' Updates a clone component with the Export File of the remote raw
-' component provided the raw's code has changed.
-' -------------------------------------------------------------------------
-    Const PROC = "UpdateClonesTheRawHasChanged"
+Public Sub UpdateRawClones( _
+            Optional ByVal uc_wb As Workbook = Nothing, _
+            Optional ByVal uc_hosted As String = vbNullString)
+' ------------------------------------------------------------
+' Updates a clone component with the Export File of the remote
+' raw component provided the raw's code has changed.
+' ------------------------------------------------------------
+    Const PROC = "UpdateRawClones"
     
     On Error GoTo eh
     Dim wbActive    As Workbook
@@ -823,10 +871,10 @@ Public Sub UpdateClonesTheRawHasChanged( _
         Set wbTemp = Workbooks.Add
     End If
     
-    mUpdate.ClonesTheRawHasChanged uc_wb:=uc_wb _
-                                 , uc_comp_max_len:=MaxCompLength(wb:=uc_wb) _
-                                 , uc_service:=sService _
-                                 , uc_log:=cLog
+    mUpdate.RawClones urc_wb:=uc_wb _
+                    , urc_comp_max_len:=MaxCompLength(wb:=uc_wb) _
+                    , urc_service:=sService _
+                    , urc_log:=cLog
 
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False

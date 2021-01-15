@@ -34,7 +34,7 @@ Public Sub ByImport(ByVal rn_wb As Workbook, _
         '~~ (Re-)import the component
         If rn_status <> vbNullString Then Application.StatusBar = rn_status & "(Re-)import '" & rn_exp_file_full_name & "'"
         .VBComponents.Import rn_exp_file_full_name
-        Debug.Print NowMsec & " '" & rn_comp_name & "' (re-)imported"
+        Debug.Print NowMsec & " '" & rn_comp_name & "' (re-)imported from '" & rn_exp_file_full_name & "'"
         sExpFileFullName = rn_wb.PATH & "\" & rn_comp_name & Extension(ext_wb:=rn_wb, ext_comp_name:=rn_comp_name)
         If Not fso.FileExists(sExpFileFullName) Or rn_exp_file_full_name <> sExpFileFullName Then
             If rn_status <> vbNullString Then Application.StatusBar = rn_status & "Export '" & rn_comp_name & "' to '" & sExpFileFullName & "'"

@@ -220,7 +220,7 @@ Public Property Get Txt( _
     Else
         Txt = vbNullString
     End If
-    If Txt = vbCrLf Then Txt = vbNullString
+    If Txt = vbCrLf Then Txt = vbNullString Else Txt = s
 
 xt: Exit Property
 
