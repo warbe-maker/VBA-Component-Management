@@ -3,24 +3,39 @@ Option Explicit
 ' -----------------
 '
 ' -----------------
-Private Property Get BTTN_UPDATE_STAY_VERBOSE(Optional ByVal comp_name As String) As String
-    BTTN_UPDATE_STAY_VERBOSE = "Update '" & comp_name & "'" & vbLf & "stay verbose"
+Private sUpdateStayVerbose      As String
+Private sBttnDsplyChanges       As String
+Private sBttnSkipStayVerbose    As String
+
+
+Private Property Let BttnUpdateStayVerbose(ByVal comp_name As String)
+    sUpdateStayVerbose = "Update" & vbLf & vbLf & Spaced(comp_name) & vbLf & vbLf & "(stay verbose)"
 End Property
 
-Private Property Get BTTN_UPDATE_ALL() As String
-    BTTN_UPDATE_ALL = "Update all"
+Private Property Get BttnUpdateStayVerbose() As String
+    BttnUpdateStayVerbose = sUpdateStayVerbose
 End Property
 
-Private Property Get BTTN_DSPLY_CHANGES(Optional ByVal comp_name As String) As String
-    BTTN_DSPLY_CHANGES = "Display changes for" & vbLf & "'" & comp_name & "'"
+Private Property Get BttnUpdateAll() As String
+    BttnUpdateAll = "Update" & vbLf & "all"
 End Property
 
-Private Property Get BTTN_SKIP_UPDATE_STAY_VERBOSE(Optional ByVal comp_name As String) As String
-    BTTN_SKIP_UPDATE_STAY_VERBOSE = "Skip update of " & vbLf & "'" & comp_name & "'" & vbLf & "stay verbose"
+Private Property Let BttnDsplyChanges(ByVal comp_name As String)
+    sBttnDsplyChanges = "Display changes for" & vbLf & vbLf & Spaced(comp_name)
+End Property
+Private Property Get BttnDsplyChanges() As String
+    BttnDsplyChanges = sBttnDsplyChanges
 End Property
 
-Private Property Get BTTN_SKIP_UPDATE_ALL() As String
-    BTTN_SKIP_UPDATE_ALL = "Skip update for all" & vbLf & "clone components"
+Private Property Let BttnSkipStayVerbose(ByVal comp_name As String)
+    sBttnSkipStayVerbose = "Skip update of " & vbLf & vbLf & Spaced(comp_name) & vbLf & vbLf & "(stay verbose)"
+End Property
+Private Property Get BttnSkipStayVerbose() As String
+    BttnSkipStayVerbose = sBttnSkipStayVerbose
+End Property
+
+Private Property Get BttnSkipAll() As String
+    BttnSkipAll = "Skip" & vbLf & "all"
 End Property
 
 Public Sub RawClones( _
@@ -28,9 +43,9 @@ Public Sub RawClones( _
                ByVal urc_comp_max_len As Long, _
                ByVal urc_service As String, _
       Optional ByRef urc_log As clsLog = Nothing)
-' ----------------------------------------------
+' --------------------------------------------------------
 ' Updates any raw clone in Workbook urc_wb
-' ----------------------------------------------
+' --------------------------------------------------------
     Const PROC = "RawClones"
     
     On Error GoTo eh
@@ -43,7 +58,10 @@ Public Sub RawClones( _
     Dim v           As Variant
     Dim lKoCC       As enKindOfCodeChange
     Dim dct         As Dictionary
+    Dim bVerbose    As Boolean
+    Dim bSkip       As Boolean
     
+    bVerbose = True
     sStatus = urc_service
     '~~ Prevent any action for a Workbook opened with any irregularity
     
@@ -68,7 +86,7 @@ Public Sub RawClones( _
             Set cRaw = New clsRaw
             cRaw.CompName = .CompName
             cRaw.ExpFile = fso.GetFile(FilePath:=mRaw.ExpFileFullName(.CompName))
-            cRaw.ExpFileFullName = .ExpFile.PATH
+            cRaw.ExpFileFullName = cRaw.ExpFile.PATH
             cRaw.HostFullName = mRaw.HostFullName(comp_name:=.CompName)
             
             If lKoCC = enRawOnly _
@@ -77,15 +95,25 @@ Public Sub RawClones( _
                 '~~ A code change in the cloned raw is only considered when the Workbook is about to
                 '~~ be closed - where it may be ignored to make exactly this happens.
                 Application.StatusBar = sStatus & vbc.name & " Renew of '" & .CompName & "' by import of '" & cRaw.ExpFileFullName & "'"
-                mRenew.ByImport rn_wb:=.Wrkbk _
-                     , rn_comp_name:=.CompName _
-                     , rn_exp_file_full_name:=cRaw.ExpFileFullName _
-                     , rn_status:=sStatus & " " & .CompName & " "
-                If Not urc_log Is Nothing Then urc_log.Action = "Clone component renewed/updated by (re-)import of '" & cRaw.ExpFileFullName & "'"
-                lReplaced = lReplaced + 1
-                sReplaced = .CompName & ", " & sReplaced
-                '~~ Register the update being used to identify a potentially relevant
-                '~~ change of the origin code
+                If bVerbose Then
+                    UpdateCloneConfirmed ucc_comp_name:=vbc.name _
+                                       , ucc_service:=urc_service _
+                                       , ucc_stay_verbose:=bVerbose _
+                                       , ucc_skip:=bSkip _
+                                       , ucc_clone:=cComp.ExpFileFullName _
+                                       , ucc_raw:=cRaw.ExpFileFullName
+                End If
+                If Not bSkip Then
+                    mRenew.ByImport rn_wb:=.Wrkbk _
+                         , rn_comp_name:=.CompName _
+                         , rn_exp_file_full_name:=cRaw.ExpFileFullName _
+                         , rn_status:=sStatus & " " & .CompName & " "
+                    If Not urc_log Is Nothing Then urc_log.Action = "Clone component renewed/updated by (re-)import of '" & cRaw.ExpFileFullName & "'"
+                    lReplaced = lReplaced + 1
+                    sReplaced = .CompName & ", " & sReplaced
+                    '~~ Register the update being used to identify a potentially relevant
+                    '~~ change of the origin code
+                End If
             End If
             sStatus = sStatus & " " & .CompName & ", "
         End With
@@ -109,29 +137,77 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function UpdateCloneConfirmed(ByVal ucc_comp_name As String)
+Public Function UpdateCloneConfirmed( _
+                               ByVal ucc_comp_name As String, _
+                               ByVal ucc_service As String, _
+                               ByRef ucc_stay_verbose As Boolean, _
+                               ByRef ucc_skip As Boolean, _
+                               ByVal ucc_clone As String, _
+                               ByVal ucc_raw As String)
+' ---------------------------------------------------------------
+'
+' ---------------------------------------------------------------
+    Const PROC = "UpdateCloneConfirmed"
     
+    On Error GoTo eh
     Dim cllButtons      As Collection
     Dim bStayVerbose    As Boolean
     Dim sMsg            As tMsg
+    Dim vReply          As Variant
     
+    BttnDsplyChanges = ucc_comp_name
+    BttnUpdateStayVerbose = ucc_comp_name
     Set cllButtons = _
-    mMsg.Buttons(BTTN_DSPLY_CHANGES(ucc_comp_name) _
+    mMsg.Buttons(BttnDsplyChanges _
                , vbLf _
-               , BTTN_UPDATE_STAY_VERBOSE(ucc_comp_name) _
-               , BTTN_SKIP_UPDATE_STAY_VERBOSE _
+               , BttnUpdateStayVerbose _
+               , BttnSkipStayVerbose _
                , vbLf _
-               , BTTN_UPDATE_ALL _
-               , BTTN_SKIP_UPDATE_ALL _
+               , BttnUpdateAll _
+               , BttnSkipAll _
                )
     
-    Select Case mMsg.Dsply(msg_title:="" _
-                         , msg:=sMsg _
-                         , msg_buttons:=cllButtons _
-                          )
-        Case ""
-    End Select
+    With sMsg
+        .section(1).sLabel = "About"
+        .section(1).sText = "When the cloned raw in this Workbook is not updated the message will show up again the next time this Workbook is opened in the configured development root:"
+        .section(2).sText = mMe.VBProjectsDevRoot
+        .section(2).bMonspaced = True
+    End With
+    Do
+        vReply = mMsg.Dsply(msg_title:=ucc_service & "Update " & Spaced(ucc_comp_name) & "with changed raw" _
+                          , msg:=sMsg _
+                          , msg_buttons:=cllButtons _
+                           )
+        Select Case vReply
+            Case BttnDsplyChanges
+                mFile.Compare file_left_full_name:=ucc_clone _
+                            , file_left_title:="Cloned raw: '" & ucc_clone & "'" _
+                            , file_right_full_name:=ucc_raw _
+                            , file_right_title:="Current raw: '" & ucc_raw & "'"
+            
+            Case BttnUpdateStayVerbose
+                ucc_skip = False
+                Exit Do
+            Case BttnSkipStayVerbose
+                ucc_stay_verbose = True
+                Exit Do
+            Case BttnUpdateAll
+                ucc_skip = False
+                ucc_stay_verbose = False
+                Exit Do
+            Case BttnSkipAll
+                ucc_skip = True
+                Exit Do
+        End Select
+    Loop
     
+xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Function
 
 Private Sub DsplyStatusUpdateClonesResult( _
@@ -165,5 +241,15 @@ End Sub
 
 Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mUpdate" & "." & es_proc
+End Function
+
+Private Function Spaced(ByVal s As String) As String
+    Dim i       As Long
+    Dim sSpaced As String
+    sSpaced = " "
+    For i = 1 To Len(s)
+        sSpaced = sSpaced & Mid(s, i, 1) & " "
+    Next i
+    Spaced = sSpaced
 End Function
 

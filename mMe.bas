@@ -847,7 +847,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub PauseAddIn()
-    RenewAddIn bPause:=True
+    RenewAddIn bPause:=False
 End Sub
 
 Public Sub RenewAddIn(Optional ByVal bPause As Boolean = False)

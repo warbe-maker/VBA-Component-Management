@@ -151,12 +151,12 @@ Public Property Get KindOfCodeChange( _
             Case enRawClone
                 '~~ The modified raw may have been re-imported already and thus only the export is pending
                 mTrc.BoC ErrSrc(PROC) & " File compare '" & flTempExport.PATH & "' with '" & cRaw.ExpFile.PATH & "'"
-                If Not mFile.sDiffer(dif_file1:=flTempExport _
+                If Not mFile.Differs(dif_file1:=flTempExport _
                                    , dif_file2:=cRaw.ExpFile _
                                    , dif_ignore_empty_records:=True _
                                    , dif_ignore_case:=True _
                                     ) _
-                And mFile.sDiffer(dif_file1:=flTempExport _
+                And mFile.Differs(dif_file1:=flTempExport _
                                 , dif_file2:=cComp.ExpFile _
                                 , dif_ignore_empty_records:=True _
                                 , dif_ignore_case:=True _
@@ -172,7 +172,7 @@ Public Property Get KindOfCodeChange( _
                 '~~ 1. The (remote) raw has changed when the clone's Export File differs from the raw's Export File
                 mTrc.BoC ErrSrc(PROC) & " File compare '" & Me.ExpFileFullName & "' with '" & cRaw.ExpFileFullName & "'"
                 bRawChanged = _
-                mFile.sDiffer(dif_file1:=Me.ExpFile _
+                mFile.Differs(dif_file1:=Me.ExpFile _
                           , dif_file2:=cRaw.ExpFile _
                           , dif_ignore_empty_records:=True _
                           , dif_ignore_case:=True _
@@ -197,7 +197,7 @@ Public Property Get KindOfCodeChange( _
                 Else
                     mTrc.BoC ErrSrc(PROC) & " File compare '" & flTempExport.PATH & "' with '" & Me.ExpFileFullName & "'"
                     bCloneChanged = _
-                    mFile.sDiffer(dif_file1:=flTempExport _
+                    mFile.Differs(dif_file1:=flTempExport _
                               , dif_file2:=Me.ExpFile _
                               , dif_ignore_empty_records:=True _
                               , dif_ignore_case:=True _
@@ -223,7 +223,7 @@ Public Property Get KindOfCodeChange( _
                     bCodeChanged = True
                 Else
                     mTrc.BoC ErrSrc(PROC) & " File compare '" & flTempExport.PATH & "' with '" & Me.ExpFileFullName & "'"
-                    bCodeChanged = mFile.sDiffer(dif_file1:=flTempExport _
+                    bCodeChanged = mFile.Differs(dif_file1:=flTempExport _
                                                , dif_file2:=Me.ExpFile _
                                                , dif_ignore_empty_records:=True _
                                                , dif_ignore_case:=True _

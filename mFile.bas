@@ -733,7 +733,7 @@ xt: With fso
 eh: ErrMsg ErrSrc(PROC)
 End Function
 
-Public Function sDiffer( _
+Public Function Differs( _
                   ByVal dif_file1 As FILE, _
                   ByVal dif_file2 As FILE, _
          Optional ByVal dif_stop_after As Long = 1, _
@@ -745,7 +745,7 @@ Public Function sDiffer( _
 ' file (dif_file2). The comparison stops after (dif_stop_after) detected
 ' differences. The detected different lines are optionally returned (vResult).
 ' ------------------------------------------------------------------------------
-    Const PROC = "sDiffer"
+    Const PROC = "Differs"
     
     On Error GoTo eh
     Dim a1      As Variant
@@ -756,7 +756,7 @@ Public Function sDiffer( _
     a2 = mFile.ToArray(ta_file:=dif_file2, ta_exclude_empty_records:=dif_ignore_empty_records)
     vLines = ArrayCompare(ac_a1:=a1, ac_a2:=a2, ac_stop_after:=dif_stop_after, ac_ignore_case:=dif_ignore_case)
     If mBasic.ArrayIsAllocated(arr:=vLines) Then
-        sDiffer = True
+        Differs = True
     End If
     dif_lines = vLines
     

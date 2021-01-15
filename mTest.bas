@@ -432,7 +432,7 @@ Public Sub Test_File_Sections_Transfer_By_LetGet()
     mErH.BoP ErrSrc(PROC)
     
     mFile.SectionsCopy sc_section_names:=arSections, sc_file_from:=sFileGet, sc_file_to:=sFileLet
-    Debug.Assert mFile.sDiffer(dif_file1:=fso.GetFile(sFileGet) _
+    Debug.Assert mFile.Differs(dif_file1:=fso.GetFile(sFileGet) _
                              , dif_file2:=fso.GetFile(sFileLet)) = False
     
     mErH.EoP ErrSrc(PROC)
