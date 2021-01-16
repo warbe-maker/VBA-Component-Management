@@ -52,7 +52,7 @@ Private Const CONTROL_CAPTION_RENEW As String = "Renew Addin"
 Private Const CONTROL_CAPTION_PAUSE As String = "Pause Addin"
 Private Const SECTION_BASE_CONFIG   As String = "BaseConfiguration"
 Private Const VB_DEV_PROJECTS_ROOT  As String = "VBDevProjectsRoot"
-Private Const COMPMAN_ADDIN_PATH    As String = "CompManAddInPath"
+Private Const COMPMAN_ADDIN_LCTN    As String = "CompManAddInPath"
 
 Private Const ADDIN_WORKBOOK        As String = "CompMan.xlam"      ' Extension adjusted when the above is saved as addin
 Private Const ADDIN_VERSION         As String = "5.0"               ' Allows to check the success of an Addin renew
@@ -115,22 +115,22 @@ Public Function AddInVersion(Optional ByRef sVersion As String) As String
     AddInVersion = sVersion
 End Function
 
-Private Property Get CFG_CHANGE_ADDIN_PATH() As String
-    CFG_CHANGE_ADDIN_PATH = "Change CompMan" & vbLf & "AddIn Path"
+Private Property Get CFG_CHANGE_ADDIN_LCTN() As String
+    CFG_CHANGE_ADDIN_LCTN = "Change CompMan" & vbLf & "AddIn Path"
 End Property
 
 Private Property Get CFG_CHANGE_DEVELOPMENT_ROOT() As String
     CFG_CHANGE_DEVELOPMENT_ROOT = "Change development" & vbLf & "root folder"
 End Property
 
-Private Property Get CFG_FILE_NAME() As String: CFG_FILE_NAME = ThisWorkbook.PATH & "\CompMan.cfg": End Property
+Private Property Get CFG_FILENAME() As String: CFG_FILENAME = ThisWorkbook.PATH & "\CompMan.cfg": End Property
 
 Public Property Get CompManAddinPath() As String
-    CompManAddinPath = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH)
+    CompManAddinPath = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_LCTN)
 End Property
 
 Public Property Let CompManAddinPath(ByVal s As String)
-    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PATH) = s
+    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_LCTN) = s
 End Property
 
 Private Property Get Step() As Long
@@ -142,7 +142,7 @@ Private Property Get Value( _
            Optional ByVal vl_section As String, _
            Optional ByVal vl_value_name As String) As Variant
     
-    Value = mFile.Value(vl_file:=CFG_FILE_NAME _
+    Value = mFile.Value(vl_file:=CFG_FILENAME _
                       , vl_section:=vl_section _
                       , vl_value_name:=vl_value_name _
                        )
@@ -152,7 +152,7 @@ Private Property Let Value( _
            Optional ByVal vl_section As String, _
            Optional ByVal vl_value_name As String, _
                     ByVal vl_value As Variant)
-    mFile.Value(vl_file:=CFG_FILE_NAME _
+    mFile.Value(vl_file:=CFG_FILENAME _
               , vl_section:=vl_section _
               , vl_value_name:=vl_value_name _
                ) = vl_value
@@ -362,7 +362,7 @@ Public Function ConfigAsserted() As Boolean
         And .FolderExists(VBProjectsDevRoot) _
         Then
             ConfigAsserted = True
-            .CopyFile Source:=CFG_FILE_NAME, Destination:=CompManAddinPath & "\CompMan.cfg", OverWriteFiles:=True
+            .CopyFile Source:=CFG_FILENAME, Destination:=CompManAddinPath & "\CompMan.cfg", OverWriteFiles:=True
             GoTo xt
         End If
                 
@@ -473,10 +473,10 @@ Public Sub ConfirmConfig()
     While sReply <> CFG_CONFIRMED
         sReply = mMsg.Dsply(msg_title:="Confirm or change the current Component Management's basic configuration" _
                           , msg:=sMsg _
-                          , msg_buttons:=mMsg.Buttons(CFG_CONFIRMED, vbLf, CFG_CHANGE_ADDIN_PATH, CFG_CHANGE_DEVELOPMENT_ROOT) _
+                          , msg_buttons:=mMsg.Buttons(CFG_CONFIRMED, vbLf, CFG_CHANGE_ADDIN_LCTN, CFG_CHANGE_DEVELOPMENT_ROOT) _
                            )
         Select Case sReply
-            Case CFG_CHANGE_ADDIN_PATH
+            Case CFG_CHANGE_ADDIN_LCTN
                 Do
                     CompManAddinPath = mBasic.SelectFolder("Select the ""obligatory!"" folder for the AddIn instance of the CompManDev Workbook")
                     If CompManAddinPath <> vbNullString Then Exit Do
@@ -966,9 +966,10 @@ Public Sub SaveAsDev()
 
     '~~ Attempt to close the Development instance Workbook when open
     If DevInstncWorkbookIsOpen Then
-        If MsgBox("The Development instance Workbook of the Addin is still open. Saving the Addin as Development instance will cause any code modifications get lost. Reply with Ok or Cancel", _
-                  vbOKCancel, _
-                  "Development instance Workbook still open") = vbOK Then
+        If MsgBox(Prompt:="The Development instance Workbook of the Addin is still open. Saving the Addin as Development instance will cause any code modifications get lost. Reply with Ok or Cancel" _
+                , Buttons:=vbOKCancel _
+                , Title:="Development instance Workbook still open" _
+                 ) = vbOK Then
             DevInstncWorkbookClose
         Else
             GoTo xt

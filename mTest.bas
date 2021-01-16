@@ -984,9 +984,9 @@ Public Sub Test_UpdateRawClones()
             lMaxCompLen = MaxCompLength(wb:=ThisWorkbook)
             ' ---------------------------------
             '~~ Arguments for the Run:
-            '~~ uc_wb As Workbook, _
-            '~~ uc_comp_max_len As Long, _
-            '~~ uc_service As String, _
+            '~~ uc_wb As Workbook
+            '~~ uc_comp_max_len As Long
+            '~~ uc_service As String
             '~~ -------------------------------
             mErH.BoP ErrSrc(PROC)
             Application.Run UpdateClonesService _

@@ -334,11 +334,11 @@ Private Function KoCStrng(ByVal koc As enKindOfComp) As String
     End Select
 End Function
 
-Private Property Get ReplaceRemoteWithClonedRawConfirmed() As Boolean
+Private Property Get ReplaceRawWithCloneConfirmed() As Boolean
 ' -------------------------------------------------------------
 ' Returns TRUE when the "reverse" code update is confirmed.
 ' --------------------------------------------------------------
-    Const PROC = "ReplaceRemoteWithClonedRawConfirmed"
+    Const PROC = "ReplaceRawWithCloneConfirmed"
     
     On Error GoTo eh
     Dim sReplyUpdateOrigin      As String
@@ -388,7 +388,7 @@ Private Property Get ReplaceRemoteWithClonedRawConfirmed() As Boolean
                            )
         Select Case sReply
             Case sReplyUpdateOrigin
-                ReplaceRemoteWithClonedRawConfirmed = True
+                ReplaceRawWithCloneConfirmed = True
                 Exit Do
             Case sReplyDsplyDiff
                 mFile.Compare file_left_full_name:=cComp.ExpFileFullName _
@@ -397,7 +397,7 @@ Private Property Get ReplaceRemoteWithClonedRawConfirmed() As Boolean
                           , file_right_title:="The remote raw's current code in Workbook/VBProject " & cRaw.WrkbkBaseName & " (" & cRaw.ExpFileFullName & ")"
                 ' The question is re-displayed for a decison
             Case sReplyIgnore
-                ReplaceRemoteWithClonedRawConfirmed = False
+                ReplaceRawWithCloneConfirmed = False
                 Exit Do
         End Select
     Loop
@@ -410,10 +410,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Property
-
-Public Property Get UpdatedAsOf() As Date:                      UpdatedAsOf = dtUpdatedAsOf:            End Property
-
-Public Property Let UpdatedAsOf(ByVal dt As Date):              dtUpdatedAsOf = dt:                     End Property
 
 Public Property Get VBComp() As VBComponent
     Const PROC = "VBComp_Get"
@@ -791,14 +787,14 @@ Private Function GetFile(ByVal sFile As String) As FILE
     Set fso = Nothing
 End Function
 
-Public Sub ReplaceRemoteWithClonedRaw( _
-           ByVal raw_remote_comp_name As String, _
-           ByRef rr_log As clsLog)
-' -------------------------------------------------
-' Replace the raw component's code with the Export
-' File of the clone component.
-' -------------------------------------------------
-    Const PROC = "ReplaceRemoteWithClonedRaw"
+Public Sub ReplaceRawWithClone( _
+                         ByVal raw_remote_comp_name As String, _
+                         ByRef rr_log As clsLog)
+' --------------------------------------------------------------
+' Replace the raw component's code with the Export File of the
+' clone component.
+' --------------------------------------------------------------
+    Const PROC = "ReplaceRawWithClone"
 
     On Error GoTo eh
     Dim wbRawHost   As Workbook
@@ -821,23 +817,23 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub ReplaceRemoteWithClonedRawWhenConfirmed( _
-           ByRef rwu_updated As Boolean, _
-           ByRef rwu_log As clsLog)
-' ------------------------------------------------------------------------
-' Provided confirmed by the user, replaces the raw code in the hosting
-' Workbook with the cloned raw component's code in its Export File.
-' Code replacement for class modules, satandard modules and UserForms is
-' done via a rename, re-import, remove renamed procedure, for a data
-' module the code is replaced line by line because a (re-)import is
-' impossible for such a module.
-' ------------------------------------------------------------------------
-    Const PROC = "ReplaceRemoteWithClonedRawWhenConfirmed"
+Public Sub ReplaceRawWithCloneWhenConfirmed( _
+                                      ByRef rwu_updated As Boolean, _
+                                      ByRef rwu_log As clsLog)
+' -------------------------------------------------------------------
+' Provided confirmed by the user, replaces the raw code in the
+'  hosting Workbook with the cloned raw component's code in its
+' Export File. Code replacement for class modules, satandard modules
+' and UserForms is done via a rename, re-import, remove renamed
+' procedure, for a data module the code is replaced line by line
+' because a (re-)import is impossible for such a module.
+' -------------------------------------------------------------------
+    Const PROC = "ReplaceRawWithCloneWhenConfirmed"
     
     On Error GoTo eh
     Dim fso As New FileSystemObject
     
-    If ReplaceRemoteWithClonedRawConfirmed Then
+    If ReplaceRawWithCloneConfirmed Then
             '~~ Get the origin host Workbook open
         With cRaw
             .HostFullName = mRaw.HostFullName(comp_name:=cComp.CompName)
@@ -850,9 +846,9 @@ Public Sub ReplaceRemoteWithClonedRawWhenConfirmed( _
                     '~~ A data module cannot be replaced like the other ones. Thus only its code
                     '~~ is synchronized - disregarding any consequences this may have when the
                     '~~ structure and design of the underlying Workbook or Worksheet has changed.
-                    cComp.SynchRemoteWithClonedRaw
+                    cComp.SynchRawWithCloneByCodeLines
                 Case vbext_ct_ClassModule, vbext_ct_StdModule, vbext_ct_MSForm
-                    Me.ReplaceRemoteWithClonedRaw raw_remote_comp_name:=.CompName, rr_log:=rwu_log
+                    Me.ReplaceRawWithClone raw_remote_comp_name:=.CompName, rr_log:=rwu_log
             End Select
             rwu_updated = True
         End With ' cRaw
@@ -868,12 +864,13 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub SynchClonedWithRemoteRaw()
-' ----------------------------------------------------
-' Synchronizes cloned raw component's code with
-' the remote raws component's code in its Export File.
-' ----------------------------------------------------
-    Const PROC = "SynchClonedWithRemoteRaw"
+Public Sub SynchCloneWithRawByCodeLines()
+' ---------------------------------------
+' Synchronizes cloned raw component's
+' code with the remote raws component's
+' code in its Export File.
+' ---------------------------------------
+    Const PROC = "SynchCloneWithRawByCodeLines"
 
     On Error GoTo eh
     Dim iLine   As Long
@@ -906,14 +903,13 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub SynchRemoteWithClonedRaw()
-' ------------------------------
-' Synchronizes the Common
-' Component's origin code with
-' the Export File of the used
-' Common Component.
-' ------------------------------
-    Const PROC = "SynchRemoteWithClonedRaw"
+Public Sub SynchRawWithCloneByCodeLines()
+' ---------------------------------------
+' Synchronizes a Common Component's raw
+' with the Export File of the clone
+' Component.
+' ---------------------------------------
+    Const PROC = "SynchRawWithCloneByCodeLines"
 
     On Error GoTo eh
     Dim iLine   As Long

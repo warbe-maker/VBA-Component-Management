@@ -413,7 +413,8 @@ Public Sub ExportChangedComponents( _
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
     If ec_wb Is Nothing Then Set ec_wb = ActiveWorkbook
-    If WbkIsRestoredBySystem(ec_wb) Or Not WbkInDevRoot(ec_wb) Then
+    If WbkIsRestoredBySystem(ec_wb) _
+    Or Not WbkIsInDevEnvironment(ec_wb) Then
         Debug.Print "Workbooks restored by Excel or not in '" & mMe.VBProjectsDevRoot & _
                     "' are not supported by CompMan service '" & ErrSrc(PROC) & "'!"
         GoTo xt
@@ -521,7 +522,7 @@ Public Sub ExportChangedComponents( _
                                       , file_right_full_name:=cRaw.ExpFileFullName _
                                       , file_right_title:=cRaw.ExpFileFullName
                                       
-                            .ReplaceRemoteWithClonedRawWhenConfirmed rwu_updated:=bUpdated, rwu_log:=cLog ' when confirmed in user dialog
+                            .ReplaceRawWithCloneWhenConfirmed rwu_updated:=bUpdated, rwu_log:=cLog ' when confirmed in user dialog
                             If bUpdated Then
                                 lUpdated = lUpdated + 1
                                 sUpdated = vbc.name & ", " & sUpdated
@@ -569,8 +570,8 @@ Private Function WbkIsRestoredBySystem(ByVal rbs_wb As Workbook) As Boolean
                          Or InStr(rbs_wb.FullName, "(") <> 0
 End Function
 
-Private Function WbkInDevRoot(ByVal idr_wb As Workbook) As Boolean
-    WbkInDevRoot = InStr(idr_wb.PATH, mMe.VBProjectsDevRoot) <> 0
+Private Function WbkIsInDevEnvironment(ByVal idr_wb As Workbook) As Boolean
+    WbkIsInDevEnvironment = InStr(idr_wb.PATH, mMe.VBProjectsDevRoot) <> 0
 End Function
 
 Private Sub MaintainHostedRaws(ByVal mh_hosted As String, _
@@ -851,14 +852,18 @@ Public Sub UpdateRawClones( _
     
     sService = "CompMan Service '" & PROC & "': "
     If uc_wb Is Nothing Then Set uc_wb = ActiveWorkbook
-    If WbkIsRestoredBySystem(uc_wb) Or Not WbkInDevRoot(uc_wb) Then
+    If WbkIsRestoredBySystem(uc_wb) _
+    Or Not WbkIsInDevEnvironment(uc_wb) Then
         Debug.Print "Workbooks restored by Excel or not in '" & mMe.VBProjectsDevRoot & _
                     "' are not supported by CompMan service '" & ErrSrc(PROC) & "'!"
         GoTo xt
     End If
     
     Set cLog = New clsLog
-    cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=uc_wb, svp_new_log:=True) = ErrSrc(PROC)
+    cLog.ServiceProvided(svp_by_wb:=ThisWorkbook _
+                       , svp_for_wb:=uc_wb _
+                       , svp_new_log:=True _
+                        ) = ErrSrc(PROC)
     
     Application.StatusBar = sStatus & "Maintain hosted raws"
     MaintainHostedRaws mh_hosted:=uc_hosted _
