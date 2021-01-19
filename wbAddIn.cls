@@ -32,7 +32,7 @@ Option Explicit
 Public Property Get HOSTED_RAWS() As String:            HOSTED_RAWS = "":                                                End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "wbCompMan" & "." & sProc
+    ErrSrc = "wbAddIn" & "." & sProc
 End Function
 
 Private Sub Workbook_BeforeClose(Cancel As Boolean)

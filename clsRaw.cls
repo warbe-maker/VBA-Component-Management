@@ -13,12 +13,16 @@ Option Explicit
 '
 ' W. Rauschenberger Berlin, Jan 2021 (last revised)
 ' ---------------------------------------------------------
-Private wbRawHost           As Workbook
-Private sHostFullName       As String
-Private sExpFileFullName    As String
-Private flExpFile           As FILE
-Private sCompName           As String
-Private vbcRaw              As VBComponent
+Private wbRawHost               As Workbook
+Private sHostFullName           As String
+Private sExpFileFullName        As String
+Private flExpFile               As FILE
+Private sCompName               As String
+Private vbcRaw                  As VBComponent
+Private sCloneExpFileFullName   As String
+Private dctChanges              As Dictionary
+
+Public Property Let CloneExpFileFullName(ByVal s As String): sCloneExpFileFullName = s:                 End Property
 
 Public Property Get CodeAsOfDate() As String:           CodeAsOfDate = flExpFile.DateLastModified:      End Property
 
@@ -53,3 +57,34 @@ Public Property Get WrkbkBaseName() As String
     WrkbkBaseName = fso.GetBaseName(sHostFullName)
     Set fso = Nothing
 End Property
+
+Public Property Get Changed() As Boolean
+' --------------------------------------
+' returns TRUE when the raw's regular
+' Export File differs from the regular
+' Export File of the clone which
+' indicates that the code of the raw
+' had changed.
+' --------------------------------------
+    Dim fso         As New FileSystemObject
+    Dim sTempFolder As String
+    Dim sTempExport As String
+    
+    If dctChanges Is Nothing Then
+        Set dctChanges = _
+        mFile.Differs(dif_file1:=fso.GetFile(sCloneExpFileFullName) _
+                    , dif_file2:=Me.ExpFile _
+                    , dif_ignore_empty_records:=True _
+                    , dif_compare:=vbTextCompare _
+                    , dif_stop_after:=1 _
+                     )
+
+    End If
+    Changed = dctChanges.Count <> 0
+    Set fso = Nothing
+    
+End Property
+
+Private Sub Class_Terminate()
+    Set dctChanges = Nothing
+End Sub

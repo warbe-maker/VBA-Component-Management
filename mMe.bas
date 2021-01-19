@@ -37,7 +37,7 @@ Option Private Module
 '                           of which the origin code had changed - via the
 '                           Addin - provided it is open - by means of the
 '                           the corresponding method.
-' - VBProjectsDevRoot       Configured path for any Workbook serviced by the
+' - RootServicedByCompMan       Configured path for any Workbook serviced by the
 '                           AddIn instance of this Workbook
 ' Uses Common Components:
 ' - mFile                   Get/Let PrivateProperty value service
@@ -51,7 +51,7 @@ Option Private Module
 Private Const CONTROL_CAPTION_RENEW As String = "Renew Addin"
 Private Const CONTROL_CAPTION_PAUSE As String = "Pause Addin"
 Private Const SECTION_BASE_CONFIG   As String = "BaseConfiguration"
-Private Const VB_DEV_PROJECTS_ROOT  As String = "VBDevProjectsRoot"
+Private Const ROOT_COMPMAN_SERVICED  As String = "VBDevProjectsRoot"
 Private Const COMPMAN_ADDIN_LCTN    As String = "CompManAddInPath"
 
 Private Const ADDIN_WORKBOOK        As String = "CompMan.xlam"      ' Extension adjusted when the above is saved as addin
@@ -77,13 +77,13 @@ End Property
 
 Public Property Get ServicesLogFile(Optional ByVal slf_serviced_wb As Workbook) As String
     Dim fso As New FileSystemObject
-    ServicesLogFile = slf_serviced_wb.PATH & "\" & fso.GetBaseName(mMe.AddInInstanceName) & ".Services.log"
+    ServicesLogFile = slf_serviced_wb.Path & "\" & fso.GetBaseName(mMe.AddInInstanceName) & ".Services.log"
     Set fso = Nothing
 End Property
 
 Public Property Get PendingServicesFile(Optional ByVal slf_serviced_wb As Workbook) As String
     Dim fso As New FileSystemObject
-    PendingServicesFile = slf_serviced_wb.PATH & "\" & fso.GetBaseName(mMe.AddInInstanceName) & ".Services.Pending.imp"
+    PendingServicesFile = slf_serviced_wb.Path & "\" & fso.GetBaseName(mMe.AddInInstanceName) & ".Services.Pending.imp"
     Set fso = Nothing
 End Property
 
@@ -95,7 +95,7 @@ Private Property Get AddInPath() As String:             AddInPath = CompManAddin
 
 Public Property Get DevInstncFullName() As String
 Dim fso As New FileSystemObject
-    DevInstncFullName = VBProjectsDevRoot & DBSLASH _
+    DevInstncFullName = RootServicedByCompMan & DBSLASH _
                           & fso.GetBaseName(DevInstncName) & DBSLASH _
                           & DevInstncName
 End Property
@@ -123,7 +123,7 @@ Private Property Get CFG_CHANGE_DEVELOPMENT_ROOT() As String
     CFG_CHANGE_DEVELOPMENT_ROOT = "Change development" & vbLf & "root folder"
 End Property
 
-Private Property Get CFG_FILENAME() As String: CFG_FILENAME = ThisWorkbook.PATH & "\CompMan.cfg": End Property
+Private Property Get CFG_FILENAME() As String: CFG_FILENAME = ThisWorkbook.Path & "\CompMan.cfg": End Property
 
 Public Property Get CompManAddinPath() As String
     CompManAddinPath = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_LCTN)
@@ -158,12 +158,12 @@ Private Property Let Value( _
                ) = vl_value
 End Property
 
-Public Property Get VBProjectsDevRoot() As String
-    VBProjectsDevRoot = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT)
+Public Property Get RootServicedByCompMan() As String
+    RootServicedByCompMan = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=ROOT_COMPMAN_SERVICED)
 End Property
 
-Public Property Let VBProjectsDevRoot(ByVal s As String)
-    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=VB_DEV_PROJECTS_ROOT) = s
+Public Property Let RootServicedByCompMan(ByVal s As String)
+    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=ROOT_COMPMAN_SERVICED) = s
 End Property
 
 Private Sub CloseAddinInstncWorkbook()
@@ -171,7 +171,6 @@ Private Sub CloseAddinInstncWorkbook()
     
     Dim lStep As Long
 
-    mErH.BoP ErrSrc(PROC)
     On Error Resume Next
     wbSource.Activate
     wbTarget.Close False
@@ -183,8 +182,7 @@ Private Sub CloseAddinInstncWorkbook()
                  "  (" & Err.Description & ")" _
     Else cllLog.Add "RenewAddIn " & lStep & ". Passed! Addin Workbook instance successfully closed"
 
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -200,7 +198,6 @@ Private Sub DeleteAddInInstanceWorkbook()
     Dim lStep   As Long
     Dim fso     As New FileSystemObject
 
-    mErH.BoP ErrSrc(PROC)
     On Error Resume Next
     lStep = Step
     Application.StatusBar = "RenewAddIn " & lStep & ". Delete the Addin instance Workbook"
@@ -217,8 +214,7 @@ Private Sub DeleteAddInInstanceWorkbook()
         End If
     End With
     
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -238,7 +234,6 @@ Public Function AddInInstncWrkbkIsOpen() As Boolean
     On Error GoTo eh
     Dim i As Long
     
-    mErH.BoP ErrSrc(PROC)
     AddInInstncWrkbkIsOpen = False
     For i = 1 To Application.AddIns2.Count
         If Application.AddIns2(i).name = AddInInstanceName Then
@@ -249,8 +244,7 @@ Public Function AddInInstncWrkbkIsOpen() As Boolean
         End If
     Next i
     
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Function
+xt: Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -269,7 +263,6 @@ Private Sub OpenAddinInstncWorkbook()
     Dim sBaseDevName    As String
     Dim fso             As New FileSystemObject
 
-    mErH.BoP ErrSrc(PROC)
     lStep = Step
     Application.StatusBar = "RenewAddIn " & lStep & ". Open the Addin instance Workbook"
     
@@ -291,8 +284,7 @@ Private Sub OpenAddinInstncWorkbook()
         End If
     End If
 
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -308,7 +300,6 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
     Dim lStep   As Long
     Dim fso     As New FileSystemObject
 
-    mErH.BoP ErrSrc(PROC)
     lStep = Step
     Application.StatusBar = "RenewAddIn " & lStep & ". Save the Addin instance Workbook as Development instance"
     
@@ -334,8 +325,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
         End If
     End With
 
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -359,7 +349,7 @@ Public Function ConfigAsserted() As Boolean
     
     With fso
         If .FolderExists(CompManAddinPath) _
-        And .FolderExists(VBProjectsDevRoot) _
+        And .FolderExists(RootServicedByCompMan) _
         Then
             ConfigAsserted = True
             .CopyFile Source:=CFG_FILENAME, Destination:=CompManAddinPath & "\CompMan.cfg", OverWriteFiles:=True
@@ -394,8 +384,8 @@ Public Function ConfigAsserted() As Boolean
         End If
                    
         '~~ Assert the root for VB-Development-Projects
-        If VBProjectsDevRoot = vbNullString Then
-            VBProjectsDevRoot = mBasic.SelectFolder(sTitle:="Select the root folder for any VB development/maintenance project which is to be supported by CompMan")
+        If RootServicedByCompMan = vbNullString Then
+            RootServicedByCompMan = mBasic.SelectFolder(sTitle:="Select the root folder for any VB development/maintenance project which is to be supported by CompMan")
         End If
     
     End With
@@ -423,7 +413,6 @@ Private Function AssertUpToDateVersion() As Boolean
     Dim lStep       As Long
     Dim cVersion    As New clsAddinVersion
 
-    mErH.BoP ErrSrc(PROC)
     If cllLog Is Nothing Then Set cllLog = New Collection
     Set cVersion = New clsAddinVersion
     lStep = Step
@@ -441,8 +430,7 @@ Private Function AssertUpToDateVersion() As Boolean
         End If
     End If
 
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Function
+xt: Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -466,7 +454,7 @@ Public Sub ConfirmConfig()
         .section(3).sText = "Confirm or (re-)configure the root folder for any VB-Project in status development/maintenance. " & _
                             "Only Workbooks(VB-Projects in any subfolder will be supported by CompMan!" & vbLf & _
                             "The current root folder is:"
-        .section(4).sText = VBProjectsDevRoot
+        .section(4).sText = RootServicedByCompMan
         .section(4).bMonspaced = True
     End With
     
@@ -485,8 +473,8 @@ Public Sub ConfirmConfig()
             
             Case CFG_CHANGE_DEVELOPMENT_ROOT
                 Do
-                    VBProjectsDevRoot = mBasic.SelectFolder("Select the ""obligatory!"" root folder for VB development projects about to be supported by CompMan")
-                    If VBProjectsDevRoot <> vbNullString Then Exit Do
+                    RootServicedByCompMan = mBasic.SelectFolder("Select the ""obligatory!"" root folder for VB development projects about to be supported by CompMan")
+                    If RootServicedByCompMan <> vbNullString Then Exit Do
                 Loop
         End Select
     Wend
@@ -555,7 +543,6 @@ Private Sub DevInstncWorkbookClose()
     On Error GoTo eh
     Dim lStep As Long
 
-    mErH.BoP ErrSrc(PROC)
     lStep = Step
     Application.StatusBar = "RenewAddIn " & lStep & ". Close the Development instance Workbook"
 
@@ -567,8 +554,7 @@ Private Sub DevInstncWorkbookClose()
                     "  (" & Err.Description & ")" _
     Else cllLog.Add "RenewAddIn " & lStep & ". Passed! Development instance Workbook '" & DevInstncName & "' successfully closed"
 
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -584,7 +570,6 @@ Private Sub DevInstncWorkbookDelete()
     Dim lStep   As Long
     Dim fso     As New FileSystemObject
     
-    mErH.BoP ErrSrc(PROC)
     On Error Resume Next
     lStep = Step
     Application.StatusBar = "RenewAddIn " & lStep & ". Delete the Development instance Workbook"
@@ -602,7 +587,6 @@ Private Sub DevInstncWorkbookDelete()
     End With
 
 xt: Set fso = Nothing
-    mErH.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -629,7 +613,6 @@ Private Sub DevInstncWorkbookSave()
     On Error GoTo eh
     Dim lStep As Long
 
-    mErH.BoP ErrSrc(PROC)
     lStep = Step
     Application.StatusBar = "RenewAddIn " & lStep & ". Save the Development instance Workbook"
     
@@ -640,8 +623,7 @@ Private Sub DevInstncWorkbookSave()
     wbSource.Activate
     cllLog.Add "RenewAddIn " & lStep & ". Passed! The Development instance Workbook '" & DevInstncName & "' has successfully been svaed"
 
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -656,7 +638,6 @@ Private Sub SaveDevInstncWorkbookAsAddin()
     On Error GoTo eh
     Dim lStep   As Long
 
-    mErH.BoP ErrSrc(PROC)
     lStep = Step
     Application.StatusBar = "RenewAddIn " & lStep & ". Save the Development instance Workbook as Addin"
     
@@ -678,8 +659,7 @@ Private Sub SaveDevInstncWorkbookAsAddin()
         End If
     End With
     
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -742,7 +722,7 @@ Private Sub DisplaySaveAsDevResult()
 End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mAddIn" & "." & sProc
+    ErrSrc = "mMe" & "." & sProc
 End Function
 
 Private Sub RestoreReferencesToAddIn()
@@ -755,7 +735,6 @@ Private Sub RestoreReferencesToAddIn()
     Dim bOneRestored    As Boolean
     Dim lStep           As Long
     
-    mErH.BoP ErrSrc(PROC)
     lStep = Step
     Application.StatusBar = "RenewAddIn " & lStep & ". Restore references to the Addin for open Workbooks"
     
@@ -767,15 +746,14 @@ Private Sub RestoreReferencesToAddIn()
     Next v
     
     If bOneRestored Then
-        sWbs = left(sWbs, Len(sWbs) - 2)
+        sWbs = Left(sWbs, Len(sWbs) - 2)
         cllLog.Add "RenewAddIn " & lStep & ". Passed! Saved references to the Addin in open Workbooks have been restored"
         cllLog.Add "   (" & sWbs & ")"
     Else
         cllLog.Add "RenewAddIn " & lStep & ". Passed! Restoring references did not find any saved to restore"
     End If
     
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -802,7 +780,6 @@ Private Sub SaveAndRemoveReferencesToAddIn()
     Dim bOneRemoved As Boolean
     Dim fso         As New FileSystemObject
 
-    mErH.BoP ErrSrc(PROC)
     lStep = Step
     Application.StatusBar = "RenewAddIn " & lStep & ". Save and remove references to the Addin from open Workbooks"
     
@@ -829,15 +806,14 @@ Private Sub SaveAndRemoveReferencesToAddIn()
     End With
     
     If bOneRemoved Then
-        sWbs = left(sWbs, Len(sWbs) - 2)
+        sWbs = Left(sWbs, Len(sWbs) - 2)
         cllLog.Add "RenewAddIn " & lStep & ". Passed! References to the Addin from open Workbooks saved and removed"
         cllLog.Add "   (" & sWbs & ")"
     Else
         cllLog.Add "RenewAddIn " & lStep & ". Passed! None of the open Workbooks referred to the Addin '" & AddInInstanceName & "'"
     End If
     
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -864,7 +840,6 @@ Public Sub RenewAddIn(Optional ByVal bPause As Boolean = False)
     On Error GoTo eh
     Dim lStep   As Long
     
-    mErH.BoP ErrSrc(PROC)
     Set cllLog = New Collection
     
     '~~ Assert ThisWorkbook is the development instance of the CompMan Addin
@@ -922,7 +897,6 @@ Public Sub RenewAddIn(Optional ByVal bPause As Boolean = False)
     RestoreReferencesToAddIn
 
 xt: DisplayRenewResult
-    mErH.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -947,7 +921,6 @@ Public Sub SaveAsDev()
     On Error GoTo eh
     Dim lStep   As Long
 
-    mErH.BoP ErrSrc(PROC)
     Set cllLog = New Collection
         
     '~~ Assert ThisWorkbook is the development instance of the CompMan Addin
@@ -990,7 +963,6 @@ Public Sub SaveAsDev()
     bSucceeded = True
 
 xt: DisplaySaveAsDevResult
-    mErH.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -1006,7 +978,6 @@ Private Sub Set_IsAddin_ToFalse(ByVal wb As Workbook)
     On Error GoTo eh
     Dim lStep As Long
 
-    mErH.BoP ErrSrc(PROC)
     lStep = Step
     Application.StatusBar = "RenewAddIn " & lStep & ". Set the IsAddin property to False"
     If wb.IsAddin = True Then
@@ -1016,8 +987,7 @@ Private Sub Set_IsAddin_ToFalse(ByVal wb As Workbook)
         cllLog.Add "RenewAddIn " & lStep & ". Passed! The 'IsAddin' property of the Addin Workbook was already set to FALSE"
     End If
     
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
+xt:     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -1072,7 +1042,7 @@ Private Sub TrustThisFolder(Optional ByVal FolderPath As String, _
 
     With fso
         If FolderPath = "" Then
-            FolderPath = .GetSpecialFolder(2).PATH
+            FolderPath = .GetSpecialFolder(2).Path
             If sDescription = "" Then
                 sDescription = "The user's local temp folder"
             End If
@@ -1148,7 +1118,6 @@ Public Sub UpdateRawClones()
     Const PROC = "UpdateRawClones"
     
     On Error GoTo eh
-    mErH.BoP ErrSrc(PROC)
     
     If IsDevInstnc Then
         If AddInInstncWrkbkIsOpen Then
@@ -1156,8 +1125,7 @@ Public Sub UpdateRawClones()
         End If
     End If
     
-xt: mErH.BoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume

@@ -245,7 +245,8 @@ Dim i       As Long
         .CompareMode = TextCompare
         For Each app In aApps
             For Each wbk In app.Workbooks
-                dct.Add mBasic.BaseName(wbk), wbk
+                Debug.Print mBasic.BaseName(wbk)
+                If Not dct.Exists(mBasic.BaseName(wbk)) Then dct.Add mBasic.BaseName(wbk), wbk
             Next wbk
         Next app
     End With
@@ -287,7 +288,7 @@ End Function
         Do While hWnd <> 0
             sText = String$(100, Chr$(0))
             lRet = CLng(GetClassName(hWnd, sText, 100))
-            If left$(sText, lRet) = "EXCEL7" Then
+            If Left$(sText, lRet) = "EXCEL7" Then
                 Call IIDFromString(StrPtr(IID_IDispatch), iid)
                 If AccessibleObjectFromWindow(hWnd, OBJID_NATIVEOM, iid, ob) = 0 Then 'S_OK
                     Set GetExcelObjectFromHwnd = ob.Application
@@ -366,7 +367,7 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
                     '~~ The open Workook with the same name is from a different location
                     If fso.FileExists(vWb) Then
                         '~~ The file still exists on the provided location
-                        Err.Raise AppErr(3), ErrSrc(PROC), Replace(Replace$(ERR_GOW01, "<>1", wb.PATH), "<>2", sPath)
+                        Err.Raise AppErr(3), ErrSrc(PROC), Replace(Replace$(ERR_GOW01, "<>1", wb.Path), "<>2", sPath)
                     Else
                         '~~ The Workbook file does not or no longer exist at the provivded location.
                         '~~ The open one is apparenty the ment Workbook just moved to the new location.

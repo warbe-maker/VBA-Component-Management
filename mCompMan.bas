@@ -2,63 +2,41 @@ Attribute VB_Name = "mCompMan"
 Option Explicit
 Option Compare Text
 ' ----------------------------------------------------------------------------
-' Standard Module mCompMan: Provides all means to manage the VBComponents of
-'                 another workbook but ThisWorkbook provided:
-'                 - All manged Workbook resides in its own dedicated directory
-'                 - The following modules are stored in is the VB-CompMan.xlsb
-'                   Workbook: mCompMan, mExists, ufCompMan, clsSPP
-'                 The user interface (ufCompMan) is available through the
-'                 Manage method.
-' Usage:          All methods are to be called from another Workbook. This
-'                 module does nothing when running in ThisWorkbook.
-'                 The Workbook of which the modules are to be managed is
-'                 provided as Application.Run argument.
-' ----------------------------------------------------------------------------
-'                 Application.Run "CoMoMan.xlsb!....."
-' ----------------------------------------------------------------------------
-'                   ..... is the method to be executed e.g. Manage
-'                   which displays a user interface.
+' Standard Module mCompMan
+'          Services for the management of VBComponents in Workbooks provided:
+'          - stored within the 'RootServicedByCompMan'
+'          - have the Conditional Compile Argument 'CompMan = 1'
+'          - have 'CompMan' referenced
+'          - the Workbook resides in its own dedicated folder
+'          - the Workbook calls the '' service with the Open event
+'          - the Workbook calls the '' service with the Save event
+' Usage:   This Workbbok's services are available as 'CompMan' AddIn and will
+'          be called from the serviced Workbook as follows:
 '
-' Methods:
-' - ExportAll       Exports all components into the directory of
-'                   the Workbook - which should be a dedicated one.
-' - ImportAll       Imports all export-files into the specified
-'                   Workbook. ! Needs to be executed twice !
-' - InportUtdOnly   Imports only Export Files with a more recent
-'                   last modified date than the Workbook.
-'                   Optionally checks for a more up-to-date export
-'                   files in a "Common" directory which is in the
-'                   same directory as the "Workbook's directory
-' - Remove          Removes a specified VBComponent from the
-'                   Workbook
-' - Import          Imports a single exported component. Any type
-'                   document VBComponent is imported
-'                   l i n e   b y   l i n e !
-' - ImportByLine    Imports a single VBComponent into the specified
-'                   target Workbook. The source may be an export
-'                   file or another Workbook
-' - Reorg           Reorganizes the code of a Workbook's component
-'                   (class and standard module only!)
-' - Transfer        Transfers the code of a specified VBComponent
-'                   from a specified source Workbook into a
-'                   specified target Workbook provided the component
-'                   exists in both Workbooks
-' - SynchAll        Synchronizes the code of modules existing in a
-'                   target Workbook with the code in a source Workbook.
-'                   Missing References are only added when the synchro-
-'                   nized module is the only one in the source Workbook
-'                   (i.e. the source Workbook is dedicated to this module
-'                   and thus has only References required for the syn-
-'                   chronized module.
-' - SynchronizeFull       Synchronizes a (target) Workbook based on a template
-'                   (source Workbook) in order to keep their vba code
-'                   identical. Full synchronization means that modules
-'                   not existing in the source Workbook are removed and
-'                   modules not existing in the target Workbook are
-'                   added. Missing References are added at first and
-'                   obsolete Refeences are removed at last.
-'                   (see SynchAll in contrast)
-' - Manage          Provides all methods via a user interface.
+'           Private Sub Workbook_Open()
+'           #If CompMan Then
+'               On Error Resume Next
+'               mCompMan.UpdateRawClones uc_wb:=ThisWorkbook _
+'                                      , uc_hosted:=HOSTED_RAWS
+'           #End If
+'           End Sub
+'
+'           Private Sub Workbook_BeforeSave(...)
+'           #If CompMan Then
+'               mCompMan.ExportChangedComponents ec_wb:=ThisWorkbook _
+'                                              , ec_hosted:=HOSTED_RAWS
+'           #End If
+'           End Sub
+'
+' ----------------------------------------------------------------------------
+' Services:
+' - DisplayCodeChange       Displays the current difference between a
+'                           component's code and its current Export File
+' - ExportAll               Exports all components into the Workbook's
+'                           dedicated folder (created when not existing)
+' - ExportChangedComponents Exports all components of which the code in the
+'                           Export File differs from the current code.
+' - Service
 '
 ' Uses Common Components: - mBasic
 '                         - mErrhndlr
@@ -95,25 +73,25 @@ Public Enum vbcmType
     vbext_ct_Document = 100         ' .cls
 End Enum
 
-Public Enum enKindOfCodeChange  ' Kind of code change
-    enUnknown
-    enInternalOnly              ' A component which is neither a hosted raw nor a raw's clone has changed
-    enRawOnly               ' Only the remote raw code hosted in another Workbook had changed
-    enCloneOnly             ' Only the code of the target Component had changed
-    enRawAndClone           ' Both, the code of the remote raw and the raw clone had changed
-    enNoCodeChange          ' No code change at all
-    enPendingExportOnly     ' A modified raw may have been re-imported already
-End Enum
+'Public Enum enKindOfCodeChange  ' Kind of code change
+'    enUnknown
+'    enInternalOnly              ' A component which is neither a hosted raw nor a raw's clone has changed
+'    enRawOnly               ' Only the remote raw code hosted in another Workbook had changed
+'    enCloneOnly             ' Only the code of the target Component had changed
+'    enRawAndClone           ' Both, the code of the remote raw and the raw clone had changed
+'    enNoCodeChange          ' No code change at all
+'    enPendingExportOnly     ' A modified raw may have been re-imported already
+'End Enum
 
 Public cComp            As clsComp
 Public cRaw             As clsRaw
 Public cLog             As clsLog
 Public asNoSynch()      As String
 Public lMaxCompLength   As Long
-
 Private dctHostedRaws   As Dictionary
+Private sService        As String
 
-Public Property Get HostedRaws() As Variant:    Set HostedRaws = dctHostedRaws:     End Property
+Private Property Get HostedRaws() As Variant:        Set HostedRaws = dctHostedRaws: End Property
 
 Private Property Let HostedRaws(ByVal hr As Variant)
 ' ---------------------------------------------------
@@ -137,23 +115,15 @@ Private Property Let HostedRaws(ByVal hr As Variant)
     
 End Property
 
-Public Function CompExists( _
-                     ByVal ce_wb As Workbook, _
-                     ByVal ce_comp_name As String) As Boolean
-' -----------------------------------------------------------
-' Returns TRUE when the component (ce_comp_name) exists in
-' the Workbook ce_wb.
-' -----------------------------------------------------------
-    On Error Resume Next
-    Debug.Print ce_wb.VBProject.VBComponents(ce_comp_name).name
-    CompExists = Err.Number = 0
-End Function
+Public Property Get Service() As String:            Service = sService:             End Property
 
-Public Function Clones( _
+Public Property Let Service(ByVal srvc As String):  sService = srvc:                End Property
+
+Private Function Clones( _
                   ByVal cl_wb As Workbook) As Dictionary
 ' ------------------------------------------------------
-' Returns a Dictionary with clone components as the key
-' and their kind of code change as item.
+' Returns a Dictionary with clone component's object as
+' the key and their kind of code change as item.
 ' ------------------------------------------------------
     Const PROC = "Clones"
     
@@ -176,9 +146,12 @@ Public Function Clones( _
                 Set cRaw = New clsRaw
                 cRaw.CompName = .CompName
                 cRaw.ExpFile = fso.GetFile(FilePath:=mRaw.ExpFileFullName(.CompName))
-                cRaw.ExpFileFullName = .ExpFile.PATH
+                cRaw.ExpFileFullName = .ExpFile.Path
                 cRaw.HostFullName = mRaw.HostFullName(comp_name:=.CompName)
-                dct.Add vbc, .KindOfCodeChange
+                cRaw.CloneExpFileFullName = .ExpFileFullName
+                If cRaw.Changed Or .Changed Then
+                    dct.Add vbc, vbc.name
+                End If
             End If
         End With
         Set cComp = Nothing
@@ -197,57 +170,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook, _
-                                   ByVal do_log As clsLog)
-' --------------------------------------------------------------
-' Delete Export Files the component does not or no longer exist.
-' --------------------------------------------------------------
-    Const PROC = "DeleteObsoleteExpFiles"
-    
-    On Error GoTo eh
-    Dim cllRemove   As New Collection
-    Dim sFolder     As String
-    Dim fso         As New FileSystemObject
-    Dim fl          As FILE
-    Dim v           As Variant
-    Dim cComp       As New clsComp
-    Dim sComp       As String
-    
-    With cComp
-        .Wrkbk = do_wb ' assignment provides the Workbook's dedicated Export Folder
-        sFolder = .ExpFolder
+Private Function CodeModuleIsEmpty(ByVal vbc As VBComponent) As Boolean
+    With vbc.CodeModule
+        CodeModuleIsEmpty = .CountOfLines = 0 Or .CountOfLines = 1 And Len(.Lines(1, 1)) < 2
     End With
-    
-    With fso
-        '~~ Collect obsolete Export Files
-        For Each fl In .GetFolder(sFolder).Files
-            Select Case .GetExtensionName(fl.PATH)
-                Case "bas", "cls", "frm", "frx"
-                    sComp = .GetBaseName(fl.PATH)
-                    If Not cComp.Exists(sComp) _
-                    And Not mPending.Still(sComp) Then
-                        cllRemove.Add fl.PATH
-                    End If
-            End Select
-        Next fl
-    
-        For Each v In cllRemove
-            .DeleteFile v
-            do_log.Action = "Obsolete Export File '" & v & "' deleted"
-        Next v
-    End With
-    
-xt: Set cComp = Nothing
-    Set cllRemove = Nothing
-    Set fso = Nothing
-    Exit Sub
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
-    End Select
-End Sub
+End Function
 
 Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
 ' -----------------------------------------------------------
@@ -278,6 +205,70 @@ Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
     Set cComp = Nothing
 
 xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Sub
+
+Public Function CompExists( _
+                     ByVal ce_wb As Workbook, _
+                     ByVal ce_comp_name As String) As Boolean
+' -----------------------------------------------------------
+' Returns TRUE when the component (ce_comp_name) exists in
+' the Workbook ce_wb.
+' -----------------------------------------------------------
+    On Error Resume Next
+    Debug.Print ce_wb.VBProject.VBComponents(ce_comp_name).name
+    CompExists = Err.Number = 0
+End Function
+
+Private Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook, _
+                                   ByVal do_log As clsLog)
+' --------------------------------------------------------------
+' Delete Export Files the component does not or no longer exist.
+' --------------------------------------------------------------
+    Const PROC = "DeleteObsoleteExpFiles"
+    
+    On Error GoTo eh
+    Dim cllRemove   As New Collection
+    Dim sFolder     As String
+    Dim fso         As New FileSystemObject
+    Dim fl          As FILE
+    Dim v           As Variant
+    Dim cComp       As New clsComp
+    Dim sComp       As String
+    
+    With cComp
+        .Wrkbk = do_wb ' assignment provides the Workbook's dedicated Export Folder
+        sFolder = .ExpFolder
+    End With
+    
+    With fso
+        '~~ Collect obsolete Export Files
+        For Each fl In .GetFolder(sFolder).Files
+            Select Case .GetExtensionName(fl.Path)
+                Case "bas", "cls", "frm", "frx"
+                    sComp = .GetBaseName(fl.Path)
+                    If Not cComp.Exists(sComp) _
+                    And Not mPending.Still(sComp) Then
+                        cllRemove.Add fl.Path
+                    End If
+            End Select
+        Next fl
+    
+        For Each v In cllRemove
+            .DeleteFile v
+            do_log.Action = "Obsolete Export File '" & v & "' deleted"
+        Next v
+    End With
+    
+xt: Set cComp = Nothing
+    Set cllRemove = Nothing
+    Set fso = Nothing
+    Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
@@ -371,24 +362,15 @@ eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub ExportChangedComponents( _
-                          Optional ByVal ec_wb As Workbook = Nothing, _
-                          Optional ByVal ec_hosted As String = vbNullString)
-' --------------------------------------------------------------------------
+                             ByVal ec_wb As Workbook, _
+                    Optional ByVal ec_hosted As String = vbNullString)
+' --------------------------------------------------------------------
 ' Exclusively performed/trigered by the Before_Save event:
-' - Any code change (detected by the comparison of a temporary export file
-'   with the current export file) is backed-up, i.e. exported
-' - Any Export Files representing no longer existing components are removed
-' - In case of conflicting or unusual code modifications in a raw clone
-'   component the user decides what to do with it. Choices may be:
-'   -- Modifications are ignored, i.e. will be reverted with the next open
-'   -- The raw is updated, i.e. the modifications in the clone become
-'      common for all VB-Projects using a clone of this raw
-'   -- The user merges those modifications desired for becoming common
-'      and ignores others.
-' Background:
-' - This procedure is preferrably triggered by the Before_Save event.
-' - The ExportFile's last access date reflects the date of the last code
-'   change. This date is logged when a used Common Component is updated.
+' - Any code change (detected by the comparison of a temporary export
+'   file with the current export file) is backed-up/exported
+' - Outdated Export Files (components no longer existing) are removed
+' - Clone code modifications update the raw code when confirmed by the
+'   user
 ' --------------------------------------------------------------------------
     Const PROC = "ExportChangedComponents"
     
@@ -407,20 +389,18 @@ Public Sub ExportChangedComponents( _
     Dim sServiced           As String
     Dim sProgressDots       As String
     Dim sStatus             As String
-    Dim sService            As String
     
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
-    If ec_wb Is Nothing Then Set ec_wb = ActiveWorkbook
     If WbkIsRestoredBySystem(ec_wb) _
-    Or Not WbkIsInDevEnvironment(ec_wb) Then
-        Debug.Print "Workbooks restored by Excel or not in '" & mMe.VBProjectsDevRoot & _
+    Or Not WbkInServicedRoot(ec_wb) Then
+        Debug.Print "Workbooks restored by Excel or not in '" & mMe.RootServicedByCompMan & _
                     "' are not supported by CompMan service '" & ErrSrc(PROC) & "'!"
         GoTo xt
     End If
-    sService = "CompMan Service '" & PROC & "': "
-    sStatus = sService
+    mCompMan.Service = "CompMan Service '" & PROC & "' for '" & ec_wb.name & "': "
+    sStatus = mCompMan.Service
     
     Application.StatusBar = sStatus & "Resolve pending imports if any"
     mPending.Resolve ec_wb
@@ -435,13 +415,14 @@ Public Sub ExportChangedComponents( _
     MaintainHostedRaws mh_hosted:=ec_hosted _
                      , mh_wb:=ec_wb
     
-    lCompsRemaining = ec_wb.VBProject.VBComponents.Count
+    lComponents = ec_wb.VBProject.VBComponents.Count
+    lCompsRemaining = lComponents
     sProgressDots = String$(lCompsRemaining, ".")
+
     For Each vbc In ec_wb.VBProject.VBComponents
-        Set cComp = Nothing
-        Set cRaw = Nothing
+        If CodeModuleIsEmpty(vbc) Then GoTo next_vbc
         Set cComp = New clsComp
-        sProgressDots = left(sProgressDots, Len(sProgressDots) - 1)
+        sProgressDots = Left(sProgressDots, Len(sProgressDots) - 1)
         Application.StatusBar = sStatus & vbc.name & " "
         mTrc.BoC ErrSrc(PROC) & " " & vbc.name
         Set cComp = New clsComp
@@ -451,34 +432,10 @@ Public Sub ExportChangedComponents( _
             sServiced = .Wrkbk.name & " Component " & .CompName & " "
             sServiced = sServiced & String(lCompMaxLen - Len(.CompName), ".")
             cLog.ServicedItem = sServiced
-            If .CodeModuleIsEmpty Then GoTo next_vbc
+            If Not .Changed Then GoTo next_vbc
         End With
-        
-        lComponents = lComponents + 1
-        
-        Select Case cComp.KindOfComp
-            Case enInternal, enHostedRaw
-                '~~ This is a raw component's clone
-                Select Case cComp.KindOfCodeChange
-                    Case enCloneOnly, enPendingExportOnly, enRawAndClone, enRawOnly, enInternalOnly
-                        mTrc.BoC ErrSrc(PROC) & " Backup No-Raw " & vbc.name
-                        Application.StatusBar = sStatus & vbc.name & " Export to '" & cComp.ExpFileFullName & "'"
-                        vbc.Export cComp.ExpFileFullName
-                        sStatus = sStatus & vbc.name & ", "
-                        cLog.Action = "Changes exported to '" & cComp.ExpFileFullName & "'"
-                        lExported = lExported + 1
-                        sExported = vbc.name & ", " & sExported
-                        mTrc.EoC ErrSrc(PROC) & " Backup No-Raw" & vbc.name
-                        GoTo next_vbc
-                End Select
                 
-                If cComp.KindOfComp = enHostedRaw Then
-                    If mRaw.ExpFileFullName(comp_name:=cComp.CompName) <> cComp.ExpFileFullName Then
-                        mRaw.ExpFileFullName(comp_name:=cComp.CompName) = cComp.ExpFileFullName
-                        cLog.Action = "Component's Export File Full Name registered"
-                    End If
-                End If
-
+        Select Case cComp.KindOfComp
             Case enRawClone
                 '~~ Establish a component class object which represents the cloned raw's remote instance
                 '~~ which is hosted in another Workbook
@@ -489,66 +446,74 @@ Public Sub ExportChangedComponents( _
                     .HostFullName = mRaw.HostFullName(comp_name:=cComp.CompName)
                     .CompName = cComp.CompName
                     .ExpFile = fso.GetFile(mRaw.ExpFileFullName(comp_name:=.CompName))
-                    .ExpFileFullName = .ExpFile.PATH
+                    .ExpFileFullName = .ExpFile.Path
+                    .CloneExpFileFullName = cComp.ExpFileFullName
+                    If Not .Changed And Not cComp.Changed Then GoTo next_vbc
                 End With
                 
                 With cComp
-                    Select Case .KindOfCodeChange
-                        Case enPendingExportOnly
-                            mTrc.BoC ErrSrc(PROC) & " Backup Clone " & .CompName
-                            Application.StatusBar = sStatus & vbc.name & " Export to '" & .ExpFileFullName & "'"
-                            vbc.Export .ExpFileFullName
-                            sStatus = sStatus & vbc.name & ", "
-                            cLog.Action = "Component exported to '" & .ExpFileFullName & "'"
-                            lExported = lExported + 1
-                            sExported = vbc.name & ", " & sExported
-                            mTrc.EoC ErrSrc(PROC) & " Backup Clone" & .CompName
-                            GoTo next_vbc
+                    If .Changed And Not cRaw.Changed Then
+                        '~~ --------------------------------------------------------------------------
+                        '~~ The code change in the clone component is now in question whether it is to
+                        '~~ be ignored, i.e. the change is reverted with the Workbook's next open or
+                        '~~ the raw code should be updated accordingly to make the change permanent
+                        '~~ for all users of the component.
+                        '~~ --------------------------------------------------------------------------
+                        vbc.Export .ExpFileFullName
+                        .ReplaceRawWithCloneWhenConfirmed rwu_updated:=bUpdated, rwu_log:=cLog ' when confirmed in user dialog
+                        If bUpdated Then
+                            lUpdated = lUpdated + 1
+                            sUpdated = vbc.name & ", " & sUpdated
+                            cLog.Action = """Remote Raw"" has been updated with code of ""Raw Clone"""
+                        End If
                         
-                        Case enNoCodeChange
-                            cLog.Action = "No action performed"
-
-                        Case enRawAndClone
-                            '~~ The user will decide which of the code modification will go to the raw and the raw will be
-                            '~~ updated with the final result
-                            cLog.Action = "No action performed"
-                            
-                        Case enCloneOnly
-                            '~~ This is regarded an unusual code change because instead of maintaining the origin code
-                            '~~ of a Common Component in ist "host" VBProject it had been changed in the using VBProject.
-                            '~~ Nevertheless updating the origin code with this change is possible when explicitely confirmed.
-'                            mFile.Compare file_left_full_name:=cComp.ExpFileFullName _
-                                      , file_left_title:=cComp.ExpFileFullName _
-                                      , file_right_full_name:=cRaw.ExpFileFullName _
-                                      , file_right_title:=cRaw.ExpFileFullName
-                                      
-                            .ReplaceRawWithCloneWhenConfirmed rwu_updated:=bUpdated, rwu_log:=cLog ' when confirmed in user dialog
-                            If bUpdated Then
-                                lUpdated = lUpdated + 1
-                                sUpdated = vbc.name & ", " & sUpdated
-                                cLog.Action = """Remote Raw"" has been updated with code of ""Raw Clone"""
-                            End If
-                        Case enRawOnly
-                            Debug.Print "Remote raw " & vbc.name & " has changed and will update the used in the VB-Project the next time it is opened."
-                            '~~ The changed remote raw will be used to update the clone the next time the Workbook is openend
-                            cLog.Action = "No action performed"
-                        Case enInternalOnly
-                            cLog.Action = "No action performed"
-                    End Select
+                    ElseIf Not .Changed And cRaw.Changed Then
+                        '~~ -----------------------------------------------------------------------
+                        '~~ The raw had changed since the Workbook's open. This case is not handled
+                        '~~ along with the Workbook's Save event but with the Workbook's Open event
+                        '~~ -----------------------------------------------------------------------
+                    End If
+                End With
+            
+            Case enKindOfComp.enUnknown
+                '~~ This should never be the case in is thus ignored
+            
+            Case Else ' enInternal, enHostedRaw
+                With cComp
+                    If .Changed Then
+                        Application.StatusBar = sStatus & vbc.name & " Export to '" & .ExpFileFullName & "'"
+                        vbc.Export .ExpFileFullName
+                        sStatus = sStatus & vbc.name & ", "
+                        cLog.Action = "Changes exported to '" & .ExpFileFullName & "'"
+                        lExported = lExported + 1
+                        sExported = vbc.name & ", " & sExported
+                        mTrc.EoC ErrSrc(PROC) & " Backup No-Raw" & vbc.name
+                        GoTo next_vbc
+                    End If
+                
+                    If .KindOfComp = enHostedRaw Then
+                        If mRaw.ExpFileFullName(comp_name:=.CompName) <> .ExpFileFullName Then
+                            mRaw.ExpFileFullName(comp_name:=.CompName) = .ExpFileFullName
+                            cLog.Action = "Component's Export File Full Name registered"
+                        End If
+                    End If
                 End With
         End Select
                                 
 next_vbc:
         mTrc.EoC ErrSrc(PROC) & " " & vbc.name
         lCompsRemaining = lCompsRemaining - 1
+        Set cComp = Nothing
+        Set cRaw = Nothing
     Next vbc
-    sMsg = sService
+    
+    sMsg = mCompMan.Service
     Select Case lExported
         Case 0:     sMsg = sMsg & "None of the " & lComponents & " Components in Workbook " & ec_wb.name & " has been changed/exported/backed up."
-        Case 1:     sMsg = sMsg & "1 of " & lComponents & " components in Workbook " & ec_wb.name & " has been exported/backed up: " & left(sExported, Len(sExported) - 2)
-        Case Else:  sMsg = sMsg & lExported & " of " & lComponents & " components in Workbook " & ec_wb.name & " has been exported/backed up: " & left(sExported, Len(sExported) - 1)
+        Case 1:     sMsg = sMsg & "1 of " & lComponents & " components in Workbook " & ec_wb.name & " has been exported/backed up: " & Left(sExported, Len(sExported) - 2)
+        Case Else:  sMsg = sMsg & lExported & " of " & lComponents & " components in Workbook " & ec_wb.name & " has been exported/backed up: " & Left(sExported, Len(sExported) - 1)
     End Select
-    If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
+    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
     
 xt: Set dctHostedRaws = Nothing
@@ -564,15 +529,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
-
-Private Function WbkIsRestoredBySystem(ByVal rbs_wb As Workbook) As Boolean
-    WbkIsRestoredBySystem = InStr(ActiveWindow.caption, "(") <> 0 _
-                         Or InStr(rbs_wb.FullName, "(") <> 0
-End Function
-
-Private Function WbkIsInDevEnvironment(ByVal idr_wb As Workbook) As Boolean
-    WbkIsInDevEnvironment = InStr(idr_wb.PATH, mMe.VBProjectsDevRoot) <> 0
-End Function
 
 Private Sub MaintainHostedRaws(ByVal mh_hosted As String, _
                                ByVal mh_wb As Workbook)
@@ -652,8 +608,8 @@ Public Sub Merge(Optional ByVal fl_1 As String = vbNullString, _
     
     If fl_1 = vbNullString Then mFile.SelectFile sel_result:=fl_left
     If fl_2 = vbNullString Then mFile.SelectFile sel_result:=fl_right
-    fl_1 = fl_left.PATH
-    fl_2 = fl_right.PATH
+    fl_1 = fl_left.Path
+    fl_2 = fl_right.Path
     
     mFile.Compare file_left_full_name:=fl_1 _
                 , file_right_full_name:=fl_2 _
@@ -754,7 +710,7 @@ Public Sub RenewComp( _
                           , sel_filter_name:="File" _
                           , sel_title:="Select the Export File for the re-new service" _
                           , sel_result:=flFile) _
-        Then rc_exp_file_full_name = flFile.PATH
+        Then rc_exp_file_full_name = flFile.Path
     End If
     
     If rc_comp_name <> vbNullString _
@@ -770,7 +726,7 @@ Public Sub RenewComp( _
                           , sel_filter_name:="File" _
                           , sel_title:="Select the Export File for the provided component '" & rc_comp_name & "'!" _
                           , sel_result:=flFile) _
-        Then rc_exp_file_full_name = flFile.PATH
+        Then rc_exp_file_full_name = flFile.Path
     End If
     
     If rc_exp_file_full_name = vbNullString Then
@@ -834,7 +790,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub UpdateRawClones( _
-            Optional ByVal uc_wb As Workbook = Nothing, _
+                     ByVal uc_wb As Workbook, _
             Optional ByVal uc_hosted As String = vbNullString)
 ' ------------------------------------------------------------
 ' Updates a clone component with the Export File of the remote
@@ -846,15 +802,13 @@ Public Sub UpdateRawClones( _
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
     Dim sStatus     As String
-    Dim sService    As String
     
     mErH.BoP ErrSrc(PROC)
     
-    sService = "CompMan Service '" & PROC & "': "
-    If uc_wb Is Nothing Then Set uc_wb = ActiveWorkbook
+    mCompMan.Service = "CompMan Service '" & PROC & "' for '" & uc_wb.name & "': "
     If WbkIsRestoredBySystem(uc_wb) _
-    Or Not WbkIsInDevEnvironment(uc_wb) Then
-        Debug.Print "Workbooks restored by Excel or not in '" & mMe.VBProjectsDevRoot & _
+    Or Not WbkInServicedRoot(uc_wb) Then
+        Debug.Print "Workbooks restored by Excel or not in '" & mMe.RootServicedByCompMan & _
                     "' are not supported by CompMan service '" & ErrSrc(PROC) & "'!"
         GoTo xt
     End If
@@ -878,6 +832,7 @@ Public Sub UpdateRawClones( _
     
     mUpdate.RawClones urc_wb:=uc_wb _
                     , urc_comp_max_len:=MaxCompLength(wb:=uc_wb) _
+                    , urc_clones:=Clones(uc_wb) _
                     , urc_service:=sService _
                     , urc_log:=cLog
 
@@ -908,6 +863,35 @@ Public Sub Version(ByRef c_version As clsAddinVersion)
 ' ---------------------------------------------------------------------------------------------------------------------
     c_version.Version = mMe.AddInVersion
 End Sub
+
+Public Function WbkGetOpen(ByVal go_wb_full_name) As Workbook
+    Const PROC = "WbkGetOpen"
+    
+    On Error GoTo eh
+    Dim fso     As New FileSystemObject
+    Dim sWbName As String
+    
+    If Not fso.FileExists(go_wb_full_name) Then GoTo xt
+    sWbName = fso.GetFileName(go_wb_full_name)
+    If mCompMan.WbkIsOpen(io_name:=sWbName) Then
+        Set WbkGetOpen = Application.Workbooks(sWbName)
+    Else
+        Set WbkGetOpen = Application.Workbooks.Open(go_wb_full_name)
+    End If
+
+xt: Set fso = Nothing
+    Exit Function
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOpt1ResumeError: Stop: Resume
+        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Function
+
+Private Function WbkInServicedRoot(ByVal idr_wb As Workbook) As Boolean
+    WbkInServicedRoot = InStr(idr_wb.Path, mMe.RootServicedByCompMan) <> 0
+End Function
 
 Public Function WbkIsOpen( _
            Optional ByVal io_name As String = vbNullString, _
@@ -946,29 +930,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function WbkGetOpen(ByVal go_wb_full_name) As Workbook
-    Const PROC = "WbkGetOpen"
-    
-    On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim sWbName As String
-    
-    If Not fso.FileExists(go_wb_full_name) Then GoTo xt
-    sWbName = fso.GetFileName(go_wb_full_name)
-    If mCompMan.WbkIsOpen(io_name:=sWbName) Then
-        Set WbkGetOpen = Application.Workbooks(sWbName)
-    Else
-        Set WbkGetOpen = Application.Workbooks.Open(go_wb_full_name)
-    End If
-
-xt: Set fso = Nothing
-    Exit Function
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
+Private Function WbkIsRestoredBySystem(ByVal rbs_wb As Workbook) As Boolean
+    WbkIsRestoredBySystem = InStr(ActiveWindow.caption, "(") <> 0 _
+                         Or InStr(rbs_wb.FullName, "(") <> 0
 End Function
-
-

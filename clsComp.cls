@@ -42,8 +42,9 @@ Private sExpFileFullName    As String       ' Full filespec for the Export File 
 Private sExpPath            As String
 Private lCompMaxLen         As Long
 Private lKindOfComp         As enKindOfComp
-Private lKindOfCodeChange   As enKindOfCodeChange
+'Private lKindOfCodeChange   As enKindOfCodeChange
 Private sExtension          As String
+Private dctChanges          As Dictionary   ' Dictionary of code changes
 
 Public Property Get CompName() As String:                       CompName = sCompName:                   End Property
 
@@ -108,200 +109,223 @@ Public Property Get ExpFolder() As Folder:                  Set ExpFolder = foEx
 
 Public Property Get Extension() As String:                  Extension = sExtension:                     End Property
 
-Public Property Get KindOfCodeChange( _
-           Optional ignore_empty_lines As Boolean = False) As enKindOfCodeChange
-' ------------------------------------------------------------------------------
-' Returns the kind of code change.
-' - The "Raw" has changed when the Component is a used Raw and its Export File
-'   differs from the Export File of the Raw Component hosted in another Workbook
-' - The "Used Raw Component" or the "Neither Hosted Nor Used Raw Component" has
-'   changed when the code of the VBComponent differs from its Export File.
-' - Both, the "Raw Hosted in another Workbook" and the "Used Raw Component have
-'   changed, when both of the above is true for a "Used Raw Component".
-' ------------------------------------------------------------------------------
-    Const PROC = "KindOfCodeChange_Get"
-    
-    On Error GoTo eh
-    Dim fso                 As New FileSystemObject
-    Dim sTempExport         As String
-    Dim bCodeChanged        As Boolean
-    Dim bRawChanged         As Boolean
-    Dim bCloneChanged       As Boolean
-    Dim sTempFolder         As String
-    Dim arDiff              As Variant
-    Dim flTempFormDesign    As FILE
-    Dim flExpFormDesign     As FILE
-    Dim flRawFormDesign     As FILE
-    Dim flTempExport        As FILE
-    
-    If lKindOfCodeChange = enKindOfCodeChange.enUnknown Then
-        
-'        If cComp.CompName = "mFile" Then Stop
-        '~~ Provide a temporary export for the current vbc which is used to determine a code change
-        '~~ (a temporary folder is essential for the determination of a UserForm design change)
-        With fso
-            sTempFolder = sExpPath & "\Temp"
-            If Not .FolderExists(sTempFolder) Then .CreateFolder sTempFolder
-            sTempExport = sTempFolder & "\" & vbc.name & sExtension
-            vbc.Export sTempExport
-            Set flTempExport = .GetFile(sTempExport)
-        End With
-    
-        Select Case Me.KindOfComp
-            Case enRawClone
-                '~~ The modified raw may have been re-imported already and thus only the export is pending
-                mTrc.BoC ErrSrc(PROC) & " File compare '" & flTempExport.PATH & "' with '" & cRaw.ExpFile.PATH & "'"
-                If Not mFile.Differs(dif_file1:=flTempExport _
-                                   , dif_file2:=cRaw.ExpFile _
-                                   , dif_ignore_empty_records:=True _
-                                   , dif_ignore_case:=True _
-                                    ) _
-                And mFile.Differs(dif_file1:=flTempExport _
-                                , dif_file2:=cComp.ExpFile _
-                                , dif_ignore_empty_records:=True _
-                                , dif_ignore_case:=True _
-                                 ) _
-                Then
-                    '~~ The code - yet not exported - is identical with the remote raw component's code (i.e. its Export File)
-                    lKindOfCodeChange = enPendingExportOnly
-                    cLog.Action = "Kind of CodeChange = " & KoCCStrng(lKindOfCodeChange)
-                    GoTo xt
-                End If
-                mTrc.EoC ErrSrc(PROC) & " File compare '" & flTempExport.PATH & "' with '" & cComp.ExpFileFullName & "'"
-                
-                '~~ 1. The (remote) raw has changed when the clone's Export File differs from the raw's Export File
-                mTrc.BoC ErrSrc(PROC) & " File compare '" & Me.ExpFileFullName & "' with '" & cRaw.ExpFileFullName & "'"
-                bRawChanged = _
-                mFile.Differs(dif_file1:=Me.ExpFile _
-                          , dif_file2:=cRaw.ExpFile _
-                          , dif_ignore_empty_records:=True _
-                          , dif_ignore_case:=True _
-                          , dif_lines:=arDiff _
-                           )
-                mTrc.EoC ErrSrc(PROC) & " File compare '" & Me.ExpFileFullName & "' with '" & cRaw.ExpFileFullName & "'"
-                If Not bRawChanged And vbc.Type = vbext_ct_MSForm Then
-                    '~~ If it is a UserForm the design may have changed only
-                    Set flExpFormDesign = fso.GetFile(Replace(sExpFileFullName, ".frm", ".frx"))
-                    Set flRawFormDesign = fso.GetFile(Replace(cRaw.ExpFileFullName, ".frm", ".frx"))
-                    If UserFormSizeIsDifferent(sid_file_1:=flExpFormDesign _
-                                             , sid_file_2:=flRawFormDesign _
-                                              ) _
-                    Then
-                        bRawChanged = True
-                    End If
-                End If
-                
-                '~~ 2. The raw clone has changed when clone's temporary Export File differs from its last created Export File
-                If Not fso.FileExists(sExpFileFullName) Then
-                    bCloneChanged = True
-                Else
-                    mTrc.BoC ErrSrc(PROC) & " File compare '" & flTempExport.PATH & "' with '" & Me.ExpFileFullName & "'"
-                    bCloneChanged = _
-                    mFile.Differs(dif_file1:=flTempExport _
-                              , dif_file2:=Me.ExpFile _
-                              , dif_ignore_empty_records:=True _
-                              , dif_ignore_case:=True _
-                              , dif_lines:=arDiff _
-                               )
-                    mTrc.EoC ErrSrc(PROC) & " File compare '" & flTempExport.PATH & "' with '" & Me.ExpFileFullName & "'"
-                End If
-                    
-                If Not bCloneChanged And vbc.Type = vbext_ct_MSForm Then
-                    '~~ If it is a UserForm the design may have changed only
-                    Set flExpFormDesign = fso.GetFile(Replace(sExpFileFullName, ".frm", ".frx"))
-                    Set flTempFormDesign = fso.GetFile(Replace(sTempExport, ".frm", ".frx"))
-                    If UserFormSizeIsDifferent(sid_file_1:=flTempFormDesign _
-                                             , sid_file_2:=flExpFormDesign _
-                                              ) _
-                    Then
-                        bCloneChanged = True
-                    End If
-                End If
-                
-            Case enHostedRaw, enInternal
-                If Not fso.FileExists(sExpFileFullName) Then
-                    bCodeChanged = True
-                Else
-                    mTrc.BoC ErrSrc(PROC) & " File compare '" & flTempExport.PATH & "' with '" & Me.ExpFileFullName & "'"
-                    bCodeChanged = mFile.Differs(dif_file1:=flTempExport _
-                                               , dif_file2:=Me.ExpFile _
-                                               , dif_ignore_empty_records:=True _
-                                               , dif_ignore_case:=True _
-                                               , dif_lines:=arDiff _
-                                                )
-                    mTrc.EoC ErrSrc(PROC) & " File compare '" & flTempExport.PATH & "' with '" & Me.ExpFileFullName & "'"
-                End If
-                
-                If Not bCodeChanged And vbc.Type = vbext_ct_MSForm Then
-                    '~~ If it is a UserForm the design may have changed only
-                    Set flTempFormDesign = fso.GetFile(Replace(sTempExport, ".frm", ".frx"))
-                    Set flExpFormDesign = fso.GetFile(Replace(sExpFileFullName, ".frm", ".frx"))
-                    If UserFormSizeIsDifferent(sid_file_1:=flTempFormDesign _
-                                             , sid_file_2:=flExpFormDesign _
-                                              ) _
-                    Then
-                        bCodeChanged = True
-                    End If
-                End If
-        End Select
-            
-        Select Case lKindOfComp
-            Case enRawClone
-                If bRawChanged And bCloneChanged Then
-                    lKindOfCodeChange = enRawAndClone
-                ElseIf bRawChanged And Not bCloneChanged Then
-                    lKindOfCodeChange = enRawOnly
-                ElseIf Not bRawChanged And bCloneChanged Then
-                    lKindOfCodeChange = enCloneOnly
-                ElseIf Not bRawChanged And Not bCloneChanged Then
-                    lKindOfCodeChange = enNoCodeChange
-                End If
-            Case enHostedRaw, enInternal
-                If bCodeChanged Then
-                    lKindOfCodeChange = enInternalOnly
-                Else
-                    lKindOfCodeChange = enNoCodeChange
-                End If
-        End Select
-        cLog.Action = "Kind of CodeChange = " & KoCCStrng(lKindOfCodeChange)
-    End If
-    
-xt: KindOfCodeChange = lKindOfCodeChange
-    If lKindOfCodeChange <> enNoCodeChange And lKindOfCodeChange <> enPendingExportOnly Then
-        On Error Resume Next ' in case there is no line though a change had been detected (e.g. in the UserForm design only)
-        cLog.Action = "1. Line changed: " & arDiff(0)
-        On Error GoTo eh
-    End If
-    ' Do cleanup
-    On Error Resume Next
-    fso.DeleteFolder sTempFolder, True
-    Exit Property
+'Public Property Get KindOfCodeChange( _
+'           Optional ignore_empty_lines As Boolean = False) As enKindOfCodeChange
+'' ------------------------------------------------------------------------------
+'' Returns the kind of code change.
+'' - The "Raw" has changed when the Component is a used Raw and its Export File
+''   differs from the Export File of the Raw Component hosted in another Workbook
+'' - The "Used Raw Component" or the "Neither Hosted Nor Used Raw Component" has
+''   changed when the code of the VBComponent differs from its Export File.
+'' - Both, the "Raw Hosted in another Workbook" and the "Used Raw Component have
+''   changed, when both of the above is true for a "Used Raw Component".
+'' ------------------------------------------------------------------------------
+'    Const PROC = "KindOfCodeChange_Get"
+'
+'    On Error GoTo eh
+'    Dim fso                 As New FileSystemObject
+'    Dim sTempExport         As String
+'    Dim bCodeChanged        As Boolean
+'    Dim bRawChanged         As Boolean
+'    Dim bCloneChanged       As Boolean
+'    Dim sTempFolder         As String
+'    Dim arDiff              As Variant
+'    Dim flTempFormDesign    As FILE
+'    Dim flExpFormDesign     As FILE
+'    Dim flRawFormDesign     As FILE
+'    Dim flTempExport        As FILE
+'    Dim dct1                As Dictionary
+'    Dim dct2                As Dictionary
+'    Dim dct3                As Dictionary
+'    Dim dct4                As Dictionary
+'    Dim dct5                As Dictionary
+'
+'    If lKindOfCodeChange = enKindOfCodeChange.enUnknown Then
+'
+''        If cComp.CompName = "mFile" Then Stop
+'        '~~ Provide a temporary export for the current vbc which is used to determine a code change
+'        '~~ (a temporary folder is essential for the determination of a UserForm design change)
+'        With fso
+'            sTempFolder = sExpPath & "\Temp"
+'            If Not .FolderExists(sTempFolder) Then .CreateFolder sTempFolder
+'            sTempExport = sTempFolder & "\" & vbc.name & sExtension
+'            vbc.Export sTempExport
+'            Set flTempExport = .GetFile(sTempExport)
+'        End With
+'
+'        Select Case Me.KindOfComp
+'            Case enRawClone
+'                '~~ The modified raw may have been re-imported already and thus only the export is pending
+'                Set dct1 = mFile.Differs(dif_file1:=flTempExport _
+'                                       , dif_file2:=cRaw.ExpFile _
+'                                       , dif_ignore_empty_records:=True _
+'                                       , dif_compare:=vbTextCompare _
+'                                       , dif_stop_after:=1 _
+'                                        )
+'                Set dct2 = mFile.Differs(dif_file1:=flTempExport _
+'                                       , dif_file2:=cComp.ExpFile _
+'                                       , dif_ignore_empty_records:=True _
+'                                       , dif_compare:=vbTextCompare _
+'                                       , dif_stop_after:=1 _
+'                                        )
+'                If dct1.Count = 0 And dct2.Count <> 0 Then
+'                    '~~ The code - yet not exported - is identical with the remote raw component's code (i.e. its Export File)
+'                    lKindOfCodeChange = enPendingExportOnly
+'                    cLog.Action = "Kind of CodeChange = " & KoCCStrng(lKindOfCodeChange)
+'                    cLog.Action = "Changed: " & dct2.Items()(0)
+'                    Debug.Print dct2.Items()(0)
+'                    GoTo xt
+'                End If
+'
+'                '~~ 1. The (remote) raw has changed when the clone's Export File differs from the raw's Export File
+'                Set dct3 = mFile.Differs(dif_file1:=Me.ExpFile _
+'                                       , dif_file2:=cRaw.ExpFile _
+'                                       , dif_ignore_empty_records:=True _
+'                                       , dif_compare:=vbTextCompare _
+'                                       , dif_stop_after:=1 _
+'                                        )
+'                If dct3.Count <> 0 Then
+'                    bRawChanged = True
+'                    cLog.Action = "Kind of CodeChange = " & KoCCStrng(lKindOfCodeChange)
+'                    cLog.Action = "Changed: " & dct3.Items()(0)
+'                    Debug.Print dct3.Items()(0)
+'                End If
+'
+'                If Not bRawChanged And vbc.Type = vbext_ct_MSForm Then
+'                    '~~ If it is a UserForm the design may have changed only
+'                    Set flExpFormDesign = fso.GetFile(Replace(sExpFileFullName, ".frm", ".frx"))
+'                    Set flRawFormDesign = fso.GetFile(Replace(cRaw.ExpFileFullName, ".frm", ".frx"))
+'                    If UserFormSizeIsDifferent(sid_file_1:=flExpFormDesign _
+'                                             , sid_file_2:=flRawFormDesign _
+'                                              ) _
+'                    Then
+'                        bRawChanged = True
+'                    End If
+'                End If
+'
+'                '~~ 2. The raw clone has changed when clone's temporary Export File differs from its last created Export File
+'                If Not fso.FileExists(sExpFileFullName) Then
+'                    bCloneChanged = True
+'                Else
+'                    Set dct4 = mFile.Differs(dif_file1:=flTempExport _
+'                              , dif_file2:=Me.ExpFile _
+'                              , dif_ignore_empty_records:=True _
+'                              , dif_compare:=vbTextCompare _
+'                              , dif_stop_after:=1 _
+'                               )
+'                    If dct4.Count <> 0 Then
+'                        bCloneChanged = True
+'                        Debug.Print dct4.Items()(0)
+'                    End If
+'                End If
+'
+'                If Not bCloneChanged And vbc.Type = vbext_ct_MSForm Then
+'                    '~~ If it is a UserForm the design may have changed only
+'                    Set flExpFormDesign = fso.GetFile(Replace(sExpFileFullName, ".frm", ".frx"))
+'                    Set flTempFormDesign = fso.GetFile(Replace(sTempExport, ".frm", ".frx"))
+'                    If UserFormSizeIsDifferent(sid_file_1:=flTempFormDesign _
+'                                             , sid_file_2:=flExpFormDesign _
+'                                              ) _
+'                    Then
+'                        bCloneChanged = True
+'                    End If
+'                End If
+'
+'            Case enHostedRaw, enInternal
+'                If Not fso.FileExists(sExpFileFullName) Then
+'                    bCodeChanged = True
+'                Else
+'                    mTrc.BoC ErrSrc(PROC) & " File compare '" & flTempExport.Path & "' with '" & Me.ExpFileFullName & "'"
+'                    Debug.Print flTempExport.Path
+'                    Debug.Print Me.ExpFile.Path
+'
+'                    Set dct5 = mFile.Differs(dif_file1:=flTempExport _
+'                                           , dif_file2:=Me.ExpFile _
+'                                           , dif_ignore_empty_records:=True _
+'                                           , dif_compare:=vbTextCompare _
+'                                           , dif_stop_after:=1 _
+'                                            )
+'                    If dct5.Count <> 0 Then
+'                        bCodeChanged = True
+'                        Debug.Print dct5.Items()(0)
+'                    End If
+'                    mTrc.EoC ErrSrc(PROC) & " File compare '" & flTempExport.Path & "' with '" & Me.ExpFileFullName & "'"
+'                End If
+'
+'                If Not bCodeChanged And vbc.Type = vbext_ct_MSForm Then
+'                    '~~ If it is a UserForm the design may have changed only
+'                    Set flTempFormDesign = fso.GetFile(Replace(sTempExport, ".frm", ".frx"))
+'                    Set flExpFormDesign = fso.GetFile(Replace(sExpFileFullName, ".frm", ".frx"))
+'                    If UserFormSizeIsDifferent(sid_file_1:=flTempFormDesign _
+'                                             , sid_file_2:=flExpFormDesign _
+'                                              ) _
+'                    Then
+'                        bCodeChanged = True
+'                    End If
+'                End If
+'        End Select
+'
+'        Select Case lKindOfComp
+'            Case enRawClone
+'                If bRawChanged And bCloneChanged Then
+'                    lKindOfCodeChange = enRawAndClone
+'                ElseIf bRawChanged And Not bCloneChanged Then
+'                    lKindOfCodeChange = enRawOnly
+'                ElseIf Not bRawChanged And bCloneChanged Then
+'                    lKindOfCodeChange = enCloneOnly
+'                ElseIf Not bRawChanged And Not bCloneChanged Then
+'                    lKindOfCodeChange = enNoCodeChange
+'                End If
+'            Case enHostedRaw, enInternal
+'                If bCodeChanged Then
+'                    lKindOfCodeChange = enInternalOnly
+'                Else
+'                    lKindOfCodeChange = enNoCodeChange
+'                End If
+'        End Select
+'        cLog.Action = "Kind of CodeChange = " & KoCCStrng(lKindOfCodeChange)
+'    End If
+'
+'xt: KindOfCodeChange = lKindOfCodeChange
+'    If lKindOfCodeChange <> enNoCodeChange And lKindOfCodeChange <> enPendingExportOnly Then
+'        On Error Resume Next ' in case there is no line though a change had been detected (e.g. in the UserForm design only)
+'        cLog.Action = "1. Line changed: " & arDiff(0)
+'        On Error GoTo eh
+'    End If
+'    ' Do cleanup
+'    On Error Resume Next
+'    fso.DeleteFolder sTempFolder, True
+'    Set dct1 = Nothing
+'    Set dct2 = Nothing
+'    Set dct3 = Nothing
+'    Set dct4 = Nothing
+'    Set dct5 = Nothing
+'    Exit Property
+'
+'eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+'        Case mErH.DebugOpt1ResumeError: Stop: Resume
+'        Case mErH.DebugOpt2ResumeNext: Resume Next
+'        Case mErH.ErrMsgDefaultButton: Exit Property
+'    End Select
+'End Property
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: Exit Property
-    End Select
-End Property
-
-Private Function KoCCStrng(ByVal kocc As enKindOfCodeChange) As String
-    Select Case kocc
-        Case enKindOfCodeChange.enUnknown:              KoCCStrng = "Unknown (an error when logged!)"
-        Case enKindOfCodeChange.enNoCodeChange:         KoCCStrng = "Unchanged"
-        Case enKindOfCodeChange.enRawAndClone:          KoCCStrng = "Clone and Raw code changed"
-        Case enKindOfCodeChange.enCloneOnly:            KoCCStrng = "Clone code changed"
-        Case enKindOfCodeChange.enRawOnly:              KoCCStrng = "Raw code changed"
-        Case enKindOfCodeChange.enInternalOnly:             KoCCStrng = "Code changed (is neither a raw nor a clone however!)"
-        Case enKindOfCodeChange.enPendingExportOnly:    KoCCStrng = "Export pending only"
-    End Select
-End Function
+'Private Function KoCCStrng(ByVal kocc As enKindOfCodeChange) As String
+'    Select Case kocc
+'        Case enKindOfCodeChange.enUnknown:              KoCCStrng = "Unknown (an error when logged!)"
+'        Case enKindOfCodeChange.enNoCodeChange:         KoCCStrng = "Unchanged"
+'        Case enKindOfCodeChange.enRawAndClone:          KoCCStrng = "Clone and Raw code changed"
+'        Case enKindOfCodeChange.enCloneOnly:            KoCCStrng = "Clone code changed"
+'        Case enKindOfCodeChange.enRawOnly:              KoCCStrng = "Raw code changed"
+'        Case enKindOfCodeChange.enInternalOnly:             KoCCStrng = "Code changed (is neither a raw nor a clone however!)"
+'        Case enKindOfCodeChange.enPendingExportOnly:    KoCCStrng = "Export pending only"
+'    End Select
+'End Function
 
 Public Property Get KindOfComp() As enKindOfComp
     Const PROC = "KindOfComp"
     
     On Error GoTo eh
     
-    mErH.BoP ErrSrc(PROC)
     If lKindOfComp = enKindOfComp.enUnknown Then
         If mRaw.Exists(sCompName) Then
             If mRaw.HostFullName(comp_name:=sCompName) = Me.Wrkbk.FullName _
@@ -312,9 +336,8 @@ Public Property Get KindOfComp() As enKindOfComp
         End If
         cLog.Action = "Kind of Component = " & KoCStrng(lKindOfComp)
     End If
-    KindOfComp = lKindOfComp
     
-xt: mErH.EoP ErrSrc(PROC)
+xt: KindOfComp = lKindOfComp
     Exit Property
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -491,103 +514,43 @@ Private Function BaseName(ByVal s As String) As String
     Set fso = Nothing
 End Function
 
-Public Function CodeModuleIsEmpty() As Boolean
-' --------------------------------------------
-' Returns TRUE when the CodeModule (v) has 0
-' only 1 line with a lenght < 2.
-' --------------------------------------------
-    
-    With vbc.CodeModule
-        If .CountOfLines = 0 Then
-            CodeModuleIsEmpty = True
-        ElseIf .CountOfLines = 1 And Len(.Lines(1, 1)) < 2 Then
-            CodeModuleIsEmpty = True
-        End If
-    End With
-    
-End Function
+Public Property Get Changed() As Boolean
+' --------------------------------------
+' returns TRUE when the temporary Export
+' File differs from the regular Export
+' File which indicates that the code had
+' changed.
+' --------------------------------------
+    Dim fso         As New FileSystemObject
+    Dim sTempFolder As String
+    Dim sTempExport As String
 
-Public Function CodeToArray() As String()
-' ---------------------------------------
-' Returns the Component's CodeModule as
-' as Array. When the Code Module is empty
-' The CodeArray will not be assigned !!!!
-' ---------------------------------------
-    Const PROC = "CodeToArray"
+    If dctChanges Is Nothing Then
+        With fso
+            sTempFolder = sExpPath & "\Temp"
+            If Not .FolderExists(sTempFolder) Then .CreateFolder sTempFolder
+            sTempExport = sTempFolder & "\" & vbc.name & sExtension
+            vbc.Export sTempExport
+        End With
+    
+        Set dctChanges = _
+        mFile.Differs(dif_file1:=fso.GetFile(sTempExport) _
+                    , dif_file2:=cComp.ExpFile _
+                    , dif_ignore_empty_records:=True _
+                    , dif_compare:=vbTextCompare _
+                    , dif_stop_after:=1 _
+                     )
 
-    On Error GoTo eh
-    Dim va      As Variant
-    Dim sLine   As String
-    Dim sSplit  As String
-        
-    With vbc.CodeModule
-        If .CountOfLines = 0 Then GoTo xt
-        sLine = .Lines(1, .CountOfLines)
-        If InStr(sLine, vbCr) <> 0 Then sSplit = vbCr
-        If InStr(sLine, vbLf) <> 0 Then sSplit = sSplit & vbLf
-        va = Split(sLine, sSplit)
-    End With
-            
-    mBasic.ArrayTrimm va
+    End If
+    Changed = dctChanges.Count <> 0
+    Set fso = Nothing
     
-xt: If Not TypeName(va) = "Empty" _
-    Then CodeToArray = va
-    Exit Function
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Function
-
-Public Function CodeToDict() As Dictionary
-' ----------------------------------------
-' Returns the Component's CodeModule as
-' Dictionary.
-' ---------------------------------------
-    Const PROC = "CodeToDict"
-
-    On Error GoTo eh
-    Dim dct     As New Dictionary
-    Dim va      As Variant
-    Dim sLine   As String
-    Dim sSplit  As String
-    Dim i       As Long
-    Dim v       As Variant
-        
-    With vbc.CodeModule
-        If .CountOfLines = 0 Then GoTo xt
-        sLine = .Lines(1, .CountOfLines)
-        If InStr(sLine, vbCr) <> 0 Then sSplit = vbCr
-        If InStr(sLine, vbLf) <> 0 Then sSplit = sSplit & vbLf
-        va = Split(sLine, sSplit)
-    End With
-    mBasic.ArrayTrimm va
-    For Each v In va
-        i = i + 1
-        dct.Add i, v
-    Next v
-    
-xt: Set CodeToDict = dct
-    Exit Function
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Function
+End Property
 
 Private Function DebugComp() As String
-' ------------------------------------
-'
-' ------------------------------------
-        
     If lMaxCompLength > 0 _
     Then DebugComp = sCompName & " " & String(lMaxCompLength - Len(sCompName), ".") & ": " _
     Else DebugComp = sCompName & " : "
-
 End Function
 
 Public Sub DisplayDiff(ByVal flLeft As FILE, _
@@ -610,8 +573,8 @@ Public Sub DisplayDiff(ByVal flLeft As FILE, _
     sCommand = "WinMergeU /e" & _
                " /dl " & DQUOTE & sTitleLeft & DQUOTE & _
                " /dr " & DQUOTE & sTitleRght & DQUOTE & " " & _
-               """" & flLeft.PATH & """" & " " & _
-               """" & flRght.PATH & """"
+               """" & flLeft.Path & """" & " " & _
+               """" & flRght.Path & """"
     
     With New wshShell
         .Run sCommand, windowStyle, waitOnReturn
@@ -686,11 +649,11 @@ Public Function ExpFileToArray(ByVal fl As FILE) As String()
     Dim a           As Variant
     Dim i           As Long
     
-    a = mFile.Arry(fl.PATH)
+    a = mFile.Arry(fl.Path)
     '~~ Remove the extra module information lines
     For i = UBound(a) To LBound(a) Step -1
         '~~ Find last Exported module info
-        If left(a(i), Len(ATTRIB_VB)) = ATTRIB_VB Then
+        If Left(a(i), Len(ATTRIB_VB)) = ATTRIB_VB Then
             Exit For
         End If
     Next i
@@ -737,8 +700,8 @@ Public Function ExpFileToDict(ByVal fl As FILE) As Dictionary
     
     '~~ Remove the extra module information lines
     For Each v In dct
-        If left(sLine, Len(ATTRIB_LINE)) = ATTRIB_LINE _
-        And left(dct(v), Len(ATTRIB_LINE)) <> ATTRIB_LINE _
+        If Left(sLine, Len(ATTRIB_LINE)) = ATTRIB_LINE _
+        And Left(dct(v), Len(ATTRIB_LINE)) <> ATTRIB_LINE _
         Then Exit For
         cllRemove.Add v
         sLine = dct(v)
@@ -838,7 +801,7 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
         With cRaw
             .HostFullName = mRaw.HostFullName(comp_name:=cComp.CompName)
             .ExpFile = fso.GetFile(mRaw.ExpFileFullName(comp_name:=cComp.CompName))
-            .ExpFileFullName = .ExpFile.PATH
+            .ExpFileFullName = .ExpFile.Path
             .RawHost = mCompMan.WbkGetOpen(.HostFullName)
             .RawVbc = .RawHost.VBProject.VBComponents(Index:=cComp.CompName)
             Select Case .RawType
@@ -975,8 +938,8 @@ Private Function UserFormSizeIsDifferent( _
     Dim sFrxFile2Path  As String
     Dim fso             As New FileSystemObject
     
-    sFrxFile1Path = Replace$(sid_file_1.PATH, ".frm", ".frx")
-    sFrxFile2Path = Replace$(sid_file_2.PATH, ".frm", ".frx")
+    sFrxFile1Path = Replace$(sid_file_1.Path, ".frm", ".frx")
+    sFrxFile2Path = Replace$(sid_file_2.Path, ".frm", ".frx")
     
     With fso
         If sid_file_1.Size <> sid_file_2.Size Then
@@ -988,4 +951,11 @@ Private Function UserFormSizeIsDifferent( _
     Set fso = Nothing
     
 End Function
+
+Private Sub Class_Terminate()
+    Set dctChanges = Nothing
+    Set wb = Nothing
+    Set vbc = Nothing
+    Set flExpFile = Nothing
+End Sub
 

@@ -68,10 +68,6 @@ Public Sub Regression()
     
     mErH.BoP ErrSrc(PROC)
     Test_01_KindOfComp
-    Test_05_01_KindOfCodeChange_NoRaw_UsedOnly
-    Test_05_02_KindOfCodeChange_NoRaw_NoCodeChange
-    Test_05_03_KindOfCodeChange_NoRaw_UsedOnly
-    Test_05_04_KindOfCodeChange_NoRaw_UsedOnly
     mErH.EoP ErrSrc(PROC)
     
 End Sub
@@ -79,10 +75,10 @@ End Sub
     
 Public Sub Test()
     With New FileSystemObject
-        Debug.Print "File-Path          : " & .GetFile(ThisWorkbook.FullName).PATH
+        Debug.Print "File-Path          : " & .GetFile(ThisWorkbook.FullName).Path
         Debug.Print "File-Name          : " & .GetFile(ThisWorkbook.FullName).name
-        Debug.Print "File-BaseName      : " & .GetBaseName(.GetFile(ThisWorkbook.FullName).PATH)
-        Debug.Print "File-Extension     : " & .GetExtensionName(.GetFile(ThisWorkbook.FullName).PATH)
+        Debug.Print "File-BaseName      : " & .GetBaseName(.GetFile(ThisWorkbook.FullName).Path)
+        Debug.Print "File-Extension     : " & .GetExtensionName(.GetFile(ThisWorkbook.FullName).Path)
         Debug.Print "File-Parent-Folder : " & .GetParentFolderName(.GetFile(ThisWorkbook.FullName))
     End With
 End Sub
@@ -95,7 +91,7 @@ Public Sub Test_01_KindOfComp()
     Dim cComp       As clsComp
     Dim sComp       As String
     
-    Set wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.PATH) & "\File\File.xlsm")
+    Set wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsm")
 
     sComp = "mFile"
     Set cComp = Nothing
@@ -137,198 +133,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     
 End Sub
 
-Public Sub Test_05_01_KindOfCodeChange_NoRaw_UsedOnly()
-'-----------------------------------------------
-'
-' ----------------------------------------------
-    Const PROC = "Test_05_01_KindOfCodeChange_NoRaw_UsedOnly"
-    
-    On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim wbTest      As Workbook
-    Dim sExpFile    As String
-    
-    If cTest Is Nothing Then Set cTest = New clsTestService
-    If cComp Is Nothing Then Set cComp = New clsComp
-    
-    '~~ Begin of test preparation
-    With cTest
-        .TestProcedure = ThisWorkbook.name & ": " & ErrSrc(PROC)
-        .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
-        .TestedByTheWay = "clsComp.ExpFileFullName"
-        Set wbTest = mCompMan.WbkGetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
-        .ResultExpected = True
-        .Details = "Export File does not exist, CodeModule not/never exported"
-    End With
-    
-    With cComp
-        .Wrkbk = wbTest
-        .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
-        sExpFile = .ExpFileFullName
-        If fso.FileExists(sExpFile) Then fso.DeleteFile (sExpFile)
-        
-        ' Test: Code is regarded changed because there is no export file
-        mErH.BoP ErrSrc(PROC)
-        Debug.Assert .KindOfCodeChange = enInternalOnly
-        mErH.EoP ErrSrc(PROC)
-    
-    End With
-        
-xt: Cleanup exp_file:=sExpFile, vbc:=cComp.VBComp
-    Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
-    End Select
-End Sub
-
-Public Sub Test_05_02_KindOfCodeChange_NoRaw_NoCodeChange()
-'-----------------------------------------------
-'
-' ----------------------------------------------
-    Const PROC = "Test_05_02_KindOfCodeChange_NoRaw_NoCodeChange"
-    
-    On Error GoTo eh
-    Dim sExpFile    As String
-    Dim vResult     As Variant
-    
-    If cTest Is Nothing Then Set cTest = New clsTestService
-    If cComp Is Nothing Then Set cComp = New clsComp
-    
-    '~~ Test preparation
-    With cTest
-        .TestProcedure = ThisWorkbook.name & ": " & ErrSrc(PROC)
-        .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
-        .TestedByTheWay = "clsComp.ExpFileFullName"
-        Set wbTest = mCompMan.WbkGetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
-        .ResultExpected = False
-        .Details = "Export File is identical with CodeModule"
-    End With
-    
-    With cComp
-        .Wrkbk = wbTest
-        .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
-        sExpFile = .ExpFileFullName
-        If .VBComp.CodeModule.Lines(1, 1) = TEST_CHANGE Then .VBComp.CodeModule.DeleteLines 1, 1
-        .VBComp.Export sExpFile
-    End With
-    
-    ' Test: Code has not changed because it is identical with the export file
-    mErH.BoP ErrSrc(PROC)
-    Debug.Assert cComp.KindOfCodeChange = enNoCodeChange
-    mErH.EoP ErrSrc(PROC)
-    
-    ' Evaluating the result
-    If cTest.Evaluated(vResult) = cTest.FAILED Then Stop
-           
-xt: Cleanup exp_file:=sExpFile, vbc:=cComp.VBComp
-    Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
-    End Select
-End Sub
-
-Public Sub Test_05_03_KindOfCodeChange_NoRaw_UsedOnly()
-'-----------------------------------------------
-'
-' ----------------------------------------------
-    Const PROC = "Test_05_03_KindOfCodeChange_NoRaw_UsedOnly"
-    
-    On Error GoTo eh
-    Dim sExpFile    As String
-    
-    If cTest Is Nothing Then Set cTest = New clsTestService
-    If cComp Is Nothing Then Set cComp = New clsComp
-    
-    '~~ Test preparation
-    With cTest
-        .TestProcedure = ThisWorkbook.name & "." & ErrSrc(PROC)
-        .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
-        .TestedByTheWay = "clsComp.ExpFileFullName"
-        .Details = "Export File outdated, CodeModule changed (additional line)"
-        .ResultExpected = True
-    End With
-    Set wbTest = mCompMan.WbkGetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
-    
-    With cComp
-        .Wrkbk = wbTest
-        .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
-        sExpFile = .ExpFileFullName
-        If .VBComp.CodeModule.Lines(1, 1) = TEST_CHANGE Then .VBComp.CodeModule.DeleteLines 1, 1
-        .VBComp.Export sExpFile ' Overwrites any existing
-        .VBComp.CodeModule.InsertLines 1, TEST_CHANGE
-    End With
-    
-    '~~ Test: Code is regarded changed because it is not identical with the Export File
-    mErH.BoP ErrSrc(PROC)
-    Debug.Assert cComp.KindOfCodeChange = enInternalOnly
-    mErH.EoP ErrSrc(PROC)
-               
-xt: Cleanup exp_file:=sExpFile, vbc:=cComp.VBComp
-    Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
-    End Select
-End Sub
-
-Public Sub Test_05_04_KindOfCodeChange_NoRaw_UsedOnly()
-'-----------------------------------------------
-'
-' ----------------------------------------------
-    Const PROC = "Test_05_04_KindOfCodeChange_NoRaw_UsedOnly"
-    
-    On Error GoTo eh
-    Dim sExpFile    As String
-    Dim vResult     As Variant
-    
-    If cTest Is Nothing Then Set cTest = New clsTestService
-    If cComp Is Nothing Then Set cComp = New clsComp
-    
-    '~~ Test preparation
-    With cTest
-        .TestProcedure = ThisWorkbook.name & "." & ErrSrc(PROC)
-        .TestItem = ThisWorkbook.name & ".clsComp.CodeChanged"
-        .TestedByTheWay = "clsComp.ExpFileFullName"
-        .Details = "Additional empty line in CodeModule is not considered a change though the Export File is outdated"
-        .ResultExpected = False
-    End With
-    Set wbTest = mCompMan.WbkGetOpen(ThisWorkbook.PATH & "\" & "Test\Test1.xlsm")
-    
-    With cComp
-        .Wrkbk = wbTest
-        .VBComp = .Wrkbk.VBProject.VBComponents("mTest")
-        sExpFile = .ExpFileFullName
-        If .VBComp.CodeModule.Lines(1, 1) = TEST_CHANGE Then .VBComp.CodeModule.DeleteLines 1, 1
-        .VBComp.Export sExpFile ' Overwrites any existing
-        .VBComp.CodeModule.InsertLines 1, vbLf
-    End With
-    
-    '~~ Test: Code is regarded changed because it is not identical with the Export File
-    mErH.BoP ErrSrc(PROC)
-    Debug.Assert cComp.KindOfCodeChange(ignore_empty_lines:=True) = enInternalOnly
-    mErH.EoP ErrSrc(PROC)
-    
-    ' Evaluating the result
-    If cTest.Evaluated(vResult) = cTest.FAILED Then Stop
-           
-xt: Cleanup exp_file:=sExpFile, vbc:=cComp.VBComp
-    Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
-    End Select
-End Sub
-
 Public Sub Test_10_ExportChangedComponents()
     Const PROC = "Test_ExportChangedComponents"
     
@@ -336,10 +140,6 @@ Public Sub Test_10_ExportChangedComponents()
     mCompMan.ExportChangedComponents ThisWorkbook
     mErH.EoP ErrSrc(PROC)
     
-End Sub
-
-Public Sub Test_CompOriginHasChanged()
-
 End Sub
 
 Public Sub Test_File_Compare()
@@ -433,7 +233,7 @@ Public Sub Test_File_Sections_Transfer_By_LetGet()
     
     mFile.SectionsCopy sc_section_names:=arSections, sc_file_from:=sFileGet, sc_file_to:=sFileLet
     Debug.Assert mFile.Differs(dif_file1:=fso.GetFile(sFileGet) _
-                             , dif_file2:=fso.GetFile(sFileLet)) = False
+                             , dif_file2:=fso.GetFile(sFileLet)).Count = 0
     
     mErH.EoP ErrSrc(PROC)
     
@@ -557,9 +357,9 @@ Public Sub Test_Log()
         .ServicedItem = ThisWorkbook.name & ": " & "Test-item"
         .Action = "Tested"
         mMsg.Box msg_title:="Test-Log:" _
-               , msg:=mFile.Txt(tx_file_full_name:=.LogFile.PATH) _
+               , msg:=mFile.Txt(tx_file_full_name:=.LogFile.Path) _
                , msg_monospaced:=True
-        If fso.FileExists(.LogFile.PATH) Then fso.DeleteFile .LogFile.PATH
+        If fso.FileExists(.LogFile.Path) Then fso.DeleteFile .LogFile.Path
     End With
     
 xt: Set cLog = Nothing
@@ -730,7 +530,7 @@ Private Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
                                   , sel_filter_name:="bas-ExportFile" _
                                   , sel_title:="Select an Export File for the renewal of the component '" & .CompName & "'!" _
                                   , sel_result:=flExport) _
-                Then sExpFile = flExport.PATH
+                Then sExpFile = flExport.Path
                 For i = 1 To repeat
                     Application.Run RenewService _
                                   , .Wrkbk _
@@ -947,7 +747,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
                                   , sel_filter_name:="UserForm" _
                                   , sel_title:="Select an Export File for the renewal of the component '" & .CompName & "'!" _
                                   , sel_result:=flExport) _
-                Then sExpFile = flExport.PATH
+                Then sExpFile = flExport.Path
                 For i = 1 To repeat
                     Application.Run RenewService _
                                   , .Wrkbk _
@@ -973,10 +773,9 @@ Public Sub Test_UpdateRawClones()
     Const PROC  As String = "Test_UpdateRawClones"
     
     On Error GoTo eh
-    Dim sService    As String
     Dim lMaxCompLen As Long
     
-    sService = "CompMan Service '" & PROC & "': "
+    mCompMan.Service = "CompMan Service '" & PROC & "': "
 
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
@@ -991,7 +790,7 @@ Public Sub Test_UpdateRawClones()
             mErH.BoP ErrSrc(PROC)
             Application.Run UpdateClonesService _
                           , lMaxCompLen _
-                          , sService
+                          , mCompMan.Service
             mErH.EoP ErrSrc(PROC)
         End If
     End If

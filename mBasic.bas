@@ -125,34 +125,39 @@ Public Function AppIsInstalled(ByVal sApp As String) As Boolean
 
 End Function
 
-Public Function ArrayCompare(ByVal ac_a1 As Variant, _
-                             ByVal ac_a2 As Variant, _
-                    Optional ByVal ac_stop_after As Long = 1, _
-                    Optional ByVal ac_id1 As String = vbNullString, _
-                    Optional ByVal ac_id2 As String = vbNullString, _
-                    Optional ByVal ac_ignore_case As Boolean = True) As Variant
-' ----------------------------------------------------------------------------
-' Returns an array of n (as_stop_after) lines which are different between
-' array 1 (ac_a1) and array 2 (ac_a2). Each line element contains the
-' lines which differ in the form:
-' linenumber: <ac_id1> '<line>' || <ac_id2> '<line>'
-' The comparisonWhen a value for stop after n (ac_stop_after) lines.
-' Note: Either or both arrays may not be assigned (=empty).
-' ----------------------------------------------------------------------------
+Public Function ArrayCompare( _
+                       ByVal ac_a1 As Variant, _
+                       ByVal ac_a2 As Variant, _
+              Optional ByVal ac_stop_after As Long = 0, _
+              Optional ByVal ac_id1 As String = vbNullString, _
+              Optional ByVal ac_id2 As String = vbNullString, _
+              Optional ByVal ac_ignore_case As Boolean = True, _
+              Optional ByVal ac_ignore_empty As Boolean = True) As Dictionary
+' --------------------------------------------------------------------------
+' Returns a Dictionary with n (ac_stop_after) lines which are different
+' between array 1 (ac_a1) and array 2 (ac_a2) with the line number as the
+' key and the two different lines as item in the form: '<line>'vbLf'<line>'
+' When no differnece is encountered the returned Dictionary is empty.
+' When no ac_stop_after <> 0 is provided all lines different are returned
+' --------------------------------------------------------------------------
     Const PROC = "ArrayCompare"
     
     On Error GoTo eh
     Dim l       As Long
     Dim i       As Long
-    Dim va()    As Variant
     Dim lMethod As VbCompareMethod
+    Dim dct     As New Dictionary
     
     If ac_ignore_case Then lMethod = vbTextCompare Else lMethod = vbBinaryCompare
     
     If Not mBasic.ArrayIsAllocated(ac_a1) And mBasic.ArrayIsAllocated(ac_a2) Then
-        va = ac_a2
+        For i = LBound(ac_a2) To UBound(ac_a2)
+            dct.Add i + 1, "'" & ac_a2(i) & "'" & vbLf
+        Next i
     ElseIf mBasic.ArrayIsAllocated(ac_a1) And Not mBasic.ArrayIsAllocated(ac_a2) Then
-        va = ac_a1
+        For i = LBound(ac_a1) To UBound(ac_a1)
+            dct.Add i + 1, "'" & ac_a1(i) & "'" & vbLf
+        Next i
     ElseIf Not mBasic.ArrayIsAllocated(ac_a1) And Not mBasic.ArrayIsAllocated(ac_a2) Then
         GoTo xt
     End If
@@ -160,31 +165,34 @@ Public Function ArrayCompare(ByVal ac_a1 As Variant, _
     l = 0
     For i = LBound(ac_a1) To Min(UBound(ac_a1), UBound(ac_a2))
         If StrComp(ac_a1(i), ac_a2(i), lMethod) <> 0 Then
-            ReDim Preserve va(l)
-            va(l) = Format$(i, "000") & " " & ac_id1 & " '" & ac_a1(i) & "'  < >  '" & ac_id2 & " " & ac_a2(i) & "'"
+            dct.Add i + 1, "'" & ac_a1(i) & "'" & vbLf & "'" & ac_a2(i) & "'"
             l = l + 1
-            If ac_stop_after > 0 And l >= ac_stop_after Then GoTo xt
+            If ac_stop_after <> 0 And l >= ac_stop_after Then
+                GoTo xt
+            End If
         End If
     Next i
     
     If UBound(ac_a1) < UBound(ac_a2) Then
         For i = UBound(ac_a1) + 1 To UBound(ac_a2)
-            ReDim Preserve va(l)
-            va(l) = Format$(i, "000") & ac_id2 & ": '" & ac_a2(i) & "'"
+            dct.Add i + 1, "''" & vbLf & " '" & ac_a2(i) & "'"
             l = l + 1
-            If ac_stop_after > 0 And l >= ac_stop_after Then GoTo xt
+            If ac_stop_after <> 0 And l >= ac_stop_after Then
+                GoTo xt
+            End If
         Next i
         
     ElseIf UBound(ac_a2) < UBound(ac_a1) Then
         For i = UBound(ac_a2) + 1 To UBound(ac_a1)
-            ReDim Preserve va(l)
-            va(l) = Format$(i, "000") & " " & ac_id1 & " '" & ac_a1(i) & "'"
+            dct.Add i + 1, "'" & ac_a1(i) & "'" & vbLf & "''"
             l = l + 1
-            If ac_stop_after > 0 And l >= ac_stop_after Then GoTo xt
+            If ac_stop_after <> 0 And l >= ac_stop_after Then
+                GoTo xt
+            End If
         Next i
     End If
 
-xt: ArrayCompare = va
+xt: Set ArrayCompare = dct
     Exit Function
     
 eh: ErrMsg ErrSrc(PROC)
@@ -350,11 +358,11 @@ Public Sub ArrayToRange(ByVal vArr As Variant, _
     If bOneCol Then
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(UBound(vArr), 1)
-        rTarget.value = Application.Transpose(vArr)
+        rTarget.Value = Application.Transpose(vArr)
     Else
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(1, UBound(vArr))
-        rTarget.value = vArr
+        rTarget.Value = vArr
     End If
     
 xt: Exit Sub
