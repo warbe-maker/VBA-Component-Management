@@ -14,14 +14,14 @@ Option Explicit
 '
 ' W. Rauschenberger Berlin, Jan 2021 (last revised)
 ' -----------------------------------------------------------
-Private wbRawHost               As Workbook
-Private sHostFullName           As String
+Private wbRawHost           As Workbook
+Private sHostFullName       As String
 Private sExpFilePath        As String
-Private flExpFile               As FILE
-Private sCompName               As String
-Private vbcRaw                  As VBComponent
+Private flExpFile           As FILE
+Private sCompName           As String
+Private vbcRaw              As VBComponent
 Private sCloneExpFilePath   As String
-Private dctChanges              As Dictionary
+Private dctChanges          As Dictionary
 
 Private Sub Class_Terminate()
     Set dctChanges = Nothing

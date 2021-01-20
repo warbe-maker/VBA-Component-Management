@@ -412,7 +412,7 @@ Public Sub ExportChangedComponents( _
     For Each vbc In ec_wb.VBProject.VBComponents
         If CodeModuleIsEmpty(vbc) Then GoTo next_vbc
         Set cComp = New clsComp
-        sProgressDots = Left(sProgressDots, Len(sProgressDots) - 1)
+        sProgressDots = left(sProgressDots, Len(sProgressDots) - 1)
         Application.StatusBar = sStatus & vbc.name & " "
         mTrc.BoC ErrSrc(PROC) & " " & vbc.name
         Set cComp = New clsComp
@@ -502,10 +502,10 @@ next_vbc:
     sMsg = mCompMan.Service
     Select Case lExported
         Case 0:     sMsg = sMsg & "None of the " & lComponents & " Components in Workbook " & ec_wb.name & " has been changed/exported/backed up."
-        Case 1:     sMsg = sMsg & "1 of " & lComponents & " components in Workbook " & ec_wb.name & " has been exported/backed up: " & Left(sExported, Len(sExported) - 2)
-        Case Else:  sMsg = sMsg & lExported & " of " & lComponents & " components in Workbook " & ec_wb.name & " has been exported/backed up: " & Left(sExported, Len(sExported) - 1)
+        Case 1:     sMsg = sMsg & "1 of " & lComponents & " components in Workbook " & ec_wb.name & " has been exported/backed up: " & left(sExported, Len(sExported) - 2)
+        Case Else:  sMsg = sMsg & lExported & " of " & lComponents & " components in Workbook " & ec_wb.name & " has been exported/backed up: " & left(sExported, Len(sExported) - 1)
     End Select
-    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
+    If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
     
 xt: Set dctHostedRaws = Nothing

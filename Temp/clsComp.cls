@@ -444,7 +444,7 @@ Public Function ExpFileToArray(ByVal fl As FILE) As String()
     '~~ Remove the extra module information lines
     For i = UBound(a) To LBound(a) Step -1
         '~~ Find last Exported module info
-        If Left(a(i), Len(ATTRIB_VB)) = ATTRIB_VB Then
+        If left(a(i), Len(ATTRIB_VB)) = ATTRIB_VB Then
             Exit For
         End If
     Next i
@@ -491,8 +491,8 @@ Public Function ExpFileToDict(ByVal fl As FILE) As Dictionary
     
     '~~ Remove the extra module information lines
     For Each v In dct
-        If Left(sLine, Len(ATTRIB_LINE)) = ATTRIB_LINE _
-        And Left(dct(v), Len(ATTRIB_LINE)) <> ATTRIB_LINE _
+        If left(sLine, Len(ATTRIB_LINE)) = ATTRIB_LINE _
+        And left(dct(v), Len(ATTRIB_LINE)) <> ATTRIB_LINE _
         Then Exit For
         cllRemove.Add v
         sLine = dct(v)
