@@ -184,7 +184,7 @@ Public Property Get SectionNames(Optional ByVal sn_file As String) As Dictionary
         Else strBuffer = String(Len(strBuffer) * 2, 0)
         iLen = GetPrivateProfileSectionNames(strBuffer, Len(strBuffer), sn_file)
     Loop
-    strBuffer = left$(strBuffer, iLen)
+    strBuffer = Left$(strBuffer, iLen)
     
     If Len(strBuffer) <> 0 Then
         i = 0
@@ -229,7 +229,7 @@ Public Property Get Txt( _
         SplitStr = s
         tx_split = SplitStr
         If VBA.Right$(s, 2) = vbCrLf Then
-            s = VBA.left$(s, Len(s) - 2)
+            s = VBA.Left$(s, Len(s) - 2)
         End If
     Else
         Txt = vbNullString
@@ -304,7 +304,7 @@ Public Property Get Value( _
                                     , nSize:=Len(sRetVal) _
                                     , lpg_FileName:=vl_file _
                                      )
-    vValue = left$(sRetVal, lResult)
+    vValue = Left$(sRetVal, lResult)
     Value = vValue
     
 xt: Exit Property
@@ -379,7 +379,7 @@ Private Function AppIsInstalled(ByVal sApp As String) As Boolean
     
     Dim i As Long: i = 1
     
-    Do Until left(Environ$(i), 5) = "Path="
+    Do Until Left(Environ$(i), 5) = "Path="
         i = i + 1
     Loop
     AppIsInstalled = InStr(Environ$(i), sApp) <> 0
@@ -546,7 +546,7 @@ Public Function Exists(ByVal xst_file As Variant, _
                         queue.Add sfldr ' enqueue (collect) all subfolders
                     Next sfldr
                     For Each fl In fldr.Files
-                        If InStr(fl.name, sFile) <> 0 And left(fl.name, 1) <> "~" Then
+                        If InStr(fl.name, sFile) <> 0 And Left(fl.name, 1) <> "~" Then
                             '~~ Return the existing file which meets the search criteria
                             '~~ as File object in a collection
                             xst_cll.Add fl
@@ -611,7 +611,7 @@ End Function
 
 Public Property Get Temp(Optional ByVal tmp_extension As String = ".tmp") As String
     Dim fso As New FileSystemObject
-    If left(tmp_extension, 1) <> "." Then tmp_extension = "." & tmp_extension
+    If Left(tmp_extension, 1) <> "." Then tmp_extension = "." & tmp_extension
     Temp = Replace(fso.GetTempName, ".tmp", tmp_extension)
     Temp = fso.GetParentFolderName(ActiveWorkbook.FullName) & "\" & Temp
     Set fso = Nothing
@@ -1351,7 +1351,7 @@ Public Function ValueNames( _
                                         , nSize:=Len(strBuffer) _
                                         , lpg_FileName:=vn_file _
                                          )
-        sNames = left$(strBuffer, lResult)
+        sNames = Left$(strBuffer, lResult)
     
         If sNames <> vbNullString Then                                         ' If there were any names
             asNames = Split(sNames, vbNullChar)                      ' have them split into an array
@@ -1375,7 +1375,7 @@ Public Function ValueNames( _
                                             , nSize:=Len(strBuffer) _
                                             , lpg_FileName:=vn_file _
                                              )
-            sNames = left$(strBuffer, lResult)
+            sNames = Left$(strBuffer, lResult)
         
             If sNames <> vbNullString Then                                         ' If there were any names
                 asNames = Split(sNames, vbNullChar)                      ' have them split into an array

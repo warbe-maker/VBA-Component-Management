@@ -10,9 +10,9 @@ Attribute VB_Exposed = True
 Option Explicit
 ' ------------------------------------------------------------------
 ' !! This Workbook exists as two instances:                       !!
-' !! 1. CompManDev.xlsb as the development instance               !!
-' !! 2. CompMan.xlma as the AddIn instance which is setup/renewed !!
-' !!    via the development instance service mAddIn.Renew         !!
+' !! 1. The development instance CompManDev.xlsb                  !!
+' !! 2. The Addin instance CompMan.xlma which is setup/renewed    !!
+' !!    via the development instance service mMe.RenewAddIn       !!
 '
 ' Properties:
 ' - AddInInstanceFullName Full path/file name of the Addin Instance
@@ -29,7 +29,7 @@ Option Explicit
 ' See Github repo
 ' ------------------------------------------------------------------
 
-Public Property Get HOSTED_RAWS() As String:            HOSTED_RAWS = "":                                                End Property
+Friend Property Get HOSTED_RAWS() As String:    HOSTED_RAWS = "":   End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "wbAddIn" & "." & sProc
@@ -40,7 +40,7 @@ Private Sub Workbook_BeforeClose(Cancel As Boolean)
 End Sub
 
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
-    Const PROC      As String = "Workbook_BeforeSave"
+    Const PROC = "Workbook_BeforeSave"
     
     On Error GoTo eh
     Dim wb As Workbook
@@ -51,16 +51,16 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     mErH.BoP ErrSrc(PROC)
         
     Application.EnableEvents = False
+    Application.StatusBar = "Saving Workbook '" & wb.name
     wb.Save
-    Application.EnableEvents = True
+    Application.StatusBar = vbNullString
     mCompMan.ExportChangedComponents wb, HOSTED_RAWS ' includes management of updated used Common Components
     If Not wb.Saved Then
-        Application.EnableEvents = False
         wb.Save        ' usually not required
-        Application.EnableEvents = True
     End If
     
-xt: mErH.EoP ErrSrc(PROC)
+xt: Application.EnableEvents = True
+    mErH.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: mErH.ErrMsg ErrSrc(PROC)

@@ -219,16 +219,16 @@ Private Sub DsplyStatusUpdateClonesResult( _
         Case 1
             Select Case sp_no_replaced
                 Case 0:     sMsg = sp_service & "1 has been identified as 'Cloned Raw Component' but has not been updated since the raw had not changed."
-                Case 1:     sMsg = sp_service & "1 of 1 'Cloned Raw Component' has been updated because the raw had changed (" & left(sp_replaced, Len(sp_replaced) - 2) & ")."
+                Case 1:     sMsg = sp_service & "1 of 1 'Cloned Raw Component' has been updated because the raw had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
             End Select
         Case Else
             Select Case sp_no_replaced
                 Case 0:     sMsg = sp_service & "None of the " & sp_cloned_raws & " 'Cloned Raw Components' has been updated since none of the raws had changed."
-                Case 1:     sMsg = sp_service & "1 of the " & sp_cloned_raws & "'Cloned Raw Components' has been updated since the raw's code had changed (" & left(sp_replaced, Len(sp_replaced) - 2) & ")."
-                Case Else:  sMsg = sp_service & sp_no_replaced & " of the " & sp_cloned_raws & " 'Cloned Raw Components' have been updated because the raws had changed (" & left(sp_replaced, Len(sp_replaced) - 2) & ")."
+                Case 1:     sMsg = sp_service & "1 of the " & sp_cloned_raws & "'Cloned Raw Components' has been updated since the raw's code had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
+                Case Else:  sMsg = sp_service & sp_no_replaced & " of the " & sp_cloned_raws & " 'Cloned Raw Components' have been updated because the raws had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
             End Select
     End Select
-    If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
+    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
 
 End Sub
