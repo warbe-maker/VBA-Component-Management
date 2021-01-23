@@ -11,7 +11,7 @@ Option Private Module
 '                           open
 ' - CompManAddinPath        Get/Let the configured path for the AddIn instance
 '                           of this Workbook
-' - ConfigAsserted          Returns True when the required properties (paths)
+' - CfgAsserted          Returns True when the required properties (paths)
 '                           are configured and exist
 ' - Renew_1_ConfirmConfig   Get the current configured paths confirmed before
 '                           the AddIn instance of this Workbook is established
@@ -90,12 +90,12 @@ Private Property Get ADDIN_FORMAT() As XlFileFormat ' = ... needs adjustment whe
     ADDIN_FORMAT = xlOpenXMLAddIn
 End Property
 
-Private Property Get CFG_CHANGE_ADDIN_LCTN() As String
-    CFG_CHANGE_ADDIN_LCTN = "Change CompMan" & vbLf & "AddIn Path"
+Private Property Get BTTN_CHANGE_ADDIN_LCTN() As String
+    BTTN_CHANGE_ADDIN_LCTN = "Change CompMan" & vbLf & "AddIn Path"
 End Property
 
-Private Property Get CFG_CHANGE_DEVELOPMENT_ROOT() As String
-    CFG_CHANGE_DEVELOPMENT_ROOT = "Change development" & vbLf & "root folder"
+Private Property Get BTTN_CHANGE_DEVELOPMENT_ROOT() As String
+    BTTN_CHANGE_DEVELOPMENT_ROOT = "Change development" & vbLf & "root folder"
 End Property
 
 Private Property Get CFG_FILENAME() As String: CFG_FILENAME = ThisWorkbook.Path & "\CompMan.cfg": End Property
@@ -289,7 +289,7 @@ Public Function AddInVersion(Optional ByRef sVersion As String) As String
     AddInVersion = sVersion
 End Function
 
-Public Function ConfigAsserted() As Boolean
+Public Function CfgAsserted() As Boolean
 ' ----------------------------------------------------
 ' Assert that an existing Common folder is configured
 ' and that it contains a subfolder "CommComponents".
@@ -306,7 +306,8 @@ Public Function ConfigAsserted() As Boolean
         If .FolderExists(CompManAddinPath) _
         And .FolderExists(RootServicedByCompMan) _
         Then
-            ConfigAsserted = True
+            TrustThisFolder FolderPath:=CompManAddinPath
+            CfgAsserted = True
             .CopyFile Source:=CFG_FILENAME, Destination:=CompManAddinPath & "\CompMan.cfg", OverWriteFiles:=True
             GoTo xt
         End If
@@ -354,55 +355,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Function
-
-Public Sub ControlItemsAdd()
-'------------------------------------
-' Add control to "Add_Ins" popup menu
-'------------------------------------
-    Const PROC = "ControlItemsAdd"
-    
-    On Error GoTo eh
-    Dim cmb   As CommandBar
-    Dim cmbb  As CommandBarButton
-    
-    ControlItemsRemove
-    Set cmb = Application.CommandBars("Worksheet Menu Bar")
-    Set cmbb = cmb.Controls.Add(Type:=msoControlButton, id:=2950)
-    With cmbb
-        .caption = CONTROL_CAPTION_RENEW
-        .Style = msoButtonCaption
-        .TooltipText = "Saves the development instance '" & DevInstncName & "' as '" & AddInInstanceName & "' Addin"
-        .OnAction = "RenewAddIn"
-        .Visible = True
-    End With
-    
-    Set cmbb = cmb.Controls.Add(Type:=msoControlButton, id:=2950)
-    With cmbb
-        .caption = CONTROL_CAPTION_PAUSE
-        .Style = msoButtonCaption
-        .TooltipText = "Pauses (temporarily removes) the " & AddInInstanceName & " Addin"
-        .OnAction = "AddInPause"
-        .Visible = True
-    End With
-    
-    
-xt: Exit Sub
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
-    End Select
-End Sub
-
-Public Sub ControlItemsRemove()
-'--------------------------------------------------------------
-' Remove the "RenewAddIn" control item from the "Add_Ins" popup menu
-'--------------------------------------------------------------
-    On Error Resume Next
-    Application.CommandBars("Worksheet Menu Bar").Controls(CONTROL_CAPTION_RENEW).Delete
-    Application.CommandBars("Worksheet Menu Bar").Controls(CONTROL_CAPTION_PAUSE).Delete
-End Sub
 
 Private Sub DevInstncWorkbookClose()
     Const PROC = "DevInstncWorkbookClose"
@@ -542,40 +494,47 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Renew_1_ConfirmConfig()
-    Const PROC = "Renew_1_ConfirmConfig"
-    Const CFG_CONFIRMED = "Confirmed"
+Public Sub CfgConfirm()
+' ------------------------------------------------------
+'
+' ------------------------------------------------------
+    Const PROC = "CfgConfirm"
+    Const BTTN_CFG_CONFIRMED = "Confirmed"
     
     On Error GoTo eh
     Dim sMsg            As tMsg
     Dim sReply          As String
     
-    mMe.RenewLogAction = "Assert current basic configuration"
     With sMsg
-        .section(1).sText = "Confirm or (re-)configure the location (path) for the CompMan AddIn instance Workbook which currently is:"
+        .section(1).sLabel = "CompMan AddIn instance folder:"
+        .section(1).sText = "Please make sure that the CompMan AddIn resides in its own dedicated location, " & _
+                            "i.e. one different from Excel's default user-specific! Roaming folder."
+        .section(2).sLabel = "Currently configured:"
         .section(2).sText = CompManAddinPath
         .section(2).bMonspaced = True
-        .section(3).sText = "Confirm or (re-)configure the root folder for any VB-Project in status development/maintenance. " & _
-                            "Only Workbooks(VB-Projects in any subfolder will be supported by CompMan!" & vbLf & _
+        .section(3).sLabel = "CompMan serviced root:"
+        .section(3).sText = "Please note that only Workbooks/VB-Projects in any subfolder of the configured root " & _
+                            "are considered by CompMan's Workbook_Open ('UpdateRawClones') and Workbook_BeforeSave ('ExportChangedComponents') service!" & vbLf & _
                             "The current root folder is:"
+        .section(4).sLabel = "Currently configured serviced root:"
         .section(4).sText = RootServicedByCompMan
         .section(4).bMonspaced = True
     End With
     
-    While sReply <> CFG_CONFIRMED
-        sReply = mMsg.Dsply(msg_title:="Confirm or change the current Component Management's basic configuration" _
+    While sReply <> BTTN_CFG_CONFIRMED
+        sReply = mMsg.Dsply(msg_title:="Confirm or change the current basic configuration for the CompMan Addin" _
                           , msg:=sMsg _
-                          , msg_buttons:=mMsg.Buttons(CFG_CONFIRMED, vbLf, CFG_CHANGE_ADDIN_LCTN, CFG_CHANGE_DEVELOPMENT_ROOT) _
+                          , msg_buttons:=mMsg.Buttons(BTTN_CFG_CONFIRMED, vbLf, BTTN_CHANGE_ADDIN_LCTN, BTTN_CHANGE_DEVELOPMENT_ROOT) _
                            )
         Select Case sReply
-            Case CFG_CHANGE_ADDIN_LCTN
+            Case BTTN_CHANGE_ADDIN_LCTN
                 Do
                     CompManAddinPath = mBasic.SelectFolder("Select the ""obligatory!"" folder for the AddIn instance of the CompManDev Workbook")
                     If CompManAddinPath <> vbNullString Then Exit Do
                 Loop
                 TrustThisFolder FolderPath:=CompManAddinPath
             
-            Case CFG_CHANGE_DEVELOPMENT_ROOT
+            Case BTTN_CHANGE_DEVELOPMENT_ROOT
                 Do
                     RootServicedByCompMan = mBasic.SelectFolder("Select the ""obligatory!"" root folder for VB development projects about to be supported by CompMan")
                     If RootServicedByCompMan <> vbNullString Then Exit Do
@@ -583,14 +542,19 @@ Public Sub Renew_1_ConfirmConfig()
         End Select
     Wend
     
-xt: mMe.RenewLogResult = "Passed"
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt1ResumeError: Stop: Resume
         Case mErH.DebugOpt2ResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
+End Sub
+
+Public Sub Renew_1_ConfirmConfig()
+    mMe.RenewLogAction = "Assert current basic configuration"
+    CfgConfirm
+    mMe.RenewLogResult = "Passed"
 End Sub
 
 Private Sub Renew_2_SaveAndRemoveAddInReferences()

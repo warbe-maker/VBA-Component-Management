@@ -35,10 +35,6 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "wbAddIn" & "." & sProc
 End Function
 
-Private Sub Workbook_BeforeClose(Cancel As Boolean)
-    If mMe.IsDevInstnc Then mMe.ControlItemsRemove
-End Sub
-
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     Const PROC = "Workbook_BeforeSave"
     
@@ -51,7 +47,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     mErH.BoP ErrSrc(PROC)
         
     Application.EnableEvents = False
-    Application.StatusBar = "Saving Workbook '" & wb.name
+    Application.StatusBar = "Saving Workbook '" & wb.name & "' please wait, this may take a few seconds"
     wb.Save
     Application.StatusBar = vbNullString
     mCompMan.ExportChangedComponents wb, HOSTED_RAWS ' includes management of updated used Common Components
@@ -75,8 +71,7 @@ Private Sub Workbook_Open()
     mErH.BoP ErrSrc(PROC)
     
     If mMe.IsDevInstnc Then
-        mMe.ControlItemsAdd
-        mMe.ConfigAsserted ' assert a valid CompMan basic configuratuion
+        mMe.CfgAsserted ' assert a valid CompMan basic configuratuion
         If mMe.AddInInstncWrkbkIsOpen Then
             '~~ Essential! When the Development instance Workbook is opened, used Common Components
             '~~ the origin code has changed can only be updated when the Addin instance Workbook is

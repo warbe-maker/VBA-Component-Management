@@ -45,6 +45,7 @@ Private lKindOfComp         As enKindOfComp
 Private sExtension          As String
 Private dctChanges          As Dictionary   ' Dictionary of code changes
 Private sTempExpFilePath    As String
+Private sTempFolder         As String
 
 Friend Property Get CompName() As String:           CompName = sCompName:   End Property
 
@@ -343,7 +344,6 @@ Friend Property Get Changed() As Boolean
 ' changed.
 ' --------------------------------------
     Dim fso         As New FileSystemObject
-    Dim sTempFolder As String
 
     If dctChanges Is Nothing Then
         With fso
@@ -747,5 +747,8 @@ Private Sub Class_Terminate()
     Set dctChanges = Nothing
     Set wb = Nothing
     Set vbc = Nothing
+    With New FileSystemObject
+        If .FolderExists(sTempFolder) Then .DeleteFolder sTempFolder
+    End With
     Set flExpFile = Nothing
 End Sub

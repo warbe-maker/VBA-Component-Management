@@ -242,8 +242,7 @@ Private Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook, _
             Select Case .GetExtensionName(fl.Path)
                 Case "bas", "cls", "frm", "frx"
                     sComp = .GetBaseName(fl.Path)
-                    If Not cComp.Exists(sComp) _
-                    And Not mPending.Still(sComp) Then
+                    If Not cComp.Exists(sComp) Then
                         cllRemove.Add fl.Path
                     End If
             End Select
@@ -389,17 +388,11 @@ Public Sub ExportChangedComponents( _
     
     mCompMan.Service = PROC & " for '" & ec_wb.name & "': "
     sStatus = mCompMan.Service
-    
-    Application.StatusBar = sStatus & "Resolve pending imports if any"
-    mPending.Resolve ec_wb
     lCompMaxLen = MaxCompLength(wb:=ec_wb)
     Set cLog = New clsLog
     cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=ec_wb, svp_new_log:=False) = ErrSrc(PROC)
 
-    Application.StatusBar = sStatus & "Delete obsolete export files"
     DeleteObsoleteExpFiles do_wb:=ec_wb, do_log:=cLog
-    
-    Application.StatusBar = sStatus & "Maintain hosted raws"
     MaintainHostedRaws mh_hosted:=ec_hosted _
                      , mh_wb:=ec_wb
     
@@ -411,7 +404,7 @@ Public Sub ExportChangedComponents( _
         If CodeModuleIsEmpty(vbc) Then GoTo next_vbc
         Set cComp = New clsComp
         sProgressDots = Left(sProgressDots, Len(sProgressDots) - 1)
-        Application.StatusBar = sStatus & vbc.name & " "
+        Application.StatusBar = sStatus & vbc.name & VBA.Space$(lCompMaxLen - Len(vbc.name) + 1) & sProgressDots
         mTrc.BoC ErrSrc(PROC) & " " & vbc.name
         Set cComp = New clsComp
         With cComp
