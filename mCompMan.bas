@@ -208,10 +208,11 @@ Public Function CompExists( _
                      ByVal ce_comp_name As String) As Boolean
 ' -----------------------------------------------------------
 ' Returns TRUE when the component (ce_comp_name) exists in
-' the Workbook ce_wb.
+' the Workbook (ce_wb).
 ' -----------------------------------------------------------
+    Dim s As String
     On Error Resume Next
-    Debug.Print ce_wb.VBProject.VBComponents(ce_comp_name).name
+    s = ce_wb.VBProject.VBComponents(ce_comp_name).name
     CompExists = Err.Number = 0
 End Function
 
@@ -404,7 +405,7 @@ Public Sub ExportChangedComponents( _
         If CodeModuleIsEmpty(vbc) Then GoTo next_vbc
         Set cComp = New clsComp
         sProgressDots = Left(sProgressDots, Len(sProgressDots) - 1)
-        Application.StatusBar = sStatus & vbc.name & VBA.Space$(lCompMaxLen - Len(vbc.name) + 1) & sProgressDots
+        Application.StatusBar = sStatus & sProgressDots & sExported & " " & vbc.name
         mTrc.BoC ErrSrc(PROC) & " " & vbc.name
         Set cComp = New clsComp
         With cComp
@@ -469,7 +470,9 @@ Public Sub ExportChangedComponents( _
                         sStatus = sStatus & vbc.name & ", "
                         cLog.Action = "Changes exported to '" & .ExpFilePath & "'"
                         lExported = lExported + 1
-                        sExported = vbc.name & ", " & sExported
+                        If lExported = 1 _
+                        Then sExported = vbc.name _
+                        Else sExported = sExported & ", " & vbc.name
                         mTrc.EoC ErrSrc(PROC) & " Backup No-Raw" & vbc.name
                         GoTo next_vbc
                     End If
@@ -493,10 +496,10 @@ next_vbc:
     sMsg = mCompMan.Service
     Select Case lExported
         Case 0:     sMsg = sMsg & "None of the " & lComponents & " components' code changed."
-        Case Else:  sMsg = sMsg & lExported & " of " & lComponents & " components' code changes : " & Left(sExported, Len(sExported) - 1)
+        Case Else:  sMsg = sMsg & lExported & " of " & lComponents & " components' code changes : " & sExported
     End Select
     If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
-    Application.StatusBar = Left(sMsg, Len(sMsg) - 1)
+    Application.StatusBar = sMsg
     
 xt: Set dctHostedRaws = Nothing
     Set cComp = Nothing

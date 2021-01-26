@@ -1,20 +1,21 @@
 Attribute VB_Name = "mInstall"
 Option Explicit
 
-Private Property Get INST_FINISHED() As String: INST_FINISHED = "Installation" & vbLf & "Finished": End Property
+Private Const BTT_INST_DONE = "Done"
 
-Public Sub Component(Optional ByVal ic_wb As Workbook)
+Public Sub CloneRaws(Optional ByVal ic_wb As Workbook)
 ' ----------------------------------------------------
 ' Installs one or more raw components by importing
 ' their Export File.
 ' ----------------------------------------------------
-    Const PROC = "Install"
+    Const PROC = "CloneRaws"
     
     On Error GoTo eh
     Dim v       As Variant
     Dim cll     As New Collection
     Dim i       As Long
     Dim vReply  As Variant
+    Dim sMsg    As tMsg
     
     If ic_wb Is Nothing Then Set ic_wb = ActiveWorkbook
     If mMe.IsAddinInstnc Then GoTo xt
@@ -24,18 +25,28 @@ Public Sub Component(Optional ByVal ic_wb As Workbook)
             cll.Add vbLf
             i = 0
         End If
-        cll.Add v
-        i = i + 1
+        If Not mCompMan.CompExists(ce_wb:=ic_wb, ce_comp_name:=v) Then
+            cll.Add v
+            i = i + 1
+        End If
     Next v
     cll.Add vbLf
-    cll.Add INST_FINISHED
+    cll.Add BTT_INST_DONE
+    sMsg.section(1).sText = ""
+    sMsg.section(2).sLabel = "Please note!"
+    sMsg.section(2).sText = "The selection contains all known 'raw' components hosted in another Workbook " & _
+                            "which are not already installed (i.e. imported). Any components missed may not be " & _
+                            "indicated 'hosted' in any Workbook maintained within the 'manged root'"
+    sMsg.section(3).sText = mMe.RootServicedByCompMan
+    sMsg.section(3).bMonspaced = True
     
     Do
-        vReply = mMsg.Box(msg_title:="Please select the component to be installed in '" & ic_wb.name & "' or press '" & VBA.Replace(INST_FINISHED, vbLf, " ") & "'" _
+        vReply = mMsg.Dsply(msg_title:="Please select the 'raw' component to be imported into '" & ic_wb.name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
+                        , msg:=sMsg _
                         , msg_buttons:=cll _
                          )
         Select Case vReply
-            Case INST_FINISHED: Exit Do
+            Case BTT_INST_DONE: Exit Do
             Case Else
                 mRenew.ByImport rn_wb:=ic_wb _
                               , rn_comp_name:=vReply _

@@ -28,7 +28,7 @@ Private Property Get BttnDsplyChanges() As String
 End Property
 
 Private Property Let BttnSkipStayVerbose(ByVal comp_name As String)
-    sBttnSkipStayVerbose = "Skip update of " & vbLf & vbLf & Spaced(comp_name) & vbLf & vbLf & "(stay verbose)"
+    sBttnSkipStayVerbose = "Skip this component" & vbLf & "(stay verbose)"
 End Property
 Private Property Get BttnSkipStayVerbose() As String
     BttnSkipStayVerbose = sBttnSkipStayVerbose
@@ -45,7 +45,9 @@ Public Sub RawClones( _
                ByVal urc_clones As Dictionary, _
       Optional ByRef urc_log As clsLog = Nothing)
 ' --------------------------------------------------------
-' Updates any raw clone in Workbook urc_wb
+' Updates any clone Workbook urc_wb. Note that clones are
+' identifiied by equally named components in another
+' workbook which are indicated 'hosted'.
 ' --------------------------------------------------------
     Const PROC = "RawClones"
     
@@ -57,17 +59,13 @@ Public Sub RawClones( _
     Dim lReplaced   As Long
     Dim sReplaced   As String
     Dim v           As Variant
-'    Dim lKoCC       As enKindOfCodeChange
     Dim bVerbose    As Boolean
     Dim bSkip       As Boolean
     
     bVerbose = True
     sStatus = urc_service
     '~~ Prevent any action for a Workbook opened with any irregularity
-    
-'    Application.StatusBar = sStatus & "Resolve pending imports"
-'    mPending.Resolve urc_wb
-        
+            
     For Each v In urc_clones
         Set vbc = v
         Set cComp = New clsComp
@@ -219,16 +217,16 @@ Private Sub DsplyStatusUpdateClonesResult( _
         Case 1
             Select Case sp_no_replaced
                 Case 0:     sMsg = sp_service & "1 has been identified as 'Cloned Raw Component' but has not been updated since the raw had not changed."
-                Case 1:     sMsg = sp_service & "1 of 1 'Cloned Raw Component' has been updated because the raw had changed (" & left(sp_replaced, Len(sp_replaced) - 2) & ")."
+                Case 1:     sMsg = sp_service & "1 of 1 'Cloned Raw Component' has been updated because the raw had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
             End Select
         Case Else
             Select Case sp_no_replaced
                 Case 0:     sMsg = sp_service & "None of the " & sp_cloned_raws & " 'Cloned Raw Components' has been updated since none of the raws had changed."
-                Case 1:     sMsg = sp_service & "1 of the " & sp_cloned_raws & "'Cloned Raw Components' has been updated since the raw's code had changed (" & left(sp_replaced, Len(sp_replaced) - 2) & ")."
-                Case Else:  sMsg = sp_service & sp_no_replaced & " of the " & sp_cloned_raws & " 'Cloned Raw Components' have been updated because the raws had changed (" & left(sp_replaced, Len(sp_replaced) - 2) & ")."
+                Case 1:     sMsg = sp_service & "1 of the " & sp_cloned_raws & "'Cloned Raw Components' has been updated since the raw's code had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
+                Case Else:  sMsg = sp_service & sp_no_replaced & " of the " & sp_cloned_raws & " 'Cloned Raw Components' have been updated because the raws had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
             End Select
     End Select
-    If Len(sMsg) > 255 Then sMsg = left(sMsg, 251) & " ..."
+    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
 
 End Sub

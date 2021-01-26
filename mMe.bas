@@ -69,6 +69,7 @@ Private lRenewStep                  As Long
 Private sRenewAction                As String
 Private bRenewLogFileAppend         As Boolean
 
+'Public Property Get RenewAction() As String:            RenewAction = sRenewAction:                                         End Property
 Public Property Get AddInInstanceFullName() As String:  AddInInstanceFullName = AddInPath & DBSLASH & AddInInstanceName:    End Property
 
 Public Property Get AddInInstanceName() As String:      AddInInstanceName = ADDIN_WORKBOOK:                                 End Property
@@ -128,32 +129,11 @@ Public Property Get IsAddinInstnc() As Boolean:         IsAddinInstnc = ThisWork
 
 Public Property Get IsDevInstnc() As Boolean:           IsDevInstnc = ThisWorkbook.name = DevInstncName:                End Property
 
-Public Property Get PendingServicesFile(Optional ByVal slf_serviced_wb As Workbook) As String
-    Dim fso As New FileSystemObject
-    PendingServicesFile = slf_serviced_wb.Path & "\" & fso.GetBaseName(mMe.AddInInstanceName) & ".Services.Pending.imp"
-    Set fso = Nothing
-End Property
-
 Private Property Get RenewFinalResult() As String
     If bSucceeded _
     Then RenewFinalResult = "Successful! The Addin '" & AddInInstanceName & "' has been renewed by the development instance '" & DevInstncName & "'" _
     Else RenewFinalResult = "Failed! Renewing the Addin '" & AddInInstanceName & "' by the development instance '" & DevInstncName & "' failed!"
 End Property
-'
-'Private Sub RenewLogDisplay()
-'
-'    Dim fso As New FileSystemObject
-'    Dim sMsg        As String
-'    Dim i           As Long
-'    Dim sTitle      As String
-'
-'    mMsg.Box msg_title:=RenewFinalResult _
-'           , msg:=mFile.Txt(sRenewLogFile) _
-'           , msg_monospaced:=True _
-'
-'    fso.DeleteFile sRenewLogFile
-'
-'End Sub
 
 Public Property Let RenewLogAction(ByVal la_action As String)
     lRenewStep = lRenewStep + 1
@@ -438,13 +418,13 @@ Public Sub RenewAddIn()
     Application.EnableEvents = False
     bSucceeded = False
        
-    mMe.RenewLogAction = "Assert execution from the development instance Workbook only"
+    mMe.RenewLogAction = "Assert the Renew service is executed from the development instance Workbook"
     If Not IsDevInstnc() Then
         mMe.RenewLogResult("The 'RenewAddIn' service had not been executed from within the development instance Workbook (" & DevInstncName & ")!" _
                           ) = "Failed"
         GoTo xt
     Else
-        mMe.RenewLogResult = "Passed"
+        mMe.RenewLogResult = "Asserted"
     End If
                      
     '~~ Get the current CompMan's base configuration confirmed or changed
@@ -554,7 +534,7 @@ End Sub
 Public Sub Renew_1_ConfirmConfig()
     mMe.RenewLogAction = "Assert current basic configuration"
     CfgConfirm
-    mMe.RenewLogResult = "Passed"
+    mMe.RenewLogResult = "Asserted"
 End Sub
 
 Private Sub Renew_2_SaveAndRemoveAddInReferences()
@@ -602,7 +582,7 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         sWbs = Left(sWbs, Len(sWbs) - 2)
         mMe.RenewLogResult() = "Passed"
     Else
-        mMe.RenewLogResult("None of the open Workbooks referred to the Addin '" & AddInInstanceName & "'" _
+        mMe.RenewLogResult(sRenewAction & vbLf & "None of the open Workbooks referred to the Addin '" & AddInInstanceName & "'" _
                           ) = "Passed"
     End If
     
@@ -666,8 +646,6 @@ Private Sub Renew_5_CloseAddinInstncWorkbook()
     On Error Resume Next
     wbSource.Activate
     wbTarget.Close False
-    Application.StatusBar = "RenewAddIn " & lStep & ". Close the Addin instance Workbook"
-
     If Err.Number <> 0 _
     Then mMe.RenewLogResult("Closing the Addin instance Workbook '" & AddInInstanceName & "' failed with:" & vbLf & _
                             "(" & Err.Description & ")" _
@@ -806,7 +784,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
         sWbs = Left(sWbs, Len(sWbs) - 2)
         mMe.RenewLogResult() = "Passed"
     Else
-        mMe.RenewLogResult("Restoring references did not find any saved to restore" _
+        mMe.RenewLogResult(sRenewAction & vbLf & "Restoring references did not find any saved to restore" _
                           ) = "Passed"
     End If
     
