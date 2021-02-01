@@ -11,38 +11,38 @@ Public Property Get DAT_FILE() As String: DAT_FILE = mMe.CompManAddinPath & "\Ra
 
 Public Property Get FullName( _
                      Optional ByVal host_base_name As String) As String
-    FullName = Value(vl_section:=host_base_name, vl_value_name:=VALUE_HOST_FULL_NAME)
+    FullName = Value(pp_section:=host_base_name, pp_value_name:=VALUE_HOST_FULL_NAME)
 End Property
 
 Public Property Let FullName( _
                      Optional ByVal host_base_name As String, _
                               ByVal host_full_name As String)
-    Value(vl_section:=host_base_name, vl_value_name:=VALUE_HOST_FULL_NAME) = host_full_name
+    Value(pp_section:=host_base_name, pp_value_name:=VALUE_HOST_FULL_NAME) = host_full_name
 End Property
 
 Private Property Get Value( _
-           Optional ByVal vl_section As String, _
-           Optional ByVal vl_value_name As String) As Variant
+           Optional ByVal pp_section As String, _
+           Optional ByVal pp_value_name As String) As Variant
     
-    Value = mFile.Value(vl_file:=DAT_FILE _
-                      , vl_section:=vl_section _
-                      , vl_value_name:=vl_value_name _
+    Value = mFile.Value(pp_file:=DAT_FILE _
+                      , pp_section:=pp_section _
+                      , pp_value_name:=pp_value_name _
                        )
 End Property
 
 Private Property Let Value( _
-           Optional ByVal vl_section As String, _
-           Optional ByVal vl_value_name As String, _
-                    ByVal vl_value As Variant)
+           Optional ByVal pp_section As String, _
+           Optional ByVal pp_value_name As String, _
+                    ByVal pp_value As Variant)
 ' --------------------------------------------------
-' Write the value (vl_value) named (vl_value_name)
+' Write the value (pp_value) named (pp_value_name)
 ' into the file RAWS_DAT_FILE.
 ' --------------------------------------------------
     
-    mFile.Value(vl_file:=DAT_FILE _
-              , vl_section:=vl_section _
-              , vl_value_name:=vl_value_name _
-               ) = vl_value
+    mFile.Value(pp_file:=DAT_FILE _
+              , pp_section:=pp_section _
+              , pp_value_name:=pp_value_name _
+               ) = pp_value
 
 End Property
 
@@ -51,10 +51,10 @@ Public Function Exists(ByVal raw_host_base_name As String) As Boolean
 End Function
 
 Public Function Hosts() As Dictionary
-    Set Hosts = mFile.SectionNames(sn_file:=DAT_FILE)
+    Set Hosts = mFile.Sections(DAT_FILE)
 End Function
 
 Public Sub Remove(ByVal raw_host_base_name As String)
-    mFile.SectionsRemove sr_file:=DAT_FILE _
-                       , sr_section_names:=raw_host_base_name
+    mFile.SectionsRemove pp_file:=DAT_FILE _
+                       , pp_sections:=raw_host_base_name
 End Sub

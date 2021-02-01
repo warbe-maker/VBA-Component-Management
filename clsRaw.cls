@@ -17,7 +17,7 @@ Option Explicit
 Private wbRawHost           As Workbook
 Private sHostFullName       As String
 Private sExpFilePath        As String
-Private flExpFile           As FILE
+Private flExpFile           As File
 Private sCompName           As String
 Private vbcRaw              As VBComponent
 Private sCloneExpFilePath   As String
@@ -40,11 +40,11 @@ Friend Property Get Changed( _
     
     If dctChanges Is Nothing Or check_again Then
         Set dctChanges = _
-        mFile.Differs(dif_file1:=fso.GetFile(sCloneExpFilePath) _
-                    , dif_file2:=Me.ExpFile _
-                    , dif_ignore_empty_records:=True _
-                    , dif_compare:=vbTextCompare _
-                    , dif_stop_after:=1 _
+        mFile.Differs(fd_file1:=fso.GetFile(sCloneExpFilePath) _
+                    , fd_file2:=Me.ExpFile _
+                    , fd_ignore_empty_records:=True _
+                    , fd_compare:=vbTextCompare _
+                    , fd_stop_after:=1 _
                      )
 
     End If
@@ -74,20 +74,20 @@ Friend Property Get DsplyAllChanges() As Long
     Dim cComp           As New clsComp
     Dim fso             As New FileSystemObject
     Dim sTempFolder     As String
-    Dim flExpTemp       As FILE
+    Dim flExpTemp       As File
     Dim sMsg            As tMsg
     
     If Me.Changed Then
-        mFile.Compare file_left_full_name:=sCloneExpFilePath _
-                    , file_right_full_name:=sExpFilePath _
-                    , file_left_title:="'Clone' component's export file '" & sCloneExpFilePath & "'" _
-                    , file_right_title:="'Raw' component's export file '" & sExpFilePath & "'"
+        mFile.Compare fc_file_left:=sCloneExpFilePath _
+                    , fc_file_right:=sExpFilePath _
+                    , fc_left_title:="'Clone' component's export file '" & sCloneExpFilePath & "'" _
+                    , fc_right_title:="'Raw' component's export file '" & sExpFilePath & "'"
     Else
-        sMsg.section(1).sText = "The Export File of the component '" & Me.CompName & "' (" & sCloneExpFilePath & ") " & _
+        sMsg.Section(1).sText = "The Export File of the component '" & Me.CompName & "' (" & sCloneExpFilePath & ") " & _
                        "and the raw's Export File (" & sExpFilePath & ") are identical. The clone component " & _
                        "is thus up-to-date."
-        sMsg.section(2).sLabel = "Please note!"
-        sMsg.section(2).sText = "Differences in empty code lines or upper/lower case text do not constitute a relevant difference."
+        sMsg.Section(2).sLabel = "Please note!"
+        sMsg.Section(2).sText = "Differences in empty code lines or upper/lower case text do not constitute a relevant difference."
         mMsg.Dsply msg_title:="Display of all raw changes/differences failed!" _
                  , msg:=sMsg
     End If
@@ -101,9 +101,9 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Get ExpFile() As FILE:                  Set ExpFile = flExpFile:                        End Property
+Friend Property Get ExpFile() As File:                  Set ExpFile = flExpFile:                        End Property
 
-Friend Property Let ExpFile(ByVal fl As FILE):          Set flExpFile = fl:                             End Property
+Friend Property Let ExpFile(ByVal fl As File):          Set flExpFile = fl:                             End Property
 
 Friend Property Get ExpFilePath() As String:        ExpFilePath = sExpFilePath:             End Property
 

@@ -186,10 +186,10 @@ Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
         sExpFileRaw = mHostedRaws.ExpFilePath(comp_name:=cmp_comp_name)
         sExpFileClone = .ExpFilePath
     
-        mFile.Compare file_left_full_name:=sExpFileClone _
-                    , file_right_full_name:=sExpFileRaw _
-                    , file_left_title:="The cloned raw's current code in Workbook/VBProject " & cComp.WrkbkBaseName & " (" & sExpFileClone & ")" _
-                    , file_right_title:="The remote raw's current code in Workbook/VBProject " & mBasic.BaseName(mHostedRaws.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
+        mFile.Compare fc_file_left:=sExpFileClone _
+                    , fc_file_right:=sExpFileRaw _
+                    , fc_left_title:="The cloned raw's current code in Workbook/VBProject " & cComp.WrkbkBaseName & " (" & sExpFileClone & ")" _
+                    , fc_right_title:="The remote raw's current code in Workbook/VBProject " & mBasic.BaseName(mHostedRaws.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
 
     End With
     Set cComp = Nothing
@@ -227,7 +227,7 @@ Private Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook, _
     Dim cllRemove   As New Collection
     Dim sFolder     As String
     Dim fso         As New FileSystemObject
-    Dim fl          As FILE
+    Dim fl          As File
     Dim v           As Variant
     Dim cComp       As New clsComp
     Dim sComp       As String
@@ -279,7 +279,7 @@ Public Sub DisplayCodeChange(ByVal cmp_comp_name As String)
     Dim cComp           As New clsComp
     Dim fso             As New FileSystemObject
     Dim sTempFolder     As String
-    Dim flExpTemp       As FILE
+    Dim flExpTemp       As File
     
     Set wb = ActiveWorkbook
     With cComp
@@ -297,10 +297,10 @@ Public Sub DisplayCodeChange(ByVal cmp_comp_name As String)
     End With
 
     With cComp
-        mFile.Compare file_left_full_name:=sExpFileTemp _
-                    , file_right_full_name:=.ExpFilePath _
-                    , file_left_title:="The component's current code in Workbook/VBProject " & cComp.WrkbkBaseName & " ('" & sExpFileTemp & "')" _
-                    , file_right_title:="The component's currently exported code in '" & .ExpFilePath & "'"
+        mFile.Compare fc_file_left:=sExpFileTemp _
+                    , fc_file_right:=.ExpFilePath _
+                    , fc_left_title:="The component's current code in Workbook/VBProject " & cComp.WrkbkBaseName & " ('" & sExpFileTemp & "')" _
+                    , fc_right_title:="The component's currently exported code in '" & .ExpFilePath & "'"
 
     End With
     
@@ -588,18 +588,18 @@ Public Sub Merge(Optional ByVal fl_1 As String = vbNullString, _
     Const PROC = "Merge"
     
     On Error GoTo eh
-    Dim fl_left         As FILE
-    Dim fl_right        As FILE
+    Dim fl_left         As File
+    Dim fl_right        As File
     
     If fl_1 = vbNullString Then mFile.SelectFile sel_result:=fl_left
     If fl_2 = vbNullString Then mFile.SelectFile sel_result:=fl_right
     fl_1 = fl_left.Path
     fl_2 = fl_right.Path
     
-    mFile.Compare file_left_full_name:=fl_1 _
-                , file_right_full_name:=fl_2 _
-                , file_left_title:=fl_1 _
-                , file_right_title:=fl_2
+    mFile.Compare fc_file_left:=fl_1 _
+                , fc_file_right:=fl_2 _
+                , fc_left_title:=fl_1 _
+                , fc_right_title:=fl_2
 
 xt: Exit Sub
 
@@ -657,7 +657,7 @@ Public Sub RenewComp( _
     Dim fso         As New FileSystemObject
     Dim cComp       As New clsComp
     Dim cLog        As New clsLog
-    Dim flFile      As FILE
+    Dim flFile      As File
     Dim wbTemp      As Workbook
     Dim wbActive    As Workbook
     Dim sBaseName   As String
@@ -904,6 +904,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function WbkIsRestoredBySystem(ByVal rbs_wb As Workbook) As Boolean
-    WbkIsRestoredBySystem = InStr(ActiveWindow.caption, "(") <> 0 _
+    WbkIsRestoredBySystem = InStr(ActiveWindow.Caption, "(") <> 0 _
                          Or InStr(rbs_wb.FullName, "(") <> 0
 End Function

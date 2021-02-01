@@ -160,10 +160,10 @@ Public Function UpdateCloneConfirmed( _
                )
     
     With sMsg
-        .section(1).sLabel = "About"
-        .section(1).sText = "When the cloned raw in this Workbook is not updated the message will show up again the next time this Workbook is opened in the configured development root:"
-        .section(2).sText = mMe.RootServicedByCompMan
-        .section(2).bMonspaced = True
+        .Section(1).sLabel = "About"
+        .Section(1).sText = "When the cloned raw in this Workbook is not updated the message will show up again the next time this Workbook is opened in the configured development root:"
+        .Section(2).sText = mMe.RootServicedByCompMan
+        .Section(2).bMonspaced = True
     End With
     Do
         vReply = mMsg.Dsply(msg_title:=ucc_service & "Update " & Spaced(ucc_comp_name) & "with changed raw" _
@@ -172,10 +172,10 @@ Public Function UpdateCloneConfirmed( _
                            )
         Select Case vReply
             Case BttnDsplyChanges
-                mFile.Compare file_left_full_name:=ucc_clone _
-                            , file_left_title:="Cloned raw: '" & ucc_clone & "'" _
-                            , file_right_full_name:=ucc_raw _
-                            , file_right_title:="Current raw: '" & ucc_raw & "'"
+                mFile.Compare fc_file_left:=ucc_clone _
+                            , fc_left_title:="Cloned raw: '" & ucc_clone & "'" _
+                            , fc_file_right:=ucc_raw _
+                            , fc_right_title:="Current raw: '" & ucc_raw & "'"
             
             Case BttnUpdateStayVerbose
                 ucc_skip = False

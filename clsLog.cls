@@ -13,7 +13,7 @@ Private sService        As String
 Private sServicedItem   As String
 Private sFile           As String
 
-Friend Property Get LogFile() As FILE
+Friend Property Get LogFile() As File
     Dim fso As New FileSystemObject
     Set LogFile = fso.GetFile(sFile)
     Set fso = Nothing
@@ -29,12 +29,12 @@ Friend Property Let ServiceProvided( _
     
     If Not svp_new_log Then
         '~~ Write a service delimiter when this is not a new log but only a new provided service
-        mFile.Txt(tx_file_full_name:=sFile _
-                , tx_append:=Not svp_new_log _
+        mFile.Txt(ft_file:=sFile _
+                , ft_append:=Not svp_new_log _
                  ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " =========================================== "
     End If
-    mFile.Txt(tx_file_full_name:=sFile _
-            , tx_append:=Not svp_new_log _
+    mFile.Txt(ft_file:=sFile _
+            , ft_append:=Not svp_new_log _
              ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " Service provided by: " & sService
 End Property
 
@@ -44,8 +44,8 @@ Friend Property Let Action(ByVal s As String)
 ' -------------------------------------------
 ' Appen an Action line to the log file.
 ' -------------------------------------------
-    mFile.Txt(tx_file_full_name:=sFile _
-            , tx_append:=True _
+    mFile.Txt(ft_file:=sFile _
+            , ft_append:=True _
              ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sServicedItem & ": " & s
 End Property
 

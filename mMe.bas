@@ -77,11 +77,11 @@ Public Property Get AddInInstanceName() As String:      AddInInstanceName = ADDI
 Private Property Get AddInPath() As String:             AddInPath = CompManAddinPath:                                  End Property
 
 Public Property Get AddInPaused() As Boolean
-    AddInPaused = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PAUSED)
+    AddInPaused = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=COMPMAN_ADDIN_PAUSED)
 End Property
 
 Public Property Let AddInPaused(ByVal b As Boolean)
-    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_PAUSED) = b
+    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=COMPMAN_ADDIN_PAUSED) = b
     With New FileSystemObject
         .CopyFile CFG_FILENAME, CompManAddinPath & "\" & .GetFileName(CFG_FILENAME)
     End With
@@ -102,11 +102,11 @@ End Property
 Private Property Get CFG_FILENAME() As String: CFG_FILENAME = ThisWorkbook.Path & "\CompMan.cfg": End Property
 
 Public Property Get CompManAddinPath() As String
-    CompManAddinPath = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_LCTN)
+    CompManAddinPath = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=COMPMAN_ADDIN_LCTN)
 End Property
 
 Public Property Let CompManAddinPath(ByVal s As String)
-    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=COMPMAN_ADDIN_LCTN) = s
+    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=COMPMAN_ADDIN_LCTN) = s
     With New FileSystemObject
         .CopyFile CFG_FILENAME, s
     End With
@@ -174,11 +174,11 @@ Public Property Let RenewStep(ByVal l As Long)
 End Property
 
 Public Property Get RootServicedByCompMan() As String
-    RootServicedByCompMan = Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=ROOT_COMPMAN_SERVICED)
+    RootServicedByCompMan = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=ROOT_COMPMAN_SERVICED)
 End Property
 
 Public Property Let RootServicedByCompMan(ByVal s As String)
-    Value(vl_section:=SECTION_BASE_CONFIG, vl_value_name:=ROOT_COMPMAN_SERVICED) = s
+    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=ROOT_COMPMAN_SERVICED) = s
     With New FileSystemObject
         .CopyFile CFG_FILENAME, CompManAddinPath & "\" & .GetFileName(CFG_FILENAME)
     End With
@@ -191,23 +191,23 @@ Public Property Get ServicesLogFile(Optional ByVal slf_serviced_wb As Workbook) 
 End Property
 
 Private Property Get Value( _
-           Optional ByVal vl_section As String, _
-           Optional ByVal vl_value_name As String) As Variant
+           Optional ByVal pp_section As String, _
+           Optional ByVal pp_value_name As String) As Variant
     
-    Value = mFile.Value(vl_file:=CFG_FILENAME _
-                      , vl_section:=vl_section _
-                      , vl_value_name:=vl_value_name _
+    Value = mFile.Value(pp_file:=CFG_FILENAME _
+                      , pp_section:=pp_section _
+                      , pp_value_name:=pp_value_name _
                        )
 End Property
 
 Private Property Let Value( _
-           Optional ByVal vl_section As String, _
-           Optional ByVal vl_value_name As String, _
-                    ByVal vl_value As Variant)
-    mFile.Value(vl_file:=CFG_FILENAME _
-              , vl_section:=vl_section _
-              , vl_value_name:=vl_value_name _
-               ) = vl_value
+           Optional ByVal pp_section As String, _
+           Optional ByVal pp_value_name As String, _
+                    ByVal pp_value As Variant)
+    mFile.Value(pp_file:=CFG_FILENAME _
+              , pp_section:=pp_section _
+              , pp_value_name:=pp_value_name _
+               ) = pp_value
 End Property
 
 Public Property Get xlAddInFormat() As Long:            xlAddInFormat = ADDIN_FORMAT:                                       End Property
@@ -486,19 +486,19 @@ Public Sub CfgConfirm()
     Dim sReply          As String
     
     With sMsg
-        .section(1).sLabel = "CompMan AddIn instance folder:"
-        .section(1).sText = "Please make sure that the CompMan AddIn resides in its own dedicated location, " & _
+        .Section(1).sLabel = "CompMan AddIn instance folder:"
+        .Section(1).sText = "Please make sure that the CompMan AddIn resides in its own dedicated location, " & _
                             "i.e. one different from Excel's default user-specific! Roaming folder."
-        .section(2).sLabel = "Currently configured:"
-        .section(2).sText = CompManAddinPath
-        .section(2).bMonspaced = True
-        .section(3).sLabel = "CompMan serviced root:"
-        .section(3).sText = "Please note that only Workbooks/VB-Projects in any subfolder of the configured root " & _
+        .Section(2).sLabel = "Currently configured:"
+        .Section(2).sText = CompManAddinPath
+        .Section(2).bMonspaced = True
+        .Section(3).sLabel = "CompMan serviced root:"
+        .Section(3).sText = "Please note that only Workbooks/VB-Projects in any subfolder of the configured root " & _
                             "are considered by CompMan's Workbook_Open ('UpdateRawClones') and Workbook_BeforeSave ('ExportChangedComponents') service!" & vbLf & _
                             "The current root folder is:"
-        .section(4).sLabel = "Currently configured serviced root:"
-        .section(4).sText = RootServicedByCompMan
-        .section(4).bMonspaced = True
+        .Section(4).sLabel = "Currently configured serviced root:"
+        .Section(4).sText = RootServicedByCompMan
+        .Section(4).bMonspaced = True
     End With
     
     While sReply <> BTTN_CFG_CONFIRMED

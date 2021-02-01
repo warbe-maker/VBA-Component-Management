@@ -36,7 +36,7 @@ Private sCompName           As String       ' The class module's global componen
 Private wb                  As Workbook     ' The class' Workbook
 Private vbc                 As VBComponent  ' VBComponent managed by this Class Module
 Private dtUpdatedAsOf       As Date
-Private flExpFile           As FILE
+Private flExpFile           As File
 Private foExport            As Folder
 Private sExpFilePath        As String       ' Full filespec for the Export File created by the method BackUpCode
 Private sExpPath            As String
@@ -72,7 +72,7 @@ Friend Property Let CompName(ByVal s As String)
 
 End Property
 
-Friend Property Get ExpFile() As FILE
+Friend Property Get ExpFile() As File
     
     Dim fso As New FileSystemObject
     
@@ -93,7 +93,7 @@ Friend Property Get ExpFile() As FILE
     
 End Property
 
-Friend Property Let ExpFile(ByVal fl As FILE):      Set flExpFile = fl:     End Property
+Friend Property Let ExpFile(ByVal fl As File):      Set flExpFile = fl:     End Property
 
 Private Property Get ExpFileExtension() As String
     Select Case vbc.Type
@@ -121,15 +121,15 @@ Friend Property Get DsplyAllChanges() As Long
     Dim sMsg As tMsg
     
     If Me.Changed Then
-        mFile.Compare file_left_full_name:=sTempExpFilePath _
-                    , file_right_full_name:=sExpFilePath _
-                    , file_left_title:="'Clone' component's export file '" & sTempExpFilePath & "'" _
-                    , file_right_title:="'Raw' component's export file '" & sExpFilePath & "'"
+        mFile.Compare fc_file_left:=sTempExpFilePath _
+                    , fc_file_right:=sExpFilePath _
+                    , fc_left_title:="'Clone' component's export file '" & sTempExpFilePath & "'" _
+                    , fc_right_title:="'Raw' component's export file '" & sExpFilePath & "'"
     Else
-        sMsg.section(1).sText = "The Export File of the component '" & Me.CompName & "' reflects the current code. " & _
+        sMsg.Section(1).sText = "The Export File of the component '" & Me.CompName & "' reflects the current code. " & _
                                 "Thus there are no code changes to be displayed."
-        sMsg.section(2).sLabel = "Please note!"
-        sMsg.section(2).sText = "Differences in empty code lines or upper/lower case text do not constitute a relevant code change."
+        sMsg.Section(2).sLabel = "Please note!"
+        sMsg.Section(2).sText = "Differences in empty code lines or upper/lower case text do not constitute a relevant code change."
         mMsg.Dsply msg_title:="Display of code changes failed!" _
                  , msg:=sMsg
     End If
@@ -213,16 +213,16 @@ Private Property Get ReplaceRawWithCloneConfirmed() As Boolean
     '~~ Offer options
     sTitle = "A ""Remotely hosted raw's clone has been modified in this VB-Project!"
     With sMsg
-        .section(1).sLabel = "About this incident:"
-        .section(1).sText = "The module '" & cComp.CompName & "' is a clone of the raw component hosted in Workbook '" & cRaw.WrkbkBaseName & "' " & _
+        .Section(1).sLabel = "About this incident:"
+        .Section(1).sText = "The module '" & cComp.CompName & "' is a clone of the raw component hosted in Workbook '" & cRaw.WrkbkBaseName & "' " & _
                             "This clone component's code has usually has been synched with the remote raw componet's code. " & _
                             "The remote raw hasn't been changed but the cloned component's code has."
-        .section(2).sLabel = "About the choices:"
-        .section(2).sText = "When the code modification is ignored it will be regarded temporarily only and overwrtitten with the next open of this Workbook. " & _
+        .Section(2).sLabel = "About the choices:"
+        .Section(2).sText = "When the code modification is ignored it will be regarded temporarily only and overwrtitten with the next open of this Workbook. " & _
                             "When the remote The module, updated when this Workbook has opened, is no longer identical with its origin. " & _
                             "I.e. the component's code has been changed in this Workbook using it instead of in the " & _
                             "Workbook the origin is ""hosted""."
-        .section(3).sText = "Take your decission or postpone it after having displayed the difference."
+        .Section(3).sText = "Take your decission or postpone it after having displayed the difference."
     End With
         
     sReply = sReplyDsplyDiff
@@ -236,10 +236,10 @@ Private Property Get ReplaceRawWithCloneConfirmed() As Boolean
                 ReplaceRawWithCloneConfirmed = True
                 Exit Do
             Case sReplyDsplyDiff
-                mFile.Compare file_left_full_name:=cComp.ExpFilePath _
-                          , file_right_full_name:=cRaw.ExpFilePath _
-                          , file_left_title:="The cloned raw's current code in Workbook/VBProject " & cComp.WrkbkBaseName & " (" & cComp.ExpFilePath & ")" _
-                          , file_right_title:="The remote raw's current code in Workbook/VBProject " & cRaw.WrkbkBaseName & " (" & cRaw.ExpFilePath & ")"
+                mFile.Compare fc_file_left:=cComp.ExpFilePath _
+                            , fc_file_right:=cRaw.ExpFilePath _
+                            , fc_left_title:="The cloned raw's current code in Workbook/VBProject " & cComp.WrkbkBaseName & " (" & cComp.ExpFilePath & ")" _
+                            , fc_right_title:="The remote raw's current code in Workbook/VBProject " & cRaw.WrkbkBaseName & " (" & cRaw.ExpFilePath & ")"
                 ' The question is re-displayed for a decison
             Case sReplyIgnore
                 ReplaceRawWithCloneConfirmed = False
@@ -354,11 +354,11 @@ Friend Property Get Changed() As Boolean
         End With
     
         Set dctChanges = _
-        mFile.Differs(dif_file1:=fso.GetFile(sTempExpFilePath) _
-                    , dif_file2:=cComp.ExpFile _
-                    , dif_ignore_empty_records:=True _
-                    , dif_compare:=vbTextCompare _
-                    , dif_stop_after:=1 _
+        mFile.Differs(fd_file1:=fso.GetFile(sTempExpFilePath) _
+                    , fd_file2:=cComp.ExpFile _
+                    , fd_ignore_empty_records:=True _
+                    , fd_compare:=vbTextCompare _
+                    , fd_stop_after:=1 _
                      )
 
     End If
@@ -427,7 +427,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Function ExpFileToArray(ByVal fl As FILE) As String()
+Public Function ExpFileToArray(ByVal fl As File) As String()
 ' ---------------------------------------------------------------------
 ' Returns the content of the file (vFile) which may be provided as file
 ' object or full file name string as array, considering any kind of
@@ -469,7 +469,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function ExpFileToDict(ByVal fl As FILE) As Dictionary
+Public Function ExpFileToDict(ByVal fl As File) As Dictionary
 ' --------------------------------------------------------------
 ' Returns the content of the export file (fl) as Dictionary.
 ' All lines preceeding "Attribute " lines and "Attribute " lines
@@ -487,7 +487,7 @@ Public Function ExpFileToDict(ByVal fl As FILE) As Dictionary
     Dim cll             As Collection
     
     Set cll = New Collection
-    Set dct = mFile.ToDict(fl)
+    Set dct = mFile.Dict(fl)
     
     '~~ Remove the extra module information lines
     For Each v In dct
@@ -535,7 +535,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function GetFile(ByVal sFile As String) As FILE
+Private Function GetFile(ByVal sFile As String) As File
     Dim fso As New FileSystemObject
     With fso:  Set GetFile = .GetFile(sFile):  End With
     Set fso = Nothing
@@ -723,8 +723,8 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function UserFormSizeIsDifferent( _
-                                   ByVal sid_file_1 As FILE, _
-                                   ByVal sid_file_2 As FILE) As Boolean
+                                   ByVal sid_file_1 As File, _
+                                   ByVal sid_file_2 As File) As Boolean
     Dim sFrxFile1Path  As String
     Dim sFrxFile2Path  As String
     Dim fso             As New FileSystemObject

@@ -57,6 +57,15 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mTest" & "." & sProc
 End Function
 
+Private Function MaxCompLength(ByVal wb As Workbook) As Long
+    Dim vbc As VBComponent
+    If lMaxCompLength = 0 Then
+        For Each vbc In wb.VBProject.VBComponents
+            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
+        Next vbc
+    End If
+End Function
+
 Public Sub Regression()
 ' -----------------------------------------------------------------
 '
@@ -142,209 +151,6 @@ Public Sub Test_10_ExportChangedComponents()
     
 End Sub
 
-Public Sub Test_File_Compare()
-    
-    Const FILE_LEFT = "E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas"
-    Const FILE_RIGHT = "E:\Ablage\Excel VBA\DevAndTest\Common\CompManDev\mFile.bas"
-    
-    Debug.Print mFile.Compare(file_left_full_name:=FILE_LEFT _
-                          , file_right_full_name:=FILE_RIGHT _
-                          , file_left_title:=FILE_LEFT _
-                          , file_right_title:=FILE_RIGHT _
-                           )
-    
-    Debug.Print mFile.Compare(file_left_full_name:=FILE_LEFT _
-                          , file_right_full_name:=FILE_LEFT _
-                          , file_left_title:=FILE_LEFT _
-                          , file_right_title:=FILE_LEFT _
-                           )
-    
-End Sub
-
-Public Sub Test_File_sAreEqual()
-
-    Debug.Assert _
-    mFile.sAreEqual( _
-                  fc_file1:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
-                , fc_file2:="E:\Ablage\Excel VBA\DevAndTest\Common\CompManDev\mFile.bas" _
-                 ) = False
-    
-'    Debug.Assert _
-'    mFile.sAreEqual( _
-'                  fc_file1:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
-'                , fc_file2:="E:\Ablage\Excel VBA\DevAndTest\Common\File\mFile.bas" _
-'                 ) = True
-
-End Sub
-
-Public Sub Test_File_SectionNames()
-    Const PROC = "Test_File_SectionNames"
-
-    On Error GoTo eh
-    Dim v   As Variant
-    
-    For Each v In mFile.SectionNames(sn_file:=mMe.CompManAddinPath & "\CompMan.dat")
-        Debug.Print "[" & v & "]"
-    Next v
-
-xt: Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Sub
-
-Public Sub Test_File_Sections_Transfer_By_LetGet()
-' ------------------------------------------------
-' This test relies on the Value (Let) service.
-' ------------------------------------------------
-    Const PROC = "Test_File_Sections_Transfer_By_LetGet"
-    Const vbTemporaryFolder = 2
-    
-    On Error GoTo eh
-    Dim fso             As New FileSystemObject
-    Dim sFileGet        As String
-    Dim sFileLet        As String
-    Dim i               As Long
-    Dim j               As Long
-    Dim arSections()    As Variant
-    Dim sSectionName    As String
-    
-    '~~ Test preparation
-    sFileGet = fso.GetSpecialFolder(SpecialFolder:=vbTemporaryFolder) & "\" & fso.GetTempName
-    sFileLet = fso.GetSpecialFolder(SpecialFolder:=vbTemporaryFolder) & "\" & fso.GetTempName
-    
-    For i = 1 To 3
-        sSectionName = "Section-" & i
-        ReDim Preserve arSections(i - 1)
-        arSections(i - 1) = sSectionName
-        For j = 1 To 5
-            mFile.Value(vl_file:=sFileGet _
-                    , vl_section:=sSectionName _
-                    , vl_value_name:="Value-" & j _
-                     ) = CStr(i & "-" & j)
-        Next j
-    Next i
-    
-    '~~ Test
-    mErH.BoP ErrSrc(PROC)
-    
-    mFile.SectionsCopy sc_section_names:=arSections, sc_file_from:=sFileGet, sc_file_to:=sFileLet
-    Debug.Assert mFile.Differs(dif_file1:=fso.GetFile(sFileGet) _
-                             , dif_file2:=fso.GetFile(sFileLet)).Count = 0
-    
-    mErH.EoP ErrSrc(PROC)
-    
-xt: '~~ Test cleanup
-    With fso
-        If .FileExists(sFileGet) Then .DeleteFile (sFileGet)
-        If .FileExists(sFileGet) Then .DeleteFile (sFileLet)
-    End With
-    Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Sub
-
-Public Sub Test_File_Value()
-' ------------------------------------------------
-' This test relies on the Value (Let) service.
-' ------------------------------------------------
-    Const PROC = "Test_File_Value"
-    Const vbTemporaryFolder = 2
-    
-    On Error GoTo eh
-    Dim fso             As New FileSystemObject
-    Dim sFile           As String
-    Dim cyValue         As Currency: cyValue = 12345.6789
-    
-    '~~ Test preparation
-    sFile = fso.GetSpecialFolder(SpecialFolder:=vbTemporaryFolder) & "\" & fso.GetTempName
-        
-    mErH.BoP ErrSrc(PROC)
-    
-    '~~ Test step 1: Write commented values
-    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1") = "Test Value"
-    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2") = True
-    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3") = False
-    mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4") = cyValue
-    
-    '~~ Display written test values
-    mMsg.Box msg_title:="Content of file '" & sFile & "'" _
-           , msg:=fso.OpenTextFile(sFile).ReadAll _
-           , msg_monospaced:=True
-    
-    '~~ Test step 2: Read commented values
-    Debug.Print "Test.Value-1 = '" & mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1") & "'"
-    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-1") = "Test Value"
-    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-2") = True
-    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-3") = False
-    Debug.Assert mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4") = cyValue
-    Debug.Assert VarType(mFile.Value(vl_file:=sFile, vl_section:="Test", vl_value_name:="Test.Value-4")) = vbCurrency
-    
-    mErH.EoP ErrSrc(PROC)
-    
-xt: '~~ Test cleanup
-    With fso
-        If .FileExists(sFile) Then .DeleteFile (sFile)
-    End With
-    Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Sub
-
-Public Sub Test_File_ValueNames()
-    Const PROC = "Test_File_ValueNames"
-
-    On Error GoTo eh
-    Dim v   As Variant
-    
-    For Each v In mFile.ValueNames(vn_file:=mMe.CompManAddinPath & "\CompMan.dat")
-        Debug.Print """" & v & """"
-    Next v
-    
-xt: Exit Sub
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Sub
-
-Public Sub Test_File_Values()
-    Const PROC = "Test_File_Values"
-    
-    On Error GoTo eh
-    Dim dctValues   As Dictionary
-    Dim v           As Variant
-    Dim sFile       As String
-    
-    sFile = mMe.CompManAddinPath & "\CompMan.dat"
-    Set dctValues = mFile.Values(vl_file:=sFile _
-                             , vl_section:=mFile.SectionNames(sn_file:=sFile).Items()(0))
-    For Each v In dctValues
-        Debug.Print v & " = " & dctValues(v)
-    Next v
-
-xt: Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Sub
-
 Public Sub Test_Log()
     Const PROC = "Test_Log"
     
@@ -357,7 +163,7 @@ Public Sub Test_Log()
         .ServicedItem = ThisWorkbook.name & ": " & "Test-item"
         .Action = "Tested"
         mMsg.Box msg_title:="Test-Log:" _
-               , msg:=mFile.Txt(tx_file_full_name:=.LogFile.Path) _
+               , msg:=mFile.Txt(ft_file:=.LogFile.Path) _
                , msg_monospaced:=True
         If fso.FileExists(.LogFile.Path) Then fso.DeleteFile .LogFile.Path
     End With
@@ -506,7 +312,7 @@ Private Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
     Dim cComp           As New clsComp
     Dim i               As Long
     Dim sExpFile        As String
-    Dim flExport        As FILE
+    Dim flExport        As File
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
@@ -668,7 +474,7 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
     Dim cComp           As New clsComp
     Dim i               As Long
     Dim sExpFile        As String
-    Dim flExport        As FILE
+    Dim flExport        As File
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
@@ -723,7 +529,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
     Dim cComp           As New clsComp
     Dim i               As Long
     Dim sExpFile        As String
-    Dim flExport        As FILE
+    Dim flExport        As File
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
@@ -803,13 +609,4 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
-
-Private Function MaxCompLength(ByVal wb As Workbook) As Long
-    Dim vbc As VBComponent
-    If lMaxCompLength = 0 Then
-        For Each vbc In wb.VBProject.VBComponents
-            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
-        Next vbc
-    End If
-End Function
 
