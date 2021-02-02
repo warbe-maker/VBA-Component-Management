@@ -138,7 +138,7 @@ End Property
 Public Property Let RenewLogAction(ByVal la_action As String)
     lRenewStep = lRenewStep + 1
     If lRenewStep = 1 Then
-        sRenewLogFile = mFile.Temp(".log")
+        sRenewLogFile = mFile.Temp(tmp_extension:=".log")
         bRenewLogFileAppend = False
     Else
         bRenewLogFileAppend = True
@@ -159,7 +159,9 @@ Public Property Let RenewLogResult( _
     Then s = lRenewStep & " " & la_result & " " & sRenewAction _
     Else s = lRenewStep & " " & la_result & " " & la_result_text
     
-    mFile.Txt(sRenewLogFile, bRenewLogFileAppend) = s
+    mFile.Txt(ft_file:=sRenewLogFile _
+            , ft_append:=bRenewLogFileAppend _
+             ) = s
     wsAddIn.LogRenewStep rn_result:=la_result, rn_action:=la_result_text
 
 End Property

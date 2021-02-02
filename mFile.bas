@@ -20,18 +20,38 @@ Option Private Module
 '                   to a file.
 ' - SectionNames    Returns a Dictionary of all section names
 '                   [.....] in a file.
+' - SectionsRemove  Removes the sections provided via their name. When no section
+'                   names are provided (pp_sections) none are removed.
 ' - Txt             Get th content of a text file as string or write
 '                   a string to a file - optionally appended
-' - Value           Read/write a named value from/to a file
-'
+' - Value           Reads a named value from or writes a named value to a file
+' - ValueNames      Returns a Dictionary of all value names (with the value name as
+'                   key and the value as item) in file (pp_file) of the sections
+'                   (pp_sections) in asscending order. Sections names (pp_sections)
+'                   may be provided as a comma delimited string of names, or a
+'                   Dictionary or Collection of name items. When no section names
+'                   (pp_sections) are provided all unique! value names of all sections
+'                   in file (pp_file) are returned. Of duplicate names the value will
+'                   be of the first one found.
+' - Values          Returns a Dictionary with value as key and value name(s) in a
+'                   Collection as item. When (pp_sections) is ommited of all sections,
+'                   otherwise of the named sections which may be provided as a comma
+'                   delimited string of names, or a Collection or Dictionary of section
+'                   name items.
 '
 ' Uses:
 ' - mDct            Service DctAdd is used to provide Dictionaries in ascending
 '                   order by item or by key.
-' - mTrc, fMsg, mMsg, and mErH are only used by the mTest module and not required
-'                   for the mFile itself.
+'                   Note! The components mTrc, fMsg, mMsg, and mErH are only used for testing
+'                   by the module mTest. They are not part of the to-be-installed
+'                   components of mFile.
 '
 ' Requires: Reference to "Microsoft Scripting Runtine"
+'
+' This 'Common VBA Component is developed, maintained and tested (regression test
+' available in mTest module and obligatory with each code modification) in the
+' public Github repo: https://github.com/warbe-maker/Common-VBA-File-Services.
+' Contribution in whichever form is welcome.
 '
 ' W. Rauschenberger, Berlin Nov 2020
 ' ------------------------------------------------------------------------
@@ -142,19 +162,18 @@ eh: ErrMsg ErrSrc(PROC)
 End Property
 
 Public Property Get SectionNames( _
-                  Optional ByVal pp_file As String) As Collection
+                  Optional ByVal pp_file As String) As Dictionary
 ' ---------------------------------------------------------------
-' Returns a Collection of all section names [.....] in file
+' Returns a Dictionary of all section names [.....] in file
 ' (pp_file) in ascending sequence.
 '
-' Requires: Service mDct.DctAdd to order the sections in ascending sequence.
+' Uses: mDct.DctAdd to order the sections in ascending sequence.
 ' ---------------------------------------------------------------
     Const PROC = "SectionNames"
     
     On Error GoTo eh
     Dim fso             As New FileSystemObject
     Dim asSections()    As String
-    Dim cll             As New Collection
     Dim dct             As New Dictionary
     Dim i               As Long
     Dim iLen            As Long
@@ -184,11 +203,7 @@ Public Property Get SectionNames( _
         Next i
     End If
     
-xt: For Each v In dct
-        cll.Add v
-    Next v
-    Set SectionNames = cll
-    Set cll = Nothing
+xt: Set SectionNames = dct
     Set dct = Nothing
     Exit Property
     
@@ -461,7 +476,7 @@ Private Sub ErrMsg( _
 
     Err.Raise Number:=err_no _
             , Source:=err_source _
-            , Description:=err_dscrptn
+            , Description:="Error in '" & err_source & "': " & err_dscrptn
 
 End Sub
 
@@ -646,11 +661,23 @@ xt: Exit Function
 eh: ErrMsg ErrSrc(PROC)
 End Function
 
-Public Property Get Temp(Optional ByVal tmp_extension As String = ".tmp") As String
-    Dim fso As New FileSystemObject
+Public Property Get Temp( _
+          Optional ByVal tmp_path As String = vbNullString, _
+          Optional ByVal tmp_extension As String = ".tmp") As String
+' ------------------------------------------------------------------
+' Returns the full file name of a temporary randomly named file,
+' when tmp_path is omitted in the CurDir path.
+' ------------------------------------------------------------------
+    
+    Dim fso     As New FileSystemObject
+    Dim sTemp   As String
+    
     If Left(tmp_extension, 1) <> "." Then tmp_extension = "." & tmp_extension
-    Temp = Replace(fso.GetTempName, ".tmp", tmp_extension)
-    Temp = fso.GetParentFolderName(ActiveWorkbook.FullName) & "\" & Temp
+    sTemp = Replace(fso.GetTempName, ".tmp", tmp_extension)
+    If tmp_path = vbNullString Then tmp_path = CurDir
+    sTemp = VBA.Replace(tmp_path & "\" & sTemp, "\\", "\")
+    Temp = sTemp
+    
     Set fso = Nothing
 End Property
 
@@ -852,26 +879,28 @@ Public Sub SectionsCopy(ByVal pp_source As String, _
     Const PROC = "SectionCopy"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
-    Dim dct As Dictionary
-    Dim cll As New Collection
+    Dim fso         As New FileSystemObject
+    Dim dct         As Dictionary
+    Dim dctSections As Dictionary
+    Dim vNames      As Variant
     
-    Set cll = AsCollection(pp_sections)
-    If cll.Count = 0 Then Set cll = mFile.SectionNames(pp_source)
+    '~~ Provide all section names when no section named are provided via pp_sections
+    Set vNames = NamesInArg(pp_sections)
+    If vNames.Count = 0 Then Set vNames = mFile.SectionNames(pp_source)
     
-    '~~ Get all sections from file as Dictionary
+    '~~ Get the named or all sections as Dictionary
     Set dct = mFile.Sections(pp_file:=pp_source _
-                           , pp_sections:=cll _
+                           , pp_sections:=vNames _
                             )
      
      If fso.FileExists(pp_target) And pp_replace _
      Then mFile.SectionsRemove pp_file:=pp_target _
-                             , pp_sections:=cll
+                             , pp_sections:=vNames
      
      '~~ Write all sections from the source file to the target file
      mFile.Sections(pp_target) = dct
 
-xt: Set cll = Nothing
+xt: Set vNames = Nothing
     Set dct = Nothing
     Exit Sub
     
@@ -882,7 +911,7 @@ Public Property Get Sections( _
                    Optional ByVal pp_file As String, _
                    Optional ByVal pp_sections As Variant = Nothing, _
                    Optional ByVal pp_replace As Boolean = False) As Dictionary
-' -------------------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Returns the named sections (pp_section_names) - if not provided all sections - in
 ' file (pp_file) as Dictionary with the section name as the key - in ascending order! -
 ' and a Dictionary of the sections values as item with the value name as key and the
@@ -901,16 +930,18 @@ Public Property Get Sections( _
     Dim dctN    As Dictionary       ' Section names
     Dim v       As Variant
     Dim sName   As String           ' A section's name
+    Dim vNames  As Variant
     
     pp_replace = pp_replace ' not used! declared for property Get/Let conformity
-    Set cll = AsCollection(pp_sections)
-    If cll.Count = 0 Then Set cll = mFile.SectionNames(pp_file)
+    '~~ Provide all section names when no section named are provided via pp_sections
+    Set vNames = NamesInArg(pp_sections)
+    If vNames.Count = 0 Then Set vNames = mFile.SectionNames(pp_file)
     
-    For Each v In cll
+    For Each v In vNames
         sName = v
-        Set dctV = mFile.Values(pp_file:=pp_file _
-                              , pp_sections:=sName _
-                               )
+        Set dctV = mFile.ValueNames(pp_file:=pp_file _
+                                  , pp_sections:=sName _
+                                   )
         mDct.DctAdd add_dct:=dctS _
                   , add_key:=sName _
                   , add_item:=dctV _
@@ -944,7 +975,8 @@ Public Property Let Sections( _
     Dim sSection    As String
     Dim vValue      As Variant
     Dim sName       As String
-
+    Dim cllNames    As Collection
+    
     pp_replace = pp_replace ' not used! declared for Property Get/Let conformity only
     
     For Each vS In pp_dct
@@ -952,11 +984,10 @@ Public Property Let Sections( _
         Set dctValues = pp_dct(vS)
         For Each vN In dctValues
             sName = vN
-            vValue = dctValues(vN)
             mFile.Value(pp_file:=pp_file _
                       , pp_section:=sSection _
                       , pp_value_name:=sName _
-                       ) = vValue
+                       ) = dctValues.Item(vN)
         Next vN
     Next vS
     
@@ -965,46 +996,46 @@ xt: Exit Property
 eh: ErrMsg ErrSrc(PROC)
 End Property
 
-Public Function AsCollection( _
-              Optional ByVal v As Variant = Nothing) As Collection
-' ----------------------------------------------------------------
-' Returns (v) as Collection of string items. v may not provided, a
-' comma delimited string, a Dictionary of string items or a
+Public Function NamesInArg( _
+            Optional ByVal v As Variant = Nothing) As Collection
+' --------------------------------------------------------------
+' Returns (v) as Collection of string items whereby (v) may not
+' be provided, a comma delimited string, or a Dictionary or
 ' Collection of string items.
-' ----------------------------------------------------------------
-    Const PROC = "AsCollection"
+' --------------------------------------------------------------
+    Const PROC = "NamesInArg"
     
     On Error GoTo eh
-    Dim i   As Long
-    Dim cll As New Collection
-    Dim dct As Dictionary
-    Dim a   As Variant
+    Dim i       As Long
+    Dim cll     As New Collection
+    Dim dct     As Dictionary
+    Dim a       As Variant
+    Dim vName   As Variant
     
     Select Case VarType(v)
         Case vbObject
             Select Case TypeName(v)
                 Case "Dictionary"
                     Set dct = v
-                    For i = 0 To v.Count
-                        cll.Add dct.Items()(i)
-                    Next i
+                    For Each v In dct
+                        cll.Add dct.Item(v)
+                    Next v
                 Case "Collection"
                     Set cll = v
                 Case Else: GoTo xt ' likely Nothing
             End Select
         Case vbString
             If v <> vbNullString Then
-                a = Split(v, ",")
-                For i = LBound(a) To UBound(a)
-                    cll.Add VBA.Trim$(a(i))
-                Next i
+                For Each vName In Split(v, ",")
+                    cll.Add VBA.Trim$(v)
+                Next vName
             End If
         Case Is >= vbArray
         Case Else
             Err.Raise AppErr(1), ErrSrc(PROC), "The argument is neither a string, an arry, a Collecton, or a Dictionary!"
     End Select
             
-xt: Set AsCollection = cll
+xt: Set NamesInArg = cll
     Exit Function
 
 eh: ErrMsg ErrSrc(PROC)
@@ -1013,29 +1044,28 @@ End Function
 Public Sub SectionsRemove( _
                     ByVal pp_file As String, _
            Optional ByVal pp_sections As Variant = Nothing)
-' ---------------------------------------------------------
-' Removes the sections (pp_sections) from file (pp_file).
-' When pp_sections is not provided, all sections.
-' ---------------------------------------------------------
+' ----------------------------------------------------------
+' Removes the sections provided via their name. When no
+' section names are provided (pp_sections) none are removed.
+' ----------------------------------------------------------
     Const PROC = "SectionsRemove"
     
     On Error GoTo eh
-    Dim cll     As Collection
     Dim v       As Variant
-    Dim sName   As String
+    Dim vNames  As Variant
     
-    Set cll = AsCollection(pp_sections)
-    If cll.Count = 0 Then Set cll = mFile.SectionNames(pp_file)
+    '~~ Provide all section names when no section named are provided via pp_sections
+    Set vNames = NamesInArg(pp_sections)
+    If vNames.Count = 0 Then GoTo xt
     
-    For Each v In cll
-        sName = v
-        DeletePrivateProfileSection Section:=sName _
+    For Each v In vNames
+        DeletePrivateProfileSection Section:=v _
                                   , NoKey:=0 _
                                   , NoSetting:=0 _
                                   , name:=pp_file
     Next v
     
-xt: Set cll = Nothing
+xt: Set vNames = Nothing
     Exit Sub
     
 eh: ErrMsg ErrSrc(PROC)
@@ -1162,16 +1192,18 @@ eh: ErrMsg ErrSrc(PROC)
 End Property
 
 Public Function ValueNames( _
-                     ByVal vn_file As String, _
-            Optional ByVal vn_sections As Variant = Nothing) As Collection
+                     ByVal pp_file As String, _
+            Optional ByVal pp_sections As Variant = Nothing) As Dictionary
 ' ------------------------------------------------------------------------
-' Returns a Collection with all unique value names in file (vn_file) in
-' asscending order. When sections names (vn_sections) are provided only
-' the value names of the named ones, else all names of all sections.
-' Section names may be provided as a comma delimited string of names, or
-' a Dictionary or Collection of name items.
+' Returns a Dictionary of all value names (with the value name as key and
+' the value as item) in file (pp_file) of the sections (pp_sections) in
+' asscending order. Sections names (pp_sections) may be provided as a
+' comma delimited string of names, or a Dictionary or Collection of name
+' items. When no section names (pp_sections) are provided all unique!
+' value names of all sections in file (pp_file) are returned. Of duplicate
+' names the value will be of the first one found.
 '
-' Requires: Service mDct.DctAdd to order the sections in ascending sequence.
+' Uses: mDct.DctAdd to order the sections in ascending sequence.
 ' ------------------------------------------------------------------------
     Const PROC = "ValueNames"
     
@@ -1186,14 +1218,14 @@ Public Function ValueNames( _
     Dim v               As Variant
     Dim sSection        As String
     Dim sName           As String
-    Dim cllSections     As Collection
+    Dim vNames          As Variant
     
     '~~ When no section names are provided the name of all values in all
     '~~ sections are collected in ascending order ignoring duplicates
-    Set cllSections = AsCollection(vn_sections)
-    If cllSections.Count = 0 Then Set cllSections = mFile.SectionNames(vn_file)
+    Set vNames = NamesInArg(pp_sections)
+    If vNames.Count = 0 Then Set vNames = mFile.SectionNames(pp_file)
     
-    For Each v In cllSections
+    For Each v In vNames
         sSection = v
         '~~> Retrieve the names for the provided section
         strBuffer = Space$(32767)
@@ -1202,7 +1234,7 @@ Public Function ValueNames( _
                                         , lpg_Default:=vbNullString _
                                         , lpg_ReturnedString:=strBuffer _
                                         , nSize:=Len(strBuffer) _
-                                        , lpg_FileName:=vn_file _
+                                        , lpg_FileName:=pp_file _
                                          )
         sNames = Left$(strBuffer, lResult)
     
@@ -1214,20 +1246,16 @@ Public Function ValueNames( _
                     If Not dctNames.Exists(sName) _
                     Then mDct.DctAdd add_dct:=dctNames _
                                    , add_key:=sName _
-                                   , add_item:=sName _
+                                   , add_item:=mFile.Value(pp_file:=pp_file, pp_section:=sSection, pp_value_name:=sName) _
                                    , add_seq:=seq_ascending
                 End If
             Next i
         End If
     Next v
         
-    For Each v In dctNames
-        cllNames.Add v
-    Next v
-    Set ValueNames = cllNames
+    Set ValueNames = dctNames
 
 xt: Set dctNames = Nothing
-    Set cllNames = Nothing
     Exit Function
     
 eh: ErrMsg ErrSrc(PROC)
@@ -1237,37 +1265,56 @@ Public Function Values( _
                  ByVal pp_file As String, _
         Optional ByVal pp_sections As Variant = Nothing) As Dictionary
 ' --------------------------------------------------------------------
-' Returns a Dictionary with value name as key and value as item. When
-' (pp_sections) is ommited of all sections, otherwise of the named
-' sections. (pp_sections) may be a comma deleimed string of names, or
-' a Collection or Dictionary of section name items.
+' Returns a Dictionary with the values in file (pp_file) as key.
+' Attention! Because the same value may appear with several names when
+' all names of all sections are returned, the value names are returned
+' as Collection item. When (pp_sections) is ommited of all sections,
+' otherwise of the named sections which may be provided as a comma
+' delimited string of names, or a Collection or Dictionary of section
+' name items.
 '
-' Requires: Service mDct.DctAdd to order the sections in ascending sequence.
+' Uses: mDct.DctAdd to order the sections in ascending sequence.
 ' --------------------------------------------------------------------
     Const PROC = "Values"
     
     On Error GoTo eh
     Dim dct         As New Dictionary
-    Dim vN          As Variant
-    Dim cll         As Collection
-    Dim vS          As Variant
+    Dim vName       As Variant
+    Dim vNames      As Variant ' a Collection of provided section names or a Dictionary of all section names
+    Dim vSection    As Variant
     Dim sSection    As String
     Dim sValName    As String
+    Dim dctNames    As Dictionary
+    Dim sValue      As String
+    Dim cllNames    As Collection
     
-    Set cll = AsCollection(pp_sections)
-    If cll.Count = 0 Then Set cll = mFile.SectionNames(pp_file)
+    Set vNames = NamesInArg(pp_sections)
+    If vNames.Count = 0 Then Set vNames = mFile.SectionNames(pp_file)
     
-    For Each vS In cll
-        sSection = vS
-        For Each vN In mFile.ValueNames(vn_file:=pp_file, vn_sections:=sSection)
-            sValName = vN
-            If Not dct.Exists(sValName) _
-            Then mDct.DctAdd add_dct:=dct _
-                           , add_key:=vN _
-                           , add_item:=mFile.Value(pp_file:=pp_file, pp_section:=vS, pp_value_name:=vN) _
-                           , add_seq:=seq_ascending
-        Next vN
-    Next vS
+    For Each vSection In vNames
+        sSection = vSection
+        Set dctNames = mFile.ValueNames(pp_file:=pp_file, pp_sections:=sSection)
+        For Each vName In dctNames
+            sValue = dctNames(vName)
+            sValName = vName
+            If Not dct.Exists(sValue) Then
+                Set cllNames = New Collection
+                cllNames.Add sValName
+                mDct.DctAdd add_dct:=dct _
+                          , add_key:=sValue _
+                          , add_item:=cllNames _
+                          , add_seq:=seq_ascending
+            Else
+                Set cllNames = dct.Item(sValue)
+                cllNames.Add sValName
+                dct.Remove sValue
+                mDct.DctAdd add_dct:=dct _
+                          , add_key:=sValue _
+                          , add_item:=cllNames _
+                          , add_seq:=seq_ascending
+            End If
+        Next vName
+    Next vSection
     
 xt: Set Values = dct
     Exit Function
