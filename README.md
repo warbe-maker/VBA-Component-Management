@@ -54,4 +54,4 @@ End Sub
 
 
 [1]:https://gitcdn.link/repo/warbe-maker/VBA-Components-Management-Services/master/CompManDev.xlsb
-[2]:https://warbe-maker.github.io/warbe-maker.github.io/vba/excel/component/management/2021/02/05/Programatically-updating-Excel-VBA-code.html
+[2]:https://warbe-maker.github.io/warbe-maker.github.io/vba/excel/code/component/management/2021/02/05/Programatically-updating-Excel-VBA-code.html
