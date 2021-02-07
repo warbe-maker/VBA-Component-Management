@@ -1,19 +1,15 @@
 # VBA-Common-Components-Management
 Methods for the management of Common VBA Components, i.e. update/sync, export changed, hosted, used Modules, Class Modules, and UserForms.
 Available through a plug-in Workbook which has a development instance (this repo) which provides the method to replace/renew the active plug-in Workbook.<br>
-See also
+See also [Programatically updating Excel VBA code][2]
 
 # Services
 ## The _ExportChangedComponents_ service
 Used with the _Workbook_Before_Save_ event it compares the code of any component in a _VB-Project_ with its last _Export File_ and re-exports it when different. The service is essential for _VB-Projects_ which host _Raw-Components_ in order to get them registered as available for other _VB-Projects_. Usage by any _VB-Project_ in a development status is appropriate as it is not only a code backup but also perfectly serves versioning - even when using [GitHub][]. Any _Component_ indicated a _hosted Raw-Component is registered as such with its _Export File_ as the main property.<br>
 The service also checks a _Clone-Component_ modified within the VB-Project using it a offers updating the _Raw-Component_ in order to make the modification permanent. Testing the modification will be a task performed with the raw hosting project.
 
-For the service's syntax and named arguments see [Usage of the _ExportChangedComponents_ service](#usage-of-the-exportchangedcomponents-service).
-
 ## The _UpdateRawClones_ service
 The service is used with the _Workbook\_Open_ event. It checks each _Component_ for being known/registered as _Raw_  _hosted_ by another _VB-Project_. If yes, its code is compared with the _Raw's Export File and suggested for being updated if different.
-
-For the service's syntax and named arguments see [Usage of the  _UpdateRawClones_ service](#usage-of-the-updaterawclones-service).
 
 ## Installation
 ### Installation of the _CompMan_ Add-in
@@ -58,3 +54,4 @@ End Sub
 
 
 [1]:https://gitcdn.link/repo/warbe-maker/VBA-Components-Management-Services/master/CompManDev.xlsb
+[2]:https://warbe-maker.github.io/warbe-maker.github.io/vba/excel/component/management/2021/02/05/Programatically-updating-Excel-VBA-code.html
