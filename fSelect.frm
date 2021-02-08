@@ -19,9 +19,9 @@ Private dct                 As Dictionary
 Private wbHost              As Workbook
 Private bWhenChangedOnly    As Boolean
 
-Public Property Let Host(ByVal wb As Workbook):     Set wbHost = wb:                    End Property
-Public Property Get SelectedComps() As Dictionary:  Set SelectedComps = dct:            End Property
-Public Property Get WhenChangedOnly() As Boolean:   WhenChangedOnly = bWhenChangedOnly: End Property
+Friend Property Let Host(ByVal wb As Workbook):     Set wbHost = wb:                    End Property
+Friend Property Get SelectedComps() As Dictionary:  Set SelectedComps = dct:            End Property
+Friend Property Get WhenChangedOnly() As Boolean:   WhenChangedOnly = bWhenChangedOnly: End Property
 
 Private Sub cbxWhenChangedOnly_Click()
     With Me

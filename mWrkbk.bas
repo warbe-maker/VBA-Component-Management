@@ -98,10 +98,10 @@ Private Sub ErrMsg( _
 ' caller's error handling.
 ' ------------------------------------------------------
     
-    If err_no = 0 Then err_no = err.Number
-    If err_dscrptn = vbNullString Then err_dscrptn = err.Description
+    If err_no = 0 Then err_no = Err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
 
-    err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
+    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
 
 End Sub
 
@@ -154,7 +154,7 @@ Public Function IsOpen(ByVal vWb As Variant, _
     Dim fso         As New FileSystemObject
     
     If Not mWrkbk.IsObject(vWb) And Not mWrkbk.IsFullName(vWb) And Not mWrkbk.IsName(vWb) And Not TypeName(vWb) = "String" _
-    Then err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is neither a Workbook object nor a Workbook's name or fullname)!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is neither a Workbook object nor a Workbook's name or fullname)!"
     sWbBaseName = mBasic.BaseName(vWb)
     
     Set dctOpen = Opened
@@ -245,7 +245,8 @@ Dim i       As Long
         .CompareMode = TextCompare
         For Each app In aApps
             For Each wbk In app.Workbooks
-                dct.Add mBasic.BaseName(wbk), wbk
+                Debug.Print mBasic.BaseName(wbk)
+                If Not dct.Exists(mBasic.BaseName(wbk)) Then dct.Add mBasic.BaseName(wbk), wbk
             Next wbk
         Next app
     End With
@@ -352,7 +353,7 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
     Set GetOpen = Nothing
     
     If Not mWrkbk.IsName(vWb) And Not mWrkbk.IsFullName(vWb) And Not mWrkbk.IsObject(vWb) _
-    Then err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is neither a Workbook object nor a string (name or fullname)!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is neither a Workbook object nor a string (name or fullname)!"
     sWbBaseName = mBasic.BaseName(vWb)
 
     If mWrkbk.IsObject(vWb) Then
@@ -366,7 +367,7 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
                     '~~ The open Workook with the same name is from a different location
                     If fso.FileExists(vWb) Then
                         '~~ The file still exists on the provided location
-                        err.Raise AppErr(3), ErrSrc(PROC), Replace(Replace$(ERR_GOW01, "<>1", wb.PATH), "<>2", sPath)
+                        Err.Raise AppErr(3), ErrSrc(PROC), Replace(Replace$(ERR_GOW01, "<>1", wb.Path), "<>2", sPath)
                     Else
                         '~~ The Workbook file does not or no longer exist at the provivded location.
                         '~~ The open one is apparenty the ment Workbook just moved to the new location.
@@ -381,7 +382,7 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
                 If fso.FileExists(vWb) Then
                     Set GetOpen = Workbooks.Open(vWb)
                 Else
-                    err.Raise AppErr(4), ErrSrc(PROC), Replace(ERR_GOW03, "<>", CStr(vWb))
+                    Err.Raise AppErr(4), ErrSrc(PROC), Replace(ERR_GOW03, "<>", CStr(vWb))
                 End If
             End If
         End With
@@ -390,7 +391,7 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
             If .Exists(sWbBaseName) Then
                 Set GetOpen = .Item(sWbBaseName)
             Else
-                err.Raise AppErr(5), ErrSrc(PROC), "A Workbook named '" & sWbBaseName & "' is not open and it cannot be opened since only the name is provided (a full name would be required)!"
+                Err.Raise AppErr(5), ErrSrc(PROC), "A Workbook named '" & sWbBaseName & "' is not open and it cannot be opened since only the name is provided (a full name would be required)!"
             End If
         End With
     End If

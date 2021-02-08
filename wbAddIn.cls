@@ -8,10 +8,11 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
-' ---------------------------------------------------------------------------
-' Common Component Workbook CompManDev.xlsm
-' - When setup this Workbook also exists as AddIn Workbook CompMan.xlma
-' - When renewed, this Workbook is open as Addin Workbook CompMan.xlma
+' ------------------------------------------------------------------
+' !! This Workbook exists as two instances:                       !!
+' !! 1. The development instance CompManDev.xlsb                  !!
+' !! 2. The Addin instance CompMan.xlma which is setup/renewed    !!
+' !!    via the development instance service mMe.RenewAddIn       !!
 '
 ' Properties:
 ' - AddInInstanceFullName Full path/file name of the Addin Instance
@@ -26,64 +27,46 @@ Option Explicit
 '
 ' W. Rauschenberger, Berlin Dec 2020
 ' See Github repo
-' ---------------------------------------------------------------------------
+' ------------------------------------------------------------------
 
-Public Property Get HOSTED_RAWS() As String:            HOSTED_RAWS = "":                                                End Property
+Friend Property Get HOSTED_RAWS() As String:    HOSTED_RAWS = "":   End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "wbCompMan" & "." & sProc
+    ErrSrc = "wbAddIn" & "." & sProc
 End Function
 
-Private Sub Workbook_BeforeClose(Cancel As Boolean)
-    If mMe.IsDevInstnc Then mMe.ControlItemRenewRemove
-End Sub
-
-Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
-    Const PROC      As String = "Workbook_BeforeSave"
-    
-    On Error GoTo eh
-    Dim wb As Workbook
-
-    If Not mMe.IsDevInstnc Then Exit Sub
-    
-    Set wb = ThisWorkbook
-    mErH.BoP ErrSrc(PROC)
-        
-    Application.EnableEvents = False
-    wb.Save
-    Application.EnableEvents = True
-    mCompMan.ExportChangedComponents wb, HOSTED_RAWS ' includes management of updated used Common Components
-    If Not wb.Saved Then
-        Application.EnableEvents = False
-        wb.Save        ' usually not required
-        Application.EnableEvents = True
-    End If
-    
-xt: mErH.EoP ErrSrc(PROC)
-    Exit Sub
-
-eh: mErH.ErrMsg ErrSrc(PROC)
-End Sub
-
 Private Sub Workbook_Open()
+' -------------------------------------------------------------------------
+' Attention: ThisWorkbook's raw clones (i.e. the used common components)
+'            are only updated when the CompMan Addin is active. This is
+'            only the case when at least one Workbook referring to it is
+'            open (this development instance cannot refer to 'its' Addin
+'            instance because it may not exist - in case of a 'cold start'.
+'            On the other hand, it will be essential that the Addin is
+'            established with up-to-date used raw clones.
+'            Conclusion: For a 'cold start', i.e. the development instance
+'            is opened the very first time it is assumed up-to-date. Later
+'            on, when a used clone's raw is changed - that is when the
+'            Addin will be active - the development instance will be opened
+'            to get its cloned raws updated and the Addin instance will be
+'            renewed.
+' -------------------------------------------------------------------------
     Const PROC = "Workbook_Open"
     
     On Error GoTo eh
     Dim fso As New FileSystemObject
-    Dim cLog As New clsLog: cLog.Reset: Set cLog = Nothing
     
     mErH.BoP ErrSrc(PROC)
     
     If mMe.IsDevInstnc Then
-        mMe.ControlItemRenewAdd
-        mMe.ConfigAsserted ' assert a valid CompMan basic configuratuion
+        mMe.CfgAsserted ' assert a valid CompMan basic configuration
         If mMe.AddInInstncWrkbkIsOpen Then
             '~~ Essential! When the Development instance Workbook is opened, used Common Components
             '~~ the origin code has changed can only be updated when the Addin instance Workbook is
             '~~ open as well. However, since the VBProject has no reference to the Addin the Addin
             '~~ will not be opened when the Development instance is the only Workbook open.
             '~~ I.e. only when a Workbook referring to the Addin is opened the Addin will be opened as well.
-            mMe.UpdateUsedCommComps
+            mMe.UpdateRawClones
         End If
     End If
         
@@ -106,5 +89,32 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOpt2ResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
+End Sub
+
+Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
+    Const PROC = "Workbook_BeforeSave"
+    
+    On Error GoTo eh
+    Dim wb As Workbook
+
+    If Not mMe.IsDevInstnc Then Exit Sub
+    
+    Set wb = ThisWorkbook
+    mErH.BoP ErrSrc(PROC)
+        
+    Application.EnableEvents = False
+    Application.StatusBar = "Saving Workbook '" & wb.name & "' please wait, this may take a few seconds"
+    wb.Save
+    Application.StatusBar = vbNullString
+    mCompMan.ExportChangedComponents wb, HOSTED_RAWS ' includes management of updated used Common Components
+    If Not wb.Saved Then
+        wb.Save        ' usually not required
+    End If
+    
+xt: Application.EnableEvents = True
+    mErH.EoP ErrSrc(PROC)
+    Exit Sub
+
+eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
