@@ -473,7 +473,6 @@ Public Sub ExportChangedComponents( _
                         If lExported = 1 _
                         Then sExported = vbc.name _
                         Else sExported = sExported & ", " & vbc.name
-                        mTrc.EoC ErrSrc(PROC) & " Backup No-Raw" & vbc.name
                         GoTo next_vbc
                     End If
                 
@@ -523,8 +522,9 @@ Private Sub MaintainHostedRaws(ByVal mh_hosted As String, _
     Const PROC = "MaintainHostedRaws"
     
     On Error GoTo eh
-    Dim v   As Variant
-    Dim fso As New FileSystemObject
+    Dim v       As Variant
+    Dim fso     As New FileSystemObject
+    Dim cComp   As clsComp
     
     mErH.BoP ErrSrc(PROC)
 
@@ -544,6 +544,16 @@ Private Sub MaintainHostedRaws(ByVal mh_hosted As String, _
             Or mHostedRaws.HostFullName(comp_name:=v) <> mh_wb.FullName Then
                 mHostedRaws.HostFullName(comp_name:=v) = mh_wb.FullName
                 cLog.Action = "Raw component '" & v & "' hosted in this Workbook registered"
+            End If
+            If mHostedRaws.ExpFilePath(v) = vbNullString Then
+                '~~ The component apparently had never been exported before
+                Set cComp = New clsComp
+                With cComp
+                    .Wrkbk = mh_wb
+                    .CompName = v
+                    If Not fso.FileExists(.ExpFilePath) Then .VBComp.Export .ExpFilePath
+                    mHostedRaws.ExpFilePath(v) = .ExpFilePath
+                End With
             End If
         Next v
     Else

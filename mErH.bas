@@ -533,6 +533,7 @@ Public Function ErrMsg( _
 #End If
         ErrMsg = vErrReply
         err_reply = vErrReply
+        Application.EnableEvents = True
 #If ExecTrace Then
     mTrc.Continue
 #End If
@@ -587,7 +588,7 @@ Private Sub ErrMsgMatter(ByVal err_source As String, _
     msg_details = IIf(err_line <> 0, msg_type & msg_no & " in " & err_source & " (at line " & err_line & ")", msg_type & msg_no & " in " & err_source)
     msg_dscrptn = IIf(InStr(err_dscrptn, CONCAT) <> 0, Split(err_dscrptn, CONCAT)(0), err_dscrptn)
     If InStr(err_dscrptn, CONCAT) <> 0 Then msg_info = Split(err_dscrptn, CONCAT)(1)
-    msg_source = Application.name & ":  " & Application.ActiveWindow.caption & ":  " & err_source
+    msg_source = Application.name & ":  " & Application.ActiveWindow.Caption & ":  " & err_source
     
 End Sub
 
