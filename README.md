@@ -1,6 +1,7 @@
-# VBA-Common-Components-Management
-Methods for the management of Common VBA Components, i.e. update/sync, export changed, hosted, used Modules, Class Modules, and UserForms.
-Available through a plug-in Workbook which has a development instance (this repo) which provides the method to replace/renew the active plug-in Workbook.<br>
+# Management of Excel VB-Project Components
+Services for the installation, export, update, and synchronization of _Clone-Components_ with their _Raw-Component_,
+by means of a _CompMan_ Addin Workbook. The Addin's development instance is this repo and provides the service to 
+establish itself as Addin.
 See also [Programatically updating Excel VBA code][2]
 
 # Disambiguation
