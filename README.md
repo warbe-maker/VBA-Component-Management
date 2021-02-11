@@ -3,6 +3,8 @@ Methods for the management of Common VBA Components, i.e. update/sync, export ch
 Available through a plug-in Workbook which has a development instance (this repo) which provides the method to replace/renew the active plug-in Workbook.<br>
 See also [Programatically updating Excel VBA code][2]
 
+{% include Disambiguation.md %}
+
 # Services
 ## The _ExportChangedComponents_ service
 Used with the _Workbook_Before_Save_ event it compares the code of any component in a _VB-Project_ with its last _Export File_ and re-exports it when different. The service is essential for _VB-Projects_ which host _Raw-Components_ in order to get them registered as available for other _VB-Projects_. Usage by any _VB-Project_ in a development status is appropriate as it is not only a code backup but also perfectly serves versioning - even when using [GitHub][]. Any _Component_ indicated a _hosted Raw-Component is registered as such with its _Export File_ as the main property.<br>

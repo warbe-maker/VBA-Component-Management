@@ -6,6 +6,7 @@ Option Explicit
 '                 component name the values HostFullName and ExpFilePath.
 ' ---------------------------------------------------------------------------
 Private Const VALUE_HOST_FULL_NAME = "HostFullName"
+Private Const VALUE_RAW_VB_PROJECT = "RawVbProject"
 
 Public Property Get DAT_FILE() As String: DAT_FILE = mMe.CompManAddinPath & "\RawHosts.dat":   End Property
 
@@ -19,6 +20,22 @@ Public Property Let FullName( _
                               ByVal host_full_name As String)
     Value(pp_section:=host_base_name, pp_value_name:=VALUE_HOST_FULL_NAME) = host_full_name
 End Property
+
+Public Property Get RawVbProject( _
+                     Optional ByVal host_base_name As String) As String
+    RawVbProject = Value(pp_section:=host_base_name, pp_value_name:=VALUE_RAW_VB_PROJECT)
+End Property
+
+Public Property Let RawVbProject( _
+                     Optional ByVal host_base_name As String, _
+                              ByVal host_full_name As String)
+    Value(pp_section:=host_base_name, pp_value_name:=VALUE_RAW_VB_PROJECT) = host_full_name
+End Property
+
+
+
+
+
 
 Private Property Get Value( _
            Optional ByVal pp_section As String, _

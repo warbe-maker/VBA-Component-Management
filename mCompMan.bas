@@ -81,7 +81,10 @@ Public lMaxCompLength   As Long
 Private dctHostedRaws   As Dictionary
 Private sService        As String
 
-Private Property Get HostedRaws() As Variant:        Set HostedRaws = dctHostedRaws: End Property
+Public Property Get RAW_VB_PROJECT() As String:         RAW_VB_PROJECT = "Raw-VB-Project":              End Property
+Public Property Get CLONE_VB_PROJECT_OF() As String:    CLONE_VB_PROJECT_OF = "Clone-VB-Project of:":   End Property
+    
+Private Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
 
 Private Property Let HostedRaws(ByVal hr As Variant)
 ' ---------------------------------------------------
@@ -118,26 +121,30 @@ Private Function Clones( _
     Const PROC = "Clones"
     
     On Error GoTo eh
-    Dim vbc As VBComponent
-    Dim dct As New Dictionary
-    Dim fso As New FileSystemObject
+    Dim vbc         As VBComponent
+    Dim dct         As New Dictionary
+    Dim fso         As New FileSystemObject
+    Dim sServiced   As String
+    Dim lCompMaxLen As Long
     
     mErH.BoP ErrSrc(PROC)
-    If cLog Is Nothing Then
-        Set cLog = New clsLog
-        cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=cl_wb) = ErrSrc(PROC)
-    End If
-    For Each vbc In cl_wb.VBProject.VBComponents
+    lCompMaxLen = MaxCompLength(cl_wb)
+    cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=cl_wb) = ErrSrc(PROC)
+    
+    For Each vbc In cl_wb.VbProject.VBComponents
         Set cComp = New clsComp
         With cComp
             .Wrkbk = cl_wb
             .CompName = vbc.name
+            sServiced = .Wrkbk.name & " " & .CompName & " "
+            sServiced = sServiced & String(lCompMaxLen - Len(.CompName), ".")
+            cLog.ServicedItem = sServiced
+
             If .KindOfComp = enRawClone Then
                 Set cRaw = New clsRaw
-                cRaw.CompName = .CompName
-                cRaw.ExpFile = fso.GetFile(FilePath:=mHostedRaws.ExpFilePath(.CompName))
-                cRaw.ExpFilePath = .ExpFile.Path
                 cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
+                cRaw.CompName = .CompName
+                cRaw.ExpFileExtension = .ExpFileExtension
                 cRaw.CloneExpFilePath = .ExpFilePath
                 If cRaw.Changed Or .Changed Then
                     dct.Add vbc, vbc.name
@@ -154,8 +161,8 @@ xt: mErH.EoP ErrSrc(PROC)
     Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Function
@@ -182,7 +189,7 @@ Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
     With cComp
         .Wrkbk = wb
         .CompName = cmp_comp_name
-        .VBComp = wb.VBProject.VBComponents(.CompName)
+        .VBComp = wb.VbProject.VBComponents(.CompName)
         sExpFileRaw = mHostedRaws.ExpFilePath(comp_name:=cmp_comp_name)
         sExpFileClone = .ExpFilePath
     
@@ -197,8 +204,8 @@ Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -212,12 +219,11 @@ Public Function CompExists( _
 ' -----------------------------------------------------------
     Dim s As String
     On Error Resume Next
-    s = ce_wb.VBProject.VBComponents(ce_comp_name).name
+    s = ce_wb.VbProject.VBComponents(ce_comp_name).name
     CompExists = Err.Number = 0
 End Function
 
-Private Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook, _
-                                   ByVal do_log As clsLog)
+Private Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook)
 ' --------------------------------------------------------------
 ' Delete Export Files the component does not or no longer exist.
 ' --------------------------------------------------------------
@@ -251,7 +257,7 @@ Private Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook, _
     
         For Each v In cllRemove
             .DeleteFile v
-            do_log.Action = "Obsolete Export File '" & v & "' deleted"
+            cLog.Action = "Obsolete Export File '" & v & "' deleted"
         Next v
     End With
     
@@ -261,8 +267,8 @@ xt: Set cComp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -285,7 +291,7 @@ Public Sub DisplayCodeChange(ByVal cmp_comp_name As String)
     With cComp
         .Wrkbk = wb
         .CompName = cmp_comp_name
-        .VBComp = wb.VBProject.VBComponents(.CompName)
+        .VBComp = wb.VbProject.VBComponents(.CompName)
     End With
     
     With fso
@@ -310,8 +316,8 @@ xt: If fso.FolderExists(sTempFolder) Then fso.DeleteFolder (sTempFolder)
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
@@ -338,7 +344,7 @@ Public Sub ExportAll(Optional ByVal exp_wrkbk As Workbook = Nothing)
         If mMe.IsAddinInstnc _
         Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
         .Wrkbk = exp_wrkbk
-        For Each vbc In .Wrkbk.VBProject.VBComponents
+        For Each vbc In .Wrkbk.VbProject.VBComponents
             .CompName = vbc.name ' this assignment provides the name for the export file
             vbc.Export .ExpFilePath
         Next vbc
@@ -383,9 +389,7 @@ Public Sub ExportChangedComponents( _
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
-    If WbkIsRestoredBySystem(ec_wb) Then GoTo xt
-    If Not WbkInServicedRoot(ec_wb) Then GoTo xt
-    If mMe.AddInPaused Then GoTo xt
+    If mService.Denied(ec_wb) Then GoTo xt
     
     mCompMan.Service = PROC & " for '" & ec_wb.name & "': "
     sStatus = mCompMan.Service
@@ -393,15 +397,15 @@ Public Sub ExportChangedComponents( _
     Set cLog = New clsLog
     cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=ec_wb, svp_new_log:=False) = ErrSrc(PROC)
 
-    DeleteObsoleteExpFiles do_wb:=ec_wb, do_log:=cLog
+    DeleteObsoleteExpFiles do_wb:=ec_wb
     MaintainHostedRaws mh_hosted:=ec_hosted _
                      , mh_wb:=ec_wb
     
-    lComponents = ec_wb.VBProject.VBComponents.Count
+    lComponents = ec_wb.VbProject.VBComponents.Count
     lCompsRemaining = lComponents
     sProgressDots = String$(lCompsRemaining, ".")
 
-    For Each vbc In ec_wb.VBProject.VBComponents
+    For Each vbc In ec_wb.VbProject.VBComponents
         If CodeModuleIsEmpty(vbc) Then GoTo next_vbc
         Set cComp = New clsComp
         sProgressDots = Left(sProgressDots, Len(sProgressDots) - 1)
@@ -411,7 +415,7 @@ Public Sub ExportChangedComponents( _
         With cComp
             .Wrkbk = ec_wb
             .CompName = vbc.name
-            sServiced = .Wrkbk.name & " Component " & .CompName & " "
+            sServiced = .Wrkbk.name & " " & .CompName & " "
             sServiced = sServiced & String(lCompMaxLen - Len(.CompName), ".")
             cLog.ServicedItem = sServiced
             If Not .Changed Then GoTo next_vbc
@@ -427,8 +431,7 @@ Public Sub ExportChangedComponents( _
                     '~~ Attention must be paid to the fact that the sequence of property assignments matters
                     .HostFullName = mHostedRaws.HostFullName(comp_name:=cComp.CompName)
                     .CompName = cComp.CompName
-                    .ExpFile = fso.GetFile(mHostedRaws.ExpFilePath(comp_name:=.CompName))
-                    .ExpFilePath = .ExpFile.Path
+                    .ExpFile = fso.GetFile(.ExpFileFullName)
                     .CloneExpFilePath = cComp.ExpFilePath
                     If Not .Changed And Not cComp.Changed Then GoTo next_vbc
                 End With
@@ -444,7 +447,7 @@ Public Sub ExportChangedComponents( _
                         vbc.Export .ExpFilePath
                         '~~ In case the raw had been imported manually the new check for a change will indicate no change
                         If cRaw.Changed(check_again:=True) Then GoTo next_vbc
-                        .ReplaceRawWithCloneWhenConfirmed rwu_updated:=bUpdated, rwu_log:=cLog ' when confirmed in user dialog
+                        .ReplaceRawWithCloneWhenConfirmed rwu_updated:=bUpdated ' when confirmed in user dialog
                         If bUpdated Then
                             lUpdated = lUpdated + 1
                             sUpdated = vbc.name & ", " & sUpdated
@@ -503,13 +506,14 @@ next_vbc:
 xt: Set dctHostedRaws = Nothing
     Set cComp = Nothing
     Set cRaw = Nothing
+    Set cLog = Nothing
     Set fso = Nothing
     mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -517,27 +521,52 @@ End Sub
 Private Sub MaintainHostedRaws(ByVal mh_hosted As String, _
                                ByVal mh_wb As Workbook)
 ' ---------------------------------------------------------
-'
+' - Registers a Workbook as raw host when it has at least
+'   one of the Workbook's (mh_wb) components indicated
+'   hosted
+' - Registers a Workbook as Raw-VB-Project when mh_hosted
+'   not indicates a component but = RAW_VB_PROJECT
 ' ---------------------------------------------------------
     Const PROC = "MaintainHostedRaws"
     
     On Error GoTo eh
-    Dim v       As Variant
-    Dim fso     As New FileSystemObject
-    Dim cComp   As clsComp
+    Dim v               As Variant
+    Dim fso             As New FileSystemObject
+    Dim cComp           As clsComp
+    Dim sHosted         As String
+    Dim sHostBaseName   As String
     
     mErH.BoP ErrSrc(PROC)
-
+    sHostBaseName = fso.GetBaseName(mh_wb.FullName)
     Set dctHostedRaws = New Dictionary
     HostedRaws = mh_hosted
-    If HostedRaws.Count <> 0 Then
-        If Not mRawHosts.Exists(raw_host_base_name:=fso.GetBaseName(mh_wb.FullName)) _
-        Or mRawHosts.FullName(host_base_name:=fso.GetBaseName(mh_wb.FullName)) <> mh_wb.FullName Then
-            '~~ Keep a record when this Workbook hosts one or more Raw components and not is already registered
-            mRawHosts.FullName(host_base_name:=fso.GetBaseName(mh_wb.FullName)) = mh_wb.FullName
-            cLog.Action = "Workbook registered as a host for at least one raw component"
-        End If
     
+    If HostedRaws.Count <> 0 Then
+        sHosted = HostedRaws.Keys()(0)
+        If InStr(sHosted, mCompMan.CLONE_VB_PROJECT_OF) <> 0 Then
+            HostedRaws.RemoveAll
+            GoTo xt
+        ElseIf sHosted = RAW_VB_PROJECT Or mCompMan.CompExists(ce_wb:=mh_wb, ce_comp_name:=sHosted) Then
+            If Not mRawHosts.Exists(sHostBaseName) Then
+                '~~ When the Workbook is indicated a Raw-VB-Project or indicates a component hosted
+                '~~ and the Workbbook is yet not registered as a raw Workbook it is now registered
+                mRawHosts.FullName(sHostBaseName) = mh_wb.FullName
+                cLog.Action = "Workbook registered as raw Workbook or Raw-VB-Project"
+            Else
+                '~~ If the Workbook is known as a raw host with a different full-name the change of the location
+                '~~ needs to be confirmed or the service terminated
+                If mRawHosts.FullName(sHostBaseName) <> mh_wb.FullName Then
+                    Stop
+                    GoTo xt
+                End If
+            End If
+        End If
+        
+        If sHosted = RAW_VB_PROJECT Then
+            mRawHosts.RawVbProject(sHostBaseName) = True
+            HostedRaws.RemoveAll
+        End If
+            
         For Each v In HostedRaws
             '~~ Keep a record for each of the raw components hosted by this Workbook
             If Not mHostedRaws.Exists(raw_comp_name:=v) _
@@ -575,16 +604,16 @@ xt: Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
 
-Private Function MaxCompLength(ByVal wb As Workbook) As Long
+Public Function MaxCompLength(ByVal wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
-        For Each vbc In wb.VBProject.VBComponents
+        For Each vbc In wb.VbProject.VBComponents
             MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
         Next vbc
     End If
@@ -614,8 +643,8 @@ Public Sub Merge(Optional ByVal fl_1 As String = vbNullString, _
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -623,7 +652,8 @@ End Sub
 Public Sub RenewComp( _
       Optional ByVal rc_exp_file_full_name As String = vbNullString, _
       Optional ByVal rc_comp_name As String = vbNullString, _
-      Optional ByVal rc_wb As Workbook = Nothing)
+      Optional ByVal rc_wb As Workbook = Nothing, _
+      Optional ByVal rc_comp_max_len As Long)
 ' --------------------------------------------------------------------
 ' This service renews a component by re-importing an Export File.
 ' When the provided Export File (rc_exp_file_full_name) does exist but
@@ -666,11 +696,12 @@ Public Sub RenewComp( _
     On Error GoTo eh
     Dim fso         As New FileSystemObject
     Dim cComp       As New clsComp
-    Dim cLog        As New clsLog
     Dim flFile      As File
     Dim wbTemp      As Workbook
     Dim wbActive    As Workbook
     Dim sBaseName   As String
+    Dim sServiced   As String
+    Dim lCompMaxLen As Long
     
     If rc_wb Is Nothing Then Set rc_wb = ActiveWorkbook
     cComp.Wrkbk = rc_wb
@@ -754,7 +785,9 @@ Public Sub RenewComp( _
         End If
     
         cLog.ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=.Wrkbk, svp_new_log:=False) = ErrSrc(PROC)
-        cLog.ServicedItem = .CompName
+        sServiced = .Wrkbk.name & " " & .CompName & " "
+        sServiced = sServiced & String(lCompMaxLen - Len(.CompName), ".")
+        cLog.ServicedItem = sServiced
         
         mRenew.ByImport rn_wb:=.Wrkbk _
              , rn_comp_name:=.CompName _
@@ -773,13 +806,75 @@ xt: If Not wbTemp Is Nothing Then
         End If
     End If
     Set cComp = Nothing
-    Set cLog = Nothing
     Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
+Public Sub SynchVbProject(ByVal sp_clone_project As Workbook, _
+                          ByVal sp_raw_project As String)
+' -------------------------------------------------------------
+' Synchronizes the code of the open/ed Workbook (clone_project)
+' with the code of the source Workbook (raw_project).
+' The service is performed provided:
+' - the Workbook is open/ed in the configured "Serviced Root"
+' - the CompMan Addin is not paused
+' - the open/ed Workbook is not a restored version
+' -------------------------------------------------------------
+    Const PROC = "SynchVbProject"
+    
+    On Error GoTo eh
+    Dim lCompMaxLen         As Long
+    Dim vbc                 As VBComponent
+    Dim lComponents         As Long
+    Dim lCompsRemaining     As Long
+    Dim lExported           As Long
+    Dim sExported           As String
+    Dim bUpdated            As Boolean
+    Dim lUpdated            As Long
+    Dim sUpdated            As String
+    Dim sMsg                As String
+    Dim fso                 As New FileSystemObject
+    Dim sServiced           As String
+    Dim sProgressDots       As String
+    Dim sStatus             As String
+    Dim flSelected          As File
+    
+    mErH.BoP ErrSrc(PROC)
+    '~~ Prevent any action for a Workbook opened with any irregularity
+    '~~ indicated by an '(' in the active window or workbook fullname.
+    If mService.Denied(sp_clone_project) Then GoTo xt
+    
+    mCompMan.Service = PROC & " for '" & sp_clone_project.name & "': "
+    sStatus = mCompMan.Service
+    lCompMaxLen = MaxCompLength(wb:=sp_clone_project)
+    Set cLog = New clsLog
+    cLog.ServiceProvided(svp_by_wb:=ThisWorkbook _
+                       , svp_for_wb:=sp_clone_project _
+                       , svp_new_log:=False _
+                        ) = ErrSrc(PROC)
+
+    If Not mRawHosts.Exists(sp_raw_project) Then
+        VBA.MsgBox Title:="The Clone-VB-Project claims an invalid Raw_VB-Project!" _
+                         , Prompt:="The Clone-VB-Project claims '" & sp_raw_project & "' which is unknown/not registered."
+        GoTo xt
+    End If
+    
+    mSync.VbProject clone_project:=sp_clone_project _
+                  , raw_project:=mRawHosts.FullName(sp_raw_project)
+
+xt: mErH.EoP ErrSrc(PROC)
+    Set cLog = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
@@ -801,9 +896,7 @@ Public Sub UpdateRawClones( _
     mErH.BoP ErrSrc(PROC)
     
     mCompMan.Service = PROC & " for '" & uc_wb.name & "': "
-    If WbkIsRestoredBySystem(uc_wb) Then GoTo xt
-    If Not WbkInServicedRoot(uc_wb) Then GoTo xt
-    If mMe.AddInPaused Then GoTo xt
+    If mService.Denied(uc_wb) Then GoTo xt
     
     Set cLog = New clsLog
     cLog.ServiceProvided(svp_by_wb:=ThisWorkbook _
@@ -825,9 +918,7 @@ Public Sub UpdateRawClones( _
     mUpdate.RawClones urc_wb:=uc_wb _
                     , urc_comp_max_len:=MaxCompLength(wb:=uc_wb) _
                     , urc_clones:=Clones(uc_wb) _
-                    , urc_service:=sService _
-                    , urc_log:=cLog
-
+                    , urc_service:=sService
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
         Set wbTemp = Nothing
@@ -837,12 +928,13 @@ xt: If Not wbTemp Is Nothing Then
         End If
     End If
     Set dctHostedRaws = Nothing
+    Set cLog = Nothing
     mErH.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
@@ -866,15 +958,12 @@ xt: Set fso = Nothing
     Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Function
 
-Private Function WbkInServicedRoot(ByVal idr_wb As Workbook) As Boolean
-    WbkInServicedRoot = InStr(idr_wb.Path, mMe.RootServicedByCompMan) <> 0
-End Function
 
 Public Function WbkIsOpen( _
            Optional ByVal io_name As String = vbNullString, _
@@ -907,13 +996,9 @@ Public Function WbkIsOpen( _
 xt: Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Function
 
-Private Function WbkIsRestoredBySystem(ByVal rbs_wb As Workbook) As Boolean
-    WbkIsRestoredBySystem = InStr(ActiveWindow.Caption, "(") <> 0 _
-                         Or InStr(rbs_wb.FullName, "(") <> 0
-End Function

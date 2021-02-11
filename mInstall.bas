@@ -32,13 +32,13 @@ Public Sub CloneRaws(Optional ByVal ic_wb As Workbook)
     Next v
     cll.Add vbLf
     cll.Add BTT_INST_DONE
-    sMsg.section(1).sText = ""
-    sMsg.section(2).sLabel = "Please note!"
-    sMsg.section(2).sText = "The selection contains all known 'raw' components hosted in another Workbook " & _
+    sMsg.Section(1).sText = ""
+    sMsg.Section(2).sLabel = "Please note!"
+    sMsg.Section(2).sText = "The selection contains all known 'raw' components hosted in another Workbook " & _
                             "which are not already installed (i.e. imported). Any components missed may not be " & _
                             "indicated 'hosted' in any Workbook maintained within the 'manged root'"
-    sMsg.section(3).sText = mMe.RootServicedByCompMan
-    sMsg.section(3).bMonspaced = True
+    sMsg.Section(3).sText = mMe.RootServicedByCompMan
+    sMsg.Section(3).bMonspaced = True
     
     Do
         vReply = mMsg.Dsply(msg_title:="Please select the 'raw' component to be imported into '" & ic_wb.name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
@@ -56,8 +56,8 @@ Public Sub CloneRaws(Optional ByVal ic_wb As Workbook)
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub

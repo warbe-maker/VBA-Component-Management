@@ -266,8 +266,8 @@ Public Function AddInInstncWrkbkIsOpen() As Boolean
 xt: Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Function
@@ -346,8 +346,8 @@ xt: Set fso = Nothing
     Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Function
@@ -370,8 +370,8 @@ Private Sub DevInstncWorkbookClose()
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -402,8 +402,8 @@ xt: Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -484,8 +484,8 @@ xt: mMe.RenewLogAction = RenewFinalResult
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -539,8 +539,8 @@ Public Sub CfgConfirm()
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -575,7 +575,7 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         Set dctAddInRefs = New Dictionary
         For Each v In dct
             Set wb = dct.Item(v)
-            For Each ref In wb.VBProject.References
+            For Each ref In wb.VbProject.References
                 If InStr(ref.name, fso.GetBaseName(AddInInstanceName)) <> 0 Then
                     dctAddInRefs.Add wb, ref
                     sWbs = wb.name & ", " & sWbs
@@ -586,7 +586,7 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         For Each v In dctAddInRefs
             Set wb = v
             Set ref = dctAddInRefs(v)
-            wb.VBProject.References.Remove ref
+            wb.VbProject.References.Remove ref
             bOneRemoved = True
         Next v
         bAllRemoved = True
@@ -603,8 +603,8 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -623,8 +623,8 @@ Private Sub Renew_3_DevInstncWorkbookSave()
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -647,8 +647,8 @@ Private Sub Renew_4_Set_IsAddin_ToFalse(ByVal wb As Workbook)
 xt:     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -669,8 +669,8 @@ Private Sub Renew_5_CloseAddinInstncWorkbook()
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -699,8 +699,8 @@ Private Sub Renew_6_DeleteAddInInstanceWorkbook()
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -732,8 +732,8 @@ Private Sub Renew_7_SaveDevInstncWorkbookAsAddin()
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -756,7 +756,7 @@ Private Sub Renew_8_OpenAddinInstncWorkbook()
                 With fso
                     sBaseAddinName = .GetBaseName(wb.name)
                     sBaseDevName = .GetBaseName(ThisWorkbook.name)
-                    wb.VBProject.name = sBaseAddinName
+                    wb.VbProject.name = sBaseAddinName
                 End With
                 mMe.RenewLogResult() = "Passed"
             Else
@@ -770,8 +770,8 @@ Private Sub Renew_8_OpenAddinInstncWorkbook()
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -789,7 +789,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     
     For Each v In dctAddInRefs
         Set wb = v
-        wb.VBProject.References.AddFromFile AddInInstanceFullName
+        wb.VbProject.References.AddFromFile AddInInstanceFullName
         sWbs = wb.name & ", " & sWbs
         bOneRestored = True
     Next v
@@ -805,8 +805,8 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -828,7 +828,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             
             If Not mCompMan.WbkIsOpen(io_name:=DevInstncName) _
             Then Stop _
-            Else wbDevlp.VBProject.name = fso.GetBaseName(DevInstncName)
+            Else wbDevlp.VbProject.name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
                 mMe.RenewLogResult("Saving the Addin instance Workbook '" & AddInInstanceName & "' (version " & AddInVersion & " as Development instance Workbook '" & DevInstncName & "' failed!" _
@@ -846,8 +846,8 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -953,8 +953,8 @@ xt: Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
@@ -984,8 +984,8 @@ Public Sub UpdateRawClones()
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub

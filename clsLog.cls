@@ -38,7 +38,9 @@ Friend Property Let ServiceProvided( _
              ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " Service provided by: " & sService
 End Property
 
-Friend Property Let ServicedItem(ByVal s As String):    sServicedItem = "Serviced item = " & s:  End Property
+Friend Property Let ServicedItem(ByVal s As String)
+    sServicedItem = "Serviced item = " & s
+End Property
 
 Friend Property Let Action(ByVal s As String)
 ' -------------------------------------------

@@ -22,10 +22,17 @@ Private sCompName           As String
 Private vbcRaw              As VBComponent
 Private sCloneExpFilePath   As String
 Private dctChanges          As Dictionary
+Private sExpFileExtension   As String
+Private sExpFileFullName    As String
 
 Private Sub Class_Terminate()
     Set dctChanges = Nothing
 End Sub
+
+Friend Property Let ExpFileExtension(ByVal s As String)
+    sExpFileExtension = s
+    sExpFileFullName = sExpFilePath & "\" & sCompName & s
+End Property
 
 Friend Property Get Changed( _
              Optional ByVal check_again As Boolean = False) As Boolean
@@ -35,8 +42,6 @@ Friend Property Get Changed( _
 ' the raw had changed.
 ' --------------------------------------------------------------------
     Dim fso         As New FileSystemObject
-    Dim sTempFolder As String
-    Dim sTempExpFilePath As String
     
     If dctChanges Is Nothing Or check_again Then
         Set dctChanges = _
@@ -49,6 +54,11 @@ Friend Property Get Changed( _
 
     End If
     Changed = dctChanges.Count <> 0
+    If Changed Then
+        cLog.Action = "Raw changed! (raw export differs from clone export)"
+    Else
+        cLog.Action = "Raw not changed! (raw export and clone export are identical)"
+    End If
     Set fso = Nothing
     
 End Property
@@ -95,33 +105,40 @@ Friend Property Get DsplyAllChanges() As Long
 xt: Exit Property
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Property
 
-Friend Property Get ExpFile() As File:                  Set ExpFile = flExpFile:                        End Property
+Friend Property Get ExpFile() As File:                  Set ExpFile = flExpFile:                End Property
 
-Friend Property Let ExpFile(ByVal fl As File):          Set flExpFile = fl:                             End Property
+Friend Property Let ExpFile(ByVal fl As File):          Set flExpFile = fl:                     End Property
 
-Friend Property Get ExpFilePath() As String:        ExpFilePath = sExpFilePath:             End Property
+Friend Property Get ExpFileFullName() As String:        ExpFileFullName = sExpFileExtension:    End Property
 
-Friend Property Let ExpFilePath(ByVal s As String): sExpFilePath = s:                           End Property
+Friend Property Get ExpFilePath() As String:            ExpFilePath = sExpFilePath:             End Property
+Friend Property Let ExpFilePath(ByVal s As String):     sExpFilePath = s:                       End Property
 
-Friend Property Get HostFullName() As String:           HostFullName = sHostFullName:                   End Property
+Friend Property Get HostFullName() As String:           HostFullName = sHostFullName:           End Property
 
-Friend Property Let HostFullName(ByVal s As String):    sHostFullName = s:                              End Property
+Friend Property Let HostFullName(ByVal s As String)
+    Dim fso As New FileSystemObject
+    
+    sHostFullName = s
+    sExpFilePath = fso.GetParentFolderName(s)
+    
+End Property
 
-Friend Property Get RawHost() As Workbook:              Set RawHost = wbRawHost:                        End Property
+Friend Property Get RawHost() As Workbook:              Set RawHost = wbRawHost:        End Property
 
-Friend Property Let RawHost(ByVal wb As Workbook):      Set wbRawHost = wb:                             End Property
+Friend Property Let RawHost(ByVal wb As Workbook):      Set wbRawHost = wb:             End Property
 
-Friend Property Get RawType() As vbext_ComponentType:   RawType = vbcRaw.Type:                          End Property
+Friend Property Get RawType() As vbext_ComponentType:   RawType = vbcRaw.Type:          End Property
 
-Friend Property Get RawVbc() As VBComponent:            Set RawVbc = vbcRaw:                            End Property
+Friend Property Get RawVbc() As VBComponent:            Set RawVbc = vbcRaw:            End Property
 
-Friend Property Let RawVbc(ByVal vbc As VBComponent):   Set vbcRaw = vbc:                               End Property
+Friend Property Let RawVbc(ByVal vbc As VBComponent):   Set vbcRaw = vbc:               End Property
 
 Friend Property Get WrkbkBaseName() As String
     Dim fso As New FileSystemObject

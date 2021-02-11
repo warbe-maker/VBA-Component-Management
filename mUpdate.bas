@@ -42,8 +42,7 @@ Public Sub RawClones( _
                ByVal urc_wb As Workbook, _
                ByVal urc_comp_max_len As Long, _
                ByVal urc_service As String, _
-               ByVal urc_clones As Dictionary, _
-      Optional ByRef urc_log As clsLog = Nothing)
+               ByVal urc_clones As Dictionary)
 ' --------------------------------------------------------
 ' Updates any clone Workbook urc_wb. Note that clones are
 ' identifiied by equally named components in another
@@ -69,16 +68,16 @@ Public Sub RawClones( _
     For Each v In urc_clones
         Set vbc = v
         Set cComp = New clsComp
-        cComp.Wrkbk = urc_wb
-        cComp.CompName = vbc.name
-
-        Application.StatusBar = sStatus & vbc.name & " "
-        cComp.VBComp = vbc
-        sServiced = cComp.Wrkbk.name & " Component """ & vbc.name & """"
-        sServiced = sServiced & String(urc_comp_max_len - Len(vbc.name), ".")
-        If Not urc_log Is Nothing Then urc_log.ServicedItem = sServiced
-
         With cComp
+            .Wrkbk = urc_wb
+            .CompName = vbc.name
+            .VBComp = vbc
+
+            Application.StatusBar = sStatus & .CompName & " "
+            sServiced = .Wrkbk.name & " " & vbc.name
+            sServiced = sServiced & String(urc_comp_max_len - Len(.CompName), ".")
+            cLog.ServicedItem = sServiced
+
             Set cRaw = New clsRaw
             cRaw.CompName = .CompName
             cRaw.ExpFile = fso.GetFile(FilePath:=mHostedRaws.ExpFilePath(.CompName))
@@ -100,7 +99,7 @@ Public Sub RawClones( _
                          , rn_comp_name:=.CompName _
                          , rn_exp_file_full_name:=cRaw.ExpFilePath _
                          , rn_status:=sStatus & " " & .CompName & " "
-                    If Not urc_log Is Nothing Then urc_log.Action = "Clone component renewed/updated by (re-)import of '" & cRaw.ExpFilePath & "'"
+                    cLog.Action = "Clone component renewed/updated by (re-)import of '" & cRaw.ExpFilePath & "'"
                     lReplaced = lReplaced + 1
                     sReplaced = .CompName & ", " & sReplaced
                     '~~ Register the update being used to identify a potentially relevant
@@ -123,8 +122,8 @@ xt: Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
@@ -196,8 +195,8 @@ Public Function UpdateCloneConfirmed( _
 xt: Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Function

@@ -60,7 +60,7 @@ End Function
 Private Function MaxCompLength(ByVal wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
-        For Each vbc In wb.VBProject.VBComponents
+        For Each vbc In wb.VbProject.VBComponents
             MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
         Next vbc
     End If
@@ -107,7 +107,7 @@ Public Sub Test_01_KindOfComp()
     Set cComp = New clsComp
     With cComp
         .Wrkbk = wb
-        .VBComp = wb.VBProject.VBComponents(sComp)
+        .VBComp = wb.VbProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enKindOfComp.enRawClone
     End With
 
@@ -116,7 +116,7 @@ Public Sub Test_01_KindOfComp()
     Set cComp = New clsComp
     With cComp
         .Wrkbk = wb
-        .VBComp = wb.VBProject.VBComponents(sComp)
+        .VBComp = wb.VbProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enRawClone
     End With
     
@@ -125,7 +125,7 @@ Public Sub Test_01_KindOfComp()
     Set cComp = New clsComp
     With cComp
         .Wrkbk = wb
-        .VBComp = wb.VBProject.VBComponents(sComp)
+        .VBComp = wb.VbProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enInternal
     End With
     
@@ -135,8 +135,8 @@ xt: wb.Close SaveChanges:=False
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
     
@@ -155,12 +155,14 @@ Public Sub Test_Log()
     Const PROC = "Test_Log"
     
     On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim cLog    As New clsLog
+    Dim fso         As New FileSystemObject
+    Dim cLog        As New clsLog
+    Dim sServiced   As String
     
     With cLog
         .ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=ThisWorkbook, svp_new_log:=True) = ErrSrc(PROC)
-        .ServicedItem = ThisWorkbook.name & ": " & "Test-item"
+        sServiced = ThisWorkbook.name & " <component-name> "
+        .ServicedItem = sServiced
         .Action = "Tested"
         mMsg.Box msg_title:="Test-Log:" _
                , msg:=mFile.Txt(ft_file:=.LogFile.Path) _
@@ -172,8 +174,8 @@ xt: Set cLog = Nothing
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 
@@ -183,7 +185,7 @@ Public Sub Test_Refs()
     
     Dim ref As Reference
 
-    For Each ref In ThisWorkbook.VBProject.References
+    For Each ref In ThisWorkbook.VbProject.References
         With ref
             If InStr(.Description, "Applications Extensibility") <> 0 Then
                 Debug.Print .Description
@@ -225,7 +227,10 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     Dim cComp       As New clsComp
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
+    Dim sServiced   As String
+    Dim lCompMaxLen As Long
     
+    lCompMaxLen = mCompMan.MaxCompLength(ThisWorkbook)
     If mMe.IsDevInstnc Then GoTo xt
     
     cLog.ServiceProvided(svp_by_wb:=ThisWorkbook _
@@ -235,7 +240,9 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     With cComp
         .Wrkbk = rnc_wb
         .CompName = rnc_comp_name
-        cLog.ServicedItem = .CompName
+        sServiced = .Wrkbk.name & " " & .CompName & " "
+        sServiced = sServiced & String(lCompMaxLen - Len(.CompName), ".")
+        cLog.ServicedItem = sServiced
         
         If .Wrkbk Is ActiveWorkbook Then
             Set wbActive = ActiveWorkbook
@@ -243,7 +250,9 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
             cLog.Action = "Active Workbook de-activated by creating a temporary Workbook"
         End If
     
-        cLog.ServicedItem = .CompName
+        sServiced = .Wrkbk.name & " " & .CompName & " "
+        sServiced = sServiced & String(lCompMaxLen - Len(.CompName), ".")
+        cLog.ServicedItem = sServiced
         
         mRenew.ByImport rn_wb:=.Wrkbk _
                       , rn_comp_name:=.CompName _
@@ -268,8 +277,8 @@ xt: If Not wbTemp Is Nothing Then
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
@@ -291,8 +300,8 @@ xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -352,8 +361,8 @@ xt: Set cComp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -402,8 +411,8 @@ xt: Set cComp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -452,8 +461,8 @@ xt: Set cComp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -508,8 +517,8 @@ xt: Set cComp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -569,8 +578,8 @@ xt: Set cComp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -604,9 +613,31 @@ Public Sub Test_UpdateRawClones()
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
 
+Private Sub Test_Raw_VB_Project()
+' ----------------------------------------
+' 1. Register a Workbook as Raw-VB-Project
+' 2. Copy it as a Clone-VB-Project
+' 3. Modify the Raw
+' 4. Sync the Clone
+' ----------------------------------------
+
+    Dim wbRaw   As Workbook
+    Dim wbClone As Workbook
+    
+    Dim fso As New FileSystemObject
+    Dim a   As Variant
+    
+    a = Split(fso.GetParentFolderName(ThisWorkbook.FullName), "\")
+    Debug.Print a(UBound(a))
+    
+    
+    
+    
+    Set fso = Nothing
+End Sub

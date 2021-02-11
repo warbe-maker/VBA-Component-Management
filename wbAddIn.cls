@@ -74,7 +74,7 @@ Private Sub Workbook_Open()
         '~~ Make sure the VBProject name is the Workbook's base name
         '~~ Note that this is required to correctly identify (save, remove, restore) any reference
         '~~ to the Addin in open Workbook when RenewByImport or SaveAsAddin is performed (see module mAddin)
-        If .VBProject.name <> fso.GetBaseName(.name) Then .VBProject.name = fso.GetBaseName(.name)
+        If .VbProject.name <> fso.GetBaseName(.name) Then .VbProject.name = fso.GetBaseName(.name)
         '~~ Unporotecting (the Addin) allows directly modify code in it - and saving it subsequently
         '~~ as new Development instance (see method SaveasDev in module mAddin)
         .Unprotect
@@ -85,8 +85,8 @@ xt: mErH.BoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub

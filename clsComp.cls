@@ -60,7 +60,7 @@ Friend Property Let CompName(ByVal s As String)
 
     sCompName = s
     If Not wb Is Nothing Then
-        Set vbc = wb.VBProject.VBComponents(sCompName)
+        Set vbc = wb.VbProject.VBComponents(sCompName)
         Select Case vbc.Type
             Case vbext_ct_StdModule:    sExtension = ".bas"
             Case vbext_ct_ClassModule:  sExtension = ".cls"
@@ -95,7 +95,7 @@ End Property
 
 Friend Property Let ExpFile(ByVal fl As File):      Set flExpFile = fl:     End Property
 
-Private Property Get ExpFileExtension() As String
+Public Property Get ExpFileExtension() As String
     Select Case vbc.Type
         Case vbext_ct_StdModule:    ExpFileExtension = ".bas"
         Case vbext_ct_ClassModule:  ExpFileExtension = ".cls"
@@ -137,8 +137,8 @@ Friend Property Get DsplyAllChanges() As Long
 xt: Exit Property
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Property
@@ -163,8 +163,8 @@ xt: KindOfComp = lKindOfComp
     Exit Property
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Property
@@ -250,8 +250,8 @@ Private Property Get ReplaceRawWithCloneConfirmed() As Boolean
 xt: Exit Property
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Property
@@ -264,15 +264,15 @@ Friend Property Get VBComp() As VBComponent
     If vbc Is Nothing Then
         If Not mCompMan.CompExists(ce_wb:=wb, ce_comp_name:=sCompName) _
         Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "A Component named '" & sCompName & "' does not exist in Workbook '" & wb.name & "'!"
-        Set vbc = wb.VBProject.VBComponents(sCompName)
+        Set vbc = wb.VbProject.VBComponents(sCompName)
     End If
     Set VBComp = vbc
 
 xt: Exit Property
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Property
@@ -297,8 +297,8 @@ xt: Set fso = Nothing
     Exit Property
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Property
@@ -317,7 +317,7 @@ Friend Property Let Wrkbk(ByVal wbk As Workbook)
     sWrkbkFullName = wb.FullName
     sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
     Set foExport = fso.GetFolder(Me.ExpPath)
-    For Each vbc In wb.VBProject.VBComponents
+    For Each vbc In wb.VbProject.VBComponents
         lCompMaxLen = mBasic.Max(lCompMaxLen, Len(vbc.name))
     Next vbc
     Set fso = Nothing
@@ -343,7 +343,10 @@ Friend Property Get Changed() As Boolean
 ' File which indicates that the code had
 ' changed.
 ' --------------------------------------
-    Dim fso         As New FileSystemObject
+    Const PROC = "Changed"
+    
+    On Error GoTo eh
+    Dim fso As New FileSystemObject
 
     If dctChanges Is Nothing Then
         With fso
@@ -351,6 +354,7 @@ Friend Property Get Changed() As Boolean
             If Not .FolderExists(sTempFolder) Then .CreateFolder sTempFolder
             sTempExpFilePath = sTempFolder & "\" & vbc.name & sExtension
             vbc.Export sTempExpFilePath
+            DoEvents
         End With
     
         Set dctChanges = _
@@ -363,8 +367,20 @@ Friend Property Get Changed() As Boolean
 
     End If
     Changed = dctChanges.Count <> 0
-    Set fso = Nothing
+    If Changed Then
+        cLog.Action = "Clone changed! (temp export differs from last export)"
+    Else
+        cLog.Action = "Clone not changed! (temp export identical with last export)"
+    End If
+
+xt: Set fso = Nothing
+    Exit Property
     
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Property
 
 Private Function DebugComp() As String
@@ -381,7 +397,7 @@ Public Function Exists(ByVal sComp As String) As Boolean
     Dim vbc As VBComponent
 
     On Error Resume Next
-    Set vbc = Me.Wrkbk.VBProject.VBComponents(sComp)
+    Set vbc = Me.Wrkbk.VbProject.VBComponents(sComp)
     Exists = Err.Number = 0
     Set vbc = Nothing
 
@@ -421,8 +437,8 @@ xt: ExpPath = sExpPath
     Exit Property
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Property
@@ -463,8 +479,8 @@ Public Function ExpFileToArray(ByVal fl As File) As String()
 xt: Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Function
@@ -529,8 +545,8 @@ xt: Set cll = Nothing
     Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Function
@@ -542,8 +558,7 @@ Private Function GetFile(ByVal sFile As String) As File
 End Function
 
 Public Sub ReplaceRawWithClone( _
-                         ByVal raw_remote_comp_name As String, _
-                         ByRef rr_log As clsLog)
+                         ByVal raw_remote_comp_name As String)
 ' --------------------------------------------------------------
 ' Replace the raw component's code with the Export File of the
 ' clone component.
@@ -565,15 +580,14 @@ Public Sub ReplaceRawWithClone( _
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
 
 Public Sub ReplaceRawWithCloneWhenConfirmed( _
-                                      ByRef rwu_updated As Boolean, _
-                                      ByRef rwu_log As clsLog)
+                                      ByRef rwu_updated As Boolean)
 ' -------------------------------------------------------------------
 ' Provided confirmed by the user, replaces the raw code in the
 '  hosting Workbook with the cloned raw component's code in its
@@ -591,10 +605,12 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
             '~~ Get the origin host Workbook open
         With cRaw
             .HostFullName = mHostedRaws.HostFullName(comp_name:=cComp.CompName)
+            .CompName = cComp.CompName
+            .ExpFileExtension = cComp.ExpFileExtension
             .ExpFile = fso.GetFile(mHostedRaws.ExpFilePath(comp_name:=cComp.CompName))
             .ExpFilePath = .ExpFile.Path
             .RawHost = mCompMan.WbkGetOpen(.HostFullName)
-            .RawVbc = .RawHost.VBProject.VBComponents(Index:=cComp.CompName)
+            .RawVbc = .RawHost.VbProject.VBComponents(Index:=cComp.CompName)
             Select Case .RawType
                 Case vbext_ct_Document
                     '~~ A data module cannot be replaced like the other ones. Thus only its code
@@ -602,7 +618,7 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
                     '~~ structure and design of the underlying Workbook or Worksheet has changed.
                     cComp.SynchRawWithCloneByCodeLines
                 Case vbext_ct_ClassModule, vbext_ct_StdModule, vbext_ct_MSForm
-                    Me.ReplaceRawWithClone raw_remote_comp_name:=.CompName, rr_log:=rwu_log
+                    Me.ReplaceRawWithClone raw_remote_comp_name:=.CompName
             End Select
             rwu_updated = True
         End With ' cRaw
@@ -612,8 +628,8 @@ xt: Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
@@ -651,8 +667,8 @@ xt: Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
@@ -690,8 +706,8 @@ xt: Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
@@ -716,8 +732,8 @@ Public Function TypeString() As String
 xt: Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Function
