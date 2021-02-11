@@ -108,7 +108,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Function Components() As Dictionary
-    Set Components = mFile.Sections(DAT_FILE)
+    Set Components = mFile.SectionNames(DAT_FILE)
 End Function
 
 Public Sub Remove(ByVal comp_name As String)

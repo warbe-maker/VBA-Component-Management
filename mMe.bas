@@ -77,7 +77,13 @@ Public Property Get AddInInstanceName() As String:      AddInInstanceName = ADDI
 Private Property Get AddInPath() As String:             AddInPath = CompManAddinPath:                                  End Property
 
 Public Property Get AddInPaused() As Boolean
-    AddInPaused = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=COMPMAN_ADDIN_PAUSED)
+    Dim s As String
+    s = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=COMPMAN_ADDIN_PAUSED)
+    If s = vbNullString Then
+        AddInPaused = False
+    Else
+        AddInPaused = VBA.CBool(s)
+    End If
 End Property
 
 Public Property Let AddInPaused(ByVal b As Boolean)
@@ -106,10 +112,18 @@ Public Property Get CompManAddinPath() As String
 End Property
 
 Public Property Let CompManAddinPath(ByVal s As String)
+    Const PROC = "CompManAddinPath-Let"
+    
+    On Error GoTo eh
+    Dim fso As New FileSystemObject
+    
     Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=COMPMAN_ADDIN_LCTN) = s
-    With New FileSystemObject
-        .CopyFile CFG_FILENAME, s
-    End With
+    fso.CopyFile CFG_FILENAME, VBA.Replace(s & "\", "\\", "\")
+    
+xt: Set fso = Nothing
+    Exit Property
+
+eh: ErrMsg ErrSrc(PROC)
 End Property
 
 Public Property Get DevInstncFullName() As String
@@ -297,15 +311,14 @@ Public Function CfgAsserted() As Boolean
         '~~ Assert the folder for the CompMan AddIn
         sPathCompMan = CompManAddinPath
         If sPathCompMan = vbNullString Then
-            sPathCompMan = mBasic.SelectFolder( _
-                           sTitle:="Select the folder for the AddIn instance of the CompManDev Workbook (escape to use the Application.UserLibraryPath)")
-            If sPathCompMan = vbNullString Then
-                sPathCompMan = Application.UserLibraryPath ' Default because user escaped the selection
-            Else
-                '~~ Assure trust in this location and save it to the CompMan.cfg file
-                TrustThisFolder FolderPath:=sPathCompMan
-                CompManAddinPath = sPathCompMan
-            End If
+            While sPathCompMan = vbNullString
+                '~~ Selecting a folder is obligatory !
+                sPathCompMan = mBasic.SelectFolder( _
+                            sTitle:="Select the folder dedicated to the AddIn instance of the CompManDev Workbook")
+            Wend
+            '~~ Assure trust in this location and save it to the CompMan.cfg file
+            TrustThisFolder FolderPath:=sPathCompMan
+            CompManAddinPath = sPathCompMan
         Else
             While Not .FolderExists(sPathCompMan)
                 '~~ Configured but folder not or no longer exists
@@ -323,7 +336,8 @@ Public Function CfgAsserted() As Boolean
                    
         '~~ Assert the root for VB-Development-Projects
         If RootServicedByCompMan = vbNullString Then
-            RootServicedByCompMan = mBasic.SelectFolder(sTitle:="Select the root folder for any VB development/maintenance project which is to be supported by CompMan")
+            RootServicedByCompMan = _
+            mBasic.SelectFolder(sTitle:="Select the root folder for any VB-Project where it will exclusively be serviced by the CompMan Addin")
         End If
     
     End With
@@ -488,17 +502,15 @@ Public Sub CfgConfirm()
     Dim sReply          As String
     
     With sMsg
-        .Section(1).sLabel = "CompMan AddIn instance folder:"
-        .Section(1).sText = "Please make sure that the CompMan AddIn resides in its own dedicated location, " & _
+        .Section(1).sLabel = "Dedicated folder for the CompMan Add-in:"
+        .Section(1).sText = "Please confirm the currently configured folder for the CompMan AddIn or change it if not. " & _
+                            "Make sure that the CompMan Add-in resides in its own dedicated location, " & _
                             "i.e. one different from Excel's default user-specific! Roaming folder."
-        .Section(2).sLabel = "Currently configured:"
         .Section(2).sText = CompManAddinPath
         .Section(2).bMonspaced = True
         .Section(3).sLabel = "CompMan serviced root:"
-        .Section(3).sText = "Please note that only Workbooks/VB-Projects in any subfolder of the configured root " & _
-                            "are considered by CompMan's Workbook_Open ('UpdateRawClones') and Workbook_BeforeSave ('ExportChangedComponents') service!" & vbLf & _
-                            "The current root folder is:"
-        .Section(4).sLabel = "Currently configured serviced root:"
+        .Section(3).sText = "Please confirm the root folder serviced by CompMan. Only Workbooks/VB-Projects " & _
+                            "in any subfolder of the configured root will be serviced when opened or closed."
         .Section(4).sText = RootServicedByCompMan
         .Section(4).bMonspaced = True
     End With
