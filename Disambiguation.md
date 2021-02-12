@@ -1,6 +1,3 @@
-## Disambiguation
-The terms below are not only those used in this post but also used with the implementation of the _Component Management_.
-
 | Term             | Meaning                  |
 |------------------|------------------------- |
 |_Component_       | Generic _VB-Project_ term for a _Class Module_, a  _Data Module_, a _Standard Module_, or a _UserForm_  |
