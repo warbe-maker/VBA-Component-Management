@@ -118,7 +118,7 @@ Public Function AppIsInstalled(ByVal sApp As String) As Boolean
     
     Dim i As Long: i = 1
     
-    Do Until left$(Environ$(i), 5) = "Path="
+    Do Until Left$(Environ$(i), 5) = "Path="
         i = i + 1
     Loop
     AppIsInstalled = InStr(Environ$(i), sApp) <> 0

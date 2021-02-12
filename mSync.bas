@@ -31,7 +31,7 @@ Public Sub VbProject( _
             cRaw.HostFullName = raw_project
             cRaw.CompName = .CompName
             cRaw.ExpFileExtension = .ExpFileExtension
-            cRaw.CloneExpFilePath = .ExpFilePath
+            cRaw.CloneExpFileFullName = .ExpFilePath
             If Not fso.FileExists(cRaw.ExpFilePath) Then
                 '~~ The corresponding raw's Export File does not exist which indicates that the component no longer exists
                 '~~ This is cruical in case the raw component just never had been exported! However, since the registration

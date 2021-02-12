@@ -1,25 +1,17 @@
-VERSION 1.0 CLASS
-BEGIN
-  MultiUse = -1  'True
-END
-Attribute VB_Name = "clsLog"
-Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = False
-Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = False
+Attribute VB_Name = "mLog"
 Option Explicit
 
 Private sService        As String
 Private sServicedItem   As String
 Private sFile           As String
 
-Friend Property Get LogFile() As File
+Private Property Get LogFile() As File
     Dim fso As New FileSystemObject
     Set LogFile = fso.GetFile(sFile)
     Set fso = Nothing
 End Property
 
-Friend Property Let ServiceProvided( _
+Public Property Let ServiceProvided( _
                      Optional ByVal svp_by_wb As Workbook, _
                      Optional ByVal svp_for_wb As Workbook, _
                      Optional ByVal svp_new_log As Boolean = True, _
@@ -38,11 +30,11 @@ Friend Property Let ServiceProvided( _
              ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " Service: " & sService & " for: " & svp_for_wb.name
 End Property
 
-Friend Property Let ServicedItem(ByVal s As String)
+Public Property Let ServicedItem(ByVal s As String)
     sServicedItem = "Serviced item: " & s
 End Property
 
-Friend Property Let Action(ByVal s As String)
+Public Property Let Action(ByVal s As String)
 ' -------------------------------------------
 ' Appen an Action line to the log file.
 ' -------------------------------------------
@@ -62,3 +54,4 @@ Private Sub Class_Initialize()
     Set fso = Nothing
     
 End Sub
+

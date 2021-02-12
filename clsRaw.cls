@@ -14,24 +14,31 @@ Option Explicit
 '
 ' W. Rauschenberger Berlin, Jan 2021 (last revised)
 ' -----------------------------------------------------------
-Private wbRawHost           As Workbook
-Private sHostFullName       As String
-Private sExpFilePath        As String
-Private flExpFile           As File
-Private sCompName           As String
-Private vbcRaw              As VBComponent
-Private sCloneExpFilePath   As String
 Private dctChanges          As Dictionary
+Private flExpFile           As File
+Private sCloneExpFileFullName   As String
+Private sCompName           As String
 Private sExpFileExtension   As String
 Private sExpFileFullName    As String
+Private sExpFilePath        As String
+Private sHostFullName       As String
+Private vbcRaw              As VBComponent
+Private wbRawHost           As Workbook
+Private sService            As String
 
 Private Sub Class_Terminate()
     Set dctChanges = Nothing
 End Sub
 
+Friend Property Get Service() As String
+    If sService = vbNullString Then
+        sService = Split(Me.ExpFilePath, "\")(UBound(Split(Me.ExpFilePath, "\")))
+    End If
+    Service = sService
+End Property
 Friend Property Let ExpFileExtension(ByVal s As String)
     sExpFileExtension = s
-    sExpFileFullName = sExpFilePath & "\" & sCompName & s
+    sExpFileFullName = Me.ExpFilePath & "\" & Me.CompName & s
 End Property
 
 Friend Property Get Changed( _
@@ -41,12 +48,15 @@ Friend Property Get Changed( _
 ' regular Export File of the clone which indicates that the code of
 ' the raw had changed.
 ' --------------------------------------------------------------------
-    Dim fso         As New FileSystemObject
+    Const PROC = "Changed-Get"
+    
+    On Error GoTo eh
+    Dim fso As New FileSystemObject
     
     If dctChanges Is Nothing Or check_again Then
         Set dctChanges = _
-        mFile.Differs(fd_file1:=fso.GetFile(sCloneExpFilePath) _
-                    , fd_file2:=Me.ExpFile _
+        mFile.Differs(fd_file1:=fso.GetFile(sCloneExpFileFullName) _
+                    , fd_file2:=fso.GetFile(Me.ExpFileFullName) _
                     , fd_ignore_empty_records:=True _
                     , fd_compare:=vbTextCompare _
                     , fd_stop_after:=1 _
@@ -59,11 +69,18 @@ Friend Property Get Changed( _
     Else
         cLog.Action = "Raw not changed! (raw export and clone export are identical)"
     End If
-    Set fso = Nothing
-    
+        
+xt: Set fso = Nothing
+    Exit Property
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Property
 
-Friend Property Let CloneExpFilePath(ByVal s As String):    sCloneExpFilePath = s:                      End Property
+Friend Property Let CloneExpFileFullName(ByVal s As String):    sCloneExpFileFullName = s:                      End Property
 
 Friend Property Get CodeAsOfDate() As String:               CodeAsOfDate = flExpFile.DateLastModified:  End Property
 
@@ -83,17 +100,17 @@ Friend Property Get DsplyAllChanges() As Long
     Dim wb              As Workbook
     Dim cComp           As New clsComp
     Dim fso             As New FileSystemObject
-    Dim sTempFolder     As String
+    Dim sTmpFolder     As String
     Dim flExpTemp       As File
     Dim sMsg            As tMsg
     
     If Me.Changed Then
-        mFile.Compare fc_file_left:=sCloneExpFilePath _
-                    , fc_file_right:=sExpFilePath _
-                    , fc_left_title:="'Clone' component's export file '" & sCloneExpFilePath & "'" _
+        mFile.Compare fc_file_left:=sCloneExpFileFullName _
+                    , fc_file_right:=sExpFileFullName _
+                    , fc_left_title:="'Clone' component's export file '" & sCloneExpFileFullName & "'" _
                     , fc_right_title:="'Raw' component's export file '" & sExpFilePath & "'"
     Else
-        sMsg.Section(1).sText = "The Export File of the component '" & Me.CompName & "' (" & sCloneExpFilePath & ") " & _
+        sMsg.Section(1).sText = "The Export File of the component '" & Me.CompName & "' (" & sCloneExpFileFullName & ") " & _
                        "and the raw's Export File (" & sExpFilePath & ") are identical. The clone component " & _
                        "is thus up-to-date."
         sMsg.Section(2).sLabel = "Please note!"
@@ -111,23 +128,40 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Get ExpFile() As File:                  Set ExpFile = flExpFile:                End Property
+Friend Property Get ExpFile() As File
+    If flExpFile Is Nothing Then
+        With New FileSystemObject
+            Set flExpFile = .GetFile(sExpFileFullName)
+        End With
+    End If
+    Set ExpFile = flExpFile
+End Property
 
-Friend Property Let ExpFile(ByVal fl As File):          Set flExpFile = fl:                     End Property
+Friend Property Let ExpFile(ByVal fl As File)
+    
+    If fl Is Nothing Then
+        With New FileSystemObject
+            If .FileExists(Me.ExpFileFullName) Then Set fl = .GetFile(Me.ExpFileFullName)
+        End With
+    End If
+    Set flExpFile = fl
 
-Friend Property Get ExpFileFullName() As String:        ExpFileFullName = sExpFileExtension:    End Property
+End Property
+
+Friend Property Get ExpFileFullName() As String:        ExpFileFullName = sExpFileFullName:     End Property
 
 Friend Property Get ExpFilePath() As String:            ExpFilePath = sExpFilePath:             End Property
-Friend Property Let ExpFilePath(ByVal s As String):     sExpFilePath = s:                       End Property
 
 Friend Property Get HostFullName() As String:           HostFullName = sHostFullName:           End Property
 
 Friend Property Let HostFullName(ByVal s As String)
-    Dim fso As New FileSystemObject
-    
     sHostFullName = s
-    sExpFilePath = fso.GetParentFolderName(s)
-    
+    If sExpFilePath = vbNullString Then
+        With New FileSystemObject
+            sExpFilePath = .GetParentFolderName(s)
+        End With
+    End If
+    sService = Split(sExpFilePath, "\")(UBound(Split(sExpFilePath, "\")))
 End Property
 
 Friend Property Get RawHost() As Workbook:              Set RawHost = wbRawHost:        End Property
@@ -141,9 +175,9 @@ Friend Property Get RawVbc() As VBComponent:            Set RawVbc = vbcRaw:    
 Friend Property Let RawVbc(ByVal vbc As VBComponent):   Set vbcRaw = vbc:               End Property
 
 Friend Property Get WrkbkBaseName() As String
-    Dim fso As New FileSystemObject
-    WrkbkBaseName = fso.GetBaseName(sHostFullName)
-    Set fso = Nothing
+    With New FileSystemObject
+        WrkbkBaseName = .GetBaseName(sHostFullName)
+    End With
 End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String

@@ -17,7 +17,7 @@ Public Sub ByImport(ByVal rn_wb As Workbook, _
     If rn_status <> vbNullString Then Application.StatusBar = rn_status & "Save and wait"
     SaveWbk rn_wb
     DoEvents:  Application.Wait Now() + 0.0000001 ' wait for 10 milliseconds
-    With rn_wb.VBProject
+    With rn_wb.VbProject
         If CompExists(ce_wb:=rn_wb, ce_comp_name:=rn_comp_name) Then
             '~~ Find a free/unused temporary name
             sTempName = GetTempName(ac_wb:=rn_wb, ac_comp_name:=rn_comp_name)
@@ -64,7 +64,7 @@ Private Function GetTempName(ByVal ac_wb As Workbook, _
     sTempName = ac_comp_name & "_Temp"
     Do
         On Error Resume Next
-        sTempName = ac_wb.VBProject.VBComponents(sTempName).name
+        sTempName = ac_wb.VbProject.VBComponents(sTempName).name
         If Err.Number <> 0 Then Exit Do ' a component with sTempName does not exist
         i = i + 1: sTempName = sTempName & i
     Loop
@@ -107,7 +107,7 @@ Private Function CompExists(ByVal ce_wb As Workbook, _
 ' ------------------------------------------------------------------
     Dim s As String
     On Error Resume Next
-    s = ce_wb.VBProject.VBComponents(ce_comp_name).name
+    s = ce_wb.VbProject.VBComponents(ce_comp_name).name
     CompExists = Err.Number = 0
 End Function
 
@@ -115,7 +115,7 @@ Private Function Extension(ByVal ext_wb As Workbook, _
                            ByVal ext_comp_name As String) As String
 ' Returns the components Export File extension
 ' -----------------------------------------------------------------
-    Select Case ext_wb.VBProject.VBComponents(ext_comp_name).Type
+    Select Case ext_wb.VbProject.VBComponents(ext_comp_name).Type
         Case vbext_ct_StdModule:    Extension = ".bas"
         Case vbext_ct_ClassModule:  Extension = ".cls"
         Case vbext_ct_MSForm:       Extension = ".frm"

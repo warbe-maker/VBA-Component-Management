@@ -2,34 +2,34 @@ Attribute VB_Name = "mRawHosts"
 Option Explicit
 ' ---------------------------------------------------------------------------
 ' Standard Module mHost
-'                 Maintains for raw components identified by their
-'                 component name the values HostFullName and ExpFilePath.
+' Maintains for raw components identified by their
+' component name the values HostFullName and ExpFileFullName.
 ' ---------------------------------------------------------------------------
-Private Const VALUE_HOST_FULL_NAME = "HostFullName"
-Private Const VALUE_RAW_VB_PROJECT = "RawVbProject"
+Private Const VNAME_HOST_FULL_NAME = "HostFullName"
+Private Const VNAME_IS_RAW_VB_PROJECT = "IsRawVbProject"
 
 Public Property Get DAT_FILE() As String: DAT_FILE = mMe.CompManAddinPath & "\RawHosts.dat":   End Property
 
 Public Property Get FullName( _
                      Optional ByVal host_base_name As String) As String
-    FullName = Value(pp_section:=host_base_name, pp_value_name:=VALUE_HOST_FULL_NAME)
+    FullName = Value(pp_section:=host_base_name, pp_value_name:=VNAME_HOST_FULL_NAME)
 End Property
 
 Public Property Let FullName( _
                      Optional ByVal host_base_name As String, _
                               ByVal host_full_name As String)
-    Value(pp_section:=host_base_name, pp_value_name:=VALUE_HOST_FULL_NAME) = host_full_name
+    Value(pp_section:=host_base_name, pp_value_name:=VNAME_HOST_FULL_NAME) = host_full_name
 End Property
 
-Public Property Get RawVbProject( _
+Public Property Get IsRawVbProject( _
                      Optional ByVal host_base_name As String) As String
-    RawVbProject = Value(pp_section:=host_base_name, pp_value_name:=VALUE_RAW_VB_PROJECT)
+    IsRawVbProject = Value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_RAW_VB_PROJECT)
 End Property
 
-Public Property Let RawVbProject( _
+Public Property Let IsRawVbProject( _
                      Optional ByVal host_base_name As String, _
                               ByVal host_full_name As String)
-    Value(pp_section:=host_base_name, pp_value_name:=VALUE_RAW_VB_PROJECT) = host_full_name
+    Value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_RAW_VB_PROJECT) = host_full_name
 End Property
 
 

@@ -53,7 +53,6 @@ Public Sub RawClones( _
     On Error GoTo eh
     Dim sStatus     As String
     Dim vbc         As VBComponent
-    Dim sServiced   As String
     Dim fso         As New FileSystemObject
     Dim lReplaced   As Long
     Dim sReplaced   As String
@@ -74,32 +73,29 @@ Public Sub RawClones( _
             .VBComp = vbc
 
             Application.StatusBar = sStatus & .CompName & " "
-            sServiced = .Wrkbk.name & " " & vbc.name
-            sServiced = sServiced & String(urc_comp_max_len - Len(.CompName), ".")
-            cLog.ServicedItem = sServiced
+            cLog.ServicedItem = vbc.name & String(urc_comp_max_len - Len(.CompName), ".")
 
             Set cRaw = New clsRaw
-            cRaw.CompName = .CompName
-            cRaw.ExpFile = fso.GetFile(FilePath:=mHostedRaws.ExpFilePath(.CompName))
-            cRaw.ExpFilePath = cRaw.ExpFile.Path
             cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
-            cRaw.CloneExpFilePath = .ExpFilePath
+            cRaw.CompName = .CompName
+            cRaw.ExpFileExtension = .ExpFileExtension ' required to build the raws export file full name
+            cRaw.CloneExpFileFullName = .ExpFileFullName
             If cRaw.Changed Then
-                Application.StatusBar = sStatus & vbc.name & " Renew of '" & .CompName & "' by import of '" & cRaw.ExpFilePath & "'"
+                Application.StatusBar = sStatus & vbc.name & " Renew of '" & .CompName & "' by import of '" & cRaw.ExpFileFullName & "'"
                 If bVerbose Then
                     UpdateCloneConfirmed ucc_comp_name:=vbc.name _
                                        , ucc_service:=urc_service _
                                        , ucc_stay_verbose:=bVerbose _
                                        , ucc_skip:=bSkip _
-                                       , ucc_clone:=cComp.ExpFilePath _
-                                       , ucc_raw:=cRaw.ExpFilePath
+                                       , ucc_clone:=cComp.ExpFileFullName _
+                                       , ucc_raw:=cRaw.ExpFileFullName
                 End If
                 If Not bSkip Then
                     mRenew.ByImport rn_wb:=.Wrkbk _
                          , rn_comp_name:=.CompName _
-                         , rn_exp_file_full_name:=cRaw.ExpFilePath _
+                         , rn_exp_file_full_name:=cRaw.ExpFileFullName _
                          , rn_status:=sStatus & " " & .CompName & " "
-                    cLog.Action = "Clone component renewed/updated by (re-)import of '" & cRaw.ExpFilePath & "'"
+                    cLog.Action = "Clone component renewed/updated by (re-)import of '" & cRaw.ExpFileFullName & "'"
                     lReplaced = lReplaced + 1
                     sReplaced = .CompName & ", " & sReplaced
                     '~~ Register the update being used to identify a potentially relevant

@@ -30,22 +30,30 @@ Option Explicit
 '
 '
 ' -----------------------------------------------------------------------------------
-Private sWrkbkBaseName      As String       ' Common Component host Workbook's base name
-Private sWrkbkFullName      As String       ' Common Component host Workbook's full name
-Private sCompName           As String       ' The class module's global component name
-Private wb                  As Workbook     ' The class' Workbook
-Private vbc                 As VBComponent  ' VBComponent managed by this Class Module
+Private dctChanges          As Dictionary   ' Dictionary of code changes
 Private dtUpdatedAsOf       As Date
 Private flExpFile           As File
 Private foExport            As Folder
-Private sExpFilePath        As String       ' Full filespec for the Export File created by the method BackUpCode
-Private sExpPath            As String
 Private lCompMaxLen         As Long
 Private lKindOfComp         As enKindOfComp
-Private sExtension          As String
-Private dctChanges          As Dictionary   ' Dictionary of code changes
-Private sTempExpFilePath    As String
-Private sTempFolder         As String
+Private sCompName           As String       ' The class module's global component name
+Private sExpFileExtension   As String
+Private sExpFileFullName    As String       ' Full filespec for the Export File of CompName
+Private sExpFilePath        As String       ' Folder for the Export File of CompName
+Private sTmpFolder          As String
+Private sTmpExpFileFullName As String
+Private sWrkbkBaseName      As String       ' Common Component host Workbook's base name
+Private sWrkbkFullName      As String       ' Common Component host Workbook's full name
+Private vbc                 As VBComponent  ' VBComponent managed by this Class Module
+Private wb                  As Workbook     ' The class' Workbook
+Private sService            As String       ' Name of the 'Service' folder, i.e. the folder of the Workbook
+
+Public Property Get Service(Optional ByVal wb_full_name) As String
+    If sService = vbNullString Then
+        sService = Split(Me.Wrkbk.Path, "\")(UBound(Split(Me.Wrkbk.Path, "\")))
+    End If
+    Service = sService
+End Property
 
 Friend Property Get CompName() As String:           CompName = sCompName:   End Property
 
@@ -54,39 +62,42 @@ Friend Property Let CompName(ByVal s As String)
 ' Provides the properties:
 ' - CompName (sCompName)
 ' - VBComp (vbc)
-' - Extension (sExtension),
-' - ExpFilePath (sExpFilePath)
+' - ExpFileExtension (sExpFileExtension),
+' - ExpFileFullName (sExpFileFullName)
 ' ---------------------------------------------
 
     sCompName = s
     If Not wb Is Nothing Then
-        Set vbc = wb.VbProject.VBComponents(sCompName)
-        Select Case vbc.Type
-            Case vbext_ct_StdModule:    sExtension = ".bas"
-            Case vbext_ct_ClassModule:  sExtension = ".cls"
-            Case vbext_ct_MSForm:       sExtension = ".frm"
-            Case vbext_ct_Document:     sExtension = ".cls"
-        End Select
-        sExpFilePath = sExpPath & "\" & sCompName & sExtension
+        sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExtension
     End If
 
+End Property
+
+Friend Property Get CompMaxLen() As Long:   CompMaxLen = lCompMaxLen:  End Property
+
+Friend Property Get ExpFileFullName() As String
+    If sExpFileFullName = vbNullString Then
+        sExpFileFullName = Me.ExpFilePath & "\" & Me.CompName & Me.ExpFileExtension
+    End If
+    ExpFileFullName = sExpFileFullName
 End Property
 
 Friend Property Get ExpFile() As File
     
     Dim fso As New FileSystemObject
     
-    If flExpFile Is Nothing Then
-        If fso.FileExists(sExpFilePath) Then
-            Set flExpFile = GetFile(sExpFilePath)
-        Else
-            '~~ The component apparently has yet no never been exported
-            If Not Me.VBComp Is Nothing Then
-                Me.VBComp.Export sExpFilePath
-                Set flExpFile = GetFile(sExpFilePath)
+    With Me
+        If flExpFile Is Nothing Then
+            If fso.FileExists(.ExpFileFullName) Then
+                Set flExpFile = GetFile(.ExpFileFullName)
+                '~~ The component apparently has yet no never been exported
+                If Not Me.VBComp Is Nothing Then
+                    Me.VBComp.Export .ExpFileFullName
+                    Set flExpFile = GetFile(.ExpFileFullName)
+                End If
             End If
         End If
-    End If
+    End With
     
     Set ExpFile = flExpFile
     Set fso = Nothing
@@ -95,20 +106,36 @@ End Property
 
 Friend Property Let ExpFile(ByVal fl As File):      Set flExpFile = fl:     End Property
 
-Public Property Get ExpFileExtension() As String
-    Select Case vbc.Type
-        Case vbext_ct_StdModule:    ExpFileExtension = ".bas"
-        Case vbext_ct_ClassModule:  ExpFileExtension = ".cls"
-        Case vbext_ct_MSForm:       ExpFileExtension = ".frm"
-        Case vbext_ct_Document:     ExpFileExtension = ".cls"
-    End Select
+Friend Property Get ExpFilePath() As String
+    Dim fso As New FileSystemObject
+    If sExpFilePath = vbNullString Then
+        If Not Me.Wrkbk Is Nothing Then
+            sExpFilePath = fso.GetParentFolderName(Me.Wrkbk.FullName)
+        ElseIf Me.WrkbkFullName <> vbNullString Then
+            sExpFilePath = fso.GetParentFolderName(Me.WrkbkFullName)
+        End If
+    End If
+    ExpFilePath = sExpFilePath
 End Property
-
-Friend Property Get ExpFilePath() As String:    ExpFilePath = sExpFilePath: End Property
 
 Friend Property Get ExpFolder() As Folder:      Set ExpFolder = foExport:   End Property
 
-Friend Property Get Extension() As String:      Extension = sExtension:     End Property
+Friend Property Get ExpFileExtension() As String
+    
+    If sExpFileExtension = vbNullString Then
+        If vbc Is Nothing Then Set vbc = wb.VbProject.VBComponents(sCompName)
+        With Me
+            Select Case vbc.Type
+                Case vbext_ct_StdModule:    sExpFileExtension = ".bas"
+                Case vbext_ct_ClassModule:  sExpFileExtension = ".cls"
+                Case vbext_ct_MSForm:       sExpFileExtension = ".frm"
+                Case vbext_ct_Document:     sExpFileExtension = ".cls"
+            End Select
+        End With
+    End If
+    ExpFileExtension = sExpFileExtension
+
+End Property
 
 Friend Property Get DsplyAllChanges() As Long
 ' -------------------------------------------
@@ -121,10 +148,10 @@ Friend Property Get DsplyAllChanges() As Long
     Dim sMsg As tMsg
     
     If Me.Changed Then
-        mFile.Compare fc_file_left:=sTempExpFilePath _
-                    , fc_file_right:=sExpFilePath _
-                    , fc_left_title:="'Clone' component's export file '" & sTempExpFilePath & "'" _
-                    , fc_right_title:="'Raw' component's export file '" & sExpFilePath & "'"
+        mFile.Compare fc_file_left:=sTmpExpFileFullName _
+                    , fc_file_right:=Me.ExpFileFullName _
+                    , fc_left_title:="'Clone' component's export file '" & sTmpExpFileFullName & "'" _
+                    , fc_right_title:="'Raw' component's export file '" & Me.ExpFileFullName & "'"
     Else
         sMsg.Section(1).sText = "The Export File of the component '" & Me.CompName & "' reflects the current code. " & _
                                 "Thus there are no code changes to be displayed."
@@ -236,10 +263,10 @@ Private Property Get ReplaceRawWithCloneConfirmed() As Boolean
                 ReplaceRawWithCloneConfirmed = True
                 Exit Do
             Case sReplyDsplyDiff
-                mFile.Compare fc_file_left:=cComp.ExpFilePath _
-                            , fc_file_right:=cRaw.ExpFilePath _
-                            , fc_left_title:="The cloned raw's current code in Workbook/VBProject " & cComp.WrkbkBaseName & " (" & cComp.ExpFilePath & ")" _
-                            , fc_right_title:="The remote raw's current code in Workbook/VBProject " & cRaw.WrkbkBaseName & " (" & cRaw.ExpFilePath & ")"
+                mFile.Compare fc_file_left:=cComp.ExpFileFullName _
+                            , fc_file_right:=cRaw.ExpFileFullName _
+                            , fc_left_title:="The cloned raw's current code in Workbook/VBProject " & cComp.WrkbkBaseName & " (" & cComp.ExpFileFullName & ")" _
+                            , fc_right_title:="The remote raw's current code in Workbook/VBProject " & cRaw.WrkbkBaseName & " (" & cRaw.ExpFileFullName & ")"
                 ' The question is re-displayed for a decison
             Case sReplyIgnore
                 ReplaceRawWithCloneConfirmed = False
@@ -307,8 +334,11 @@ Friend Property Let Wrkbk(ByVal wbk As Workbook)
 ' ----------------------------------------------
 ' Provides the properties:
 ' - Wrkbk (wb),
-' - WrkbFullName (sWrkbkFullName)
-' - WrkbkBaseName (sWrkbkBaseName)
+' - WrkbFullName    (sWrkbkFullName)
+' - WrkbkBaseName   (sWrkbkBaseName)
+' - ExpFilePath     (sExpFilePath)
+' - CompMaxLen      (lCompMaxLen)
+' - Service         (sService)          The Workbooks folder
 ' ---------------------------------------------
     
     Dim fso As New FileSystemObject
@@ -316,10 +346,12 @@ Friend Property Let Wrkbk(ByVal wbk As Workbook)
     Set wb = wbk
     sWrkbkFullName = wb.FullName
     sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
-    Set foExport = fso.GetFolder(Me.ExpPath)
+    sExpFilePath = fso.GetParentFolderName(sWrkbkFullName)
+    Set foExport = fso.GetFolder(sExpFilePath)
     For Each vbc In wb.VbProject.VBComponents
         lCompMaxLen = mBasic.Max(lCompMaxLen, Len(vbc.name))
     Next vbc
+    sService = Split(wb.Path, "\")(UBound(Split(wb.Path, "\")))
     Set fso = Nothing
     
 End Property
@@ -347,19 +379,21 @@ Friend Property Get Changed() As Boolean
     
     On Error GoTo eh
     Dim fso As New FileSystemObject
-
     If dctChanges Is Nothing Then
         With fso
-            sTempFolder = sExpPath & "\Temp"
-            If Not .FolderExists(sTempFolder) Then .CreateFolder sTempFolder
-            sTempExpFilePath = sTempFolder & "\" & vbc.name & sExtension
-            vbc.Export sTempExpFilePath
+            If Not .FileExists(cComp.ExpFileFullName) Then
+                Me.VBComp.Export cComp.ExpFileFullName
+            End If
+            sTmpFolder = Me.ExpFilePath & "\Temp"
+            If Not .FolderExists(sTmpFolder) Then .CreateFolder sTmpFolder
+            sTmpExpFileFullName = sTmpFolder & "\" & vbc.name & sExpFileExtension
+            vbc.Export sTmpExpFileFullName
             DoEvents
         End With
     
         Set dctChanges = _
-        mFile.Differs(fd_file1:=fso.GetFile(sTempExpFilePath) _
-                    , fd_file2:=cComp.ExpFile _
+        mFile.Differs(fd_file1:=fso.GetFile(sTmpExpFileFullName) _
+                    , fd_file2:=fso.GetFile(cComp.ExpFileFullName) _
                     , fd_ignore_empty_records:=True _
                     , fd_compare:=vbTextCompare _
                     , fd_stop_after:=1 _
@@ -367,13 +401,14 @@ Friend Property Get Changed() As Boolean
 
     End If
     Changed = dctChanges.Count <> 0
-    If Changed Then
+
+xt: If Changed Then
         cLog.Action = "Clone changed! (temp export differs from last export)"
     Else
         cLog.Action = "Clone not changed! (temp export identical with last export)"
     End If
 
-xt: Set fso = Nothing
+    Set fso = Nothing
     Exit Property
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -402,46 +437,6 @@ Public Function Exists(ByVal sComp As String) As Boolean
     Set vbc = Nothing
 
 End Function
-
-Friend Property Get ExpPath() As String
-' -----------------------------------------
-' Returns the path for the code backup
-' export file  of the Component which
-' defaults to the Workbook's path with a
-' Workbook's base name folder.
-' Will be created if not existent.
-' --------------------------------------
-    Const PROC = "ExpPath_Get"
-    
-    On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim sPath   As String
-    
-    If sExpPath = vbNullString Then
-        With fso
-            If Right(.GetParentFolderName(wb.FullName), Len(sWrkbkBaseName)) <> sWrkbkBaseName Then
-               sPath = .GetParentFolderName(wb.FullName) & "\" & sWrkbkBaseName
-                '~~ Make sure the returned export path specifies an existing folder
-                If Not .FolderExists(sPath) Then
-                    .CreateFolder (sPath)
-                End If
-            Else
-                sPath = .GetParentFolderName(wb.FullName)
-            End If
-            sExpPath = sPath
-        End With
-    End If
-    
-xt: ExpPath = sExpPath
-    Set fso = Nothing
-    Exit Property
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Property
 
 Public Function ExpFileToArray(ByVal fl As File) As String()
 ' ---------------------------------------------------------------------
@@ -574,8 +569,8 @@ Public Sub ReplaceRawWithClone( _
     
     mRenew.ByImport rn_wb:=wbRawHost _
                   , rn_comp_name:=sCompName _
-                  , rn_exp_file_full_name:=sExpFilePath
-    cLog.Action = "Remote raw (hosted in '" & wbRawHost.name & "' replaced by (re-)import of the clone's export file '" & sExpFilePath & "'"
+                  , rn_exp_file_full_name:=Me.ExpFileFullName
+    cLog.Action = "Remote raw (hosted in '" & wbRawHost.name & "' replaced by (re-)import of the clone's export file '" & Me.ExpFileFullName & "'"
 
 xt: Exit Sub
 
@@ -606,11 +601,10 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
         With cRaw
             .HostFullName = mHostedRaws.HostFullName(comp_name:=cComp.CompName)
             .CompName = cComp.CompName
-            .ExpFileExtension = cComp.ExpFileExtension
-            .ExpFile = fso.GetFile(mHostedRaws.ExpFilePath(comp_name:=cComp.CompName))
-            .ExpFilePath = .ExpFile.Path
+            .ExpFileExtension = cComp.ExpFileExtension ' required to build the export file's full name
+            .ExpFile = fso.GetFile(.ExpFileFullName)
             .RawHost = mCompMan.WbkGetOpen(.HostFullName)
-            .RawVbc = .RawHost.VbProject.VBComponents(Index:=cComp.CompName)
+            .RawVbc = .RawHost.VbProject.VBComponents(Index:=.CompName)
             Select Case .RawType
                 Case vbext_ct_Document
                     '~~ A data module cannot be replaced like the other ones. Thus only its code
@@ -661,7 +655,7 @@ Public Sub SynchCloneWithRawByCodeLines()
         Next v
     End With
     
-    Debug.Print DebugComp & Now() & " Code of the cloned raw component's CodeModule synchronized with code the remote raw component's Export File '" & cRaw.ExpFilePath & "'."
+    Debug.Print DebugComp & Now() & " Code of the cloned raw component's CodeModule synchronized with code the remote raw component's Export File '" & cRaw.ExpFileFullName & "'."
                 
 xt: Set fso = Nothing
     Exit Sub
@@ -687,7 +681,7 @@ Public Sub SynchRawWithCloneByCodeLines()
     Dim vbcm    As CodeModule
     Dim fso     As New FileSystemObject
                 
-    Debug.Print DebugComp & Now() & " About to synch the remote raw component's code with the code in the cloned raw's code in the Export File '" & cComp.ExpFilePath & "'."
+    Debug.Print DebugComp & Now() & " About to synch the remote raw component's code with the code in the cloned raw's code in the Export File '" & cComp.ExpFileFullName & "'."
     '~~ Remove all lines from the target component
     Set vbcm = cRaw.RawVbc.CodeModule
     With vbcm
@@ -700,7 +694,7 @@ Public Sub SynchRawWithCloneByCodeLines()
         Next v
     End With
     
-    Debug.Print DebugComp & Now() & " Code of remote raw component synchronized with the code in the cloned raw's Export File '" & cComp.ExpFilePath & "'."
+    Debug.Print DebugComp & Now() & " Code of remote raw component synchronized with the code in the cloned raw's Export File '" & cComp.ExpFileFullName & "'."
                 
 xt: Set fso = Nothing
     Exit Sub
@@ -764,7 +758,7 @@ Private Sub Class_Terminate()
     Set wb = Nothing
     Set vbc = Nothing
     With New FileSystemObject
-        If .FolderExists(sTempFolder) Then .DeleteFolder sTempFolder
+        If .FolderExists(sTmpFolder) Then .DeleteFolder sTmpFolder
     End With
     Set flExpFile = Nothing
 End Sub

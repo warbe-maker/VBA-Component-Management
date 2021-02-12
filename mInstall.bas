@@ -50,7 +50,7 @@ Public Sub CloneRaws(Optional ByVal ic_wb As Workbook)
             Case Else
                 mRenew.ByImport rn_wb:=ic_wb _
                               , rn_comp_name:=vReply _
-                              , rn_exp_file_full_name:=mHostedRaws.ExpFilePath(vReply)
+                              , rn_exp_file_full_name:=mHostedRaws.ExpFileFullName(vReply)
         End Select
     Loop
 xt: Exit Sub

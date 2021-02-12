@@ -50,7 +50,7 @@ Private Sub UserForm_Activate()
 
     If dct Is Nothing Then Set dct = New Dictionary Else dct.RemoveAll
     
-    For Each vbc In wbHost.VBProject.VBComponents
+    For Each vbc In wbHost.VbProject.VBComponents
         mDct.DctAdd add_dct:=dct, add_key:=vbc.name, add_item:=vbc, add_seq:=seq_ascending
     Next vbc
     
@@ -58,7 +58,7 @@ Private Sub UserForm_Activate()
         For Each v In dct
             .lbSelect.AddItem v
         Next v
-        .laCompsInWorkbook.caption = Replace(.laCompsInWorkbook.caption, "<wb>", wbHost.name)
+        .laCompsInWorkbook.Caption = Replace(.laCompsInWorkbook.Caption, "<wb>", wbHost.name)
     End With
 
 End Sub

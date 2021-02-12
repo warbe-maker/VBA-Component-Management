@@ -157,12 +157,10 @@ Public Sub Test_Log()
     On Error GoTo eh
     Dim fso         As New FileSystemObject
     Dim cLog        As New clsLog
-    Dim sServiced   As String
     
     With cLog
         .ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=ThisWorkbook, svp_new_log:=True) = ErrSrc(PROC)
-        sServiced = ThisWorkbook.name & " <component-name> "
-        .ServicedItem = sServiced
+        .ServicedItem = " <component-name> "
         .Action = "Tested"
         mMsg.Box msg_title:="Test-Log:" _
                , msg:=mFile.Txt(ft_file:=.LogFile.Path) _
@@ -227,10 +225,10 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     Dim cComp       As New clsComp
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
-    Dim sServiced   As String
     Dim lCompMaxLen As Long
     
-    lCompMaxLen = mCompMan.MaxCompLength(ThisWorkbook)
+    cComp.Wrkbk = rnc_wb
+    lCompMaxLen = cComp.CompMaxLen
     If mMe.IsDevInstnc Then GoTo xt
     
     cLog.ServiceProvided(svp_by_wb:=ThisWorkbook _
@@ -238,11 +236,8 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
                        , svp_new_log:=rnc_new_log _
                         ) = ErrSrc(PROC)
     With cComp
-        .Wrkbk = rnc_wb
         .CompName = rnc_comp_name
-        sServiced = .Wrkbk.name & " " & .CompName & " "
-        sServiced = sServiced & String(lCompMaxLen - Len(.CompName), ".")
-        cLog.ServicedItem = sServiced
+        cLog.ServicedItem = .CompName & " " & String(lCompMaxLen - Len(.CompName), ".")
         
         If .Wrkbk Is ActiveWorkbook Then
             Set wbActive = ActiveWorkbook
@@ -250,9 +245,7 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
             cLog.Action = "Active Workbook de-activated by creating a temporary Workbook"
         End If
     
-        sServiced = .Wrkbk.name & " " & .CompName & " "
-        sServiced = sServiced & String(lCompMaxLen - Len(.CompName), ".")
-        cLog.ServicedItem = sServiced
+        cLog.ServicedItem = .CompName & " " & String(lCompMaxLen - Len(.CompName), ".")
         
         mRenew.ByImport rn_wb:=.Wrkbk _
                       , rn_comp_name:=.CompName _
@@ -340,8 +333,8 @@ Private Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export File
                 '~~ ------------------------------------------------------
-                If mFile.SelectFile(sel_init_path:=cComp.ExpPath _
-                                  , sel_filters:="*" & cComp.Extension _
+                If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
+                                  , sel_filters:="*" & cComp.ExpFileExtension _
                                   , sel_filter_name:="bas-ExportFile" _
                                   , sel_title:="Select an Export File for the renewal of the component '" & .CompName & "'!" _
                                   , sel_result:=flExport) _
@@ -557,8 +550,8 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export File
                 '~~ ------------------------------------------------------
-                If mFile.SelectFile(sel_init_path:=cComp.ExpPath _
-                                  , sel_filters:="*" & cComp.Extension _
+                If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
+                                  , sel_filters:="*" & cComp.ExpFileExtension _
                                   , sel_filter_name:="UserForm" _
                                   , sel_title:="Select an Export File for the renewal of the component '" & .CompName & "'!" _
                                   , sel_result:=flExport) _
