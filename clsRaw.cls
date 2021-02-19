@@ -103,12 +103,6 @@ Friend Property Get DsplyAllChanges() As Long
     Const PROC = "DisplayAllChanges"
     
     On Error GoTo eh
-    Dim sExpFileTemp    As String
-    Dim wb              As Workbook
-    Dim cComp           As New clsComp
-    Dim fso             As New FileSystemObject
-    Dim sTmpFolder     As String
-    Dim flExpTemp       As File
     Dim sMsg            As tMsg
     
     If Me.Changed Then

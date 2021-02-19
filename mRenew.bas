@@ -59,7 +59,6 @@ Private Function GetTempName(ByVal ac_wb As Workbook, _
 ' ------------------------------------------------------------------
     Dim sTempName   As String
     Dim i           As Long
-    Dim vbc         As VBComponent
     
     sTempName = ac_comp_name & "_Temp"
     Do
@@ -71,34 +70,34 @@ Private Function GetTempName(ByVal ac_wb As Workbook, _
     GetTempName = sTempName
 End Function
 
-Private Function WbkIsOpen(ByVal io_wb_full_name As String) As Boolean
-' Retuns True when the Workbook (io_full_name) is open.
-' --------------------------------------------------------------------
-    Dim fso     As New FileSystemObject
-    Dim xlApp   As Excel.Application
-    
-    If Not fso.FileExists(io_wb_full_name) Then Exit Function
-    On Error Resume Next
-    Set xlApp = GetObject(io_wb_full_name).Application
-    WbkIsOpen = Err.Number = 0
+'Private Function WbkIsOpen(ByVal io_wb_full_name As String) As Boolean
+'' Retuns True when the Workbook (io_full_name) is open.
+'' --------------------------------------------------------------------
+'    Dim fso     As New FileSystemObject
+'    Dim xlApp   As Excel.Application
+'
+'    If Not fso.FileExists(io_wb_full_name) Then Exit Function
+'    On Error Resume Next
+'    Set xlApp = GetObject(io_wb_full_name).Application
+'    WbkIsOpen = Err.Number = 0
+'
+'End Function
 
-End Function
-
-Private Function WbkGetOpen(ByVal go_wb_full_name) As Workbook
-    
-    Dim fso     As New FileSystemObject
-    Dim sWbName As String
-    
-    If Not fso.FileExists(go_wb_full_name) Then Exit Function
-    If WbkIsOpen(go_wb_full_name) Then
-        Set WbkGetOpen = Application.Workbooks(sWbName)
-    Else
-        Set WbkGetOpen = Application.Workbooks.Open(go_wb_full_name)
-    End If
-
-    Set fso = Nothing
-
-End Function
+'Private Function WbkGetOpen(ByVal go_wb_full_name) As Workbook
+'
+'    Dim fso     As New FileSystemObject
+'    Dim sWbName As String
+'
+'    If Not fso.FileExists(go_wb_full_name) Then Exit Function
+'    If WbkIsOpen(go_wb_full_name) Then
+'        Set WbkGetOpen = Application.Workbooks(sWbName)
+'    Else
+'        Set WbkGetOpen = Application.Workbooks.Open(go_wb_full_name)
+'    End If
+'
+'    Set fso = Nothing
+'
+'End Function
 
 Private Function CompExists(ByVal ce_wb As Workbook, _
                             ByVal ce_comp_name As String) As Boolean

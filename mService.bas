@@ -12,10 +12,13 @@ Public Sub Continue()
     wsAddIn.CompManAddInStatus = _
         "The AddIn is currently  a c t i v e ! The Workbook_Open service 'UpdateRawClones' " & _
         "and the Workbook_BeforeSave service 'ExportChangedComponents' will be executed for " & _
-        "Workbooks calling them under the two additional preconditions: " & vbLf & _
-        "1. The Conditional Compile Argument CompMan = 1" & vbLf & _
+        "Workbooks calling them under the following met preconditions: " & vbLf & _
+        "1. The CompMan's basic configuration is complete and valid" & vbLf & _
         "2. The Workbook is located in the configured 'Serviced Development Root' which currently is:" & vbLf & _
-        "   '" & mMe.ServicedRoot & "'"
+        "   '" & mMe.ServicedRoot & "'" & vbLf & _
+        "3. The Workbook is the only one within its parent folder" & vbLf & _
+        "4. The Workbook is not a restored version" & vbLf & _
+        "5. The serviced VB-Project has a Conditional Compile Argument 'CompMan = 1'"
 End Sub
 
 Public Sub Pause()
@@ -99,7 +102,6 @@ Public Sub ExportChangedComponents( _
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
-    Dim lCompMaxLen         As Long
     Dim vbc                 As VBComponent
     Dim lComponents         As Long
     Dim lCompsRemaining     As Long
@@ -271,67 +273,80 @@ Private Function FolderNotVbProjectExclusive(ByVal wb As Workbook) As Boolean
 
 End Function
 
-Public Sub ExportAll(Optional ByVal exp_wrkbk As Workbook = Nothing)
-' -----------------------------------------------------------
+Public Sub ExportAll(Optional ByVal ea_wb As Workbook = Nothing)
+' --------------------------------------------------------------
 '
-' -----------------------------------------------------------
+' --------------------------------------------------------------
     Const PROC = "ExportAll"
     
     On Error GoTo eh
     Dim vbc     As VBComponent
+    Dim sStatus As String
     
     mErH.BoP ErrSrc(PROC)
+    If ea_wb Is Nothing Then Set ea_wb = ServicedWrkbk("Se")
+    If ea_wb Is Nothing Then GoTo xt
     
-    If exp_wrkbk Is Nothing Then Set exp_wrkbk = ActiveWorkbook
-    Set cComp = New clsComp
+    '~~ Prevent any action when the required preconditins are not met
+    If mService.Denied(den_serviced_wb:=ea_wb, den_service:=ErrSrc(PROC)) Then GoTo xt
     
-    With cComp
-        If mMe.IsAddinInstnc _
-        Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
-        .Wrkbk = exp_wrkbk
-        
-        For Each vbc In .Wrkbk.VbProject.VBComponents
+    mCompMan.Service = PROC & " for '" & ea_wb.name & "': "
+    sStatus = mCompMan.Service
+
+    mCompMan.DeleteObsoleteExpFiles ea_wb
+    
+    If mMe.IsAddinInstnc _
+    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
+    
+    For Each vbc In ea_wb.VbProject.VBComponents
+        Set cComp = New clsComp
+        With cComp
+            .Wrkbk = ea_wb
             .CompName = vbc.name ' this assignment provides the name for the export file
             vbc.Export .ExpFileFullName
-        Next vbc
-    End With
+        End With
+        Set cComp = Nothing
+    Next vbc
 
-xt: Set cComp = Nothing
-    mErH.EoP ErrSrc(PROC)
+xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
-Public Sub SynchVbProject(ByVal sp_clone_project As Workbook, _
-                          ByVal sp_raw_project As String)
-' -------------------------------------------------------------
-' Synchronizes the code of the open/ed Workbook (clone_project)
-' with the code of the source Workbook (raw_project).
+Public Sub SynchVbProject( _
+           Optional ByVal sp_clone_project As Workbook = Nothing, _
+           Optional ByVal sp_raw_project As String = vbNullString)
+' -----------------------------------------------------------------
+' Synchronizes the code of the Workbook (clone_project) with the
+' code of the VB-Raw-Project (raw_project).
+' Note: The sp_raw_project is identified by its 'BaseName' when
+'       the service is called from the VB-Clone-Project. When
+'       directly called via the immediate window both arguments
+'       are provided via a file selection dialog.
 ' The service is performed provided:
-' - the Workbook is open/ed in the configured "Serviced Root"
+' - the CompMan basic configuration is complete and valid
+' - the Workbook is located within the configured "Serviced Root"
+' - the Workbook is the only one within its parent folder
 ' - the CompMan Addin is not paused
 ' - the open/ed Workbook is not a restored version
 ' -------------------------------------------------------------
     Const PROC = "SynchVbProject"
     
     On Error GoTo eh
-    Dim lCompMaxLen         As Long
-    Dim vbc                 As VBComponent
-    Dim lComponents         As Long
-    Dim lCompsRemaining     As Long
-    Dim lExported           As Long
-    Dim sExported           As String
-    Dim bUpdated            As Boolean
-    Dim lUpdated            As Long
-    Dim sUpdated            As String
-    Dim sMsg                As String
     Dim fso                 As New FileSystemObject
-    Dim sProgressDots       As String
     Dim sStatus             As String
-    Dim flSelected          As File
+    Dim wbRaw               As Workbook
     
     mErH.BoP ErrSrc(PROC)
+    If sp_clone_project Is Nothing Then Set sp_clone_project = ServicedWrkbk(PROC)
+    If sp_clone_project Is Nothing Then GoTo xt
+    If sp_raw_project = vbNullString Then
+        Set wbRaw = ServicedWrkbk(PROC)
+        If Not wbRaw Is Nothing Then sp_raw_project = fso.GetBaseName(wbRaw.FullName)
+    End If
+    If sp_raw_project = vbNullString Then GoTo xt
+    
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
     If mService.Denied(den_serviced_wb:=sp_clone_project, den_service:=ErrSrc(PROC)) Then GoTo xt
@@ -341,8 +356,8 @@ Public Sub SynchVbProject(ByVal sp_clone_project As Workbook, _
     
     If Not mRawHosts.Exists(sp_raw_project) Then
         cLog.Entry = "The Clone-VB-Project claims an invalid Raw_VB-Project! ('" & sp_raw_project & "' is not a registered Raw-VB-Project)"
-        VBA.MsgBox Title:="The Clone-VB-Project claims an invalid Raw_VB-Project!" _
-                         , Prompt:="The Clone-VB-Project claims '" & sp_raw_project & "' which is unknown/not registered."
+        VBA.MsgBox Title:="The VB-Clone-Project refers to an invalid VB-Raw-Project!" _
+                         , Prompt:="A VB-Raw-Project '" & sp_raw_project & "' is unknown/not registered."
         GoTo xt
     End If
     
@@ -431,19 +446,11 @@ Public Sub Install(Optional ByVal in_wb As Workbook = Nothing)
     Const PROC = "Install"
     
     On Error GoTo eh
-    Dim fl As File
     
     mErH.BoP ErrSrc(PROC)
-    If in_wb Is Nothing Then
-        If mFile.SelectFile(sel_filters:="*.xl*" _
-                          , sel_filter_name:="VB-Projects/Workbook" _
-                          , sel_title:="Select the Workbook (may already be open) in which a Common Component should be installed to the VB-Project" _
-                          , sel_result:=fl _
-                           ) Then
-            Set in_wb = mCompMan.WbkGetOpen(fl.Path)
-        End If
-    End If
-    If Not in_wb Is Nothing Then mInstall.CloneRaws ic_wb:=in_wb
+    If in_wb Is Nothing Then Set in_wb = ServicedWrkbk(PROC)
+    If in_wb Is Nothing Then GoTo xt
+    mInstall.CloneRaws in_wb
 
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
@@ -455,3 +462,16 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 
 End Sub
+
+Private Function ServicedWrkbk(ByVal gs_service As String) As Workbook
+    Dim fl As File
+    
+    If mFile.SelectFile(sel_filters:="*.xl*" _
+                      , sel_filter_name:="VB-Projects/Workbook" _
+                      , sel_title:="Select the Workbook (may already be open, will be opened if not) to be served by the " & gs_service & " service" _
+                      , sel_result:=fl _
+                       ) _
+    Then Set ServicedWrkbk = mCompMan.WbkGetOpen(fl.Path) _
+    Else Set ServicedWrkbk = Nothing
+
+End Function

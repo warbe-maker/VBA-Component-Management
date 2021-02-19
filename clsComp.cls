@@ -31,10 +31,8 @@ Option Explicit
 '
 ' -----------------------------------------------------------------------------------
 Private dctChanges          As Dictionary   ' Dictionary of code changes
-Private dtUpdatedAsOf       As Date
 Private flExpFile           As File
 Private foExport            As Folder
-Private lCompMaxLen         As Long
 Private lKindOfComp         As enKindOfComp
 Private sCompName           As String       ' The class module's global component name
 Private sExpFileExtension   As String
@@ -503,8 +501,7 @@ Private Function GetFile(ByVal sFile As String) As File
     Set fso = Nothing
 End Function
 
-Public Sub ReplaceRawWithClone( _
-                         ByVal raw_remote_comp_name As String)
+Public Sub ReplaceRawWithClone()
 ' --------------------------------------------------------------
 ' Replace the raw component's code with the Export File of the
 ' clone component.
@@ -563,7 +560,7 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
                     '~~ structure and design of the underlying Workbook or Worksheet has changed.
                     mSync.ByCodeLines cComp, cRaw
                 Case vbext_ct_ClassModule, vbext_ct_StdModule, vbext_ct_MSForm
-                    Me.ReplaceRawWithClone .CompName
+                    Me.ReplaceRawWithClone
             End Select
             rwu_updated = True
         End With ' cRaw
@@ -606,26 +603,26 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function UserFormSizeIsDifferent( _
-                                   ByVal sid_file_1 As File, _
-                                   ByVal sid_file_2 As File) As Boolean
-    Dim sFrxFile1Path  As String
-    Dim sFrxFile2Path  As String
-    Dim fso             As New FileSystemObject
-    
-    sFrxFile1Path = Replace$(sid_file_1.Path, ".frm", ".frx")
-    sFrxFile2Path = Replace$(sid_file_2.Path, ".frm", ".frx")
-    
-    With fso
-        If sid_file_1.Size <> sid_file_2.Size Then
-            UserFormSizeIsDifferent = True
-        ElseIf .GetFile(sFrxFile1Path).Size <> .GetFile(sFrxFile2Path).Size Then
-            UserFormSizeIsDifferent = True
-        End If
-    End With
-    Set fso = Nothing
-    
-End Function
+'Private Function UserFormSizeIsDifferent( _
+'                                   ByVal sid_file_1 As File, _
+'                                   ByVal sid_file_2 As File) As Boolean
+'    Dim sFrxFile1Path  As String
+'    Dim sFrxFile2Path  As String
+'    Dim fso             As New FileSystemObject
+'
+'    sFrxFile1Path = Replace$(sid_file_1.Path, ".frm", ".frx")
+'    sFrxFile2Path = Replace$(sid_file_2.Path, ".frm", ".frx")
+'
+'    With fso
+'        If sid_file_1.Size <> sid_file_2.Size Then
+'            UserFormSizeIsDifferent = True
+'        ElseIf .GetFile(sFrxFile1Path).Size <> .GetFile(sFrxFile2Path).Size Then
+'            UserFormSizeIsDifferent = True
+'        End If
+'    End With
+'    Set fso = Nothing
+'
+'End Function
 
 Private Sub Class_Terminate()
     Set dctChanges = Nothing

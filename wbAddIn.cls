@@ -63,11 +63,9 @@ Private Sub Workbook_Open()
         '~~ When terminated with an invalid configuration services will be denied
         mMe.BasicConfig
         If mMe.AddInInstncWrkbkIsOpen Then
-            '~~ Essential! When the Development instance Workbook is opened, used Common Components
-            '~~ the origin code has changed can only be updated when the Addin instance Workbook is
-            '~~ open as well. However, since the VBProject has no reference to the Addin the Addin
-            '~~ will not be opened when the Development instance is the only Workbook open.
-            '~~ I.e. only when a Workbook referring to the Addin is opened the Addin will be opened as well.
+            '~~ The update of any Clone-Components the Raw-Component had changed requires the CompMan-Addin.
+            '~~ When the development instance is the only Workbook open the CompMan-Addin might not be available
+            '~~ and thus no Clone-Components will be updated.
             Application.StatusBar = vbNullString
             mMe.UpdateRawClones
         End If

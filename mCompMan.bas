@@ -124,7 +124,6 @@ Public Function Clones( _
     Dim vbc         As VBComponent
     Dim dct         As New Dictionary
     Dim fso         As New FileSystemObject
-    Dim lCompMaxLen As Long
     
     mErH.BoP ErrSrc(PROC)
         
@@ -159,12 +158,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
-End Function
-
-Private Function CodeModuleIsEmpty(ByVal vbc As VBComponent) As Boolean
-    With vbc.CodeModule
-        CodeModuleIsEmpty = .CountOfLines = 0 Or .CountOfLines = 1 And Len(.Lines(1, 1)) < 2
-    End With
 End Function
 
 Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
@@ -327,7 +320,7 @@ Public Sub ExportAll(Optional ByVal exp_wrkbk As Workbook = Nothing)
     On Error GoTo eh
     mErH.BoP ErrSrc(PROC)
     
-    mService.ExportAll
+    mService.ExportAll exp_wrkbk
     
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
@@ -349,19 +342,14 @@ Public Sub ExportChangedComponents( _
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
-    Dim lCompMaxLen         As Long
-    Dim vbc                 As VBComponent
-    Dim lComponents         As Long
-    Dim lCompsRemaining     As Long
-    Dim lExported           As Long
-    Dim sExported           As String
-    Dim bUpdated            As Boolean
-    Dim lUpdated            As Long
-    Dim sUpdated            As String
-    Dim sMsg                As String
-    Dim fso                 As New FileSystemObject
-    Dim sProgressDots       As String
-    Dim sStatus             As String
+'    Dim sExported           As String
+'    Dim bUpdated            As Boolean
+'    Dim lUpdated            As Long
+'    Dim sUpdated            As String
+'    Dim sMsg                As String
+'    Dim fso                 As New FileSystemObject
+'    Dim sProgressDots       As String
+'    Dim sStatus             As String
     
     mErH.BoP ErrSrc(PROC)
     mService.ExportChangedComponents ec_wb:=ec_wb, ec_hosted:=ec_hosted
@@ -537,8 +525,7 @@ End Sub
 Public Sub RenewComp( _
       Optional ByVal rc_exp_file_full_name As String = vbNullString, _
       Optional ByVal rc_comp_name As String = vbNullString, _
-      Optional ByVal rc_wb As Workbook = Nothing, _
-      Optional ByVal rc_comp_max_len As Long)
+      Optional ByVal rc_wb As Workbook = Nothing)
 ' --------------------------------------------------------------------
 ' This service renews a component by re-importing an Export File.
 ' When the provided Export File (rc_exp_file_full_name) does exist but
@@ -585,7 +572,6 @@ Public Sub RenewComp( _
     Dim wbTemp      As Workbook
     Dim wbActive    As Workbook
     Dim sBaseName   As String
-    Dim lCompMaxLen As Long
     
     If rc_wb Is Nothing Then Set rc_wb = ActiveWorkbook
     cComp.Wrkbk = rc_wb
@@ -709,21 +695,6 @@ Public Sub SynchVbProject(ByVal sp_clone_project As Workbook, _
     Const PROC = "SynchVbProject"
     
     On Error GoTo eh
-    Dim lCompMaxLen         As Long
-    Dim vbc                 As VBComponent
-    Dim lComponents         As Long
-    Dim lCompsRemaining     As Long
-    Dim lExported           As Long
-    Dim sExported           As String
-    Dim bUpdated            As Boolean
-    Dim lUpdated            As Long
-    Dim sUpdated            As String
-    Dim sMsg                As String
-    Dim fso                 As New FileSystemObject
-    Dim sProgressDots       As String
-    Dim sStatus             As String
-    Dim flSelected          As File
-    
     mErH.BoP ErrSrc(PROC)
     mService.SynchVbProject sp_clone_project:=sp_clone_project, sp_raw_project:=sp_raw_project
     
@@ -748,11 +719,6 @@ Public Sub UpdateRawClones( _
     Const PROC = "UpdateRawClones"
     
     On Error GoTo eh
-    Dim wbActive    As Workbook
-    Dim wbTemp      As Workbook
-    Dim sStatus     As String
-    Dim lCompMaxLen As Long
-    
     mErH.BoP ErrSrc(PROC)
     mService.UpdateRawClones uc_wb:=uc_wb, uc_hosted:=uc_hosted
     

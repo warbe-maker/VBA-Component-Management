@@ -207,8 +207,7 @@ End Sub
 
 Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
                           ByVal rnc_comp_name As String, _
-                          ByVal rnc_wb As Workbook, _
-                          ByVal rnc_new_log As Boolean)
+                          ByVal rnc_wb As Workbook)
 ' --------------------------------------------------------
 ' This test procedure is exclusively performed by the
 ' AddIn instance. It is run by the Development instance
@@ -275,7 +274,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_RenewComp_0_Regression()
+Public Sub Test_RenewComp_0_Regression()
     Const PROC = ""
     
     On Error GoTo eh
@@ -298,7 +297,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
+Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
             ByVal test_comp_name As String, _
    Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
@@ -469,13 +468,11 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
     Const PROC          As String = "Test_RenewComp_3a_UserForm_ExpFile_Local"
-    Const USERFORM_NAME As String = "fMsg"
     
     On Error GoTo eh
     Dim cComp           As New clsComp
     Dim i               As Long
     Dim sExpFile        As String
-    Dim flExport        As File
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
@@ -611,7 +608,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_Raw_VB_Project()
+Public Sub Test_Raw_VB_Project()
 ' ----------------------------------------
 ' 1. Register a Workbook as Raw-VB-Project
 ' 2. Copy it as a Clone-VB-Project
@@ -619,9 +616,6 @@ Private Sub Test_Raw_VB_Project()
 ' 4. Sync the Clone
 ' ----------------------------------------
 
-    Dim wbRaw   As Workbook
-    Dim wbClone As Workbook
-    
     Dim fso As New FileSystemObject
     Dim a   As Variant
     
