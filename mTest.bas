@@ -159,9 +159,10 @@ Public Sub Test_Log()
     Dim cLog        As New clsLog
     
     With cLog
-        .ServiceProvided(svp_by_wb:=ThisWorkbook, svp_for_wb:=ThisWorkbook, svp_new_log:=True) = ErrSrc(PROC)
+        .ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
+        .Service = ErrSrc(PROC)
         .ServicedItem = " <component-name> "
-        .Action = "Tested"
+        .Entry = "Tested"
         mMsg.Box msg_title:="Test-Log:" _
                , msg:=mFile.Txt(ft_file:=.LogFile.Path) _
                , msg_monospaced:=True
@@ -227,25 +228,23 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     Dim wbTemp      As Workbook
     Dim lCompMaxLen As Long
     
-    cComp.Wrkbk = rnc_wb
-    lCompMaxLen = cComp.CompMaxLen
+    lCompMaxLen = mService.CompMaxLen(rnc_wb)
     If mMe.IsDevInstnc Then GoTo xt
     
-    cLog.ServiceProvided(svp_by_wb:=ThisWorkbook _
-                       , svp_for_wb:=rnc_wb _
-                       , svp_new_log:=rnc_new_log _
-                        ) = ErrSrc(PROC)
+    cLog.ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
+    cLog.Service = ErrSrc(PROC)
+    
     With cComp
         .CompName = rnc_comp_name
-        cLog.ServicedItem = .CompName & " " & String(lCompMaxLen - Len(.CompName), ".")
+        cLog.ServicedItem = .CompName
         
         If .Wrkbk Is ActiveWorkbook Then
             Set wbActive = ActiveWorkbook
             Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
-            cLog.Action = "Active Workbook de-activated by creating a temporary Workbook"
+            cLog.Entry = "Active Workbook de-activated by creating a temporary Workbook"
         End If
     
-        cLog.ServicedItem = .CompName & " " & String(lCompMaxLen - Len(.CompName), ".")
+        cLog.ServicedItem = .CompName
         
         mRenew.ByImport rn_wb:=.Wrkbk _
                       , rn_comp_name:=.CompName _
@@ -255,14 +254,14 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
-        cLog.Action = "Temporary created Workbook closed without save"
+        cLog.Entry = "Temporary created Workbook closed without save"
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            cLog.Action = "De-activated Workbook '" & wbActive.name & "' re-activated"
+            cLog.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
             Set wbActive = Nothing
         Else
-            cLog.Action = "Workbook '" & wbActive.name & "' re-activated by closing the temporary created Workbook"
+            cLog.Entry = "Workbook '" & wbActive.name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set cComp = Nothing
@@ -628,9 +627,14 @@ Private Sub Test_Raw_VB_Project()
     
     a = Split(fso.GetParentFolderName(ThisWorkbook.FullName), "\")
     Debug.Print a(UBound(a))
-    
-    
-    
-    
+      
     Set fso = Nothing
+End Sub
+
+Public Sub Test_BasicConfig()
+
+    If Not mMe.BasicConfig Then
+        Debug.Print "Basic configuration invalid!"
+    End If
+    
 End Sub

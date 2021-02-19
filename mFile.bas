@@ -433,7 +433,7 @@ Private Function AppIsInstalled(ByVal sApp As String) As Boolean
     
     Dim i As Long: i = 1
     
-    Do Until Left(Environ$(i), 5) = "Path="
+    Do Until VBA.Left$(Environ$(i), 5) = "Path="
         i = i + 1
     Loop
     AppIsInstalled = InStr(Environ$(i), sApp) <> 0
@@ -637,7 +637,7 @@ Public Function Exists(ByVal fe_file As Variant, _
                         queue.Add sfldr ' enqueue (collect) all subfolders
                     Next sfldr
                     For Each fl In fldr.Files
-                        If InStr(fl.name, sFile) <> 0 And Left(fl.name, 1) <> "~" Then
+                        If InStr(fl.name, sFile) <> 0 And VBA.Left$(fl.name, 1) <> "~" Then
                             '~~ Return the existing file which meets the search criteria
                             '~~ as File object in a collection
                             fe_cll.Add fl

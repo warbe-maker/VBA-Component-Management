@@ -59,13 +59,16 @@ Private Sub Workbook_Open()
     mErH.BoP ErrSrc(PROC)
     
     If mMe.IsDevInstnc Then
-        mMe.CfgAsserted ' assert a valid CompMan basic configuration
+        '~~ Assert a valid basic CompMan configuration (confirmation dialog only when invalid)
+        '~~ When terminated with an invalid configuration services will be denied
+        mMe.BasicConfig
         If mMe.AddInInstncWrkbkIsOpen Then
             '~~ Essential! When the Development instance Workbook is opened, used Common Components
             '~~ the origin code has changed can only be updated when the Addin instance Workbook is
             '~~ open as well. However, since the VBProject has no reference to the Addin the Addin
             '~~ will not be opened when the Development instance is the only Workbook open.
             '~~ I.e. only when a Workbook referring to the Addin is opened the Addin will be opened as well.
+            Application.StatusBar = vbNullString
             mMe.UpdateRawClones
         End If
     End If

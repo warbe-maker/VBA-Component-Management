@@ -37,7 +37,7 @@ Public Sub CloneRaws(Optional ByVal ic_wb As Workbook)
     sMsg.Section(2).sText = "The selection contains all known 'raw' components hosted in another Workbook " & _
                             "which are not already installed (i.e. imported). Any components missed may not be " & _
                             "indicated 'hosted' in any Workbook maintained within the 'manged root'"
-    sMsg.Section(3).sText = mMe.RootServicedByCompMan
+    sMsg.Section(3).sText = mMe.ServicedRoot
     sMsg.Section(3).bMonspaced = True
     
     Do

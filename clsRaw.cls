@@ -14,17 +14,17 @@ Option Explicit
 '
 ' W. Rauschenberger Berlin, Jan 2021 (last revised)
 ' -----------------------------------------------------------
-Private dctChanges          As Dictionary
-Private flExpFile           As File
+Private dctChanges              As Dictionary
+Private flExpFile               As File
 Private sCloneExpFileFullName   As String
-Private sCompName           As String
-Private sExpFileExtension   As String
-Private sExpFileFullName    As String
-Private sExpFilePath        As String
-Private sHostFullName       As String
-Private vbcRaw              As VBComponent
-Private wbRawHost           As Workbook
-Private sService            As String
+Private sCompName               As String
+Private sExpFileExtension       As String
+Private sExpFileFullName        As String
+Private sExpFilePath            As String
+Private sHostFullName           As String
+Private vbcRaw                  As VBComponent
+Private wbRawHost               As Workbook
+Private sService                As String
 
 Private Sub Class_Terminate()
     Set dctChanges = Nothing
@@ -44,9 +44,12 @@ End Property
 Friend Property Get Changed( _
              Optional ByVal check_again As Boolean = False) As Boolean
 ' --------------------------------------------------------------------
-' returns TRUE when the raw's regular Export File differs from the
-' regular Export File of the clone which indicates that the code of
-' the raw had changed.
+' Returns TRUE when the raw's regular Export-File differs from the
+' clone's regular Export-File which indicates that the code of the raw
+' had changed.
+' Expception: When the clone's coresponding Export-File does not exist
+'             a change is regarded in the sense that the raw's Export-
+'             File indicates a new component
 ' --------------------------------------------------------------------
     Const PROC = "Changed-Get"
     
@@ -54,20 +57,24 @@ Friend Property Get Changed( _
     Dim fso As New FileSystemObject
     
     If dctChanges Is Nothing Or check_again Then
-        Set dctChanges = _
-        mFile.Differs(fd_file1:=fso.GetFile(sCloneExpFileFullName) _
-                    , fd_file2:=fso.GetFile(Me.ExpFileFullName) _
-                    , fd_ignore_empty_records:=True _
-                    , fd_compare:=vbTextCompare _
-                    , fd_stop_after:=1 _
-                     )
-
+        If Not fso.FileExists(sCloneExpFileFullName) Then
+            Set dctChanges = New Dictionary
+            Changed = True
+        Else
+            Set dctChanges = _
+            mFile.Differs(fd_file1:=fso.GetFile(sCloneExpFileFullName) _
+                        , fd_file2:=fso.GetFile(Me.ExpFileFullName) _
+                        , fd_ignore_empty_records:=True _
+                        , fd_compare:=vbTextCompare _
+                        , fd_stop_after:=1 _
+                         )
+            Changed = dctChanges.Count <> 0
+        End If
     End If
-    Changed = dctChanges.Count <> 0
     If Changed Then
-        cLog.Action = "Raw changed! (raw export differs from clone export)"
+        cLog.Entry = "Raw code has changed! (raw export differs from clone export or clone export does not exist)"
     Else
-        cLog.Action = "Raw not changed! (raw export and clone export are identical)"
+        cLog.Entry = "Raw code unchanged! (raw export and clone export are identical)"
     End If
         
 xt: Set fso = Nothing
@@ -110,11 +117,13 @@ Friend Property Get DsplyAllChanges() As Long
                     , fc_left_title:="'Clone' component's export file '" & sCloneExpFileFullName & "'" _
                     , fc_right_title:="'Raw' component's export file '" & sExpFilePath & "'"
     Else
-        sMsg.Section(1).sText = "The Export File of the component '" & Me.CompName & "' (" & sCloneExpFileFullName & ") " & _
-                       "and the raw's Export File (" & sExpFilePath & ") are identical. The clone component " & _
-                       "is thus up-to-date."
-        sMsg.Section(2).sLabel = "Please note!"
-        sMsg.Section(2).sText = "Differences in empty code lines or upper/lower case text do not constitute a relevant difference."
+        sMsg.Section(1).sText = "The Export Files of the component '" & Me.CompName & "'"
+        sMsg.Section(2).sText = "Clone: " & sCloneExpFileFullName & vbLf & _
+                                "Raw:   " & sExpFilePath
+        sMsg.Section(2).bMonspaced = True
+        sMsg.Section(3).sText = "are identical. The clone component is thus up-to-date."
+        sMsg.Section(4).sLabel = "Please note!"
+        sMsg.Section(4).sText = "Differences in empty code lines or upper/lower case text do not constitute a relevant difference."
         mMsg.Dsply msg_title:="Display of all raw changes/differences failed!" _
                  , msg:=sMsg
     End If
@@ -183,4 +192,51 @@ End Property
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsRaw" & "." & sProc
 End Function
+
+Public Property Get CodeLines() As Dictionary
+' ----------------------------------------------------------
+' Returns the content of an Export File (Me.ExpFileFullName)
+' as array, considering any kind of line break characters.
+' ----------------------------------------------------------
+    Const PROC = "CodeLines"
+    Const ATTRIB_VB = "Attribute VB_"
+
+    On Error GoTo eh
+    Dim i   As Long
+    Dim j   As Long
+    Dim dct As Dictionary
+    
+    With New FileSystemObject
+        Set dct = mFile.Dict(.GetFile(Me.ExpFileFullName))
+    End With
+    
+    '~~ Remove the extra module information lines
+    For i = dct.Count - 1 To 0 Step -1
+        If Left(dct.Items()(i - 1), Len(ATTRIB_VB)) = ATTRIB_VB Then Exit For
+    Next i
+    
+    For j = 0 To i
+        dct.Remove dct.Keys()(0)
+    Next j
+    
+    '~~ Remove any leading or trailing empty items
+    If dct.Count = 0 Then GoTo xt
+    While dct.Items()(0) = vbNullString
+        dct.Remove dct.Keys()(0)
+    Wend
+    
+    ' Remove any trailing empty items
+    While dct.Items()(dct.Count - 1) = vbNullString
+        dct.Remove dct.Keys()(dct.Count - 1)
+    Wend
+
+xt: Set CodeLines = dct
+    Exit Property
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Property
 
