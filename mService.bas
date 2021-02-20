@@ -4,6 +4,156 @@ Option Explicit
 Public Const SERVICES_LOG_FILE = "CompMan.Services.log"
 Public cLog             As New clsLog
 
+Public Sub RenewComp( _
+      Optional ByVal rc_exp_file_full_name As String = vbNullString, _
+      Optional ByVal rc_comp_name As String = vbNullString, _
+      Optional ByVal rc_wb As Workbook = Nothing)
+' --------------------------------------------------------------------
+' This service renews a component, either specified via its name
+' (rc_comp_name) or via the Export-File (rc_exp_file_full_name), in
+' the Workbook (rc_wb) which defaults to the ActiveWorkbook.
+' - When the provided Export-File (rc_exp_file_full_name) does exist
+'   but a component name has been provided a file selection dialog is
+'   displayed with the possible files already filtered.
+' - When no Export-File is selected the service terminates without
+'   notice.
+' - When the Workbook (rc_wb) is omitted it defaults to the
+'   ActiveWorkbook.
+' - When the ActiveWorkbook or the provided Workbook is ThisWorkbook
+'   the service terminates without notice
+'
+' Usage ways
+' - When the Addin instance of this Workbook is setup/open from the
+'   immediate window:
+'   Application.Run "CompMan.xlam!mService.RenewComp"
+'
+'   This way allows to renew any component in any Workbook including
+'   this development instance
+' - When only the development instance is open, from the immediate
+'   window:
+'   Application.Run "CompMan.xlsb!mService.RenewComp"
+'
+' W. Rauschenberger Berlin, Jan 2021
+' --------------------------------------------------------------------
+    Const PROC = "RenewComp"
+
+    On Error GoTo eh
+    Dim fso         As New FileSystemObject
+    Dim cComp       As New clsComp
+    Dim flFile      As File
+    Dim wbTemp      As Workbook
+    Dim wbActive    As Workbook
+    Dim sBaseName   As String
+    
+    If rc_wb Is Nothing Then Set rc_wb = ActiveWorkbook
+    cComp.Wrkbk = rc_wb
+    If rc_exp_file_full_name <> vbNullString Then
+        If Not fso.FileExists(rc_exp_file_full_name) Then
+            rc_exp_file_full_name = vbNullString ' enforces selection when the component name is also not provided
+        End If
+    End If
+    
+    If rc_comp_name <> vbNullString Then
+        cComp.CompName = rc_comp_name
+        If Not CompExists(ce_wb:=rc_wb, ce_comp_name:=rc_comp_name) Then
+            If rc_exp_file_full_name <> vbNullString Then
+                rc_comp_name = fso.GetBaseName(rc_exp_file_full_name)
+            End If
+        End If
+    End If
+    
+    If ThisWorkbook Is rc_wb Then
+        Debug.Print "The service '" & ErrSrc(PROC) & "' cannot run when ThisWorkbook is identical with the ActiveWorkbook!"
+        GoTo xt
+    End If
+    
+    If rc_exp_file_full_name = vbNullString _
+    And rc_comp_name = vbNullString Then
+        '~~ ---------------------------------------------
+        '~~ Select the Export File for the re-new service
+        '~~ of which the base name will be regared as the component to be renewed.
+        '~~ --------------------------------------------------------
+        If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
+                          , sel_filters:="*.bas,*.cls,*.frm" _
+                          , sel_filter_name:="File" _
+                          , sel_title:="Select the Export File for the re-new service" _
+                          , sel_result:=flFile) _
+        Then rc_exp_file_full_name = flFile.Path
+    End If
+    
+    If rc_comp_name <> vbNullString _
+    And rc_exp_file_full_name = vbNullString Then
+        cComp.CompName = rc_comp_name
+        '~~ ------------------------------------------------
+        '~~ Select the component's corresponding Export File
+        '~~ ------------------------------------------------
+        sBaseName = fso.GetBaseName(rc_exp_file_full_name)
+        '~~ Select the Export File for the re-new service
+        If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
+                          , sel_filters:="*" & cComp.ExpFileExtension _
+                          , sel_filter_name:="File" _
+                          , sel_title:="Select the Export File for the provided component '" & rc_comp_name & "'!" _
+                          , sel_result:=flFile) _
+        Then rc_exp_file_full_name = flFile.Path
+    End If
+    
+    If rc_exp_file_full_name = vbNullString Then
+        MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
+             , Prompt:="Service '" & ErrSrc(PROC) & "' will be aborted because no " & _
+                       "existing Export File has been provided!" _
+             , Buttons:=vbOKOnly
+        GoTo xt ' no Export File selected
+    End If
+    
+    With cComp
+        If rc_comp_name <> vbNullString Then
+            If fso.GetBaseName(rc_exp_file_full_name) <> rc_comp_name Then
+                MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
+                     , Prompt:="Service '" & ErrSrc(PROC) & "' will be aborted because the " & _
+                               "Export File '" & rc_exp_file_full_name & "' and the component name " & _
+                               "'" & rc_comp_name & "' do not indicate the same component!" _
+                     , Buttons:=vbOKOnly
+                GoTo xt
+            End If
+            .CompName = rc_comp_name
+        Else
+            .CompName = fso.GetBaseName(rc_exp_file_full_name)
+        End If
+        
+        If .Wrkbk Is ActiveWorkbook Then
+            Set wbActive = ActiveWorkbook
+            Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
+            cLog.Entry = "Active Workbook de-activated by creating a temporary Workbook"
+        End If
+            
+        mRenew.ByImport rn_wb:=.Wrkbk _
+             , rn_comp_name:=.CompName _
+             , rn_exp_file_full_name:=rc_exp_file_full_name
+        cLog.ServicedItem = .CompName
+        cLog.Entry = "Component renewed/updated by (re-)import of '" & rc_exp_file_full_name & "'"
+    End With
+    
+xt: If Not wbTemp Is Nothing Then
+        wbTemp.Close SaveChanges:=False
+        cLog.Entry = "Temporary created Workbook closed without save"
+        Set wbTemp = Nothing
+        If Not ActiveWorkbook Is wbActive Then
+            wbActive.Activate
+            cLog.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
+            Set wbActive = Nothing
+        End If
+    End If
+    Set cComp = Nothing
+    Set fso = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
 Public Sub Continue()
 ' -------------------------------------------
 ' Continues the paused CompMan Addin Services
@@ -339,13 +489,11 @@ Public Sub SynchVbProject( _
     Dim wbRaw               As Workbook
     
     mErH.BoP ErrSrc(PROC)
-    If sp_clone_project Is Nothing Then Set sp_clone_project = ServicedWrkbk(PROC)
-    If sp_clone_project Is Nothing Then GoTo xt
-    If sp_raw_project = vbNullString Then
-        Set wbRaw = ServicedWrkbk(PROC)
-        If Not wbRaw Is Nothing Then sp_raw_project = fso.GetBaseName(wbRaw.FullName)
-    End If
-    If sp_raw_project = vbNullString Then GoTo xt
+    '~~ Assure complete and correct provision of arguments or get correct ones selected via a dialog
+    If Not CloneAndRawProject(cr_clone_wb:=sp_clone_project _
+                            , cr_raw_name:=sp_raw_project _
+                            , cr_raw_wb:=wbRaw _
+                             ) Then GoTo xt
     
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
@@ -353,16 +501,9 @@ Public Sub SynchVbProject( _
 
     mCompMan.Service = PROC & " for '" & sp_clone_project.name & "': "
     sStatus = mCompMan.Service
-    
-    If Not mRawHosts.Exists(sp_raw_project) Then
-        cLog.Entry = "The Clone-VB-Project claims an invalid Raw_VB-Project! ('" & sp_raw_project & "' is not a registered Raw-VB-Project)"
-        VBA.MsgBox Title:="The VB-Clone-Project refers to an invalid VB-Raw-Project!" _
-                         , Prompt:="A VB-Raw-Project '" & sp_raw_project & "' is unknown/not registered."
-        GoTo xt
-    End If
-    
-    mSync.VbProject clone_project:=sp_clone_project _
-                  , raw_project:=mRawHosts.FullName(sp_raw_project)
+        
+    mSync.VbProject vb_clone_wb:=sp_clone_project _
+                  , vb_raw_wb:=wbRaw
 
 xt: mErH.EoP ErrSrc(PROC)
     Set cLog = Nothing

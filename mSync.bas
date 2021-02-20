@@ -1,6 +1,150 @@
 Attribute VB_Name = "mSync"
 Option Explicit
 
+Public Function CloneAndRawProject( _
+                    Optional ByRef cr_clone_wb As Workbook = Nothing, _
+                    Optional ByVal cr_raw_name As String = vbNullString, _
+                    Optional ByRef cr_raw_wb As Workbook = Nothing, _
+                    Optional ByVal cr_confirm As Boolean = False) As Boolean
+' --------------------------------------------------------------------------
+' Returns True when the Clone-VB-Project and the Raw-VB-Project are valid.
+' When bc_confirm is True a confirmation dialog is displayed. The dialog is
+' also displayed when function is called with invalid arguments.
+' --------------------------------------------------------------------------
+    Const PROC                  As String = "CloneAndRawProject"
+    Const CLONE_PROJECT         As String = "VB-Clone-Project"
+    Const RAW_PROJECT           As String = "VB-Raw-Project"
+    
+    On Error GoTo eh
+    Dim sBttCloneRawConfirmed   As String: sBttCloneRawConfirmed = "VB-Clone- and VB-Raw-Project" & vbLf & "Confirmed"
+    Dim sBttnCloneProject       As String: sBttnCloneProject = "Select/change the" & vbLf & vbLf & CLONE_PROJECT & vbLf & " "
+    Dim sBttnRawProject         As String: sBttnRawProject = "Configure/change the" & vbLf & vbLf & RAW_PROJECT & vbLf & " "
+    Dim sBttnTerminate          As String
+    sBttnTerminate = "Terminate providing a " & vbLf & _
+                     "VB-Clone- and a VB-Raw-Project" & vbLf & _
+                     "for being synchronized" & vbLf & _
+                     "(sync service will be denied)"
+    
+    Dim fso             As New FileSystemObject
+    Dim sMsg            As tMsg
+    Dim sReply          As String
+    Dim bWbClone        As Boolean
+    Dim bWbRaw          As Boolean
+    Dim sWbClone        As String
+    Dim sWbRaw          As String ' either a full name or a registered raw project's basename
+    Dim wbClone         As Workbook
+    Dim wbRaw           As Workbook
+    Dim cllButtons      As Collection
+    Dim fl              As File
+    
+    If Not cr_clone_wb Is Nothing Then sWbClone = cr_clone_wb.FullName
+    sWbRaw = cr_raw_name
+    
+    While (Not bWbClone Or Not bWbRaw) Or (cr_confirm And sReply <> sBttCloneRawConfirmed)
+        If sWbClone = vbNullString Then
+            sWbClone = "n o t  p r o v i d e d !"
+        Else
+            bWbClone = True
+        End If
+        
+        If sWbRaw = vbNullString Then
+            sWbRaw = "n o t  p r o v i d e d !"
+        ElseIf Not fso.FileExists(sWbRaw) _
+           And (Not mRawHosts.Exists(sWbRaw) _
+                Or (mRawHosts.Exists(sWbRaw) And Not mRawHosts.IsRawVbProject(sWbRaw)) _
+               ) Then
+            sWbRaw = sWbRaw & ": i n v a l i d ! (neither a registered VB-Raw-Project nor a VB-Raw-Project's full name)"
+        Else
+            bWbRaw = True
+        End If
+    
+        If bWbRaw And bWbClone And Not cr_confirm Then GoTo xt
+        
+        With sMsg
+            .Section(1).sLabel = CLONE_PROJECT & ":"
+            .Section(1).sText = sWbClone
+            .Section(1).bMonspaced = True
+            .Section(2).sLabel = RAW_PROJECT & ":"
+            .Section(2).sText = sWbRaw
+            .Section(2).bMonspaced = True
+            
+            If cr_confirm _
+            Then .Section(3).sText = "Please confirm the provided VB-Clone- and VB-Raw-Project." _
+            Else .Section(3).sText = "Please provide/complete the VB-Clone- (sync target) and the VB-Raw-Project (sync source)."
+            
+            .Section(3).sText = .Section(3).sText & vbLf & vbLf & _
+                                "Attention!" & vbLf & _
+                                "1. The '" & CLONE_PROJECT & "' must not be identical with the '" & RAW_PROJECT & "' and the two Workbooks must not have the same name." & vbLf & _
+                                "2. Both VB-Projects/Workbook must exclusively reside in their parent Workbook" & vbLf & _
+                                "3. Both Workbook folders must be subfolders of the configured '" & FOLDER_SERVICED & "'."
+
+        End With
+        
+        '~~ Buttons preparation
+        If Not bWbClone Or Not bWbRaw _
+        Then Set cllButtons = mMsg.Buttons(sBttnRawProject, sBttnCloneProject, vbLf, sBttnTerminate) _
+        Else Set cllButtons = mMsg.Buttons(sBttCloneRawConfirmed, vbLf, sBttnRawProject, sBttnCloneProject)
+        
+        sReply = mMsg.Dsply(msg_title:="Basic configuration of the Component Management (CompMan Addin)" _
+                          , msg:=sMsg _
+                          , msg_buttons:=cllButtons _
+                           )
+        Select Case sReply
+            Case sBttnCloneProject
+                Do
+                    If mFile.SelectFile(sel_filters:="*.xl*" _
+                                      , sel_filter_name:="Workbook/VB-Project" _
+                                      , sel_title:="Select the '" & CLONE_PROJECT & " to be synchronized with the '" & RAW_PROJECT & "'" _
+                                      , sel_result:=fl _
+                                       ) Then
+                        sWbClone = fl.Path
+                        Exit Do
+                    End If
+                Loop
+                cr_confirm = True
+                '~~ The change of the VB-Clone-Project may have made the VB-Raw-Project valid when formerly invalid
+                sWbRaw = Split(sWbRaw, ": ")(0)
+            Case sBttnRawProject
+                Do
+                    If mFile.SelectFile(sel_filters:="*.xl*" _
+                                      , sel_filter_name:="Workbook/VB-Project" _
+                                      , sel_title:="Select the '" & RAW_PROJECT & " as the synchronization source for the '" & CLONE_PROJECT & "'" _
+                                      , sel_result:=fl _
+                                       ) Then
+                        sWbRaw = fl.Path
+                        Exit Do
+                    End If
+                Loop
+                cr_confirm = True
+                '~~ The change of the VB-Raw-Project may have become valid when formerly invalid
+                sWbClone = Split(sWbClone, ": ")(0)
+            
+            Case sBttCloneRawConfirmed: cr_confirm = False
+            Case sBttnTerminate: GoTo xt
+                
+        End Select
+        
+    Wend ' Loop until the confirmed or configured basic configuration is correct
+    
+xt: If bWbClone Then
+        If sWbClone <> cr_clone_wb.FullName Then Set cr_clone_wb = mCompMan.WbkGetOpen(sWbClone)
+    End If
+    If bWbRaw Then
+        Set cr_raw_wb = mCompMan.WbkGetOpen(sWbRaw)
+        cr_raw_name = fso.GetBaseName(cr_raw_wb.FullName)
+    End If
+    CloneAndRawProject = bWbClone And bWbRaw
+    Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Function
+
+
+
 Public Sub ByCodeLines(ByRef bcl_clone As clsComp, ByRef bcl_raw As clsRaw)
 ' --------------------------------------------------------------------------
 ' Synchronizes a Clone-VB-Project component's Worksheet code with its cor-
@@ -172,8 +316,8 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub VbProject( _
-               ByVal clone_project As Workbook, _
-      Optional ByVal raw_project As String = vbNullString)
+               ByVal vb_clone_wb As Workbook, _
+               ByVal vb_raw_wb As Workbook)
 ' --------------------------------------------------------
 '
 ' --------------------------------------------------------
@@ -185,33 +329,34 @@ Public Sub VbProject( _
     Dim cRaw    As clsRaw
     Dim vbc     As VBComponent
     Dim fl      As File
-    
-    '~~ Update all clone components where the raw had changed
-    '~~ and remove all components where there is no Export File
-    For Each vbc In clone_project.VbProject.VBComponents
+                                 
+    For Each vbc In vb_raw_wb.VbProject.VBComponents
+        cLog.ServicedItem = vbc.name
+        If vbc.Type = vbext_ct_ActiveXDesigner Then
+            cLog.Entry = "Type AxtiveXDesigner component is not supported"
+            GoTo next_vbc
+        End If
+        
+        If Not mCompMan.CompExists(vb_clone_wb, vbc.name) Then
+            '~~ Add to the VB-Clone-Project the missing component
+            CompAdd vb_clone_wb, vb_raw_wb, vbc.name
+            GoTo next_vbc
+        End If
+        
         Set cClone = New clsComp
         Set cRaw = New clsRaw
         With cClone
-            .Wrkbk = clone_project
+            .Wrkbk = vb_clone_wb
             .CompName = vbc.name
             cLog.ServicedItem = .CompName
             .VBComp = vbc
-            cRaw.HostFullName = raw_project
+            cRaw.HostFullName = vb_raw_wb.FullName
             cRaw.CompName = .CompName
             cRaw.ExpFileExtension = .ExpFileExtension
             cRaw.CloneExpFileFullName = .ExpFileFullName
                                         
-            If .VBComp.Type = vbext_ct_ActiveXDesigner Then
-                cLog.Entry = "This is a type '" & .TypeString & "' component which is not supported"
-                GoTo next_vbc
-            End If
-
-            If Not fso.FileExists(cRaw.ExpFileFullName) Then
-                RemoveObsolete cClone
-                GoTo next_vbc
-            End If
-            
             If cRaw.Changed Then
+                '~~ Update the component of which the raw had changed
                 UpdateChanged cClone, cRaw
             Else
                 cLog.Entry = "Already up-to-date!"
@@ -222,28 +367,7 @@ next_vbc:
     Set cClone = Nothing
     Set cRaw = Nothing
     Next vbc
-    
-    '~~ Adding componets yet not existing
-    Set cRaw = New clsRaw
-    cRaw.HostFullName = raw_project
-    For Each fl In fso.GetFolder(cRaw.ExpFilePath).Files
-        Debug.Print fl.Path
-        Select Case fso.GetExtensionName(fl.Path)
-            Case "bas", "cls", "frm"
-                If Not mCompMan.CompExists(ce_wb:=clone_project, ce_comp_name:=fso.GetBaseName(fl.Path)) Then
-                    '~~ Inporting a data module will fail!
-                    cLog.ServicedItem = fso.GetBaseName(fl.Path)
-                    On Error Resume Next
-                    clone_project.VbProject.VBComponents.Import fl.Path
-                    If Err.Number = 0 Then
-                        cLog.Entry = "Component added by import of " & cRaw.ExpFileFullName
-                    Else
-                        cLog.Entry = "Component not added (adding data mudules not supported"
-                    End If
-                End If
-        End Select
-    Next fl
-    
+        
 xt: Set fso = Nothing
     Exit Sub
 
@@ -309,6 +433,31 @@ Private Sub CompAdd( _
 ' --------------------------------------------------
 '
 ' --------------------------------------------------
+    Dim cSource As New clsComp
+    Dim vbc     As VBComponent
+    
+    With cSource
+        .Wrkbk = cr_raw_wb
+        .CompName = cr_comp_name
+        Set vbc = cr_raw_wb.VbProject.VBComponents(.CompName)
+        Select Case vbc.Type
+            Case vbext_ct_StdModule, vbext_ct_MSForm, vbext_ct_ClassModule
+                cr_clone_wb.VbProject.VBComponents.Import .ExpFileFullName
+                cLog.Entry = "Added by import of '" & "" & "'"
+            
+            Case vbext_ct_Document
+                If Not IsWrkbkComp(vbc) Then
+                    '~~ This new component is a Worksheet which is specifically delicate
+                    '~~ 1. It cannot be simply copied from the raw to the clone because any referred names
+                    '~~    would refer back to the raw source
+                    '~~ 2. The code cannot be imported but has to be transferred from the Export-File line-by-line
+                    
+                End If
+        End Select
+    End With
+    
+    cLog.Entry = "Added as new Worksheet"
+    cLog.Entry = "Code transferred from Export-File '" & "" & "'"
 End Sub
 
 Private Sub CompSync( _
@@ -320,4 +469,6 @@ Private Sub CompSync( _
 ' --------------------------------------------------
 
 End Sub
+
+
 

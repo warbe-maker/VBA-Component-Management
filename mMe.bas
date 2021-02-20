@@ -44,14 +44,14 @@ Option Private Module
 ' Requires:
 ' W. Rauschenberger, Berlin Nov 2020
 ' ---------------------------------------------------------------------------
+Public Const FOLDER_SERVICED                As String = "Root folder serviced by CompMan"
 Private Const SECTION_BASE_CONFIG           As String = "BaseConfiguration"
 Private Const VNAME_SERVICED_ROOT           As String = "VBDevProjectsRoot"
 Private Const VNAME_COMPMAN_ADDIN_FOLDER    As String = "CompManAddInPath"
 Private Const VNAME_COMPMAN_ADDIN_PAUSED    As String = "CompManAddInPaused"
-Private Const ADDIN_WORKBOOK                As String = "CompMan.xlam"      ' Extension adjusted when the above is saved as addin
-Private Const DEVLP_WORKBOOK                As String = "CompManDev.xlsb"   ' Extension depends on Excel versions
+Private Const ADDIN_WORKBOOK_EXTENSION      As String = "xlam"      ' Extension may depend on Excel version
+Private Const DEVLP_WORKBOOK_EXTENSION      As String = "xlsb"      ' Extension may depend on Excel version
 Private Const FOLDER_ADDIN                  As String = "Folder for the CompMan Add-in"
-Private Const FOLDER_SERVICED               As String = "Root folder serviced by CompMan"
 
 Private wbDevlp         As Workbook
 Private wbSource        As Workbook                     ' This development instance as the renew source
@@ -62,11 +62,19 @@ Private dctAddInRefs    As Dictionary
 Private lRenewStep      As Long
 Private sRenewAction    As String
 
-Public Property Get AddInInstanceFullName() As String:  AddInInstanceFullName = AddInPath & DBSLASH & AddInInstanceName:    End Property
+Public Property Get AddInInstanceFullName() As String
+    AddInInstanceFullName = AddInPath & DBSLASH & AddInInstanceName
+End Property
 
-Public Property Get AddInInstanceName() As String:      AddInInstanceName = ADDIN_WORKBOOK:                                 End Property
-
-Private Property Get AddInPath() As String:             AddInPath = CompManAddinPath:                                  End Property
+Public Property Get AddInInstanceName() As String
+    With New FileSystemObject
+        AddInInstanceName = .GetBaseName(ThisWorkbook.FullName) & "." & ADDIN_WORKBOOK_EXTENSION
+    End With
+End Property
+    
+Private Property Get AddInPath() As String
+    AddInPath = mMe.CompManAddinPath
+End Property
 
 Public Property Get AddInPaused() As Boolean
     Dim s As String
@@ -117,18 +125,26 @@ Dim fso As New FileSystemObject
                           & DevInstncName
 End Property
 
-Public Property Get DevInstncName() As String:          DevInstncName = DEVLP_WORKBOOK:                                 End Property
+Public Property Get DevInstncName() As String
+    With New FileSystemObject
+        DevInstncName = .GetBaseName(ThisWorkbook.FullName) & "." & DEVLP_WORKBOOK_EXTENSION
+    End With
+End Property
 
 Private Property Get DEVLP_FORMAT() As XlFileFormat  ' = .xlsb ! may require adjustment when the above is changed
     DEVLP_FORMAT = xlExcel12
 End Property
 
 Public Property Get IsAddinInstnc() As Boolean
-    IsAddinInstnc = InStr(ThisWorkbook.Path, mMe.CompManAddinPath) = 1
+    With New FileSystemObject
+        IsAddinInstnc = .GetExtensionName(ThisWorkbook.FullName) = "xlam"
+    End With
 End Property
 
 Public Property Get IsDevInstnc() As Boolean
-    IsDevInstnc = InStr(ThisWorkbook.Path, mMe.ServicedRoot) = 1
+    With New FileSystemObject
+        IsDevInstnc = .GetExtensionName(ThisWorkbook.FullName) = "xlsb"
+    End With
 End Property
 
 Private Property Get RenewFinalResult() As String
