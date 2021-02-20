@@ -3,6 +3,8 @@ Methods for the management of Common VBA Components, i.e. update/sync, export ch
 Available through a plug-in Workbook which has a development instance (this repo) which provides the method to replace/renew the active plug-in Workbook.<br>
 See also [Programatically updating Excel VBA code][2]
 
+@[:markdown](Disambiguation.md)
+
 # Disambiguation
 The terms below are not only those used in this post but also used with the implementation of the _Component Management_.
 
