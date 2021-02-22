@@ -205,7 +205,7 @@ Public Function Denied(ByVal den_serviced_wb As Workbook, _
     Dim sStatus As String
     
     cLog.ServicedWrkbk(sw_new_log:=den_new_log) = den_serviced_wb
-    cLog.Service = den_service
+    cLog.service = den_service
 
     If Not mMe.BasicConfig Then
         sStatus = "Service denied! The Basic CompMan Configuration is invalid!"
@@ -230,7 +230,7 @@ Public Function Denied(ByVal den_serviced_wb As Workbook, _
         Denied = True
     End If
     If Denied _
-    Then Application.StatusBar = cLog.Service & sStatus
+    Then Application.StatusBar = cLog.service & sStatus
 
 End Function
 
@@ -270,14 +270,14 @@ Public Sub ExportChangedComponents( _
     '~~ indicated by an '(' in the active window or workbook fullname.
     If mService.Denied(den_serviced_wb:=ec_wb, den_service:=ErrSrc(PROC)) Then GoTo xt
     
-    mCompMan.Service = PROC & " for '" & ec_wb.name & "': "
-    sStatus = mCompMan.Service
+    mCompMan.service = PROC & " for '" & ec_wb.name & "': "
+    sStatus = mCompMan.service
 
     mCompMan.DeleteObsoleteExpFiles do_wb:=ec_wb
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=ec_hosted _
                                             , mh_wb:=ec_wb) _
     Then
-        Application.StatusBar = cLog.Service & " failed. See log-file in Workbookfolder"
+        Application.StatusBar = cLog.service & " failed. See log-file in Workbookfolder"
         GoTo xt
     End If
     
@@ -383,7 +383,7 @@ next_vbc:
         Set cRaw = Nothing
     Next vbc
     
-    sMsg = mCompMan.Service
+    sMsg = mCompMan.service
     Select Case lExported
         Case 0:     sMsg = sMsg & "None of the " & lComponents & " components' code has changed."
         Case Else:  sMsg = sMsg & lExported & " of " & lComponents & " changed components exported: " & sExported
@@ -440,8 +440,8 @@ Public Sub ExportAll(Optional ByVal ea_wb As Workbook = Nothing)
     '~~ Prevent any action when the required preconditins are not met
     If mService.Denied(den_serviced_wb:=ea_wb, den_service:=ErrSrc(PROC)) Then GoTo xt
     
-    mCompMan.Service = PROC & " for '" & ea_wb.name & "': "
-    sStatus = mCompMan.Service
+    mCompMan.service = PROC & " for '" & ea_wb.name & "': "
+    sStatus = mCompMan.service
 
     mCompMan.DeleteObsoleteExpFiles ea_wb
     
@@ -499,8 +499,8 @@ Public Sub SynchVbProject( _
     '~~ indicated by an '(' in the active window or workbook fullname.
     If mService.Denied(den_serviced_wb:=sp_clone_project, den_service:=ErrSrc(PROC)) Then GoTo xt
 
-    mCompMan.Service = PROC & " for '" & sp_clone_project.name & "': "
-    sStatus = mCompMan.Service
+    mCompMan.service = PROC & " for '" & sp_clone_project.name & "': "
+    sStatus = mCompMan.service
         
     mSync.VbProject vb_clone_wb:=sp_clone_project _
                   , vb_raw_wb:=wbRaw
@@ -534,12 +534,12 @@ Public Sub UpdateRawClones( _
     mErH.BoP ErrSrc(PROC)
     If mService.Denied(den_serviced_wb:=uc_wb, den_service:=ErrSrc(PROC), den_new_log:=True) Then GoTo xt
 
-    mCompMan.Service = PROC & " for '" & uc_wb.name & "': "
+    mCompMan.service = PROC & " for '" & uc_wb.name & "': "
     Application.StatusBar = sStatus & "Maintain hosted raws"
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=uc_hosted _
                                             , mh_wb:=uc_wb) _
     Then
-        Application.StatusBar = cLog.Service & " failed. See log-file in Workbookfolder"
+        Application.StatusBar = cLog.service & " failed. See log-file in Workbookfolder"
         GoTo xt
     End If
         
@@ -616,3 +616,150 @@ Private Function ServicedWrkbk(ByVal gs_service As String) As Workbook
     Else Set ServicedWrkbk = Nothing
 
 End Function
+
+Private Function CloneAndRawProject( _
+                     Optional ByRef cr_clone_wb As Workbook = Nothing, _
+                     Optional ByVal cr_raw_name As String = vbNullString, _
+                     Optional ByRef cr_raw_wb As Workbook = Nothing, _
+                     Optional ByVal cr_confirm As Boolean = False) As Boolean
+' ---------------------------------------------------------------------------
+' Returns True when the Clone-VB-Project and the Raw-VB-Project are valid.
+' When bc_confirm is True a confirmation dialog is displayed. The dialog is
+' also displayed when function is called with invalid arguments.
+' ---------------------------------------------------------------------------
+    Const PROC                  As String = "CloneAndRawProject"
+    Const CLONE_PROJECT         As String = "VB-Clone-Project"
+    Const RAW_PROJECT           As String = "VB-Raw-Project"
+    
+    On Error GoTo eh
+    Dim sBttCloneRawConfirmed   As String: sBttCloneRawConfirmed = "VB-Clone- and VB-Raw-Project" & vbLf & "Confirmed"
+    Dim sBttnCloneProject       As String: sBttnCloneProject = "Select/change the" & vbLf & vbLf & CLONE_PROJECT & vbLf & " "
+    Dim sBttnRawProject         As String: sBttnRawProject = "Configure/change the" & vbLf & vbLf & RAW_PROJECT & vbLf & " "
+    Dim sBttnTerminate          As String
+    sBttnTerminate = "Terminate providing a " & vbLf & _
+                     "VB-Clone- and a VB-Raw-Project" & vbLf & _
+                     "for being synchronized" & vbLf & _
+                     "(sync service will be denied)"
+    
+    Dim fso             As New FileSystemObject
+    Dim sMsg            As tMsg
+    Dim sReply          As String
+    Dim bWbClone        As Boolean
+    Dim bWbRaw          As Boolean
+    Dim sWbClone        As String
+    Dim sWbRaw          As String ' either a full name or a registered raw project's basename
+    Dim wbClone         As Workbook
+    Dim wbRaw           As Workbook
+    Dim cllButtons      As Collection
+    Dim fl              As File
+    
+    If Not cr_clone_wb Is Nothing Then sWbClone = cr_clone_wb.FullName
+    sWbRaw = cr_raw_name
+    
+    While (Not bWbClone Or Not bWbRaw) Or (cr_confirm And sReply <> sBttCloneRawConfirmed)
+        If sWbClone = vbNullString Then
+            sWbClone = "n o t  p r o v i d e d !"
+        ElseIf Not fso.FileExists(sWbClone) Then
+            sWbRaw = sWbRaw & ": i n v a l i d ! (does not exist)"
+        Else
+            sWbClone = Split(sWbClone, ": ")(0)
+            bWbClone = True
+        End If
+        
+        If sWbRaw = vbNullString Then
+            sWbRaw = "n o t  p r o v i d e d !"
+        ElseIf Not fso.FileExists(sWbRaw) Then
+            sWbRaw = sWbRaw & ": i n v a l i d ! (does not exist)"
+        Else
+            sWbRaw = Split(sWbRaw, ": ")(0)
+            bWbRaw = True
+        End If
+    
+        If bWbRaw And bWbClone And Not cr_confirm Then GoTo xt
+        
+        With sMsg
+            .Section(1).sLabel = CLONE_PROJECT & ":"
+            .Section(1).sText = sWbClone
+            .Section(1).bMonspaced = True
+            .Section(2).sLabel = RAW_PROJECT & ":"
+            .Section(2).sText = sWbRaw
+            .Section(2).bMonspaced = True
+            
+            If cr_confirm _
+            Then .Section(3).sText = "Please confirm the provided VB-Clone- and VB-Raw-Project." _
+            Else .Section(3).sText = "Please provide/complete the VB-Clone- (sync target) and the VB-Raw-Project (sync source)."
+            
+            .Section(3).sText = .Section(3).sText & vbLf & vbLf & _
+                                "Attention!" & vbLf & _
+                                "1. The '" & CLONE_PROJECT & "' must not be identical with the '" & RAW_PROJECT & "' and the two Workbooks must not have the same name." & vbLf & _
+                                "2. Both VB-Projects/Workbook must exclusively reside in their parent Workbook" & vbLf & _
+                                "3. Both Workbook folders must be subfolders of the configured '" & FOLDER_SERVICED & "'."
+
+        End With
+        
+        '~~ Buttons preparation
+        If Not bWbClone Or Not bWbRaw _
+        Then Set cllButtons = mMsg.Buttons(sBttnRawProject, sBttnCloneProject, vbLf, sBttnTerminate) _
+        Else Set cllButtons = mMsg.Buttons(sBttCloneRawConfirmed, vbLf, sBttnRawProject, sBttnCloneProject)
+        
+        sReply = mMsg.Dsply(msg_title:="Basic configuration of the Component Management (CompMan Addin)" _
+                          , msg:=sMsg _
+                          , msg_buttons:=cllButtons _
+                           )
+        Select Case sReply
+            Case sBttnCloneProject
+                Do
+                    If mFile.SelectFile(sel_filters:="*.xl*" _
+                                      , sel_filter_name:="Workbook/VB-Project" _
+                                      , sel_title:="Select the '" & CLONE_PROJECT & " to be synchronized with the '" & RAW_PROJECT & "'" _
+                                      , sel_result:=fl _
+                                       ) Then
+                        sWbClone = fl.Path
+                        Exit Do
+                    End If
+                Loop
+                cr_confirm = True
+                '~~ The change of the VB-Clone-Project may have made the VB-Raw-Project valid when formerly invalid
+                sWbRaw = Split(sWbRaw, ": ")(0)
+            Case sBttnRawProject
+                Do
+                    If mFile.SelectFile(sel_filters:="*.xl*" _
+                                      , sel_filter_name:="Workbook/VB-Project" _
+                                      , sel_title:="Select the '" & RAW_PROJECT & " as the synchronization source for the '" & CLONE_PROJECT & "'" _
+                                      , sel_result:=fl _
+                                       ) Then
+                        sWbRaw = fl.Path
+                        Exit Do
+                    End If
+                Loop
+                cr_confirm = True
+                '~~ The change of the VB-Raw-Project may have become valid when formerly invalid
+                sWbClone = Split(sWbClone, ": ")(0)
+            
+            Case sBttCloneRawConfirmed: cr_confirm = False
+            Case sBttnTerminate: GoTo xt
+                
+        End Select
+        
+    Wend ' Loop until the confirmed or configured basic configuration is correct
+    
+xt: If bWbClone Then
+       Set cr_clone_wb = mCompMan.WbkGetOpen(sWbClone)
+    End If
+    If bWbRaw Then
+        Application.EnableEvents = False
+        Set cr_raw_wb = mCompMan.WbkGetOpen(sWbRaw)
+        Application.EnableEvents = True
+        cr_raw_name = fso.GetBaseName(sWbRaw)
+    End If
+    CloneAndRawProject = bWbClone And bWbRaw
+    Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Function
+
+

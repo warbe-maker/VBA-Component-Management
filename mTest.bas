@@ -82,14 +82,11 @@ Public Sub Regression()
 End Sub
 
     
-Public Sub Test()
-    With New FileSystemObject
-        Debug.Print "File-Path          : " & .GetFile(ThisWorkbook.FullName).Path
-        Debug.Print "File-Name          : " & .GetFile(ThisWorkbook.FullName).name
-        Debug.Print "File-BaseName      : " & .GetBaseName(.GetFile(ThisWorkbook.FullName).Path)
-        Debug.Print "File-Extension     : " & .GetExtensionName(.GetFile(ThisWorkbook.FullName).Path)
-        Debug.Print "File-Parent-Folder : " & .GetParentFolderName(.GetFile(ThisWorkbook.FullName))
-    End With
+Public Sub Test_SyncVbProject()
+
+    mService.SynchVbProject sp_clone_project:=mCompMan.WbkGetOpen("E:\Ablage\Excel VBA\DevAndTest\Test-VbProject-Clone\Test_VB_Clone_Project.xlsb") _
+                          , sp_raw_project:="E:\Ablage\Excel VBA\DevAndTest\Common-VBA-File-Services\File.xlsb"
+
 End Sub
 
 Public Sub Test_01_KindOfComp()
@@ -160,7 +157,7 @@ Public Sub Test_Log()
     
     With cLog
         .ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
-        .Service = ErrSrc(PROC)
+        .service = ErrSrc(PROC)
         .ServicedItem = " <component-name> "
         .Entry = "Tested"
         mMsg.Box msg_title:="Test-Log:" _
@@ -231,7 +228,7 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     If mMe.IsDevInstnc Then GoTo xt
     
     cLog.ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
-    cLog.Service = ErrSrc(PROC)
+    cLog.service = ErrSrc(PROC)
     
     With cComp
         .CompName = rnc_comp_name
@@ -579,7 +576,7 @@ Public Sub Test_UpdateRawClones()
     On Error GoTo eh
     Dim lMaxCompLen As Long
     
-    mCompMan.Service = PROC & ": "
+    mCompMan.service = PROC & ": "
 
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
@@ -594,7 +591,7 @@ Public Sub Test_UpdateRawClones()
             mErH.BoP ErrSrc(PROC)
             Application.Run UpdateClonesService _
                           , lMaxCompLen _
-                          , mCompMan.Service
+                          , mCompMan.service
             mErH.EoP ErrSrc(PROC)
         End If
     End If

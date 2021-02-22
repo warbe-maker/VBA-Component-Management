@@ -1,150 +1,6 @@
 Attribute VB_Name = "mSync"
 Option Explicit
 
-Public Function CloneAndRawProject( _
-                    Optional ByRef cr_clone_wb As Workbook = Nothing, _
-                    Optional ByVal cr_raw_name As String = vbNullString, _
-                    Optional ByRef cr_raw_wb As Workbook = Nothing, _
-                    Optional ByVal cr_confirm As Boolean = False) As Boolean
-' --------------------------------------------------------------------------
-' Returns True when the Clone-VB-Project and the Raw-VB-Project are valid.
-' When bc_confirm is True a confirmation dialog is displayed. The dialog is
-' also displayed when function is called with invalid arguments.
-' --------------------------------------------------------------------------
-    Const PROC                  As String = "CloneAndRawProject"
-    Const CLONE_PROJECT         As String = "VB-Clone-Project"
-    Const RAW_PROJECT           As String = "VB-Raw-Project"
-    
-    On Error GoTo eh
-    Dim sBttCloneRawConfirmed   As String: sBttCloneRawConfirmed = "VB-Clone- and VB-Raw-Project" & vbLf & "Confirmed"
-    Dim sBttnCloneProject       As String: sBttnCloneProject = "Select/change the" & vbLf & vbLf & CLONE_PROJECT & vbLf & " "
-    Dim sBttnRawProject         As String: sBttnRawProject = "Configure/change the" & vbLf & vbLf & RAW_PROJECT & vbLf & " "
-    Dim sBttnTerminate          As String
-    sBttnTerminate = "Terminate providing a " & vbLf & _
-                     "VB-Clone- and a VB-Raw-Project" & vbLf & _
-                     "for being synchronized" & vbLf & _
-                     "(sync service will be denied)"
-    
-    Dim fso             As New FileSystemObject
-    Dim sMsg            As tMsg
-    Dim sReply          As String
-    Dim bWbClone        As Boolean
-    Dim bWbRaw          As Boolean
-    Dim sWbClone        As String
-    Dim sWbRaw          As String ' either a full name or a registered raw project's basename
-    Dim wbClone         As Workbook
-    Dim wbRaw           As Workbook
-    Dim cllButtons      As Collection
-    Dim fl              As File
-    
-    If Not cr_clone_wb Is Nothing Then sWbClone = cr_clone_wb.FullName
-    sWbRaw = cr_raw_name
-    
-    While (Not bWbClone Or Not bWbRaw) Or (cr_confirm And sReply <> sBttCloneRawConfirmed)
-        If sWbClone = vbNullString Then
-            sWbClone = "n o t  p r o v i d e d !"
-        Else
-            bWbClone = True
-        End If
-        
-        If sWbRaw = vbNullString Then
-            sWbRaw = "n o t  p r o v i d e d !"
-        ElseIf Not fso.FileExists(sWbRaw) _
-           And (Not mRawHosts.Exists(sWbRaw) _
-                Or (mRawHosts.Exists(sWbRaw) And Not mRawHosts.IsRawVbProject(sWbRaw)) _
-               ) Then
-            sWbRaw = sWbRaw & ": i n v a l i d ! (neither a registered VB-Raw-Project nor a VB-Raw-Project's full name)"
-        Else
-            bWbRaw = True
-        End If
-    
-        If bWbRaw And bWbClone And Not cr_confirm Then GoTo xt
-        
-        With sMsg
-            .Section(1).sLabel = CLONE_PROJECT & ":"
-            .Section(1).sText = sWbClone
-            .Section(1).bMonspaced = True
-            .Section(2).sLabel = RAW_PROJECT & ":"
-            .Section(2).sText = sWbRaw
-            .Section(2).bMonspaced = True
-            
-            If cr_confirm _
-            Then .Section(3).sText = "Please confirm the provided VB-Clone- and VB-Raw-Project." _
-            Else .Section(3).sText = "Please provide/complete the VB-Clone- (sync target) and the VB-Raw-Project (sync source)."
-            
-            .Section(3).sText = .Section(3).sText & vbLf & vbLf & _
-                                "Attention!" & vbLf & _
-                                "1. The '" & CLONE_PROJECT & "' must not be identical with the '" & RAW_PROJECT & "' and the two Workbooks must not have the same name." & vbLf & _
-                                "2. Both VB-Projects/Workbook must exclusively reside in their parent Workbook" & vbLf & _
-                                "3. Both Workbook folders must be subfolders of the configured '" & FOLDER_SERVICED & "'."
-
-        End With
-        
-        '~~ Buttons preparation
-        If Not bWbClone Or Not bWbRaw _
-        Then Set cllButtons = mMsg.Buttons(sBttnRawProject, sBttnCloneProject, vbLf, sBttnTerminate) _
-        Else Set cllButtons = mMsg.Buttons(sBttCloneRawConfirmed, vbLf, sBttnRawProject, sBttnCloneProject)
-        
-        sReply = mMsg.Dsply(msg_title:="Basic configuration of the Component Management (CompMan Addin)" _
-                          , msg:=sMsg _
-                          , msg_buttons:=cllButtons _
-                           )
-        Select Case sReply
-            Case sBttnCloneProject
-                Do
-                    If mFile.SelectFile(sel_filters:="*.xl*" _
-                                      , sel_filter_name:="Workbook/VB-Project" _
-                                      , sel_title:="Select the '" & CLONE_PROJECT & " to be synchronized with the '" & RAW_PROJECT & "'" _
-                                      , sel_result:=fl _
-                                       ) Then
-                        sWbClone = fl.Path
-                        Exit Do
-                    End If
-                Loop
-                cr_confirm = True
-                '~~ The change of the VB-Clone-Project may have made the VB-Raw-Project valid when formerly invalid
-                sWbRaw = Split(sWbRaw, ": ")(0)
-            Case sBttnRawProject
-                Do
-                    If mFile.SelectFile(sel_filters:="*.xl*" _
-                                      , sel_filter_name:="Workbook/VB-Project" _
-                                      , sel_title:="Select the '" & RAW_PROJECT & " as the synchronization source for the '" & CLONE_PROJECT & "'" _
-                                      , sel_result:=fl _
-                                       ) Then
-                        sWbRaw = fl.Path
-                        Exit Do
-                    End If
-                Loop
-                cr_confirm = True
-                '~~ The change of the VB-Raw-Project may have become valid when formerly invalid
-                sWbClone = Split(sWbClone, ": ")(0)
-            
-            Case sBttCloneRawConfirmed: cr_confirm = False
-            Case sBttnTerminate: GoTo xt
-                
-        End Select
-        
-    Wend ' Loop until the confirmed or configured basic configuration is correct
-    
-xt: If bWbClone Then
-        If sWbClone <> cr_clone_wb.FullName Then Set cr_clone_wb = mCompMan.WbkGetOpen(sWbClone)
-    End If
-    If bWbRaw Then
-        Set cr_raw_wb = mCompMan.WbkGetOpen(sWbRaw)
-        cr_raw_name = fso.GetBaseName(cr_raw_wb.FullName)
-    End If
-    CloneAndRawProject = bWbClone And bWbRaw
-    Exit Function
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
-    End Select
-End Function
-
-
-
 Public Sub ByCodeLines(ByRef bcl_clone As clsComp, ByRef bcl_raw As clsRaw)
 ' --------------------------------------------------------------------------
 ' Synchronizes a Clone-VB-Project component's Worksheet code with its cor-
@@ -209,7 +65,7 @@ Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSync." & s
 End Function
 
-Public Function IsWrkbkComp(ByVal vbc As VBComponent) As Boolean
+Private Function IsWrkbkComp(ByVal vbc As VBComponent) As Boolean
     
     Dim bSigned As Boolean
     On Error Resume Next
@@ -267,13 +123,13 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub UpdateChanged( _
-                    ByRef uc_clone As clsComp, _
-                    ByRef uc_raw As clsRaw)
+Private Sub CompUpdate( _
+                 ByRef uc_clone As clsComp, _
+                 ByRef uc_raw As clsRaw)
 ' ----------------------------------------------
 '
 ' ----------------------------------------------
-    Const PROC = "UpdateChanged"
+    Const PROC = "CompUpdate"
 
     On Error GoTo eh
     With uc_clone
@@ -300,6 +156,7 @@ Private Sub UpdateChanged( _
                 '~~ with those in the Raw-VB-Project
                 mSync.ByCodeLines uc_clone, uc_raw
                 cLog.Entry = "Change in raw component synchronized by re-writing the code line by line"
+                .VBComp.Export .ExpFileFullName
             Case Else
                 cLog.Entry = "Change of type '" & .TypeString & "' yet not supported!"
         End Select
@@ -339,6 +196,7 @@ Public Sub VbProject( _
         
         If Not mCompMan.CompExists(vb_clone_wb, vbc.name) Then
             '~~ Add to the VB-Clone-Project the missing component
+            If IsWrkbkComp(vbc) Then GoTo next_vbc
             CompAdd vb_clone_wb, vb_raw_wb, vbc.name
             GoTo next_vbc
         End If
@@ -354,10 +212,12 @@ Public Sub VbProject( _
             cRaw.CompName = .CompName
             cRaw.ExpFileExtension = .ExpFileExtension
             cRaw.CloneExpFileFullName = .ExpFileFullName
-                                        
+            If Not fso.FileExists(.ExpFileFullName) Then
+                .VBComp.Export .ExpFileFullName
+            End If
             If cRaw.Changed Then
                 '~~ Update the component of which the raw had changed
-                UpdateChanged cClone, cRaw
+                CompUpdate cClone, cRaw
             Else
                 cLog.Entry = "Already up-to-date!"
             End If
@@ -426,15 +286,33 @@ Private Sub CompRemoveObsolete( _
 ' --------------------------------------------------
 End Sub
 
+Private Sub CompExport(ByVal ce_wb As Workbook, _
+              ByVal ce_comp_name As String)
+    Dim cComp As New clsComp
+    With cComp
+        .Wrkbk = ce_wb
+        .CompName = ce_comp_name
+        .VBComp.Export .ExpFileFullName
+    End With
+End Sub
 Private Sub CompAdd( _
-                    ByVal cr_clone_wb As Workbook, _
-                    ByVal cr_raw_wb As Workbook, _
-                    ByVal cr_comp_name As String)
-' --------------------------------------------------
-'
-' --------------------------------------------------
+              ByVal cr_clone_wb As Workbook, _
+              ByVal cr_raw_wb As Workbook, _
+              ByVal cr_comp_name As String)
+' ---------------------------------------------
+' Add the component (cr_comp_name) found in the
+' VB-Raw-Project (cr_raw_wb) which yet doesn't
+' exist in the VB-Clone_project (cr_clone_wb).
+' ---------------------------------------------
+    Const PROC = "CompAdd"
+    
+    On Error GoTo eh
     Dim cSource As New clsComp
     Dim vbc     As VBComponent
+    Dim ws      As Worksheet
+    Dim i       As Long
+    Dim nm      As name
+    Dim cClone  As New clsComp
     
     With cSource
         .Wrkbk = cr_raw_wb
@@ -444,22 +322,68 @@ Private Sub CompAdd( _
             Case vbext_ct_StdModule, vbext_ct_MSForm, vbext_ct_ClassModule
                 cr_clone_wb.VbProject.VBComponents.Import .ExpFileFullName
                 cLog.Entry = "Added by import of '" & "" & "'"
-            
+                CompExport cr_clone_wb, cr_comp_name
+                End With
             Case vbext_ct_Document
                 If Not IsWrkbkComp(vbc) Then
-                    '~~ This new component is a Worksheet which is specifically delicate
-                    '~~ 1. It cannot be simply copied from the raw to the clone because any referred names
-                    '~~    would refer back to the raw source
-                    '~~ 2. The code cannot be imported but has to be transferred from the Export-File line-by-line
-                    
+                    '~~ 1. Copy the sheet to the corresponding position in the target Workbook
+                    For i = 1 To .Wrkbk.Worksheets.Count
+                        Set ws = .Wrkbk.Worksheets(i)
+                        If ws.CodeName = .CompName Then
+                            If i = 1 _
+                            Then ws.Copy Before:=cr_clone_wb.Sheets(i) _
+                            Else ws.Copy After:=cr_clone_wb.Sheets(i - 1)
+                            cLog.Entry = "Copied"
+                            Exit For
+                        End If
+                    Next i
+                    '~~ 2. Transfer all corresponding names
+                    For Each nm In .Wrkbk.Names
+                        If InStr(nm.RefersTo, ws.name & "!") <> 0 Then
+                            '~~ Name refers to copied sheet
+                            If Not NameExists(.Wrkbk, nm) Then
+                                NameAdd na_target_wb:=.Wrkbk, na_name:=nm
+                            End If
+                        End If
+                    Next nm
+ 
                 End If
         End Select
     End With
     
-    cLog.Entry = "Added as new Worksheet"
     cLog.Entry = "Code transferred from Export-File '" & "" & "'"
+
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Sub
 
+Private Sub NameAdd(ByVal na_target_wb As Workbook, _
+                    ByVal na_name As name)
+
+    With na_name
+        na_target_wb.Names.Add name:=na_name.name _
+                             , RefersTo:=na_name.RefersTo _
+                             , Visible:=.Visible _
+                             , MacroType:=.MacroType _
+                             , ShortcutKey:=.ShortcutKey _
+                             , Category:=.Category _
+                             , NameLocal:=.NameLocal _
+                             , RefersToLocal:=.RefersToLocal
+    End With
+End Sub
+
+Private Sub NameRemove()
+
+End Sub
+
+Private Sub NameUpdate()
+
+End Sub
 Private Sub CompSync( _
                     ByVal cr_clone_wb As Workbook, _
                     ByVal cr_raw_wb As Workbook, _
@@ -470,5 +394,13 @@ Private Sub CompSync( _
 
 End Sub
 
-
+Private Function NameExists( _
+                      ByVal ne_wb As Workbook, _
+                      ByVal ne_nm As name) As Boolean
+    Dim nm As name
+    For Each nm In ne_wb.Names
+        NameExists = nm.name = ne_nm.name
+        If NameExists Then Exit For
+    Next nm
+End Function
 

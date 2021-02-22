@@ -369,6 +369,7 @@ Public Sub RenewAddIn()
     bSucceeded = True
     
 xt: mMe.RenewLogAction = RenewFinalResult
+    wbSource.Saved = True
     Application.EnableEvents = True
     Exit Sub
     
@@ -933,33 +934,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
         Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Sub
-
-Public Sub UpdateRawClones()
-' ------------------------------------------------
-' Update the Clone-Components of which the
-' Raw-Component had changed.
-' Precondition: The CompMan-Addin is open.
-' Triggered by the Workbook_Open event when
-' the opened Workbook is the development instance.
-' ------------------------------------------------
-    Const PROC = "UpdateRawClones"
-    
-    On Error GoTo eh
-    
-    If IsDevInstnc Then
-        If AddInInstncWrkbkIsOpen Then
-            Application.Run AddInInstanceName & "!mCompMan.UpdateRawClones", ThisWorkbook, wbAddIn.HOSTED_RAWS
-        End If
-    End If
-    
-xt: Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
 
