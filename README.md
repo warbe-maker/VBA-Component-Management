@@ -4,10 +4,6 @@ by means of a _CompMan_ Addin Workbook. The Addin's development instance is this
 establish itself as Addin.
 See also [Programatically updating Excel VBA code][2]
 
-@[:markdown](Disambiguation.md)
-
-# Disambiguation
-{% include Disambiguation.md %}
 
 # Services
 ## _ExportChangedComponents_
@@ -16,6 +12,24 @@ The service also checks a _Clone-Component_ modified within the VB-Project using
 
 ## _UpdateRawClones_
 The service is used with the _Workbook\_Open_ event. It checks each _Component_ for being known/registered as _Raw_  _hosted_ by another _VB-Project_. If yes, its code is compared with the _Raw's Export File and suggested for being updated if different.
+
+## _SyncVbProject_
+**pending implementation**<br>
+Code synchronization allows uncoupling the productive use of a Workbook from the development and maintenance of the VB-Project. In this sense the synchronization of a productive VB-Project (_VB-Clone-Project_) with a development VB-Project is the **release of a VB-Project** (_VB-Raw-Project_) to production.
+
+### Syncronized elements
+A full synchronization, i.e. code and module name changes, is supported for
+- _Standard Modules_: full (code and module name)
+- _Class Modules_ : full (code and module name)
+- _UserForms_ : full (code, module name, and design)
+- _Data Module_ Workbook : full (code and module name)
+- _Data Module_ Worksheet: partially (see [Planning the release of a VB-Project modification](#plannig-the-release-of-a-vb-project-modification))
+- _References_ : full
+
+### Worksheet synchronization
+While the code of development instance of a VB-Project is modified the productive instance will (can) continuously be used for data changes. Because the user is able not only to change data but also the name and the position if a sheet, synchronization depends on an unchanged _CodeName_ as the only stable way to address a sheet in VBA code. The following worksheet changes can only be made  in concert with the **release of a VB-Project** (_VB-Raw-Project_) to production:
+- Insert of new named ranges
+- Change of a sheet's _CodeName_
 
 ## Installation
 ### Installation of the _CompMan_ Add-in
@@ -57,6 +71,9 @@ End Sub
 2. For a Workbook which hosts _Raw_Components_ specify them in the HOSTED_RAWS constant. If its more then one, have the component's names delimited with commas.
 
 > ++**Be aware:**++ The Workbook component will be one of which the code cannot be updated by any means because it contains the code executed to perform the update. Thought this will only be relevant for Raw/Clone-VB-Projects which are yet not supported. However, as a consequence only calls to procedures provided with all arguments will remain in the Workbook component code and all the rest will be in a dedicated mWorkbook component.
+
+## Planning the release of a VB-Project modification
+
 
 
 [1]:https://gitcdn.link/repo/warbe-maker/VBA-Components-Management-Services/master/CompManDev.xlsb
