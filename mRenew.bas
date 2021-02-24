@@ -1,13 +1,13 @@
 Attribute VB_Name = "mRenew"
 Option Explicit
 
-Public Sub ByImport(ByVal rn_wb As Workbook, _
+Public Sub ByImport(ByRef rn_wb As Workbook, _
                     ByVal rn_comp_name As String, _
                     ByVal rn_exp_file_full_name As String, _
            Optional ByVal rn_status As String = vbNullString)
 ' -----------------------------------------------------------
 ' Renews the component (rn_comp_name) in Workbook (rn_wb)
-' by importing the Export File (rn_exp_file_full_name).
+' by importing the Export-File (rn_exp_file_full_name).
 ' -----------------------------------------------------------
     Dim sTempName       As String
     Dim sExpFilePath    As String
@@ -47,13 +47,13 @@ Public Sub ByImport(ByVal rn_wb As Workbook, _
     
 End Sub
 
-Private Sub SaveWbk(ByVal rs_wb As Workbook)
+Private Sub SaveWbk(ByRef rs_wb As Workbook)
     Application.EnableEvents = False
     rs_wb.Save
     Application.EnableEvents = True
 End Sub
 
-Private Function GetTempName(ByVal ac_wb As Workbook, _
+Private Function GetTempName(ByRef ac_wb As Workbook, _
                              ByVal ac_comp_name As String) As String
 ' Return a temporary name for a component not already existing
 ' ------------------------------------------------------------------
@@ -99,8 +99,9 @@ End Function
 '
 'End Function
 
-Private Function CompExists(ByVal ce_wb As Workbook, _
+Private Function CompExists(ByRef ce_wb As Workbook, _
                             ByVal ce_comp_name As String) As Boolean
+' ------------------------------------------------------------------
 ' Returns TRUE when the component (ce_comp_name) exists in the
 ' Workbook ce_wb.
 ' ------------------------------------------------------------------
@@ -110,9 +111,10 @@ Private Function CompExists(ByVal ce_wb As Workbook, _
     CompExists = Err.Number = 0
 End Function
 
-Private Function Extension(ByVal ext_wb As Workbook, _
+Private Function Extension(ByRef ext_wb As Workbook, _
                            ByVal ext_comp_name As String) As String
-' Returns the components Export File extension
+' -----------------------------------------------------------------
+' Returns the components Export-File extension
 ' -----------------------------------------------------------------
     Select Case ext_wb.VbProject.VBComponents(ext_comp_name).Type
         Case vbext_ct_StdModule:    Extension = ".bas"

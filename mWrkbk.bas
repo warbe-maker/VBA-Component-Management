@@ -334,7 +334,7 @@ xt: Exit Function
 eh: ErrMsg ErrSrc(PROC)
 End Function
 
-Public Function GetOpen(ByVal vWb As Variant) As Workbook
+Public Function GetOpen(ByRef vWb As Variant) As Workbook
 ' -------------------------------------------------------
 ' Returns an open Workbook object or raises an error.
 ' If vWb is a full path-file name, the file exists but
@@ -401,8 +401,8 @@ xt: Exit Function
 eh: ErrMsg ErrSrc(PROC)
 End Function
 
-Private Function TestSheet(ByVal wb As Workbook, _
-                           ByVal vWs As Variant) As Worksheet
+Private Function TestSheet(ByRef wb As Workbook, _
+                           ByRef vWs As Variant) As Worksheet
 ' -----------------------------------------------------------
 ' Returns the Worksheet object (vWs) - which may be a Work-
 ' sheet object or a Worksheet's name - of the Workbook (wb).

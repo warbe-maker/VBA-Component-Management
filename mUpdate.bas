@@ -39,9 +39,9 @@ Private Property Get BttnSkipAll() As String
 End Property
 
 Public Sub RawClones( _
-               ByVal urc_wb As Workbook, _
+               ByRef urc_wb As Workbook, _
                ByVal urc_comp_max_len As Long, _
-               ByVal urc_clones As Dictionary)
+               ByRef urc_clones As Dictionary)
 ' --------------------------------------------------------
 ' Updates any clone Workbook urc_wb. Note that clones are
 ' identifiied by equally named components in another
@@ -67,9 +67,9 @@ Public Sub RawClones( _
         Set vbc = v
         Set cComp = New clsComp
         With cComp
-            .Wrkbk = urc_wb
+            Set .Wrkbk = urc_wb
             .CompName = vbc.name
-            .VBComp = vbc
+            Set .VBComp = vbc
 
             Application.StatusBar = sStatus & .CompName & " "
             cLog.ServicedItem = vbc.name
@@ -79,6 +79,7 @@ Public Sub RawClones( _
             cRaw.CompName = .CompName
             cRaw.ExpFileExtension = .ExpFileExtension ' required to build the raws export file full name
             cRaw.CloneExpFileFullName = .ExpFileFullName
+            cRaw.TypeString = .TypeString
             If cRaw.Changed Then
                 Application.StatusBar = sStatus & vbc.name & " Renew of '" & .CompName & "' by import of '" & cRaw.ExpFileFullName & "'"
                 If bVerbose Then

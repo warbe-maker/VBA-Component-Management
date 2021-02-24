@@ -18,9 +18,9 @@ Private lCompMaxLen         As Long
 Private bNewLog             As Boolean
 Private sEntry              As String
 
-Friend Property Let ServicedWrkbk( _
+Friend Property Set ServicedWrkbk( _
                    Optional ByVal sw_new_log As Boolean = False, _
-                            ByVal sw_wbServiced As Workbook)
+                            ByRef sw_wbServiced As Workbook)
     
     Dim vbc As VBComponent
     
@@ -64,16 +64,17 @@ End Property
 
 Friend Property Let Service(ByVal sv_name As String)
 
-    sService = ThisWorkbook.name & " '" & sv_name & "' for '" & wbServiced.name & "': "
+    sService = ThisWorkbook.name & " '" & sv_name & "' for '" & wbServiced.name & "'"
     
     If mFile.Txt(ft_file:=sFile) <> vbNullString _
     Then mFile.Txt(ft_file:=sFile _
                  , ft_append:=True _
-                  ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " =========================================== "
+                  ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "=")
     
     mFile.Txt(ft_file:=sFile _
             , ft_append:=True _
-             ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sService
+             ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sService & vbCrLf & _
+                 Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "-")
 End Property
 
 Friend Property Let ServicedItem(ByVal s As String)

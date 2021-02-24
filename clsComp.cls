@@ -36,8 +36,8 @@ Private foExport            As Folder
 Private lKindOfComp         As enKindOfComp
 Private sCompName           As String       ' The class module's global component name
 Private sExpFileExtension   As String
-Private sExpFileFullName    As String       ' Full filespec for the Export File of CompName
-Private sExpFilePath        As String       ' Folder for the Export File of CompName
+Private sExpFileFullName    As String       ' Full filespec for the Export-File of CompName
+Private sExpFilePath        As String       ' Folder for the Export-File of CompName
 Private sTmpFolder          As String
 Private sTmpExpFileFullName As String
 Private sWrkbkBaseName      As String       ' Common Component host Workbook's base name
@@ -56,19 +56,14 @@ End Property
 Friend Property Get CompName() As String:           CompName = sCompName:   End Property
 
 Friend Property Let CompName(ByVal s As String)
-' ---------------------------------------------
-' Provides the properties:
-' - CompName (sCompName)
-' - VBComp (vbc)
-' - ExpFileExtension (sExpFileExtension),
-' - ExpFileFullName (sExpFileFullName)
-' ---------------------------------------------
-
+' ----------------------------------------------------------------
+' Provides the properties: - CompName (sCompName)
+'                          - ExpFileFullName (sExpFileFullName)
+' ----------------------------------------------------------------
     sCompName = s
     If Not wb Is Nothing Then
         sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExtension
     End If
-
 End Property
 
 Friend Property Get ExpFileFullName() As String
@@ -100,7 +95,7 @@ Friend Property Get ExpFile() As File
     
 End Property
 
-Friend Property Let ExpFile(ByVal fl As File):      Set flExpFile = fl:     End Property
+Friend Property Set ExpFile(ByVal fl As File):      Set flExpFile = fl:     End Property
 
 Friend Property Get ExpFilePath() As String
     Dim fso As New FileSystemObject
@@ -136,7 +131,7 @@ End Property
 Friend Property Get DsplyAllChanges() As Long
 ' -------------------------------------------
 ' Display of all differences between the
-' clone's and the raw's Export File.
+' clone's and the raw's Export-File.
 ' -------------------------------------------
     Const PROC = "DisplayAllChanges"
     
@@ -227,7 +222,7 @@ Private Property Get ReplaceRawWithCloneConfirmed() As Boolean
                          "" & _
                          "in Workbook " & vbLf & _
                          "" & vbLf & _
-                         " with this component's Export File. I.e. the changes" & vbLf & _
+                         " with this component's Export-File. I.e. the changes" & vbLf & _
                          "made will become ""permanent"""
     sReplyDsplyDiff = "Display the difference:" & vbLf & vbLf & _
                       "The installed ""WinMerge"" is used. Empty code" & vbLf & _
@@ -304,7 +299,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Let VBComp(ByVal vb_comp As VBComponent):       Set vbc = vb_comp:                      End Property
+Friend Property Set VBComp(ByRef vb_comp As VBComponent):       Set vbc = vb_comp:                      End Property
 
 Friend Property Get Wrkbk() As Workbook
     Const PROC = "Wrkbk_Get"
@@ -330,15 +325,14 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Let Wrkbk(ByVal wbk As Workbook)
-' ----------------------------------------------
-' Provides the properties:
-' - Wrkbk (wb),
-' - WrkbFullName    (sWrkbkFullName)
-' - WrkbkBaseName   (sWrkbkBaseName)
-' - ExpFilePath     (sExpFilePath)
-' - Service         (sService)          The Workbooks folder
-' ---------------------------------------------
+Friend Property Set Wrkbk(ByRef wbk As Workbook)
+' ---------------------------------------------------------
+' Provides the properties: - Wrkbk         (wb)
+'                          - WrkbFullName  (sWrkbkFullName)
+'                          - WrkbkBaseName (sWrkbkBaseName)
+'                          - ExpFilePath   (sExpFilePath)
+'                          - Service       (sService)
+' ---------------------------------------------------------
     
     Dim fso As New FileSystemObject
     
@@ -395,11 +389,12 @@ Friend Property Get Changed() As Boolean
 
     End If
     Changed = dctChanges.Count <> 0
+    
+    If Changed _
+    Then cLog.Entry = "The code changed! (a temporary Export-File differs from the last regular Export-File)" _
+    Else cLog.Entry = "The code has not changed! (a temporary Export-File is identical with the regular Export-File)"
 
-xt: If Changed _
-    Then cLog.Entry = "Code changed! (temp export differs from last export)" _
-    Else cLog.Entry = "Code unchanged! (temp export identical with last export)"
-    Exit Property
+xt: Exit Property
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
@@ -503,7 +498,7 @@ End Function
 
 Public Sub ReplaceRawWithClone()
 ' --------------------------------------------------------------
-' Replace the raw component's code with the Export File of the
+' Replace the raw component's code with the Export-File of the
 ' clone component.
 ' --------------------------------------------------------------
     Const PROC = "ReplaceRawWithClone"
@@ -534,7 +529,7 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
 ' -------------------------------------------------------------------
 ' Provided confirmed by the user, replaces the raw code in the
 '  hosting Workbook with the cloned raw component's code in its
-' Export File. Code replacement for class modules, satandard modules
+' Export-File. Code replacement for class modules, satandard modules
 ' and UserForms is done via a rename, re-import, remove renamed
 ' procedure, for a data module the code is replaced line by line
 ' because a (re-)import is impossible for such a module.
@@ -550,15 +545,19 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
             .HostFullName = mHostedRaws.HostFullName(Me.CompName)
             .CompName = Me.CompName
             .ExpFileExtension = Me.ExpFileExtension ' required to build the export file's full name
-            .ExpFile = fso.GetFile(.ExpFileFullName)
-            .RawHost = mCompMan.WbkGetOpen(.HostFullName)
-            .RawVbc = .RawHost.VbProject.VBComponents(.CompName)
+            Set .ExpFile = fso.GetFile(.ExpFileFullName)
+            Set .RawHost = mCompMan.WbkGetOpen(.HostFullName)
+            Set .RawVbc = .RawHost.VbProject.VBComponents(.CompName)
+            .TypeString = Me.TypeString
             Select Case .RawType
                 Case vbext_ct_Document
                     '~~ A data module cannot be replaced like the other ones. Thus only its code
                     '~~ is synchronized - disregarding any consequences this may have when the
                     '~~ structure and design of the underlying Workbook or Worksheet has changed.
-                    mSync.ByCodeLines cComp, cRaw
+                    mSync.ByCodeLines bcl_clone_wb:=cComp.Wrkbk _
+                                    , bcl_comp_name:=.CompName _
+                                    , bcl_raw_host_full_name:=.HostFullName _
+                                    , bcl_raw_codelines:=.CodeLines
                 Case vbext_ct_ClassModule, vbext_ct_StdModule, vbext_ct_MSForm
                     Me.ReplaceRawWithClone
             End Select

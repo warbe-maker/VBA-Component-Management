@@ -31,11 +31,11 @@ Option Compare Text
 ' ----------------------------------------------------------------------------
 ' Services:
 ' - DisplayCodeChange       Displays the current difference between a
-'                           component's code and its current Export File
+'                           component's code and its current Export-File
 ' - ExportAll               Exports all components into the Workbook's
 '                           dedicated folder (created when not existing)
 ' - ExportChangedComponents Exports all components of which the code in the
-'                           Export File differs from the current code.
+'                           Export-File differs from the current code.
 ' - Service
 '
 ' Uses Common Components: - mBasic
@@ -113,7 +113,7 @@ Public Property Get Service() As String:            Service = sService:         
 Public Property Let Service(ByVal srvc As String):  sService = srvc:                End Property
 
 Public Function Clones( _
-                 ByVal cl_wb As Workbook) As Dictionary
+                 ByRef cl_wb As Workbook) As Dictionary
 ' ------------------------------------------------------
 ' Returns a Dictionary with clone component's object as
 ' the key and their kind of code change as item.
@@ -130,7 +130,7 @@ Public Function Clones( _
     For Each vbc In cl_wb.VbProject.VBComponents
         Set cComp = New clsComp
         With cComp
-            .Wrkbk = cl_wb
+            Set .Wrkbk = cl_wb
             .CompName = vbc.name
             cLog.ServicedItem = .CompName
             If .KindOfComp = enRawClone Then
@@ -139,6 +139,7 @@ Public Function Clones( _
                 cRaw.CompName = .CompName
                 cRaw.ExpFileExtension = .ExpFileExtension
                 cRaw.CloneExpFileFullName = .ExpFileFullName
+                cRaw.TypeString = .TypeString
                 If .Changed Or cRaw.Changed Then
                     dct.Add vbc, vbc.name
                 End If
@@ -173,9 +174,9 @@ Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
     
     Set wb = ActiveWorkbook
     With cComp
-        .Wrkbk = wb
+        Set .Wrkbk = wb
         .CompName = cmp_comp_name
-        .VBComp = wb.VbProject.VBComponents(.CompName)
+        Set .VBComp = wb.VbProject.VBComponents(.CompName)
         sExpFileRaw = mHostedRaws.ExpFileFullName(cmp_comp_name)
     
         mFile.Compare fc_file_left:=.ExpFileFullName _
@@ -196,7 +197,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Function CompExists( _
-                     ByVal ce_wb As Workbook, _
+                     ByRef ce_wb As Workbook, _
                      ByVal ce_comp_name As String) As Boolean
 ' -----------------------------------------------------------
 ' Returns TRUE when the component (ce_comp_name) exists in
@@ -208,7 +209,7 @@ Public Function CompExists( _
     CompExists = Err.Number = 0
 End Function
 
-Public Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook)
+Public Sub DeleteObsoleteExpFiles(ByRef do_wb As Workbook)
 ' --------------------------------------------------------------
 ' Delete Export Files the component does not or no longer exist.
 ' --------------------------------------------------------------
@@ -224,7 +225,7 @@ Public Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook)
     Dim sComp       As String
     
     With cComp
-        .Wrkbk = do_wb ' assignment provides the Workbook's dedicated Export Folder
+        Set .Wrkbk = do_wb ' assignment provides the Workbook's dedicated Export Folder
         sFolder = .ExpFolder
     End With
     
@@ -242,7 +243,7 @@ Public Sub DeleteObsoleteExpFiles(ByVal do_wb As Workbook)
     
         For Each v In cllRemove
             .DeleteFile v
-            cLog.Entry = "Obsolete Export File '" & v & "' deleted"
+            cLog.Entry = "Obsolete Export-File '" & v & "' deleted"
         Next v
     End With
     
@@ -266,17 +267,17 @@ Public Sub DisplayCodeChange(ByVal cmp_comp_name As String)
     
     On Error GoTo eh
     Dim sTempExpFileFullName    As String
-    Dim wb              As Workbook
-    Dim cComp           As New clsComp
-    Dim fso             As New FileSystemObject
-    Dim sTmpFolder     As String
-    Dim flExpTemp       As File
+    Dim wb                      As Workbook
+    Dim cComp                   As New clsComp
+    Dim fso                     As New FileSystemObject
+    Dim sTmpFolder              As String
+    Dim flExpTemp               As File
     
     Set wb = ActiveWorkbook
     With cComp
-        .Wrkbk = wb
+        Set .Wrkbk = wb
         .CompName = cmp_comp_name
-        .VBComp = wb.VbProject.VBComponents(.CompName)
+        Set .VBComp = wb.VbProject.VBComponents(.CompName)
     End With
     
     With fso
@@ -311,7 +312,7 @@ Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mCompMan" & "." & es_proc
 End Function
 
-Public Sub ExportAll(Optional ByVal exp_wrkbk As Workbook = Nothing)
+Public Sub ExportAll(Optional ByRef exp_wrkbk As Workbook = Nothing)
 ' -----------------------------------------------------------
 '
 ' -----------------------------------------------------------
@@ -329,7 +330,7 @@ eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub ExportChangedComponents( _
-                             ByVal ec_wb As Workbook, _
+                             ByRef ec_wb As Workbook, _
                     Optional ByVal ec_hosted As String = vbNullString)
 ' --------------------------------------------------------------------
 ' Exclusively performed/trigered by the Before_Save event:
@@ -366,7 +367,7 @@ End Sub
 
 Public Function ManageVbProjectProperties( _
                                     ByVal mh_hosted As String, _
-                                    ByVal mh_wb As Workbook) As Boolean
+                                    ByRef mh_wb As Workbook) As Boolean
 ' ---------------------------------------------------------------------
 ' - Registers a Workbook as raw host when it has at least one of the
 '   Workbook's (mh_wb) components indicated hosted
@@ -444,7 +445,7 @@ Public Function ManageVbProjectProperties( _
                 '~~ The component apparently had never been exported before
                 Set cComp = New clsComp
                 With cComp
-                    .Wrkbk = mh_wb
+                    Set .Wrkbk = mh_wb
                     .CompName = v
                     If Not fso.FileExists(.ExpFileFullName) Then .VBComp.Export .ExpFileFullName
                     mHostedRaws.ExpFileFullName(v) = .ExpFileFullName
@@ -522,7 +523,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub SynchVbProject(ByVal sp_clone_project As Workbook, _
+Public Sub SynchVbProject(ByRef sp_clone_project As Workbook, _
                           ByVal sp_raw_project As String)
 ' -------------------------------------------------------------
 ' Synchronizes the code of the open/ed Workbook (clone_project)
@@ -550,10 +551,10 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub UpdateRawClones( _
-                     ByVal uc_wb As Workbook, _
+                     ByRef uc_wb As Workbook, _
             Optional ByVal uc_hosted As String = vbNullString)
 ' ------------------------------------------------------------
-' Updates a clone component with the Export File of the remote
+' Updates a clone component with the Export-File of the remote
 ' raw component provided the raw's code has changed.
 ' ------------------------------------------------------------
     Const PROC = "UpdateRawClones"
@@ -572,21 +573,22 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function WbkGetOpen(ByVal go_wb_full_name) As Workbook
+Public Function WbkGetOpen(ByVal go_wb_full_name As String) As Workbook
+' ---------------------------------------------------------------------
+' Returns an opened Workbook object named (go_wb_full_name) or Nothing
+' when a file named (go_wb_full_name) not exists.
+' ---------------------------------------------------------------------
     Const PROC = "WbkGetOpen"
     
     On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim sWbName As String
+    Dim fso As New FileSystemObject
     
-    If Not fso.FileExists(go_wb_full_name) Then GoTo xt
-    sWbName = fso.GetFileName(go_wb_full_name)
-    If mCompMan.WbkIsOpen(io_name:=sWbName) Then
-        Set WbkGetOpen = Application.Workbooks(sWbName)
-    Else
-        Set WbkGetOpen = Application.Workbooks.Open(go_wb_full_name)
+    If fso.FileExists(go_wb_full_name) Then
+        If mCompMan.WbkIsOpen(io_name:=go_wb_full_name) _
+        Then Set WbkGetOpen = Application.Workbooks(go_wb_full_name) _
+        Else Set WbkGetOpen = Application.Workbooks.Open(go_wb_full_name)
     End If
-
+    
 xt: Set fso = Nothing
     Exit Function
     

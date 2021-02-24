@@ -7,7 +7,7 @@ Public cLog             As New clsLog
 Public Sub RenewComp( _
       Optional ByVal rc_exp_file_full_name As String = vbNullString, _
       Optional ByVal rc_comp_name As String = vbNullString, _
-      Optional ByVal rc_wb As Workbook = Nothing)
+      Optional ByRef rc_wb As Workbook = Nothing)
 ' --------------------------------------------------------------------
 ' This service renews a component, either specified via its name
 ' (rc_comp_name) or via the Export-File (rc_exp_file_full_name), in
@@ -70,13 +70,13 @@ Public Sub RenewComp( _
     If rc_exp_file_full_name = vbNullString _
     And rc_comp_name = vbNullString Then
         '~~ ---------------------------------------------
-        '~~ Select the Export File for the re-new service
+        '~~ Select the Export-File for the re-new service
         '~~ of which the base name will be regared as the component to be renewed.
         '~~ --------------------------------------------------------
         If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
                           , sel_filters:="*.bas,*.cls,*.frm" _
                           , sel_filter_name:="File" _
-                          , sel_title:="Select the Export File for the re-new service" _
+                          , sel_title:="Select the Export-File for the re-new service" _
                           , sel_result:=flFile) _
         Then rc_exp_file_full_name = flFile.Path
     End If
@@ -85,14 +85,14 @@ Public Sub RenewComp( _
     And rc_exp_file_full_name = vbNullString Then
         cComp.CompName = rc_comp_name
         '~~ ------------------------------------------------
-        '~~ Select the component's corresponding Export File
+        '~~ Select the component's corresponding Export-File
         '~~ ------------------------------------------------
         sBaseName = fso.GetBaseName(rc_exp_file_full_name)
-        '~~ Select the Export File for the re-new service
+        '~~ Select the Export-File for the re-new service
         If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
                           , sel_filters:="*" & cComp.ExpFileExtension _
                           , sel_filter_name:="File" _
-                          , sel_title:="Select the Export File for the provided component '" & rc_comp_name & "'!" _
+                          , sel_title:="Select the Export-File for the provided component '" & rc_comp_name & "'!" _
                           , sel_result:=flFile) _
         Then rc_exp_file_full_name = flFile.Path
     End If
@@ -100,9 +100,9 @@ Public Sub RenewComp( _
     If rc_exp_file_full_name = vbNullString Then
         MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
              , Prompt:="Service '" & ErrSrc(PROC) & "' will be aborted because no " & _
-                       "existing Export File has been provided!" _
+                       "existing Export-File has been provided!" _
              , Buttons:=vbOKOnly
-        GoTo xt ' no Export File selected
+        GoTo xt ' no Export-File selected
     End If
     
     With cComp
@@ -110,7 +110,7 @@ Public Sub RenewComp( _
             If fso.GetBaseName(rc_exp_file_full_name) <> rc_comp_name Then
                 MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
                      , Prompt:="Service '" & ErrSrc(PROC) & "' will be aborted because the " & _
-                               "Export File '" & rc_exp_file_full_name & "' and the component name " & _
+                               "Export-File '" & rc_exp_file_full_name & "' and the component name " & _
                                "'" & rc_comp_name & "' do not indicate the same component!" _
                      , Buttons:=vbOKOnly
                 GoTo xt
@@ -182,21 +182,21 @@ Public Sub Pause()
         "until the Addin is 'continued' again!"
 End Sub
 
-Private Function CodeModuleIsEmpty(ByVal vbc As VBComponent) As Boolean
+Private Function CodeModuleIsEmpty(ByRef vbc As VBComponent) As Boolean
     With vbc.CodeModule
         CodeModuleIsEmpty = .CountOfLines = 0
         If Not CodeModuleIsEmpty Then CodeModuleIsEmpty = .CountOfLines = 1 And Len(.Lines(1, 1)) < 2
     End With
 End Function
 
-Public Function CompMaxLen(ByVal ml_wb As Workbook) As Long
+Public Function CompMaxLen(ByRef ml_wb As Workbook) As Long
     Dim vbc As VBComponent
     For Each vbc In ml_wb.VbProject.VBComponents
         CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.name))
     Next vbc
 End Function
 
-Public Function Denied(ByVal den_serviced_wb As Workbook, _
+Public Function Denied(ByRef den_serviced_wb As Workbook, _
                        ByVal den_service As String, _
               Optional ByVal den_new_log As Boolean = False) As Boolean
 ' --------------------------------------------------------------------------
@@ -204,8 +204,8 @@ Public Function Denied(ByVal den_serviced_wb As Workbook, _
 ' --------------------------------------------------------------------------
     Dim sStatus As String
     
-    cLog.ServicedWrkbk(sw_new_log:=den_new_log) = den_serviced_wb
-    cLog.service = den_service
+    Set cLog.ServicedWrkbk(sw_new_log:=den_new_log) = den_serviced_wb
+    cLog.Service = den_service
 
     If Not mMe.BasicConfig Then
         sStatus = "Service denied! The Basic CompMan Configuration is invalid!"
@@ -225,12 +225,12 @@ Public Function Denied(ByVal den_serviced_wb As Workbook, _
         cLog.Entry = sStatus
         Denied = True
     ElseIf FolderNotVbProjectExclusive(den_serviced_wb) Then
-        sStatus = "Service denied! The Workbook is not an exclusive in its parent folder!"
+        sStatus = "Service denied! The Workbook is not the only one in its parent folder!"
         cLog.Entry = sStatus
         Denied = True
     End If
     If Denied _
-    Then Application.StatusBar = cLog.service & sStatus
+    Then Application.StatusBar = cLog.Service & sStatus
 
 End Function
 
@@ -239,7 +239,7 @@ Private Function ErrSrc(ByVal s As String) As String
 End Function
 
 Public Sub ExportChangedComponents( _
-                             ByVal ec_wb As Workbook, _
+                             ByRef ec_wb As Workbook, _
                     Optional ByVal ec_hosted As String = vbNullString)
 ' --------------------------------------------------------------------
 ' Exclusively performed/trigered by the Before_Save event:
@@ -270,14 +270,14 @@ Public Sub ExportChangedComponents( _
     '~~ indicated by an '(' in the active window or workbook fullname.
     If mService.Denied(den_serviced_wb:=ec_wb, den_service:=ErrSrc(PROC)) Then GoTo xt
     
-    mCompMan.service = PROC & " for '" & ec_wb.name & "': "
-    sStatus = mCompMan.service
+    mCompMan.Service = PROC & " for '" & ec_wb.name & "': "
+    sStatus = mCompMan.Service
 
     mCompMan.DeleteObsoleteExpFiles do_wb:=ec_wb
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=ec_hosted _
                                             , mh_wb:=ec_wb) _
     Then
-        Application.StatusBar = cLog.service & " failed. See log-file in Workbookfolder"
+        Application.StatusBar = cLog.Service & " failed. See log-file in Workbookfolder"
         GoTo xt
     End If
     
@@ -292,7 +292,7 @@ Public Sub ExportChangedComponents( _
         mTrc.BoC ErrSrc(PROC) & " " & vbc.name
         Set cComp = New clsComp
         With cComp
-            .Wrkbk = ec_wb
+            Set .Wrkbk = ec_wb
             .CompName = vbc.name
             cLog.ServicedItem = .CompName
             If CodeModuleIsEmpty(.VBComp) Then
@@ -319,8 +319,9 @@ Public Sub ExportChangedComponents( _
                     .HostFullName = mHostedRaws.HostFullName(comp_name:=cComp.CompName)
                     .CompName = cComp.CompName
                     .ExpFileExtension = cComp.ExpFileExtension  ' required to build the export file's full name
-                    .ExpFile = fso.GetFile(.ExpFileFullName)
+                    Set .ExpFile = fso.GetFile(.ExpFileFullName)
                     .CloneExpFileFullName = cComp.ExpFileFullName
+                    .TypeString = cComp.TypeString
                     If Not .Changed And Not cComp.Changed Then GoTo next_vbc
                 End With
                 
@@ -370,7 +371,7 @@ Public Sub ExportChangedComponents( _
                     If .KindOfComp = enHostedRaw Then
                         If mHostedRaws.ExpFileFullName(comp_name:=.CompName) <> .ExpFileFullName Then
                             mHostedRaws.ExpFileFullName(comp_name:=.CompName) = .ExpFileFullName
-                            cLog.Entry = "Component's Export File Full Name registered"
+                            cLog.Entry = "Component's Export-File Full Name registered"
                         End If
                     End If
                 End With
@@ -383,7 +384,7 @@ next_vbc:
         Set cRaw = Nothing
     Next vbc
     
-    sMsg = mCompMan.service
+    sMsg = mCompMan.Service
     Select Case lExported
         Case 0:     sMsg = sMsg & "None of the " & lComponents & " components' code has changed."
         Case Else:  sMsg = sMsg & lExported & " of " & lComponents & " changed components exported: " & sExported
@@ -406,24 +407,26 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function FolderNotVbProjectExclusive(ByVal wb As Workbook) As Boolean
+Private Function FolderNotVbProjectExclusive(ByRef wb As Workbook) As Boolean
 
     Dim fso As New FileSystemObject
     Dim fl  As File
     
     For Each fl In fso.GetFolder(wb.Path).Files
-        If fl.Path <> wb.FullName And VBA.Left$(fso.GetFileName(fl.Path), 2) <> "~$" Then
+        If VBA.Left$(fso.GetFileName(fl.Path), 2) = "~$" Then GoTo next_fl
+        If VBA.StrComp(fl.Path, wb.FullName, vbTextCompare) <> 0 Then
             Select Case fso.GetExtensionName(fl.Path)
                 Case "xlsm", "xlam", "xlsb" ' may contain macros, a VB-Project repsectively
                     FolderNotVbProjectExclusive = True
                     Exit For
             End Select
         End If
+next_fl:
     Next fl
 
 End Function
 
-Public Sub ExportAll(Optional ByVal ea_wb As Workbook = Nothing)
+Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
 ' --------------------------------------------------------------
 '
 ' --------------------------------------------------------------
@@ -440,8 +443,8 @@ Public Sub ExportAll(Optional ByVal ea_wb As Workbook = Nothing)
     '~~ Prevent any action when the required preconditins are not met
     If mService.Denied(den_serviced_wb:=ea_wb, den_service:=ErrSrc(PROC)) Then GoTo xt
     
-    mCompMan.service = PROC & " for '" & ea_wb.name & "': "
-    sStatus = mCompMan.service
+    mCompMan.Service = PROC & " for '" & ea_wb.name & "': "
+    sStatus = mCompMan.Service
 
     mCompMan.DeleteObsoleteExpFiles ea_wb
     
@@ -451,7 +454,7 @@ Public Sub ExportAll(Optional ByVal ea_wb As Workbook = Nothing)
     For Each vbc In ea_wb.VbProject.VBComponents
         Set cComp = New clsComp
         With cComp
-            .Wrkbk = ea_wb
+            Set .Wrkbk = ea_wb
             .CompName = vbc.name ' this assignment provides the name for the export file
             vbc.Export .ExpFileFullName
         End With
@@ -465,7 +468,7 @@ eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub SynchVbProject( _
-           Optional ByVal sp_clone_project As Workbook = Nothing, _
+           Optional ByRef sp_clone_project As Workbook = Nothing, _
            Optional ByVal sp_raw_project As String = vbNullString)
 ' -----------------------------------------------------------------
 ' Synchronizes the code of the Workbook (clone_project) with the
@@ -484,9 +487,9 @@ Public Sub SynchVbProject( _
     Const PROC = "SynchVbProject"
     
     On Error GoTo eh
-    Dim fso                 As New FileSystemObject
-    Dim sStatus             As String
-    Dim wbRaw               As Workbook
+    Dim fso     As New FileSystemObject
+    Dim sStatus As String
+    Dim wbRaw   As Workbook
     
     mErH.BoP ErrSrc(PROC)
     '~~ Assure complete and correct provision of arguments or get correct ones selected via a dialog
@@ -499,11 +502,11 @@ Public Sub SynchVbProject( _
     '~~ indicated by an '(' in the active window or workbook fullname.
     If mService.Denied(den_serviced_wb:=sp_clone_project, den_service:=ErrSrc(PROC)) Then GoTo xt
 
-    mCompMan.service = PROC & " for '" & sp_clone_project.name & "': "
-    sStatus = mCompMan.service
+    mCompMan.Service = PROC & " for '" & sp_clone_project.name & "': "
+    sStatus = mCompMan.Service
         
-    mSync.VbProject vb_clone_wb:=sp_clone_project _
-                  , vb_raw_wb:=wbRaw
+    mSync.VbProject wb_clone:=sp_clone_project _
+                  , wb_raw:=wbRaw
 
 xt: mErH.EoP ErrSrc(PROC)
     Set cLog = Nothing
@@ -517,10 +520,10 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub UpdateRawClones( _
-                     ByVal uc_wb As Workbook, _
+                     ByRef uc_wb As Workbook, _
             Optional ByVal uc_hosted As String = vbNullString)
 ' ------------------------------------------------------------
-' Updates all clone components with the Export File of the
+' Updates all clone components with the Export-File of the
 ' raw component provided the raw's code has changed.
 ' ------------------------------------------------------------
     Const PROC = "UpdateRawClones"
@@ -534,12 +537,12 @@ Public Sub UpdateRawClones( _
     mErH.BoP ErrSrc(PROC)
     If mService.Denied(den_serviced_wb:=uc_wb, den_service:=ErrSrc(PROC), den_new_log:=True) Then GoTo xt
 
-    mCompMan.service = PROC & " for '" & uc_wb.name & "': "
+    mCompMan.Service = PROC & " for '" & uc_wb.name & "': "
     Application.StatusBar = sStatus & "Maintain hosted raws"
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=uc_hosted _
                                             , mh_wb:=uc_wb) _
     Then
-        Application.StatusBar = cLog.service & " failed. See log-file in Workbookfolder"
+        Application.StatusBar = cLog.Service & " failed. See log-file in Workbookfolder"
         GoTo xt
     End If
         
@@ -574,16 +577,16 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function WbkInServicedRoot(ByVal idr_wb As Workbook) As Boolean
+Private Function WbkInServicedRoot(ByRef idr_wb As Workbook) As Boolean
     WbkInServicedRoot = InStr(idr_wb.Path, mMe.ServicedRoot) <> 0
 End Function
 
-Private Function WbkIsRestoredBySystem(ByVal rbs_wb As Workbook) As Boolean
+Private Function WbkIsRestoredBySystem(ByRef rbs_wb As Workbook) As Boolean
     WbkIsRestoredBySystem = InStr(ActiveWindow.Caption, "(") <> 0 _
                          Or InStr(rbs_wb.FullName, "(") <> 0
 End Function
 
-Public Sub Install(Optional ByVal in_wb As Workbook = Nothing)
+Public Sub Install(Optional ByRef in_wb As Workbook = Nothing)
     Const PROC = "Install"
     
     On Error GoTo eh
@@ -635,23 +638,22 @@ Private Function CloneAndRawProject( _
     Dim sBttCloneRawConfirmed   As String: sBttCloneRawConfirmed = "VB-Clone- and VB-Raw-Project" & vbLf & "Confirmed"
     Dim sBttnCloneProject       As String: sBttnCloneProject = "Select/change the" & vbLf & vbLf & CLONE_PROJECT & vbLf & " "
     Dim sBttnRawProject         As String: sBttnRawProject = "Configure/change the" & vbLf & vbLf & RAW_PROJECT & vbLf & " "
-    Dim sBttnTerminate          As String
-    sBttnTerminate = "Terminate providing a " & vbLf & _
-                     "VB-Clone- and a VB-Raw-Project" & vbLf & _
-                     "for being synchronized" & vbLf & _
-                     "(sync service will be denied)"
+    Dim sBttnTerminate          As String: sBttnTerminate = "Terminate providing a " & vbLf & _
+                                                            "VB-Clone- and a VB-Raw-Project" & vbLf & _
+                                                            "for being synchronized" & vbLf & _
+                                                            "(sync service will be denied)"
     
-    Dim fso             As New FileSystemObject
-    Dim sMsg            As tMsg
-    Dim sReply          As String
-    Dim bWbClone        As Boolean
-    Dim bWbRaw          As Boolean
-    Dim sWbClone        As String
-    Dim sWbRaw          As String ' either a full name or a registered raw project's basename
-    Dim wbClone         As Workbook
-    Dim wbRaw           As Workbook
-    Dim cllButtons      As Collection
-    Dim fl              As File
+    Dim fso         As New FileSystemObject
+    Dim sMsg        As tMsg
+    Dim sReply      As String
+    Dim bWbClone    As Boolean
+    Dim bWbRaw      As Boolean
+    Dim sWbClone    As String
+    Dim sWbRaw      As String ' either a full name or a registered raw project's basename
+    Dim wbClone     As Workbook
+    Dim wbRaw       As Workbook
+    Dim cllButtons  As Collection
+    Dim fl          As File
     
     If Not cr_clone_wb Is Nothing Then sWbClone = cr_clone_wb.FullName
     sWbRaw = cr_raw_name

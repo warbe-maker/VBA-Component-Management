@@ -3,10 +3,10 @@ Option Explicit
 
 Private Const BTT_INST_DONE = "Done"
 
-Public Sub CloneRaws(Optional ByVal ic_wb As Workbook)
+Public Sub CloneRaws(Optional ByRef ic_wb As Workbook)
 ' ----------------------------------------------------
 ' Installs one or more raw components by importing
-' their Export File.
+' their Export-File.
 ' ----------------------------------------------------
     Const PROC = "CloneRaws"
     

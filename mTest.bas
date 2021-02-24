@@ -57,7 +57,7 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mTest" & "." & sProc
 End Function
 
-Private Function MaxCompLength(ByVal wb As Workbook) As Long
+Private Function MaxCompLength(ByRef wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
         For Each vbc In wb.VbProject.VBComponents
@@ -84,18 +84,18 @@ End Sub
     
 Public Sub Test_SyncVbProject()
 
-    mService.SynchVbProject sp_clone_project:=mCompMan.WbkGetOpen("E:\Ablage\Excel VBA\DevAndTest\Test-VbProject-Clone\Test_VB_Clone_Project.xlsb") _
-                          , sp_raw_project:="E:\Ablage\Excel VBA\DevAndTest\Common-VBA-File-Services\File.xlsb"
+    mService.SynchVbProject sp_clone_project:=mCompMan.WbkGetOpen("E:\Ablage\Excel VBA\DevAndTest\Test-VB-Clone-Project\Test_VB_Clone_Project.xlsb") _
+                          , sp_raw_project:="E:\Ablage\Excel VBA\DevAndTest\Test-VB-Raw-Project\Test_VB_Raw_Project.xlsb"
 
 End Sub
 
 Public Sub Test_01_KindOfComp()
     Const PROC = "Test_01_KindOfComp"
 
-    Dim wb          As Workbook
-    Dim fso         As New FileSystemObject
-    Dim cComp       As clsComp
-    Dim sComp       As String
+    Dim wb      As Workbook
+    Dim fso     As New FileSystemObject
+    Dim cComp   As clsComp
+    Dim sComp   As String
     
     Set wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsm")
 
@@ -103,8 +103,8 @@ Public Sub Test_01_KindOfComp()
     Set cComp = Nothing
     Set cComp = New clsComp
     With cComp
-        .Wrkbk = wb
-        .VBComp = wb.VbProject.VBComponents(sComp)
+        Set .Wrkbk = wb
+        Set .VBComp = wb.VbProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enKindOfComp.enRawClone
     End With
 
@@ -112,8 +112,8 @@ Public Sub Test_01_KindOfComp()
     Set cComp = Nothing
     Set cComp = New clsComp
     With cComp
-        .Wrkbk = wb
-        .VBComp = wb.VbProject.VBComponents(sComp)
+        Set .Wrkbk = wb
+        Set .VBComp = wb.VbProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enRawClone
     End With
     
@@ -121,8 +121,8 @@ Public Sub Test_01_KindOfComp()
     Set cComp = Nothing
     Set cComp = New clsComp
     With cComp
-        .Wrkbk = wb
-        .VBComp = wb.VbProject.VBComponents(sComp)
+        Set .Wrkbk = wb
+        Set .VBComp = wb.VbProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enInternal
     End With
     
@@ -156,8 +156,8 @@ Public Sub Test_Log()
     Dim cLog        As New clsLog
     
     With cLog
-        .ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
-        .service = ErrSrc(PROC)
+        Set .ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
+        .Service = ErrSrc(PROC)
         .ServicedItem = " <component-name> "
         .Entry = "Tested"
         mMsg.Box msg_title:="Test-Log:" _
@@ -204,7 +204,7 @@ End Sub
 
 Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
                           ByVal rnc_comp_name As String, _
-                          ByVal rnc_wb As Workbook)
+                          ByRef rnc_wb As Workbook)
 ' --------------------------------------------------------
 ' This test procedure is exclusively performed by the
 ' AddIn instance. It is run by the Development instance
@@ -227,8 +227,8 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     lCompMaxLen = mService.CompMaxLen(rnc_wb)
     If mMe.IsDevInstnc Then GoTo xt
     
-    cLog.ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
-    cLog.service = ErrSrc(PROC)
+    Set cLog.ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
+    cLog.Service = ErrSrc(PROC)
     
     With cComp
         .CompName = rnc_comp_name
@@ -299,7 +299,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
    Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
-' can be renewed by the re-import of an Export File.
+' can be renewed by the re-import of an Export-File.
 ' The test asserts that a Workbook is able to renew its own VBA code provided
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
@@ -322,16 +322,16 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
             '~~ -------------------------------
             mErH.BoP ErrSrc(PROC)
             With cComp
-                .Wrkbk = ThisWorkbook
+                Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
                             
                 '~~ ------------------------------------------------------
-                '~~ Second test with the selection of a remote Export File
+                '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
                 If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
                                   , sel_filters:="*" & cComp.ExpFileExtension _
-                                  , sel_filter_name:="bas-ExportFile" _
-                                  , sel_title:="Select an Export File for the renewal of the component '" & .CompName & "'!" _
+                                  , sel_filter_name:="bas-Export-Files" _
+                                  , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
                                   , sel_result:=flExport) _
                 Then sExpFile = flExport.Path
                 For i = 1 To repeat
@@ -360,7 +360,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
    Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
-' can be renewed by the re-import of an Export File.
+' can be renewed by the re-import of an Export-File.
 ' The test asserts that a Workbook is able to renew its own VBA code provided
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
@@ -381,7 +381,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
             '~~ -------------------------------
             mErH.BoP ErrSrc(PROC)
             With cComp
-                .Wrkbk = ThisWorkbook
+                Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
             
                 For i = 1 To repeat
@@ -410,7 +410,7 @@ Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
    Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
-' can be renewed by the re-import of an Export File.
+' can be renewed by the re-import of an Export-File.
 ' The test asserts that a Workbook is able to renew its own VBA code provided
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
@@ -431,7 +431,7 @@ Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
             '~~ -------------------------------
             mErH.BoP ErrSrc(PROC)
             With cComp
-                .Wrkbk = ThisWorkbook
+                Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
             
                 For i = 1 To repeat
@@ -460,7 +460,7 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
    Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
-' can be renewed by the re-import of an Export File.
+' can be renewed by the re-import of an Export-File.
 ' The test asserts that a Workbook is able to renew its own VBA code provided
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
@@ -482,11 +482,11 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
             '~~ -------------------------------
             mErH.BoP ErrSrc(PROC)
             With cComp
-                .Wrkbk = ThisWorkbook
+                Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
             
                 '~~ -------------------------------------------------
-                '~~ First test with the components origin Export File
+                '~~ First test with the components origin Export-File
                 '~~ -------------------------------------------------
                 sExpFile = .ExpFilePath ' the component's origin export file
                 For i = 1 To repeat
@@ -514,7 +514,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
    Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
-' can be renewed by the re-import of an Export File.
+' can be renewed by the re-import of an Export-File.
 ' The test asserts that a Workbook is able to renew its own VBA code provided
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
@@ -537,16 +537,16 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
             '~~ -------------------------------
             mErH.BoP ErrSrc(PROC)
             With cComp
-                .Wrkbk = ThisWorkbook
+                Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
                             
                 '~~ ------------------------------------------------------
-                '~~ Second test with the selection of a remote Export File
+                '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
                 If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
                                   , sel_filters:="*" & cComp.ExpFileExtension _
                                   , sel_filter_name:="UserForm" _
-                                  , sel_title:="Select an Export File for the renewal of the component '" & .CompName & "'!" _
+                                  , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
                                   , sel_result:=flExport) _
                 Then sExpFile = flExport.Path
                 For i = 1 To repeat
@@ -576,7 +576,7 @@ Public Sub Test_UpdateRawClones()
     On Error GoTo eh
     Dim lMaxCompLen As Long
     
-    mCompMan.service = PROC & ": "
+    mCompMan.Service = PROC & ": "
 
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
@@ -591,7 +591,7 @@ Public Sub Test_UpdateRawClones()
             mErH.BoP ErrSrc(PROC)
             Application.Run UpdateClonesService _
                           , lMaxCompLen _
-                          , mCompMan.service
+                          , mCompMan.Service
             mErH.EoP ErrSrc(PROC)
         End If
     End If

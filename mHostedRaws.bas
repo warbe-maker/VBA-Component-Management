@@ -2,8 +2,8 @@ Attribute VB_Name = "mHostedRaws"
 Option Explicit
 ' ---------------------------------------------------------------------------
 ' Standard Module mRaw
-'                 Maintains for raw components identified by their
-'                 component name the values HostFullName and ExpFileFullName.
+' Maintains for raw components identified by their component name,
+' the values HostFullName, and the ExpFileFullName.
 ' ---------------------------------------------------------------------------
 
 Private Const VNAME_HOST_FULL_NAME      As String = "HostFullName"

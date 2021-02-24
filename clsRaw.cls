@@ -25,21 +25,11 @@ Private sHostFullName           As String
 Private vbcRaw                  As VBComponent
 Private wbRawHost               As Workbook
 Private sService                As String
+Private sTypeString             As String
 
 Private Sub Class_Terminate()
     Set dctChanges = Nothing
 End Sub
-
-Friend Property Get Service() As String
-    If sService = vbNullString Then
-        sService = Split(Me.ExpFilePath, "\")(UBound(Split(Me.ExpFilePath, "\")))
-    End If
-    Service = sService
-End Property
-Friend Property Let ExpFileExtension(ByVal s As String)
-    sExpFileExtension = s
-    sExpFileFullName = Me.ExpFilePath & "\" & Me.CompName & s
-End Property
 
 Friend Property Get Changed( _
              Optional ByVal check_again As Boolean = False) As Boolean
@@ -71,11 +61,10 @@ Friend Property Get Changed( _
             Changed = dctChanges.Count <> 0
         End If
     End If
-    If Changed Then
-        cLog.Entry = "Raw code has changed! (raw export differs from clone export or clone export does not exist)"
-    Else
-        cLog.Entry = "Raw code unchanged! (raw export and clone export are identical)"
-    End If
+    
+    If Changed _
+    Then cLog.Entry = "The corresponding Raw's " & Me.TypeString & " changed! (its Export-File differs from the Clone's Export-File)" _
+    Else cLog.Entry = "The corresponding Raw's " & Me.TypeString & " has not changed! (its Export-File is identical with the Clone's Export-File)"
         
 xt: Set fso = Nothing
     Exit Property
@@ -87,18 +76,65 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Let CloneExpFileFullName(ByVal s As String):    sCloneExpFileFullName = s:                      End Property
+Friend Property Let CloneExpFileFullName(ByVal s As String):    sCloneExpFileFullName = s:                  End Property
 
-Friend Property Get CodeAsOfDate() As String:               CodeAsOfDate = flExpFile.DateLastModified:  End Property
+Friend Property Get CodeAsOfDate() As String:                   CodeAsOfDate = flExpFile.DateLastModified:  End Property
 
-Friend Property Get CompName() As String:                   CompName = sCompName:                       End Property
+Public Property Get CodeLines() As Dictionary
+' ----------------------------------------------------------
+' Returns the content of an Export-File (Me.ExpFileFullName)
+' as array, considering any kind of line break characters.
+' ----------------------------------------------------------
+    Const PROC = "CodeLines"
+    Const ATTRIB_VB = "Attribute VB_"
 
-Friend Property Let CompName(ByVal s As String):            sCompName = s:                              End Property
+    On Error GoTo eh
+    Dim i   As Long
+    Dim j   As Long
+    Dim dct As Dictionary
+    
+    With New FileSystemObject
+        Set dct = mFile.Dict(.GetFile(Me.ExpFileFullName))
+    End With
+    
+    '~~ Remove the extra module information lines
+    For i = dct.Count - 1 To 0 Step -1
+        If Left(dct.Items()(i - 1), Len(ATTRIB_VB)) = ATTRIB_VB Then Exit For
+    Next i
+    
+    For j = 0 To i - 1
+        dct.Remove dct.Keys()(0)
+    Next j
+    
+    '~~ Remove any leading or trailing empty items
+    If dct.Count = 0 Then GoTo xt
+    While dct.Items()(0) = vbNullString
+        dct.Remove dct.Keys()(0)
+    Wend
+    
+    ' Remove any trailing empty items
+    While dct.Items()(dct.Count - 1) = vbNullString
+        dct.Remove dct.Keys()(dct.Count - 1)
+    Wend
+
+xt: Set CodeLines = dct
+    Exit Property
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Property
+
+Friend Property Get CompName() As String:                       CompName = sCompName:                       End Property
+
+Friend Property Let CompName(ByVal s As String):                sCompName = s:                              End Property
 
 Friend Property Get DsplyAllChanges() As Long
 ' -------------------------------------------
 ' Display of all differences between the
-' clone's and the raw's Export File.
+' clone's and the raw's Export-File.
 ' -------------------------------------------
     Const PROC = "DisplayAllChanges"
     
@@ -140,7 +176,7 @@ Friend Property Get ExpFile() As File
     Set ExpFile = flExpFile
 End Property
 
-Friend Property Let ExpFile(ByVal fl As File)
+Friend Property Set ExpFile(ByVal fl As File)
     
     If fl Is Nothing Then
         With New FileSystemObject
@@ -149,6 +185,11 @@ Friend Property Let ExpFile(ByVal fl As File)
     End If
     Set flExpFile = fl
 
+End Property
+
+Friend Property Let ExpFileExtension(ByVal s As String)
+    sExpFileExtension = s
+    sExpFileFullName = Me.ExpFilePath & "\" & Me.CompName & s
 End Property
 
 Friend Property Get ExpFileFullName() As String:        ExpFileFullName = sExpFileFullName:     End Property
@@ -169,13 +210,24 @@ End Property
 
 Friend Property Get RawHost() As Workbook:              Set RawHost = wbRawHost:        End Property
 
-Friend Property Let RawHost(ByVal wb As Workbook):      Set wbRawHost = wb:             End Property
+Friend Property Set RawHost(ByVal wb As Workbook):      Set wbRawHost = wb:             End Property
 
 Friend Property Get RawType() As vbext_ComponentType:   RawType = vbcRaw.Type:          End Property
 
 Friend Property Get RawVbc() As VBComponent:            Set RawVbc = vbcRaw:            End Property
 
-Friend Property Let RawVbc(ByVal vbc As VBComponent):   Set vbcRaw = vbc:               End Property
+Friend Property Set RawVbc(ByRef vbc As VBComponent):   Set vbcRaw = vbc:               End Property
+
+Friend Property Get Service() As String
+    If sService = vbNullString Then
+        sService = Split(Me.ExpFilePath, "\")(UBound(Split(Me.ExpFilePath, "\")))
+    End If
+    Service = sService
+End Property
+
+Friend Property Let TypeString(ByVal s As String):      sTypeString = s:                End Property
+
+Friend Property Get TypeString() As String:             TypeString = sTypeString:       End Property
 
 Friend Property Get WrkbkBaseName() As String
     With New FileSystemObject
@@ -186,51 +238,4 @@ End Property
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsRaw" & "." & sProc
 End Function
-
-Public Property Get CodeLines() As Dictionary
-' ----------------------------------------------------------
-' Returns the content of an Export File (Me.ExpFileFullName)
-' as array, considering any kind of line break characters.
-' ----------------------------------------------------------
-    Const PROC = "CodeLines"
-    Const ATTRIB_VB = "Attribute VB_"
-
-    On Error GoTo eh
-    Dim i   As Long
-    Dim j   As Long
-    Dim dct As Dictionary
-    
-    With New FileSystemObject
-        Set dct = mFile.Dict(.GetFile(Me.ExpFileFullName))
-    End With
-    
-    '~~ Remove the extra module information lines
-    For i = dct.Count - 1 To 0 Step -1
-        If Left(dct.Items()(i - 1), Len(ATTRIB_VB)) = ATTRIB_VB Then Exit For
-    Next i
-    
-    For j = 0 To i
-        dct.Remove dct.Keys()(0)
-    Next j
-    
-    '~~ Remove any leading or trailing empty items
-    If dct.Count = 0 Then GoTo xt
-    While dct.Items()(0) = vbNullString
-        dct.Remove dct.Keys()(0)
-    Wend
-    
-    ' Remove any trailing empty items
-    While dct.Items()(dct.Count - 1) = vbNullString
-        dct.Remove dct.Keys()(dct.Count - 1)
-    Wend
-
-xt: Set CodeLines = dct
-    Exit Property
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Property
 

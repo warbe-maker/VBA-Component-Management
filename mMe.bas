@@ -592,7 +592,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Renew_4_Set_IsAddin_ToFalse(ByVal wb As Workbook)
+Private Sub Renew_4_Set_IsAddin_ToFalse(ByRef wb As Workbook)
     Const PROC = "Renew_4_Set_IsAddin_ToFalse"
     
     On Error GoTo eh
