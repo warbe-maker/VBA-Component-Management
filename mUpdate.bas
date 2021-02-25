@@ -81,6 +81,7 @@ Public Sub RawClones( _
             cRaw.CloneExpFileFullName = .ExpFileFullName
             cRaw.TypeString = .TypeString
             If cRaw.Changed Then
+                cLog.Entry = "The corresponding Raw's code changed! (its Export-File differs from the Clone's Export-File)"
                 Application.StatusBar = sStatus & vbc.name & " Renew of '" & .CompName & "' by import of '" & cRaw.ExpFileFullName & "'"
                 If bVerbose Then
                     UpdateCloneConfirmed ucc_comp_name:=vbc.name _
@@ -100,6 +101,8 @@ Public Sub RawClones( _
                     '~~ Register the update being used to identify a potentially relevant
                     '~~ change of the origin code
                 End If
+            Else
+                cLog.Entry = "The corresponding Raw's code has not changed! (its Export-File is identical with the Clone's Export-File)"
             End If
             sStatus = sStatus & " " & .CompName & ", "
         End With

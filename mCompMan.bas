@@ -112,55 +112,6 @@ Public Property Get Service() As String:            Service = sService:         
 
 Public Property Let Service(ByVal srvc As String):  sService = srvc:                End Property
 
-Public Function Clones( _
-                 ByRef cl_wb As Workbook) As Dictionary
-' ------------------------------------------------------
-' Returns a Dictionary with clone component's object as
-' the key and their kind of code change as item.
-' ------------------------------------------------------
-    Const PROC = "Clones"
-    
-    On Error GoTo eh
-    Dim vbc         As VBComponent
-    Dim dct         As New Dictionary
-    Dim fso         As New FileSystemObject
-    
-    mErH.BoP ErrSrc(PROC)
-        
-    For Each vbc In cl_wb.VbProject.VBComponents
-        Set cComp = New clsComp
-        With cComp
-            Set .Wrkbk = cl_wb
-            .CompName = vbc.name
-            cLog.ServicedItem = .CompName
-            If .KindOfComp = enRawClone Then
-                Set cRaw = New clsRaw
-                cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
-                cRaw.CompName = .CompName
-                cRaw.ExpFileExtension = .ExpFileExtension
-                cRaw.CloneExpFileFullName = .ExpFileFullName
-                cRaw.TypeString = .TypeString
-                If .Changed Or cRaw.Changed Then
-                    dct.Add vbc, vbc.name
-                End If
-            End If
-        End With
-        Set cComp = Nothing
-        Set cRaw = Nothing
-    Next vbc
-
-xt: mErH.EoP ErrSrc(PROC)
-    Set Clones = dct
-    Set fso = Nothing
-    Exit Function
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
-    End Select
-End Function
-
 Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
 ' -----------------------------------------------------------
 '
@@ -598,7 +549,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Function
-
 
 Public Function WbkIsOpen( _
            Optional ByVal io_name As String = vbNullString, _

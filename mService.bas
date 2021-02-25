@@ -305,7 +305,10 @@ Public Sub ExportChangedComponents( _
                 .VBComp.Export .ExpFileFullName
                 cLog.Entry = "Initially exported to '" & .ExpFileFullName & "'."
             End If
-            If Not .Changed Then GoTo next_vbc
+            If Not .Changed Then
+                cLog.Entry = "The code has not changed! (a temporary Export-File is identical with the regular Export-File)"
+                GoTo next_vbc
+            End If
         End With
                 
         Select Case cComp.KindOfComp
@@ -327,6 +330,7 @@ Public Sub ExportChangedComponents( _
                 
                 With cComp
                     If .Changed And Not cRaw.Changed Then
+                        cLog.Entry = "The Clone's code changed! (a temporary Export-File differs from the last regular Export-File)"
                         '~~ --------------------------------------------------------------------------
                         '~~ The code change in the clone component is now in question whether it is to
                         '~~ be ignored, i.e. the change is reverted with the Workbook's next open or
@@ -348,6 +352,8 @@ Public Sub ExportChangedComponents( _
                         '~~ The raw had changed since the Workbook's open. This case is not handled
                         '~~ along with the Workbook's Save event but with the Workbook's Open event
                         '~~ -----------------------------------------------------------------------
+                        cLog.Entry = "The Raw's code changed! (not considered with the export service)"
+                        cLog.Entry = "The Clone will be updated with the next Workbook open"
                     End If
                 End With
             
@@ -357,6 +363,7 @@ Public Sub ExportChangedComponents( _
             Case Else ' enInternal, enHostedRaw
                 With cComp
                     If .Changed Then
+                        cLog.Entry = "The code changed! (a temporary Export-File differs from the last regular Export-File)"
                         Application.StatusBar = sStatus & vbc.name & " Export to '" & .ExpFileFullName & "'"
                         vbc.Export .ExpFileFullName
                         sStatus = sStatus & vbc.name & ", "
@@ -555,7 +562,7 @@ Public Sub UpdateRawClones( _
     
     mUpdate.RawClones urc_wb:=uc_wb _
                     , urc_comp_max_len:=lCompMaxLen _
-                    , urc_clones:=mCompMan.Clones(uc_wb)
+                    , urc_clones:=Clones(uc_wb)
 
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
@@ -757,6 +764,62 @@ xt: If bWbClone Then
     CloneAndRawProject = bWbClone And bWbRaw
     Exit Function
 
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Function
+
+Private Function Clones( _
+                  ByRef cl_wb As Workbook) As Dictionary
+' ------------------------------------------------------
+' Returns a Dictionary with clone component's object as
+' the key and their kind of code change as item.
+' ------------------------------------------------------
+    Const PROC = "Clones"
+    
+    On Error GoTo eh
+    Dim vbc         As VBComponent
+    Dim dct         As New Dictionary
+    Dim fso         As New FileSystemObject
+    
+    mErH.BoP ErrSrc(PROC)
+        
+    For Each vbc In cl_wb.VbProject.VBComponents
+        Set cComp = New clsComp
+        With cComp
+            Set .Wrkbk = cl_wb
+            .CompName = vbc.name
+            cLog.ServicedItem = .CompName
+            If .KindOfComp = enRawClone Then
+                Set cRaw = New clsRaw
+                cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
+                cRaw.CompName = .CompName
+                cRaw.ExpFileExtension = .ExpFileExtension
+                cRaw.CloneExpFileFullName = .ExpFileFullName
+                cRaw.TypeString = .TypeString
+                If .Changed Then
+                    dct.Add vbc, vbc.name
+                Else
+                    cLog.Entry = "The component's code  has not changed."
+                End If
+                If cRaw.Changed Then
+                    If Not dct.Exists(vbc) Then dct.Add vbc, vbc.name
+                Else
+                    cLog.Entry = "The corresponding Raw's code has not changed."
+                End If
+            End If
+        End With
+        Set cComp = Nothing
+        Set cRaw = Nothing
+    Next vbc
+
+xt: mErH.EoP ErrSrc(PROC)
+    Set Clones = dct
+    Set fso = Nothing
+    Exit Function
+    
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
         Case mErH.DebugOptResumeNext: Resume Next

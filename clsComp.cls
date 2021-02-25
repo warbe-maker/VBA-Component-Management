@@ -178,7 +178,7 @@ Friend Property Get KindOfComp() As enKindOfComp
         ElseIf lKindOfComp = enKindOfComp.enUnknown Then
             lKindOfComp = enInternal
         End If
-        cLog.Entry = "Kind of Component = " & KoCStrng(lKindOfComp)
+        cLog.Entry = Me.TypeString & " (" & KoCStrng(lKindOfComp) & ")"
     End If
     
 xt: KindOfComp = lKindOfComp
@@ -195,9 +195,9 @@ End Property
 Private Function KoCStrng(ByVal koc As enKindOfComp) As String
     Select Case koc
         Case enKindOfComp.enUnknown:        KoCStrng = "Unknown"
-        Case enKindOfComp.enInternal:       KoCStrng = "Internal (neither raw nor clone)"
-        Case enKindOfComp.enRawClone:       KoCStrng = "Raw Clone"
-        Case enKindOfComp.enHostedRaw:      KoCStrng = "Hosted Raw"
+        Case enKindOfComp.enInternal:       KoCStrng = "Internal, neither Raw nor Clone"
+        Case enKindOfComp.enRawClone:       KoCStrng = "Clone"
+        Case enKindOfComp.enHostedRaw:      KoCStrng = "Raw (Hosted)"
     End Select
 End Function
 
@@ -390,10 +390,6 @@ Friend Property Get Changed() As Boolean
     End If
     Changed = dctChanges.Count <> 0
     
-    If Changed _
-    Then cLog.Entry = "The code changed! (a temporary Export-File differs from the last regular Export-File)" _
-    Else cLog.Entry = "The code has not changed! (a temporary Export-File is identical with the regular Export-File)"
-
 xt: Exit Property
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))

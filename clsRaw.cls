@@ -61,11 +61,7 @@ Friend Property Get Changed( _
             Changed = dctChanges.Count <> 0
         End If
     End If
-    
-    If Changed _
-    Then cLog.Entry = "The corresponding Raw's " & Me.TypeString & " changed! (its Export-File differs from the Clone's Export-File)" _
-    Else cLog.Entry = "The corresponding Raw's " & Me.TypeString & " has not changed! (its Export-File is identical with the Clone's Export-File)"
-        
+            
 xt: Set fso = Nothing
     Exit Property
 

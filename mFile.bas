@@ -108,13 +108,34 @@ Private Property Get SplitStr(ByRef s As String)
     Else If InStr(s, vbCr) <> 0 Then SplitStr = vbCr
 End Property
 
+Public Property Let Arry( _
+           Optional ByVal fa_file As String, _
+           Optional ByVal fa_excl_empty_lines As Boolean = False, _
+           Optional ByRef fa_split As String = vbCrLf, _
+           Optional ByVal fa_append As Boolean = False, _
+                    ByVal fa_ar As Variant)
+' -----------------------------------------------------------------
+' Writes array (fa_ar) to file (fa_file) whereby the array is
+' joined to a text string using the line break string (fa_split)
+' which defaults to vbCrLf and is optionally returned by Arry-Get.
+' -----------------------------------------------------------------
+                    
+    mFile.Txt(ft_file:=fa_file _
+            , ft_append:=fa_append _
+            , ft_split:=fa_split _
+             ) = Join(fa_ar, fa_split)
+             
+End Property
+
 Public Property Get Arry( _
-           Optional ByVal fa_file_full_name As String, _
-           Optional ByVal fa_exclude_empty_records As Boolean = False) As Variant
-' ------------------------------------------------------------------------------------
-' Returns the content of the file (vFile) - which may be provided as file object or
-' full file name - as array by considering any kind of line break characters.
-' ------------------------------------------------------------------------------------
+           Optional ByVal fa_file As String, _
+           Optional ByVal fa_excl_empty_lines As Boolean = False, _
+           Optional ByRef fa_split As String, _
+           Optional ByVal fa_append As Boolean = False) As Variant
+' -----------------------------------------------------------------------
+' Returns the content of the file (fa_file) - a files full name - as
+' array, with the used line break string returned in (fa_split).
+' -----------------------------------------------------------------------
     Const PROC  As String = "Arry"
     
     On Error GoTo eh
@@ -128,17 +149,17 @@ Public Property Get Arry( _
     Dim j       As Long
     Dim v       As Variant
     
-    If Not fso.FileExists(fa_file_full_name) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named '" & fa_file_full_name & "' does not exist!"
+    If Not fso.FileExists(fa_file) _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named '" & fa_file & "' does not exist!"
     
     '~~ Unload file to a string
-    sFile = mFile.Txt(ft_file:=fa_file_full_name _
+    sFile = mFile.Txt(ft_file:=fa_file _
                     , ft_split:=sSplit _
                      )
     If sFile = vbNullString Then GoTo xt
     a = Split(sFile, sSplit)
     
-    If Not fa_exclude_empty_records Then
+    If Not fa_excl_empty_lines Then
         a1 = a
     Else
         '~~ Extract non-empty items
@@ -153,6 +174,7 @@ Public Property Get Arry( _
     End If
     
 xt: Arry = a1
+    fa_split = sSplit
     Set cll = Nothing
     Set fso = Nothing
     Exit Property
