@@ -1,7 +1,12 @@
 Attribute VB_Name = "mSync"
 Option Explicit
 
-Private bSynchIssue As Boolean
+Private bSynchIssue     As Boolean
+Private dctObsolete     As New Dictionary
+Private dctNew          As New Dictionary
+Private lMaxLenComp     As Long
+Private lMaxLenType     As Long
+Private dctSyncIssues   As Dictionary
 
 Public Sub ByCodeLines(ByRef bcl_clone_wb As Workbook, _
                        ByVal bcl_comp_name As String, _
@@ -54,6 +59,18 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
+
+Public Function Center(ByVal s1 As String, _
+                       ByVal l As Long, _
+               Optional ByVal sFill As String = " ") As String
+' ------------------------------------------------------------
+' Returns s1 centered in a string with length l.
+' ------------------------------------------------------------
+    Dim lSpace As Long
+    lSpace = Max(1, ((l - Len(s1)) / 2))
+    Center = VBA.String$(lSpace, sFill) & s1 & VBA.String$(lSpace, sFill)
+    Center = Right(Center, l)
+End Function
 
 Private Function CodeModuleIsEmpty(ByRef vbc As VBComponent) As Boolean
     With vbc.CodeModule
@@ -128,47 +145,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub RenameDocumentModule( _
-                           ByRef rdm_wb As Workbook, _
-                           ByVal rdm_old_name As String, _
-                           ByVal rdm_new_name As String)
-' -------------------------------------------------------
-' Renames in Workbook (rdm_wb) the Data Module
-' (rdm_old_name) to (rdm_new_name).
-' -------------------------------------------------------
-    Const PROC = "RenameDocumentModule"
-    
-    On Error GoTo eh
-    Dim vbc     As VBComponent
-    Dim cClone As New clsComp
-    
-    With rdm_wb.VbProject
-        For Each vbc In .VBComponents
-            If vbc.Type = vbext_ct_Document Then
-                If vbc.Name = rdm_old_name Then
-                    vbc.Name = rdm_new_name
-                    DoEvents
-                    Exit For
-                End If
-            End If
-        Next vbc
-    End With
-    
-    '~~ Export
-    With cClone
-        Set .Wrkbk = rdm_wb
-        .CompName = rdm_new_name
-        .VBComp.Export .ExpFileFullName
-    End With
-
-xt: Exit Sub
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-    End Select
-End Sub
-
 Private Function CompExists( _
                       ByRef ce_wb As Workbook, _
                       ByVal ce_comp_name As String) As Boolean
@@ -210,6 +186,9 @@ Public Function Components(ByRef wb_clone As Workbook, _
     Dim sName       As String
     Dim cRawSheet   As clsSheet
     Dim cCloneSheet As clsSheet
+    Dim v           As Variant
+    Dim lType       As vbcmType
+    
     Dim sBttnAddAsNewSheet  As String: sBttnAddAsNewSheet = "Add the sheet as a new one" & vbLf & _
                                                             "Attention:" & vbLf & _
                                                             "One of the (productive!!!) sheets" & vbLf & _
@@ -218,7 +197,6 @@ Public Function Components(ByRef wb_clone As Workbook, _
                                                             "and make shure only the sheet's name" & vbLf & _
                                                             "o r  its CodeName is changed but not" & vbLf & _
                                                             "both at once!"
-    
     For Each vbc In wb_raw.VbProject.VBComponents
         If vbc.Type = vbext_ct_ActiveXDesigner Then
             cLog.Entry = "Type AxtiveXDesigner component is not supported"
@@ -265,7 +243,7 @@ Public Function Components(ByRef wb_clone As Workbook, _
                                       , msg_buttons:=mMsg.Buttons(sBttnAddAsNewSheet, sBttnTerminateSync) _
                                        )
                         Case sBttnAddAsNewSheet
-                            CompAdd
+'                            CompAdd
                         Case Else:  GoTo xt
                     End Select
                                   
@@ -421,6 +399,118 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Function CompsNew( _
+                    ByRef wb_clone As Workbook, _
+                    ByRef wb_raw As Workbook) As Dictionary
+' ---------------------------------------------------------
+' Returns a Dictionary with all new non-Document-Modules in
+' (wb_clone) Workbook, i.e. existing in (wb_raw) Workbook
+' but not in (wb_clone).
+' ---------------------------------------------------------
+    Const PROC = "CompsNew"
+    
+    On Error GoTo eh
+    Dim fso         As New FileSystemObject
+    Dim cComp       As clsComp
+    Dim v           As Variant
+    Dim lType       As vbcmType
+    Dim dct         As New Dictionary
+    Dim vbc         As VBComponent
+    Dim cCloneSheet As clsSheet
+    Dim cRawSheet   As clsSheet
+    Dim lNewSheets  As Long
+    Dim lNewAdded   As Long
+    
+    '~~ Collect new and obsolete Standard Modules, Class Modules, and UserForms
+    Set cComp = New clsComp
+    For Each v In cComp.CompType
+        lType = v
+        For Each vbc In wb_raw.VbProject.VBComponents
+            If vbc.Type = lType Then
+                If Not CompExists(wb_clone, vbc.Name) _
+                And Not vbc.Type = vbext_ct_Document _
+                Then dct.Add cComp.TypeString(vbc) & ":" & vbc.Name, vbc ' keep record of the new wb_raw component
+            End If
+        Next vbc
+    Next v
+
+    '~~ Collect new and obsolete Document Modules representing Worksheets
+    Set dctSyncIssues = New Dictionary
+    lNewSheets = wb_raw.Worksheets.Count - wb_clone.Worksheets.Count
+    lNewAdded = 0
+    For Each vbc In wb_raw.VbProject.VBComponents
+        If Not CompExists(wb_clone, vbc.Name) _
+        And vbc.Type = vbext_ct_Document _
+        And Not IsWrkbkComp(vbc) Then
+            '~~ A Worksheet is only regarded a new:
+            '~~ 1. When the number of sheets in the Raw Workbook is greater than in the Clone Workbook.
+            '~~ 2. When the sheet neither exists in the Clone Workbbook under its CodeName nor its Name.
+            If wb_clone.Worksheets.Count < wb_raw.Worksheets.Count Then
+                Set cCloneSheet = New clsSheet: Set cCloneSheet.Wrkbk = wb_clone
+                Set cRawSheet = New clsSheet:   Set cRawSheet.Wrkbk = wb_raw
+                If Not cCloneSheet.ExistsByName(cRawSheet.Name(vbc.Name)) Then
+                    If lNewAdded < lNewSheets Then
+                        dct.Add "Worksheet:" & vbc.Name, vbc ' keep record of the new wb_raw component
+                        lNewAdded = lNewAdded + 1
+                    Else
+                        dctSyncIssues.Add vbc.Name, "There are sheets in '" & fso.GetBaseName(wb_raw.Name) & "' which appear new than the difference in number allows!"
+                        dctSyncIssues.Add vbc.Name, "It cannot be assosiated with an existing Clone sheet when both, the Name and the CodeName are changed!"
+                    End If
+                End If
+            End If
+        End If
+    Next vbc
+
+
+
+xt: Set CompsNew = dct
+    Set fso = Nothing
+    Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Function
+
+Private Function CompsObsolete( _
+                         ByRef wb_clone As Workbook, _
+                        ByRef wb_raw As Workbook) As Dictionary
+' ---------------------------------------------------------------
+' Returns a Dictionary with all non-Document-Modules obsolete
+' in (wb_clone) Workbook, i.e. not existing in (wb_raw) Workbook.
+' ---------------------------------------------------------------
+    Const PROC = "CompsObsolete"
+    
+    On Error GoTo eh
+    Dim cComp As clsComp
+    Dim v       As Variant
+    Dim lType   As vbcmType
+    Dim dct     As New Dictionary
+    Dim vbc     As VBComponent
+    
+    Set cComp = New clsComp
+    For Each v In cComp.CompType
+        lType = v
+        For Each vbc In wb_clone.VbProject.VBComponents
+            If vbc.Type = lType _
+            And Not CompExists(wb_raw, vbc.Name) _
+            And Not vbc.Type = vbext_ct_Document _
+            Then dct.Add cComp.TypeString(vbc) & ":" & vbc.Name, vbc ' keep record of the new wb_raw component
+        Next vbc
+    Next v
+
+xt: Set CompsObsolete = dct
+    Exit Function
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Function
+
 Private Sub CompUpdate( _
                  ByRef uc_clone As clsComp, _
                  ByRef uc_raw As clsRaw)
@@ -484,6 +574,10 @@ Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSync." & s
 End Function
 
+Private Function IsSheetComp(ByRef vbc As VBComponent) As Boolean
+    IsSheetComp = vbc.Type = vbext_ct_Document And Not IsWrkbkComp(vbc)
+End Function
+
 Private Function IsWrkbkComp(ByRef vbc As VBComponent) As Boolean
     
     Dim bSigned As Boolean
@@ -493,8 +587,19 @@ Private Function IsWrkbkComp(ByRef vbc As VBComponent) As Boolean
     
 End Function
 
-Private Function IsSheetComp(ByRef vbc As VBComponent) As Boolean
-    IsSheetComp = vbc.Type = vbext_ct_Document And Not IsWrkbkComp(vbc)
+Private Function MaxLen( _
+                      ByRef wb_clone As Workbook, _
+                      ByRef wb_raw As Workbook, _
+                      ByRef max_len_comp As Long, _
+                      ByRef max_len_type As Long) As Long
+    Dim cComp As clsComp
+    Set cComp = New clsComp
+    Set cComp.Wrkbk = wb_clone
+    max_len_comp = cComp.MaxLenComp
+    Set cComp = New clsComp
+    Set cComp.Wrkbk = wb_raw
+    max_len_comp = mBasic.Max(max_len_comp, cComp.MaxLenComp)
+    max_len_type = cComp.MaxLenType
 End Function
 
 Private Sub NameAdd(ByRef na_target_wb As Workbook, _
@@ -577,30 +682,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function SheetExists( _
-                       ByRef se_wb As Workbook, _
-                       ByVal se_name As String) As Boolean
-' ----------------------------------------------------------------
-' Returns True when the sheet (se_name) exists in Workbook (se_wb)
-' ----------------------------------------------------------------
-    Dim ws As Worksheet
-    For Each ws In se_wb.Worksheets
-        If ws.Name = se_name Then
-            SheetExists = True: Exit For
-        End If
-    Next ws
-End Function
-
-Private Function SheetGet(ByRef sg_wb As Workbook, _
-                          ByVal sg_codename As String) As Worksheet
-    Dim sh As Worksheet
-    For Each sh In sg_wb.Worksheets
-        If sh.CodeName = sg_codename Then
-            Set SheetGet = sh: Exit For
-        End If
-    Next sh
-End Function
-
 Private Sub RefAdd(ByRef ra_wb As Workbook, _
                    ByVal ra_ref As Reference)
 ' ----------------------------------------------------
@@ -666,21 +747,162 @@ Private Sub RefRemove( _
     
 End Sub
 
-Public Sub VbProject(ByRef wb_clone As Workbook, _
-                     ByRef wb_raw As Workbook)
-' ----------------------------------------------------
-' Synchronizes the productive VB-Project (wb_clone)
-' with the development VB-Project (wb_raw).
-' ----------------------------------------------------
-    Const PROC = "VbProject"
+Private Sub RenameDocumentModule( _
+                           ByRef rdm_wb As Workbook, _
+                           ByVal rdm_old_name As String, _
+                           ByVal rdm_new_name As String)
+' -------------------------------------------------------
+' Renames in Workbook (rdm_wb) the Data Module
+' (rdm_old_name) to (rdm_new_name).
+' -------------------------------------------------------
+    Const PROC = "RenameDocumentModule"
     
     On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim cClone  As clsComp
-    Dim cRaw    As clsRaw
     Dim vbc     As VBComponent
-    Dim fl      As File
-    Dim sName   As String
+    Dim cClone As New clsComp
+    
+    With rdm_wb.VbProject
+        For Each vbc In .VBComponents
+            If vbc.Type = vbext_ct_Document Then
+                If vbc.Name = rdm_old_name Then
+                    vbc.Name = rdm_new_name
+                    DoEvents
+                    Exit For
+                End If
+            End If
+        Next vbc
+    End With
+    
+    '~~ Export
+    With cClone
+        Set .Wrkbk = rdm_wb
+        .CompName = rdm_new_name
+        .VBComp.Export .ExpFileFullName
+    End With
+
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Sub
+
+Private Function SheetExists( _
+                       ByRef se_wb As Workbook, _
+                       ByVal se_name As String) As Boolean
+' ----------------------------------------------------------------
+' Returns True when the sheet (se_name) exists in Workbook (se_wb)
+' ----------------------------------------------------------------
+    Dim ws As Worksheet
+    For Each ws In se_wb.Worksheets
+        If ws.Name = se_name Then
+            SheetExists = True: Exit For
+        End If
+    Next ws
+End Function
+
+Private Function SheetGet(ByRef sg_wb As Workbook, _
+                          ByVal sg_codename As String) As Worksheet
+    Dim sh As Worksheet
+    For Each sh In sg_wb.Worksheets
+        If sh.CodeName = sg_codename Then
+            Set SheetGet = sh: Exit For
+        End If
+    Next sh
+End Function
+
+Private Sub SheetRemove(ByRef wb As Workbook, _
+                        ByRef vbc As VBComponent)
+' -----------------------------------------------
+' Remove the sheet which corresponds with the
+' VBComponent (vbc) by identinfying its Name.
+' -----------------------------------------------
+    Const PROC = "SheetRemove"
+    
+    On Error GoTo eh
+    Dim ws As Worksheet
+    
+    For Each ws In wb.Worksheets
+        If ws.CodeName = vbc.Name Then
+            If ws.UsedRange.Columns.Count > 0 Or ws.UsedRange.Rows.Count > 0 Then
+                If ws.Visible = xlSheetHidden Then
+                    '~~ This Worksheet already contains data which might get lost when the sheet is deleted
+                    '~~ For safety it will by copied as backup and hidden. However, this backup will be removed
+                    '~~ with the next synchronization !!!
+                    Stop
+                    ws.Copy After:=wb.Worksheets.Count
+                    ws.Name = ws.Name & "_Bkp"
+                    ws.Visible = xlSheetHidden
+                Else
+                    '~~ This is a backup which now will be removed!
+                    Stop
+                    wb.Worksheets(ws.Name).Delete
+                End If
+            End If
+            Exit For
+        End If
+    Next ws
+    
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
+Public Sub VbProject(ByRef wb_clone As Workbook, _
+                     ByRef wb_raw As Workbook)
+' -------------------------------------------------
+' Synchronizes the productive VB-Project (wb_clone)
+' with the development VB-Project (wb_raw).
+' -------------------------------------------------
+    Const PROC = "VbProject"
+    On Error GoTo eh
+    Dim fso         As New FileSystemObject
+    Dim cClone      As New clsComp
+    Dim cRaw        As clsRaw
+    Dim vbc         As VBComponent
+    Dim fl          As File
+    Dim sName       As String
+    Dim sMsgConfirm As String
+    Dim i           As Long
+    Dim sMsg        As tMsg
+    Dim sBttnCnfrmd As String
+    Dim sBttnTrmnt  As String
+    
+    MaxLen wb_clone, wb_raw, lMaxLenComp, lMaxLenType
+  
+    Set dctNew = CompsNew(wb_clone, wb_raw)
+    Set dctObsolete = CompsObsolete(wb_clone, wb_raw)
+        
+    If dctNew.Count > 0 Or dctObsolete.Count > 0 Then
+        sMsgConfirm = "| " & Center("New Components", lMaxLenType + lMaxLenComp + 1) & _
+                     " | " & Center("Obsolete Components", lMaxLenType + lMaxLenComp + 1) & " |"
+        sMsgConfirm = sMsgConfirm & vbLf & _
+                      "+-" & VBA.String$(lMaxLenType + lMaxLenComp + 1, "-") & _
+                     "-+-" & VBA.String$(lMaxLenType + lMaxLenComp + 1, "-") & "-+"
+        For i = 1 To Max(dctNew.Count, dctObsolete.Count)
+            sMsgConfirm = sMsgConfirm & vbLf & _
+                      "| " & TypeNew(i) & " " & CompNew(i) & _
+                     " | " & TypeObsolete(i) & " " & CompObsolete(i) & " |"
+        Next i
+        sMsg.Section(1).sText = "Please confirm the following synchronization details." & vbLf & _
+                                "In case of any concerns reply with No!"
+        sMsg.Section(2).sText = sMsgConfirm
+        sMsg.Section(2).bMonspaced = True
+        
+        sBttnCnfrmd = "Synchronize" & vbLf & vbLf & fso.GetBaseName(wb_clone.Name) & vbLf & " with " & vbLf & fso.GetBaseName(wb_raw.Name)
+        sBttnTrmnt = "Do not synchronize!" & vbLf & vbLf & "(in case of any concerns)"
+        
+        
+        If mMsg.Dsply(msg_title:="Please confirm the below synchronization details" _
+                    , msg:=sMsg _
+                    , msg_buttons:=mMsg.Buttons(sBttnCnfrmd, sBttnTrmnt) _
+                     ) = sBttnTrmnt Then GoTo xt
+    End If
     
     mSync.References wb_clone:=wb_clone, wb_raw:=wb_raw
     mSync.Components wb_clone:=wb_clone, wb_raw:=wb_raw
@@ -694,6 +916,42 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
+
+Private Function CompNew(ByVal i As Long) As String
+    Dim s As String
+    CompNew = VBA.Space$(lMaxLenComp)
+    If i <= dctNew.Count Then
+        s = Split(dctNew.Keys()(i - 1), ":")(1)
+        CompNew = s & VBA.Space$(lMaxLenComp - Len(s))
+    End If
+End Function
+
+Private Function CompObsolete(ByVal i As Long) As String
+    Dim s As String
+    CompObsolete = VBA.Space$(lMaxLenComp)
+    If i <= dctObsolete.Count Then
+        s = Split(dctObsolete.Keys()(i - 1), ":")(1)
+        CompObsolete = s & VBA.Space$(lMaxLenComp - Len(s))
+    End If
+End Function
+
+Private Function TypeNew(ByVal i As Long) As String
+    Dim s As String
+    TypeNew = VBA.Space$(lMaxLenType)
+    If i <= dctNew.Count Then
+        s = Split(dctNew.Keys()(i - 1), ":")(0)
+        TypeNew = s & VBA.Space$(lMaxLenType - Len(s))
+    End If
+End Function
+
+Private Function TypeObsolete(ByVal i As Long) As String
+    Dim s As String
+    TypeObsolete = VBA.String$(lMaxLenType, " ")
+    If i <= dctObsolete.Count Then
+        s = Split(dctObsolete.Keys()(i - 1), ":")(0)
+        TypeObsolete = s & VBA.Space$(lMaxLenType - Len(s))
+    End If
+End Function
 
 Private Function WbkGetOpen(ByVal go_wb_full_name As String) As Workbook
 ' ----------------------------------------------------------------------

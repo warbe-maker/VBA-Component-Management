@@ -45,6 +45,13 @@ Private sWrkbkFullName      As String       ' Common Component host Workbook's f
 Private vbc                 As VBComponent  ' VBComponent managed by this Class Module
 Private wb                  As Workbook     ' The class' Workbook
 Private sService            As String       ' Name of the 'Service' folder, i.e. the folder of the Workbook
+Private dctType             As Dictionary
+Private lMaxLenType         As Long
+Private lMaxLenComp         As Long
+
+Public Property Get MaxLenComp() As Long:           MaxLenComp = lMaxLenComp:   End Property
+
+Public Property Get MaxLenType() As Long:           MaxLenType = lMaxLenType:   End Property
 
 Public Property Get Service(Optional ByVal wb_full_name) As String
     If sService = vbNullString Then
@@ -53,7 +60,7 @@ Public Property Get Service(Optional ByVal wb_full_name) As String
     Service = sService
 End Property
 
-Friend Property Get CompName() As String:           CompName = sCompName:   End Property
+Friend Property Get CompName() As String:           CompName = sCompName:       End Property
 
 Friend Property Let CompName(ByVal s As String)
 ' ----------------------------------------------------------------
@@ -285,7 +292,7 @@ Friend Property Get VBComp() As VBComponent
     
     If vbc Is Nothing Then
         If Not mCompMan.CompExists(ce_wb:=wb, ce_comp_name:=sCompName) _
-        Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "A Component named '" & sCompName & "' does not exist in Workbook '" & wb.name & "'!"
+        Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "A Component named '" & sCompName & "' does not exist in Workbook '" & wb.Name & "'!"
         Set vbc = wb.VbProject.VBComponents(sCompName)
     End If
     Set VBComp = vbc
@@ -332,9 +339,11 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
 '                          - WrkbkBaseName (sWrkbkBaseName)
 '                          - ExpFilePath   (sExpFilePath)
 '                          - Service       (sService)
+'                          - MaxLenComp    (lMaxLenComp)
 ' ---------------------------------------------------------
     
     Dim fso As New FileSystemObject
+    Dim vbc As VBComponent
     
     Set wb = wbk
     sWrkbkFullName = wb.FullName
@@ -342,6 +351,9 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     sExpFilePath = fso.GetParentFolderName(sWrkbkFullName)
     Set foExport = fso.GetFolder(sExpFilePath)
     sService = Split(wb.Path, "\")(UBound(Split(wb.Path, "\")))
+    For Each vbc In wb.VbProject.VBComponents
+        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
+    Next vbc
     Set fso = Nothing
     
 End Property
@@ -373,8 +385,12 @@ Friend Property Get Changed() As Boolean
                 Me.VBComp.Export Me.ExpFileFullName
             End If
             sTmpFolder = Me.ExpFilePath & "\Temp"
-            If Not .FolderExists(sTmpFolder) Then .CreateFolder sTmpFolder
-            sTmpExpFileFullName = sTmpFolder & "\" & vbc.name & sExpFileExtension
+            If Not .FolderExists(sTmpFolder) Then
+                DoEvents
+                .CreateFolder sTmpFolder
+                DoEvents
+            End If
+            sTmpExpFileFullName = sTmpFolder & "\" & vbc.Name & sExpFileExtension
             vbc.Export sTmpExpFileFullName
             DoEvents
     
@@ -509,7 +525,7 @@ Public Sub ReplaceRawWithClone()
     mRenew.ByImport rn_wb:=wbRawHost _
                   , rn_comp_name:=sCompName _
                   , rn_exp_file_full_name:=Me.ExpFileFullName
-    cLog.Entry = "Remote raw (hosted in '" & wbRawHost.name & "' replaced by (re-)import of the clone's export file '" & Me.ExpFileFullName & "'"
+    cLog.Entry = "Remote raw (hosted in '" & wbRawHost.Name & "' replaced by (re-)import of the clone's export file '" & Me.ExpFileFullName & "'"
 
 xt: Exit Sub
 
@@ -571,23 +587,23 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Public Function CompType() As Dictionary
+    Set CompType = dctType
+End Function
 
-Public Function TypeString() As String
-' --------------------------------------------------------------------------
+Public Function TypeString( _
+            Optional ByVal vbc As VBComponent = Nothing) As String
+' ----------------------------------------------------------------
 ' Returns the component type derived from sComp.
-' --------------------------------------------------------------------------
+' ----------------------------------------------------------------
     Const PROC = "TypeString"
     
     On Error GoTo eh
-        
-    Select Case vbc.Type
-        Case vbext_ct_ActiveXDesigner:  TypeString = "ActiveX Designer"
-        Case vbext_ct_ClassModule:      TypeString = "Class Module"
-        Case vbext_ct_Document:         TypeString = "Document Module"
-        Case vbext_ct_MSForm:           TypeString = "UserForm"
-        Case vbext_ct_StdModule:        TypeString = "Code Module"
-        Case Else:                      TypeString = "Type '" & CStr(vbc.Type) & "' unknown"
-    End Select
+    
+    If vbc Is Nothing Then Set vbc = Me.VBComp
+    If dctType.Exists(vbc.Type) _
+    Then TypeString = dctType(vbc.Type) _
+    Else TypeString = "Type '" & CStr(vbc.Type) & "' unknown"
     
 xt: Exit Function
     
@@ -618,6 +634,15 @@ End Function
 '    Set fso = Nothing
 '
 'End Function
+
+Private Sub Class_Initialize()
+    If dctType Is Nothing Then Set dctType = New Dictionary
+    dctType.Add vbext_ct_ActiveXDesigner, "ActiveX Designer":   lMaxLenType = Max(Len(lMaxLenType), Len("ActiveX Designer"))
+    dctType.Add vbext_ct_ClassModule, "Class Module":           lMaxLenType = Max(Len(lMaxLenType), Len("Class Module"))
+    dctType.Add vbext_ct_Document, "Document Module":           lMaxLenType = Max(Len(lMaxLenType), Len("Document Module"))
+    dctType.Add vbext_ct_MSForm, "UserForm":                    lMaxLenType = Max(Len(lMaxLenType), Len("UserForm"))
+    dctType.Add vbext_ct_StdModule, "Standard Module":          lMaxLenType = Max(Len(lMaxLenType), Len("Standard Module"))
+End Sub
 
 Private Sub Class_Terminate()
     Set dctChanges = Nothing

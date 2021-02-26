@@ -50,3 +50,19 @@ Friend Property Get Name( _
     Next sh
 End Property
 
+Public Function ExistsByCodeName(ByVal eb_codename As String) As Boolean
+    Dim ws As Worksheet
+    For Each ws In Me.Wrkbk
+        ExistsByCodeName = ws.CodeName = eb_codename
+        If ExistsByCodeName Then Exit For
+    Next ws
+End Function
+
+Public Function ExistsByName(ByVal eb_name As String) As Boolean
+    Dim ws As Worksheet
+    For Each ws In Me.Wrkbk
+        ExistsByName = ws.Name = eb_name
+        If ExistsByName Then Exit For
+    Next ws
+End Function
+
