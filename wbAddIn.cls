@@ -30,7 +30,6 @@ Option Explicit
 ' ------------------------------------------------------------------
 Private Const HOSTED_RAWS = ""
 Private Const COMPMAN_BY_ADDIN  As String = "CompMan.xlam!mCompMan."
-Private Const COMPMAN_BY_DEVLP  As String = "CompMan.xlsb!mCompMan."
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "wbAddIn" & "." & sProc
@@ -55,7 +54,6 @@ Private Sub Workbook_Open()
     Const PROC = "Workbook_Open"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     
     mErH.BoP ErrSrc(PROC)
     
@@ -84,7 +82,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     Const PROC = "Workbook_BeforeSave"
     
     On Error GoTo eh
-    Application.StatusBar = "Saving Workbook '" & ThisWorkbook.name & "' please wait, this may take a few seconds"
+    Application.StatusBar = "Saving Workbook '" & ThisWorkbook.Name & "' please wait, this may take a few seconds"
     Application.EnableEvents = False
     ThisWorkbook.Save
     Application.StatusBar = vbNullString
@@ -92,7 +90,8 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     '~~ CompMan Workbook_Before_Save service 'ExportChangedComponents':
     '~~ Executed by the Addin *) or via the development instance when open
     '~~ *) automatically available only when referenced by the VB-Project
-    CompManService "ExportChangedComponents"
+    If Not mMe.IsAddinInstnc _
+    Then CompManService "ExportChangedComponents"
     '~~ ------------------------------------------------------------------
     If Not ThisWorkbook.Saved Then ThisWorkbook.Save
     
@@ -106,15 +105,15 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function CompManService(ByVal service As String) As Boolean
+Private Function CompManService(ByVal Service As String) As Boolean
 ' ----------------------------------------------------------------------------
 ' Execution of the CompMan service (service) preferrably via the CompMan-Addin
 ' or when not available alternatively via the CompMan's development instance.
 ' ----------------------------------------------------------------------------
     On Error Resume Next
-    Application.Run COMPMAN_BY_ADDIN & service, ThisWorkbook, HOSTED_RAWS
+    Application.Run COMPMAN_BY_ADDIN & Service, ThisWorkbook, HOSTED_RAWS
     If Err.Number = 1004 Then
-        Application.StatusBar = "CompMan-Service: '" & service & "' not available by '" & COMPMAN_BY_ADDIN & "'!"
+        Application.StatusBar = "CompMan-Service: '" & Service & "' not available by '" & COMPMAN_BY_ADDIN & "'!"
     End If
 End Function
 

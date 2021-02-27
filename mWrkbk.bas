@@ -150,7 +150,6 @@ Public Function IsOpen(ByVal vWb As Variant, _
     Dim sWbBaseName As String
     Dim wb          As Workbook
     Dim dctOpen     As Dictionary
-    Dim wbOpen      As Workbook
     Dim fso         As New FileSystemObject
     
     If Not mWrkbk.IsObject(vWb) And Not mWrkbk.IsFullName(vWb) And Not mWrkbk.IsName(vWb) And Not TypeName(vWb) = "String" _

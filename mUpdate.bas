@@ -68,11 +68,11 @@ Public Sub RawClones( _
         Set cComp = New clsComp
         With cComp
             Set .Wrkbk = urc_wb
-            .CompName = vbc.name
+            .CompName = vbc.Name
             Set .VBComp = vbc
 
             Application.StatusBar = sStatus & .CompName & " "
-            cLog.ServicedItem = vbc.name
+            cLog.ServicedItem = vbc.Name
 
             Set cRaw = New clsRaw
             cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
@@ -82,9 +82,9 @@ Public Sub RawClones( _
             cRaw.TypeString = .TypeString
             If cRaw.Changed Then
                 cLog.Entry = "The corresponding Raw's code changed! (its Export-File differs from the Clone's Export-File)"
-                Application.StatusBar = sStatus & vbc.name & " Renew of '" & .CompName & "' by import of '" & cRaw.ExpFileFullName & "'"
+                Application.StatusBar = sStatus & vbc.Name & " Renew of '" & .CompName & "' by import of '" & cRaw.ExpFileFullName & "'"
                 If bVerbose Then
-                    UpdateCloneConfirmed ucc_comp_name:=vbc.name _
+                    UpdateCloneConfirmed ucc_comp_name:=vbc.Name _
                                        , ucc_stay_verbose:=bVerbose _
                                        , ucc_skip:=bSkip _
                                        , ucc_clone:=cComp.ExpFileFullName _
@@ -136,7 +136,6 @@ Public Function UpdateCloneConfirmed( _
     
     On Error GoTo eh
     Dim cllButtons      As Collection
-    Dim bStayVerbose    As Boolean
     Dim sMsg            As tMsg
     Dim vReply          As Variant
     

@@ -11,16 +11,14 @@ Option Explicit
 
 Private wsh         As Worksheet
 Private wbk         As Workbook
-Private sCodeName   As String
-Private sName       As String
 
 Friend Property Set Sheet(ByRef sh As Worksheet):   Set wsh = sh:               End Property
 
 Friend Property Get Sheet() As Worksheet:           Set Sheet = wsh:            End Property
 
-Friend Property Set Wrkbk(ByRef wb As Worksheet):   Set wbk = wb:               End Property
+Friend Property Set Wrkbk(ByRef wb As Workbook):    Set wbk = wb:               End Property
 
-Friend Property Get Wrkbk() As Worksheet:           Set Wrkbk = wbk:            End Property
+Friend Property Get Wrkbk() As Workbook:            Set Wrkbk = wbk:            End Property
 
 Friend Property Get CodeName( _
                    Optional ByVal scn_name As String) As String

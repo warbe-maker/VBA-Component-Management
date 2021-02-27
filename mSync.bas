@@ -95,7 +95,6 @@ Private Sub CompAdd( _
     Dim ws      As Worksheet
     Dim i       As Long
     Dim nm      As Name
-    Dim cClone  As New clsComp
     
     With cSource
         Set .Wrkbk = cr_raw_wb
@@ -182,12 +181,9 @@ Public Function Components(ByRef wb_clone As Workbook, _
     Dim cClone      As clsComp
     Dim cRaw        As clsRaw
     Dim vbc         As VBComponent
-    Dim fl          As File
     Dim sName       As String
     Dim cRawSheet   As clsSheet
     Dim cCloneSheet As clsSheet
-    Dim v           As Variant
-    Dim lType       As vbcmType
     
     Dim sBttnAddAsNewSheet  As String: sBttnAddAsNewSheet = "Add the sheet as a new one" & vbLf & _
                                                             "Attention:" & vbLf & _
@@ -326,7 +322,6 @@ Private Sub CompRemove(ByRef cr_wb As Workbook, _
     Const PROC = "CompRemove"
     
     On Error GoTo eh
-    Dim vbc As VBComponent
     Dim cComp   As New clsComp
     Dim ws      As Worksheet
     
@@ -401,7 +396,8 @@ End Sub
 
 Private Function CompsNew( _
                     ByRef wb_clone As Workbook, _
-                    ByRef wb_raw As Workbook) As Dictionary
+                    ByRef wb_raw As Workbook, _
+                    ByRef syncs As Dictionary)
 ' ---------------------------------------------------------
 ' Returns a Dictionary with all new non-Document-Modules in
 ' (wb_clone) Workbook, i.e. existing in (wb_raw) Workbook
@@ -414,14 +410,13 @@ Private Function CompsNew( _
     Dim cComp       As clsComp
     Dim v           As Variant
     Dim lType       As vbcmType
-    Dim dct         As New Dictionary
     Dim vbc         As VBComponent
     Dim cCloneSheet As clsSheet
     Dim cRawSheet   As clsSheet
     Dim lNewSheets  As Long
     Dim lNewAdded   As Long
     
-    '~~ Collect new and obsolete Standard Modules, Class Modules, and UserForms
+    '~~ Collect new Standard Modules, Class Modules, and UserForms
     Set cComp = New clsComp
     For Each v In cComp.CompType
         lType = v
@@ -429,12 +424,16 @@ Private Function CompsNew( _
             If vbc.Type = lType Then
                 If Not CompExists(wb_clone, vbc.Name) _
                 And Not vbc.Type = vbext_ct_Document _
-                Then dct.Add cComp.TypeString(vbc) & ":" & vbc.Name, vbc ' keep record of the new wb_raw component
+                Then mDct.DctAdd add_dct:=syncs _
+                               , add_key:=vbc.Name & ":" & cComp.TypeString(vbc) & ":New" _
+                               , add_item:=vbc _
+                               , add_seq:=seq_ascending _
+                               , add_order:=order_byitem
             End If
         Next vbc
     Next v
 
-    '~~ Collect new and obsolete Document Modules representing Worksheets
+    '~~ Collect new Document Modules representing Worksheets
     Set dctSyncIssues = New Dictionary
     lNewSheets = wb_raw.Worksheets.Count - wb_clone.Worksheets.Count
     lNewAdded = 0
@@ -446,11 +445,17 @@ Private Function CompsNew( _
             '~~ 1. When the number of sheets in the Raw Workbook is greater than in the Clone Workbook.
             '~~ 2. When the sheet neither exists in the Clone Workbbook under its CodeName nor its Name.
             If wb_clone.Worksheets.Count < wb_raw.Worksheets.Count Then
-                Set cCloneSheet = New clsSheet: Set cCloneSheet.Wrkbk = wb_clone
-                Set cRawSheet = New clsSheet:   Set cRawSheet.Wrkbk = wb_raw
+                Set cCloneSheet = New clsSheet
+                Set cCloneSheet.Wrkbk = wb_clone
+                Set cRawSheet = New clsSheet
+                Set cRawSheet.Wrkbk = wb_raw
                 If Not cCloneSheet.ExistsByName(cRawSheet.Name(vbc.Name)) Then
                     If lNewAdded < lNewSheets Then
-                        dct.Add "Worksheet:" & vbc.Name, vbc ' keep record of the new wb_raw component
+                        mDct.DctAdd add_dct:=syncs _
+                                 , add_key:=vbc.Name & ":Worksheet:New" _
+                                 , add_item:=vbc _
+                                 , add_seq:=seq_ascending _
+                               , add_order:=order_byitem
                         lNewAdded = lNewAdded + 1
                     Else
                         dctSyncIssues.Add vbc.Name, "There are sheets in '" & fso.GetBaseName(wb_raw.Name) & "' which appear new than the difference in number allows!"
@@ -461,10 +466,7 @@ Private Function CompsNew( _
         End If
     Next vbc
 
-
-
-xt: Set CompsNew = dct
-    Set fso = Nothing
+xt: Set fso = Nothing
     Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -476,7 +478,8 @@ End Function
 
 Private Function CompsObsolete( _
                          ByRef wb_clone As Workbook, _
-                        ByRef wb_raw As Workbook) As Dictionary
+                         ByRef wb_raw As Workbook, _
+                         ByRef syncs As Dictionary)
 ' ---------------------------------------------------------------
 ' Returns a Dictionary with all non-Document-Modules obsolete
 ' in (wb_clone) Workbook, i.e. not existing in (wb_raw) Workbook.
@@ -484,12 +487,14 @@ Private Function CompsObsolete( _
     Const PROC = "CompsObsolete"
     
     On Error GoTo eh
-    Dim cComp As clsComp
-    Dim v       As Variant
-    Dim lType   As vbcmType
-    Dim dct     As New Dictionary
-    Dim vbc     As VBComponent
+    Dim cComp       As clsComp
+    Dim v           As Variant
+    Dim lType       As vbcmType
+    Dim vbc         As VBComponent
+    Dim cCloneSheet As clsSheet
+    Dim cRawSheet   As clsSheet
     
+    '~~ Collect obsolete Standard Modules, Class modules, and UserForms
     Set cComp = New clsComp
     For Each v In cComp.CompType
         lType = v
@@ -497,12 +502,39 @@ Private Function CompsObsolete( _
             If vbc.Type = lType _
             And Not CompExists(wb_raw, vbc.Name) _
             And Not vbc.Type = vbext_ct_Document _
-            Then dct.Add cComp.TypeString(vbc) & ":" & vbc.Name, vbc ' keep record of the new wb_raw component
+            Then mDct.DctAdd add_dct:=syncs _
+                           , add_key:=vbc.Name & ":" & cComp.TypeString(vbc) & ":Obsolete" _
+                           , add_item:=vbc _
+                           , add_seq:=seq_ascending _
+                           , add_order:=order_byitem
         Next vbc
     Next v
 
-xt: Set CompsObsolete = dct
-    Exit Function
+    '~~ Collect obsolete Standard Modules, Class modules, and UserForms
+    For Each vbc In wb_clone.VbProject.VBComponents
+        If vbc.Type = vbext_ct_Document _
+        And IsSheetComp(vbc) _
+        And Not CompExists(wb_raw, vbc.Name) Then
+            '~~ Sheet Document Module not exists in Raw Workbook under its CodeName
+            If wb_clone.Worksheets.Count > wb_raw.Worksheets.Count Then
+                Set cCloneSheet = New clsSheet
+                Set cCloneSheet.Wrkbk = wb_clone
+                Set cRawSheet = New clsSheet
+                Set cRawSheet.Wrkbk = wb_raw
+                If Not cRawSheet.ExistsByName(cCloneSheet.Name(vbc.Name)) Then
+                    mDct.DctAdd add_dct:=syncs _
+                               , add_key:=vbc.Name & ":Worksheet:Obsolete" _
+                               , add_item:=vbc _
+                               , add_seq:=seq_ascending _
+                               , add_order:=order_byitem
+                End If
+                Set cCloneSheet = Nothing
+                Set cRawSheet = Nothing
+            End If
+        End If
+    Next vbc
+
+xt: Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
@@ -649,7 +681,6 @@ Public Sub Names(ByRef wb_clone As Workbook, _
     
     On Error GoTo eh
     Dim nm          As Name
-    Dim sh          As Worksheet
     Dim shRaw       As Worksheet
     Dim shClone     As Worksheet
     Dim sSheetRaw   As String
@@ -853,6 +884,10 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Function AlignLeft(ByVal s As String, ByVal l As Long)
+    AlignLeft = s & VBA.Space$(l - Len(s))
+End Function
+
 Public Sub VbProject(ByRef wb_clone As Workbook, _
                      ByRef wb_raw As Workbook)
 ' -------------------------------------------------
@@ -862,33 +897,24 @@ Public Sub VbProject(ByRef wb_clone As Workbook, _
     Const PROC = "VbProject"
     On Error GoTo eh
     Dim fso         As New FileSystemObject
-    Dim cClone      As New clsComp
-    Dim cRaw        As clsRaw
-    Dim vbc         As VBComponent
-    Dim fl          As File
-    Dim sName       As String
     Dim sMsgConfirm As String
-    Dim i           As Long
+    Dim v           As Variant
     Dim sMsg        As tMsg
     Dim sBttnCnfrmd As String
     Dim sBttnTrmnt  As String
+    Dim dctSyncs    As New Dictionary
+    Dim a           As Variant
     
     MaxLen wb_clone, wb_raw, lMaxLenComp, lMaxLenType
   
-    Set dctNew = CompsNew(wb_clone, wb_raw)
-    Set dctObsolete = CompsObsolete(wb_clone, wb_raw)
+    CompsNew wb_clone, wb_raw, dctSyncs
+    CompsObsolete wb_clone, wb_raw, dctSyncs
         
     If dctNew.Count > 0 Or dctObsolete.Count > 0 Then
-        sMsgConfirm = "| " & Center("New Components", lMaxLenType + lMaxLenComp + 1) & _
-                     " | " & Center("Obsolete Components", lMaxLenType + lMaxLenComp + 1) & " |"
-        sMsgConfirm = sMsgConfirm & vbLf & _
-                      "+-" & VBA.String$(lMaxLenType + lMaxLenComp + 1, "-") & _
-                     "-+-" & VBA.String$(lMaxLenType + lMaxLenComp + 1, "-") & "-+"
-        For i = 1 To Max(dctNew.Count, dctObsolete.Count)
-            sMsgConfirm = sMsgConfirm & vbLf & _
-                      "| " & TypeNew(i) & " " & CompNew(i) & _
-                     " | " & TypeObsolete(i) & " " & CompObsolete(i) & " |"
-        Next i
+        For Each v In dctSyncs
+            a = Split(v, ":")
+            sMsgConfirm = AlignLeft(a(0), lMaxLenComp) & " " & AlignLeft(a(1), lMaxLenType) & " " & a(2)
+        Next v
         sMsg.Section(1).sText = "Please confirm the following synchronization details." & vbLf & _
                                 "In case of any concerns reply with No!"
         sMsg.Section(2).sText = sMsgConfirm
@@ -907,7 +933,8 @@ Public Sub VbProject(ByRef wb_clone As Workbook, _
     mSync.References wb_clone:=wb_clone, wb_raw:=wb_raw
     mSync.Components wb_clone:=wb_clone, wb_raw:=wb_raw
     
-xt: Set fso = Nothing
+xt: Set dctSyncs = Nothing
+    Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))

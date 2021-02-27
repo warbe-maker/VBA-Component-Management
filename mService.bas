@@ -139,7 +139,7 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            cLog.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
+            cLog.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         End If
     End If
@@ -192,7 +192,7 @@ End Function
 Public Function CompMaxLen(ByRef ml_wb As Workbook) As Long
     Dim vbc As VBComponent
     For Each vbc In ml_wb.VbProject.VBComponents
-        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.name))
+        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.Name))
     Next vbc
 End Function
 
@@ -270,7 +270,7 @@ Public Sub ExportChangedComponents( _
     '~~ indicated by an '(' in the active window or workbook fullname.
     If mService.Denied(den_serviced_wb:=ec_wb, den_service:=ErrSrc(PROC)) Then GoTo xt
     
-    mCompMan.Service = PROC & " for '" & ec_wb.name & "': "
+    mCompMan.Service = PROC & " for '" & ec_wb.Name & "': "
     sStatus = mCompMan.Service
 
     mCompMan.DeleteObsoleteExpFiles do_wb:=ec_wb
@@ -288,12 +288,12 @@ Public Sub ExportChangedComponents( _
     For Each vbc In ec_wb.VbProject.VBComponents
         Set cComp = New clsComp
         sProgressDots = Left(sProgressDots, Len(sProgressDots) - 1)
-        Application.StatusBar = sStatus & sProgressDots & sExported & " " & vbc.name
-        mTrc.BoC ErrSrc(PROC) & " " & vbc.name
+        Application.StatusBar = sStatus & sProgressDots & sExported & " " & vbc.Name
+        mTrc.BoC ErrSrc(PROC) & " " & vbc.Name
         Set cComp = New clsComp
         With cComp
             Set .Wrkbk = ec_wb
-            .CompName = vbc.name
+            .CompName = vbc.Name
             cLog.ServicedItem = .CompName
             If CodeModuleIsEmpty(.VBComp) Then
                 '~~ Empty Code Modules are exported only when the Workbook is a VB-Raw-Project
@@ -343,7 +343,7 @@ Public Sub ExportChangedComponents( _
                         .ReplaceRawWithCloneWhenConfirmed rwu_updated:=bUpdated ' when confirmed in user dialog
                         If bUpdated Then
                             lUpdated = lUpdated + 1
-                            sUpdated = vbc.name & ", " & sUpdated
+                            sUpdated = vbc.Name & ", " & sUpdated
                             cLog.Entry = """Remote Raw"" has been updated with code of ""Raw Clone"""
                         End If
                         
@@ -364,14 +364,14 @@ Public Sub ExportChangedComponents( _
                 With cComp
                     If .Changed Then
                         cLog.Entry = "The code changed! (a temporary Export-File differs from the last regular Export-File)"
-                        Application.StatusBar = sStatus & vbc.name & " Export to '" & .ExpFileFullName & "'"
+                        Application.StatusBar = sStatus & vbc.Name & " Export to '" & .ExpFileFullName & "'"
                         vbc.Export .ExpFileFullName
-                        sStatus = sStatus & vbc.name & ", "
+                        sStatus = sStatus & vbc.Name & ", "
                         cLog.Entry = "Changes exported to '" & .ExpFileFullName & "'"
                         lExported = lExported + 1
                         If lExported = 1 _
-                        Then sExported = vbc.name _
-                        Else sExported = sExported & ", " & vbc.name
+                        Then sExported = vbc.Name _
+                        Else sExported = sExported & ", " & vbc.Name
                         GoTo next_vbc
                     End If
                 
@@ -385,7 +385,7 @@ Public Sub ExportChangedComponents( _
         End Select
                                 
 next_vbc:
-        mTrc.EoC ErrSrc(PROC) & " " & vbc.name
+        mTrc.EoC ErrSrc(PROC) & " " & vbc.Name
         lCompsRemaining = lCompsRemaining - 1
         Set cComp = Nothing
         Set cRaw = Nothing
@@ -450,7 +450,7 @@ Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
     '~~ Prevent any action when the required preconditins are not met
     If mService.Denied(den_serviced_wb:=ea_wb, den_service:=ErrSrc(PROC)) Then GoTo xt
     
-    mCompMan.Service = PROC & " for '" & ea_wb.name & "': "
+    mCompMan.Service = PROC & " for '" & ea_wb.Name & "': "
     sStatus = mCompMan.Service
 
     mCompMan.DeleteObsoleteExpFiles ea_wb
@@ -462,7 +462,7 @@ Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
         Set cComp = New clsComp
         With cComp
             Set .Wrkbk = ea_wb
-            .CompName = vbc.name ' this assignment provides the name for the export file
+            .CompName = vbc.Name ' this assignment provides the name for the export file
             vbc.Export .ExpFileFullName
         End With
         Set cComp = Nothing
@@ -494,7 +494,6 @@ Public Sub SynchVbProject( _
     Const PROC = "SynchVbProject"
     
     On Error GoTo eh
-    Dim fso     As New FileSystemObject
     Dim sStatus As String
     Dim wbRaw   As Workbook
     
@@ -509,7 +508,7 @@ Public Sub SynchVbProject( _
     '~~ indicated by an '(' in the active window or workbook fullname.
     If mService.Denied(den_serviced_wb:=sp_clone_project, den_service:=ErrSrc(PROC)) Then GoTo xt
 
-    mCompMan.Service = PROC & " for '" & sp_clone_project.name & "': "
+    mCompMan.Service = PROC & " for '" & sp_clone_project.Name & "': "
     sStatus = mCompMan.Service
         
     mSync.VbProject wb_clone:=sp_clone_project _
@@ -544,7 +543,7 @@ Public Sub UpdateRawClones( _
     mErH.BoP ErrSrc(PROC)
     If mService.Denied(den_serviced_wb:=uc_wb, den_service:=ErrSrc(PROC), den_new_log:=True) Then GoTo xt
 
-    mCompMan.Service = PROC & " for '" & uc_wb.name & "': "
+    mCompMan.Service = PROC & " for '" & uc_wb.Name & "': "
     Application.StatusBar = sStatus & "Maintain hosted raws"
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=uc_hosted _
                                             , mh_wb:=uc_wb) _
@@ -553,7 +552,7 @@ Public Sub UpdateRawClones( _
         GoTo xt
     End If
         
-    Application.StatusBar = sStatus & "De-activate '" & uc_wb.name & "'"
+    Application.StatusBar = sStatus & "De-activate '" & uc_wb.Name & "'"
     If uc_wb Is ActiveWorkbook Then
         '~~ De-activate the ActiveWorkbook by creating a temporary Workbook
         Set wbActive = uc_wb
@@ -657,8 +656,6 @@ Private Function CloneAndRawProject( _
     Dim bWbRaw      As Boolean
     Dim sWbClone    As String
     Dim sWbRaw      As String ' either a full name or a registered raw project's basename
-    Dim wbClone     As Workbook
-    Dim wbRaw       As Workbook
     Dim cllButtons  As Collection
     Dim fl          As File
     
@@ -790,7 +787,7 @@ Private Function Clones( _
         Set cComp = New clsComp
         With cComp
             Set .Wrkbk = cl_wb
-            .CompName = vbc.name
+            .CompName = vbc.Name
             cLog.ServicedItem = .CompName
             If .KindOfComp = enRawClone Then
                 Set cRaw = New clsRaw
@@ -800,12 +797,12 @@ Private Function Clones( _
                 cRaw.CloneExpFileFullName = .ExpFileFullName
                 cRaw.TypeString = .TypeString
                 If .Changed Then
-                    dct.Add vbc, vbc.name
+                    dct.Add vbc, vbc.Name
                 Else
                     cLog.Entry = "The component's code  has not changed."
                 End If
                 If cRaw.Changed Then
-                    If Not dct.Exists(vbc) Then dct.Add vbc, vbc.name
+                    If Not dct.Exists(vbc) Then dct.Add vbc, vbc.Name
                 Else
                     cLog.Entry = "The corresponding Raw's code has not changed."
                 End If
