@@ -91,7 +91,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     '~~ Executed by the Addin *) or via the development instance when open
     '~~ *) automatically available only when referenced by the VB-Project
     If Not mMe.IsAddinInstnc _
-    Then CompManService "ExportChangedComponents"
+    Then mCompMan.ExportChangedComponents ThisWorkbook, vbNullString
     '~~ ------------------------------------------------------------------
     If Not ThisWorkbook.Saved Then ThisWorkbook.Save
     

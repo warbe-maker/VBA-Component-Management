@@ -61,7 +61,7 @@ Private Function MaxCompLength(ByRef wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
         For Each vbc In wb.VbProject.VBComponents
-            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
+            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.Name))
         Next vbc
     End If
 End Function
@@ -254,10 +254,10 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            cLog.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
+            cLog.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         Else
-            cLog.Entry = "Workbook '" & wbActive.name & "' re-activated by closing the temporary created Workbook"
+            cLog.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set cComp = Nothing

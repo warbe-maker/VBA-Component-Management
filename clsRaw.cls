@@ -9,8 +9,35 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 ' ------------------------------------------------------------
-' Class Module clsRaw Properties of a raw component. I.e.
-'       a component a certain Workbook claims the raw version.
+' Class Module clsRaw
+' Provides Properties and services for a Raw component of any
+' type. I.e. a component a certain Workbook claims the raw
+' version or the last developed version respectively.
+'
+' Friend Properties:
+' - Changed
+' - CloneExpFileFullName
+' - CompName
+' - CodeLines
+' - Exists
+' - ExistsBySheetName
+' - ExpFile
+' - ExpFileExtension
+' - ExpFileFullName
+' - ExpFilePath
+' - HostFullName
+' - RawHost
+' - RawType
+' - RawVbc
+' - Service
+' - SheetName
+' - TypeString
+' - Wrkbk
+' - WrkbkBaseName
+'
+' Services:
+' - DsplyAllChanges
+' - RemoteSheetExists
 '
 ' W. Rauschenberger Berlin, Jan 2021 (last revised)
 ' -----------------------------------------------------------
@@ -26,6 +53,27 @@ Private vbcRaw                  As VBComponent
 Private wbRawHost               As Workbook
 Private sService                As String
 Private sTypeString             As String
+Private wb                      As Workbook
+Private sWrkbkBaseName          As String       ' Common Component host Workbook's base name
+Private sWrkbkFullName          As String       ' Common Component host Workbook's full name
+Private vbc                     As VBComponent  ' VBComponent managed by this Class Module
+Private dctType                 As Dictionary
+Private lMaxLenType             As Long
+Private lMaxLenComp             As Long
+Private foExport                As Folder
+
+Private Sub Class_Initialize()
+    Dim v As Variant
+    If dctType Is Nothing Then Set dctType = New Dictionary
+    dctType.Add vbext_ct_ActiveXDesigner, "ActiveX Designer"
+    dctType.Add vbext_ct_ClassModule, "Class Module"
+    dctType.Add vbext_ct_Document, "Document Module"
+    dctType.Add vbext_ct_MSForm, "UserForm"
+    dctType.Add vbext_ct_StdModule, "Standard Module"
+    For Each v In dctType
+        lMaxLenType = mBasic.Max(lMaxLenType, Len(dctType(v)))
+    Next v
+End Sub
 
 Private Sub Class_Terminate()
     Set dctChanges = Nothing
@@ -74,9 +122,7 @@ End Property
 
 Friend Property Let CloneExpFileFullName(ByVal s As String):    sCloneExpFileFullName = s:                  End Property
 
-Friend Property Get CodeAsOfDate() As String:                   CodeAsOfDate = flExpFile.DateLastModified:  End Property
-
-Public Property Get CodeLines() As Dictionary
+Friend Property Get CodeLines() As Dictionary
 ' ----------------------------------------------------------
 ' Returns the content of an Export-File (Me.ExpFileFullName)
 ' as array, considering any kind of line break characters.
@@ -125,42 +171,53 @@ End Property
 
 Friend Property Get CompName() As String:                       CompName = sCompName:                       End Property
 
-Friend Property Let CompName(ByVal s As String):                sCompName = s:                              End Property
+Friend Property Let CompName(ByVal s As String)
+' -------------------------------------------------------------
+' Provides the properties: - CompName (sCompName)
+'                          - ExpFileFullName (sExpFileFullName)
+'                          - VBComp          (vbc)
+' -------------------------------------------------------------
+    sCompName = s
+    If Not wb Is Nothing Then
+        If Me.Exists Then
+            Set vbc = wb.VbProject.VBComponents(s)
+            sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExtension
+        End If
+    End If
+End Property
 
-Friend Property Get DsplyAllChanges() As Long
+Public Sub DsplyAllChanges()
 ' -------------------------------------------
 ' Display of all differences between the
-' clone's and the raw's Export-File.
+' clone's and the raw's Export-File. Uses WinMerge!
 ' -------------------------------------------
-    Const PROC = "DisplayAllChanges"
-    
-    On Error GoTo eh
-    Dim sMsg            As tMsg
-    
-    If Me.Changed Then
-        mFile.Compare fc_file_left:=sCloneExpFileFullName _
-                    , fc_file_right:=sExpFileFullName _
-                    , fc_left_title:="'Clone' component's export file '" & sCloneExpFileFullName & "'" _
-                    , fc_right_title:="'Raw' component's export file '" & sExpFilePath & "'"
-    Else
-        sMsg.Section(1).sText = "The Export Files of the component '" & Me.CompName & "'"
-        sMsg.Section(2).sText = "Clone: " & sCloneExpFileFullName & vbLf & _
-                                "Raw:   " & sExpFilePath
-        sMsg.Section(2).bMonspaced = True
-        sMsg.Section(3).sText = "are identical. The clone component is thus up-to-date."
-        sMsg.Section(4).sLabel = "Please note!"
-        sMsg.Section(4).sText = "Differences in empty code lines or upper/lower case text do not constitute a relevant difference."
-        mMsg.Dsply msg_title:="Display of all raw changes/differences failed!" _
-                 , msg:=sMsg
-    End If
-    
-xt: Exit Property
+    mFile.Compare fc_file_left:=sCloneExpFileFullName _
+                , fc_file_right:=sExpFileFullName _
+                , fc_left_title:="'Clone' component's export file '" & sCloneExpFileFullName & "'" _
+                , fc_right_title:="'Raw' component's export file '" & sExpFilePath & "'"
+End Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
+Friend Property Get Exists(Optional ByRef ex_wb As Workbook = Nothing) As Boolean
+    Dim v As VBComponent
+    If Not ex_wb Is Nothing Then
+        On Error Resume Next
+        Set v = ex_wb.VbProject.VBComponents(sCompName)
+        Exists = Not v Is Nothing
+    ElseIf vbc Is Nothing Then
+        On Error Resume Next
+        Set vbc = wb.VbProject.VBComponents(sCompName)
+        Exists = Not vbc Is Nothing
+    Else
+        Exists = Not vbc Is Nothing
+    End If
+End Property
+
+Friend Property Get ExistsBySheetName(ByVal eb_name As String) As Boolean
+    Dim ws As Worksheet
+    For Each ws In Me.Wrkbk
+        ExistsBySheetName = ws.Name = eb_name
+        If ExistsBySheetName Then Exit For
+    Next ws
 End Property
 
 Friend Property Get ExpFile() As File
@@ -180,6 +237,23 @@ Friend Property Set ExpFile(ByVal fl As File)
         End With
     End If
     Set flExpFile = fl
+
+End Property
+
+Friend Property Get ExpFileExtension() As String
+    
+    If sExpFileExtension = vbNullString Then
+        If vbc Is Nothing Then Set vbc = wb.VbProject.VBComponents(sCompName)
+        With Me
+            Select Case vbc.Type
+                Case vbext_ct_StdModule:    sExpFileExtension = ".bas"
+                Case vbext_ct_ClassModule:  sExpFileExtension = ".cls"
+                Case vbext_ct_MSForm:       sExpFileExtension = ".frm"
+                Case vbext_ct_Document:     sExpFileExtension = ".cls"
+            End Select
+        End With
+    End If
+    ExpFileExtension = sExpFileExtension
 
 End Property
 
@@ -221,9 +295,82 @@ Friend Property Get Service() As String
     Service = sService
 End Property
 
+Friend Property Get SheetName( _
+          Optional ByVal sn_codename As String) As String
+' -------------------------------------------------------
+' Returns the sheet's name through its CodeName.
+' -------------------------------------------------------
+    Dim wsh As Worksheet
+    For Each wsh In wb.Worksheets
+        If wsh.CodeName = sn_codename Then
+            SheetName = wsh.Name
+            Exit For
+        End If
+    Next wsh
+End Property
+
+Friend Property Get TypeString() As String
+' ----------------------------------------
+' Returns the component's type as String.
+' ----------------------------------------
+    If Not vbc Is Nothing Then
+        On Error Resume Next
+        TypeString = dctType(vbc.Type)
+        If TypeString = vbNullString Then TypeString = "unknown"
+    End If
+End Property
+
 Friend Property Let TypeString(ByVal s As String):      sTypeString = s:                End Property
 
-Friend Property Get TypeString() As String:             TypeString = sTypeString:       End Property
+Friend Property Get Wrkbk() As Workbook
+    Const PROC = "Wrkbk_Get"
+    
+    On Error GoTo eh
+    Dim fso As New FileSystemObject
+    
+    If wb Is Nothing Then
+        If Not fso.FileExists(sWrkbkFullName) _
+        Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
+        Set wb = mCompMan.WbkGetOpen(sWrkbkFullName)
+    Else
+        Set Wrkbk = wb
+    End If
+    
+xt: Set fso = Nothing
+    Exit Property
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Property
+
+Friend Property Set Wrkbk(ByRef wbk As Workbook)
+' ---------------------------------------------------------
+' Provides the properties: - Wrkbk         (wb)
+'                          - WrkbFullName  (sWrkbkFullName)
+'                          - WrkbkBaseName (sWrkbkBaseName)
+'                          - ExpFilePath   (sExpFilePath)
+'                          - Service       (sService)
+'                          - MaxLenComp    (lMaxLenComp)
+' ---------------------------------------------------------
+    
+    Dim fso As New FileSystemObject
+    Dim vbc As VBComponent
+    
+    Set wb = wbk
+    sWrkbkFullName = wb.FullName
+    sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
+    sExpFilePath = fso.GetParentFolderName(sWrkbkFullName)
+    Set foExport = fso.GetFolder(sExpFilePath)
+    sService = Split(wb.Path, "\")(UBound(Split(wb.Path, "\")))
+    For Each vbc In wb.VbProject.VBComponents
+        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
+    Next vbc
+    Set fso = Nothing
+    
+End Property
 
 Friend Property Get WrkbkBaseName() As String
     With New FileSystemObject
@@ -233,5 +380,45 @@ End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsRaw" & "." & sProc
+End Function
+
+Public Function RemoteSheetExists( _
+                            ByRef rs_wb As Workbook, _
+                   Optional ByRef rs_ws_name As String = vbNullString, _
+                   Optional ByRef rs_ws_codename As String = vbNullString, _
+                   Optional ByRef rs_ws As Worksheet = Nothing, _
+                   Optional ByRef rs_vbc As VBComponent = Nothing) As Boolean
+' ---------------------------------------------------------------------------
+' When the remote sheet exists in the remote Workbook (rs_wb) either under
+' the provided remote name (remote_ws_name) or the provided remote CodeName
+' (remote-ws_codename):
+' - True plus the remote Worksheet object (rs_ws) and the remote VBComponent
+'   (rs_vbc).
+' When the remote sheet not exists in the remote Workbook (rs_wb) neither
+' under the provided remote name (remote_ws_name) nor under the provided
+' remote CodeName (remote-ws_codename):
+' - False and neither a remote sheet object nor a remote VBComponent.
+' ---------------------------------------------------------------------------
+    Dim ws  As Worksheet
+    Dim vbc As VBComponent
+    
+    For Each ws In rs_wb.Worksheets
+        If rs_ws_name <> vbNullString And ws.Name = rs_ws_name Then
+            Set rs_ws = ws
+            If rs_ws_codename = vbNullString Then rs_ws_codename = ws.CodeName
+            Exit For
+        ElseIf rs_ws_codename <> vbNullString And ws.CodeName = rs_ws_codename Then
+            Set rs_ws = ws
+            If rs_ws_name = vbNullString Then rs_ws_name = ws.Name
+        End If
+    Next ws
+    
+    For Each vbc In rs_wb.VbProject.VBComponents
+        If rs_ws_codename <> vbNullString And vbc.Name = rs_ws_codename Then
+            Set rs_vbc = vbc
+            Exit For
+        End If
+    Next vbc
+   
 End Function
 

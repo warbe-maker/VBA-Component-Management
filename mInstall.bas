@@ -41,7 +41,7 @@ Public Sub CloneRaws(Optional ByRef ic_wb As Workbook)
     sMsg.Section(3).bMonspaced = True
     
     Do
-        vReply = mMsg.Dsply(msg_title:="Please select the 'raw' component to be imported into '" & ic_wb.name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
+        vReply = mMsg.Dsply(msg_title:="Please select the 'raw' component to be imported into '" & ic_wb.Name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
                         , msg:=sMsg _
                         , msg_buttons:=cll _
                          )

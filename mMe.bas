@@ -226,7 +226,7 @@ Public Function AddInInstncWrkbkIsOpen() As Boolean
     
     AddInInstncWrkbkIsOpen = False
     For i = 1 To Application.AddIns2.Count
-        If Application.AddIns2(i).name = AddInInstanceName Then
+        If Application.AddIns2(i).Name = AddInInstanceName Then
             On Error Resume Next
             Set wbTarget = Application.Workbooks(AddInInstanceName)
             AddInInstncWrkbkIsOpen = Err.Number = 0
@@ -539,9 +539,9 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         For Each v In dct
             Set wb = dct.Item(v)
             For Each ref In wb.VbProject.References
-                If InStr(ref.name, fso.GetBaseName(AddInInstanceName)) <> 0 Then
+                If InStr(ref.Name, fso.GetBaseName(AddInInstanceName)) <> 0 Then
                     dctAddInRefs.Add wb, ref
-                    sWbs = wb.name & ", " & sWbs
+                    sWbs = wb.Name & ", " & sWbs
                 End If
             Next ref
         Next v
@@ -731,9 +731,9 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
             Set wb = Application.Workbooks.Open(AddInInstanceFullName)
             If Err.Number = 0 Then
                 With New FileSystemObject
-                    sBaseAddinName = .GetBaseName(wb.name)
-                    sBaseDevName = .GetBaseName(ThisWorkbook.name)
-                    wb.VbProject.name = sBaseAddinName
+                    sBaseAddinName = .GetBaseName(wb.Name)
+                    sBaseDevName = .GetBaseName(ThisWorkbook.Name)
+                    wb.VbProject.Name = sBaseAddinName
                 End With
                 mMe.RenewLogResult() = "Passed"
                 Renew_8_OpenAddinInstncWorkbook = True
@@ -768,7 +768,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     For Each v In dctAddInRefs
         Set wb = v
         wb.VbProject.References.AddFromFile AddInInstanceFullName
-        sWbs = wb.name & ", " & sWbs
+        sWbs = wb.Name & ", " & sWbs
         bOneRestored = True
     Next v
     
@@ -806,7 +806,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             
             If Not mCompMan.WbkIsOpen(io_name:=DevInstncName) _
             Then Stop _
-            Else wbDevlp.VbProject.name = fso.GetBaseName(DevInstncName)
+            Else wbDevlp.VbProject.Name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
                 mMe.RenewLogResult("Saving the Addin instance Workbook '" & AddInInstanceName & "' as Development instance Workbook '" & DevInstncName & "' failed!" _

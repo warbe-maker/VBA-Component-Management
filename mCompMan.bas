@@ -156,7 +156,7 @@ Public Function CompExists( _
 ' -----------------------------------------------------------
     Dim s As String
     On Error Resume Next
-    s = ce_wb.VbProject.VBComponents(ce_comp_name).name
+    s = ce_wb.VbProject.VBComponents(ce_comp_name).Name
     CompExists = Err.Number = 0
 End Function
 
@@ -167,39 +167,28 @@ Public Sub DeleteObsoleteExpFiles(ByRef do_wb As Workbook)
     Const PROC = "DeleteObsoleteExpFiles"
     
     On Error GoTo eh
-    Dim cllRemove   As New Collection
-    Dim sFolder     As String
-    Dim fso         As New FileSystemObject
-    Dim fl          As File
-    Dim v           As Variant
-    Dim cComp       As New clsComp
-    Dim sComp       As String
-    
-    With cComp
-        Set .Wrkbk = do_wb ' assignment provides the Workbook's dedicated Export Folder
-        sFolder = .ExpFolder
-    End With
+    Dim cll     As New Collection
+    Dim fso     As New FileSystemObject
+    Dim fl      As File
+    Dim v       As Variant
+       
+    '~~ Collect obsolete Export Files
+    For Each fl In fso.GetFolder(do_wb.Path).Files
+        Select Case fso.GetExtensionName(fl.Path)
+            Case "bas", "cls", "frm", "frx"
+                If Not mCompMan.CompExists(do_wb, fso.GetBaseName(fl.Path)) _
+                Then cll.Add fl.Path
+        End Select
+    Next fl
     
     With fso
-        '~~ Collect obsolete Export Files
-        For Each fl In .GetFolder(sFolder).Files
-            Select Case .GetExtensionName(fl.Path)
-                Case "bas", "cls", "frm", "frx"
-                    sComp = .GetBaseName(fl.Path)
-                    If Not cComp.Exists(sComp) Then
-                        cllRemove.Add fl.Path
-                    End If
-            End Select
-        Next fl
-    
-        For Each v In cllRemove
+        For Each v In cll
             .DeleteFile v
-            cLog.Entry = "Obsolete Export-File '" & v & "' deleted"
+            cLog.Entry = "Obsolete Export-File '" & v & "' deleted (component no longer exists)"
         Next v
     End With
     
-xt: Set cComp = Nothing
-    Set cllRemove = Nothing
+xt: Set cll = Nothing
     Set fso = Nothing
     Exit Sub
 
@@ -574,7 +563,7 @@ Public Function WbkIsOpen( _
         WbkIsOpen = Err.Number = 0
     Else
         On Error Resume Next
-        io_name = Application.Workbooks(io_name).name
+        io_name = Application.Workbooks(io_name).Name
         WbkIsOpen = Err.Number = 0
     End If
 

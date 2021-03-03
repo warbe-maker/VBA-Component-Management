@@ -55,7 +55,7 @@ Public Sub RenewComp( _
     
     If rc_comp_name <> vbNullString Then
         cComp.CompName = rc_comp_name
-        If Not CompExists(ce_wb:=rc_wb, ce_comp_name:=rc_comp_name) Then
+        If Not cComp.Exists Then
             If rc_exp_file_full_name <> vbNullString Then
                 rc_comp_name = fso.GetBaseName(rc_exp_file_full_name)
             End If

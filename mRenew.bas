@@ -23,7 +23,7 @@ Public Sub ByImport(ByRef rn_wb As Workbook, _
             sTempName = GetTempName(ac_wb:=rn_wb, ac_comp_name:=rn_comp_name)
             '~~ Rename the component when it already exists
             If rn_status <> vbNullString Then Application.StatusBar = rn_status & "Rename '" & rn_comp_name & "' to '" & sTempName & "'"
-            .VBComponents(rn_comp_name).name = sTempName
+            .VBComponents(rn_comp_name).Name = sTempName
             Debug.Print NowMsec & " '" & rn_comp_name & "' renamed to '" & sTempName & "'"
 '           DoEvents:  Application.Wait Now() + 0.0000001 ' wait for 10 milliseconds
             If rn_status <> vbNullString Then Application.StatusBar = rn_status & "Remove '" & sTempName & "'"
@@ -63,7 +63,7 @@ Private Function GetTempName(ByRef ac_wb As Workbook, _
     sTempName = ac_comp_name & "_Temp"
     Do
         On Error Resume Next
-        sTempName = ac_wb.VbProject.VBComponents(sTempName).name
+        sTempName = ac_wb.VbProject.VBComponents(sTempName).Name
         If Err.Number <> 0 Then Exit Do ' a component with sTempName does not exist
         i = i + 1: sTempName = sTempName & i
     Loop
@@ -107,7 +107,7 @@ Private Function CompExists(ByRef ce_wb As Workbook, _
 ' ------------------------------------------------------------------
     Dim s As String
     On Error Resume Next
-    s = ce_wb.VbProject.VBComponents(ce_comp_name).name
+    s = ce_wb.VbProject.VBComponents(ce_comp_name).Name
     CompExists = Err.Number = 0
 End Function
 

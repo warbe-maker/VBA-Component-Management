@@ -76,14 +76,14 @@ Private Declare PtrSafe Function DeletePrivateProfileSection _
                (ByVal Section As String, _
                 ByVal NoKey As Long, _
                 ByVal NoSetting As Long, _
-                ByVal name As String) As Long
+                ByVal Name As String) As Long
 
 Private Declare PtrSafe Function DeletePrivateProfileKey _
                 Lib "kernel32" Alias "WritePrivateProfileStringA" _
                (ByVal Section As String, _
                 ByVal Key As String, _
                 ByVal Setting As Long, _
-                ByVal name As String) As Long
+                ByVal Name As String) As Long
                  
 Private Declare PtrSafe Function GetPrivateProfileSectionNames _
                 Lib "kernel32.dll" Alias "GetPrivateProfileSectionNamesA" _
@@ -626,7 +626,7 @@ Public Function Exists(ByVal fe_file As Variant, _
     If TypeOf fe_file Is File Then
         With New FileSystemObject
             On Error Resume Next
-            sTest = fe_file.name
+            sTest = fe_file.Name
             Exists = Err.Number = 0
             If Exists Then
                 '~~ Return the existing file as File object
@@ -659,7 +659,7 @@ Public Function Exists(ByVal fe_file As Variant, _
                         queue.Add sfldr ' enqueue (collect) all subfolders
                     Next sfldr
                     For Each fl In fldr.Files
-                        If InStr(fl.name, sFile) <> 0 And VBA.Left$(fl.name, 1) <> "~" Then
+                        If InStr(fl.Name, sFile) <> 0 And VBA.Left$(fl.Name, 1) <> "~" Then
                             '~~ Return the existing file which meets the search criteria
                             '~~ as File object in a collection
                             fe_cll.Add fl
@@ -757,7 +757,7 @@ Public Sub NameRemove(ByVal pp_file As String, _
     DeletePrivateProfileKey Section:=pp_section _
                           , Key:=pp_value_name _
                           , Setting:=0 _
-                          , name:=pp_file
+                          , Name:=pp_file
 End Sub
 
 Public Function Differs( _
@@ -1132,7 +1132,7 @@ Public Sub SectionsRemove( _
         DeletePrivateProfileSection Section:=v _
                                   , NoKey:=0 _
                                   , NoSetting:=0 _
-                                  , name:=pp_file
+                                  , Name:=pp_file
     Next v
     
 xt: Set vNames = Nothing
