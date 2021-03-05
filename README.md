@@ -13,19 +13,24 @@ The service also checks a _Clone-Component_ modified within the VB-Project using
 ## _UpdateRawClones_
 The service is used with the _Workbook\_Open_ event. It checks each _Component_ for being known/registered as _Raw-Component_,  _hosted_ by another _VB-Project_ - which means it is a _Clobmne-Component_. If yes their code is compared and suggested for being updated if different.
 
-## _SyncVbProject_
+## _SyncTargetWithSourceWb_
+
 **pending implementation**<br>
-Synchronizing VB-Projects is a means for temporarily uncoupling the productive use of a Workbook from the development and maintenance of the VBA code. By this the down time of the Workbook can be minimized. Without such a sync service, the productive use of a Workbook has to stop while the VB-Project is modified which may take several days!.
 
-In contrast to the other two services, code synchronization is not supported via Workbook events automating them, but has to be initiated manually. The advantage: Even the Workbook component can fully be synchronized.
+### Aim, Purpose
+Service for temporarily copied productive Workbooks for modifying the VB-Project while the productive Workbook remains in use. By this minimizing the down time of the productive Workbook to the time required for the "back-syncronization" of the modified VB-Project.
 
-### Syncronized elements
-| Element | Extent of synchronization |
-| ------- | ------------------------- |
-|_Standard Modules_<br>_Class Modules_<br>_UserForms_| Code and module name synchronized |
+
+### Coverage, syncronization extent
+
+| Element.   | Extent of synchronization |
+| ---------- | ------------------------- |
+|_References_| New are inserted, obsolete are removed |
+|_Standard Modules_<br>_Class Modules_<br>_UserForms_| New are inserted, obsolete are removed and  changed code is updated |
 |_Data Module_|**Workbook**: Code and module name synchronized<br>**Worksheet**: only partially (see [Worksheet synchronization](#worksheet-synchronization) and [Planning the release of a VB-Project modification](#planning-the-release-of-a-vb-project-modification))|
 |_References_ | missing added and obsolete removed|
-|_Controls_ | still in question |
+|_Form-Shapes_ | still in question |
+|_ActiveX-Controls_| None. May be added in future |
 
 ### Worksheet synchronization
 While the code of the development instance of a VB-Project is modified the productive instance will (can) continuously be used for data changes.  Because the user is able not only to change data but also the name and the position if a sheet, synchronization depends on an unchanged _CodeName_ as the only stable way to address a sheet in VBA code.
