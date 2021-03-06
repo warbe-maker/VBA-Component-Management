@@ -2,7 +2,7 @@ Attribute VB_Name = "mService"
 Option Explicit
 
 Public Const SERVICES_LOG_FILE = "CompMan.Services.log"
-Public cLog             As New clsLog
+Public cLog As New clsLog
 
 Public Sub RenewComp( _
       Optional ByVal rc_exp_file_full_name As String = vbNullString, _
@@ -474,24 +474,25 @@ xt: mErH.EoP ErrSrc(PROC)
 eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
-Public Sub SynchVbProject( _
-           Optional ByRef sp_clone_project As Workbook = Nothing, _
-           Optional ByVal sp_raw_project As String = vbNullString)
-' -----------------------------------------------------------------
-' Synchronizes the code of the Workbook (clone_project) with the
-' code of the VB-Raw-Project (raw_project).
-' Note: The sp_raw_project is identified by its 'BaseName' when
-'       the service is called from the VB-Clone-Project. When
-'       directly called via the immediate window both arguments
-'       are provided via a file selection dialog.
+Public Sub SynchTargetWbWithSourceWb( _
+                      Optional ByRef sync_target_wb As Workbook = Nothing, _
+                      Optional ByVal sync_source_wb As String = vbNullString)
+' ---------------------------------------------------------------------------
+' Synchronizes the target Workbook (sync_target_wb) with the source Workbook
+' (sync_source_wb).
+' Note: When the synchronization service is called from the target Workbook
+'       itself, the source Workbook (sync_source_wb) will be identified only
+'       by its 'BaseName'. Only when directly called, e.g. via the immediate
+'       window, both arguments are provided via a file selection dialog when
+'       missing.
 ' The service is performed provided:
 ' - the CompMan basic configuration is complete and valid
 ' - the Workbook is located within the configured "Serviced Root"
 ' - the Workbook is the only one within its parent folder
 ' - the CompMan Addin is not paused
 ' - the open/ed Workbook is not a restored version
-' -------------------------------------------------------------
-    Const PROC = "SynchVbProject"
+' ---------------------------------------------------------------------------
+    Const PROC = "SynchTargetWbWithSourceWb"
     
     On Error GoTo eh
     Dim sStatus As String
@@ -499,20 +500,21 @@ Public Sub SynchVbProject( _
     
     mErH.BoP ErrSrc(PROC)
     '~~ Assure complete and correct provision of arguments or get correct ones selected via a dialog
-    If Not CloneAndRawProject(cr_clone_wb:=sp_clone_project _
-                            , cr_raw_name:=sp_raw_project _
-                            , cr_raw_wb:=wbRaw _
+    If Not CloneAndRawProject(sync_target_wb:=sync_target_wb _
+                            , cr_raw_name:=sync_source_wb _
+                            , sync_source_wb:=wbRaw _
                              ) Then GoTo xt
     
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
-    If mService.Denied(den_serviced_wb:=sp_clone_project, den_service:=ErrSrc(PROC)) Then GoTo xt
+    If mService.Denied(den_serviced_wb:=sync_target_wb, den_service:=ErrSrc(PROC)) Then GoTo xt
 
-    mCompMan.Service = PROC & " for '" & sp_clone_project.Name & "': "
+    mCompMan.Service = PROC & " for '" & sync_target_wb.Name & "': "
+    Set cLog.ServicedWrkbk = sync_target_wb
     sStatus = mCompMan.Service
         
-    mSync.VbProject wb_clone:=sp_clone_project _
-                  , wb_raw:=wbRaw
+    mSync.TargetWbWithSource sync_target_wb:=sync_target_wb _
+                           , sync_source_wb:=wbRaw
 
 xt: mErH.EoP ErrSrc(PROC)
     Set cLog = Nothing
@@ -627,13 +629,13 @@ Private Function ServicedWrkbk(ByVal gs_service As String) As Workbook
 End Function
 
 Private Function CloneAndRawProject( _
-                     Optional ByRef cr_clone_wb As Workbook = Nothing, _
+                     Optional ByRef sync_target_wb As Workbook = Nothing, _
                      Optional ByVal cr_raw_name As String = vbNullString, _
-                     Optional ByRef cr_raw_wb As Workbook = Nothing, _
-                     Optional ByVal cr_confirm As Boolean = False) As Boolean
+                     Optional ByRef sync_source_wb As Workbook = Nothing, _
+                     Optional ByVal cr_sync_confirm_info As Boolean = False) As Boolean
 ' ---------------------------------------------------------------------------
-' Returns True when the Clone-VB-Project and the Raw-VB-Project are valid.
-' When bc_confirm is True a confirmation dialog is displayed. The dialog is
+' Returns True when the Sync-Target_VB-Project and the Sync-Source-VB-Project are valid.
+' When bc_sync_confirm_info is True a confirmation dialog is displayed. The dialog is
 ' also displayed when function is called with invalid arguments.
 ' ---------------------------------------------------------------------------
     Const PROC                  As String = "CloneAndRawProject"
@@ -659,10 +661,10 @@ Private Function CloneAndRawProject( _
     Dim cllButtons  As Collection
     Dim fl          As File
     
-    If Not cr_clone_wb Is Nothing Then sWbClone = cr_clone_wb.FullName
+    If Not sync_target_wb Is Nothing Then sWbClone = sync_target_wb.FullName
     sWbRaw = cr_raw_name
     
-    While (Not bWbClone Or Not bWbRaw) Or (cr_confirm And sReply <> sBttCloneRawConfirmed)
+    While (Not bWbClone Or Not bWbRaw) Or (cr_sync_confirm_info And sReply <> sBttCloneRawConfirmed)
         If sWbClone = vbNullString Then
             sWbClone = "n o t  p r o v i d e d !"
         ElseIf Not fso.FileExists(sWbClone) Then
@@ -681,7 +683,7 @@ Private Function CloneAndRawProject( _
             bWbRaw = True
         End If
     
-        If bWbRaw And bWbClone And Not cr_confirm Then GoTo xt
+        If bWbRaw And bWbClone And Not cr_sync_confirm_info Then GoTo xt
         
         With sMsg
             .Section(1).sLabel = CLONE_PROJECT & ":"
@@ -691,8 +693,8 @@ Private Function CloneAndRawProject( _
             .Section(2).sText = sWbRaw
             .Section(2).bMonspaced = True
             
-            If cr_confirm _
-            Then .Section(3).sText = "Please confirm the provided VB-Clone- and VB-Raw-Project." _
+            If cr_sync_confirm_info _
+            Then .Section(3).sText = "Please sync_confirm_info the provided VB-Clone- and VB-Raw-Project." _
             Else .Section(3).sText = "Please provide/complete the VB-Clone- (sync target) and the VB-Raw-Project (sync source)."
             
             .Section(3).sText = .Section(3).sText & vbLf & vbLf & _
@@ -724,7 +726,7 @@ Private Function CloneAndRawProject( _
                         Exit Do
                     End If
                 Loop
-                cr_confirm = True
+                cr_sync_confirm_info = True
                 '~~ The change of the VB-Clone-Project may have made the VB-Raw-Project valid when formerly invalid
                 sWbRaw = Split(sWbRaw, ": ")(0)
             Case sBttnRawProject
@@ -738,11 +740,11 @@ Private Function CloneAndRawProject( _
                         Exit Do
                     End If
                 Loop
-                cr_confirm = True
+                cr_sync_confirm_info = True
                 '~~ The change of the VB-Raw-Project may have become valid when formerly invalid
                 sWbClone = Split(sWbClone, ": ")(0)
             
-            Case sBttCloneRawConfirmed: cr_confirm = False
+            Case sBttCloneRawConfirmed: cr_sync_confirm_info = False
             Case sBttnTerminate: GoTo xt
                 
         End Select
@@ -750,11 +752,11 @@ Private Function CloneAndRawProject( _
     Wend ' Loop until the confirmed or configured basic configuration is correct
     
 xt: If bWbClone Then
-       Set cr_clone_wb = mCompMan.WbkGetOpen(sWbClone)
+       Set sync_target_wb = mCompMan.WbkGetOpen(sWbClone)
     End If
     If bWbRaw Then
         Application.EnableEvents = False
-        Set cr_raw_wb = mCompMan.WbkGetOpen(sWbRaw)
+        Set sync_source_wb = mCompMan.WbkGetOpen(sWbRaw)
         Application.EnableEvents = True
         cr_raw_name = fso.GetBaseName(sWbRaw)
     End If

@@ -381,11 +381,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Function BasicConfig( _
-             Optional ByVal bc_confirm As Boolean = False) As Boolean
+             Optional ByVal bc_sync_confirm_info As Boolean = False) As Boolean
 ' -------------------------------------------------------------------
 ' Returns True when the 'Basic Configuration', i.e. the Addin-Folder
 ' and the Serviced-Root-Folder are configured, existing, and correct.
-' When bc_confirm is True a configuration confirmation dialog is
+' When bc_sync_confirm_info is True a configuration confirmation dialog is
 ' displayed. The dialog is also displayed when the basic configu-
 ' ration is invalid.
 ' -----------------------------------------------------------------
@@ -409,7 +409,7 @@ Public Function BasicConfig( _
     sFolderServiced = mMe.ServicedRoot
     sFolderAddin = mMe.CompManAddinPath
     
-    While (Not bFolderServiced Or Not bFolderAddin) Or (bc_confirm And sReply <> BTTN_CFG_CONFIRMED)
+    While (Not bFolderServiced Or Not bFolderAddin) Or (bc_sync_confirm_info And sReply <> BTTN_CFG_CONFIRMED)
         If sFolderServiced = vbNullString Then
             sFolderServiced = "n o t  y e t  c o n f i g u r e d !"
         ElseIf Not fso.FolderExists(sFolderServiced) Then
@@ -428,7 +428,7 @@ Public Function BasicConfig( _
             bFolderAddin = True
         End If
     
-        If bFolderAddin And bFolderServiced And Not bc_confirm Then GoTo xt
+        If bFolderAddin And bFolderServiced And Not bc_sync_confirm_info Then GoTo xt
         
         With sMsg
             .Section(1).sLabel = FOLDER_SERVICED & ":"
@@ -438,8 +438,8 @@ Public Function BasicConfig( _
             .Section(2).sText = sFolderAddin
             .Section(2).bMonspaced = True
             
-            If bc_confirm _
-            Then .Section(3).sText = "Please confirm the above Basic CompMan Configuration." _
+            If bc_sync_confirm_info _
+            Then .Section(3).sText = "Please sync_confirm_info the above Basic CompMan Configuration." _
             Else .Section(3).sText = "Please configure/complete the required Basic CompMan Configuration."
             
             .Section(3).sText = .Section(3).sText & vbLf & vbLf & _
@@ -464,18 +464,18 @@ Public Function BasicConfig( _
                     sFolderAddin = mBasic.SelectFolder("Select the required 'Folder for the CompMan Add-in'")
                     If sFolderAddin <> vbNullString Then Exit Do
                 Loop
-                bc_confirm = True
+                bc_sync_confirm_info = True
             Case sBttnSrvcd
                 Do
                     sFolderServiced = mBasic.SelectFolder("Select the required 'Root folder serviced by CompMan'")
                     If sFolderServiced <> vbNullString Then Exit Do
                 Loop
-                bc_confirm = True
+                bc_sync_confirm_info = True
                 '~~ The change of the serviced root folder may have resulted in
                 '~~ a (formerly invalid) now valid again Add-in folder
                 sFolderAddin = Split(sFolderAddin, ": ")(0)
             
-            Case BTTN_CFG_CONFIRMED: bc_confirm = False
+            Case BTTN_CFG_CONFIRMED: bc_sync_confirm_info = False
             Case BTTN_TERMINATE_CFG: GoTo xt
                 
         End Select
@@ -508,7 +508,7 @@ End Function
 
 Private Function Renew_0_ConfirmConfig() As Boolean
     mMe.RenewLogAction = "Assert current basic configuration"
-    Renew_0_ConfirmConfig = BasicConfig(bc_confirm:=True)
+    Renew_0_ConfirmConfig = BasicConfig(bc_sync_confirm_info:=True)
     If Renew_0_ConfirmConfig _
     Then mMe.RenewLogResult = "Passed" _
     Else mMe.RenewLogResult = "Failed"

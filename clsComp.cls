@@ -69,16 +69,12 @@ Private lMaxLenComp         As Long
 Private sh                  As Worksheet
 
 Private Sub Class_Initialize()
-    Dim v As Variant
-    If dctType Is Nothing Then Set dctType = New Dictionary
+    If dctType Is Nothing Then Set dctType = New Dictionary Else dctType.RemoveAll
     dctType.Add vbext_ct_ActiveXDesigner, "ActiveX Designer"
     dctType.Add vbext_ct_ClassModule, "Class Module"
     dctType.Add vbext_ct_Document, "Document Module"
     dctType.Add vbext_ct_MSForm, "UserForm"
     dctType.Add vbext_ct_StdModule, "Standard Module"
-    For Each v In dctType
-     lMaxLenType = mBasic.Max(lMaxLenType, Len(dctType(v)))
-    Next v
 End Sub
 
 Private Sub Class_Terminate()
@@ -163,7 +159,7 @@ Friend Property Let CompName(ByVal s As String)
     sCompName = s
     If Not wb Is Nothing Then
         If Me.Exists Then
-            Set vbc = wb.VbProject.VBComponents(s)
+            Set vbc = wb.VBProject.VBComponents(s)
             sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExtension
         End If
     End If
@@ -173,11 +169,11 @@ Friend Property Get Exists(Optional ByRef ex_wb As Workbook = Nothing) As Boolea
     Dim v As VBComponent
     If Not ex_wb Is Nothing Then
         On Error Resume Next
-        Set v = ex_wb.VbProject.VBComponents(sCompName)
+        Set v = ex_wb.VBProject.VBComponents(sCompName)
         Exists = Not v Is Nothing
     ElseIf vbc Is Nothing Then
         On Error Resume Next
-        Set vbc = wb.VbProject.VBComponents(sCompName)
+        Set vbc = wb.VBProject.VBComponents(sCompName)
         Exists = Not vbc Is Nothing
     Else
         Exists = Not vbc Is Nothing
@@ -186,7 +182,7 @@ End Property
 
 Friend Property Get ExistsBySheetName(Optional ByVal eb_name As String) As Boolean
     Dim ws As Worksheet
-    For Each ws In Me.Wrkbk
+    For Each ws In Me.Wrkbk.Worksheets
         ExistsBySheetName = ws.Name = eb_name
         If ExistsBySheetName Then Exit For
     Next ws
@@ -219,7 +215,7 @@ Friend Property Set ExpFile(ByVal fl As File):      Set flExpFile = fl:     End 
 Friend Property Get ExpFileExtension() As String
     
     If sExpFileExtension = vbNullString Then
-        If vbc Is Nothing Then Set vbc = wb.VbProject.VBComponents(sCompName)
+        If vbc Is Nothing Then Set vbc = wb.VBProject.VBComponents(sCompName)
         With Me
             Select Case vbc.Type
                 Case vbext_ct_StdModule:    sExpFileExtension = ".bas"
@@ -294,8 +290,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Property
 
 Friend Property Get MaxLenComp() As Long:           MaxLenComp = lMaxLenComp:   End Property
-
-Friend Property Get MaxLenType() As Long:           MaxLenType = lMaxLenType:   End Property
 
 Private Property Get ReplaceRawWithCloneConfirmed() As Boolean
 ' -------------------------------------------------------------
@@ -383,17 +377,16 @@ End Property
 
 Friend Property Get Sheet() As Worksheet:               Set Sheet = sh:            End Property
 
-   
 Friend Property Set Sheet(ByRef wsh As Worksheet):      Set sh = wsh:               End Property
 
 Friend Property Get SheetName( _
-          Optional ByVal sn_codename As String) As String
-' -------------------------------------------------------
-' Returns the sheet's name through its CodeName.
-' -------------------------------------------------------
+               Optional ByVal sn_codename As String) As String
+' ------------------------------------------------------------
+' Returns the sheet's name obtained via she sheet's CodeName.
+' ------------------------------------------------------------
     Dim wsh As Worksheet
     For Each wsh In wb.Worksheets
-        If sh.CodeName = sn_codename Then
+        If wsh.CodeName = sn_codename Then
             SheetName = wsh.Name
             Exit For
         End If
@@ -479,7 +472,7 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     sExpFilePath = fso.GetParentFolderName(sWrkbkFullName)
     Set foExport = fso.GetFolder(sExpFilePath)
     sService = Split(wb.Path, "\")(UBound(Split(wb.Path, "\")))
-    For Each vbc In wb.VbProject.VBComponents
+    For Each vbc In wb.VBProject.VBComponents
         lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
     Next vbc
     Set fso = Nothing
@@ -587,7 +580,7 @@ Public Function RemoteSheetExists( _
         End If
     Next ws
     
-    For Each vbc In rs_wb.VbProject.VBComponents
+    For Each vbc In rs_wb.VBProject.VBComponents
         If rs_ws_codename <> vbNullString And vbc.Name = rs_ws_codename Then
             Set rs_vbc = vbc
             Exit For
@@ -647,17 +640,16 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
             .ExpFileExtension = Me.ExpFileExtension ' required to build the export file's full name
             Set .ExpFile = fso.GetFile(.ExpFileFullName)
             Set .RawHost = mCompMan.WbkGetOpen(.HostFullName)
-            Set .RawVbc = .RawHost.VbProject.VBComponents(.CompName)
+            Set .RawVbc = .RawHost.VBProject.VBComponents(.CompName)
             .TypeString = Me.TypeString
             Select Case .RawType
                 Case vbext_ct_Document
                     '~~ A data module cannot be replaced like the other ones. Thus only its code
                     '~~ is synchronized - disregarding any consequences this may have when the
                     '~~ structure and design of the underlying Workbook or Worksheet has changed.
-                    mSync.ByCodeLines bcl_clone_wb:=cComp.Wrkbk _
-                                    , bcl_comp_name:=.CompName _
-                                    , bcl_raw_host_full_name:=.HostFullName _
-                                    , bcl_raw_codelines:=.CodeLines
+                    mSync.ByCodeLines sync_target_comp_name:=.CompName _
+                                    , sync_source_wb_full_name:=.HostFullName _
+                                    , sync_source_codelines:=.CodeLines
                 Case vbext_ct_ClassModule, vbext_ct_StdModule, vbext_ct_MSForm
                     Me.ReplaceRawWithClone
             End Select

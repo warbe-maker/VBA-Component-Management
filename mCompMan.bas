@@ -311,7 +311,7 @@ Public Function ManageVbProjectProperties( _
 ' ---------------------------------------------------------------------
 ' - Registers a Workbook as raw host when it has at least one of the
 '   Workbook's (mh_wb) components indicated hosted
-' - Registers a Workbook as Raw-VB-Project when mh_hosted not indicates
+' - Registers a Workbook as Sync-Source-VB-Project when mh_hosted not indicates
 '   a component but = VB_RAW_PROJECT
 ' - Returns FALSE when the VbProjectProperties are invalid!
 ' ---------------------------------------------------------------------
@@ -463,8 +463,8 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub SynchVbProject(ByRef sp_clone_project As Workbook, _
-                          ByVal sp_raw_project As String)
+Public Sub SynchTargetWbWithSourceWb(ByRef sync_target_wb As Workbook, _
+                          ByVal sync_source_wb As String)
 ' -------------------------------------------------------------
 ' Synchronizes the code of the open/ed Workbook (clone_project)
 ' with the code of the source Workbook (raw_project).
@@ -473,11 +473,11 @@ Public Sub SynchVbProject(ByRef sp_clone_project As Workbook, _
 ' - the CompMan Addin is not paused
 ' - the open/ed Workbook is not a restored version
 ' -------------------------------------------------------------
-    Const PROC = "SynchVbProject"
+    Const PROC = "SynchTargetWbWithSourceWb"
     
     On Error GoTo eh
     mErH.BoP ErrSrc(PROC)
-    mService.SynchVbProject sp_clone_project:=sp_clone_project, sp_raw_project:=sp_raw_project
+    mService.SynchTargetWbWithSourceWb sync_target_wb:=sync_target_wb, sync_source_wb:=sync_source_wb
     
 xt: mErH.EoP ErrSrc(PROC)
     Set cLog = Nothing

@@ -180,7 +180,7 @@ Friend Property Let CompName(ByVal s As String)
     sCompName = s
     If Not wb Is Nothing Then
         If Me.Exists Then
-            Set vbc = wb.VbProject.VBComponents(s)
+            Set vbc = wb.VBProject.VBComponents(s)
             sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExtension
         End If
     End If
@@ -201,11 +201,11 @@ Friend Property Get Exists(Optional ByRef ex_wb As Workbook = Nothing) As Boolea
     Dim v As VBComponent
     If Not ex_wb Is Nothing Then
         On Error Resume Next
-        Set v = ex_wb.VbProject.VBComponents(sCompName)
+        Set v = ex_wb.VBProject.VBComponents(sCompName)
         Exists = Not v Is Nothing
     ElseIf vbc Is Nothing Then
         On Error Resume Next
-        Set vbc = wb.VbProject.VBComponents(sCompName)
+        Set vbc = wb.VBProject.VBComponents(sCompName)
         Exists = Not vbc Is Nothing
     Else
         Exists = Not vbc Is Nothing
@@ -214,7 +214,7 @@ End Property
 
 Friend Property Get ExistsBySheetName(ByVal eb_name As String) As Boolean
     Dim ws As Worksheet
-    For Each ws In Me.Wrkbk
+    For Each ws In Me.Wrkbk.Worksheets
         ExistsBySheetName = ws.Name = eb_name
         If ExistsBySheetName Then Exit For
     Next ws
@@ -243,7 +243,7 @@ End Property
 Friend Property Get ExpFileExtension() As String
     
     If sExpFileExtension = vbNullString Then
-        If vbc Is Nothing Then Set vbc = wb.VbProject.VBComponents(sCompName)
+        If vbc Is Nothing Then Set vbc = wb.VBProject.VBComponents(sCompName)
         With Me
             Select Case vbc.Type
                 Case vbext_ct_StdModule:    sExpFileExtension = ".bas"
@@ -365,7 +365,7 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     sExpFilePath = fso.GetParentFolderName(sWrkbkFullName)
     Set foExport = fso.GetFolder(sExpFilePath)
     sService = Split(wb.Path, "\")(UBound(Split(wb.Path, "\")))
-    For Each vbc In wb.VbProject.VBComponents
+    For Each vbc In wb.VBProject.VBComponents
         lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
     Next vbc
     Set fso = Nothing
@@ -413,7 +413,7 @@ Public Function RemoteSheetExists( _
         End If
     Next ws
     
-    For Each vbc In rs_wb.VbProject.VBComponents
+    For Each vbc In rs_wb.VBProject.VBComponents
         If rs_ws_codename <> vbNullString And vbc.Name = rs_ws_codename Then
             Set rs_vbc = vbc
             Exit For

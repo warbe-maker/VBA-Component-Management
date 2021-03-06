@@ -185,7 +185,7 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
     
     For Each vKeyExisting In add_dct
         
-        If IsObject(add_dct.Item(vKeyExisting)) _
+        If VarType(add_dct.Item(vKeyExisting)) = vbObject _
         Then Set vItemExisting = add_dct.Item(vKeyExisting) _
         Else vItemExisting = add_dct.Item(vKeyExisting)
         

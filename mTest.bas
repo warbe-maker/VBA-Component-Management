@@ -60,7 +60,7 @@ End Function
 Private Function MaxCompLength(ByRef wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
-        For Each vbc In wb.VbProject.VBComponents
+        For Each vbc In wb.VBProject.VBComponents
             MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.Name))
         Next vbc
     End If
@@ -80,12 +80,12 @@ Public Sub Regression()
     mErH.EoP ErrSrc(PROC)
     
 End Sub
+  
+Public Sub Test_SynchTargetWbWithSourceWb()
 
-    
-Public Sub Test_SyncVbProject()
-
-    mService.SynchVbProject sp_clone_project:=mCompMan.WbkGetOpen("E:\Ablage\Excel VBA\DevAndTest\Test-VB-Clone-Project\Test_VB_Clone_Project.xlsb") _
-                          , sp_raw_project:="E:\Ablage\Excel VBA\DevAndTest\Test-VB-Raw-Project\Test_VB_Raw_Project.xlsb"
+    mService.SynchTargetWbWithSourceWb _
+        sync_target_wb:=mCompMan.WbkGetOpen("E:\Ablage\Excel VBA\DevAndTest\Test-VB-Clone-Project\Test_VB_Clone_Project.xlsb") _
+      , sync_source_wb:="E:\Ablage\Excel VBA\DevAndTest\Test-VB-Raw-Project\Test_VB_Raw_Project.xlsb"
 
 End Sub
 
@@ -104,7 +104,7 @@ Public Sub Test_01_KindOfComp()
     Set cComp = New clsComp
     With cComp
         Set .Wrkbk = wb
-        Set .VBComp = wb.VbProject.VBComponents(sComp)
+        Set .VBComp = wb.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enKindOfComp.enRawClone
     End With
 
@@ -113,7 +113,7 @@ Public Sub Test_01_KindOfComp()
     Set cComp = New clsComp
     With cComp
         Set .Wrkbk = wb
-        Set .VBComp = wb.VbProject.VBComponents(sComp)
+        Set .VBComp = wb.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enRawClone
     End With
     
@@ -122,7 +122,7 @@ Public Sub Test_01_KindOfComp()
     Set cComp = New clsComp
     With cComp
         Set .Wrkbk = wb
-        Set .VBComp = wb.VbProject.VBComponents(sComp)
+        Set .VBComp = wb.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enInternal
     End With
     
@@ -181,7 +181,7 @@ Public Sub Test_Refs()
     
     Dim ref As Reference
 
-    For Each ref In ThisWorkbook.VbProject.References
+    For Each ref In ThisWorkbook.VBProject.References
         With ref
             If InStr(.Description, "Applications Extensibility") <> 0 Then
                 Debug.Print .Description
@@ -603,23 +603,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
-End Sub
-
-Public Sub Test_Raw_VB_Project()
-' ----------------------------------------
-' 1. Register a Workbook as Raw-VB-Project
-' 2. Copy it as a Clone-VB-Project
-' 3. Modify the Raw
-' 4. Sync the Clone
-' ----------------------------------------
-
-    Dim fso As New FileSystemObject
-    Dim a   As Variant
-    
-    a = Split(fso.GetParentFolderName(ThisWorkbook.FullName), "\")
-    Debug.Print a(UBound(a))
-      
-    Set fso = Nothing
 End Sub
 
 Public Sub Test_BasicConfig()
