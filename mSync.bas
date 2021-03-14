@@ -1,24 +1,96 @@
 Attribute VB_Name = "mSync"
 Option Explicit
 
+Public Const SHEET_SHAPE        As String = ": "    ' Sheet-Shape concatenator
+
+Private Sync                    As clsSync
 Private lMaxLenComp             As Long
 Private lMaxLenType             As Long
-Private dctChanged              As Dictionary   ' Confirm buttons and clsRaw items to display changed
-Private bSyncDenied             As Boolean      ' when True the synchronization is not performed
-Private bAmbigous               As Boolean      ' when True sync is only done when the below is confirmed True
-Private RestrictRenameAsserted  As Boolean      ' when False a sheet's CodeName a n d its Name may be changed at once
+Private lMaxLenItem             As Long
+Private lMode                   As SyncMode
+Private dctChanged              As Dictionary       ' Confirm buttons and clsRaw items to display changed
+Private dctNameChange           As Dictionary
+Private bSyncDenied             As Boolean          ' when True the synchronization is not performed
+Private bAmbigous               As Boolean          ' when True sync is only done when the below is confirmed True
+Private RestrictRenameAsserted  As Boolean          ' when False a sheet's CodeName a n d its Name may be changed at once
 Private cSource                 As clsRaw
 Private cTarget                 As clsComp
-Private SyncTarget              As Workbook
-Private SyncSource              As Workbook
-Private SourceSheetComps        As Dictionary
-Private TargetSheetComps        As Dictionary
-Private SourceSheets            As Dictionary
-Private TargetSheets            As Dictionary
-Private SourceSheetShapes       As Dictionary
-Private TargetSheetShapes       As Dictionary
 Private lSheetsObsolete         As Long
 Private lSheetsNew              As Long
+Private ManualSynchRequired     As Boolean
+Private BckpFolderName          As String
+
+Public Enum siCounter
+    sic_changed_comps
+    sic_new_cols
+    sic_new_names
+    sic_new_refs
+    sic_new_shapes
+    sic_new_sheets
+    sic_new_sheet_codenames
+    sic_new_sheet_names
+    sic_obsolete_cols
+    sic_obsolete_names
+    sic_obsolete_refs
+    sic_obsolete_shapes
+    sic_obsolete_sheets
+End Enum
+
+Private Enum SyncMode
+    Count = 1
+    Confirm = 2
+    Synchronize = 3
+End Enum
+
+Public Sub SyncTargetRestore( _
+                       ByRef bkp_folder As Folder, _
+                       ByVal sTarget As String)
+' --------------------------------------------------
+'
+' --------------------------------------------------
+
+    Dim fso As New FileSystemObject
+
+    With fso
+        If Not .FolderExists(bkp_folder.Path) Then GoTo xt
+        If Not .FileExists(sTarget) Then GoTo xt
+        .CopyFile bkp_folder.Path & "\" & .GetFileName(sTarget), sTarget
+        .DeleteFolder bkp_folder.Path
+    End With
+    
+xt: Set fso = Nothing
+   Exit Sub
+   
+End Sub
+
+Public Sub SyncTargetBackup(ByRef bkp_folder As Folder, _
+                            ByVal sTarget As String)
+' -----------------------------------------------------
+' Saves a copy of the synchronization target Workbook
+' (Sync.Target) in a time-stamped folder under the
+' Workbook folder returned in (bkp_folder).
+' -----------------------------------------------------
+    Const PROC = "SyncTargetBackup"
+    
+    On Error GoTo eh
+    
+    BckpFolderName = "Bckup-" & Format$(Now(), "YYMMDD-hhmmss")
+    With New FileSystemObject
+        While .FolderExists(.GetParentFolderName(sTarget) & "\" & BckpFolderName)
+            Application.Wait Now() + 0.000001
+            BckpFolderName = "Bckup-" & Format$(Now(), "YYMMDD-hhmmss")
+        Wend
+        Set bkp_folder = .CreateFolder(.GetParentFolderName(sTarget) & "\" & BckpFolderName)
+        .CopyFile sTarget, bkp_folder.Path & "\" & .GetFileName(sTarget)
+    End With
+
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Sub
 
 Public Sub ByCodeLines( _
                  ByVal sync_target_comp_name As String, _
@@ -27,7 +99,7 @@ Public Sub ByCodeLines( _
 ' -------------------------------------------------------------------------
 ' Synchronizes
 '  the component (sync_target_comp_name) in the target Workbook
-'  (SyncTarget) with the code (sync_source_codelines) in the Export-File
+'  (Sync.Target) with the code (sync_source_codelines) in the Export-File
 '  of the corresponding source Workbook's (sync_source_wb_full_name)
 '  component
 ' line by line.
@@ -50,12 +122,11 @@ Public Sub ByCodeLines( _
         Set sync_source_codelines = cSource.CodeLines
     End If
     
-    With SyncTarget.VBProject.VBComponents(sync_target_comp_name).CodeModule
+    With Sync.Target.VBProject.VBComponents(sync_target_comp_name).CodeModule
         If .CountOfLines > 0 _
         Then .DeleteLines 1, .CountOfLines   ' Remove all lines from the cloned raw component
         
         For Each v In sync_source_codelines    ' Insert the raw component's code lines
-            Debug.Print sync_source_codelines(v)
             .InsertLines i, sync_source_codelines(v)
             i = i + 1
         Next v
@@ -73,18 +144,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function Center(ByVal s1 As String, _
-                       ByVal l As Long, _
-               Optional ByVal sFill As String = " ") As String
-' ------------------------------------------------------------
-' Returns s1 centered in a string with length l.
-' ------------------------------------------------------------
-    Dim lSpace As Long
-    lSpace = Max(1, ((l - Len(s1)) / 2))
-    Center = VBA.String$(lSpace, sFill) & s1 & VBA.String$(lSpace, sFill)
-    Center = Right(Center, l)
-End Function
-
 Private Function CompMaxLen() As Long
 ' -------------------------------------------------------------
 ' Returns the length of the longest element which may be
@@ -97,16 +156,16 @@ Private Function CompMaxLen() As Long
     Dim ws  As Worksheet
     Dim shp As Shape
     
-    For Each vbc In SyncTarget.VBProject.VBComponents:  l = mBasic.Max(l, Len(vbc.Name)):   Next vbc
-    For Each vbc In SyncSource.VBProject.VBComponents:  l = mBasic.Max(l, Len(vbc.Name)):   Next vbc
-    For Each ref In SyncTarget.VBProject.References:    l = mBasic.Max(l, Len(ref.Name)):   Next ref
-    For Each ref In SyncSource.VBProject.References:    l = mBasic.Max(l, Len(ref.Name)):   Next ref
-    For Each ws In SyncSource.Worksheets
+    For Each vbc In Sync.Target.VBProject.VBComponents:  l = mBasic.Max(l, Len(vbc.Name)):   Next vbc
+    For Each vbc In Sync.Source.VBProject.VBComponents:  l = mBasic.Max(l, Len(vbc.Name)):   Next vbc
+    For Each ref In Sync.Target.VBProject.References:    l = mBasic.Max(l, Len(ref.Name)):   Next ref
+    For Each ref In Sync.Source.VBProject.References:    l = mBasic.Max(l, Len(ref.Name)):   Next ref
+    For Each ws In Sync.Source.Worksheets
         For Each shp In ws.Shapes
             l = mBasic.Max(l, Len(shp.Name))
         Next shp
     Next ws
-    For Each ws In SyncTarget.Worksheets
+    For Each ws In Sync.Target.Worksheets
         For Each shp In ws.Shapes
             l = mBasic.Max(l, Len(shp.Name))
         Next shp
@@ -116,213 +175,34 @@ Private Function CompMaxLen() As Long
     CompMaxLen = l
 End Function
 
-Private Sub CompsChanged( _
-          Optional ByRef sync_confirm_info As clsLog = Nothing)
-' -----------------------------------------------------
-' When syncs is provided, collect all components which
-' had changed. I.e. their raw Export-File differs from
-' the Clone Export-File
-' else perform the syncronization.
-' -----------------------------------------------------
-    Const PROC = "CompsNew"
-    
-    On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim vbc1        As VBComponent
-    Dim vbc2        As VBComponent
-    
-    For Each vbc1 In SyncSource.VBProject.VBComponents
-        
-        If IsSheetComp(vbc1) Then GoTo next_vbc1
-        Set cSource = New clsRaw
-        Set cSource.Wrkbk = SyncSource
-        cSource.CompName = vbc1.Name
-        If Not cSource.Exists(SyncTarget) Then GoTo next_vbc1
-        
-        Set cTarget = New clsComp
-        Set cTarget.Wrkbk = SyncTarget
-        cTarget.CompName = vbc1.Name
-        cSource.CloneExpFileFullName = cTarget.ExpFileFullName
-        If Not cSource.Changed Then GoTo next_vbc1
-        
-        If Not sync_confirm_info Is Nothing Then
-            sync_confirm_info.ServicedItem = vbc1.Name
-            sync_confirm_info.Info = cTarget.TypeString & " changed"
-            If Not dctChanged.Exists("Display" & vbLf & vbc1.Name & vbLf & "changes") _
-            Then dctChanged.Add "Display" & vbLf & vbc1.Name & vbLf & "changes", cSource
-        Else
-            mRenew.ByImport rn_wb:=SyncTarget _
-                          , rn_comp_name:=vbc1.Name _
-                          , rn_exp_file_full_name:=cRaw.ExpFileFullName
-            cLog.Entry = "Renewed by import of '" & cSource.ExpFileFullName & "'"
+Private Function CompSheetName( _
+                         ByRef wb As Workbook, _
+                         ByVal comp_name As String) As String
+    Dim ws As Worksheet
+    For Each ws In wb.Worksheets
+        If ws.CodeName = comp_name Then
+            CompSheetName = ws.Name
+            Exit For
         End If
-        
-        Set cTarget = Nothing
-        Set cSource = Nothing
-next_vbc1:
-    Next vbc1
-
-    '~~ Collect changed Document Modules representing Worksheets
-    For Each vbc2 In SyncSource.VBProject.VBComponents
-        If Not vbc2.Type = vbext_ct_Document Then GoTo next_sheet
-        If Not IsSheetComp(vbc2) Then GoTo next_sheet
-        
-        Set cSource = New clsRaw
-        Set cSource.Wrkbk = SyncSource
-        cSource.CompName = vbc2.Name
-        If Not cSource.Exists(SyncTarget) Then GoTo next_sheet
-        
-        Set cTarget = New clsComp
-        Set cTarget.Wrkbk = SyncTarget
-        cTarget.CompName = vbc2.Name
-        cSource.CloneExpFileFullName = cTarget.ExpFileFullName
-        If Not cSource.Changed Then GoTo next_sheet
-        
-        If Not sync_confirm_info Is Nothing Then
-            sync_confirm_info.ServicedItem = vbc2.Name
-            sync_confirm_info.Info = "Worksheet changed (about to be updated with code from Export-File line-by-line)"
-            If Not dctChanged.Exists("Display" & vbLf & vbc2.Name & vbLf & "changes") _
-            Then dctChanged.Add "Display" & vbLf & vbc2.Name & vbLf & "changes", cSource
-        Else
-            cLog.ServicedItem = vbc2.Name
-            mSync.ByCodeLines sync_target_comp_name:=vbc2.Name _
-                            , sync_source_wb_full_name:=cRaw.Wrkbk.FullName _
-                            , sync_source_codelines:=cRaw.CodeLines
-            cLog.Entry = "Worksheet code updated line-by-line from Export-File '" & cSource.ExpFileFullName & "'"
-        End If
-        Set cSource = Nothing
-        Set cTarget = Nothing
-next_sheet:
-    Next vbc2
-
-xt: Set fso = Nothing
-    Exit Sub
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Sub
-
-Private Function CompsNew( _
-           Optional ByRef sync_confirm_info As clsLog = Nothing)
-' --------------------------------------------------------------
-' Synchronize new components in the source Workbook
-' (SyncSource) with the target Workbook (SyncTarget).
-' When the optional confirmation info (sync_confirm_info) is
-' provided only the syncronization infos are collect for being
-' confirmed.
-' --------------------------------------------------------------
-    Const PROC = "CompsNew"
-    
-    On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim vbc     As VBComponent
-    Dim cComp   As clsComp
-    
-    For Each vbc In SyncSource.VBProject.VBComponents
-        If vbc.Type = vbext_ct_Document Then GoTo next_vbc
-        If vbc.Type = vbext_ct_ActiveXDesigner Then GoTo next_vbc
-        
-        Set cSource = New clsRaw
-        Set cSource.Wrkbk = SyncSource
-        cSource.CompName = vbc.Name
-        If CompExists(SyncTarget, vbc.Name) Then GoTo next_vbc
-        
-        '~~ No component exists under the source component's name
-        If Not sync_confirm_info Is Nothing Then
-            sync_confirm_info.ServicedItem = vbc.Name
-            sync_confirm_info.Info = "New " & cSource.TypeString
-        Else
-            cLog.ServicedItem = vbc.Name
-            SyncTarget.VBProject.VBComponents.Import cSource.ExpFileFullName
-        End If
-        
-        Set cSource = Nothing
-next_vbc:
-    Next vbc
-
-xt: Set cComp = Nothing
-    Set fso = Nothing
-    Exit Function
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
+    Next ws
 End Function
 
-Private Function CompsObsolete( _
-                Optional ByRef sync_confirm_info As clsLog = Nothing)
-' -------------------------------------------------------------------
-' Synchronize obsolete components in the source Workbook
-' (SyncSource) with the target Workbook (SyncTarget). When
-' the optional confirmation info (sync_confirm_info) is provided only
-' the syncronization infos are collect for being confirmed.
-' -------------------------------------------------------------------
-    Const PROC = "CompsObsolete"
+Private Sub DisconnectLinkedRanges()
+' --------------------------------------------
+' Provided all sheets had been synchronized
+' any range still linked to a source Workbooks
+' range must be disconnected.
+' --------------------------------------------
+    Dim nm As Name
+    Dim sName As String
     
-    On Error GoTo eh
-    Dim v           As Variant
-    Dim lType       As vbcmType
-    Dim vbc         As VBComponent
-    Dim sType       As String
-    Dim cTarget     As clsComp
-    
-    '~~ Collect obsolete Standard Modules, Class modules, and UserForms
-    For Each vbc In SyncTarget.VBProject.VBComponents
-        If vbc.Type = vbext_ct_Document Then GoTo next_vbc
-        Set cTarget = New clsComp
-        Set cTarget.Wrkbk = SyncTarget
-        cTarget.CompName = vbc.Name
-        If cTarget.Exists(SyncSource) Then GoTo next_vbc
-        
-        If Not sync_confirm_info Is Nothing Then
-            sync_confirm_info.ServicedItem = vbc.Name
-            sync_confirm_info.Info = "Obsolete " & cTarget.TypeString & " (will be removed)"
-        Else
-            cLog.ServicedItem = vbc.Name
-            sType = cTarget.TypeString
-            SyncTarget.VBProject.VBComponents.Remove vbc
-            cLog.Entry = "Obsolete " & sType & " removed"
+    For Each nm In Sync.Target.Names
+        On Error Resume Next
+        sName = Split(nm.RefersTo, "]")(1)
+        If Err.Number = 0 Then
+            nm.RefersTo = "=" & sName
         End If
-        Set cTarget = Nothing
-next_vbc:
-    Next vbc
-
-xt: Exit Function
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Function
-
-'Private Sub CountSyncSheets( _
-'                      ByRef SourceSheets As Dictionary, _
-'                      ByRef TargetSheets As Dictionary, _
-'             Optional ByRef sync_new_count As Variant = Nothing, _
-'             Optional ByRef sync_obsolete_count As Variant = Nothing)
-'' -------------------------------------------------------------------
-'' Count the potentially new and obsolete sheets
-'' -------------------------------------------------------------------
-'    SheetsNew sync_new_count:=sync_new_count
-'    SheetsObsolete sync_obsolete_count:=sync_obsolete_count
-'
-'End Sub
-
-Private Sub FormShapes( _
-              Optional ByVal ctrl_sheet_name As String = vbNullString, _
-              Optional ByVal ctrl_sheet_codename As String = vbNullString)
-' ----------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------
-
-'    FormShapesNew
-'    FormShapesObsolete
+    Next nm
     
 End Sub
 
@@ -330,8 +210,26 @@ Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSync." & s
 End Function
 
-Private Function IsSheetComp(ByRef vbc As VBComponent) As Boolean
+Public Function IsSheetComp( _
+                      ByRef vbc As VBComponent, _
+             Optional ByRef wb As Workbook = Nothing, _
+             Optional ByRef sh_name As String = vbNullString) As Boolean
+' -----------------------------------------------------------------------
+' Returns TRUE when the Component (vbc) represents a Worksheet. When the
+' optional Workbook (wb) is provided, the sheet's Name is returned
+' (sh_name).
+' ------------------------------------------------------------------------
+    Dim ws As Worksheet
+    
     IsSheetComp = vbc.Type = vbext_ct_Document And Not IsWrkbkComp(vbc)
+    If Not wb Is Nothing Then
+        For Each ws In wb.Worksheets
+            If ws.CodeName = vbc.Name Then
+                sh_name = ws.Name
+                Exit For
+            End If
+        Next ws
+    End If
 End Function
 
 Private Function IsWrkbkComp(ByRef vbc As VBComponent) As Boolean
@@ -343,22 +241,14 @@ Private Function IsWrkbkComp(ByRef vbc As VBComponent) As Boolean
     
 End Function
 
-Private Function MaxLen( _
-                  ByRef max_len_comp As Long, _
-                  ByRef max_len_type As Long) As Long
-    Dim vbc As VBComponent
-    For Each vbc In SyncSource.VBProject.VBComponents
-        max_len_comp = mBasic.Max(max_len_comp, Len(vbc.Name))
-    Next vbc
-    For Each vbc In SyncTarget.VBProject.VBComponents
-        max_len_comp = mBasic.Max(max_len_comp, Len(vbc.Name))
-    Next vbc
-        
-    max_len_type = mBasic.Max(max_len_type, Len("ActiveX Designer"))
-    max_len_type = mBasic.Max(max_len_type, Len("Class Module"))
-    max_len_type = mBasic.Max(max_len_type, Len("Document Module"))
-    max_len_type = mBasic.Max(max_len_type, Len("UserForm"))
-    max_len_type = mBasic.Max(max_len_type, Len("Standard Module"))
+Private Function NameChange( _
+                      ByVal sh_name As String, _
+                      ByVal sh_code_name As String) As Boolean
+' ------------------------------------------------------------
+' Returns TRUE when either name is involved in a name change.
+' ------------------------------------------------------------
+    NameChange = dctNameChange.Exists(sh_name)
+    If Not NameChange Then NameChange = dctNameChange.Exists(sh_code_name)
 End Function
 
 Private Function NameExists( _
@@ -371,99 +261,48 @@ Private Function NameExists( _
     Next nm
 End Function
 
-Public Sub Names( _
-  Optional ByVal wb_sheet_name As String = vbNullString, _
-  Optional ByVal wb_sheet_codename As String = vbNullString)
-' ----------------------------------------------------------------
-' Synchronize the names in Worksheet (SyncTarget) with those in
-' Workbook (SyncSource) - when either a sheet's name (wb_sheet_name) or
-' a sheet's CodeName (wb_sheet_codename) is provided only those
-' names which refer to that sheet.
-' - Note: Obsolete names are removed but missing names cannot be
-'   added but are reported in the log file Missing names must be
-'   added manually in concert with the corresponding sheet design
-'   changes. As a consequence, design changes should preferrably
-'   be made prior copy of the Workbook for a VB-Project
-'   modification.
-' - Precondition: The Worksheet's CodeName and Name are identical
-'   both Workbooks. I.e. these need to be synched first.
-' ---------------------------------------------------------------
-    Const PROC = "Names"
+Private Function NameType(ByRef wb As Workbook, _
+                          ByVal nm As Name) As String
+    Const PROC = "NameTyüe"
     
     On Error GoTo eh
-    Dim nm          As Name
-    Dim shRaw       As Worksheet
-    Dim shClone     As Worksheet
-    Dim sSheetRaw   As String
-    Dim sSheetClone As String
-        
-    sSheetRaw = shRaw.Name
-    sSheetClone = shClone.Name
+    Dim lCells  As Long
+    Dim lRows   As Long
+    Dim lCols   As Long
+    Dim rng     As Range
+    Dim sSheet  As String
+    Dim ws      As Worksheet
     
-    If wb_sheet_name <> vbNullString Then
-        For Each nm In SyncTarget
-            If Not NameExists(SyncSource, nm) And InStr(nm.Name, wb_sheet_name & "!") <> 0 Then
-                SyncTarget.Names(nm.Name).Delete
-                cLog.Entry = "Obsolete range name '" & nm.Name & "' removed"
-            End If
-        Next nm
-    Else
-        For Each nm In SyncTarget.Names
-            If Not NameExists(SyncSource, nm) Then
-                SyncTarget.Names(nm.Name).Delete
-                cLog.Entry = "Obsolete range name '" & nm.Name & "' removed"
-            End If
-        Next nm
-    End If
+    sSheet = Replace(Split(nm.RefersTo, "!")(0), "=", vbNullString)
+    Set ws = wb.Worksheets.Item(sSheet)
+    Set rng = ws.Range(nm.Name)
 
-xt: Exit Sub
+    lCells = rng.Cells.CountLarge
+    lRows = rng.Rows.CountLarge
+    lCols = rng.Columns.CountLarge
     
+    If lCells = 1 Then
+        NameType = "Cell-Name"
+    ElseIf lRows = 1 And rng.Columns.CountLarge = rng.EntireRow.Columns.CountLarge Then
+        NameType = "Row-Name"
+    ElseIf lRows > 1 And rng.Columns.CountLarge = rng.EntireRow.Columns.CountLarge Then
+        NameType = "Rows-Name"
+    ElseIf lCols = 1 And rng.Rows.CountLarge = rng.EntireColumn.Rows.CountLarge Then
+        NameType = "Col-Name"
+    ElseIf lCols > 1 And rng.Rows.CountLarge = rng.EntireColumn.Rows.CountLarge Then
+        NameType = "Cols-Name"
+    Else
+        NameType = "Range-Name"
+    End If
+    
+xt: Exit Function
+
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
         Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
-End Sub
-
-Private Sub RefAdd(ByRef ra_wb As Workbook, _
-                   ByVal ra_ref As Reference)
-' ----------------------------------------------------
-    ra_wb.VBProject.References.AddFromFile ra_ref.Name
-End Sub
-
-Private Sub References( _
-        Optional ByRef sync_confirm_info As clsLog = Nothing)
-' ---------------------------------------------------------
-' Collect to be synchronized References (when sync_confirm_info Not
-' is Nothing) else synchronizes the References.
-' ---------------------------------------------------------
-
-    Dim ref As Reference
-    
-    '~~ Add missing to clone Workbook
-    For Each ref In SyncSource.VBProject.References
-        If Not RefExists(SyncTarget, ref) Then
-            If Not sync_confirm_info Is Nothing Then
-                sync_confirm_info.ServicedItem = ref.Name
-                sync_confirm_info.Info = "New Reference"
-            Else
-                RefAdd SyncTarget, ref
-            End If
-        End If
-    Next ref
-    
-    '~~ Remove obsolete
-    For Each ref In SyncTarget.VBProject.References
-        If Not RefExists(SyncSource, ref) Then
-            If Not sync_confirm_info Is Nothing Then
-                sync_confirm_info.ServicedItem = ref.Name
-                sync_confirm_info.Info = "Obsolete Reference"
-            Else
-                RefRemove SyncTarget, ref
-            End If
-        End If
-    Next ref
-
-End Sub
+End Function
 
 Private Function RefExists( _
                      ByRef re_wb As Workbook, _
@@ -480,15 +319,13 @@ Private Function RefExists( _
 
 End Function
 
-Private Sub RefRemove( _
-                ByRef rr_wb As Workbook, _
-                ByVal rr_ref As Reference)
+Private Sub RefRemove(ByVal rr_ref As Reference)
 ' -------------------------------------------------
 ' Removes Reference (rr_ref) from Workbook (rr_wb).
 ' -------------------------------------------------
     Dim ref As Reference
     
-    With rr_wb.TargetWbWithSource
+    With Sync.Target.VBProject
         For Each ref In .References
             If ref.Name = rr_ref.Name Then
                 .References.Remove ref
@@ -497,6 +334,19 @@ Private Sub RefRemove( _
         Next ref
     End With
     
+End Sub
+
+Private Sub RemoveInvalidRangeNames()
+' -----------------------------------------------------------
+' Removes names which point to a range which not or no longer
+' exists.
+' -----------------------------------------------------------
+    Dim nm As Name
+    For Each nm In Sync.Target.Names
+        If Left(nm.Value, 2) = "=#" Then
+            nm.Delete
+        End If
+    Next nm
 End Sub
 
 Private Sub RenameSheet(ByRef rs_wb As Workbook, _
@@ -537,7 +387,7 @@ Private Sub RenameWrkbkModule( _
     On Error GoTo eh
     Dim vbc     As VBComponent
     
-    With rdm_wb.TargetWbWithSource
+    With rdm_wb.SyncTargetithSource
         For Each vbc In .VBComponents
             If vbc.Type = vbext_ct_Document Then
                 If IsWrkbkComp(vbc) Then
@@ -559,293 +409,154 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub SheetsNew( _
-       Optional ByRef sync_new_count As Variant = Nothing, _
-       Optional ByRef sync_obsolete_count As Variant = Nothing, _
-       Optional ByRef sync_confirm_info As clsLog)
-' ---------------------------------------------------------------
-' Synchronize new sheets in the source Workbook (SyncSource) with
-' the target Workbook (SyncTarget).
-' - When the optional new sheets counter (sync_new_count) is
-'   provided, the new sheets are only counted
-' - When the optional confirmation info (sync_confirm_info) is
-'   provided only the syncronization infos are collect for being
-'   confirmed.
-' Note-1: A Worksheet is regarded new when it exists in the
-'         target Workbbook under its CodeName nor its Name and
-'         it is asserted that sheet's name change is restricted
-'         to either Name or CodeName but never both at once.
-' Note-2: This procedure is called three times
-'         1. To count the sheets indicated new
-'         2. To get the new sheets confirmed
-'         3. To copy the new sheet from the source to the target
-'            Workbook
-' --------------------------------------------------------------
-    Const PROC = "SheetsNew"
+Private Sub ShapeCopy( _
+                ByRef sc_source As Worksheet, _
+                ByRef sc_target As Worksheet, _
+                ByVal sc_name As String)
+' ---------------------------------------------
+'
+' ---------------------------------------------
+    Dim SourceShape As Shape
+    Dim TargetShape As Shape
+
+    Sync.DisplayCollectedSourceSheetShapes
+    Sync.DisplayCollectedTargetSheetShapes
     
-    On Error GoTo eh
-    Dim vbc     As VBComponent
-    Dim i       As Long
-    Dim ws      As Worksheet
-    Dim cSource As clsRaw
-    Dim cTarget As clsComp
-    
-    For Each vbc In SyncSource.VBProject.VBComponents
-        Set cSource = New clsRaw
-        Set cSource.Wrkbk = SyncSource
-        cSource.CompName = vbc.Name
-        If CompExists(SyncTarget, vbc.Name) Then GoTo next_vbc
-        If vbc.Type <> vbext_ct_Document Then GoTo next_vbc
-        If Not IsSheetComp(vbc) Then GoTo next_vbc
-        
-        Set cTarget = New clsComp
-        Set cTarget.Wrkbk = SyncTarget
-        If cTarget.ExistsBySheetName(cSource.SheetName(vbc.Name)) Then GoTo next_vbc
-            
-        '~~ The sheet does not exist in the target Workbook neither under its Name
-        '~~ nor under its CodeName.
-        If VarType(sync_new_count) = vbLong Then
-            '~~ This is just the first call for counting the potentially new sheets
-            sync_new_count = sync_new_count + 1
-        ElseIf Not sync_confirm_info Is Nothing Then
-            '~~ This is just the second call for the collection of the sync confirmation info
-            sync_confirm_info.ServicedItem = vbc.Name
-            If lSheetsNew > 0 Or lSheetsObsolete > 0 Then
-                If Not RestrictRenameAsserted Then
-                    bAmbigous = True
-                    sync_confirm_info.Info = "New Worksheet ambigous (sync denied unless sheet rename is asserted restricted)"
-                Else
-                    bAmbigous = False
-                    sync_confirm_info.Info = "New Worksheet (will be copied from source Workbook)"
-                End If
-            Else
-                sync_confirm_info.Info = "New Worksheet (will be copied from source Workbook)"
-            End If
-        Else
-            '~~ This is the third call for getting the syncronizations done
-            '~~ The new sheet is copied to the corresponding position in the target Workbook
-            For i = 1 To cSource.Wrkbk.Worksheets.Count
-                Set ws = cSource.Wrkbk.Worksheets(i)
-                If ws.CodeName = cSource.CompName Then
-                    If i = 1 _
-                    Then ws.Copy Before:=SyncTarget.Sheets(1) _
-                    Else ws.Copy After:=SyncTarget.Sheets(i - 1)
-                    cLog.Entry = "New Workseet '" & cSource.CompName & "(" & ws.Name & ")' copied."
-                    ' Exit For
-                End If
-            Next i
-        End If
-        Set cTarget = Nothing
-        Set cSource = Nothing
-next_vbc:
-    Next vbc
-       
-xt: Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
+    For Each SourceShape In sc_source.Shapes
+        If SourceShape.Name <> sc_name Then GoTo next_shape
+        SourceShape.Copy
+        Debug.Print sc_target.Shapes.Count
+        sc_target.Paste
+        Debug.Print sc_target.Shapes.Count
+        Set TargetShape = sc_target.Shapes(sc_target.Shapes.Count)
+        With TargetShape
+            .Name = sc_name
+            .top = SourceShape.top
+            .Left = SourceShape.Left
+            .Width = SourceShape.Width
+            .Height = SourceShape.Height
+        End With
+next_shape:
+    Next SourceShape
 End Sub
 
-Private Sub SheetsObsolete( _
-            Optional ByRef sync_obsolete_count As Variant = Nothing, _
-            Optional ByRef sync_confirm_info As clsLog)
-' --------------------------------------------------------------------
-' Remove sheets in the target (SyncTarget) which are regarded
-' obsolete because they do not exist in the target Workbook
-' (SyncTarget) neither under their Name nor theit CodeName.
-' - When the optional obsolet sheets counter (sync_obsolete_count)
-'   is provided, the obsolete sheets are only counted
-' - When the optional confirmation info (sync_confirm_info) is
-'   provided only the syncronization infos are collect for being
-'   confirmed.
-' A Worksheet is finally only regarded a obsolete when
-' A) it exists in the source Workbook neither under its CodeName nor
-'    its Name a n d  it had been confirmed that name changes on sheets
-'    are restricted to either or but never both at once.
-' B) the number of new sheets is 0
-' Note: This procedure is called three times
-' 1. To count the sheets indicated obsolete
-' 2. To get the removal of the obsolete sheets confirmed
-' 3. To remove the obsolete sheets
+Private Function SheetCodeName( _
+                         ByRef sync_wb As Workbook, _
+                         ByVal sync_sheet_name As String) As String
 ' -----------------------------------------------------------------
-    Const PROC = "SheetsObsolete"
-    
+'
+' -----------------------------------------------------------------
+    Const PROC = "SheetCodeName"
+
     On Error GoTo eh
-    Dim vbc     As VBComponent
-    Dim ws      As Worksheet
-    Dim cSource As clsRaw
-    Dim cTarget As clsComp
+    Dim ws  As Worksheet
     
-    For Each vbc In SyncTarget.VBProject.VBComponents
-        If Not vbc.Type = vbext_ct_Document Then GoTo next_vbc
-        If Not IsSheetComp(vbc) Then GoTo next_vbc
-        
-        Set cSource = New clsRaw
-        Set cSource.Wrkbk = SyncSource
-        cSource.CompName = vbc.Name
-        If cSource.Exists Then GoTo next_vbc
-        Set cTarget = New clsComp
-        Set cTarget.Wrkbk = SyncTarget
-        cTarget.CompName = vbc.Name
-        If cSource.ExistsBySheetName(cTarget.SheetName(vbc.Name)) Then GoTo next_vbc
-        
-        '~~ Sheet Document Module exists in source Workbook
-        '~~ neither under its Name nor under its CodeName
-        cLog.ServicedItem = vbc.Name
-        If VarType(sync_obsolete_count) = vbLong Then
-            '~~ This is just the first call for counting the potentially new sheets
-            sync_obsolete_count = sync_obsolete_count + 1
-        ElseIf Not sync_confirm_info Is Nothing Then
-            '~~ This is just the second call for the collection of the sync confirmation info
-            sync_confirm_info.ServicedItem = vbc.Name
-            If lSheetsNew > 0 Or lSheetsObsolete > 0 Then
-                If Not RestrictRenameAsserted Then
-                    bAmbigous = True
-                    sync_confirm_info.Info = "Obsolete Worksheet ambigous (sync denied unless sheet rename is asserted restricted)"
-                Else
-                    bAmbigous = False
-                    sync_confirm_info.Info = "Obsolete Worksheet (will be copied from source Workbook)"
-                End If
-            Else
-                sync_confirm_info.Info = "Obsolete Worksheet (will be removed)"
-            End If
-        Else
-            '~~ This is a Worksheet with no corresponding component and no corresponding sheet in the source Workbook.
-            '~~ Because it has been asserted that sheets are never renamed by Name and CodeName at once
-            '~~ this Worksheet is regarded obsolete for sure and will thus now be removed
-            For Each ws In SyncTarget.Worksheets
-                If ws.CodeName = vbc.Name Then
-                    '~~ This is the obsolete sheet to be removed
-                    ws.Delete
-                    cLog.Entry = "Obsolete Worksheet deleted"
-                    Exit For
-                End If
-            Next ws
+    For Each ws In sync_wb.Worksheets
+        If ws.Name = sync_sheet_name Then
+            SheetCodeName = ws.CodeName
+            GoTo xt
         End If
-        Set cTarget = Nothing
-        Set cSource = Nothing
-next_vbc:
-    Next vbc
+    Next ws
     
-xt: Exit Sub
+xt: Exit Function
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Function
+
+Private Function SheetExists( _
+                       ByRef wb As Workbook, _
+              Optional ByRef sh1_name As String = vbNullString, _
+              Optional ByRef sh1_code_name As String = vbNullString, _
+              Optional ByRef sh2_name As String = vbNullString, _
+              Optional ByRef sh2_code_name As String = vbNullString) As Boolean
+' -----------------------------------------------------------------------------
+' Returns TRUE when the sheet either under the Name (sh1_name) or under the
+' CodeName (sh1_code_name) exists in Workbook (wb).
+' Returns FALSE when the sheet not exists in the Workbook (wb) under either
+' name. When it exists by Name or CodeName both are returned (sh2_name,
+' sh2_code_name).
+' -----------------------------------------------------------------------------
+    Const PROC = "SheetExists"
+                             
+    On Error GoTo eh
+    Dim ws As Worksheet
+    
+    If sh1_name = vbNullString And sh1_code_name = vbNullString _
+    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Neither a Sheet's Name nor CodeName is provided!"
+    
+    For Each ws In wb.Worksheets
+        If sh1_name <> vbNullString Then
+            If ws.Name = sh1_name Then
+                sh2_name = ws.Name
+                sh2_code_name = ws.CodeName
+                SheetExists = True
+                Exit For
+            End If
+        End If
+        If sh1_code_name <> vbNullString Then
+            If ws.CodeName = sh1_code_name Then
+                sh2_name = ws.Name
+                sh2_code_name = ws.CodeName
+                SheetExists = True
+                Exit For
+            End If
+        End If
+    Next ws
+    
+xt: Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
         Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
-End Sub
+End Function
 
-Private Sub SheetsCodeNameChange( _
-                  Optional ByRef sync_confirm_info As clsLog)
-' ------------------------------------------------------------------
-'
-' ------------------------------------------------------------------
-    Const PROC = "SheetsCodeNameChange"
+Private Function SheetShapeExists( _
+                            ByRef sync_wb As Workbook, _
+                            ByVal sync_sheet_name As String, _
+                            ByVal sync_sheet_code_name As String, _
+                            ByVal sync_shape_name As String) As Boolean
+' ----------------------------------------------------------------------
+' Returns TRUE when the shape (sync_shape_name) exists in the Workbook
+' (sync_wb) in a sheet with either the given Name (sync_sheet_name) or
+' the provided CodeName (sync_sheet_code_name).
+' Explanation: When this function is used to get the required info for
+'              being confirmed, the concerned sheet may be one of which
+'              the Name or the CodeName is about to be renamed - which
+'              by then will not have taken place.
+' ----------------------------------------------------------------------
+    Const PROC = ""
     
     On Error GoTo eh
-    Dim v           As Variant
-    Dim wsSource    As Worksheet
-    Dim wsTarget    As Worksheet
-    Dim vbc         As VBComponent
+    Dim i   As Long
+    Dim s   As String
+    Dim ws  As Worksheet
+    Dim shp As Shape
     
-    For Each v In SourceSheets
-        If Not TargetSheets.Exists(v) Then GoTo next_sheet
-        
-        Set wsSource = SourceSheets(v)
-        Set wsTarget = TargetSheets(v)
-        If wsTarget.CodeName = wsSource.CodeName Then GoTo next_sheet
-        
-        '~~ The sheet's CodName has changed while the sheet's Name remained unchanged
-        If Not sync_confirm_info Is Nothing Then
-            sync_confirm_info.ServicedItem = wsTarget.CodeName
-            sync_confirm_info.Info = "Worksheet CodeName  " & wsTarget.CodeName & "  changes to  " & wsSource.CodeName
-            sync_confirm_info.Info = "Worksheet code will be synced line by line"
-        Else
-            For Each vbc In SyncTarget.VBProject.VBComponents
-                If vbc.Name = TargetSheets(v).CodeName Then
-                    vbc.Name = wsSource.CodeName
-                    '~~ When the sheet's CodeName has changed the sheet's code is synchronized line by line
-                    '~~ because it is very likely code refers to the CodeName rather than to the sheet's Name or position
-                    mSync.ByCodeLines sync_target_comp_name:=wsSource.CodeName _
-                                    , sync_source_wb_full_name:=SyncSource.FullName
-                    Exit For
-                End If
-            Next vbc
-        End If
+    For Each ws In sync_wb.Worksheets
+        If ws.Name <> sync_sheet_name And ws.CodeName <> sync_sheet_code_name Then GoTo next_sheet
+        For Each shp In ws.Shapes
+            If shp.Name = sync_shape_name Then
+                SheetShapeExists = True
+                GoTo xt
+            End If
+        Next shp
 next_sheet:
-    Next v
-
-xt: Exit Sub
+    Next ws
+    
+xt: Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
         Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
-End Sub
+End Function
 
-Private Sub SheetsNameChange( _
-              Optional ByRef sync_confirm_info As clsLog)
-' --------------------------------------------------------------
-'
-' --------------------------------------------------------------
-    Const PROC = "SheetsameChange"
-    
-    On Error GoTo eh
-    Dim v           As Variant
-    Dim wsSource    As Worksheet
-    Dim vbcSource   As VBComponent
-    Dim vbcTarget   As VBComponent
-    Dim ws          As Worksheet
-    Dim sSheetName  As String
-    Dim vbc         As VBComponent
-    
-    For Each v In SourceSheetComps
-        If Not TargetSheetComps.Exists(v) Then GoTo next_comp
-        Set vbcSource = SourceSheetComps(v)
-        Set vbcTarget = TargetSheetComps(v)
-        For Each ws In SyncTarget.Worksheets
-            If ws.CodeName <> vbcSource.Name Then GoTo next_ws
-            sSheetName = CompSheetName(SyncSource, vbcSource.Name)
-            If ws.Name = sSheetName Then GoTo next_ws
-            
-            '~~ The sheet's Name has changed while the sheets CodeName remained unchanged
-            If Not sync_confirm_info Is Nothing Then
-                sync_confirm_info.ServicedItem = ws.CodeName
-                sync_confirm_info.Info = "Worksheet Name  " & ws.Name & "  changes to  " & sSheetName
-                sync_confirm_info.Info = "Worksheet code will be synced line by line"
-            Else
-                ws.Name = sSheetName
-                '~~ When the sheet's name has changed the sheet's code is synchronized line by line
-                '~~ for the case the name is used in the code
-                For Each vbc In SyncTarget.VBProject.VBComponents
-                    If vbc.Name = ws.CodeName Then
-                        mSync.ByCodeLines sync_target_comp_name:=wsSource.CodeName _
-                                        , sync_source_wb_full_name:=SyncSource.FullName
-                        Exit For
-                    End If
-                Next vbc
-            End If
-next_ws:
-        Next ws
-next_comp:
-    Next v
-
-xt: Exit Sub
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-End Sub
-
-Private Sub SheetsOrder( _
-    Optional ByRef sync_confirm_info As clsLog = Nothing)
+Private Sub SheetsOrder()
 ' -------------------------------------------------------
 '
 ' -------------------------------------------------------
@@ -856,12 +567,12 @@ Private Sub SheetsOrder( _
     Dim wsSource    As Worksheet
     Dim wsTarget    As Worksheet
     
-    For i = 1 To SyncSource.Worksheets.Count
-        Set wsSource = SyncSource.Worksheets(i)
-        Set wsTarget = SyncTarget.Worksheets(i)
+    For i = 1 To Sync.Source.Worksheets.Count
+        Set wsSource = Sync.Source.Worksheets(i)
+        Set wsTarget = Sync.Target.Worksheets(i)
         If wsSource.Name <> wsTarget.Name Then
             '~~ Sheet position has changed
-            If Not sync_confirm_info Is Nothing Then
+            If lMode = Confirm Then
                 Stop ' pending confirmation info
             Else
                 Stop ' pending implementation
@@ -879,50 +590,458 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 
 End Sub
 
-Private Function CompSheetName( _
-                         ByRef wb As Workbook, _
-                         ByVal comp_name As String) As String
-    Dim ws As Worksheet
-    For Each ws In wb.Worksheets
-        If ws.CodeName = comp_name Then
-            CompSheetName = ws.Name
-            Exit For
-        End If
-    Next ws
-End Function
+ 
+Private Sub SourceSheetNameChange( _
+                            ByVal sh1_name As String, _
+                            ByVal sh1_code_name As String, _
+                            ByVal sh2_name As String, _
+                            ByVal sh2_code_name As String)
+' ----------------------------------------------------------
+' Registers all sheet names involved in name changes.
+' ----------------------------------------------------------
+    If Not dctNameChange.Exists(sh1_name) Then dctNameChange.Add sh1_name, sh1_name
+    If Not dctNameChange.Exists(sh1_code_name) Then dctNameChange.Add sh1_code_name, sh1_code_name
+    If Not dctNameChange.Exists(sh2_name) Then dctNameChange.Add sh2_name, sh2_name
+    If Not dctNameChange.Exists(sh2_code_name) Then dctNameChange.Add sh2_code_name, sh2_code_name
+End Sub
 
-Private Sub SheetRemove(ByRef wb As Workbook, _
-                        ByRef vbc As VBComponent)
-' -----------------------------------------------
-' Remove the sheet which corresponds with the
-' VBComponent (vbc) by identinfying its Name.
-' -----------------------------------------------
-    Const PROC = "SheetRemove"
+Private Sub SyncConfirmation()
+' ------------------------------------------------------------
+' Collect all confirmation information regarding sheet changes
+' ------------------------------------------------------------
+    lMode = Confirm
+    SyncReferencesNew
+    SyncReferencesObsolete
+    
+    SyncSheetsNameChange
+    SyncSheetsCodeNameChange
+    SyncSheetsNew
+    SyncSheetsObsolete
+    SyncSheetsCodeChanged
+    
+    SyncShapesNew
+    SyncShapesObsolete
+    
+    SyncVBComponentsNew
+    SyncVBComponentsObsolete
+    SyncVBComponentsCodeChanged
+    
+    SyncNamesNew
+End Sub
+
+Private Sub SyncNamesNew()
+' ----------------------------------------------------------------
+' Synchronize the names in the target Worksheet (Sync.Target) with
+' those new in the source Workbook (Sync.Source) considering that
+' new Names which refer to a new sheet will automatically be
+' synchronized when the new sheet is copied from the source to
+' the target Workbook. All other new names refer to a range in
+' an already existing sheet which might be new inserted columns
+' or rows. Theses new names cannot be syncronized programmatically
+' but require a manual intervention. This requirement will be
+' communicated at the end of the syncronization.
+' ----------------------------------------------------------------
+    Const PROC = "SyncNamesNew"
     
     On Error GoTo eh
-    Dim ws As Worksheet
+    Dim nm              As Name
+    Dim v               As Variant
+    Dim SheetReferred   As String
     
-    For Each ws In wb.Worksheets
-        If ws.CodeName = vbc.Name Then
-            If ws.UsedRange.Columns.Count > 0 Or ws.UsedRange.Rows.Count > 0 Then
-                If ws.Visible = xlSheetHidden Then
-                    '~~ This Worksheet already contains data which might get lost when the sheet is deleted
-                    '~~ For safety it will by copied as backup and hidden. However, this backup will be removed
-                    '~~ with the next synchronization !!!
-                    Stop
-                    ws.Copy After:=wb.Worksheets.Count
-                    ws.Name = ws.Name & "_Bkp"
-                    ws.Visible = xlSheetHidden
-                Else
-                    '~~ This is a backup which now will be removed!
-                    Stop
-                    wb.Worksheets(ws.Name).Delete
-                End If
+    For Each v In Sync.SourceNames
+        If Sync.TargetNames.Exists(v) Then GoTo next_v
+        '~~ The source name not yet exists in the target Workbook and thus is regarde new
+        '~~ However, new names potentially in concert require a design change of the concerned sheet
+        Set nm = Sync.Source.Names.Item(v)
+        SheetReferred = Replace(Split(nm.RefersTo, "!")(0), "=", vbNullString)
+        If lMode = Confirm Then
+            '~~ When the new name refers to a new sheet it is not syncronized
+            If Sync.NewSheetExists(SheetReferred) Then
+                Sync.ConfInfo(NameType(Sync.Source, nm), v & "(" & nm.RefersTo & ")") = "New! Implicitely synched when sheet '" & SheetReferred & "' copied from source to target Workbook."
+            Else
+                Sync.ConfInfo(NameType(Sync.Source, nm), v & "(" & nm.RefersTo & ")") = "New! Requires manual intervention. 3)"
+                ManualSynchRequired = True
             End If
-            Exit For
+        Else
+            If Not Sync.NewSheetExists(SheetReferred) Then ManualSynchRequired = True
         End If
-    Next ws
+next_v:
+    Next v
+
+xt: Exit Sub
     
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Sub
+
+Public Sub SyncObsoleteNames()
+' ----------------------------------------------------------------
+' Synchronize the names in Worksheet (Sync.Target) with those in
+' Workbook (Sync.Source) - when either a sheet's name (wb_sheet_name) or
+' a sheet's CodeName (wb_sheet_codename) is provided only those
+' names which refer to that sheet.
+' - Note: Obsolete names are removed but missing names cannot be
+'   added but are reported in the log file Missing names must be
+'   added manually in concert with the corresponding sheet design
+'   changes. As a consequence, design changes should preferrably
+'   be made prior copy of the Workbook for a VB-Project
+'   modification.
+' - Precondition: The Worksheet's CodeName and Name are identical
+'   both Workbooks. I.e. these need to be synched first.
+' ---------------------------------------------------------------
+    Const PROC = "SyncObsoleteNames"
+    
+    On Error GoTo eh
+    Dim nm  As Name
+    Dim v   As Variant
+    
+    For Each v In Sync.TargetNames
+        If Sync.SourceNames.Exists(v) Then GoTo next_v
+        Set nm = Sync.Target.Names.Item(v)
+        '~~ The target name does not exist in the source and thus  has become obsolete
+        If lMode = Confirm Then
+            Sync.ConfInfo(NameType(Sync.Target, v), v & "(" & nm.RefersTo & ")") = "Obsolete! Will be removed."
+        Else
+            cLog.ServicedItem = v
+            Set nm = Sync.TargetNames(v)
+            nm.Delete
+            cLog.Entry = "Range-Name Obsolete removed"
+        End If
+next_v:
+    Next v
+
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Sub
+
+Private Sub SyncReferencesNew()
+' --------------------------------------------
+' When lMode=Confirm to be synchronized
+' References are collected for being confirmed
+' else References are synchronized.
+' --------------------------------------------
+    Const PROC = "SyncReferencesNew"
+    
+    On Error GoTo eh
+    Dim ref As Reference
+    
+    For Each ref In Sync.Source.VBProject.References
+        If Not RefExists(Sync.Target, ref) Then
+            If lMode = Confirm Then
+                Sync.ConfInfo("Reference", ref.Name) = "New! Will be added and properties adjusted."
+            Else
+                Sync.Target.VBProject.References.AddFromGuid ref.GUID, ref.Major, ref.Minor
+            End If
+        End If
+    Next ref
+    
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+
+End Sub
+
+Private Sub SyncReferencesObsolete()
+' --------------------------------------------
+' When lMode=Confirm to be synchronized
+' References are collected for being confirmed
+' else References are synchronized.
+' --------------------------------------------
+    Const PROC = "SyncReferencesObsolete"
+    
+    On Error GoTo eh
+    Dim ref As Reference
+    
+    For Each ref In Sync.Target.VBProject.References
+        If Not RefExists(Sync.Source, ref) Then
+            If lMode = Confirm Then
+                Sync.ConfInfo("Reference", ref.Name) = "Obsolete! Will be removed."
+            Else
+                RefRemove ref
+            End If
+        End If
+    Next ref
+
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+
+End Sub
+
+Private Sub SyncShapesNew()
+' -----------------------------------------------------------
+' Copy new shapes from the sourec Workbook (Sync.Source) to
+' the target Workbook (Sync.Target) and ajust the properties
+' -----------------------------------------------------------
+    Const PROC = "SyncShapesNew"
+    
+    On Error GoTo eh
+    Dim v           As Variant
+    Dim wsSource    As Worksheet
+    Dim wsTarget    As Worksheet
+    Dim sShape      As String
+    Dim sSheet      As String
+    
+    With Sync
+        For Each v In .SourceSheetShapes
+            Debug.Print v
+            sSheet = Split(v, SHEET_SHAPE)(0)
+            sShape = Split(v, SHEET_SHAPE)(1)
+            If SheetShapeExists(sync_wb:=.Target _
+                              , sync_sheet_name:=sSheet _
+                              , sync_sheet_code_name:=SheetCodeName(.Source, sSheet) _
+                              , sync_shape_name:=sShape _
+                               ) _
+            Then GoTo next_shape
+                
+            '~~ The source shape not yet exists in the target Workbook's corresponding sheet
+            '~~ (idetified either by its Name or CodeName) and thus is regarde new and needs
+            '~~ to be copied and its Properties adjusted.
+            If lMode = Confirm Then
+                If .NewSheetExists(sSheet) _
+                Then .ConfInfo("Sheet Shape", v) = "New! Will be copied with new source Workbook sheet '" & sSheet & "'." _
+                Else .ConfInfo("Sheet Shape", v) = "New! Will be copied from source Workbook sheet '" & sSheet & "'."
+            Else
+                '~~ Important to consider: When the new shapes are syncronized
+                '~~ the target Worksheet's Name and CodeName will be identical with the source Worksheet
+                Set wsSource = .Source.Worksheets(.SourceSheetShapes(v))
+                Set wsTarget = .Target.Worksheets(.SourceSheetShapes(v))
+                ShapeCopy sc_source:=wsSource _
+                        , sc_target:=wsTarget _
+                        , sc_name:=sShape
+                cLog.ServicedItem = sShape
+                cLog.Entry = "Sheet-Shape copied and properties adjusted"
+            End If
+next_shape:
+        Next v
+    End With
+
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Sub
+
+Private Sub SyncShapesObsolete()
+' -----------------------------------------------------------
+' Remove obsolete shapes in the target Workbook (Sync.Target)
+' -----------------------------------------------------------
+    Const PROC = "SyncShapesObsolete"
+    
+    On Error GoTo eh
+    Dim v           As Variant
+    Dim wsTarget    As Worksheet
+    Dim sShape      As String
+    Dim sSheet      As String
+
+    For Each v In Sync.TargetSheetShapes
+        sSheet = Split(v, SHEET_SHAPE)(0)
+        sShape = Split(v, SHEET_SHAPE)(1)
+        If SheetShapeExists(sync_wb:=Sync.Source _
+                          , sync_sheet_name:=Split(v, SHEET_SHAPE)(0) _
+                          , sync_sheet_code_name:=SheetCodeName(Sync.Target, sSheet) _
+                          , sync_shape_name:=sShape _
+                           ) _
+        Then GoTo next_shape
+        Set wsTarget = Sync.Target.Worksheets(Sync.TargetSheetShapes.Item(v))
+        '~~ The target name does not exist in the source and thus  has become obsolete
+        If lMode = Confirm Then
+            Sync.ConfInfo("Sheet Shape", v) = "Obsolete! Will be removed."
+        Else
+            cLog.ServicedItem = sShape
+            wsTarget.Shapes(sShape).Delete
+            cLog.Entry = "Worksheet-Shape removed"
+        End If
+next_shape:
+    Next v
+
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Sub
+
+Private Sub SyncSheetsCodeChanged()
+' -----------------------------------------------
+' When lMode=Confirm all sheets which had changed
+' are collected and provided for confirmation
+' else the changes are syncronized.
+' -----------------------------------------------
+    Const PROC = "SyncSheetsCodeChanged"
+    
+    On Error GoTo eh
+    Dim fso                 As New FileSystemObject
+    Dim vbc                 As VBComponent
+    Dim sCaption            As String
+    Dim sTargetSheetName    As String
+    Dim sExpFile            As String
+    
+    For Each vbc In Sync.Source.VBProject.VBComponents
+        If Not vbc.Type = vbext_ct_Document Then GoTo next_sheet
+        If Not IsSheetComp(vbc) Then GoTo next_sheet
+        
+        Set cSource = New clsRaw
+        Set cSource.Wrkbk = Sync.Source
+        cSource.CompName = vbc.Name
+        If Not cSource.Exists(Sync.Target) Then GoTo next_sheet
+        
+        Set cTarget = New clsComp
+        Set cTarget.Wrkbk = Sync.Target
+        cTarget.CompName = vbc.Name
+        cSource.CloneExpFileFullName = cTarget.ExpFileFullName
+        If Not cSource.Changed Then GoTo next_sheet
+        
+        If lMode = Confirm Then
+            Sync.ConfInfo("Worksheet", Sync.SheetProjectName(wb:=Sync.Target, vbc:=cTarget.VBComp)) = "Code changed! Will be updated with code in corresp. source Workbook Export-File (line-by-line)."
+            sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
+            If Not dctChanged.Exists(sCaption) _
+            Then dctChanged.Add sCaption, cSource
+        Else
+            cLog.ServicedItem = vbc.Name
+            sExpFile = cSource.ExpFileFullName
+            mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
+                            , sync_source_wb_full_name:=cSource.Wrkbk.FullName _
+                            , sync_source_codelines:=cSource.CodeLines
+            cLog.Entry = "Code of Worksheet '" & vbc.Name & "' updated line-by-line from Export-File '" & sExpFile & "'"
+        End If
+        Set cSource = Nothing
+        Set cTarget = Nothing
+next_sheet:
+    Next vbc
+
+xt: Set fso = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
+Private Sub SyncSheetsCodeNameChange()
+' ------------------------------------
+'
+' ------------------------------------
+    Const PROC = "SyncSheetsCodeNameChange"
+    
+    On Error GoTo eh
+    Dim v                       As Variant
+    Dim wsSource                As Worksheet
+    Dim wsTarget                As Worksheet
+    Dim vbc                     As VBComponent
+    Dim sSourceSheetCodeName    As String
+    Dim sSourceSheetName        As String
+    Dim sTargetSheetCodeName    As String
+    Dim sTargetSheetName        As String
+    
+    For Each v In Sync.SourceSheets
+        sSourceSheetName = Sync.SourceSheets(v)
+        sSourceSheetCodeName = SheetCodeName(Sync.Source, sSourceSheetName)
+        If Not SheetExists(wb:=Sync.Target _
+                         , sh1_name:=sSourceSheetName _
+                         , sh1_code_name:=sSourceSheetCodeName _
+                         , sh2_name:=sTargetSheetName _
+                         , sh2_code_name:=sTargetSheetCodeName _
+                          ) _
+        Then GoTo next_sheet
+        If sTargetSheetCodeName <> sSourceSheetCodeName And sTargetSheetName = sSourceSheetName Then
+            '~~ The sheet's CodName has changed while the sheet's Name remained unchanged
+            If lMode = Confirm Then
+                Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Target.Worksheets(sTargetSheetName))) = "CodeName change! The sheet's CodeName will change to '" & sSourceSheetCodeName & "'."
+            Else
+                For Each vbc In Sync.Target.VBProject.VBComponents
+                    If vbc.Name = sTargetSheetCodeName Then
+                        vbc.Name = sSourceSheetCodeName
+                        '~~ When the sheet's CodeName has changed the sheet's code is synchronized line by line
+                        '~~ because it is very likely code refers to the CodeName rather than to the sheet's Name or position
+'                        mSync.ByCodeLines sync_target_comp_name:=wsSource.CodeName _
+                                        , sync_source_wb_full_name:=SyncSource.FullName
+                        Exit For
+                    End If
+                Next vbc
+            End If
+        End If
+next_sheet:
+    Next v
+
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
+Private Sub SyncSheetsNameChange()
+' --------------------------------
+'
+' --------------------------------
+    Const PROC = "SheetsameChange"
+    
+    On Error GoTo eh
+    Dim v                       As Variant
+    Dim wsSource                As Worksheet
+    Dim vbcSource               As VBComponent
+    Dim vbcTarget               As VBComponent
+    Dim ws                      As Worksheet
+    Dim sSheetName              As String
+    Dim vbc                     As VBComponent
+    Dim sSourceSheetCodeName    As String
+    Dim sSourceSheetName        As String
+    Dim sTargetSheetCodeName    As String
+    Dim sTargetSheetName        As String
+    
+    For Each v In Sync.SourceSheets
+        sSourceSheetName = Sync.SourceSheets(v)
+        sSourceSheetCodeName = SheetCodeName(Sync.Source, sSourceSheetName)
+        If Not SheetExists(wb:=Sync.Target _
+                         , sh1_name:=sSourceSheetName _
+                         , sh1_code_name:=sSourceSheetCodeName _
+                         , sh2_name:=sTargetSheetName _
+                         , sh2_code_name:=sTargetSheetCodeName _
+                          ) _
+        Then GoTo next_comp
+        If sTargetSheetCodeName = sSourceSheetCodeName And sTargetSheetName <> sSourceSheetName Then
+            '~~ The sheet's Name has changed while the sheets CodeName remained unchanged
+            If lMode = Confirm Then
+                Sync.ConfInfo("Worksheet", Sync.SheetProjectName(Sync.Source.Worksheets(sSourceSheetName))) = "Name change! The sheet's Name will change to '" & sSourceSheetName & "'."
+                SourceSheetNameChange sSourceSheetName, sSourceSheetCodeName, sTargetSheetName, sTargetSheetCodeName
+            Else
+                Sync.Target.Worksheets(sTargetSheetName).Name = sSourceSheetName
+'                '~~ When the sheet's name has changed the sheet's code is synchronized line by line
+'                '~~ for the case the name is used in the code
+'                For Each vbc In Sync.Target.VBProject.VBComponents
+'                    If vbc.Name = ws.CodeName Then
+'                        mSync.ByCodeLines sync_target_comp_name:=wsSource.CodeName _
+'                                        , sync_source_wb_full_name:=SyncSource.FullName
+'                        Exit For
+'                    End If
+'                Next vbc
+            End If
+        End If
+next_comp:
+    Next v
+
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -932,15 +1051,189 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub TargetWbWithSource( _
-                        ByRef sync_target_wb As Workbook, _
-                        ByRef sync_source_wb As Workbook, _
-               Optional ByVal restricted_sheet_rename_asserted As Boolean = False)
+Private Sub SyncSheetsNew()
+' ---------------------------------------------------------------
+' Synchronize new sheets in the source Workbook (Sync.Source) with
+' the target Workbook (Sync.Target).
+' - When the optional new sheets counter (sync_new_count) is
+'   provided, the new sheets are only counted
+' - In lMode=Confirm only the syncronization infos are collect
+'   for being confirmed.
+' Note-1: A Worksheet is regarded new when it exists in the
+'         target Workbbook under its CodeName nor its Name and
+'         it is asserted that sheet's name change is restricted
+'         to either Name or CodeName but never both at once.
+' Note-2: This procedure is called three times
+'         1. To count the sheets indicated new
+'         2. To get the new sheets confirmed
+'         3. To copy the new sheet from the source to the target
+'            Workbook
+' --------------------------------------------------------------
+    Const PROC = "SyncSheetsNew"
+    
+    On Error GoTo eh
+    Dim vbc                     As VBComponent
+    Dim i                       As Long
+    Dim ws                      As Worksheet
+    Dim sSourceSheetName        As String
+    Dim sTargetSheetName        As String
+    Dim sSourceSheetCodeName    As String
+    Dim sTargetSheetCodeName    As String
+    Dim v                       As Variant
+    
+    For Each v In Sync.SourceSheets
+        sSourceSheetName = Sync.SourceSheets(v)
+        sSourceSheetCodeName = SheetCodeName(Sync.Source, sSourceSheetName)
+        If Not SheetExists(wb:=Sync.Target _
+                         , sh1_name:=sSourceSheetName _
+                         , sh1_code_name:=sSourceSheetCodeName _
+                         , sh2_name:=sTargetSheetName _
+                         , sh2_code_name:=sTargetSheetCodeName _
+                         ) Then
+            If NameChange(sSourceSheetName, sSourceSheetCodeName) Then GoTo next_v
+    
+            '~~ The sheet not exist in the target Workbook under the Name nor under the CodeName.
+            If lMode = Count Then
+                '~~ This is just the first call for counting the potentially new sheets
+                lSheetsNew = lSheetsNew + 1
+            ElseIf lMode = Confirm Then
+                '~~ This is just the second call for the collection of the sync confirmation info
+                If lSheetsNew > 0 Or lSheetsObsolete > 0 Then
+                    If Not RestrictRenameAsserted Then
+                        bAmbigous = True
+                        Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Source.Worksheets(sSourceSheetName))) = "New! Sync denied because ambigous until rename restriction is asserted. 1)"
+                        Sync.NewSheet(sSourceSheetCodeName) = sSourceSheetName
+                    Else
+                        bAmbigous = False
+                        Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Source.Worksheets(sSourceSheetName))) = "New! Will be copied from source Workbook. 2)"
+                        Sync.NewSheet(sSourceSheetCodeName) = sSourceSheetName
+                    End If
+                Else
+                    Sync.ConfInfo = "New! Will be copied from source Workbook."
+                    Sync.NewSheet(sSourceSheetCodeName) = sSourceSheetName
+                End If
+            Else
+                '~~ This is the third call for getting the syncronizations done
+                '~~ The new sheet is copied to the corresponding position in the target Workbook
+                Sync.Source.Worksheets(sSourceSheetName).Copy _
+                After:=Sync.Target.Sheets(Sync.Target.Worksheets.Count)
+                cLog.ServicedItem = sSourceSheetCodeName & "(" & sSourceSheetName & ")"
+                cLog.Entry = "Copied from source Workbook."
+            End If
+        End If
+next_v:
+    Next v
+       
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
+Private Sub SyncSheetsObsolete()
+' --------------------------------------------------------------------
+' Remove sheets in the target (Sync.Target) which are regarded
+' obsolete because they do not exist in the target Workbook
+' (Sync.Target) neither under their Name nor theit CodeName.
+' - When the optional obsolet sheets counter (sync_obsolete_count)
+'   is provided, the obsolete sheets are only counted
+' - In lMode=Confirm only the syncronization infos are collected
+'   for being confirmed.
+' A Worksheet is finally only regarded a obsolete when:
+' A) it exists in the source Workbook neither under its CodeName nor
+'    its Name a n d  it had been confirmed that name changes on sheets
+'    are restricted to either or but never both at once.
+' B) the number of new sheets is 0
+' Note: This procedure is called three times
+' 1. To count the sheets indicated obsolete
+' 2. To get the removal of the obsolete sheets confirmed
+' 3. To remove the obsolete sheets
+' -----------------------------------------------------------------
+    Const PROC = "SyncSheetsObsolete"
+    
+    On Error GoTo eh
+    Dim vbc                     As VBComponent
+    Dim ws                      As Worksheet
+    Dim cSource                 As clsRaw
+    Dim cTarget                 As clsComp
+    Dim v                       As Variant
+    Dim sSourceSheetName        As String
+    Dim sTargetSheetName        As String
+    Dim sSourceSheetCodeName    As String
+    Dim sTargetSheetCodeName    As String
+    
+    For Each v In Sync.TargetSheets
+        sTargetSheetName = Sync.TargetSheets(v)
+        sTargetSheetCodeName = SheetCodeName(Sync.Target, sTargetSheetName)
+        If Not SheetExists(wb:=Sync.Source _
+                         , sh1_name:=sTargetSheetName _
+                         , sh1_code_name:=sTargetSheetCodeName _
+                         ) Then
+            If NameChange(sTargetSheetName, sTargetSheetCodeName) Then GoTo next_v
+            
+            '~~ Target sheet not or no longer exists in source Workbook
+            '~~ neither under the Name nor under the CodeName
+            If lMode = Count Then
+                '~~ This is just the first call for counting the potentially new sheets
+                lSheetsObsolete = lSheetsObsolete + 1
+            ElseIf lMode = Confirm Then
+                '~~ This is just the second call for the collection of the sync confirmation info
+                If lSheetsNew > 0 Or lSheetsObsolete > 0 Then
+                    If Not RestrictRenameAsserted Then
+                        bAmbigous = True
+                        Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Target.Worksheets(sTargetSheetName))) = "Obsolete! Sync denied because ambigous until rename restriction is asserted. 1)"
+                    Else
+                        bAmbigous = False
+                        Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Target.Worksheets(sTargetSheetName))) = "Obsolete! Will be removed. 2)"
+                    End If
+                Else
+                    Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Target.Worksheets(sTargetSheetName))) = "Obsolete! Will be removed."
+                End If
+            Else
+                If Not RestrictRenameAsserted Then GoTo xt
+                '~~ This is a Worksheet with no corresponding component and no corresponding sheet in the source Workbook.
+                '~~ Because it has been asserted that sheets are never renamed by Name and CodeName at once
+                '~~ this Worksheet is regarded obsolete for sure and will thus now be removed
+                For Each ws In Sync.Target.Worksheets
+                    If ws.CodeName = sTargetSheetCodeName Then
+                        '~~ This is the obsolete sheet to be removed
+                        cLog.ServicedItem = ws.CodeName & "(" & ws.Name & ")"
+                        Application.DisplayAlerts = False
+                        ws.Delete
+                        Application.DisplayAlerts = True
+                        cLog.Entry = "Deleted"
+                        Exit For
+                    End If
+                Next ws
+            End If
+            Set cTarget = Nothing
+            Set cSource = Nothing
+        End If
+next_v:
+    Next v
+    
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
+             
+Public Sub SyncTargetWithSource( _
+                          ByRef sync_target_wb As Workbook, _
+                          ByRef sync_source_wb As Workbook, _
+                 Optional ByVal restricted_sheet_rename_asserted As Boolean = False)
 ' --------------------------------------------------------------------------------
-' Synchronizes a target Workbook (SyncTarget)
-' with a source Workbook (SyncSource).
+' Synchronizes a target Workbook (Sync.Target)
+' with a source Workbook (Sync.Source).
 ' --------------------------------------------------------------------------------
-    Const PROC = "TargetWbWithSource"
+    Const PROC = "SyncTargetWithSource"
     
     On Error GoTo eh
     Dim fso             As New FileSystemObject
@@ -950,27 +1243,31 @@ Public Sub TargetWbWithSource( _
     Dim sBttnCnfrmd     As String
     Dim sBttnTrmnt      As String
     Dim sBttnRestricted As String
-    Dim cConf           As New clsLog
     Dim cllButtons      As Collection
     Dim sReply          As String
     Dim ts              As TextStream
     Dim ws              As Worksheet
     Dim vbc             As VBComponent
     
-    RestrictRenameAsserted = restricted_sheet_rename_asserted
-    Set SyncSource = sync_source_wb
-    Set SyncTarget = sync_target_wb
-        
-    MaxLen lMaxLenComp, lMaxLenType
+    Set Sync = New clsSync
     
-    Set dctChanged = New Dictionary
-    CollectSyncObjects
+    If dctNameChange Is Nothing Then Set dctNameChange = New Dictionary Else dctNameChange.RemoveAll
+    If dctChanged Is Nothing Then Set dctChanged = New Dictionary Else dctChanged.RemoveAll
+    
+    RestrictRenameAsserted = restricted_sheet_rename_asserted
+    Set Sync.Source = sync_source_wb
+    Set Sync.Target = sync_target_wb
+    Sync.CollectAllSyncItems
+    
+    ManualSynchRequired = False
     
     '~~ Count new and obsolete sheets
     lSheetsNew = 0
     lSheetsObsolete = 0
-    SheetsNew sync_new_count:=lSheetsNew
-    SheetsObsolete sync_obsolete_count:=lSheetsObsolete
+    
+    lMode = Count
+    SyncSheetsNew
+    SyncSheetsObsolete
     
     RestrictRenameAsserted = False
     bAmbigous = True
@@ -979,27 +1276,15 @@ Public Sub TargetWbWithSource( _
     Do
         
         '~~ Collect all synchronization info and get them confirmed
-        cConf.File = mFile.Temp
-        If Not fso.FileExists(cConf.File) Then
-            Set ts = fso.CreateTextFile(cConf.File)
-            ts.Close
-        End If
-        cConf.CompMaxLen = CompMaxLen
-        Set cConf.ServicedWrkbk = SyncSource
-        References cConf
-        
-        CollectSyncConfInfo sync_new_count:=lSheetsNew _
-                          , sync_obsolete_count:=lSheetsObsolete _
-                          , sync_confirm_info:=cConf
+        SyncConfirmation
         
         '~~ Get the collected info confirmed
-        sConfirm = mFile.Txt(fso.GetFile(cConf.File))
-        sMsg.Section(1).sText = sConfirm
+        sMsg.Section(1).sText = Sync.ConfInfo
         sMsg.Section(1).bMonspaced = True
-        sMsg.Section(2).sText = "Please confirm the above synchronizations." & vbLf & _
-                                "!! In case of any concerns terminate this syncronization service!"
+        sMsg.Section(2).sText = "The above syncronisations need to be confirmed - or " & _
+                                "terminated in case of any concerns!"
         
-        sBttnCnfrmd = "Synchronize" & vbLf & vbLf & fso.GetBaseName(SyncTarget.Name) & vbLf & " with " & vbLf & fso.GetBaseName(SyncSource.Name)
+        sBttnCnfrmd = "Synchronize" & vbLf & vbLf & fso.GetBaseName(Sync.Target.Name) & vbLf & " with " & vbLf & fso.GetBaseName(Sync.Source.Name)
         sBttnTrmnt = "Terminate!" & vbLf & vbLf & "Synchronization denied" & vbLf & "because of concerns"
         sBttnRestricted = "Confirmed" & vbLf & "that Sheet rename" & vbLf & "is restricted" & vbLf & "(either Name  o r  CodeName)"
         
@@ -1010,19 +1295,27 @@ Public Sub TargetWbWithSource( _
             '~~ may indicate that both sheet names (Name and CodeName) had been changed which cannot be synchronized
             '~~ because of the missing mapping.
             Set cllButtons = mMsg.Buttons(sBttnRestricted, sBttnTrmnt, vbLf)
-            sMsg.Section(3).sText = "New and or Obsolete sheets are unclear when sheet's name change is " & _
-                                    "not explicitely restricted to either the Name is change  o r  the CodeName " & _
-                                    "but never both at once." & vbLf & _
-                                    "Syncronization is denied unless this restriction is asserted!"
+            sMsg.Section(3).sText = "1) Sheets of which neither the Name nor the CodeName refers to a counterpart are regarded New or Obsolete. " & _
+                                    "However, this assumption is only true when never a sheet's Name  a n d  its CodeName is changed. Because " & _
+                                    "this is very crucial for a programmatic syncronization it needs to be explicitely asserted - either by the " & _
+                                    "corresponding argument of the syncronization service or - when this had not been provided - now in this dialog."
         Else
             Set cllButtons = mMsg.Buttons(sBttnCnfrmd, sBttnTrmnt, vbLf)
-            sMsg.Section(3).sText = vbNullString
+            sMsg.Section(3).sText = "2) New and Obsolete sheets had been made unambigous by the assertion that never a sheet's Name  a n d  its CodeName is changed."
+        End If
+        
+        If ManualSynchRequired Then
+            sMsg.Section(4).sText = "3) Because this synchronization service (yet) not uses a manifest for sheet design changes " & _
+                                    "all these kind of syncronization issues remain a manual task. All these remaining tasks can " & _
+                                    "be found in the services' log file in the target Workbook's folder."
+        Else
+            sMsg.Section(4).sText = vbNullString
         End If
         For Each v In dctChanged
             cllButtons.Add v
         Next v
         
-        sReply = mMsg.Dsply(msg_title:="Changes by synchronization require confirmation" _
+        sReply = mMsg.Dsply(msg_title:="Confirm synchronization actions" _
                           , msg:=sMsg _
                           , msg_buttons:=cllButtons _
                            )
@@ -1035,7 +1328,7 @@ Public Sub TargetWbWithSource( _
             Case sBttnRestricted
                 '~~ Collection of confirmation info is done again with this restriction now confirmed
                 RestrictRenameAsserted = True
-                If fso.FileExists(cConf.File) Then fso.DeleteFile (cConf.File)
+                Sync.ConfInfoClear
             Case Else
                 '~~ Display the requested changes
                 Set cSource = dctChanged(sReply)
@@ -1044,18 +1337,43 @@ Public Sub TargetWbWithSource( _
     Loop
 
     If Not bSyncDenied Then
-        '~~ Synchronize ...
-'        References
-'        SheetsNew
-'        SheetsObsolete
-'        CompsNew
-'        CompsObsolete
-'        CompsChanged
+        lMode = Synchronize
+        dctNameChange.RemoveAll
+        If dctNameChange Is Nothing Then Set dctNameChange = New Dictionary Else dctNameChange.RemoveAll
+        
+        SyncReferencesNew
+        SyncReferencesObsolete
+        
+        SyncSheetsNameChange
+        SyncSheetsCodeNameChange
+        Sync.CollectAllSyncItems
+        
+        SyncSheetsNew
+        Sync.CollectAllSyncItems
+        
+        SyncSheetsObsolete
+        Sync.CollectAllSyncItems
+        
+        SyncSheetsCodeChanged
+        SyncSheetsOrder
+        
+        SyncShapesNew
+        SyncShapesObsolete
+        
+        SyncVBComponentsNew
+        SyncVBComponentsObsolete
+        SyncVBComponentsCodeChanged
+        
+        SyncNamesNew
+        
+        RemoveInvalidRangeNames
+        DisconnectLinkedRanges
+        Set dctChanged = Nothing
     End If
     
-xt: If fso.FileExists(cConf.File) Then fso.DeleteFile (cConf.File)
-    Set cConf = Nothing
-    Set fso = Nothing
+xt: Set fso = Nothing
+    Set dctNameChange = Nothing
+    Set Sync = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -1065,61 +1383,184 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub CollectSyncConfInfo( _
-                          ByVal sync_new_count As Long, _
-                          ByVal sync_obsolete_count As Long, _
-                          ByRef sync_confirm_info As clsLog)
-' ------------------------------------------------------------
-' Collect all confirmation information regarding sheet changes
-' ------------------------------------------------------------
-    SheetsCodeNameChange sync_confirm_info:=sync_confirm_info
-    SheetsNameChange sync_confirm_info:=sync_confirm_info
-    SheetsNew sync_confirm_info:=sync_confirm_info
-    SheetsObsolete sync_confirm_info:=sync_confirm_info
-    CompsNew sync_confirm_info:=sync_confirm_info
-    CompsObsolete sync_confirm_info:=sync_confirm_info
-    CompsChanged sync_confirm_info:=sync_confirm_info
+Private Sub SyncSheetsOrder()
+' ----------------------------------------------------------------------------
+' Syncronize the order of the sheets in the synch target Workbook (Sync.Target)
+' to appear in the same order as in the synch source Workbook (Sync.Source).
+' ----------------------------------------------------------------------------
+    Const PROC = "SyncSheetsOrder"
+    
+    On Error GoTo eh
+    Dim ws          As Worksheet
+    Dim SheetName   As String
+    Dim i           As Long
+    
+    For i = 1 To Sync.Source.Worksheets.Count
+        If Sync.TargetSheets.Exists(Sync.Source.Worksheets(i).Name) Then
+            SheetName = Sync.Source.Worksheets(i).Name
+            If Sync.Target.Worksheets(i).Name <> SheetName Then
+                Debug.Print "Re-order due"
+                If i = 1 Then
+                    Sync.Target.Worksheets(SheetName).Move Before:=Sheets(i + 1)
+                Else
+                    Sync.Target.Worksheets(SheetName).Move After:=Sheets(i)
+                End If
+            End If
+        End If
+    Next i
+
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+Private Sub SyncVBComponentsCodeChanged()
+' -----------------------------------------------------
+' When lMode=Confirm all components which had changed
+' are collected and provided for confirmation else the
+' changes are syncronized.
+' -----------------------------------------------------
+    Const PROC = "SyncVBComponentsCodeChanged"
+    
+    On Error GoTo eh
+    Dim fso                 As New FileSystemObject
+    Dim vbc                 As VBComponent
+    Dim sCaption            As String
+    
+    For Each vbc In Sync.Source.VBProject.VBComponents
+        
+        If IsSheetComp(vbc) Then GoTo next_vbc
+        Set cSource = New clsRaw
+        Set cSource.Wrkbk = Sync.Source
+        cSource.CompName = vbc.Name
+        If Not cSource.Exists(Sync.Target) Then GoTo next_vbc
+        
+        Set cTarget = New clsComp
+        Set cTarget.Wrkbk = Sync.Target
+        cTarget.CompName = vbc.Name
+        cSource.CloneExpFileFullName = cTarget.ExpFileFullName
+        If Not cSource.Changed Then GoTo next_vbc
+        
+        If lMode = Confirm Then
+            Sync.ConfInfo(cTarget.TypeString, vbc.Name) = "Changed"
+            sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
+            If Not dctChanged.Exists(sCaption) _
+            Then dctChanged.Add sCaption, cSource
+        Else
+            mRenew.ByImport rn_wb:=Sync.Target _
+                          , rn_comp_name:=vbc.Name _
+                          , rn_exp_file_full_name:=cRaw.ExpFileFullName
+            cLog.Entry = "Renewed by import of '" & cSource.ExpFileFullName & "'"
+        End If
+        
+        Set cTarget = Nothing
+        Set cSource = Nothing
+next_vbc:
+    Next vbc
+
+xt: Set fso = Nothing
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Sub
 
-Private Sub CollectSyncObjects()
+Private Function SyncVBComponentsNew()
+' ----------------------------------------------------
+' Synchronize new components in the source Workbook
+' (Sync.Source) with the target Workbook (Sync.Target).
+' In lMode=Confirmation only the syncronization infos
+' are collect for being confirmed.
+' ----------------------------------------------------
+    Const PROC = "SyncVBComponentsNew"
+    
+    On Error GoTo eh
+    Dim fso     As New FileSystemObject
+    Dim vbc     As VBComponent
+    Dim cComp   As clsComp
+    
+    For Each vbc In Sync.Source.VBProject.VBComponents
+        If vbc.Type = vbext_ct_Document Then GoTo next_vbc
+        If vbc.Type = vbext_ct_ActiveXDesigner Then GoTo next_vbc
+        
+        Set cSource = New clsRaw
+        Set cSource.Wrkbk = Sync.Source
+        cSource.CompName = vbc.Name
+        If CompExists(Sync.Target, vbc.Name) Then GoTo next_vbc
+        
+        '~~ No component exists under the source component's name
+        If lMode = Confirm Then
+            Sync.ConfInfo(cSource.TypeString, vbc.Name) = "New! Corresponding source Workbook Export-File will by imported."
+        Else
+            cLog.ServicedItem = vbc.Name
+            Sync.Target.VBProject.VBComponents.Import cSource.ExpFileFullName
+        End If
+        
+        Set cSource = Nothing
+next_vbc:
+    Next vbc
 
-    Dim ws  As Worksheet
-    Dim vbc As VBComponent
-    Dim shp As Shape
+xt: Set cComp = Nothing
+    Set fso = Nothing
+    Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Function
+
+Private Function SyncVBComponentsObsolete()
+' ---------------------------------------------------------
+' Synchronize obsolete components in the source Workbook
+' (Sync.Source) with the target Workbook (Sync.Target). In
+' lMode=Confirm only the syncronization infos are collected
+' for being confirmed.
+' ---------------------------------------------------------
+    Const PROC = "SyncVBComponentsObsolete"
     
-    If SourceSheets Is Nothing Then Set SourceSheets = New Dictionary Else SourceSheets.RemoveAll
-    If SourceSheetComps Is Nothing Then Set SourceSheetComps = New Dictionary Else SourceSheetComps.RemoveAll
-    If TargetSheets Is Nothing Then Set TargetSheets = New Dictionary Else TargetSheets.RemoveAll
-    If TargetSheetComps Is Nothing Then Set TargetSheetComps = New Dictionary Else TargetSheetComps.RemoveAll
-    If SourceSheetShapes Is Nothing Then Set SourceSheetShapes = New Dictionary Else SourceSheetShapes.RemoveAll
-    If TargetSheetShapes Is Nothing Then Set TargetSheetShapes = New Dictionary Else TargetSheetShapes.RemoveAll
+    On Error GoTo eh
+    Dim v           As Variant
+    Dim lType       As vbcmType
+    Dim vbc         As VBComponent
+    Dim sType       As String
+    Dim cTarget     As clsComp
     
-    For Each ws In SyncSource.Worksheets
-        If Not SourceSheets.Exists(ws.Name) Then SourceSheets.Add ws.Name, ws
-        If Not SourceSheets.Exists(ws.CodeName) Then SourceSheets.Add ws.CodeName, ws
-        For Each shp In ws.Shapes
-            If Not SourceSheetShapes.Exists(shp.Name) Then SourceSheetShapes.Add shp.Name, ws
-        Next shp
-    Next ws
-    For Each ws In SyncTarget.Worksheets
-        If Not TargetSheets.Exists(ws.Name) Then TargetSheets.Add ws.Name, ws
-        If Not TargetSheets.Exists(ws.CodeName) Then TargetSheets.Add ws.CodeName, ws
-        For Each shp In ws.Shapes
-            If Not TargetSheetShapes.Exists(shp.Name) Then TargetSheetShapes.Add shp.Name, ws
-        Next shp
-    Next ws
-    For Each vbc In SyncSource.VBProject.VBComponents
-        If IsSheetComp(vbc) Then
-            If Not SourceSheetComps.Exists(vbc.Name) Then SourceSheetComps.Add vbc.Name, vbc
+    '~~ Collect obsolete Standard Modules, Class modules, and UserForms
+    For Each vbc In Sync.Target.VBProject.VBComponents
+        If vbc.Type = vbext_ct_Document Then GoTo next_vbc
+        Set cTarget = New clsComp
+        Set cTarget.Wrkbk = Sync.Target
+        cTarget.CompName = vbc.Name
+        If cTarget.Exists(Sync.Source) Then GoTo next_vbc
+        
+        If lMode = Confirm Then
+            Sync.ConfInfo(cSource.TypeString, vbc.Name) = "Obsolete! Will be removed."
+        Else
+            cLog.ServicedItem = vbc.Name
+            sType = cTarget.TypeString
+            Sync.Target.VBProject.VBComponents.Remove vbc
+            cLog.Entry = "Obsolete " & sType & " removed"
         End If
+        Set cTarget = Nothing
+next_vbc:
     Next vbc
-    For Each vbc In SyncTarget.VBProject.VBComponents
-        If IsSheetComp(vbc) Then
-            If Not TargetSheetComps.Exists(vbc.Name) Then TargetSheetComps.Add vbc.Name, vbc
-        End If
-    Next vbc
+
+xt: Exit Function
     
-End Sub
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Function
 
 Private Function WbkGetOpen(ByVal go_wb_full_name As String) As Workbook
 ' ----------------------------------------------------------------------

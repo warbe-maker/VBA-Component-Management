@@ -81,12 +81,33 @@ Public Sub Regression()
     
 End Sub
   
-Public Sub Test_SynchTargetWbWithSourceWb()
-
-    mService.SynchTargetWbWithSourceWb _
-        sync_target_wb:=mCompMan.WbkGetOpen("E:\Ablage\Excel VBA\DevAndTest\Test-VB-Clone-Project\Test_VB_Clone_Project.xlsb") _
-      , sync_source_wb:="E:\Ablage\Excel VBA\DevAndTest\Test-VB-Raw-Project\Test_VB_Raw_Project.xlsb"
-
+Public Sub Test_SynchTargetWithSource()
+    Const PROC = ""
+    
+    On Error GoTo eh
+    Dim sSource As String
+    Dim sTarget As String
+    Dim fo As Folder
+    
+    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Target-Project\Test_Sync_Target.xlsb"
+    sSource = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Source-Project\Test_Sync_Source.xlsb"
+    
+    mSync.SyncTargetBackup fo, sTarget
+    
+    mService.SyncTargetWithSource _
+        sync_target_wb:=mCompMan.WbkGetOpen(sTarget) _
+      , sync_source_wb:=sSource
+    
+    mCompMan.WbkGetOpen(sTarget).Close SaveChanges:=False
+    mSync.SyncTargetRestore fo, sTarget
+    
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Public Sub Test_01_KindOfComp()
@@ -136,7 +157,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
-    
 End Sub
 
 Public Sub Test_10_ExportChangedComponents()

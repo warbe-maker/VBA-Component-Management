@@ -1,0 +1,399 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "clsSync"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
+Option Explicit
+
+Private lNewSheets              As Long
+Private lNewSheetNames          As Long
+Private lNewSheetCodeNames      As Long
+Private lNewNames               As Long
+Private lNewShapes              As Long
+Private lNewCols                As Long
+Private lNewRefs                As Long
+Private lObsoleteSheets         As Long
+Private lObsoleteNames          As Long
+Private lObsoleteShapes         As Long
+Private lObsoleteCols           As Long
+Private lObsoleteRefs           As Long
+Private lChangedVBComps         As Long
+Private wbSyncSource            As Workbook
+Private wbSyncTarget            As Workbook
+Private dctSourceSheetComps     As Dictionary
+Private dctTargetSheetComps     As Dictionary
+Private dctSourceSheets         As Dictionary
+Private dctTargetSheets         As Dictionary
+Private dctSourceNames          As Dictionary
+Private dctTargetNames          As Dictionary
+Private dctSourceSheetShapes    As Dictionary
+Private dctTargetSheetShapes    As Dictionary
+Private dctNewSheets            As Dictionary
+Private lMaxLenItem             As Long
+Private lMaxLenComp             As Long
+Private lMaxLenType             As Long
+Private sConfItem               As String
+Private cllConfInfo             As Collection
+Private sEntry                  As String
+
+Private Sub Class_Terminate()
+    Set dctSourceSheetComps = Nothing
+    Set dctTargetSheetComps = Nothing
+    Set dctSourceSheets = Nothing
+    Set dctTargetSheets = Nothing
+    Set dctSourceNames = Nothing
+    Set dctTargetNames = Nothing
+    Set dctSourceSheetShapes = Nothing
+    Set dctTargetSheetShapes = Nothing
+    Set cllConfInfo = Nothing
+End Sub
+
+Public Sub DisplayCollectedSourceSheets()
+    Dim i   As Long
+    Dim ws  As Worksheet
+    Dim dct As Dictionary
+    
+    Debug.Print Align("T/S", 10, a_align:=AlignCentered) & Align("Key", 30) & "Item"
+    Set dct = Me.SourceSheets
+    For i = 1 To dct.Count
+        Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
+        Debug.Print Align("Source", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.Name & ")"
+    Next i
+End Sub
+
+Public Sub DisplayCollectedTargetSheets()
+    Dim i   As Long
+    Dim ws  As Worksheet
+    Dim dct As Dictionary
+    
+    Debug.Print Align("T/S", 10, a_align:=AlignCentered) & Align("Key", 30) & "Item"
+    Set dct = Me.SourceSheets
+    For i = 1 To dct.Count
+        Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
+        Debug.Print Align("Target", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.Name & ")"
+    Next i
+End Sub
+
+Public Sub DisplayCollectedSourceSheetShapes()
+    Dim v       As Variant
+    Dim dct     As Dictionary
+    Dim sSheet  As String
+    Dim sShape  As String
+    
+    Debug.Print Align("T/S", 10, a_align:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    For Each v In Me.SourceSheetShapes
+        sSheet = Split(v, SHEET_SHAPE)(0)
+        sShape = Split(v, SHEET_SHAPE)(1)
+        Debug.Print Align("Source", 10) & Align(sSheet, 30) & sShape
+    Next v
+End Sub
+
+Public Sub DisplayCollectedTargetSheetShapes()
+    Dim v       As Variant
+    Dim dct     As Dictionary
+    Dim sSheet  As String
+    Dim sShape  As String
+    
+    Debug.Print Align("T/S", 10, a_align:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    For Each v In Me.TargetSheetShapes
+        sSheet = Split(v, SHEET_SHAPE)(0)
+        sShape = Split(v, SHEET_SHAPE)(1)
+        Debug.Print Align("Source", 10) & Align(sSheet, 30) & sShape
+    Next v
+End Sub
+
+
+Friend Property Let NewSheet( _
+              Optional ByVal sheet_code_name As String, _
+                       ByVal sheet_name As String)
+    If dctNewSheets Is Nothing Then Set dctNewSheets = New Dictionary
+    If Not dctNewSheets.Exists(sheet_code_name) Then dctNewSheets.Add sheet_code_name, sheet_name
+    If Not dctNewSheets.Exists(sheet_name) Then dctNewSheets.Add sheet_name, sheet_code_name
+End Property
+
+Friend Property Get NewSheetExists(ByVal sheet_name As String) As Boolean
+    NewSheetExists = dctNewSheets.Exists(sheet_name)
+End Property
+Friend Property Get ConfInfo( _
+              Optional ByVal ci_type As String, _
+              Optional ByVal ci_item As String) As String
+' -------------------------------------------------------
+'
+' -------------------------------------------------------
+    Dim v As Variant
+    Dim lMaxType        As Long
+    Dim lMaxItem        As Long
+    Dim sTypeItem       As String
+    Dim sTypeItemLast   As String
+    
+    '~~ Get max lenghtes
+    For Each v In cllConfInfo
+        lMaxType = Max(lMaxType, Len(Split(v, "|")(0)))
+        lMaxItem = Max(lMaxItem, Len(Split(v, "|")(1)))
+    Next v
+
+    '~~ Compile result string
+    For Each v In cllConfInfo
+        sTypeItem = Align(Split(v, "|")(0), lMaxType + 1) & _
+                    Align(Split(v, "|")(1), lMaxItem, , " ", ".")
+                    
+        If sTypeItem = sTypeItemLast Then
+            ConfInfo = ConfInfo & vbLf & _
+                       VBA.Space$(Len(sTypeItem)) & _
+                       " : " & Split(v, "|")(2)
+        Else
+            ConfInfo = ConfInfo & vbLf & _
+                       sTypeItem & _
+                       " : " & Split(v, "|")(2)
+        End If
+        sTypeItemLast = sTypeItem
+    Next v
+
+End Property
+
+Friend Property Let ConfInfo( _
+              Optional ByVal ci_type As String, _
+              Optional ByVal ci_item As String, _
+                       ByVal s As String)
+' ------------------------------------------
+' Append a confirmation info to a Collection.
+' ------------------------------------------
+    If cllConfInfo Is Nothing Then Set cllConfInfo = New Collection
+    sEntry = ci_type & "|" & ci_item & "|" & s
+    cllConfInfo.Add sEntry
+End Property
+
+Friend Property Get Count( _
+           Optional ByVal sic As siCounter) As Variant
+    Select Case sic
+        Case sic_changed_comps:         Count = lChangedVBComps
+        Case sic_new_cols:              Count = lNewCols
+        Case sic_new_names:             Count = lNewNames
+        Case sic_new_refs:              Count = lNewRefs
+        Case sic_new_shapes:            Count = lNewShapes
+        Case sic_new_sheets:            Count = lNewSheets
+        Case sic_new_sheet_codenames:   Count = lNewSheetCodeNames
+        Case sic_new_sheet_names:       Count = lNewSheetNames
+        Case sic_obsolete_cols:         Count = lObsoleteCols
+        Case sic_obsolete_names:        Count = lObsoleteNames
+        Case sic_obsolete_refs:         Count = lObsoleteRefs
+        Case sic_obsolete_shapes:       Count = lObsoleteShapes
+        Case sic_obsolete_sheets:       Count = lObsoleteSheets
+    End Select
+    
+End Property
+
+Friend Property Let Count( _
+              Optional ByVal sic As siCounter, _
+                       ByVal cnt As Variant)
+    If Not IsNumeric(cnt) Then Exit Property
+    Select Case sic
+        Case sic_changed_comps:         lChangedVBComps = lChangedVBComps + cnt
+        Case sic_new_cols:              lNewCols = lNewCols + cnt
+        Case sic_new_names:             lNewNames = lNewNames + cnt
+        Case sic_new_refs:              lNewRefs = lNewRefs + cnt
+        Case sic_new_shapes:            lNewShapes = lNewShapes + cnt
+        Case sic_new_sheets:            lNewSheets = lNewSheets + cnt
+        Case sic_new_sheet_codenames:   lNewSheetCodeNames = lNewSheetCodeNames + cnt
+        Case sic_new_sheet_names:       lNewSheetNames = lNewSheetNames + cnt
+        Case sic_obsolete_cols:         lObsoleteCols = lObsoleteCols + cnt
+        Case sic_obsolete_names:        lObsoleteNames = lObsoleteNames + cnt
+        Case sic_obsolete_refs:         lObsoleteRefs = lObsoleteRefs + cnt
+        Case sic_obsolete_shapes:       lObsoleteShapes = lObsoleteShapes + cnt
+        Case sic_obsolete_sheets:       lObsoleteSheets = lObsoleteSheets + cnt
+    End Select
+    
+End Property
+
+Friend Property Get Source() As Workbook:               Set Source = wbSyncSource:                      End Property
+                 
+Friend Property Set Source(ByRef wb As Workbook)
+    Set wbSyncSource = wb
+    If Not wbSyncTarget Is Nothing Then MaxLen
+End Property
+
+Friend Property Get SourceNames() As Dictionary:        Set SourceNames = dctSourceNames:               End Property
+
+Friend Property Get SourceSheetComps() As Dictionary:   Set SourceSheetComps = dctSourceSheetComps:     End Property
+
+Friend Property Get SourceSheets() As Dictionary:       Set SourceSheets = dctSourceSheets:             End Property
+
+Friend Property Get SourceSheetShapes() As Dictionary:  Set SourceSheetShapes = dctSourceSheetShapes:   End Property
+
+Friend Property Get Target() As Workbook:               Set Target = wbSyncTarget:                      End Property
+
+Friend Property Set Target(ByRef wb As Workbook)
+    Set wbSyncTarget = wb
+    If Not wbSyncSource Is Nothing Then MaxLen
+End Property
+
+Friend Property Get TargetNames() As Dictionary:        Set TargetNames = dctTargetNames:               End Property
+
+Friend Property Get TargetSheetComps() As Dictionary:   Set TargetSheetComps = dctTargetSheetComps:     End Property
+
+Friend Property Get TargetSheets() As Dictionary:       Set TargetSheets = dctTargetSheets:             End Property
+
+Friend Property Get TargetSheetShapes() As Dictionary:  Set TargetSheetShapes = dctTargetSheetShapes:   End Property
+
+Friend Property Get MaxLenItem() As Long:               MaxLenItem = lMaxLenItem:                       End Property
+
+Friend Property Get MaxLenComp() As Long:               MaxLenComp = lMaxLenComp:                       End Property
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "clsSync" & "." & sProc
+End Function
+
+Public Sub CollectAllSyncItems()
+    Const PROC = "CollectAllSyncItems"
+    
+    On Error GoTo eh
+    Dim ws1     As Worksheet
+    Dim ws2     As Worksheet
+    Dim vbc     As VBComponent
+    Dim shp     As Shape
+    Dim nm      As Name
+    Dim nmName  As Name
+    Dim sKey    As String
+    Dim sSheet  As String
+    
+    If dctSourceSheets Is Nothing Then Set dctSourceSheets = New Dictionary Else dctSourceSheets.RemoveAll
+    If dctSourceSheetComps Is Nothing Then Set dctSourceSheetComps = New Dictionary Else dctSourceSheetComps.RemoveAll
+    If dctTargetSheets Is Nothing Then Set dctTargetSheets = New Dictionary Else dctTargetSheets.RemoveAll
+    If dctTargetSheetComps Is Nothing Then Set dctTargetSheetComps = New Dictionary Else dctTargetSheetComps.RemoveAll
+    If dctSourceSheetShapes Is Nothing Then Set dctSourceSheetShapes = New Dictionary Else dctSourceSheetShapes.RemoveAll
+    If dctTargetSheetShapes Is Nothing Then Set dctTargetSheetShapes = New Dictionary Else dctTargetSheetShapes.RemoveAll
+    If dctSourceNames Is Nothing Then Set dctSourceNames = New Dictionary Else dctSourceNames.RemoveAll
+    If dctTargetNames Is Nothing Then Set dctTargetNames = New Dictionary Else dctTargetNames.RemoveAll
+    
+    '~~ Source Worksheets by Name and by CodeName
+    For Each ws1 In wbSyncSource.Worksheets
+        sKey = ws1.Name
+        sSheet = ws1.Name
+        mDct.DctAdd dctSourceSheets, sKey, sSheet, order_bykey, seq_ascending, , , True
+        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(SheetProjectName(ws:=ws1)))
+        
+        sKey = ws1.CodeName
+'        mDct.DctAdd dctSourceSheets, sKey, sSheet, order_bykey, seq_ascending, , , True
+        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(ws1.CodeName))
+        '~~ Source Workseet Shapes
+        For Each shp In ws1.Shapes
+            sKey = ws1.Name & SHEET_SHAPE & shp.Name
+            mDct.DctAdd dctSourceSheetShapes, sKey, sSheet, order_bykey, seq_ascending, , , True
+            lMaxLenItem = mBasic.Max(lMaxLenItem, Len(sKey & "(" & sSheet & ")"))
+        Next shp
+    Next ws1
+'    SheetShapes "Source", SyncSource, SourceSheetShapes
+     
+    '~~ Target Worksheets by Name and by CodeName
+    For Each ws2 In wbSyncTarget.Worksheets
+        sKey = ws2.Name
+        sSheet = ws2.Name
+        mDct.DctAdd dctTargetSheets, sKey, sSheet, order_bykey, seq_ascending, , , True
+        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(SheetProjectName(ws:=ws2)))
+        
+        sKey = ws2.CodeName
+'        mDct.DctAdd dctTargetSheets, sKey, sSheet, order_bykey, seq_ascending, , , True
+        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(ws2.CodeName))
+        '~~ Target Worksheet Shapes
+        For Each shp In ws2.Shapes
+            sKey = sSheet & SHEET_SHAPE & shp.Name
+            mDct.DctAdd dctTargetSheetShapes, sKey, sSheet, order_bykey, seq_ascending, , , True
+            lMaxLenItem = mBasic.Max(lMaxLenItem, Len(sKey))
+        Next shp
+    Next ws2
+'    SheetShapes "Target", SyncTarget, TargetSheetShapes
+    
+    '~~ Source and Target VBComponents
+    For Each vbc In wbSyncSource.VBProject.VBComponents
+        If mSync.IsSheetComp(vbc) Then
+            mDct.DctAdd dctSourceSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
+            lMaxLenItem = mBasic.Max(lMaxLenItem, Len(vbc.Name))
+        End If
+    Next vbc
+    For Each vbc In wbSyncTarget.VBProject.VBComponents
+        If IsSheetComp(vbc) Then
+            mDct.DctAdd dctTargetSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
+            lMaxLenItem = mBasic.Max(lMaxLenItem, Len(vbc.Name))
+        End If
+    Next vbc
+    
+    '~~ Source and Target Workbook Names
+    For Each nm In wbSyncSource.Names
+        Set nmName = nm
+        mDct.DctAdd dctSourceNames, nm.Name, nmName, order_bykey, seq_ascending, , , True
+        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(nmName.Name & "(" & nm.RefersTo & ")"))
+    Next nm
+    For Each nm In wbSyncTarget.Names
+        Set nmName = nm
+        mDct.DctAdd dctTargetNames, nm.Name, nmName, order_bykey, seq_ascending, , , True
+        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(nmName.Name & "(" & nm.RefersTo & ")"))
+    Next nm
+
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Sub
+
+Public Function SheetProjectName( _
+                  Optional ByRef ws As Worksheet = Nothing, _
+                  Optional ByRef wb As Workbook = Nothing, _
+                  Optional ByRef vbc As VBComponent = Nothing) As String
+' ----------------------------------------------------------------------
+' Returns a Worksheet's full project name in the form 'codename(name)'.
+' The Workshhet may either be identified by its Name or through its
+' CodeName (wb and vbc).
+' ----------------------------------------------------------------------
+    If Not ws Is Nothing Then
+        SheetProjectName = ws.CodeName & "(" & ws.Name & ")"
+    ElseIf Not wb Is Nothing Then
+        If Not vbc Is Nothing Then
+            For Each ws In wb.Worksheets
+                If ws.CodeName = vbc.Name Then
+                    SheetProjectName = vbc.Name & "(" & ws.Name & ")"
+                    Exit For
+                End If
+            Next ws
+        End If
+    End If
+End Function
+
+Public Sub ConfInfoClear()
+    Set cllConfInfo = Nothing
+End Sub
+
+Public Function TypeAndItem(ByVal tai_type As String, ByVal tai_item As String)
+    TypeAndItem = Align(tai_type, lMaxLenType) & tai_item
+End Function
+
+Private Sub MaxLen()
+    Dim vbc As VBComponent
+    
+    lMaxLenComp = 0
+    lMaxLenType = 0
+    lMaxLenItem = 0
+        
+    For Each vbc In wbSyncSource.VBProject.VBComponents
+        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
+    Next vbc
+    For Each vbc In wbSyncTarget.VBProject.VBComponents
+        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
+    Next vbc
+        
+    lMaxLenType = mBasic.Max(lMaxLenType, Len("ActiveX Designer"))
+    lMaxLenType = mBasic.Max(lMaxLenType, Len("Class Module"))
+    lMaxLenType = mBasic.Max(lMaxLenType, Len("Document Module"))
+    lMaxLenType = mBasic.Max(lMaxLenType, Len("UserForm"))
+    lMaxLenType = mBasic.Max(lMaxLenType, Len("Standard Module"))
+    lMaxLenType = lMaxLenType + 1
+    
+    lMaxLenItem = lMaxLenType + lMaxLenComp
+
+End Sub
+

@@ -54,25 +54,25 @@ Friend Property Get Folder() As String:             Folder = sFolder:           
 
 Friend Property Let Folder(ByVal s As String):      sFolder = s:                End Property
 
-Friend Property Let Info(ByVal s As String)
-' ------------------------------------------
-' Append an info line to the log file.
-' ------------------------------------------
-Static sItem As String
-
-    If sServicedItem = vbNullString Then
-        sEntry = s
-    Else
-        If sServicedItem = sItem Then
-            sEntry = VBA.Space$(Len(sServicedItem) + 2) & s
-        Else
-            sEntry = sServicedItem & ": " & s
-        End If
-    End If
-    mFile.Txt(ft_file:=sFile, ft_append:=True) = sEntry
-    sItem = sServicedItem
-    
-End Property
+'Friend Property Let Info(ByVal s As String)
+'' ------------------------------------------
+'' Append an info line to the log file.
+'' ------------------------------------------
+'Static sItem As String
+'
+'    If sServicedItem = vbNullString Then
+'        sEntry = s
+'    Else
+'        If sServicedItem = sItem Then
+'            sEntry = VBA.Space$(Len(sServicedItem) + 2) & s
+'        Else
+'            sEntry = sServicedItem & ": " & s
+'        End If
+'    End If
+'    mFile.Txt(ft_file:=sFile, ft_append:=True) = sEntry
+'    sItem = sServicedItem
+'
+'End Property
 
 Friend Property Get LogFile() As File
     Dim sLogFullName    As String
@@ -103,7 +103,7 @@ Friend Property Let Service(ByVal sv_name As String)
 End Property
 
 Friend Property Let ServicedItem(ByVal s As String)
-    sServicedItem = s & " " & String(lCompMaxLen - Len(s), ".")
+    sServicedItem = s & " " & String(lCompMaxLen - Min(lCompMaxLen, Len(s)), ".")
 End Property
 
 Friend Property Set ServicedWrkbk( _
@@ -116,7 +116,7 @@ Friend Property Set ServicedWrkbk( _
     Set wbServiced = sw_wbServiced
     Me.Folder = sw_wbServiced.Path
     If lCompMaxLen = 0 Then
-        For Each vbc In wbServiced.VbProject.VBComponents
+        For Each vbc In wbServiced.VBProject.VBComponents
             lCompMaxLen = mBasic.Max(lCompMaxLen, Len(vbc.Name))
         Next vbc
     End If

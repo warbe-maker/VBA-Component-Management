@@ -127,7 +127,7 @@ Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
     With cComp
         Set .Wrkbk = wb
         .CompName = cmp_comp_name
-        Set .VBComp = wb.VbProject.VBComponents(.CompName)
+        Set .VBComp = wb.VBProject.VBComponents(.CompName)
         sExpFileRaw = mHostedRaws.ExpFileFullName(cmp_comp_name)
     
         mFile.Compare fc_file_left:=.ExpFileFullName _
@@ -156,7 +156,7 @@ Public Function CompExists( _
 ' -----------------------------------------------------------
     Dim s As String
     On Error Resume Next
-    s = ce_wb.VbProject.VBComponents(ce_comp_name).Name
+    s = ce_wb.VBProject.VBComponents(ce_comp_name).Name
     CompExists = Err.Number = 0
 End Function
 
@@ -217,7 +217,7 @@ Public Sub DisplayCodeChange(ByVal cmp_comp_name As String)
     With cComp
         Set .Wrkbk = wb
         .CompName = cmp_comp_name
-        Set .VBComp = wb.VbProject.VBComponents(.CompName)
+        Set .VBComp = wb.VBProject.VBComponents(.CompName)
     End With
     
     With fso
@@ -477,7 +477,7 @@ Public Sub SynchTargetWbWithSourceWb(ByRef sync_target_wb As Workbook, _
     
     On Error GoTo eh
     mErH.BoP ErrSrc(PROC)
-    mService.SynchTargetWbWithSourceWb sync_target_wb:=sync_target_wb, sync_source_wb:=sync_source_wb
+    mService.SyncTargetWithSource sync_target_wb:=sync_target_wb, sync_source_wb:=sync_source_wb
     
 xt: mErH.EoP ErrSrc(PROC)
     Set cLog = Nothing

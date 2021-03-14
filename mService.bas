@@ -191,7 +191,7 @@ End Function
 
 Public Function CompMaxLen(ByRef ml_wb As Workbook) As Long
     Dim vbc As VBComponent
-    For Each vbc In ml_wb.VbProject.VBComponents
+    For Each vbc In ml_wb.VBProject.VBComponents
         CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.Name))
     Next vbc
 End Function
@@ -281,11 +281,11 @@ Public Sub ExportChangedComponents( _
         GoTo xt
     End If
     
-    lComponents = ec_wb.VbProject.VBComponents.Count
+    lComponents = ec_wb.VBProject.VBComponents.Count
     lCompsRemaining = lComponents
     sProgressDots = String$(lCompsRemaining, ".")
 
-    For Each vbc In ec_wb.VbProject.VBComponents
+    For Each vbc In ec_wb.VBProject.VBComponents
         Set cComp = New clsComp
         sProgressDots = Left(sProgressDots, Len(sProgressDots) - 1)
         Application.StatusBar = sStatus & sProgressDots & sExported & " " & vbc.Name
@@ -458,7 +458,7 @@ Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
     If mMe.IsAddinInstnc _
     Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
     
-    For Each vbc In ea_wb.VbProject.VBComponents
+    For Each vbc In ea_wb.VBProject.VBComponents
         Set cComp = New clsComp
         With cComp
             Set .Wrkbk = ea_wb
@@ -474,24 +474,19 @@ xt: mErH.EoP ErrSrc(PROC)
 eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
-Public Sub SynchTargetWbWithSourceWb( _
-                      Optional ByRef sync_target_wb As Workbook = Nothing, _
-                      Optional ByVal sync_source_wb As String = vbNullString)
-' ---------------------------------------------------------------------------
-' Synchronizes the target Workbook (sync_target_wb) with the source Workbook
-' (sync_source_wb).
-' Note: When the synchronization service is called from the target Workbook
-'       itself, the source Workbook (sync_source_wb) will be identified only
-'       by its 'BaseName'. Only when directly called, e.g. via the immediate
-'       window, both arguments are provided via a file selection dialog when
-'       missing.
+Public Sub SyncTargetWithSource( _
+                 Optional ByRef sync_target_wb As Workbook = Nothing, _
+                 Optional ByVal sync_source_wb As String = vbNullString)
+' ----------------------------------------------------------------------
+' Synchronizes the target Workbook (sync_target_wb) with the source
+' Workbook (sync_source_wb).
 ' The service is performed provided:
 ' - the CompMan basic configuration is complete and valid
 ' - the Workbook is located within the configured "Serviced Root"
 ' - the Workbook is the only one within its parent folder
 ' - the CompMan Addin is not paused
 ' - the open/ed Workbook is not a restored version
-' ---------------------------------------------------------------------------
+' ----------------------------------------------------------------------
     Const PROC = "SynchTargetWbWithSourceWb"
     
     On Error GoTo eh
@@ -513,8 +508,8 @@ Public Sub SynchTargetWbWithSourceWb( _
     Set cLog.ServicedWrkbk = sync_target_wb
     sStatus = mCompMan.Service
         
-    mSync.TargetWbWithSource sync_target_wb:=sync_target_wb _
-                           , sync_source_wb:=wbRaw
+    mSync.SyncTargetWithSource sync_target_wb:=sync_target_wb _
+                             , sync_source_wb:=wbRaw
 
 xt: mErH.EoP ErrSrc(PROC)
     Set cLog = Nothing
@@ -785,7 +780,7 @@ Private Function Clones( _
     
     mErH.BoP ErrSrc(PROC)
         
-    For Each vbc In cl_wb.VbProject.VBComponents
+    For Each vbc In cl_wb.VBProject.VBComponents
         Set cComp = New clsComp
         With cComp
             Set .Wrkbk = cl_wb
