@@ -14,7 +14,7 @@ Private sService            As String
 Private sServicedItem       As String
 Private sFile               As String
 Private sFolder             As String
-Private lCompMaxLen         As Long
+Private lMaxLenComp         As Long
 Private bNewLog             As Boolean
 Private sEntry              As String
 
@@ -22,9 +22,9 @@ Private Sub Class_Initialize()
     bNewLog = True
 End Sub
 
-Friend Property Get CompMaxLen() As Long:           CompMaxLen = lCompMaxLen:   End Property
+Private Property Get CompMaxLen() As Long:           CompMaxLen = lMaxLenComp:   End Property
 
-Friend Property Let CompMaxLen(ByVal l As Long):    lCompMaxLen = l:            End Property
+Friend Property Let CompMaxLen(ByVal l As Long):    lMaxLenComp = l:            End Property
 
 Friend Property Let Entry(ByVal s As String)
 ' ------------------------------------------
@@ -36,9 +36,9 @@ Static sItem As String
         sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & s
     Else
         If sServicedItem = sItem Then
-            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.Space$(Len(sServicedItem) + 2) & s
+            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.Space$(mCompMan.MaxLenTypeItem + 2) & s
         Else
-            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sServicedItem & ": " & s
+            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sServicedItem & s
         End If
     End If
     mFile.Txt(ft_file:=sFile, ft_append:=True) = sEntry
@@ -89,7 +89,7 @@ End Property
 
 Friend Property Let Service(ByVal sv_name As String)
 
-    sService = ThisWorkbook.Name & " '" & sv_name & "' for '" & wbServiced.Name & "'"
+    sService = sv_name & " by " & ThisWorkbook.Name & " for '" & wbServiced.Name & "'"
     
     If mFile.Txt(ft_file:=sFile) <> vbNullString _
     Then mFile.Txt(ft_file:=sFile _
@@ -102,8 +102,10 @@ Friend Property Let Service(ByVal sv_name As String)
                  Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "-")
 End Property
 
-Friend Property Let ServicedItem(ByVal s As String)
-    sServicedItem = s & " " & String(lCompMaxLen - Min(lCompMaxLen, Len(s)), ".")
+Friend Property Let ServicedItem( _
+                  Optional ByVal si_type As String, _
+                           ByVal si_item As String)
+    sServicedItem = Align(Align(si_type, MAX_LEN_TYPE) & si_item, MaxLenTypeItem(wbServiced), , " ", ".") & ": "
 End Property
 
 Friend Property Set ServicedWrkbk( _
@@ -115,9 +117,9 @@ Friend Property Set ServicedWrkbk( _
     bNewLog = sw_new_log
     Set wbServiced = sw_wbServiced
     Me.Folder = sw_wbServiced.Path
-    If lCompMaxLen = 0 Then
+    If lMaxLenComp = 0 Then
         For Each vbc In wbServiced.VBProject.VBComponents
-            lCompMaxLen = mBasic.Max(lCompMaxLen, Len(vbc.Name))
+            lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
         Next vbc
     End If
     

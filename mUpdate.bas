@@ -72,7 +72,7 @@ Public Sub RawClones( _
             Set .VBComp = vbc
 
             Application.StatusBar = sStatus & .CompName & " "
-            cLog.ServicedItem = vbc.Name
+            cLog.ServicedItem(TypeString(vbc)) = vbc.Name
 
             Set cRaw = New clsRaw
             cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)

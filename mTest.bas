@@ -82,6 +82,11 @@ Public Sub Regression()
 End Sub
   
 Public Sub Test_SynchTargetWithSource()
+' ---------------------------------------------------------------------
+' Attention: This test preserves the target Workbook by a backup before
+' and a restore after the synch test. The target Workbook thus will not
+' show the synch result unless the terst procedire is stopped.
+' ---------------------------------------------------------------------
     Const PROC = ""
     
     On Error GoTo eh
@@ -98,6 +103,9 @@ Public Sub Test_SynchTargetWithSource()
         sync_target_wb:=mCompMan.WbkGetOpen(sTarget) _
       , sync_source_wb:=sSource
     
+    ' -----------------------------------------------------------------
+    Stop ' last chance to see the synch result in the target Workbook !
+    ' -----------------------------------------------------------------
     mCompMan.WbkGetOpen(sTarget).Close SaveChanges:=False
     mSync.SyncTargetRestore fo, sTarget
     
@@ -242,17 +250,15 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     Dim cComp       As New clsComp
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
-    Dim lCompMaxLen As Long
     
-    lCompMaxLen = mService.CompMaxLen(rnc_wb)
     If mMe.IsDevInstnc Then GoTo xt
     
     Set cLog.ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
-    cLog.Service = ErrSrc(PROC)
+    cLog.Service = PROC
     
     With cComp
         .CompName = rnc_comp_name
-        cLog.ServicedItem = .CompName
+        cLog.ServicedItem(.TypeString) = .CompName
         
         If .Wrkbk Is ActiveWorkbook Then
             Set wbActive = ActiveWorkbook
@@ -260,7 +266,7 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
             cLog.Entry = "Active Workbook de-activated by creating a temporary Workbook"
         End If
     
-        cLog.ServicedItem = .CompName
+        cLog.ServicedItem(.TypeString) = .CompName
         
         mRenew.ByImport rn_wb:=.Wrkbk _
                       , rn_comp_name:=.CompName _

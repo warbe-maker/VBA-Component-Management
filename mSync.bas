@@ -4,9 +4,6 @@ Option Explicit
 Public Const SHEET_SHAPE        As String = ": "    ' Sheet-Shape concatenator
 
 Private Sync                    As clsSync
-Private lMaxLenComp             As Long
-Private lMaxLenType             As Long
-Private lMaxLenItem             As Long
 Private lMode                   As SyncMode
 Private dctChanged              As Dictionary       ' Confirm buttons and clsRaw items to display changed
 Private dctNameChange           As Dictionary
@@ -19,6 +16,7 @@ Private lSheetsObsolete         As Long
 Private lSheetsNew              As Long
 Private ManualSynchRequired     As Boolean
 Private BckpFolderName          As String
+Private lCompMaxLen             As Long
 
 Public Enum siCounter
     sic_changed_comps
@@ -144,7 +142,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function CompMaxLen() As Long
+Private Property Get CompMaxLen() As Long
 ' -------------------------------------------------------------
 ' Returns the length of the longest element which may be
 ' displayed with the syncronization confirmation info.
@@ -155,25 +153,28 @@ Private Function CompMaxLen() As Long
     Dim l   As Long
     Dim ws  As Worksheet
     Dim shp As Shape
+    Dim nm  As Name
     
-    For Each vbc In Sync.Target.VBProject.VBComponents:  l = mBasic.Max(l, Len(vbc.Name)):   Next vbc
-    For Each vbc In Sync.Source.VBProject.VBComponents:  l = mBasic.Max(l, Len(vbc.Name)):   Next vbc
-    For Each ref In Sync.Target.VBProject.References:    l = mBasic.Max(l, Len(ref.Name)):   Next ref
-    For Each ref In Sync.Source.VBProject.References:    l = mBasic.Max(l, Len(ref.Name)):   Next ref
-    For Each ws In Sync.Source.Worksheets
-        For Each shp In ws.Shapes
-            l = mBasic.Max(l, Len(shp.Name))
-        Next shp
-    Next ws
-    For Each ws In Sync.Target.Worksheets
-        For Each shp In ws.Shapes
-            l = mBasic.Max(l, Len(shp.Name))
-        Next shp
-    Next ws
-    
-    
-    CompMaxLen = l
-End Function
+    If lCompMaxLen = 0 Then
+        With Sync
+            For Each vbc In .Target.VBProject.VBComponents: l = mBasic.Max(l, Len(vbc.Name)):   Next vbc
+            For Each vbc In .Source.VBProject.VBComponents: l = mBasic.Max(l, Len(vbc.Name)):   Next vbc
+            For Each ref In .Target.VBProject.References:   l = mBasic.Max(l, Len(ref.Name)):   Next ref
+            For Each ref In .Source.VBProject.References:   l = mBasic.Max(l, Len(ref.Name)):   Next ref
+            For Each ws In .Source.Worksheets
+                                                            l = mBasic.Max(l, ws.CodeName & "(" & ws.Name & ")")
+                For Each shp In ws.Shapes:                  l = mBasic.Max(l, Len(shp.Name)):   Next shp
+            Next ws
+            For Each ws In .Target.Worksheets
+                                                            l = mBasic.Max(l, ws.CodeName & "(" & ws.Name & ")")
+                For Each shp In ws.Shapes:                  l = mBasic.Max(l, Len(shp.Name)):   Next shp
+            Next ws
+            For Each nm In .Source.Names:                   l = mBasic.Max(l, Len(nm.Name) + Len(nm.RefersTo)): Next nm
+            For Each nm In .Target.Names:                   l = mBasic.Max(l, Len(nm.Name) + Len(nm.RefersTo)): Next nm
+        End With
+    End If
+    CompMaxLen = lCompMaxLen
+End Property
 
 Private Function CompSheetName( _
                          ByRef wb As Workbook, _
@@ -208,37 +209,6 @@ End Sub
 
 Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSync." & s
-End Function
-
-Public Function IsSheetComp( _
-                      ByRef vbc As VBComponent, _
-             Optional ByRef wb As Workbook = Nothing, _
-             Optional ByRef sh_name As String = vbNullString) As Boolean
-' -----------------------------------------------------------------------
-' Returns TRUE when the Component (vbc) represents a Worksheet. When the
-' optional Workbook (wb) is provided, the sheet's Name is returned
-' (sh_name).
-' ------------------------------------------------------------------------
-    Dim ws As Worksheet
-    
-    IsSheetComp = vbc.Type = vbext_ct_Document And Not IsWrkbkComp(vbc)
-    If Not wb Is Nothing Then
-        For Each ws In wb.Worksheets
-            If ws.CodeName = vbc.Name Then
-                sh_name = ws.Name
-                Exit For
-            End If
-        Next ws
-    End If
-End Function
-
-Private Function IsWrkbkComp(ByRef vbc As VBComponent) As Boolean
-    
-    Dim bSigned As Boolean
-    On Error Resume Next
-    bSigned = vbc.Properties("VBASigned").Value
-    IsWrkbkComp = Err.Number = 0
-    
 End Function
 
 Private Function NameChange( _
@@ -362,7 +332,7 @@ Private Sub RenameSheet(ByRef rs_wb As Workbook, _
     For Each sh In rs_wb.Worksheets
         If sh.Name = rs_old_name Then
             sh.Name = rs_new_name
-            cLog.Entry = "Worksheet name changed to '" & rs_new_name & "'"
+            cLog.Entry = "Sheet-Name changed to '" & rs_new_name & "'"
             Exit For
         End If
     Next sh
@@ -391,9 +361,9 @@ Private Sub RenameWrkbkModule( _
         For Each vbc In .VBComponents
             If vbc.Type = vbext_ct_Document Then
                 If IsWrkbkComp(vbc) Then
-                    cLog.ServicedItem = vbc.Name
+                    cLog.ServicedItem(TypeString(vbc)) = vbc.Name
                     vbc.Name = rdm_new_name
-                    cLog.Entry = "Workbook Document Module renamed to '" & rdm_new_name & "'"
+                    cLog.Entry = "Renamed to '" & rdm_new_name & "'"
                     DoEvents
                     Exit For
                 End If
@@ -704,10 +674,10 @@ Public Sub SyncObsoleteNames()
         If lMode = Confirm Then
             Sync.ConfInfo(NameType(Sync.Target, v), v & "(" & nm.RefersTo & ")") = "Obsolete! Will be removed."
         Else
-            cLog.ServicedItem = v
+            cLog.ServicedItem(TypeName(nm)) = v
             Set nm = Sync.TargetNames(v)
             nm.Delete
-            cLog.Entry = "Range-Name Obsolete removed"
+            cLog.Entry = "Obsolete (removed)"
         End If
 next_v:
     Next v
@@ -823,8 +793,8 @@ Private Sub SyncShapesNew()
                 ShapeCopy sc_source:=wsSource _
                         , sc_target:=wsTarget _
                         , sc_name:=sShape
-                cLog.ServicedItem = sShape
-                cLog.Entry = "Sheet-Shape copied and properties adjusted"
+                cLog.ServicedItem("Sheet Shape") = sShape
+                cLog.Entry = "Copied and properties adjusted"
             End If
 next_shape:
         Next v
@@ -864,9 +834,9 @@ Private Sub SyncShapesObsolete()
         If lMode = Confirm Then
             Sync.ConfInfo("Sheet Shape", v) = "Obsolete! Will be removed."
         Else
-            cLog.ServicedItem = sShape
+            cLog.ServicedItem("Sheet Shape") = sShape
             wsTarget.Shapes(sShape).Delete
-            cLog.Entry = "Worksheet-Shape removed"
+            cLog.Entry = "Obsolete (removed)"
         End If
 next_shape:
     Next v
@@ -915,12 +885,12 @@ Private Sub SyncSheetsCodeChanged()
             If Not dctChanged.Exists(sCaption) _
             Then dctChanged.Add sCaption, cSource
         Else
-            cLog.ServicedItem = vbc.Name
+            cLog.ServicedItem(TypeString(vbc)) = vbc.Name
             sExpFile = cSource.ExpFileFullName
             mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
                             , sync_source_wb_full_name:=cSource.Wrkbk.FullName _
                             , sync_source_codelines:=cSource.CodeLines
-            cLog.Entry = "Code of Worksheet '" & vbc.Name & "' updated line-by-line from Export-File '" & sExpFile & "'"
+            cLog.Entry = "Code updated line-by-line! from Export-File '" & sExpFile & "'"
         End If
         Set cSource = Nothing
         Set cTarget = Nothing
@@ -1117,7 +1087,7 @@ Private Sub SyncSheetsNew()
                 '~~ The new sheet is copied to the corresponding position in the target Workbook
                 Sync.Source.Worksheets(sSourceSheetName).Copy _
                 After:=Sync.Target.Sheets(Sync.Target.Worksheets.Count)
-                cLog.ServicedItem = sSourceSheetCodeName & "(" & sSourceSheetName & ")"
+                cLog.ServicedItem("Worksheet") = sSourceSheetCodeName & "(" & sSourceSheetName & ")"
                 cLog.Entry = "Copied from source Workbook."
             End If
         End If
@@ -1200,11 +1170,11 @@ Private Sub SyncSheetsObsolete()
                 For Each ws In Sync.Target.Worksheets
                     If ws.CodeName = sTargetSheetCodeName Then
                         '~~ This is the obsolete sheet to be removed
-                        cLog.ServicedItem = ws.CodeName & "(" & ws.Name & ")"
+                        cLog.ServicedItem(TypeName(ws)) = ws.CodeName & "(" & ws.Name & ")"
                         Application.DisplayAlerts = False
                         ws.Delete
                         Application.DisplayAlerts = True
-                        cLog.Entry = "Deleted"
+                        cLog.Entry = "Obsolete (deleted)"
                         Exit For
                     End If
                 Next ws
@@ -1453,7 +1423,7 @@ Private Sub SyncVBComponentsCodeChanged()
             mRenew.ByImport rn_wb:=Sync.Target _
                           , rn_comp_name:=vbc.Name _
                           , rn_exp_file_full_name:=cRaw.ExpFileFullName
-            cLog.Entry = "Renewed by import of '" & cSource.ExpFileFullName & "'"
+            cLog.Entry = "Renewed/updated by import of '" & cSource.ExpFileFullName & "'"
         End If
         
         Set cTarget = Nothing
@@ -1498,7 +1468,7 @@ Private Function SyncVBComponentsNew()
         If lMode = Confirm Then
             Sync.ConfInfo(cSource.TypeString, vbc.Name) = "New! Corresponding source Workbook Export-File will by imported."
         Else
-            cLog.ServicedItem = vbc.Name
+            cLog.ServicedItem(TypeString(vbc)) = vbc.Name
             Sync.Target.VBProject.VBComponents.Import cSource.ExpFileFullName
         End If
         
@@ -1544,10 +1514,10 @@ Private Function SyncVBComponentsObsolete()
         If lMode = Confirm Then
             Sync.ConfInfo(cSource.TypeString, vbc.Name) = "Obsolete! Will be removed."
         Else
-            cLog.ServicedItem = vbc.Name
+            cLog.ServicedItem(TypeString(vbc)) = vbc.Name
             sType = cTarget.TypeString
             Sync.Target.VBProject.VBComponents.Remove vbc
-            cLog.Entry = "Obsolete " & sType & " removed"
+            cLog.Entry = "Obsolete (removed)"
         End If
         Set cTarget = Nothing
 next_vbc:

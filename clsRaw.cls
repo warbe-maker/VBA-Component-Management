@@ -70,9 +70,6 @@ Private Sub Class_Initialize()
     dctType.Add vbext_ct_Document, "Document Module"
     dctType.Add vbext_ct_MSForm, "UserForm"
     dctType.Add vbext_ct_StdModule, "Standard Module"
-    For Each v In dctType
-        lMaxLenType = mBasic.Max(lMaxLenType, Len(dctType(v)))
-    Next v
 End Sub
 
 Private Sub Class_Terminate()

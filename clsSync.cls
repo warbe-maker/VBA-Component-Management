@@ -33,12 +33,10 @@ Private dctTargetNames          As Dictionary
 Private dctSourceSheetShapes    As Dictionary
 Private dctTargetSheetShapes    As Dictionary
 Private dctNewSheets            As Dictionary
-Private lMaxLenItem             As Long
-Private lMaxLenComp             As Long
-Private lMaxLenType             As Long
 Private sConfItem               As String
 Private cllConfInfo             As Collection
 Private sEntry                  As String
+Private lMaxLenItem             As String
 
 Private Sub Class_Terminate()
     Set dctSourceSheetComps = Nothing
@@ -211,10 +209,7 @@ End Property
 
 Friend Property Get Source() As Workbook:               Set Source = wbSyncSource:                      End Property
                  
-Friend Property Set Source(ByRef wb As Workbook)
-    Set wbSyncSource = wb
-    If Not wbSyncTarget Is Nothing Then MaxLen
-End Property
+Friend Property Set Source(ByRef wb As Workbook):       Set wbSyncSource = wb:                          End Property
 
 Friend Property Get SourceNames() As Dictionary:        Set SourceNames = dctSourceNames:               End Property
 
@@ -226,10 +221,7 @@ Friend Property Get SourceSheetShapes() As Dictionary:  Set SourceSheetShapes = 
 
 Friend Property Get Target() As Workbook:               Set Target = wbSyncTarget:                      End Property
 
-Friend Property Set Target(ByRef wb As Workbook)
-    Set wbSyncTarget = wb
-    If Not wbSyncSource Is Nothing Then MaxLen
-End Property
+Friend Property Set Target(ByRef wb As Workbook):       Set wbSyncTarget = wb:                          End Property
 
 Friend Property Get TargetNames() As Dictionary:        Set TargetNames = dctTargetNames:               End Property
 
@@ -239,9 +231,13 @@ Friend Property Get TargetSheets() As Dictionary:       Set TargetSheets = dctTa
 
 Friend Property Get TargetSheetShapes() As Dictionary:  Set TargetSheetShapes = dctTargetSheetShapes:   End Property
 
-Friend Property Get MaxLenItem() As Long:               MaxLenItem = lMaxLenItem:                       End Property
-
-Friend Property Get MaxLenComp() As Long:               MaxLenComp = lMaxLenComp:                       End Property
+Friend Property Get MaxLenItem() As Long:
+    If lMaxLenItem = 0 Then
+        lMaxLenItem = mCompMan.MaxLenComp(Me.Source)
+        lMaxLenItem = mCompMan.MaxLenComp(Me.Target)
+    End If
+    MaxLenItem = lMaxLenItem
+End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsSync" & "." & sProc
@@ -258,7 +254,6 @@ Public Sub CollectAllSyncItems()
     Dim nm      As Name
     Dim nmName  As Name
     Dim sKey    As String
-    Dim sSheet  As String
     
     If dctSourceSheets Is Nothing Then Set dctSourceSheets = New Dictionary Else dctSourceSheets.RemoveAll
     If dctSourceSheetComps Is Nothing Then Set dctSourceSheetComps = New Dictionary Else dctSourceSheetComps.RemoveAll
@@ -271,53 +266,41 @@ Public Sub CollectAllSyncItems()
     
     '~~ Source Worksheets by Name and by CodeName
     For Each ws1 In wbSyncSource.Worksheets
-        sKey = ws1.Name
-        sSheet = ws1.Name
-        mDct.DctAdd dctSourceSheets, sKey, sSheet, order_bykey, seq_ascending, , , True
-        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(SheetProjectName(ws:=ws1)))
-        
-        sKey = ws1.CodeName
-'        mDct.DctAdd dctSourceSheets, sKey, sSheet, order_bykey, seq_ascending, , , True
-        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(ws1.CodeName))
-        '~~ Source Workseet Shapes
-        For Each shp In ws1.Shapes
-            sKey = ws1.Name & SHEET_SHAPE & shp.Name
-            mDct.DctAdd dctSourceSheetShapes, sKey, sSheet, order_bykey, seq_ascending, , , True
-            lMaxLenItem = mBasic.Max(lMaxLenItem, Len(sKey & "(" & sSheet & ")"))
-        Next shp
+        With ws1
+            mDct.DctAdd dctSourceSheets, .Name, .Name, order_bykey, seq_ascending, , , True
+    '        mDct.DctAdd dctSourceSheets, .CodeName, .Name, order_bykey, seq_ascending, , , True
+            
+            '~~ Source Workseet Shapes
+            For Each shp In .Shapes
+                sKey = .Name & SHEET_SHAPE & shp.Name
+                mDct.DctAdd dctSourceSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
+            Next shp
+        End With
     Next ws1
-'    SheetShapes "Source", SyncSource, SourceSheetShapes
      
     '~~ Target Worksheets by Name and by CodeName
     For Each ws2 In wbSyncTarget.Worksheets
-        sKey = ws2.Name
-        sSheet = ws2.Name
-        mDct.DctAdd dctTargetSheets, sKey, sSheet, order_bykey, seq_ascending, , , True
-        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(SheetProjectName(ws:=ws2)))
-        
-        sKey = ws2.CodeName
-'        mDct.DctAdd dctTargetSheets, sKey, sSheet, order_bykey, seq_ascending, , , True
-        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(ws2.CodeName))
-        '~~ Target Worksheet Shapes
-        For Each shp In ws2.Shapes
-            sKey = sSheet & SHEET_SHAPE & shp.Name
-            mDct.DctAdd dctTargetSheetShapes, sKey, sSheet, order_bykey, seq_ascending, , , True
-            lMaxLenItem = mBasic.Max(lMaxLenItem, Len(sKey))
-        Next shp
+        With ws2
+            mDct.DctAdd dctTargetSheets, .Name, .Name, order_bykey, seq_ascending, , , True
+'            mDct.DctAdd dctTargetSheets, .CodeName, .Name, order_bykey, seq_ascending, , , True
+            
+            '~~ Target Worksheet Shapes
+            For Each shp In .Shapes
+                sKey = .Name & SHEET_SHAPE & shp.Name
+                mDct.DctAdd dctTargetSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
+            Next shp
+        End With
     Next ws2
-'    SheetShapes "Target", SyncTarget, TargetSheetShapes
     
     '~~ Source and Target VBComponents
     For Each vbc In wbSyncSource.VBProject.VBComponents
-        If mSync.IsSheetComp(vbc) Then
+        If mCompMan.IsSheetComp(vbc) Then
             mDct.DctAdd dctSourceSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
-            lMaxLenItem = mBasic.Max(lMaxLenItem, Len(vbc.Name))
         End If
     Next vbc
     For Each vbc In wbSyncTarget.VBProject.VBComponents
         If IsSheetComp(vbc) Then
             mDct.DctAdd dctTargetSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
-            lMaxLenItem = mBasic.Max(lMaxLenItem, Len(vbc.Name))
         End If
     Next vbc
     
@@ -325,12 +308,10 @@ Public Sub CollectAllSyncItems()
     For Each nm In wbSyncSource.Names
         Set nmName = nm
         mDct.DctAdd dctSourceNames, nm.Name, nmName, order_bykey, seq_ascending, , , True
-        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(nmName.Name & "(" & nm.RefersTo & ")"))
     Next nm
     For Each nm In wbSyncTarget.Names
         Set nmName = nm
         mDct.DctAdd dctTargetNames, nm.Name, nmName, order_bykey, seq_ascending, , , True
-        lMaxLenItem = mBasic.Max(lMaxLenItem, Len(nmName.Name & "(" & nm.RefersTo & ")"))
     Next nm
 
 xt: Exit Sub
@@ -369,31 +350,6 @@ Public Sub ConfInfoClear()
 End Sub
 
 Public Function TypeAndItem(ByVal tai_type As String, ByVal tai_item As String)
-    TypeAndItem = Align(tai_type, lMaxLenType) & tai_item
+    TypeAndItem = Align(tai_type, MAX_LEN_TYPE) & tai_item
 End Function
-
-Private Sub MaxLen()
-    Dim vbc As VBComponent
-    
-    lMaxLenComp = 0
-    lMaxLenType = 0
-    lMaxLenItem = 0
-        
-    For Each vbc In wbSyncSource.VBProject.VBComponents
-        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
-    Next vbc
-    For Each vbc In wbSyncTarget.VBProject.VBComponents
-        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
-    Next vbc
-        
-    lMaxLenType = mBasic.Max(lMaxLenType, Len("ActiveX Designer"))
-    lMaxLenType = mBasic.Max(lMaxLenType, Len("Class Module"))
-    lMaxLenType = mBasic.Max(lMaxLenType, Len("Document Module"))
-    lMaxLenType = mBasic.Max(lMaxLenType, Len("UserForm"))
-    lMaxLenType = mBasic.Max(lMaxLenType, Len("Standard Module"))
-    lMaxLenType = lMaxLenType + 1
-    
-    lMaxLenItem = lMaxLenType + lMaxLenComp
-
-End Sub
 

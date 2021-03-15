@@ -51,6 +51,7 @@ Option Compare Text
 '
 ' W. Rauschenberger Berlin August 2019
 ' -------------------------------------------------------------------------------
+Public Const MAX_LEN_TYPE                       As Long = 17
 Public Const VB_RAW_PROJECT                     As String = "VB-Raw-Project"
 Public Const VB_CLONE_PROJECT_OF_RAW_PROJECT    As String = "VB-Clone-Project of Raw-Project: "
 
@@ -83,6 +84,64 @@ Public lMaxCompLength   As Long
 Public dctHostedRaws    As Dictionary
 
 Private sService        As String
+Private lMaxLenComp     As Long
+Private lMaxLenTypeItem As Long
+
+Public Property Get MaxLenComp(Optional ByRef wb As Workbook = Nothing) As Long
+    
+    Dim vbc     As VBComponent
+    Dim lMax    As Long
+    
+    If Not wb Is Nothing Then
+        For Each vbc In wb.VBProject.VBComponents
+            lMax = mBasic.Max(lMax, Len(vbc.Name))
+        Next vbc
+    End If
+    lMaxLenComp = Max(lMax, lMaxLenComp)
+    MaxLenComp = lMaxLenComp
+End Property
+
+Public Property Get MaxLenTypeItem(Optional ByRef wb As Workbook) As Long
+    If Not wb Is Nothing Then
+        lMaxLenTypeItem = MAX_LEN_TYPE + MaxLenComp(wb)
+    End If
+    MaxLenTypeItem = lMaxLenTypeItem
+End Property
+    
+Public Function IsSheetComp( _
+                      ByRef vbc As VBComponent, _
+             Optional ByRef wb As Workbook = Nothing, _
+             Optional ByRef sh_name As String = vbNullString) As Boolean
+' -----------------------------------------------------------------------
+' Returns TRUE when the Component (vbc) represents a Worksheet. When the
+' optional Workbook (wb) is provided, the sheet's Name is returned
+' (sh_name).
+' ------------------------------------------------------------------------
+    Dim ws As Worksheet
+    
+    IsSheetComp = vbc.Type = vbext_ct_Document And Not IsWrkbkComp(vbc)
+    If Not wb Is Nothing Then
+        For Each ws In wb.Worksheets
+            If ws.CodeName = vbc.Name Then
+                sh_name = ws.Name
+                Exit For
+            End If
+        Next ws
+    End If
+End Function
+
+Public Function IsWrkbkComp(ByRef vbc As VBComponent) As Boolean
+    
+    Dim bSigned As Boolean
+    On Error Resume Next
+    bSigned = vbc.Properties("VBASigned").Value
+    IsWrkbkComp = Err.Number = 0
+    
+End Function
+
+    
+    
+    
     
 Private Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
 
@@ -184,7 +243,7 @@ Public Sub DeleteObsoleteExpFiles(ByRef do_wb As Workbook)
     With fso
         For Each v In cll
             .DeleteFile v
-            cLog.Entry = "Obsolete Export-File '" & v & "' deleted (component no longer exists)"
+            cLog.Entry = "Export-File obsolete (deleted because component no longer exists)"
         Next v
     End With
     
@@ -379,7 +438,7 @@ Public Function ManageVbProjectProperties( _
             If Not mHostedRaws.Exists(raw_comp_name:=v) _
             Or mHostedRaws.HostFullName(comp_name:=v) <> mh_wb.FullName Then
                 mHostedRaws.HostFullName(comp_name:=v) = mh_wb.FullName
-                cLog.Entry = "Raw component '" & v & "' hosted in this Workbook registered"
+                cLog.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
             End If
             If mHostedRaws.ExpFileFullName(v) = vbNullString Then
                 '~~ The component apparently had never been exported before
@@ -462,6 +521,20 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
+
+Public Function TypeString(ByVal vbc As VBComponent) As String
+    Select Case vbc.Type
+        Case vbext_ct_ActiveXDesigner:  TypeString = "ActiveX-Designer"
+        Case vbext_ct_ClassModule:      TypeString = "Class-Module"
+        Case vbext_ct_Document
+            If mCompMan.IsSheetComp(vbc) _
+            Then TypeString = "Document-Module (Worksheet)" _
+            Else TypeString = "Document-Module (Workbook)"
+        Case vbext_ct_MSForm:           TypeString = "UserForm"
+        Case vbext_ct_StdModule:        TypeString = "Standatd-Module"
+    End Select
+End Function
+
 
 Public Sub SynchTargetWbWithSourceWb(ByRef sync_target_wb As Workbook, _
                           ByVal sync_source_wb As String)

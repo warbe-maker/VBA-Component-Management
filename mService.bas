@@ -129,7 +129,7 @@ Public Sub RenewComp( _
         mRenew.ByImport rn_wb:=.Wrkbk _
              , rn_comp_name:=.CompName _
              , rn_exp_file_full_name:=rc_exp_file_full_name
-        cLog.ServicedItem = .CompName
+        cLog.ServicedItem(.TypeString) = .CompName
         cLog.Entry = "Component renewed/updated by (re-)import of '" & rc_exp_file_full_name & "'"
     End With
     
@@ -268,9 +268,9 @@ Public Sub ExportChangedComponents( _
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
-    If mService.Denied(den_serviced_wb:=ec_wb, den_service:=ErrSrc(PROC)) Then GoTo xt
+    If mService.Denied(den_serviced_wb:=ec_wb, den_service:=PROC) Then GoTo xt
     
-    mCompMan.Service = PROC & " for '" & ec_wb.Name & "': "
+    mCompMan.Service = PROC & " by " & ThisWorkbook.Name & " for '" & ec_wb.Name & "': "
     sStatus = mCompMan.Service
 
     mCompMan.DeleteObsoleteExpFiles do_wb:=ec_wb
@@ -294,7 +294,7 @@ Public Sub ExportChangedComponents( _
         With cComp
             Set .Wrkbk = ec_wb
             .CompName = vbc.Name
-            cLog.ServicedItem = .CompName
+            cLog.ServicedItem(.TypeString) = .CompName
             If CodeModuleIsEmpty(.VBComp) Then
                 '~~ Empty Code Modules are exported only when the Workbook is a VB-Raw-Project
                 If mRawHosts.Exists(.WrkbkBaseName) Then
@@ -306,7 +306,7 @@ Public Sub ExportChangedComponents( _
                 cLog.Entry = "Initially exported to '" & .ExpFileFullName & "'."
             End If
             If Not .Changed Then
-                cLog.Entry = "The code has not changed! (a temporary Export-File is identical with the regular Export-File)"
+                cLog.Entry = "Code un-changed! (temporary Export-File identical with last change Export-File)"
                 GoTo next_vbc
             End If
         End With
@@ -363,11 +363,11 @@ Public Sub ExportChangedComponents( _
             Case Else ' enInternal, enHostedRaw
                 With cComp
                     If .Changed Then
-                        cLog.Entry = "The code changed! (a temporary Export-File differs from the last regular Export-File)"
+                        cLog.Entry = "Code changed! (temporary Export-File differs from last changes Export-File)"
                         Application.StatusBar = sStatus & vbc.Name & " Export to '" & .ExpFileFullName & "'"
                         vbc.Export .ExpFileFullName
                         sStatus = sStatus & vbc.Name & ", "
-                        cLog.Entry = "Changes exported to '" & .ExpFileFullName & "'"
+                        cLog.Entry = "Exported to '" & .ExpFileFullName & "'"
                         lExported = lExported + 1
                         If lExported = 1 _
                         Then sExported = vbc.Name _
@@ -448,7 +448,7 @@ Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
     If ea_wb Is Nothing Then GoTo xt
     
     '~~ Prevent any action when the required preconditins are not met
-    If mService.Denied(den_serviced_wb:=ea_wb, den_service:=ErrSrc(PROC)) Then GoTo xt
+    If mService.Denied(den_serviced_wb:=ea_wb, den_service:=PROC) Then GoTo xt
     
     mCompMan.Service = PROC & " for '" & ea_wb.Name & "': "
     sStatus = mCompMan.Service
@@ -502,7 +502,7 @@ Public Sub SyncTargetWithSource( _
     
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
-    If mService.Denied(den_serviced_wb:=sync_target_wb, den_service:=ErrSrc(PROC)) Then GoTo xt
+    If mService.Denied(den_serviced_wb:=sync_target_wb, den_service:=PROC) Then GoTo xt
 
     mCompMan.Service = PROC & " for '" & sync_target_wb.Name & "': "
     Set cLog.ServicedWrkbk = sync_target_wb
@@ -535,10 +535,10 @@ Public Sub UpdateRawClones( _
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
     Dim sStatus     As String
-    Dim lCompMaxLen As Long
+    Dim lMaxLenComp As Long
     
     mErH.BoP ErrSrc(PROC)
-    If mService.Denied(den_serviced_wb:=uc_wb, den_service:=ErrSrc(PROC), den_new_log:=True) Then GoTo xt
+    If mService.Denied(den_serviced_wb:=uc_wb, den_service:=PROC, den_new_log:=True) Then GoTo xt
 
     mCompMan.Service = PROC & " for '" & uc_wb.Name & "': "
     Application.StatusBar = sStatus & "Maintain hosted raws"
@@ -557,7 +557,7 @@ Public Sub UpdateRawClones( _
     End If
     
     mUpdate.RawClones urc_wb:=uc_wb _
-                    , urc_comp_max_len:=lCompMaxLen _
+                    , urc_comp_max_len:=lMaxLenComp _
                     , urc_clones:=Clones(uc_wb)
 
 xt: If Not wbTemp Is Nothing Then
@@ -785,7 +785,7 @@ Private Function Clones( _
         With cComp
             Set .Wrkbk = cl_wb
             .CompName = vbc.Name
-            cLog.ServicedItem = .CompName
+            cLog.ServicedItem(.TypeString) = .CompName
             If .KindOfComp = enRawClone Then
                 Set cRaw = New clsRaw
                 cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
@@ -796,12 +796,12 @@ Private Function Clones( _
                 If .Changed Then
                     dct.Add vbc, vbc.Name
                 Else
-                    cLog.Entry = "The component's code  has not changed."
+                    cLog.Entry = "Code un-changed."
                 End If
                 If cRaw.Changed Then
                     If Not dct.Exists(vbc) Then dct.Add vbc, vbc.Name
                 Else
-                    cLog.Entry = "The corresponding Raw's code has not changed."
+                    cLog.Entry = "Corresponding Raw's code un-changed."
                 End If
             End If
         End With

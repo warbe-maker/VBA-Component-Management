@@ -82,18 +82,23 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     Const PROC = "Workbook_BeforeSave"
     
     On Error GoTo eh
-    Application.StatusBar = "Saving Workbook '" & ThisWorkbook.Name & "' please wait, this may take a few seconds"
-    Application.EnableEvents = False
-    ThisWorkbook.Save
-    Application.StatusBar = vbNullString
     '~~ ------------------------------------------------------------------
     '~~ CompMan Workbook_Before_Save service 'ExportChangedComponents':
     '~~ Executed by the Addin *) or via the development instance when open
     '~~ *) automatically available only when referenced by the VB-Project
-    If Not mMe.IsAddinInstnc _
-    Then mCompMan.ExportChangedComponents ThisWorkbook, vbNullString
+    If Not mMe.IsAddinInstnc Then
+        On Error Resume Next
+        CompManService "ExportChangedComponents"
+        If Err.Number <> 0 Then
+            mCompMan.ExportChangedComponents ThisWorkbook, vbNullString
+        End If
+    End If
     '~~ ------------------------------------------------------------------
-    If Not ThisWorkbook.Saved Then ThisWorkbook.Save
+    If Not ThisWorkbook.Saved Then
+        Application.EnableEvents = False
+        ThisWorkbook.Save
+        Application.EnableEvents = True
+    End If
     
 xt: Application.EnableEvents = True
     Exit Sub
@@ -101,7 +106,7 @@ xt: Application.EnableEvents = True
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
         Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
 
