@@ -10,24 +10,14 @@ Option Compare Text
 '          - the Workbook resides in its own dedicated folder
 '          - the Workbook calls the '' service with the Open event
 '          - the Workbook calls the '' service with the Save event
-' Usage:   This Workbbok's services are available as 'CompMan' AddIn and will
-'          be called from the serviced Workbook as follows:
+' Usage:   This Workbbok's services are available as 'CompMan-AddIn' when
+'          - at least once the Renew service had been performed
+'          - either a Workbbook referring to the Addin is opened
+'          - or the Addin-Workbook-Development-Instance is opened and Renew
+'            is performed again
 '
-'           Private Sub Workbook_Open()
-'           #If CompMan Then
-'               On Error Resume Next
-'               mCompMan.UpdateRawClones uc_wb:=ThisWorkbook _
-'                                      , uc_hosted:=HOSTED_RAWS
-'           #End If
-'           End Sub
-'
-'           Private Sub Workbook_BeforeSave(...)
-'           #If CompMan Then
-'               mCompMan.ExportChangedComponents ec_wb:=ThisWorkbook _
-'                                              , ec_hosted:=HOSTED_RAWS
-'           #End If
-'           End Sub
-'
+'          For further detailed information see:
+' https://warbe-maker.github.io/warbe-maker.github.io/vba/excel/code/component/management/2021/03/02/Programatically-updating-Excel-VBA-code.html
 ' ----------------------------------------------------------------------------
 ' Services:
 ' - DisplayCodeChange       Displays the current difference between a

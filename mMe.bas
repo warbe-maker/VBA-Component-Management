@@ -168,9 +168,7 @@ End Property
 Public Property Get RenewStep() As Long:    RenewStep = lRenewStep: End Property
 
 Public Property Let RenewStep(ByVal l As Long)
-    If l = 0 Then
-        wsAddIn.Range("rngRenewLog").ClearContents
-    End If
+    If l = 0 Then wsAddIn.RenewStepLogClear
     lRenewStep = l
 End Property
 
@@ -208,6 +206,67 @@ End Property
 Public Property Get xlAddInFormat() As Long:            xlAddInFormat = ADDIN_FORMAT:                                       End Property
 
 Public Property Get xlDevlpFormat() As Long:            xlDevlpFormat = DEVLP_FORMAT:                                       End Property
+
+Private Property Get AddInIsSetup() As Boolean
+' ------------------------------------------------------------
+' Returns True when the CompMan-AddIn is configured and exists
+' in the configured folder.
+' ------------------------------------------------------------
+    With New FileSystemObject
+        If mMe.CompManAddinPath <> vbNullString _
+        Then AddInIsSetup = .FileExists(mMe.CompManAddinPath & "\" & AddInInstanceName)
+    End With
+
+End Property
+
+Public Sub DisplayStatus()
+    
+    wsAddIn.RenewStepLogTitle = "Log of the steps to Setup/Renew the CompMan AddIn"
+    If mMe.AddInIsSetup Then
+        If Not mMe.AddInInstncWrkbkIsOpen Then
+            '~~ AddIn is setup but currently not open. It will be opened either when a Workbook
+            '~~ referring to it is openend or when it is renewed.
+            
+            '~~ Renew steps log
+            wsAddIn.RenewStepLogSubTitle = "Current status: Properly setup but currently  n o t  o p e n ! " & _
+                                           "(Setup/Renew or a Workbook opened which refers to it will open it)"
+            wsAddIn.RenewStepLogClear
+            '~~ AddIn paused status
+            wsAddIn.CompManAddInPausedStatus = _
+            "The CompMan-AddIn is  s e t u p  but currently  n o t  o p e n !" & vbLf & _
+            "(Renew or a Workbook opened which refers to it will open it)"
+        Else ' AddIn is setup and open
+            wsAddIn.RenewStepLogSubTitle = "Current status: Setup/Renewed and o p e n !"
+            If mMe.AddInPaused = True Then
+                wsAddIn.CompManAddInPausedStatus = _
+                "The AddIn is currently  p a u s e d ! The Workbook_Open service 'UpdateRawClones' " & _
+                "and the Workbook_BeforeSave service 'ExportChangedComponents' will be bypassed " & _
+                "until the Addin is 'continued' again!"
+            Else
+                wsAddIn.CompManAddInPausedStatus = _
+                "The AddIn is currently  a c t i v e !  The services 'UpdateRawClones' and 'ExportChangedComponents'" & vbLf & _
+                "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
+                "1. The Workbook is located in the configured 'Serviced-Development-Root-Folder' which currently is:" & vbLf & _
+                "   '" & mMe.ServicedRoot & "'" & vbLf & _
+                "2. The Workbook is the only one in its parent folder" & vbLf & _
+                "3. The Workbook is not a restored version" & vbLf & vbLf & _
+                "Note: When the VBProject has a Reference to 'CompMan' the Addin would automatically be opened with it." & vbLf & _
+                "      Otherwise this Development-Instance-Workbook needs to be opened and Setup/Renew must be performed."
+            End If
+        End If
+    Else ' not or no longer (properly) setup
+        wsAddIn.RenewStepLogSubTitle = "Current status: The CompMan-Addin is currently  n o t  s e t u p !" & vbLf & _
+                                       "(Setup/Renew must be performed to configure and setup the CompMan-Addin"
+        wsAddIn.RenewStepLogClear
+        wsAddIn.CompManAddInPausedStatus = _
+        "The CompMan-Addin is currently  n o t  s e t u p !" & vbLf & vbLf & _
+        "Renew is required to establish the Addin. The Addin, once established, will subsequently be opened when:" & vbLf & _
+        "- a Workbook is opened which refers to it" & vbLf & _
+        "- this Addin-Development-Instance-Workbook is opened and Setup/Renew is performed"
+    End If
+
+End Sub
+
 
 Public Sub AddInContinue()
     mService.Continue
@@ -329,6 +388,8 @@ Public Sub RenewAddIn()
     Application.EnableEvents = False
     bSucceeded = False
                             
+    wsAddIn.Range("rngRenewLogTitle") = "Log of the steps to Setup/Renew the CompMan Addin"
+
     '~~ Get the CompMan base configuration confirmed or changed
     If Not Renew_0_ConfirmConfig Then GoTo xt
                          
@@ -340,7 +401,7 @@ Public Sub RenewAddIn()
     Renew_2_SaveAndRemoveAddInReferences
     If Not bAllRemoved Then GoTo xt
 
-    '~~ Assure the current version of the AddIn's development instance has been saved
+    '~~ Assure the current version of the Addin's development instance has been saved
     '~~ Note: Unconditionally saving the Workbook does an incredible trick:
     '~~       The un-unstalled and IsAddin=False Workbook is released from the Application
     '~~       and no longer considered "used"
@@ -370,6 +431,9 @@ Public Sub RenewAddIn()
     
 xt: mMe.RenewLogAction = RenewFinalResult
     wbSource.Saved = True
+    Application.ScreenUpdating = False
+    mMe.DisplayStatus
+    Application.ScreenUpdating = True
     Application.EnableEvents = True
     Exit Sub
     
@@ -508,6 +572,7 @@ End Function
 
 Private Function Renew_0_ConfirmConfig() As Boolean
     mMe.RenewLogAction = "Assert current basic configuration"
+    wsAddIn.RenewStepLogSubTitle = vbNullString
     Renew_0_ConfirmConfig = BasicConfig(bc_sync_confirm_info:=True)
     If Renew_0_ConfirmConfig _
     Then mMe.RenewLogResult = "Passed" _
@@ -538,7 +603,7 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         Set dctAddInRefs = New Dictionary
         For Each v In dct
             Set wb = dct.Item(v)
-            For Each ref In wb.VbProject.References
+            For Each ref In wb.VBProject.References
                 If InStr(ref.Name, fso.GetBaseName(AddInInstanceName)) <> 0 Then
                     dctAddInRefs.Add wb, ref
                     sWbs = wb.Name & ", " & sWbs
@@ -549,7 +614,7 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         For Each v In dctAddInRefs
             Set wb = v
             Set ref = dctAddInRefs(v)
-            wb.VbProject.References.Remove ref
+            wb.VBProject.References.Remove ref
             bOneRemoved = True
         Next v
         bAllRemoved = True
@@ -733,7 +798,7 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
                 With New FileSystemObject
                     sBaseAddinName = .GetBaseName(wb.Name)
                     sBaseDevName = .GetBaseName(ThisWorkbook.Name)
-                    wb.VbProject.Name = sBaseAddinName
+                    wb.VBProject.Name = sBaseAddinName
                 End With
                 mMe.RenewLogResult() = "Passed"
                 Renew_8_OpenAddinInstncWorkbook = True
@@ -767,7 +832,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     
     For Each v In dctAddInRefs
         Set wb = v
-        wb.VbProject.References.AddFromFile AddInInstanceFullName
+        wb.VBProject.References.AddFromFile AddInInstanceFullName
         sWbs = wb.Name & ", " & sWbs
         bOneRestored = True
     Next v
@@ -806,7 +871,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             
             If Not mCompMan.WbkIsOpen(io_name:=DevInstncName) _
             Then Stop _
-            Else wbDevlp.VbProject.Name = fso.GetBaseName(DevInstncName)
+            Else wbDevlp.VBProject.Name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
                 mMe.RenewLogResult("Saving the Addin instance Workbook '" & AddInInstanceName & "' as Development instance Workbook '" & DevInstncName & "' failed!" _

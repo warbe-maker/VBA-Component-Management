@@ -3,6 +3,7 @@ Option Explicit
 
 Public Const SHEET_SHAPE        As String = ": "    ' Sheet-Shape concatenator
 
+Private Stats                   As clsStats
 Private Sync                    As clsSync
 Private lMode                   As SyncMode
 Private dctChanged              As Dictionary       ' Confirm buttons and clsRaw items to display changed
@@ -22,6 +23,7 @@ Public Enum siCounter
     sic_changed_comps
     sic_new_cols
     sic_new_names
+    sic_new_non_doc_mod
     sic_new_refs
     sic_new_shapes
     sic_new_sheets
@@ -29,6 +31,7 @@ Public Enum siCounter
     sic_new_sheet_names
     sic_obsolete_cols
     sic_obsolete_names
+    sic_obsolete_non_doc_mod
     sic_obsolete_refs
     sic_obsolete_shapes
     sic_obsolete_sheets
@@ -620,16 +623,16 @@ Private Sub SyncNamesNew()
     
     For Each v In Sync.SourceNames
         If Sync.TargetNames.Exists(v) Then GoTo next_v
+        Stats.Count sic_new_names
         '~~ The source name not yet exists in the target Workbook and thus is regarde new
         '~~ However, new names potentially in concert require a design change of the concerned sheet
         Set nm = Sync.Source.Names.Item(v)
         SheetReferred = Replace(Split(nm.RefersTo, "!")(0), "=", vbNullString)
         If lMode = Confirm Then
             '~~ When the new name refers to a new sheet it is not syncronized
-            If Sync.NewSheetExists(SheetReferred) Then
-                Sync.ConfInfo(NameType(Sync.Source, nm), v & "(" & nm.RefersTo & ")") = "New! Implicitely synched when sheet '" & SheetReferred & "' copied from source to target Workbook."
-            Else
-                Sync.ConfInfo(NameType(Sync.Source, nm), v & "(" & nm.RefersTo & ")") = "New! Requires manual intervention. 3)"
+            If Not Sync.NewSheetExists(SheetReferred) Then
+                '~~ New Names coming with new sheets are not displayed for confirmation
+                Sync.ConfInfo(NameType(Sync.Source, nm), v & "(" & nm.RefersTo & ")") = "New! Manual synchronization required! 3)"
                 ManualSynchRequired = True
             End If
         Else
@@ -669,6 +672,7 @@ Public Sub SyncObsoleteNames()
     
     For Each v In Sync.TargetNames
         If Sync.SourceNames.Exists(v) Then GoTo next_v
+        Stats.Count sic_obsolete_names
         Set nm = Sync.Target.Names.Item(v)
         '~~ The target name does not exist in the source and thus  has become obsolete
         If lMode = Confirm Then
@@ -703,6 +707,7 @@ Private Sub SyncReferencesNew()
     
     For Each ref In Sync.Source.VBProject.References
         If Not RefExists(Sync.Target, ref) Then
+            Stats.Count sic_new_refs
             If lMode = Confirm Then
                 Sync.ConfInfo("Reference", ref.Name) = "New! Will be added and properties adjusted."
             Else
@@ -734,6 +739,7 @@ Private Sub SyncReferencesObsolete()
     
     For Each ref In Sync.Target.VBProject.References
         If Not RefExists(Sync.Source, ref) Then
+            Stats.Count sic_new_refs
             If lMode = Confirm Then
                 Sync.ConfInfo("Reference", ref.Name) = "Obsolete! Will be removed."
             Else
@@ -777,14 +783,14 @@ Private Sub SyncShapesNew()
                               , sync_shape_name:=sShape _
                                ) _
             Then GoTo next_shape
-                
+            Stats.Count sic_new_shapes
             '~~ The source shape not yet exists in the target Workbook's corresponding sheet
             '~~ (idetified either by its Name or CodeName) and thus is regarde new and needs
             '~~ to be copied and its Properties adjusted.
             If lMode = Confirm Then
-                If .NewSheetExists(sSheet) _
-                Then .ConfInfo("Sheet Shape", v) = "New! Will be copied with new source Workbook sheet '" & sSheet & "'." _
-                Else .ConfInfo("Sheet Shape", v) = "New! Will be copied from source Workbook sheet '" & sSheet & "'."
+                '~~ New shapes coming with new sheets are not displayed for confirmation
+                If Not .NewSheetExists(sSheet) _
+                Then .ConfInfo("Sheet Shape", v) = "New! Will be copied from source Workbook sheet '" & sSheet & "'."
             Else
                 '~~ Important to consider: When the new shapes are syncronized
                 '~~ the target Worksheet's Name and CodeName will be identical with the source Worksheet
@@ -829,6 +835,8 @@ Private Sub SyncShapesObsolete()
                           , sync_shape_name:=sShape _
                            ) _
         Then GoTo next_shape
+        
+        Stats.Count sic_obsolete_shapes
         Set wsTarget = Sync.Target.Worksheets(Sync.TargetSheetShapes.Item(v))
         '~~ The target name does not exist in the source and thus  has become obsolete
         If lMode = Confirm Then
@@ -879,6 +887,7 @@ Private Sub SyncSheetsCodeChanged()
         cSource.CloneExpFileFullName = cTarget.ExpFileFullName
         If Not cSource.Changed Then GoTo next_sheet
         
+        Stats.Count sic_changed_comps
         If lMode = Confirm Then
             Sync.ConfInfo("Worksheet", Sync.SheetProjectName(wb:=Sync.Target, vbc:=cTarget.VBComp)) = "Code changed! Will be updated with code in corresp. source Workbook Export-File (line-by-line)."
             sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
@@ -935,6 +944,7 @@ Private Sub SyncSheetsCodeNameChange()
         Then GoTo next_sheet
         If sTargetSheetCodeName <> sSourceSheetCodeName And sTargetSheetName = sSourceSheetName Then
             '~~ The sheet's CodName has changed while the sheet's Name remained unchanged
+            Stats.Count sic_new_sheet_codenames
             If lMode = Confirm Then
                 Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Target.Worksheets(sTargetSheetName))) = "CodeName change! The sheet's CodeName will change to '" & sSourceSheetCodeName & "'."
             Else
@@ -992,21 +1002,13 @@ Private Sub SyncSheetsNameChange()
                           ) _
         Then GoTo next_comp
         If sTargetSheetCodeName = sSourceSheetCodeName And sTargetSheetName <> sSourceSheetName Then
+            Stats.Count sic_new_sheet_names
             '~~ The sheet's Name has changed while the sheets CodeName remained unchanged
             If lMode = Confirm Then
                 Sync.ConfInfo("Worksheet", Sync.SheetProjectName(Sync.Source.Worksheets(sSourceSheetName))) = "Name change! The sheet's Name will change to '" & sSourceSheetName & "'."
                 SourceSheetNameChange sSourceSheetName, sSourceSheetCodeName, sTargetSheetName, sTargetSheetCodeName
             Else
                 Sync.Target.Worksheets(sTargetSheetName).Name = sSourceSheetName
-'                '~~ When the sheet's name has changed the sheet's code is synchronized line by line
-'                '~~ for the case the name is used in the code
-'                For Each vbc In Sync.Target.VBProject.VBComponents
-'                    If vbc.Name = ws.CodeName Then
-'                        mSync.ByCodeLines sync_target_comp_name:=wsSource.CodeName _
-'                                        , sync_source_wb_full_name:=SyncSource.FullName
-'                        Exit For
-'                    End If
-'                Next vbc
             End If
         End If
 next_comp:
@@ -1063,6 +1065,7 @@ Private Sub SyncSheetsNew()
             If NameChange(sSourceSheetName, sSourceSheetCodeName) Then GoTo next_v
     
             '~~ The sheet not exist in the target Workbook under the Name nor under the CodeName.
+            Stats.Count sic_new_sheets
             If lMode = Count Then
                 '~~ This is just the first call for counting the potentially new sheets
                 lSheetsNew = lSheetsNew + 1
@@ -1146,6 +1149,7 @@ Private Sub SyncSheetsObsolete()
             
             '~~ Target sheet not or no longer exists in source Workbook
             '~~ neither under the Name nor under the CodeName
+            Stats.Count sic_obsolete_sheets
             If lMode = Count Then
                 '~~ This is just the first call for counting the potentially new sheets
                 lSheetsObsolete = lSheetsObsolete + 1
@@ -1220,6 +1224,7 @@ Public Sub SyncTargetWithSource( _
     Dim vbc             As VBComponent
     
     Set Sync = New clsSync
+    Set Stats = New clsStats
     
     If dctNameChange Is Nothing Then Set dctNameChange = New Dictionary Else dctNameChange.RemoveAll
     If dctChanged Is Nothing Then Set dctChanged = New Dictionary Else dctChanged.RemoveAll
@@ -1414,6 +1419,7 @@ Private Sub SyncVBComponentsCodeChanged()
         cSource.CloneExpFileFullName = cTarget.ExpFileFullName
         If Not cSource.Changed Then GoTo next_vbc
         
+        Stats.Count sic_changed_comps
         If lMode = Confirm Then
             Sync.ConfInfo(cTarget.TypeString, vbc.Name) = "Changed"
             sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
@@ -1465,6 +1471,7 @@ Private Function SyncVBComponentsNew()
         If CompExists(Sync.Target, vbc.Name) Then GoTo next_vbc
         
         '~~ No component exists under the source component's name
+        Stats.Count sic_new_non_doc_mod
         If lMode = Confirm Then
             Sync.ConfInfo(cSource.TypeString, vbc.Name) = "New! Corresponding source Workbook Export-File will by imported."
         Else
@@ -1511,6 +1518,7 @@ Private Function SyncVBComponentsObsolete()
         cTarget.CompName = vbc.Name
         If cTarget.Exists(Sync.Source) Then GoTo next_vbc
         
+        Stats.Count sic_obsolete_non_doc_mod
         If lMode = Confirm Then
             Sync.ConfInfo(cSource.TypeString, vbc.Name) = "Obsolete! Will be removed."
         Else

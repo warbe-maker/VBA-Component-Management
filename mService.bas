@@ -159,16 +159,7 @@ Public Sub Continue()
 ' Continues the paused CompMan Addin Services
 ' -------------------------------------------
     mMe.AddInPaused = False
-    wsAddIn.CompManAddInStatus = _
-        "The AddIn is currently  a c t i v e ! The Workbook_Open service 'UpdateRawClones' " & _
-        "and the Workbook_BeforeSave service 'ExportChangedComponents' will be executed for " & _
-        "Workbooks calling them under the following met preconditions: " & vbLf & _
-        "1. The CompMan's basic configuration is complete and valid" & vbLf & _
-        "2. The Workbook is located in the configured 'Serviced Development Root' which currently is:" & vbLf & _
-        "   '" & mMe.ServicedRoot & "'" & vbLf & _
-        "3. The Workbook is the only one within its parent folder" & vbLf & _
-        "4. The Workbook is not a restored version" & vbLf & _
-        "5. The serviced VB-Project has a Conditional Compile Argument 'CompMan = 1'"
+    mMe.DisplayStatus
 End Sub
 
 Public Sub Pause()
@@ -176,10 +167,7 @@ Public Sub Pause()
 ' Pauses the CompMan Addin Services
 ' ---------------------------------
     mMe.AddInPaused = True
-    wsAddIn.CompManAddInStatus = _
-        "The AddIn is currently  p a u s e d ! The Workbook_Open service 'UpdateRawClones' " & _
-        "and the Workbook_BeforeSave service 'ExportChangedComponents' will be bypassed " & _
-        "until the Addin is 'continued' again!"
+    mMe.DisplayStatus
 End Sub
 
 Private Function CodeModuleIsEmpty(ByRef vbc As VBComponent) As Boolean

@@ -9,19 +9,6 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private lNewSheets              As Long
-Private lNewSheetNames          As Long
-Private lNewSheetCodeNames      As Long
-Private lNewNames               As Long
-Private lNewShapes              As Long
-Private lNewCols                As Long
-Private lNewRefs                As Long
-Private lObsoleteSheets         As Long
-Private lObsoleteNames          As Long
-Private lObsoleteShapes         As Long
-Private lObsoleteCols           As Long
-Private lObsoleteRefs           As Long
-Private lChangedVBComps         As Long
 Private wbSyncSource            As Workbook
 Private wbSyncTarget            As Workbook
 Private dctSourceSheetComps     As Dictionary
@@ -165,47 +152,6 @@ Friend Property Let ConfInfo( _
     cllConfInfo.Add sEntry
 End Property
 
-Friend Property Get Count( _
-           Optional ByVal sic As siCounter) As Variant
-    Select Case sic
-        Case sic_changed_comps:         Count = lChangedVBComps
-        Case sic_new_cols:              Count = lNewCols
-        Case sic_new_names:             Count = lNewNames
-        Case sic_new_refs:              Count = lNewRefs
-        Case sic_new_shapes:            Count = lNewShapes
-        Case sic_new_sheets:            Count = lNewSheets
-        Case sic_new_sheet_codenames:   Count = lNewSheetCodeNames
-        Case sic_new_sheet_names:       Count = lNewSheetNames
-        Case sic_obsolete_cols:         Count = lObsoleteCols
-        Case sic_obsolete_names:        Count = lObsoleteNames
-        Case sic_obsolete_refs:         Count = lObsoleteRefs
-        Case sic_obsolete_shapes:       Count = lObsoleteShapes
-        Case sic_obsolete_sheets:       Count = lObsoleteSheets
-    End Select
-    
-End Property
-
-Friend Property Let Count( _
-              Optional ByVal sic As siCounter, _
-                       ByVal cnt As Variant)
-    If Not IsNumeric(cnt) Then Exit Property
-    Select Case sic
-        Case sic_changed_comps:         lChangedVBComps = lChangedVBComps + cnt
-        Case sic_new_cols:              lNewCols = lNewCols + cnt
-        Case sic_new_names:             lNewNames = lNewNames + cnt
-        Case sic_new_refs:              lNewRefs = lNewRefs + cnt
-        Case sic_new_shapes:            lNewShapes = lNewShapes + cnt
-        Case sic_new_sheets:            lNewSheets = lNewSheets + cnt
-        Case sic_new_sheet_codenames:   lNewSheetCodeNames = lNewSheetCodeNames + cnt
-        Case sic_new_sheet_names:       lNewSheetNames = lNewSheetNames + cnt
-        Case sic_obsolete_cols:         lObsoleteCols = lObsoleteCols + cnt
-        Case sic_obsolete_names:        lObsoleteNames = lObsoleteNames + cnt
-        Case sic_obsolete_refs:         lObsoleteRefs = lObsoleteRefs + cnt
-        Case sic_obsolete_shapes:       lObsoleteShapes = lObsoleteShapes + cnt
-        Case sic_obsolete_sheets:       lObsoleteSheets = lObsoleteSheets + cnt
-    End Select
-    
-End Property
 
 Friend Property Get Source() As Workbook:               Set Source = wbSyncSource:                      End Property
                  
