@@ -114,7 +114,7 @@ Public Function Align( _
     Else
         Select Case a_align
             Case AlignLeft:     Align = a_text & a_margin & VBA.String$(a_length - (Len(a_text) + Len(a_margin)), a_fill)
-            Case AlignRight:    Align = VBA.String$(a_length - (Len(a_text) - Len(a_margin)), a_fill) & a_text
+            Case AlignRight:    Align = a_margin & VBA.String$(a_length - (Len(a_text) - (Len(a_margin) * 2)), a_fill) & a_text & a_margin
             Case AlignCentered
                 lSpace = Max(1, ((a_length - Len(a_text) - (2 * Len(a_margin))) / 2))
                 Align = VBA.String$(lSpace, a_fill) & a_margin & a_text & a_margin & VBA.String$(lSpace, a_fill)
@@ -390,11 +390,11 @@ Public Sub ArrayToRange(ByVal vArr As Variant, _
     If bOneCol Then
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(UBound(vArr), 1)
-        rTarget.Value = Application.Transpose(vArr)
+        rTarget.value = Application.Transpose(vArr)
     Else
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(1, UBound(vArr))
-        rTarget.Value = vArr
+        rTarget.value = vArr
     End If
     
 xt: Exit Sub

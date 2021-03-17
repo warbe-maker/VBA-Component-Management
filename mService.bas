@@ -475,7 +475,7 @@ Public Sub SyncTargetWithSource( _
 ' - the CompMan Addin is not paused
 ' - the open/ed Workbook is not a restored version
 ' ----------------------------------------------------------------------
-    Const PROC = "SynchTargetWbWithSourceWb"
+    Const PROC = "SynchTargetWithSource"
     
     On Error GoTo eh
     Dim sStatus As String

@@ -12,62 +12,50 @@ Option Explicit
 ' Class Module clsStats
 ' CompMan services statistics
 ' ----------------------------------
-Private lNewSheets              As Long
-Private lNewSheetNames          As Long
-Private lNewSheetCodeNames      As Long
-Private lNewNames               As Long
-Private lNewNonDocMod           As Long
-Private lNewShapes              As Long
-Private lNewCols                As Long
-Private lNewRefs                As Long
-Private lObsoleteSheets         As Long
-Private lObsoleteNames          As Long
-Private lObsoleteNonDocMods     As Long
-Private lObsoleteShapes         As Long
-Private lObsoleteCols           As Long
-Private lObsoleteRefs           As Long
-Private lChangedVBComps         As Long
+Private aCount() As Long
+Private lMaxLen As Long
 
-Public Function Counted(ByVal sic As siCounter) As Variant
-    Select Case sic
-        Case sic_changed_comps:         Counted = lChangedVBComps
-        Case sic_new_cols:              Counted = lNewCols
-        Case sic_new_names:             Counted = lNewNames
-        Case sic_new_non_doc_mod:       Counted = lNewNonDocMod
-        Case sic_new_refs:              Counted = lNewRefs
-        Case sic_new_shapes:            Counted = lNewShapes
-        Case sic_new_sheets:            Counted = lNewSheets
-        Case sic_new_sheet_codenames:   Counted = lNewSheetCodeNames
-        Case sic_new_sheet_names:       Counted = lNewSheetNames
-        Case sic_obsolete_cols:         Counted = lObsoleteCols
-        Case sic_obsolete_names:        Counted = lObsoleteNames
-        Case sic_obsolete_non_doc_mod:  Counted = lObsoleteNonDocMods
-        Case sic_obsolete_refs:         Counted = lObsoleteRefs
-        Case sic_obsolete_shapes:       Counted = lObsoleteShapes
-        Case sic_obsolete_sheets:       Counted = lObsoleteSheets
-    End Select
-    
-End Function
+Public Sub Clear()
+    ReDim aCount(0)
+    aCount(0) = 0
+End Sub
 
-Public Sub Count(ByVal sic As siCounter)
-    Select Case sic
-        Case sic_changed_comps:         lChangedVBComps = lChangedVBComps + 1
-        Case sic_new_cols:              lNewCols = lNewCols + 1
-        Case sic_new_names:             lNewNames = lNewNames + 1
-        Case sic_new_non_doc_mod:       lNewNonDocMod = lNewNonDocMod + 1
-        Case sic_new_refs:              lNewRefs = lNewRefs + 1
-        Case sic_new_shapes:            lNewShapes = lNewShapes + 1
-        Case sic_new_sheets:            lNewSheets = lNewSheets + 1
-        Case sic_new_sheet_codenames:   lNewSheetCodeNames = lNewSheetCodeNames + 1
-        Case sic_new_sheet_names:       lNewSheetNames = lNewSheetNames + 1
-        Case sic_obsolete_cols:         lObsoleteCols = lObsoleteCols + 1
-        Case sic_obsolete_names:        lObsoleteNames = lObsoleteNames + 1
-        Case sic_obsolete_non_doc_mod:  lObsoleteNonDocMods = lObsoleteNonDocMods + 1
-        Case sic_obsolete_refs:         lObsoleteRefs = lObsoleteRefs + 1
-        Case sic_obsolete_shapes:       lObsoleteShapes = lObsoleteShapes + 1
-        Case sic_obsolete_sheets:       lObsoleteSheets = lObsoleteSheets + 1
-    End Select
+Public Property Get AlignedValue(ByVal sic As siCounter) As String
+    Dim v       As Variant
+    Dim value   As Long
     
+    If lMaxLen = 0 Then
+        For Each v In aCount
+            lMaxLen = Max(lMaxLen, Len(CStr(v)))
+        Next v
+    End If
+    
+    value = Me.Total(sic)
+    If sic = sic_non_doc_mod_total Then
+        value = Me.Total(sic_vbcomps_total) - Me.Total(sic_sheets_total) - 1
+    End If
+    
+    AlignedValue = Align(CStr(value), lMaxLen, AlignRight)
+End Property
+
+Public Property Get Total(Optional ByVal sic As siCounter) As Long
+    If UBound(aCount) < sic Then Total = 0 Else Total = aCount(sic)
+End Property
+
+Public Sub Count( _
+  Optional ByVal sic As siCounter, _
+  Optional ByVal value As Long = 1)
+' ----------------------------------
+' Adds the (value) to the array
+' aCount under the index (sic).
+' ----------------------------------
+    If UBound(aCount) < sic Then
+        ReDim Preserve aCount(sic)
+    End If
+    aCount(sic) = aCount(sic) + value
 End Sub
 
 
+Private Sub Class_Initialize()
+    Clear
+End Sub

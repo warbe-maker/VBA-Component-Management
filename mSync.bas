@@ -3,7 +3,7 @@ Option Explicit
 
 Public Const SHEET_SHAPE        As String = ": "    ' Sheet-Shape concatenator
 
-Private Stats                   As clsStats
+Public Stats                    As clsStats
 Private Sync                    As clsSync
 Private lMode                   As SyncMode
 Private dctChanged              As Dictionary       ' Confirm buttons and clsRaw items to display changed
@@ -20,21 +20,30 @@ Private BckpFolderName          As String
 Private lCompMaxLen             As Long
 
 Public Enum siCounter
-    sic_changed_comps
-    sic_new_cols
-    sic_new_names
-    sic_new_non_doc_mod
-    sic_new_refs
-    sic_new_shapes
-    sic_new_sheets
-    sic_new_sheet_codenames
-    sic_new_sheet_names
-    sic_obsolete_cols
-    sic_obsolete_names
-    sic_obsolete_non_doc_mod
-    sic_obsolete_refs
-    sic_obsolete_shapes
-    sic_obsolete_sheets
+    sic_cols_new
+    sic_cols_obsolete
+    sic_names_new
+    sic_names_obsolete
+    sic_names_total
+    sic_refs_new
+    sic_refs_obsolete
+    sic_refs_total
+    sic_rows_obsolete
+    sic_rows_new
+    sic_shapes_new
+    sic_shapes_obsolete
+    sic_shapes_total
+    sic_sheets_code
+    sic_sheets_codename
+    sic_sheets_name
+    sic_sheets_new
+    sic_sheets_obsolete
+    sic_sheets_total
+    sic_vbcomps_total
+    sic_non_doc_mods_code
+    sic_non_doc_mod_new
+    sic_non_doc_mod_obsolete
+    sic_non_doc_mod_total
 End Enum
 
 Private Enum SyncMode
@@ -316,7 +325,7 @@ Private Sub RemoveInvalidRangeNames()
 ' -----------------------------------------------------------
     Dim nm As Name
     For Each nm In Sync.Target.Names
-        If Left(nm.Value, 2) = "=#" Then
+        If Left(nm.value, 2) = "=#" Then
             nm.Delete
         End If
     Next nm
@@ -586,18 +595,18 @@ Private Sub SyncConfirmation()
     SyncReferencesNew
     SyncReferencesObsolete
     
-    SyncSheetsNameChange
-    SyncSheetsCodeNameChange
+    SyncSheetsName
+    SyncSheetsCodeName
     SyncSheetsNew
     SyncSheetsObsolete
-    SyncSheetsCodeChanged
+    SyncSheetsCode
     
     SyncShapesNew
     SyncShapesObsolete
     
-    SyncVBComponentsNew
-    SyncVBComponentsObsolete
-    SyncVBComponentsCodeChanged
+    SyncVBCompsNew
+    SyncVBCompsObsolete
+    SyncVBCompsCodeChanged
     
     SyncNamesNew
 End Sub
@@ -623,7 +632,7 @@ Private Sub SyncNamesNew()
     
     For Each v In Sync.SourceNames
         If Sync.TargetNames.Exists(v) Then GoTo next_v
-        Stats.Count sic_new_names
+        Stats.Count sic_names_new
         '~~ The source name not yet exists in the target Workbook and thus is regarde new
         '~~ However, new names potentially in concert require a design change of the concerned sheet
         Set nm = Sync.Source.Names.Item(v)
@@ -649,7 +658,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub SyncObsoleteNames()
+Public Sub SyncNamesObsolete()
 ' ----------------------------------------------------------------
 ' Synchronize the names in Worksheet (Sync.Target) with those in
 ' Workbook (Sync.Source) - when either a sheet's name (wb_sheet_name) or
@@ -664,7 +673,7 @@ Public Sub SyncObsoleteNames()
 ' - Precondition: The Worksheet's CodeName and Name are identical
 '   both Workbooks. I.e. these need to be synched first.
 ' ---------------------------------------------------------------
-    Const PROC = "SyncObsoleteNames"
+    Const PROC = "SyncNamesObsolete"
     
     On Error GoTo eh
     Dim nm  As Name
@@ -672,7 +681,7 @@ Public Sub SyncObsoleteNames()
     
     For Each v In Sync.TargetNames
         If Sync.SourceNames.Exists(v) Then GoTo next_v
-        Stats.Count sic_obsolete_names
+        Stats.Count sic_names_obsolete
         Set nm = Sync.Target.Names.Item(v)
         '~~ The target name does not exist in the source and thus  has become obsolete
         If lMode = Confirm Then
@@ -707,7 +716,7 @@ Private Sub SyncReferencesNew()
     
     For Each ref In Sync.Source.VBProject.References
         If Not RefExists(Sync.Target, ref) Then
-            Stats.Count sic_new_refs
+            Stats.Count sic_refs_new
             If lMode = Confirm Then
                 Sync.ConfInfo("Reference", ref.Name) = "New! Will be added and properties adjusted."
             Else
@@ -739,7 +748,7 @@ Private Sub SyncReferencesObsolete()
     
     For Each ref In Sync.Target.VBProject.References
         If Not RefExists(Sync.Source, ref) Then
-            Stats.Count sic_new_refs
+            Stats.Count sic_refs_new
             If lMode = Confirm Then
                 Sync.ConfInfo("Reference", ref.Name) = "Obsolete! Will be removed."
             Else
@@ -783,24 +792,26 @@ Private Sub SyncShapesNew()
                               , sync_shape_name:=sShape _
                                ) _
             Then GoTo next_shape
-            Stats.Count sic_new_shapes
             '~~ The source shape not yet exists in the target Workbook's corresponding sheet
             '~~ (idetified either by its Name or CodeName) and thus is regarde new and needs
             '~~ to be copied and its Properties adjusted.
             If lMode = Confirm Then
                 '~~ New shapes coming with new sheets are not displayed for confirmation
-                If Not .NewSheetExists(sSheet) _
-                Then .ConfInfo("Sheet Shape", v) = "New! Will be copied from source Workbook sheet '" & sSheet & "'."
+                If Not .NewSheetExists(sSheet) Then
+                     Stats.Count sic_shapes_new
+                    .ConfInfo("Sheet Shape", v) = "New! Will be copied from source Workbook sheet '" & sSheet & "'."
+                End If
             Else
-                '~~ Important to consider: When the new shapes are syncronized
-                '~~ the target Worksheet's Name and CodeName will be identical with the source Worksheet
-                Set wsSource = .Source.Worksheets(.SourceSheetShapes(v))
-                Set wsTarget = .Target.Worksheets(.SourceSheetShapes(v))
-                ShapeCopy sc_source:=wsSource _
-                        , sc_target:=wsTarget _
-                        , sc_name:=sShape
-                cLog.ServicedItem("Sheet Shape") = sShape
-                cLog.Entry = "Copied and properties adjusted"
+                '~~ When new shapes are syncronized the Worksheet's Name/CodeName will have been syncronized before!
+                If Not .NewSheetExists(sSheet) Then
+                    Set wsSource = .Source.Worksheets(.SourceSheetShapes(v))
+                    Set wsTarget = .Target.Worksheets(.SourceSheetShapes(v))
+                    ShapeCopy sc_source:=wsSource _
+                            , sc_target:=wsTarget _
+                            , sc_name:=sShape
+                    cLog.ServicedItem("Sheet Shape") = sShape
+                    cLog.Entry = "Copied and properties adjusted"
+                End If
             End If
 next_shape:
         Next v
@@ -836,7 +847,7 @@ Private Sub SyncShapesObsolete()
                            ) _
         Then GoTo next_shape
         
-        Stats.Count sic_obsolete_shapes
+        Stats.Count sic_shapes_obsolete
         Set wsTarget = Sync.Target.Worksheets(Sync.TargetSheetShapes.Item(v))
         '~~ The target name does not exist in the source and thus  has become obsolete
         If lMode = Confirm Then
@@ -857,13 +868,250 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub SyncSheetsCodeChanged()
+Private Sub SyncShapesProperties()
+' -----------------------------------------
+' Syncronize all shape's properties between
+' source and target Workbook.
+' -----------------------------------------
+    Const PROC = "SyncShapesProperties"
+        
+    On Error GoTo eh
+    Dim v           As Variant
+    Dim wsSource    As Worksheet
+    Dim wsTarget    As Worksheet
+    Dim sShape      As String
+    Dim sSheet      As String
+    Dim shpSource   As Shape
+    Dim shpTarget   As Shape
+    
+    With Sync
+        For Each v In .SourceSheetShapes
+            sSheet = Split(v, SHEET_SHAPE)(0)
+            sShape = Split(v, SHEET_SHAPE)(1)
+            If Not SheetShapeExists(sync_wb:=.Target _
+                                  , sync_sheet_name:=sSheet _
+                                  , sync_sheet_code_name:=SheetCodeName(.Source, sSheet) _
+                                  , sync_shape_name:=sShape _
+                                   ) _
+            Then GoTo next_shape
+            SyncShapeProperties .Source.Worksheets(sSheet).Shapes.Item(sShape) _
+                              , .Target.Worksheets(sSheet).Shapes.Item(sShape)
+
+next_shape:
+        Next v
+    End With
+
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Sub
+
+Private Sub SyncShapeProperties(ByRef shp_source As Shape, _
+                                ByRef shp_target As Shape)
+    Const PROC = "SyncShapeProperties"
+                                
+    On Error GoTo eh
+    cLog.ServicedItem(TypeName(shp_target)) = shp_target.Name
+    
+    With shp_target
+        If .AlternativeText <> shp_source.AlternativeText Then
+            On Error Resume Next
+            .AlternativeText = shp_source.AlternativeText
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'AlternativeText' synched"
+            Else
+                cLog.Entry = "Difference in Property 'AlternativeText' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .AutoShapeType <> shp_source.AutoShapeType Then
+            On Error Resume Next
+            .AutoShapeType = shp_source.AutoShapeType
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'AutoShapeType' synched"
+            Else
+                cLog.Entry = "Difference in Property 'AutoShapeType' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .BackgroundStyle <> shp_source.BackgroundStyle Then
+            On Error Resume Next
+            .BackgroundStyle = shp_source.BackgroundStyle
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'BackgroundStyle' synched"
+            Else
+                cLog.Entry = "Difference in Property 'BackgroundStyle' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .BlackWhiteMode <> shp_source.BlackWhiteMode Then
+            On Error Resume Next
+            .BlackWhiteMode = shp_source.BlackWhiteMode
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'BlackWhiteMode' synched"
+            Else
+                cLog.Entry = "Difference in Property 'BlackWhiteMode' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .Decorative <> shp_source.Decorative Then
+            On Error Resume Next
+            .Decorative = shp_source.Decorative
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'Decorative' synched"
+            Else
+                cLog.Entry = "Difference in Property 'Decorative' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .GraphicStyle <> shp_source.GraphicStyle Then
+            On Error Resume Next
+            .GraphicStyle = shp_source.GraphicStyle
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'GraphicStyle' synched"
+            Else
+                cLog.Entry = "Difference in Property 'GraphicStyle' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .Height <> shp_source.Height Then
+            On Error Resume Next
+            .Height = shp_source.Height
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'Height' synched"
+            Else
+                cLog.Entry = "Difference in Property 'Height' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .Left <> shp_source.Left Then
+            On Error Resume Next
+            .Left = shp_source.Left
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'Left' synched"
+            Else
+                cLog.Entry = "Difference in Property 'Left' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .LockAspectRatio <> shp_source.LockAspectRatio Then
+            On Error Resume Next
+            .LockAspectRatio = shp_source.LockAspectRatio
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'LockAspectRatio' synched"
+            Else
+                cLog.Entry = "Difference in Property 'LockAspectRatio' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .Locked <> shp_source.Locked Then
+            On Error Resume Next
+            .Locked = shp_source.Locked
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'Locked' synched"
+            Else
+                cLog.Entry = "Difference in Property 'Locked' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .OnAction <> shp_source.OnAction Then
+            On Error Resume Next
+            .OnAction = shp_source.OnAction
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'OnAction' synched"
+            Else
+                cLog.Entry = "Difference in Property 'OnAction' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .Placement <> shp_source.Placement Then
+            On Error Resume Next
+            .Placement = shp_source.Placement
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'Placement' synched"
+            Else
+                cLog.Entry = "Difference in Property 'Placement' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .Rotation <> shp_source.Rotation Then
+            On Error Resume Next
+            .Rotation = shp_source.Rotation
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'Rotation' synched"
+            Else
+                cLog.Entry = "Difference in Property 'Rotation' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .ShapeStyle <> shp_source.ShapeStyle Then
+            On Error Resume Next
+            .ShapeStyle = shp_source.ShapeStyle
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'ShapeStyle' synched"
+            Else
+                cLog.Entry = "Difference in Property 'ShapeStyle' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+'        If .Title <> shp_source.Title Then
+'            On Error Resume Next
+'            .Title = shp_source.Title
+'            If Err.Number = 0 Then
+'                cLog.Entry = "Property 'Title' synched"
+'            Else
+'                cLog.Entry = "Difference in Property 'Title' could not be synched (error " & Err.Number & ")"
+'            End If
+'        End If
+'
+        If .top <> shp_source.top Then
+            On Error Resume Next
+            .top = shp_source.top
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'Top' synched"
+            Else
+                cLog.Entry = "Difference in Property 'Top' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .Visible <> shp_source.Visible Then
+            On Error Resume Next
+            .Visible = shp_source.Visible
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'Visible' synched"
+            Else
+                cLog.Entry = "Difference in Property 'Visible' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+
+        If .Width <> shp_source.Width Then
+            On Error Resume Next
+            .Width = shp_source.Width
+            If Err.Number = 0 Then
+                cLog.Entry = "Property 'Width' synched"
+            Else
+                cLog.Entry = "Difference in Property 'Width' could not be synched (error " & Err.Number & ")"
+            End If
+        End If
+    End With
+
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Sub
+Private Sub SyncSheetsCode()
 ' -----------------------------------------------
 ' When lMode=Confirm all sheets which had changed
 ' are collected and provided for confirmation
 ' else the changes are syncronized.
 ' -----------------------------------------------
-    Const PROC = "SyncSheetsCodeChanged"
+    Const PROC = "SyncSheetsCode"
     
     On Error GoTo eh
     Dim fso                 As New FileSystemObject
@@ -887,7 +1135,7 @@ Private Sub SyncSheetsCodeChanged()
         cSource.CloneExpFileFullName = cTarget.ExpFileFullName
         If Not cSource.Changed Then GoTo next_sheet
         
-        Stats.Count sic_changed_comps
+        Stats.Count sic_non_doc_mods_code
         If lMode = Confirm Then
             Sync.ConfInfo("Worksheet", Sync.SheetProjectName(wb:=Sync.Target, vbc:=cTarget.VBComp)) = "Code changed! Will be updated with code in corresp. source Workbook Export-File (line-by-line)."
             sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
@@ -916,11 +1164,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub SyncSheetsCodeNameChange()
+Private Sub SyncSheetsCodeName()
 ' ------------------------------------
 '
 ' ------------------------------------
-    Const PROC = "SyncSheetsCodeNameChange"
+    Const PROC = "SyncSheetsCodeName"
     
     On Error GoTo eh
     Dim v                       As Variant
@@ -944,7 +1192,7 @@ Private Sub SyncSheetsCodeNameChange()
         Then GoTo next_sheet
         If sTargetSheetCodeName <> sSourceSheetCodeName And sTargetSheetName = sSourceSheetName Then
             '~~ The sheet's CodName has changed while the sheet's Name remained unchanged
-            Stats.Count sic_new_sheet_codenames
+            Stats.Count sic_sheets_codename
             If lMode = Confirm Then
                 Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Target.Worksheets(sTargetSheetName))) = "CodeName change! The sheet's CodeName will change to '" & sSourceSheetCodeName & "'."
             Else
@@ -972,11 +1220,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub SyncSheetsNameChange()
+Private Sub SyncSheetsName()
 ' --------------------------------
 '
 ' --------------------------------
-    Const PROC = "SheetsameChange"
+    Const PROC = "SyncSheetsName"
     
     On Error GoTo eh
     Dim v                       As Variant
@@ -1002,7 +1250,7 @@ Private Sub SyncSheetsNameChange()
                           ) _
         Then GoTo next_comp
         If sTargetSheetCodeName = sSourceSheetCodeName And sTargetSheetName <> sSourceSheetName Then
-            Stats.Count sic_new_sheet_names
+            Stats.Count sic_sheets_name
             '~~ The sheet's Name has changed while the sheets CodeName remained unchanged
             If lMode = Confirm Then
                 Sync.ConfInfo("Worksheet", Sync.SheetProjectName(Sync.Source.Worksheets(sSourceSheetName))) = "Name change! The sheet's Name will change to '" & sSourceSheetName & "'."
@@ -1065,7 +1313,7 @@ Private Sub SyncSheetsNew()
             If NameChange(sSourceSheetName, sSourceSheetCodeName) Then GoTo next_v
     
             '~~ The sheet not exist in the target Workbook under the Name nor under the CodeName.
-            Stats.Count sic_new_sheets
+            Stats.Count sic_sheets_new
             If lMode = Count Then
                 '~~ This is just the first call for counting the potentially new sheets
                 lSheetsNew = lSheetsNew + 1
@@ -1149,7 +1397,7 @@ Private Sub SyncSheetsObsolete()
             
             '~~ Target sheet not or no longer exists in source Workbook
             '~~ neither under the Name nor under the CodeName
-            Stats.Count sic_obsolete_sheets
+            Stats.Count sic_sheets_obsolete
             If lMode = Count Then
                 '~~ This is just the first call for counting the potentially new sheets
                 lSheetsObsolete = lSheetsObsolete + 1
@@ -1304,6 +1552,9 @@ Public Sub SyncTargetWithSource( _
                 '~~ Collection of confirmation info is done again with this restriction now confirmed
                 RestrictRenameAsserted = True
                 Sync.ConfInfoClear
+                Stats.Clear
+                Sync.CollectAllSyncItems
+
             Case Else
                 '~~ Display the requested changes
                 Set cSource = dctChanged(sReply)
@@ -1312,6 +1563,7 @@ Public Sub SyncTargetWithSource( _
     Loop
 
     If Not bSyncDenied Then
+        Stats.Clear
         lMode = Synchronize
         dctNameChange.RemoveAll
         If dctNameChange Is Nothing Then Set dctNameChange = New Dictionary Else dctNameChange.RemoveAll
@@ -1319,8 +1571,8 @@ Public Sub SyncTargetWithSource( _
         SyncReferencesNew
         SyncReferencesObsolete
         
-        SyncSheetsNameChange
-        SyncSheetsCodeNameChange
+        SyncSheetsName
+        SyncSheetsCodeName
         Sync.CollectAllSyncItems
         
         SyncSheetsNew
@@ -1329,15 +1581,16 @@ Public Sub SyncTargetWithSource( _
         SyncSheetsObsolete
         Sync.CollectAllSyncItems
         
-        SyncSheetsCodeChanged
+        SyncSheetsCode
         SyncSheetsOrder
         
         SyncShapesNew
         SyncShapesObsolete
+        SyncShapesProperties
         
-        SyncVBComponentsNew
-        SyncVBComponentsObsolete
-        SyncVBComponentsCodeChanged
+        SyncVBCompsNew
+        SyncVBCompsObsolete
+        SyncVBCompsCodeChanged
         
         SyncNamesNew
         
@@ -1392,13 +1645,13 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
-Private Sub SyncVBComponentsCodeChanged()
+Private Sub SyncVBCompsCodeChanged()
 ' -----------------------------------------------------
 ' When lMode=Confirm all components which had changed
 ' are collected and provided for confirmation else the
 ' changes are syncronized.
 ' -----------------------------------------------------
-    Const PROC = "SyncVBComponentsCodeChanged"
+    Const PROC = "SyncVBCompsCodeChanged"
     
     On Error GoTo eh
     Dim fso                 As New FileSystemObject
@@ -1406,7 +1659,6 @@ Private Sub SyncVBComponentsCodeChanged()
     Dim sCaption            As String
     
     For Each vbc In Sync.Source.VBProject.VBComponents
-        
         If IsSheetComp(vbc) Then GoTo next_vbc
         Set cSource = New clsRaw
         Set cSource.Wrkbk = Sync.Source
@@ -1419,7 +1671,7 @@ Private Sub SyncVBComponentsCodeChanged()
         cSource.CloneExpFileFullName = cTarget.ExpFileFullName
         If Not cSource.Changed Then GoTo next_vbc
         
-        Stats.Count sic_changed_comps
+        Stats.Count sic_non_doc_mods_code
         If lMode = Confirm Then
             Sync.ConfInfo(cTarget.TypeString, vbc.Name) = "Changed"
             sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
@@ -1447,14 +1699,14 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function SyncVBComponentsNew()
+Private Function SyncVBCompsNew()
 ' ----------------------------------------------------
 ' Synchronize new components in the source Workbook
 ' (Sync.Source) with the target Workbook (Sync.Target).
 ' In lMode=Confirmation only the syncronization infos
 ' are collect for being confirmed.
 ' ----------------------------------------------------
-    Const PROC = "SyncVBComponentsNew"
+    Const PROC = "SyncVBCompsNew"
     
     On Error GoTo eh
     Dim fso     As New FileSystemObject
@@ -1471,7 +1723,7 @@ Private Function SyncVBComponentsNew()
         If CompExists(Sync.Target, vbc.Name) Then GoTo next_vbc
         
         '~~ No component exists under the source component's name
-        Stats.Count sic_new_non_doc_mod
+        Stats.Count sic_non_doc_mod_new
         If lMode = Confirm Then
             Sync.ConfInfo(cSource.TypeString, vbc.Name) = "New! Corresponding source Workbook Export-File will by imported."
         Else
@@ -1494,14 +1746,14 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function SyncVBComponentsObsolete()
+Private Function SyncVBCompsObsolete()
 ' ---------------------------------------------------------
 ' Synchronize obsolete components in the source Workbook
 ' (Sync.Source) with the target Workbook (Sync.Target). In
 ' lMode=Confirm only the syncronization infos are collected
 ' for being confirmed.
 ' ---------------------------------------------------------
-    Const PROC = "SyncVBComponentsObsolete"
+    Const PROC = "SyncVBCompsObsolete"
     
     On Error GoTo eh
     Dim v           As Variant
@@ -1518,7 +1770,7 @@ Private Function SyncVBComponentsObsolete()
         cTarget.CompName = vbc.Name
         If cTarget.Exists(Sync.Source) Then GoTo next_vbc
         
-        Stats.Count sic_obsolete_non_doc_mod
+        Stats.Count sic_non_doc_mod_obsolete
         If lMode = Confirm Then
             Sync.ConfInfo(cSource.TypeString, vbc.Name) = "Obsolete! Will be removed."
         Else

@@ -107,13 +107,16 @@ Friend Property Get ConfInfo( _
               Optional ByVal ci_type As String, _
               Optional ByVal ci_item As String) As String
 ' -------------------------------------------------------
-'
+' Returns the collected confirmation info as string,
+' completed with a summary.
 ' -------------------------------------------------------
     Dim v As Variant
     Dim lMaxType        As Long
     Dim lMaxItem        As Long
     Dim sTypeItem       As String
     Dim sTypeItemLast   As String
+        
+    ConfInfoSummary
     
     '~~ Get max lenghtes
     For Each v In cllConfInfo
@@ -137,8 +140,35 @@ Friend Property Get ConfInfo( _
         End If
         sTypeItemLast = sTypeItem
     Next v
-
+    
 End Property
+
+Private Sub ConfInfoSummary()
+    Me.ConfInfo("Summary", "Standard-, Class Modules, UserForms") = _
+                Stats.AlignedValue(sic_non_doc_mod_total) & " Total, " & _
+                Stats.AlignedValue(sic_non_doc_mod_new) & " New, " & _
+                Stats.AlignedValue(sic_non_doc_mod_obsolete) & " Obsolete, " & _
+                Stats.AlignedValue(sic_non_doc_mods_code) & " Code-change"
+    Me.ConfInfo("Summary", "Names") = _
+                Stats.AlignedValue(sic_names_total) & " Total, " & _
+                Stats.AlignedValue(sic_names_new) & " New, " & _
+                Stats.AlignedValue(sic_names_obsolete) & " Obsolete"
+    Me.ConfInfo("Summary", "References") = _
+                Stats.AlignedValue(sic_refs_total) & " Total, " & _
+                Stats.AlignedValue(sic_refs_new) & " New, " & _
+                Stats.AlignedValue(sic_refs_obsolete) & " Obsolete"
+    Me.ConfInfo("Summary", "Shapes") = _
+                Stats.AlignedValue(sic_shapes_total) & " Total, " & _
+                Stats.AlignedValue(sic_shapes_new) & " New, " & _
+                Stats.AlignedValue(sic_shapes_obsolete) & " Obsolete"
+    Me.ConfInfo("Summary", "Sheets") = _
+                Stats.AlignedValue(sic_sheets_total) & " Total, " & _
+                Stats.AlignedValue(sic_sheets_new) & " New, " & _
+                Stats.AlignedValue(sic_sheets_obsolete) & " Obsolete, " & _
+                Stats.AlignedValue(sic_sheets_code) & " Code-change, " & _
+                Stats.AlignedValue(sic_sheets_codename) & " CodeName-change, " & _
+                Stats.AlignedValue(sic_sheets_name) & " Name-change"
+End Sub
 
 Friend Property Let ConfInfo( _
               Optional ByVal ci_type As String, _
@@ -211,12 +241,14 @@ Public Sub CollectAllSyncItems()
     If dctTargetNames Is Nothing Then Set dctTargetNames = New Dictionary Else dctTargetNames.RemoveAll
     
     '~~ Source Worksheets by Name and by CodeName
+    Stats.Count sic_sheets_total, wbSyncSource.Worksheets.Count
     For Each ws1 In wbSyncSource.Worksheets
         With ws1
             mDct.DctAdd dctSourceSheets, .Name, .Name, order_bykey, seq_ascending, , , True
     '        mDct.DctAdd dctSourceSheets, .CodeName, .Name, order_bykey, seq_ascending, , , True
             
             '~~ Source Workseet Shapes
+            Stats.Count sic_shapes_total, .Shapes.Count
             For Each shp In .Shapes
                 sKey = .Name & SHEET_SHAPE & shp.Name
                 mDct.DctAdd dctSourceSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
@@ -239,6 +271,7 @@ Public Sub CollectAllSyncItems()
     Next ws2
     
     '~~ Source and Target VBComponents
+    Stats.Count sic_vbcomps_total, wbSyncSource.VBProject.VBComponents.Count
     For Each vbc In wbSyncSource.VBProject.VBComponents
         If mCompMan.IsSheetComp(vbc) Then
             mDct.DctAdd dctSourceSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
@@ -251,6 +284,7 @@ Public Sub CollectAllSyncItems()
     Next vbc
     
     '~~ Source and Target Workbook Names
+    Stats.Count sic_names_total, wbSyncSource.Names.Count
     For Each nm In wbSyncSource.Names
         Set nmName = nm
         mDct.DctAdd dctSourceNames, nm.Name, nmName, order_bykey, seq_ascending, , , True
