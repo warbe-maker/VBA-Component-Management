@@ -28,7 +28,7 @@ Option Explicit
 ' W. Rauschenberger, Berlin Dec 2020
 ' See Github repo
 ' ------------------------------------------------------------------
-Private Const HOSTED_RAWS = ""
+Private Const HOSTED_RAWS = "mCompManClient"
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "wbAddIn" & "." & sProc
@@ -61,7 +61,7 @@ Private Sub Workbook_Open()
         '~~ CompMan Workbook_Open service 'UpdateRawClones':
         '~~ Executed by the Addin *) or via the development instance when open
         '~~ *) automatically available only when referenced by the VB-Project
-        CompManService "UpdateRawClones"
+        mCompManClient.CompManService "UpdateRawClones", HOSTED_RAWS
         '~~ ------------------------------------------------------------------
         mMe.DisplayStatus
     End If
@@ -83,22 +83,19 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     
     On Error GoTo eh
     '~~ ------------------------------------------------------------------
-    '~~ CompMan Workbook_Before_Save service 'ExportChangedComponents':
-    '~~ Executed by the Addin *) or via the development instance when open
-    '~~ *) automatically available only when referenced by the VB-Project
-    If Not mMe.IsAddinInstnc Then
-        On Error Resume Next
-        CompManService "ExportChangedComponents"
-        If Err.Number <> 0 Then
-            mCompMan.ExportChangedComponents ThisWorkbook, vbNullString
+    '~~ 'ExportChangedComponents' service, preferrably performed by the
+    '~~ CompMan Addin *), or when not available by this Workbook itself.
+    '~~ *) automatically available only when a Workbook is open which has
+    '~~    in the VBProject a Reference to the CompMan Addin.
+    If mMe.IsDevInstnc Then
+        mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
+        If Not ThisWorkbook.Saved Then
+            Application.EnableEvents = False
+            ThisWorkbook.Save
+            Application.EnableEvents = True
         End If
     End If
     '~~ ------------------------------------------------------------------
-    If Not ThisWorkbook.Saved Then
-        Application.EnableEvents = False
-        ThisWorkbook.Save
-        Application.EnableEvents = True
-    End If
     
 xt: Application.EnableEvents = True
     Exit Sub
@@ -109,19 +106,4 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
-
-Private Function CompManService(ByVal cm_service As String) As Boolean
-' --------------------------------------------------------------------
-' Execution of the named CompMan service (cm_service) preferrably via
-' the CompMan-Addin or when not available alternatively via the
-' CompMan's development instance.
-' --------------------------------------------------------------------
-    Const COMPMAN_BY_ADDIN  As String = "CompMan.xlam!mCompMan."
-    
-    On Error Resume Next
-    Application.Run COMPMAN_BY_ADDIN & cm_service, ThisWorkbook, HOSTED_RAWS
-    If Err.Number = 1004 Then
-        Application.StatusBar = cm_service & "' not available by '" & COMPMAN_BY_ADDIN & "'!"
-    End If
-End Function
 

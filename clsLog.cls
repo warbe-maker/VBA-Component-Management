@@ -83,13 +83,13 @@ Friend Property Get LogFile() As File
     End With
 End Property
 
-Friend Property Get Service() As String
-    Service = sService
+Friend Property Get service() As String
+    service = sService
 End Property
 
-Friend Property Let Service(ByVal sv_name As String)
+Friend Property Let service(ByVal sv_name As String)
 
-    sService = sv_name & " by " & ThisWorkbook.Name & " for '" & wbServiced.Name & "'"
+    sService = sv_name & " by " & ThisWorkbook.Name & " for '" & wbServiced.Name & "': "
     
     If mFile.Txt(ft_file:=sFile) <> vbNullString _
     Then mFile.Txt(ft_file:=sFile _

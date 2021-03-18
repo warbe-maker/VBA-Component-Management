@@ -42,7 +42,7 @@ Public Sub DisplayCollectedSourceSheets()
     Dim ws  As Worksheet
     Dim dct As Dictionary
     
-    Debug.Print Align("T/S", 10, a_align:=AlignCentered) & Align("Key", 30) & "Item"
+    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
     Set dct = Me.SourceSheets
     For i = 1 To dct.Count
         Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
@@ -55,7 +55,7 @@ Public Sub DisplayCollectedTargetSheets()
     Dim ws  As Worksheet
     Dim dct As Dictionary
     
-    Debug.Print Align("T/S", 10, a_align:=AlignCentered) & Align("Key", 30) & "Item"
+    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
     Set dct = Me.SourceSheets
     For i = 1 To dct.Count
         Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
@@ -69,7 +69,7 @@ Public Sub DisplayCollectedSourceSheetShapes()
     Dim sSheet  As String
     Dim sShape  As String
     
-    Debug.Print Align("T/S", 10, a_align:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
     For Each v In Me.SourceSheetShapes
         sSheet = Split(v, SHEET_SHAPE)(0)
         sShape = Split(v, SHEET_SHAPE)(1)
@@ -83,7 +83,7 @@ Public Sub DisplayCollectedTargetSheetShapes()
     Dim sSheet  As String
     Dim sShape  As String
     
-    Debug.Print Align("T/S", 10, a_align:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
     For Each v In Me.TargetSheetShapes
         sSheet = Split(v, SHEET_SHAPE)(0)
         sShape = Split(v, SHEET_SHAPE)(1)

@@ -2,7 +2,10 @@ Attribute VB_Name = "mService"
 Option Explicit
 
 Public Const SERVICES_LOG_FILE = "CompMan.Services.log"
-Public cLog As New clsLog
+Public cLog         As New clsLog
+Public cStats       As New clsStats
+Private wbServiced  As Workbook
+Public dctServiced  As Dictionary
 
 Public Sub RenewComp( _
       Optional ByVal rc_exp_file_full_name As String = vbNullString, _
@@ -252,15 +255,18 @@ Public Sub ExportChangedComponents( _
     Dim fso                 As New FileSystemObject
     Dim sProgressDots       As String
     Dim sStatus             As String
+    Dim v                   As Variant
     
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
+    Set wbServiced = ec_wb
     If mService.Denied(den_serviced_wb:=ec_wb, den_service:=PROC) Then GoTo xt
     
-    mCompMan.Service = PROC & " by " & ThisWorkbook.Name & " for '" & ec_wb.Name & "': "
-    sStatus = mCompMan.Service
-
+    sStatus = cLog.Service
+    Set Stats = New clsStats
+    CollectServicedComponents
+    
     mCompMan.DeleteObsoleteExpFiles do_wb:=ec_wb
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=ec_hosted _
                                             , mh_wb:=ec_wb) _
@@ -273,7 +279,8 @@ Public Sub ExportChangedComponents( _
     lCompsRemaining = lComponents
     sProgressDots = String$(lCompsRemaining, ".")
 
-    For Each vbc In ec_wb.VBProject.VBComponents
+    For Each v In dctServiced
+        Set vbc = dctServiced(v)
         Set cComp = New clsComp
         sProgressDots = Left(sProgressDots, Len(sProgressDots) - 1)
         Application.StatusBar = sStatus & sProgressDots & sExported & " " & vbc.Name
@@ -377,9 +384,9 @@ next_vbc:
         lCompsRemaining = lCompsRemaining - 1
         Set cComp = Nothing
         Set cRaw = Nothing
-    Next vbc
+    Next v
     
-    sMsg = mCompMan.Service
+    sMsg = cLog.Service
     Select Case lExported
         Case 0:     sMsg = sMsg & "None of the " & lComponents & " components' code has changed."
         Case Else:  sMsg = sMsg & lExported & " of " & lComponents & " changed components exported: " & sExported
@@ -438,8 +445,7 @@ Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
     '~~ Prevent any action when the required preconditins are not met
     If mService.Denied(den_serviced_wb:=ea_wb, den_service:=PROC) Then GoTo xt
     
-    mCompMan.Service = PROC & " for '" & ea_wb.Name & "': "
-    sStatus = mCompMan.Service
+    sStatus = cLog.Service
 
     mCompMan.DeleteObsoleteExpFiles ea_wb
     
@@ -492,9 +498,8 @@ Public Sub SyncTargetWithSource( _
     '~~ indicated by an '(' in the active window or workbook fullname.
     If mService.Denied(den_serviced_wb:=sync_target_wb, den_service:=PROC) Then GoTo xt
 
-    mCompMan.Service = PROC & " for '" & sync_target_wb.Name & "': "
     Set cLog.ServicedWrkbk = sync_target_wb
-    sStatus = mCompMan.Service
+    sStatus = cLog.Service
         
     mSync.SyncTargetWithSource sync_target_wb:=sync_target_wb _
                              , sync_source_wb:=wbRaw
@@ -528,7 +533,6 @@ Public Sub UpdateRawClones( _
     mErH.BoP ErrSrc(PROC)
     If mService.Denied(den_serviced_wb:=uc_wb, den_service:=PROC, den_new_log:=True) Then GoTo xt
 
-    mCompMan.Service = PROC & " for '" & uc_wb.Name & "': "
     Application.StatusBar = sStatus & "Maintain hosted raws"
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=uc_hosted _
                                             , mh_wb:=uc_wb) _
@@ -809,4 +813,32 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
+Public Sub CollectServicedComponents()
+    Const PROC = "CollectServicedComponents"
+    
+    On Error GoTo eh
+    Dim ws1     As Worksheet
+    Dim ws2     As Worksheet
+    Dim vbc     As VBComponent
+    Dim shp     As Shape
+    Dim nm      As Name
+    Dim nmName  As Name
+    Dim sKey    As String
+    
+    If dctServiced Is Nothing Then Set dctServiced = New Dictionary Else dctServiced.RemoveAll
+    
+    Stats.Count sic_vbcomps_total, wbServiced.VBProject.VBComponents.Count
+    For Each vbc In wbServiced.VBProject.VBComponents
+        With vbc
+            mDct.DctAdd dctServiced, TypeString(vbc) & ":" & vbc.Name, vbc, order_bykey, seq_ascending, , , True
+        End With
+    Next vbc
+     
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Sub
 

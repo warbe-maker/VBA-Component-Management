@@ -72,7 +72,7 @@ Public cRaw             As clsRaw
 Public asNoSynch()      As String
 Public lMaxCompLength   As Long
 Public dctHostedRaws    As Dictionary
-
+Public Stats            As clsStats
 Private sService        As String
 Private lMaxLenComp     As Long
 Private lMaxLenTypeItem As Long
@@ -124,7 +124,7 @@ Public Function IsWrkbkComp(ByRef vbc As VBComponent) As Boolean
     
     Dim bSigned As Boolean
     On Error Resume Next
-    bSigned = vbc.Properties("VBASigned").Value
+    bSigned = vbc.Properties("VBASigned").value
     IsWrkbkComp = Err.Number = 0
     
 End Function
@@ -157,9 +157,9 @@ Private Property Let HostedRaws(ByVal hr As Variant)
     
 End Property
 
-Public Property Get Service() As String:            Service = sService:             End Property
-
-Public Property Let Service(ByVal srvc As String):  sService = srvc:                End Property
+'Public Property Get Service() As String:            Service = sService:             End Property
+'
+'Public Property Let Service(ByVal srvc As String):  sService = srvc:                End Property
 
 Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
 ' -----------------------------------------------------------

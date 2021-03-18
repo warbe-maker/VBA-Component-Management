@@ -99,29 +99,36 @@ Public Property Get MsgReply() As Variant:          MsgReply = vMsgReply:   End 
 Public Property Let MsgReply(ByVal v As Variant):   vMsgReply = v:          End Property
 
 Public Function Align( _
-                ByVal a_text As String, _
-                ByVal a_length As Long, _
-       Optional ByVal a_align As StringAlign = AlignLeft, _
-       Optional ByVal a_margin As String = vbNullString, _
-       Optional ByVal a_fill As String = " ") As String
+                ByVal s As String, _
+                ByVal lngth As Long, _
+       Optional ByVal aligned As StringAlign = AlignLeft, _
+       Optional ByVal margin As String = vbNullString, _
+       Optional ByVal fill As String = " ") As String
 ' ---------------------------------------------------------
-' Returns a string (a_text) with a lenght (a_length)
-' aligned (a_align) filled with characters (a_fill).
+' Returns a string (s) with a lenght (lngth)
+' aligned (aligned) filled with characters (fill).
 ' ---------------------------------------------------------
-    Dim lSpace As Long
-    If Len(a_text) >= a_length Then
-        Align = VBA.Left$(a_text, a_length)
-    Else
-        Select Case a_align
-            Case AlignLeft:     Align = a_text & a_margin & VBA.String$(a_length - (Len(a_text) + Len(a_margin)), a_fill)
-            Case AlignRight:    Align = a_margin & VBA.String$(a_length - (Len(a_text) - (Len(a_margin) * 2)), a_fill) & a_text & a_margin
-            Case AlignCentered
-                lSpace = Max(1, ((a_length - Len(a_text) - (2 * Len(a_margin))) / 2))
-                Align = VBA.String$(lSpace, a_fill) & a_margin & a_text & a_margin & VBA.String$(lSpace, a_fill)
-                Align = VBA.Right$(Align, a_length)
-                
-        End Select
-    End If
+    Dim SpaceLeft       As Long
+    Dim LengthRemaining As Long
+    
+    Select Case aligned
+        Case AlignLeft
+            If Len(s & margin) >= lngth _
+            Then Align = VBA.Left$(s & margin, lngth) _
+            Else Align = s & margin & VBA.String$(lngth - (Len(s & margin)), fill)
+        Case AlignRight
+            If Len(margin & s) >= lngth _
+            Then Align = VBA.Left$(margin & s, lngth) _
+            Else Align = VBA.String$(lngth - (Len(margin & s)), fill) & margin & s
+        Case AlignCentered
+            If Len(margin & s & margin) >= lngth Then
+                Align = margin & Left$(s, lngth - (2 * Len(margin))) & margin
+            Else
+                SpaceLeft = Max(1, ((lngth - Len(s) - (2 * Len(margin))) / 2))
+                Align = VBA.String$(SpaceLeft, fill) & margin & s & margin & VBA.String$(SpaceLeft, fill)
+                Align = VBA.Right$(Align, lngth)
+            End If
+    End Select
 
 End Function
 
@@ -648,5 +655,25 @@ Public Function SelectFolder( _
     End With
     SelectFolder = sFolder
 
+End Function
+
+Public Function Nbspd(ByVal s As String) As String
+' ------------------------------------------------
+' Returns a non-breaking-spaced string enclosed in two non-breaking spaces.
+' Example: Nbspd("   Ab c") = '  A b c  '
+' Note: Any number of leading, trailing, or contained spaces are removed.
+' in the
+' provided string are replaced by a single non-breaking space and any leading and trailing spaces.
+' -------------------------------------------------
+    Dim a() As Byte
+    Dim v   As Variant
+    
+    a = StrConv(Replace(Trim(s), " ", vbNullString), vbFromUnicode)
+    Nbspd = Chr$(160) & Chr$(160)
+    For Each v In a
+        Nbspd = Nbspd & Chr$(v) & Chr$(160)
+    Next v
+    Nbspd = Nbspd & Chr$(160)
+    
 End Function
 

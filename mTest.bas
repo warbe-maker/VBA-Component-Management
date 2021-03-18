@@ -602,8 +602,6 @@ Public Sub Test_UpdateRawClones()
     On Error GoTo eh
     Dim lMaxCompLen As Long
     
-    mCompMan.Service = PROC & ": "
-
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
         If mMe.AddInInstncWrkbkIsOpen Then
@@ -617,7 +615,7 @@ Public Sub Test_UpdateRawClones()
             mErH.BoP ErrSrc(PROC)
             Application.Run UpdateClonesService _
                           , lMaxCompLen _
-                          , mCompMan.Service
+                          , cLog.Service
             mErH.EoP ErrSrc(PROC)
         End If
     End If

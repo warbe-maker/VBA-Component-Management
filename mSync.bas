@@ -3,7 +3,6 @@ Option Explicit
 
 Public Const SHEET_SHAPE        As String = ": "    ' Sheet-Shape concatenator
 
-Public Stats                    As clsStats
 Private Sync                    As clsSync
 Private lMode                   As SyncMode
 Private dctChanged              As Dictionary       ' Confirm buttons and clsRaw items to display changed
