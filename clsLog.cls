@@ -24,21 +24,21 @@ End Sub
 
 Private Property Get CompMaxLen() As Long:           CompMaxLen = lMaxLenComp:   End Property
 
-Friend Property Let CompMaxLen(ByVal l As Long):    lMaxLenComp = l:            End Property
+Public Property Let CompMaxLen(ByVal l As Long):    lMaxLenComp = l:            End Property
 
-Friend Property Let Entry(ByVal s As String)
+Friend Property Let Entry(ByVal S As String)
 ' ------------------------------------------
 ' Append an entry to the log file.
 ' ------------------------------------------
 Static sItem As String
 
     If sServicedItem = vbNullString Then
-        sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & s
+        sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & S
     Else
         If sServicedItem = sItem Then
-            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.Space$(mCompMan.MaxLenTypeItem + 2) & s
+            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.Space$(mCompMan.MaxLenTypeItem + 2) & S
         Else
-            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sServicedItem & s
+            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sServicedItem & S
         End If
     End If
     mFile.Txt(ft_file:=sFile, ft_append:=True) = sEntry
@@ -48,11 +48,11 @@ End Property
 
 Friend Property Get File() As String:               File = sFile:               End Property
 
-Friend Property Let File(ByVal s As String):        sFile = s:                  End Property
+Friend Property Let File(ByVal S As String):        sFile = S:                  End Property
 
 Friend Property Get Folder() As String:             Folder = sFolder:           End Property
 
-Friend Property Let Folder(ByVal s As String):      sFolder = s:                End Property
+Friend Property Let Folder(ByVal S As String):      sFolder = S:                End Property
 
 'Friend Property Let Info(ByVal s As String)
 '' ------------------------------------------
@@ -83,11 +83,11 @@ Friend Property Get LogFile() As File
     End With
 End Property
 
-Friend Property Get service() As String
-    service = sService
+Friend Property Get Service() As String
+    Service = sService
 End Property
 
-Friend Property Let service(ByVal sv_name As String)
+Friend Property Let Service(ByVal sv_name As String)
 
     sService = sv_name & " by " & ThisWorkbook.Name & " for '" & wbServiced.Name & "': "
     

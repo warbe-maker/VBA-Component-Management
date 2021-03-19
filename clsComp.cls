@@ -150,16 +150,16 @@ End Property
 
 Friend Property Get CompName() As String:           CompName = sCompName:       End Property
 
-Friend Property Let CompName(ByVal s As String)
+Friend Property Let CompName(ByVal S As String)
 ' ----------------------------------------------------------------
 ' Provides the properties: - CompName (sCompName)
 '                          - ExpFileFullName (sExpFileFullName)
 '                          - VBComp          (vbc)
 ' ----------------------------------------------------------------
-    sCompName = s
+    sCompName = S
     If Not wb Is Nothing Then
         If Me.Exists Then
-            Set vbc = wb.VBProject.VBComponents(s)
+            Set vbc = wb.VBProject.VBComponents(S)
             sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExtension
         End If
     End If
@@ -465,10 +465,10 @@ Friend Property Get WrkbkBaseName() As String:                 WrkbkBaseName = B
 
 Friend Property Get WrkbkFullName() As String:                 WrkbkFullName = sWrkbkFullName:                  End Property
 
-Friend Property Let WrkbkFullName(ByVal s As String):          sWrkbkFullName = s:                              End Property
+Friend Property Let WrkbkFullName(ByVal S As String):          sWrkbkFullName = S:                              End Property
 
-Private Function BaseName(ByVal s As String) As String
-    With New FileSystemObject:  BaseName = .GetBaseName(s): End With
+Private Function BaseName(ByVal S As String) As String
+    With New FileSystemObject:  BaseName = .GetBaseName(S): End With
 End Function
 
 Public Function CompType() As Dictionary
@@ -630,7 +630,7 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
                     '~~ is synchronized - disregarding any consequences this may have when the
                     '~~ structure and design of the underlying Workbook or Worksheet has changed.
                     mSync.ByCodeLines sync_target_comp_name:=.CompName _
-                                    , sync_source_wb_full_name:=.HostFullName _
+                                    , wb_source_full_name:=.HostFullName _
                                     , sync_source_codelines:=.CodeLines
                 Case vbext_ct_ClassModule, vbext_ct_StdModule, vbext_ct_MSForm
                     Me.ReplaceRawWithClone

@@ -203,9 +203,9 @@ Public Function CompExists( _
 ' Returns TRUE when the component (ce_comp_name) exists in
 ' the Workbook (ce_wb).
 ' -----------------------------------------------------------
-    Dim s As String
+    Dim S As String
     On Error Resume Next
-    s = ce_wb.VBProject.VBComponents(ce_comp_name).Name
+    S = ce_wb.VBProject.VBComponents(ce_comp_name).Name
     CompExists = Err.Number = 0
 End Function
 
@@ -467,12 +467,12 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function IsVBCloneProject(ByVal s As String) As Boolean
-    IsVBCloneProject = InStr(s, mCompMan.VB_CLONE_PROJECT_OF_RAW_PROJECT) <> 0
+Private Function IsVBCloneProject(ByVal S As String) As Boolean
+    IsVBCloneProject = InStr(S, mCompMan.VB_CLONE_PROJECT_OF_RAW_PROJECT) <> 0
 End Function
 
-Private Function IsVBRawProject(ByVal s As String) As Boolean
-    IsVBRawProject = s = mCompMan.VB_RAW_PROJECT
+Private Function IsVBRawProject(ByVal S As String) As Boolean
+    IsVBRawProject = S = mCompMan.VB_RAW_PROJECT
 End Function
 
 Public Sub DisplayChanges( _
@@ -526,8 +526,9 @@ Public Function TypeString(ByVal vbc As VBComponent) As String
 End Function
 
 
-Public Sub SynchTargetWbWithSourceWb(ByRef sync_target_wb As Workbook, _
-                          ByVal sync_source_wb As String)
+Public Sub SynchTargetWbWithSourceWb( _
+                               ByRef wb_target As Workbook, _
+                               ByVal wb_source As String)
 ' -------------------------------------------------------------
 ' Synchronizes the code of the open/ed Workbook (clone_project)
 ' with the code of the source Workbook (raw_project).
@@ -540,7 +541,7 @@ Public Sub SynchTargetWbWithSourceWb(ByRef sync_target_wb As Workbook, _
     
     On Error GoTo eh
     mErH.BoP ErrSrc(PROC)
-    mService.SyncTargetWithSource sync_target_wb:=sync_target_wb, sync_source_wb:=sync_source_wb
+    mService.SyncTargetWithSource wb_target:=wb_target, wb_source_name:=wb_source
     
 xt: mErH.EoP ErrSrc(PROC)
     Set cLog = Nothing

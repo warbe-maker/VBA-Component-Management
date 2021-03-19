@@ -90,24 +90,31 @@ Public Sub Test_SynchTargetWithSource()
     Const PROC = ""
     
     On Error GoTo eh
-    Dim sSource As String
-    Dim sTarget As String
-    Dim fo As Folder
+    Dim sSource     As String
+    Dim sTarget     As String
+    Dim BkpFolder   As String
     
     sTarget = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Target-Project\Test_Sync_Target.xlsb"
     sSource = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Source-Project\Test_Sync_Source.xlsb"
-    
-    mSync.SyncTargetBackup fo, sTarget
-    
-    mService.SyncTargetWithSource _
-        sync_target_wb:=mCompMan.WbkGetOpen(sTarget) _
-      , sync_source_wb:=sSource
-    
-    ' -----------------------------------------------------------------
-    Stop ' last chance to see the synch result in the target Workbook !
-    ' -----------------------------------------------------------------
-    mCompMan.WbkGetOpen(sTarget).Close SaveChanges:=False
-    mSync.SyncTargetRestore fo, sTarget
+       
+    If mService.SyncTargetWithSource(wb_target:=mCompMan.WbkGetOpen(sTarget) _
+                                   , wb_source_name:=sSource _
+                                   , bkp_folder:=BkpFolder) _
+    Then
+        ' -----------------------------------------------------------------
+        Stop ' last chance to see the synch result in the target Workbook !
+        '    ' traget Workbook will be restored as test Workbook
+        ' -----------------------------------------------------------------
+    End If
+    '~~ The backup is no longer reqired
+    If BkpFolder <> vbNullString Then
+        ' A backup had been made by the service which is noew restored
+        mCompMan.WbkGetOpen(sTarget).Close SaveChanges:=False
+        mSync.SyncTargetRestore BkpFolder, sTarget
+        Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
+        mCompMan.WbkGetOpen sTarget
+        Application.EnableEvents = True
+    End If
     
 xt: Exit Sub
     

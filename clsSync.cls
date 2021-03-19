@@ -24,6 +24,7 @@ Private sConfItem               As String
 Private cllConfInfo             As Collection
 Private sEntry                  As String
 Private lMaxLenItem             As String
+Private lMaxLenTypeItem         As Long
 
 Private Sub Class_Terminate()
     Set dctSourceSheetComps = Nothing
@@ -42,7 +43,7 @@ Public Sub DisplayCollectedSourceSheets()
     Dim ws  As Worksheet
     Dim dct As Dictionary
     
-    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
+    Debug.Print Align(S:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
     Set dct = Me.SourceSheets
     For i = 1 To dct.Count
         Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
@@ -55,7 +56,7 @@ Public Sub DisplayCollectedTargetSheets()
     Dim ws  As Worksheet
     Dim dct As Dictionary
     
-    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
+    Debug.Print Align(S:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
     Set dct = Me.SourceSheets
     For i = 1 To dct.Count
         Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
@@ -69,7 +70,7 @@ Public Sub DisplayCollectedSourceSheetShapes()
     Dim sSheet  As String
     Dim sShape  As String
     
-    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    Debug.Print Align(S:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
     For Each v In Me.SourceSheetShapes
         sSheet = mSync.KeySheetName(v)
         sShape = mSync.KeyShapeName(v)
@@ -83,7 +84,7 @@ Public Sub DisplayCollectedTargetSheetShapes()
     Dim sSheet  As String
     Dim sShape  As String
     
-    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    Debug.Print Align(S:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
     For Each v In Me.TargetSheetShapes
         sSheet = mSync.KeySheetName(v)
         sShape = mSync.KeyShapeName(v)
@@ -103,6 +104,11 @@ End Property
 Friend Property Get NewSheetExists(ByVal sheet_name As String) As Boolean
     NewSheetExists = dctNewSheets.Exists(sheet_name)
 End Property
+
+Friend Property Get MaxLenTypeItem() As Long
+    MaxLenTypeItem = lMaxLenTypeItem
+End Property
+
 Friend Property Get ConfInfo( _
               Optional ByVal ci_type As String, _
               Optional ByVal ci_item As String) As String
@@ -123,7 +129,8 @@ Friend Property Get ConfInfo( _
         lMaxType = Max(lMaxType, Len(Split(v, "|")(0)))
         lMaxItem = Max(lMaxItem, Len(Split(v, "|")(1)))
     Next v
-
+    lMaxLenTypeItem = lMaxType + lMaxItem
+    
     '~~ Compile result string
     For Each v In cllConfInfo
         sTypeItem = Align(Split(v, "|")(0), lMaxType + 1) & _
@@ -173,12 +180,12 @@ End Sub
 Friend Property Let ConfInfo( _
               Optional ByVal ci_type As String, _
               Optional ByVal ci_item As String, _
-                       ByVal s As String)
+                       ByVal S As String)
 ' ------------------------------------------
 ' Append a confirmation info to a Collection.
 ' ------------------------------------------
     If cllConfInfo Is Nothing Then Set cllConfInfo = New Collection
-    sEntry = ci_type & "|" & ci_item & "|" & s
+    sEntry = ci_type & "|" & ci_item & "|" & S
     cllConfInfo.Add sEntry
 End Property
 

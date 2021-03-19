@@ -22,7 +22,6 @@ Private cTarget                 As clsComp
 Private lSheetsObsolete         As Long
 Private lSheetsNew              As Long
 Private ManualSynchRequired     As Boolean
-Private BckpFolderName          As String
 Private lCompMaxLen             As Long
 
 Public Enum siCounter
@@ -59,7 +58,7 @@ Private Enum SyncMode
 End Enum
 
 Public Sub SyncTargetRestore( _
-                       ByRef bkp_folder As Folder, _
+                       ByRef bkp_folder As String, _
                        ByVal sTarget As String)
 ' --------------------------------------------------
 '
@@ -68,10 +67,10 @@ Public Sub SyncTargetRestore( _
     Dim fso As New FileSystemObject
 
     With fso
-        If Not .FolderExists(bkp_folder.Path) Then GoTo xt
+        If Not .FolderExists(bkp_folder) Then GoTo xt
         If Not .FileExists(sTarget) Then GoTo xt
-        .CopyFile bkp_folder.Path & "\" & .GetFileName(sTarget), sTarget
-        .DeleteFolder bkp_folder.Path
+        .CopyFile bkp_folder & "\" & .GetFileName(sTarget), sTarget
+        .DeleteFolder bkp_folder
     End With
     
 xt: Set fso = Nothing
@@ -79,7 +78,7 @@ xt: Set fso = Nothing
    
 End Sub
 
-Public Sub SyncTargetBackup(ByRef bkp_folder As Folder, _
+Public Sub SyncTargetBackup(ByRef bkp_folder As String, _
                             ByVal sTarget As String)
 ' -----------------------------------------------------
 ' Saves a copy of the synchronization target Workbook
@@ -89,6 +88,8 @@ Public Sub SyncTargetBackup(ByRef bkp_folder As Folder, _
     Const PROC = "SyncTargetBackup"
     
     On Error GoTo eh
+    Dim BckpFolderName  As String
+    Dim fo              As Folder
     
     BckpFolderName = "Bckup-" & Format$(Now(), "YYMMDD-hhmmss")
     With New FileSystemObject
@@ -96,11 +97,12 @@ Public Sub SyncTargetBackup(ByRef bkp_folder As Folder, _
             Application.Wait Now() + 0.000001
             BckpFolderName = "Bckup-" & Format$(Now(), "YYMMDD-hhmmss")
         Wend
-        Set bkp_folder = .CreateFolder(.GetParentFolderName(sTarget) & "\" & BckpFolderName)
-        .CopyFile sTarget, bkp_folder.Path & "\" & .GetFileName(sTarget)
+        Set fo = .CreateFolder(.GetParentFolderName(sTarget) & "\" & BckpFolderName)
+        .CopyFile sTarget, fo.Path & "\" & .GetFileName(sTarget)
     End With
 
-xt: Exit Sub
+xt: bkp_folder = fo.Path
+    Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
@@ -110,13 +112,13 @@ End Sub
 
 Public Sub ByCodeLines( _
                  ByVal sync_target_comp_name As String, _
-                 ByVal sync_source_wb_full_name As String, _
+                 ByVal wb_source_full_name As String, _
         Optional ByRef sync_source_codelines As Dictionary = Nothing)
 ' -------------------------------------------------------------------------
 ' Synchronizes
 '  the component (sync_target_comp_name) in the target Workbook
 '  (Sync.Target) with the code (sync_source_codelines) in the Export-File
-'  of the corresponding source Workbook's (sync_source_wb_full_name)
+'  of the corresponding source Workbook's (wb_source_full_name)
 '  component
 ' line by line.
 ' When the source code lines () are not provided they are obtained from the
@@ -132,7 +134,7 @@ Public Sub ByCodeLines( _
     
     If sync_source_codelines Is Nothing Then
         '~~ Obtain non provided code lines for the line by line syncronization
-        Set wbRaw = WbkGetOpen(sync_source_wb_full_name)
+        Set wbRaw = WbkGetOpen(wb_source_full_name)
         Set cSource.Wrkbk = wbRaw
         cSource.CompName = sync_target_comp_name
         Set sync_source_codelines = cSource.CodeLines
@@ -220,13 +222,15 @@ Private Sub DisconnectLinkedRanges()
         sName = Split(nm.RefersTo, "]")(1)
         If Err.Number = 0 Then
             nm.RefersTo = "=" & sName
+            cLog.ServicedItem(TypeName(nm)) = nm.Name & "(" & nm.RefersTo & ")"
+            cLog.Entry = "Link to source sheet removed"
         End If
     Next nm
     
 End Sub
 
-Private Function ErrSrc(ByVal s As String) As String
-    ErrSrc = "mSync." & s
+Private Function ErrSrc(ByVal S As String) As String
+    ErrSrc = "mSync." & S
 End Function
 
 Private Function NameChange( _
@@ -406,16 +410,11 @@ Private Sub ShapeCopy( _
 ' ---------------------------------------------
     Dim SourceShape As Shape
     Dim TargetShape As Shape
-
-    Sync.DisplayCollectedSourceSheetShapes
-    Sync.DisplayCollectedTargetSheetShapes
     
     For Each SourceShape In sc_source.Shapes
         If SourceShape.Name <> sc_name Then GoTo next_shape
         SourceShape.Copy
-        Debug.Print sc_target.Shapes.Count
         sc_target.Paste
-        Debug.Print sc_target.Shapes.Count
         Set TargetShape = sc_target.Shapes(sc_target.Shapes.Count)
         With TargetShape
             .Name = sc_name
@@ -521,7 +520,7 @@ Private Function SheetShapeExists( _
     
     On Error GoTo eh
     Dim i   As Long
-    Dim s   As String
+    Dim S   As String
     Dim ws  As Worksheet
     Dim shp As Shape
     
@@ -789,8 +788,7 @@ Private Sub SyncShapesNew()
     
     With Sync
         For Each v In .SourceSheetShapes
-            Debug.Print v
-            sSheet = KeySheetName(v)
+            sSheet = mSync.KeySheetName(v)
             sShape = mSync.KeyShapeName(v)
             If SheetShapeExists(sync_wb:=.Target _
                               , sync_sheet_name:=sSheet _
@@ -874,12 +872,12 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function KeySheetName(ByVal s As String) As String
-    KeySheetName = KeySheetName(s)
+Public Function KeySheetName(ByVal S As String) As String
+    KeySheetName = Split(S, SHEET_SHAPE)(0)
 End Function
 
-Public Function KeyShapeName(ByVal s As String) As String
-    KeyShapeName = KeyShapeName(s)
+Public Function KeyShapeName(ByVal S As String) As String
+    KeyShapeName = Split(S, SHEET_SHAPE)(1)
 End Function
 
 Public Function KeySheetShape(ByVal sheet_name As String, _
@@ -913,8 +911,8 @@ Private Sub SyncShapesProperties()
                                   , sync_shape_name:=sShape _
                                    ) _
             Then GoTo next_shape
-            SyncShapeProperties .Source.Worksheets(sSheet).Shapes.Item(sShape) _
-                              , .Target.Worksheets(sSheet).Shapes.Item(sShape)
+            mShape.SyncProperties .Source.Worksheets(sSheet).Shapes.Item(sShape) _
+                                , .Target.Worksheets(sSheet).Shapes.Item(sShape)
 
 next_shape:
         Next v
@@ -928,202 +926,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub SyncShapeProperties(ByRef shp_source As Shape, _
-                                ByRef shp_target As Shape)
-    Const PROC = "SyncShapeProperties"
-                                
-    On Error GoTo eh
-    cLog.ServicedItem(TypeName(shp_target)) = shp_target.Name
-    
-    With shp_target
-        If .AlternativeText <> shp_source.AlternativeText Then
-            On Error Resume Next
-            .AlternativeText = shp_source.AlternativeText
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'AlternativeText' synched"
-            Else
-                cLog.Entry = "Difference in Property 'AlternativeText' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .AutoShapeType <> shp_source.AutoShapeType Then
-            On Error Resume Next
-            .AutoShapeType = shp_source.AutoShapeType
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'AutoShapeType' synched"
-            Else
-                cLog.Entry = "Difference in Property 'AutoShapeType' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .BackgroundStyle <> shp_source.BackgroundStyle Then
-            On Error Resume Next
-            .BackgroundStyle = shp_source.BackgroundStyle
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'BackgroundStyle' synched"
-            Else
-                cLog.Entry = "Difference in Property 'BackgroundStyle' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .BlackWhiteMode <> shp_source.BlackWhiteMode Then
-            On Error Resume Next
-            .BlackWhiteMode = shp_source.BlackWhiteMode
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'BlackWhiteMode' synched"
-            Else
-                cLog.Entry = "Difference in Property 'BlackWhiteMode' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .Decorative <> shp_source.Decorative Then
-            On Error Resume Next
-            .Decorative = shp_source.Decorative
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'Decorative' synched"
-            Else
-                cLog.Entry = "Difference in Property 'Decorative' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .GraphicStyle <> shp_source.GraphicStyle Then
-            On Error Resume Next
-            .GraphicStyle = shp_source.GraphicStyle
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'GraphicStyle' synched"
-            Else
-                cLog.Entry = "Difference in Property 'GraphicStyle' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .Height <> shp_source.Height Then
-            On Error Resume Next
-            .Height = shp_source.Height
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'Height' synched"
-            Else
-                cLog.Entry = "Difference in Property 'Height' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .Left <> shp_source.Left Then
-            On Error Resume Next
-            .Left = shp_source.Left
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'Left' synched"
-            Else
-                cLog.Entry = "Difference in Property 'Left' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .LockAspectRatio <> shp_source.LockAspectRatio Then
-            On Error Resume Next
-            .LockAspectRatio = shp_source.LockAspectRatio
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'LockAspectRatio' synched"
-            Else
-                cLog.Entry = "Difference in Property 'LockAspectRatio' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .Locked <> shp_source.Locked Then
-            On Error Resume Next
-            .Locked = shp_source.Locked
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'Locked' synched"
-            Else
-                cLog.Entry = "Difference in Property 'Locked' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .OnAction <> shp_source.OnAction Then
-            On Error Resume Next
-            .OnAction = shp_source.OnAction
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'OnAction' synched"
-            Else
-                cLog.Entry = "Difference in Property 'OnAction' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .Placement <> shp_source.Placement Then
-            On Error Resume Next
-            .Placement = shp_source.Placement
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'Placement' synched"
-            Else
-                cLog.Entry = "Difference in Property 'Placement' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .Rotation <> shp_source.Rotation Then
-            On Error Resume Next
-            .Rotation = shp_source.Rotation
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'Rotation' synched"
-            Else
-                cLog.Entry = "Difference in Property 'Rotation' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .ShapeStyle <> shp_source.ShapeStyle Then
-            On Error Resume Next
-            .ShapeStyle = shp_source.ShapeStyle
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'ShapeStyle' synched"
-            Else
-                cLog.Entry = "Difference in Property 'ShapeStyle' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-'        If .Title <> shp_source.Title Then
-'            On Error Resume Next
-'            .Title = shp_source.Title
-'            If Err.Number = 0 Then
-'                cLog.Entry = "Property 'Title' synched"
-'            Else
-'                cLog.Entry = "Difference in Property 'Title' could not be synched (error " & Err.Number & ")"
-'            End If
-'        End If
-'
-        If .top <> shp_source.top Then
-            On Error Resume Next
-            .top = shp_source.top
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'Top' synched"
-            Else
-                cLog.Entry = "Difference in Property 'Top' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .Visible <> shp_source.Visible Then
-            On Error Resume Next
-            .Visible = shp_source.Visible
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'Visible' synched"
-            Else
-                cLog.Entry = "Difference in Property 'Visible' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-
-        If .Width <> shp_source.Width Then
-            On Error Resume Next
-            .Width = shp_source.Width
-            If Err.Number = 0 Then
-                cLog.Entry = "Property 'Width' synched"
-            Else
-                cLog.Entry = "Difference in Property 'Width' could not be synched (error " & Err.Number & ")"
-            End If
-        End If
-    End With
-
-xt: Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-    End Select
-End Sub
 Private Sub SyncSheetsCode()
 ' -----------------------------------------------
 ' When lMode=Confirm all sheets which had changed
@@ -1164,7 +966,7 @@ Private Sub SyncSheetsCode()
             cLog.ServicedItem(TypeString(vbc)) = vbc.Name
             sExpFile = cSource.ExpFileFullName
             mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
-                            , sync_source_wb_full_name:=cSource.Wrkbk.FullName _
+                            , wb_source_full_name:=cSource.Wrkbk.FullName _
                             , sync_source_codelines:=cSource.CodeLines
             cLog.Entry = "Code updated line-by-line! from Export-File '" & sExpFile & "'"
         End If
@@ -1221,7 +1023,7 @@ Private Sub SyncSheetsCodeName()
                         '~~ When the sheet's CodeName has changed the sheet's code is synchronized line by line
                         '~~ because it is very likely code refers to the CodeName rather than to the sheet's Name or position
 '                        mSync.ByCodeLines sync_target_comp_name:=wsSource.CodeName _
-                                        , sync_source_wb_full_name:=SyncSource.FullName
+                                        , wb_source_full_name:=SyncSource.FullName
                         Exit For
                     End If
                 Next vbc
@@ -1466,14 +1268,15 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
              
-Public Sub SyncTargetWithSource( _
-                          ByRef sync_target_wb As Workbook, _
-                          ByRef sync_source_wb As Workbook, _
-                 Optional ByVal restricted_sheet_rename_asserted As Boolean = False)
-' --------------------------------------------------------------------------------
-' Synchronizes a target Workbook (Sync.Target)
-' with a source Workbook (Sync.Source).
-' --------------------------------------------------------------------------------
+Public Function SyncTargetWithSource( _
+                               ByRef wb_target As Workbook, _
+                               ByRef wb_source As Workbook, _
+                      Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
+                      Optional ByRef bkp_folder As String) As Boolean
+' -----------------------------------------------------------------------------------------
+' Synchronizes a target Workbook (Sync.Target) with a source Workbook (Sync.Source).
+' Returns TRUE when finished without error.
+' -----------------------------------------------------------------------------------------
     Const PROC = "SyncTargetWithSource"
     
     On Error GoTo eh
@@ -1497,8 +1300,8 @@ Public Sub SyncTargetWithSource( _
     If dctChanged Is Nothing Then Set dctChanged = New Dictionary Else dctChanged.RemoveAll
     
     RestrictRenameAsserted = restricted_sheet_rename_asserted
-    Set Sync.Source = sync_source_wb
-    Set Sync.Target = sync_target_wb
+    Set Sync.Source = wb_source
+    Set Sync.Target = wb_target
     Sync.CollectAllSyncItems
     
     ManualSynchRequired = False
@@ -1582,6 +1385,8 @@ Public Sub SyncTargetWithSource( _
     Loop
 
     If Not bSyncDenied Then
+        cLog.CompMaxLen = Sync.MaxLenTypeItem
+        mSync.SyncTargetBackup bkp_folder, Sync.Target.FullName
         Stats.Clear
         lMode = Synchronize
         dctNameChange.RemoveAll
@@ -1616,19 +1421,20 @@ Public Sub SyncTargetWithSource( _
         RemoveInvalidRangeNames
         DisconnectLinkedRanges
         Set dctChanged = Nothing
+        SyncTargetWithSource = True
     End If
     
 xt: Set fso = Nothing
     Set dctNameChange = Nothing
     Set Sync = Nothing
-    Exit Sub
+    Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
         Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
-End Sub
+End Function
 
 Private Sub SyncSheetsOrder()
 ' ----------------------------------------------------------------------------
@@ -1697,9 +1503,10 @@ Private Sub SyncVBCompsCodeChanged()
             If Not dctChanged.Exists(sCaption) _
             Then dctChanged.Add sCaption, cSource
         Else
+            cLog.ServicedItem(TypeName(vbc)) = vbc.Name
             mRenew.ByImport rn_wb:=Sync.Target _
                           , rn_comp_name:=vbc.Name _
-                          , rn_exp_file_full_name:=cRaw.ExpFileFullName
+                          , rn_exp_file_full_name:=cSource.ExpFileFullName
             cLog.Entry = "Renewed/updated by import of '" & cSource.ExpFileFullName & "'"
         End If
         
@@ -1791,7 +1598,7 @@ Private Function SyncVBCompsObsolete()
         
         Stats.Count sic_non_doc_mod_obsolete
         If lMode = Confirm Then
-            Sync.ConfInfo(cSource.TypeString, vbc.Name) = "Obsolete! Will be removed."
+            Sync.ConfInfo(TypeString(vbc), vbc.Name) = "Obsolete! Will be removed."
         Else
             cLog.ServicedItem(TypeString(vbc)) = vbc.Name
             sType = cTarget.TypeString
