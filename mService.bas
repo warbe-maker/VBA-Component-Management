@@ -830,7 +830,7 @@ Public Sub CollectServicedComponents()
     Stats.Count sic_vbcomps_total, wbServiced.VBProject.VBComponents.Count
     For Each vbc In wbServiced.VBProject.VBComponents
         With vbc
-            mDct.DctAdd dctServiced, TypeString(vbc) & ":" & vbc.Name, vbc, order_bykey, seq_ascending, , , True
+            mDct.DctAdd dctServiced, vbc.Type & ":" & vbc.Name, vbc, order_bykey, seq_ascending, , , True
         End With
     Next vbc
      

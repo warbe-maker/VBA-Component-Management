@@ -71,8 +71,8 @@ Public Sub DisplayCollectedSourceSheetShapes()
     
     Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
     For Each v In Me.SourceSheetShapes
-        sSheet = Split(v, SHEET_SHAPE)(0)
-        sShape = Split(v, SHEET_SHAPE)(1)
+        sSheet = mSync.KeySheetName(v)
+        sShape = mSync.KeyShapeName(v)
         Debug.Print Align("Source", 10) & Align(sSheet, 30) & sShape
     Next v
 End Sub
@@ -85,8 +85,8 @@ Public Sub DisplayCollectedTargetSheetShapes()
     
     Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
     For Each v In Me.TargetSheetShapes
-        sSheet = Split(v, SHEET_SHAPE)(0)
-        sShape = Split(v, SHEET_SHAPE)(1)
+        sSheet = mSync.KeySheetName(v)
+        sShape = mSync.KeyShapeName(v)
         Debug.Print Align("Source", 10) & Align(sSheet, 30) & sShape
     Next v
 End Sub
@@ -250,7 +250,7 @@ Public Sub CollectAllSyncItems()
             '~~ Source Workseet Shapes
             Stats.Count sic_shapes_total, .Shapes.Count
             For Each shp In .Shapes
-                sKey = .Name & SHEET_SHAPE & shp.Name
+                sKey = mSync.KeySheetShape(.Name, shp.Name)
                 mDct.DctAdd dctSourceSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
             Next shp
         End With
@@ -264,7 +264,7 @@ Public Sub CollectAllSyncItems()
             
             '~~ Target Worksheet Shapes
             For Each shp In .Shapes
-                sKey = .Name & SHEET_SHAPE & shp.Name
+                sKey = mSync.KeySheetShape(.Name, shp.Name)
                 mDct.DctAdd dctTargetSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
             Next shp
         End With

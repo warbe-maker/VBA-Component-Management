@@ -1,7 +1,14 @@
 Attribute VB_Name = "mSync"
 Option Explicit
-
-Public Const SHEET_SHAPE        As String = ": "    ' Sheet-Shape concatenator
+' ----------------------------------------------------------------------------
+' Standard Module mSync
+'          All services and means for the synchronization of a target Workbook/
+'          VBProject with a source Workbook/VBProject.
+'
+' Public services:
+'
+' ----------------------------------------------------------------------------
+Private Const SHEET_SHAPE       As String = ": "    ' Sheet-Shape concatenator
 
 Private Sync                    As clsSync
 Private lMode                   As SyncMode
@@ -783,8 +790,8 @@ Private Sub SyncShapesNew()
     With Sync
         For Each v In .SourceSheetShapes
             Debug.Print v
-            sSheet = Split(v, SHEET_SHAPE)(0)
-            sShape = Split(v, SHEET_SHAPE)(1)
+            sSheet = KeySheetName(v)
+            sShape = mSync.KeyShapeName(v)
             If SheetShapeExists(sync_wb:=.Target _
                               , sync_sheet_name:=sSheet _
                               , sync_sheet_code_name:=SheetCodeName(.Source, sSheet) _
@@ -837,10 +844,10 @@ Private Sub SyncShapesObsolete()
     Dim sSheet      As String
 
     For Each v In Sync.TargetSheetShapes
-        sSheet = Split(v, SHEET_SHAPE)(0)
-        sShape = Split(v, SHEET_SHAPE)(1)
+        sSheet = mSync.KeySheetName(v)
+        sShape = mSync.KeyShapeName(v)
         If SheetShapeExists(sync_wb:=Sync.Source _
-                          , sync_sheet_name:=Split(v, SHEET_SHAPE)(0) _
+                          , sync_sheet_name:=KeySheetName(v) _
                           , sync_sheet_code_name:=SheetCodeName(Sync.Target, sSheet) _
                           , sync_shape_name:=sShape _
                            ) _
@@ -867,6 +874,19 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Public Function KeySheetName(ByVal s As String) As String
+    KeySheetName = KeySheetName(s)
+End Function
+
+Public Function KeyShapeName(ByVal s As String) As String
+    KeyShapeName = KeyShapeName(s)
+End Function
+
+Public Function KeySheetShape(ByVal sheet_name As String, _
+                              ByVal shape_name As String) As String
+    KeySheetShape = sheet_name & SHEET_SHAPE & shape_name
+End Function
+
 Private Sub SyncShapesProperties()
 ' -----------------------------------------
 ' Syncronize all shape's properties between
@@ -885,8 +905,8 @@ Private Sub SyncShapesProperties()
     
     With Sync
         For Each v In .SourceSheetShapes
-            sSheet = Split(v, SHEET_SHAPE)(0)
-            sShape = Split(v, SHEET_SHAPE)(1)
+            sSheet = mSync.KeySheetName(v)
+            sShape = mSync.KeyShapeName(v)
             If Not SheetShapeExists(sync_wb:=.Target _
                                   , sync_sheet_name:=sSheet _
                                   , sync_sheet_code_name:=SheetCodeName(.Source, sSheet) _

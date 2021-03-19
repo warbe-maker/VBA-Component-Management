@@ -292,20 +292,6 @@ Friend Property Get Service() As String
     Service = sService
 End Property
 
-Friend Property Get SheetName( _
-          Optional ByVal sn_codename As String) As String
-' -------------------------------------------------------
-' Returns the sheet's name through its CodeName.
-' -------------------------------------------------------
-    Dim wsh As Worksheet
-    For Each wsh In wb.Worksheets
-        If wsh.CodeName = sn_codename Then
-            SheetName = wsh.Name
-            Exit For
-        End If
-    Next wsh
-End Property
-
 Friend Property Get TypeString() As String
 ' ----------------------------------------
 ' Returns the component's type as String.

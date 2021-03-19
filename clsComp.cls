@@ -250,15 +250,11 @@ End Property
 
 Friend Property Get ExpFolder() As Folder:      Set ExpFolder = foExport:   End Property
 
-Friend Property Get IsSheet() As Boolean
-    IsSheet = vbc.Type = vbext_ct_Document And Not IsWrkbk
-End Property
-
 Friend Property Get IsWrkbk() As Boolean
     
     Dim bSigned As Boolean
     On Error Resume Next
-    bSigned = vbc.Properties("VBASigned").Value
+    bSigned = vbc.Properties("VBASigned").value
     IsWrkbk = Err.Number = 0
     
 End Property
@@ -378,20 +374,6 @@ End Property
 Friend Property Get Sheet() As Worksheet:               Set Sheet = sh:            End Property
 
 Friend Property Set Sheet(ByRef wsh As Worksheet):      Set sh = wsh:               End Property
-
-Friend Property Get SheetName( _
-               Optional ByVal sn_codename As String) As String
-' ------------------------------------------------------------
-' Returns the sheet's name obtained via she sheet's CodeName.
-' ------------------------------------------------------------
-    Dim wsh As Worksheet
-    For Each wsh In wb.Worksheets
-        If wsh.CodeName = sn_codename Then
-            SheetName = wsh.Name
-            Exit For
-        End If
-    Next wsh
-End Property
 
 Friend Property Get TypeString() As String
 ' ----------------------------------------
