@@ -109,6 +109,7 @@ Public Sub RenewComp( _
     End If
     
     With cComp
+        cLog.ServicedItem = .VBComp
         If rc_comp_name <> vbNullString Then
             If fso.GetBaseName(rc_exp_file_full_name) <> rc_comp_name Then
                 MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
@@ -132,7 +133,6 @@ Public Sub RenewComp( _
         mRenew.ByImport rn_wb:=.Wrkbk _
              , rn_comp_name:=.CompName _
              , rn_exp_file_full_name:=rc_exp_file_full_name
-        cLog.ServicedItem(.TypeString) = .CompName
         cLog.Entry = "Component renewed/updated by (re-)import of '" & rc_exp_file_full_name & "'"
     End With
     
@@ -225,8 +225,8 @@ Public Function Denied(ByRef den_serviced_wb As Workbook, _
 
 End Function
 
-Private Function ErrSrc(ByVal S As String) As String
-    ErrSrc = "mService." & S
+Private Function ErrSrc(ByVal s As String) As String
+    ErrSrc = "mService." & s
 End Function
 
 Public Sub ExportChangedComponents( _
@@ -265,7 +265,7 @@ Public Sub ExportChangedComponents( _
     
     sStatus = cLog.Service
     Set Stats = New clsStats
-    CollectServicedComponents
+    CollectServicedItems
     
     mCompMan.DeleteObsoleteExpFiles do_wb:=ec_wb
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=ec_hosted _
@@ -289,7 +289,7 @@ Public Sub ExportChangedComponents( _
         With cComp
             Set .Wrkbk = ec_wb
             .CompName = vbc.Name
-            cLog.ServicedItem(.TypeString) = .CompName
+            cLog.ServicedItem = .VBComp
             If CodeModuleIsEmpty(.VBComp) Then
                 '~~ Empty Code Modules are exported only when the Workbook is a VB-Raw-Project
                 If mRawHosts.Exists(.WrkbkBaseName) Then
@@ -490,10 +490,10 @@ Public Function SyncTargetWithSource( _
     
     mErH.BoP ErrSrc(PROC)
     '~~ Assure complete and correct provision of arguments or get correct ones selected via a dialog
-    If Not CloneAndRawProject(wb_target:=wb_target _
-                            , cr_raw_name:=wb_source_name _
-                            , wb_source:=wbRaw _
-                             ) Then GoTo xt
+    If Not SyncSourceAndTargetSelected(wb_target:=wb_target _
+                                     , cr_raw_name:=wb_source_name _
+                                     , wb_source:=wbRaw _
+                                      ) Then GoTo xt
     
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
@@ -617,7 +617,7 @@ Private Function ServicedWrkbk(ByVal gs_service As String) As Workbook
 
 End Function
 
-Private Function CloneAndRawProject( _
+Private Function SyncSourceAndTargetSelected( _
                      Optional ByRef wb_target As Workbook = Nothing, _
                      Optional ByVal cr_raw_name As String = vbNullString, _
                      Optional ByRef wb_source As Workbook = Nothing, _
@@ -627,18 +627,18 @@ Private Function CloneAndRawProject( _
 ' When bc_sync_confirm_info is True a confirmation dialog is displayed. The dialog is
 ' also displayed when function is called with invalid arguments.
 ' ---------------------------------------------------------------------------
-    Const PROC                  As String = "CloneAndRawProject"
-    Const CLONE_PROJECT         As String = "VB-Clone-Project"
-    Const RAW_PROJECT           As String = "VB-Raw-Project"
+    Const PROC                  As String = "SyncSourceAndTargetSelected"
+    Const TARGET_PROJECT        As String = "Target-Workbook/VBProject"
+    Const SOURCE_PROJECT        As String = "Source-Workbook/VBProject"
     
     On Error GoTo eh
-    Dim sBttCloneRawConfirmed   As String: sBttCloneRawConfirmed = "VB-Clone- and VB-Raw-Project" & vbLf & "Confirmed"
-    Dim sBttnCloneProject       As String: sBttnCloneProject = "Select/change the" & vbLf & vbLf & CLONE_PROJECT & vbLf & " "
-    Dim sBttnRawProject         As String: sBttnRawProject = "Configure/change the" & vbLf & vbLf & RAW_PROJECT & vbLf & " "
+    Dim sBttCloneRawConfirmed   As String: sBttCloneRawConfirmed = "Selected Source- and" & vbLf & _
+                                                                   "Target-Workbook/VBProject" & vbLf & _
+                                                                   "Confirmed"
+    Dim sBttnTargetProject      As String: sBttnTargetProject = "Select/change the" & vbLf & vbLf & TARGET_PROJECT & vbLf & " "
+    Dim sBttnSourceProject      As String: sBttnSourceProject = "Configure/change the" & vbLf & vbLf & SOURCE_PROJECT & vbLf & " "
     Dim sBttnTerminate          As String: sBttnTerminate = "Terminate providing a " & vbLf & _
-                                                            "VB-Clone- and a VB-Raw-Project" & vbLf & _
-                                                            "for being synchronized" & vbLf & _
-                                                            "(sync service will be denied)"
+                                                            "Source- and Target-Workbook/VBProject"
     
     Dim fso         As New FileSystemObject
     Dim sMsg        As tMsg
@@ -675,10 +675,10 @@ Private Function CloneAndRawProject( _
         If bWbRaw And bWbClone And Not cr_sync_confirm_info Then GoTo xt
         
         With sMsg
-            .Section(1).sLabel = CLONE_PROJECT & ":"
+            .Section(1).sLabel = TARGET_PROJECT & ":"
             .Section(1).sText = sWbClone
             .Section(1).bMonspaced = True
-            .Section(2).sLabel = RAW_PROJECT & ":"
+            .Section(2).sLabel = SOURCE_PROJECT & ":"
             .Section(2).sText = sWbRaw
             .Section(2).bMonspaced = True
             
@@ -688,7 +688,7 @@ Private Function CloneAndRawProject( _
             
             .Section(3).sText = .Section(3).sText & vbLf & vbLf & _
                                 "Attention!" & vbLf & _
-                                "1. The '" & CLONE_PROJECT & "' must not be identical with the '" & RAW_PROJECT & "' and the two Workbooks must not have the same name." & vbLf & _
+                                "1. The '" & TARGET_PROJECT & "' must not be identical with the '" & SOURCE_PROJECT & "' and the two Workbooks must not have the same name." & vbLf & _
                                 "2. Both VB-Projects/Workbook must exclusively reside in their parent Workbook" & vbLf & _
                                 "3. Both Workbook folders must be subfolders of the configured '" & FOLDER_SERVICED & "'."
 
@@ -696,19 +696,19 @@ Private Function CloneAndRawProject( _
         
         '~~ Buttons preparation
         If Not bWbClone Or Not bWbRaw _
-        Then Set cllButtons = mMsg.Buttons(sBttnRawProject, sBttnCloneProject, vbLf, sBttnTerminate) _
-        Else Set cllButtons = mMsg.Buttons(sBttCloneRawConfirmed, vbLf, sBttnRawProject, sBttnCloneProject)
+        Then Set cllButtons = mMsg.Buttons(sBttnSourceProject, sBttnTargetProject, vbLf, sBttnTerminate) _
+        Else Set cllButtons = mMsg.Buttons(sBttCloneRawConfirmed, vbLf, sBttnSourceProject, sBttnTargetProject)
         
         sReply = mMsg.Dsply(msg_title:="Basic configuration of the Component Management (CompMan Addin)" _
                           , msg:=sMsg _
                           , msg_buttons:=cllButtons _
                            )
         Select Case sReply
-            Case sBttnCloneProject
+            Case sBttnTargetProject
                 Do
                     If mFile.SelectFile(sel_filters:="*.xl*" _
                                       , sel_filter_name:="Workbook/VB-Project" _
-                                      , sel_title:="Select the '" & CLONE_PROJECT & " to be synchronized with the '" & RAW_PROJECT & "'" _
+                                      , sel_title:="Select the '" & TARGET_PROJECT & " to be synchronized with the '" & SOURCE_PROJECT & "'" _
                                       , sel_result:=fl _
                                        ) Then
                         sWbClone = fl.Path
@@ -718,11 +718,11 @@ Private Function CloneAndRawProject( _
                 cr_sync_confirm_info = True
                 '~~ The change of the VB-Clone-Project may have made the VB-Raw-Project valid when formerly invalid
                 sWbRaw = Split(sWbRaw, ": ")(0)
-            Case sBttnRawProject
+            Case sBttnSourceProject
                 Do
                     If mFile.SelectFile(sel_filters:="*.xl*" _
                                       , sel_filter_name:="Workbook/VB-Project" _
-                                      , sel_title:="Select the '" & RAW_PROJECT & " as the synchronization source for the '" & CLONE_PROJECT & "'" _
+                                      , sel_title:="Select the '" & SOURCE_PROJECT & " as the synchronization source for the '" & TARGET_PROJECT & "'" _
                                       , sel_result:=fl _
                                        ) Then
                         sWbRaw = fl.Path
@@ -749,7 +749,7 @@ xt: If bWbClone Then
         Application.EnableEvents = True
         cr_raw_name = fso.GetBaseName(sWbRaw)
     End If
-    CloneAndRawProject = bWbClone And bWbRaw
+    SyncSourceAndTargetSelected = bWbClone And bWbRaw
     Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -779,7 +779,7 @@ Private Function Clones( _
         With cComp
             Set .Wrkbk = cl_wb
             .CompName = vbc.Name
-            cLog.ServicedItem(.TypeString) = .CompName
+            cLog.ServicedItem = .VBComp
             If .KindOfComp = enRawClone Then
                 Set cRaw = New clsRaw
                 cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
@@ -815,8 +815,12 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub CollectServicedComponents()
-    Const PROC = "CollectServicedComponents"
+Public Sub CollectServicedItems()
+' ---------------------------------------------------------------
+' All VBComponents in the Workbbok (wbServiced) are collected for
+' being serviced.
+' ---------------------------------------------------------------
+    Const PROC = "CollectServicedItems"
     
     On Error GoTo eh
     Dim ws1     As Worksheet
@@ -831,6 +835,7 @@ Public Sub CollectServicedComponents()
     
     Stats.Count sic_vbcomps_total, wbServiced.VBProject.VBComponents.Count
     For Each vbc In wbServiced.VBProject.VBComponents
+        cLog.ServicedItem = vbc ' Compute max length for logged item type and item name
         With vbc
             mDct.DctAdd dctServiced, vbc.Type & ":" & vbc.Name, vbc, order_bykey, seq_ascending, , , True
         End With

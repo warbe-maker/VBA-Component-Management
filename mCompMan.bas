@@ -42,8 +42,8 @@ Option Compare Text
 ' W. Rauschenberger Berlin August 2019
 ' -------------------------------------------------------------------------------
 Public Const MAX_LEN_TYPE                       As Long = 17
-Public Const VB_RAW_PROJECT                     As String = "VB-Raw-Project"
-Public Const VB_CLONE_PROJECT_OF_RAW_PROJECT    As String = "VB-Clone-Project of Raw-Project: "
+Public Const VB_SOURCE_PROJECT                     As String = "VB-Raw-Project"
+Public Const VB_TARGET_PROJECT_OF_SOURCE_PROJECT    As String = "VB-Clone-Project of Raw-Project: "
 
 Public Enum enKindOfComp                ' The kind of Component in the sense of CompMan
         enUnknown = 0
@@ -203,9 +203,9 @@ Public Function CompExists( _
 ' Returns TRUE when the component (ce_comp_name) exists in
 ' the Workbook (ce_wb).
 ' -----------------------------------------------------------
-    Dim S As String
+    Dim s As String
     On Error Resume Next
-    S = ce_wb.VBProject.VBComponents(ce_comp_name).Name
+    s = ce_wb.VBProject.VBComponents(ce_comp_name).Name
     CompExists = Err.Number = 0
 End Function
 
@@ -361,7 +361,7 @@ Public Function ManageVbProjectProperties( _
 ' - Registers a Workbook as raw host when it has at least one of the
 '   Workbook's (mh_wb) components indicated hosted
 ' - Registers a Workbook as Sync-Source-VB-Project when mh_hosted not indicates
-'   a component but = VB_RAW_PROJECT
+'   a component but = VB_SOURCE_PROJECT
 ' - Returns FALSE when the VbProjectProperties are invalid!
 ' ---------------------------------------------------------------------
     Const PROC = "ManageVbProjectProperties"
@@ -467,12 +467,12 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function IsVBCloneProject(ByVal S As String) As Boolean
-    IsVBCloneProject = InStr(S, mCompMan.VB_CLONE_PROJECT_OF_RAW_PROJECT) <> 0
+Private Function IsVBCloneProject(ByVal s As String) As Boolean
+    IsVBCloneProject = InStr(s, mCompMan.VB_TARGET_PROJECT_OF_SOURCE_PROJECT) <> 0
 End Function
 
-Private Function IsVBRawProject(ByVal S As String) As Boolean
-    IsVBRawProject = S = mCompMan.VB_RAW_PROJECT
+Private Function IsVBRawProject(ByVal s As String) As Boolean
+    IsVBRawProject = s = mCompMan.VB_SOURCE_PROJECT
 End Function
 
 Public Sub DisplayChanges( _

@@ -222,15 +222,15 @@ Private Sub DisconnectLinkedRanges()
         sName = Split(nm.RefersTo, "]")(1)
         If Err.Number = 0 Then
             nm.RefersTo = "=" & sName
-            cLog.ServicedItem(TypeName(nm)) = nm.Name & "(" & nm.RefersTo & ")"
+            cLog.ServicedItem = nm
             cLog.Entry = "Link to source sheet removed"
         End If
     Next nm
     
 End Sub
 
-Private Function ErrSrc(ByVal S As String) As String
-    ErrSrc = "mSync." & S
+Private Function ErrSrc(ByVal s As String) As String
+    ErrSrc = "mSync." & s
 End Function
 
 Private Function NameChange( _
@@ -335,8 +335,11 @@ Private Sub RemoveInvalidRangeNames()
 ' -----------------------------------------------------------
     Dim nm As Name
     For Each nm In Sync.Target.Names
-        If Left(nm.value, 2) = "=#" Then
+        Debug.Print nm.value
+        If InStr(nm.value, "#") <> 0 Or InStr(nm.RefersTo, "#") <> 0 Then
+            cLog.ServicedItem = nm
             nm.Delete
+            cLog.Entry = "Deleted! (invalid)"
         End If
     Next nm
 End Sub
@@ -383,7 +386,7 @@ Private Sub RenameWrkbkModule( _
         For Each vbc In .VBComponents
             If vbc.Type = vbext_ct_Document Then
                 If IsWrkbkComp(vbc) Then
-                    cLog.ServicedItem(TypeString(vbc)) = vbc.Name
+                    cLog.ServicedItem = vbc
                     vbc.Name = rdm_new_name
                     cLog.Entry = "Renamed to '" & rdm_new_name & "'"
                     DoEvents
@@ -520,7 +523,7 @@ Private Function SheetShapeExists( _
     
     On Error GoTo eh
     Dim i   As Long
-    Dim S   As String
+    Dim s   As String
     Dim ws  As Worksheet
     Dim shp As Shape
     
@@ -646,7 +649,7 @@ Private Sub SyncNamesNew()
             '~~ When the new name refers to a new sheet it is not syncronized
             If Not Sync.NewSheetExists(SheetReferred) Then
                 '~~ New Names coming with new sheets are not displayed for confirmation
-                Sync.ConfInfo(NameType(Sync.Source, nm), v & "(" & nm.RefersTo & ")") = "New! Manual synchronization required! 3)"
+                Sync.ConfInfo(nm) = "New! Manual synchronization required! 3)"
                 ManualSynchRequired = True
             End If
         Else
@@ -690,10 +693,9 @@ Public Sub SyncNamesObsolete()
         Set nm = Sync.Target.Names.Item(v)
         '~~ The target name does not exist in the source and thus  has become obsolete
         If lMode = Confirm Then
-            Sync.ConfInfo(NameType(Sync.Target, v), v & "(" & nm.RefersTo & ")") = "Obsolete! Will be removed."
+            cLog.ServicedItem = nm
+            Sync.ConfInfo = "Obsolete! Will be removed."
         Else
-            cLog.ServicedItem(TypeName(nm)) = v
-            Set nm = Sync.TargetNames(v)
             nm.Delete
             cLog.Entry = "Obsolete (removed)"
         End If
@@ -721,11 +723,13 @@ Private Sub SyncReferencesNew()
     
     For Each ref In Sync.Source.VBProject.References
         If Not RefExists(Sync.Target, ref) Then
+            cLog.ServicedItem = ref
             Stats.Count sic_refs_new
             If lMode = Confirm Then
-                Sync.ConfInfo("Reference", ref.Name) = "New! Will be added and properties adjusted."
+                Sync.ConfInfo = "New!"
             Else
                 Sync.Target.VBProject.References.AddFromGuid ref.GUID, ref.Major, ref.Minor
+                cLog.Entry = "Added"
             End If
         End If
     Next ref
@@ -749,15 +753,19 @@ Private Sub SyncReferencesObsolete()
     Const PROC = "SyncReferencesObsolete"
     
     On Error GoTo eh
-    Dim ref As Reference
+    Dim ref     As Reference
+    Dim sRef    As String
     
     For Each ref In Sync.Target.VBProject.References
         If Not RefExists(Sync.Source, ref) Then
+            cLog.ServicedItem = ref
             Stats.Count sic_refs_new
+            sRef = ref.Name
             If lMode = Confirm Then
-                Sync.ConfInfo("Reference", ref.Name) = "Obsolete! Will be removed."
+                Sync.ConfInfo = "Obsolete!"
             Else
                 RefRemove ref
+                cLog.Entry = "Removed!"
             End If
         End If
     Next ref
@@ -785,6 +793,7 @@ Private Sub SyncShapesNew()
     Dim wsTarget    As Worksheet
     Dim sShape      As String
     Dim sSheet      As String
+    Dim shp         As Shape
     
     With Sync
         For Each v In .SourceSheetShapes
@@ -799,22 +808,23 @@ Private Sub SyncShapesNew()
             '~~ The source shape not yet exists in the target Workbook's corresponding sheet
             '~~ (idetified either by its Name or CodeName) and thus is regarde new and needs
             '~~ to be copied and its Properties adjusted.
+            Set wsSource = .Source.Worksheets(.SourceSheetShapes(v))
+            Set shp = wsSource.Shapes(sShape)
+            cLog.ServicedItem = shp
             If lMode = Confirm Then
                 '~~ New shapes coming with new sheets are not displayed for confirmation
                 If Not .NewSheetExists(sSheet) Then
                      Stats.Count sic_shapes_new
-                    .ConfInfo("Sheet Shape", v) = "New! Will be copied from source Workbook sheet '" & sSheet & "'."
+                    .ConfInfo = "New!"
                 End If
             Else
                 '~~ When new shapes are syncronized the Worksheet's Name/CodeName will have been syncronized before!
                 If Not .NewSheetExists(sSheet) Then
-                    Set wsSource = .Source.Worksheets(.SourceSheetShapes(v))
                     Set wsTarget = .Target.Worksheets(.SourceSheetShapes(v))
                     ShapeCopy sc_source:=wsSource _
                             , sc_target:=wsTarget _
                             , sc_name:=sShape
-                    cLog.ServicedItem("Sheet Shape") = sShape
-                    cLog.Entry = "Copied and properties adjusted"
+                    cLog.Entry = "Copied from source sheet"
                 End If
             End If
 next_shape:
@@ -840,7 +850,8 @@ Private Sub SyncShapesObsolete()
     Dim wsTarget    As Worksheet
     Dim sShape      As String
     Dim sSheet      As String
-
+    Dim shp         As Shape
+    
     For Each v In Sync.TargetSheetShapes
         sSheet = mSync.KeySheetName(v)
         sShape = mSync.KeyShapeName(v)
@@ -850,16 +861,17 @@ Private Sub SyncShapesObsolete()
                           , sync_shape_name:=sShape _
                            ) _
         Then GoTo next_shape
+        Set wsTarget = Sync.Target.Worksheets(Sync.TargetSheetShapes.Item(v))
+        Set shp = wsTarget.Shapes(sShape)
+        cLog.ServicedItem = shp
         
         Stats.Count sic_shapes_obsolete
-        Set wsTarget = Sync.Target.Worksheets(Sync.TargetSheetShapes.Item(v))
         '~~ The target name does not exist in the source and thus  has become obsolete
         If lMode = Confirm Then
-            Sync.ConfInfo("Sheet Shape", v) = "Obsolete! Will be removed."
+            Sync.ConfInfo = "Obsolete!"
         Else
-            cLog.ServicedItem("Sheet Shape") = sShape
             wsTarget.Shapes(sShape).Delete
-            cLog.Entry = "Obsolete (removed)"
+            cLog.Entry = "Deteted!"
         End If
 next_shape:
     Next v
@@ -872,12 +884,12 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function KeySheetName(ByVal S As String) As String
-    KeySheetName = Split(S, SHEET_SHAPE)(0)
+Public Function KeySheetName(ByVal s As String) As String
+    KeySheetName = Split(s, SHEET_SHAPE)(0)
 End Function
 
-Public Function KeyShapeName(ByVal S As String) As String
-    KeyShapeName = Split(S, SHEET_SHAPE)(1)
+Public Function KeyShapeName(ByVal s As String) As String
+    KeyShapeName = Split(s, SHEET_SHAPE)(1)
 End Function
 
 Public Function KeySheetShape(ByVal sheet_name As String, _
@@ -956,19 +968,20 @@ Private Sub SyncSheetsCode()
         cSource.CloneExpFileFullName = cTarget.ExpFileFullName
         If Not cSource.Changed Then GoTo next_sheet
         
+        cLog.ServicedItem = vbc
         Stats.Count sic_non_doc_mods_code
+        
         If lMode = Confirm Then
-            Sync.ConfInfo("Worksheet", Sync.SheetProjectName(wb:=Sync.Target, vbc:=cTarget.VBComp)) = "Code changed! Will be updated with code in corresp. source Workbook Export-File (line-by-line)."
+            Sync.ConfInfo = "Code changed!"
             sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
             If Not dctChanged.Exists(sCaption) _
             Then dctChanged.Add sCaption, cSource
         Else
-            cLog.ServicedItem(TypeString(vbc)) = vbc.Name
             sExpFile = cSource.ExpFileFullName
             mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
                             , wb_source_full_name:=cSource.Wrkbk.FullName _
                             , sync_source_codelines:=cSource.CodeLines
-            cLog.Entry = "Code updated line-by-line! from Export-File '" & sExpFile & "'"
+            cLog.Entry = "Code updated line-by-line with code from Export-File '" & sExpFile & "'"
         End If
         Set cSource = Nothing
         Set cTarget = Nothing
@@ -1013,9 +1026,11 @@ Private Sub SyncSheetsCodeName()
         Then GoTo next_sheet
         If sTargetSheetCodeName <> sSourceSheetCodeName And sTargetSheetName = sSourceSheetName Then
             '~~ The sheet's CodName has changed while the sheet's Name remained unchanged
+            cLog.ServicedItem = wsTarget
             Stats.Count sic_sheets_codename
+            
             If lMode = Confirm Then
-                Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Target.Worksheets(sTargetSheetName))) = "CodeName change! The sheet's CodeName will change to '" & sSourceSheetCodeName & "'."
+                Sync.ConfInfo = "CodeName change to '" & sSourceSheetCodeName & "'"
             Else
                 For Each vbc In Sync.Target.VBProject.VBComponents
                     If vbc.Name = sTargetSheetCodeName Then
@@ -1024,6 +1039,7 @@ Private Sub SyncSheetsCodeName()
                         '~~ because it is very likely code refers to the CodeName rather than to the sheet's Name or position
 '                        mSync.ByCodeLines sync_target_comp_name:=wsSource.CodeName _
                                         , wb_source_full_name:=SyncSource.FullName
+                        cLog.Entry = "CodeName changed to '" & sSourceSheetCodeName & "'"
                         Exit For
                     End If
                 Next vbc
@@ -1071,13 +1087,16 @@ Private Sub SyncSheetsName()
                           ) _
         Then GoTo next_comp
         If sTargetSheetCodeName = sSourceSheetCodeName And sTargetSheetName <> sSourceSheetName Then
+            cLog.ServicedItem = Sync.Source.Worksheets(sSourceSheetName)
             Stats.Count sic_sheets_name
+            
             '~~ The sheet's Name has changed while the sheets CodeName remained unchanged
             If lMode = Confirm Then
-                Sync.ConfInfo("Worksheet", Sync.SheetProjectName(Sync.Source.Worksheets(sSourceSheetName))) = "Name change! The sheet's Name will change to '" & sSourceSheetName & "'."
+                Sync.ConfInfo = "Name change to '" & sSourceSheetName & "'."
                 SourceSheetNameChange sSourceSheetName, sSourceSheetCodeName, sTargetSheetName, sTargetSheetCodeName
             Else
                 Sync.Target.Worksheets(sTargetSheetName).Name = sSourceSheetName
+                cLog.Entry = "Name changed to '" & sSourceSheetName & "'."
             End If
         End If
 next_comp:
@@ -1134,7 +1153,10 @@ Private Sub SyncSheetsNew()
             If NameChange(sSourceSheetName, sSourceSheetCodeName) Then GoTo next_v
     
             '~~ The sheet not exist in the target Workbook under the Name nor under the CodeName.
+            Set ws = Sync.Source.Worksheets(sSourceSheetName)
+            cLog.ServicedItem = ws
             Stats.Count sic_sheets_new
+            
             If lMode = Count Then
                 '~~ This is just the first call for counting the potentially new sheets
                 lSheetsNew = lSheetsNew + 1
@@ -1143,15 +1165,15 @@ Private Sub SyncSheetsNew()
                 If lSheetsNew > 0 Or lSheetsObsolete > 0 Then
                     If Not RestrictRenameAsserted Then
                         bAmbigous = True
-                        Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Source.Worksheets(sSourceSheetName))) = "New! Sync denied because ambigous until rename restriction is asserted. 1)"
+                        Sync.ConfInfo = "New! Ambigous! 1)"
                         Sync.NewSheet(sSourceSheetCodeName) = sSourceSheetName
                     Else
                         bAmbigous = False
-                        Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Source.Worksheets(sSourceSheetName))) = "New! Will be copied from source Workbook. 2)"
+                        Sync.ConfInfo = "New! 2)"
                         Sync.NewSheet(sSourceSheetCodeName) = sSourceSheetName
                     End If
                 Else
-                    Sync.ConfInfo = "New! Will be copied from source Workbook."
+                    Sync.ConfInfo = "New!"
                     Sync.NewSheet(sSourceSheetCodeName) = sSourceSheetName
                 End If
             Else
@@ -1159,7 +1181,6 @@ Private Sub SyncSheetsNew()
                 '~~ The new sheet is copied to the corresponding position in the target Workbook
                 Sync.Source.Worksheets(sSourceSheetName).Copy _
                 After:=Sync.Target.Sheets(Sync.Target.Worksheets.Count)
-                cLog.ServicedItem("Worksheet") = sSourceSheetCodeName & "(" & sSourceSheetName & ")"
                 cLog.Entry = "Copied from source Workbook."
             End If
         End If
@@ -1218,7 +1239,10 @@ Private Sub SyncSheetsObsolete()
             
             '~~ Target sheet not or no longer exists in source Workbook
             '~~ neither under the Name nor under the CodeName
+            Set ws = Sync.Target.Worksheets(sTargetSheetName)
+            cLog.ServicedItem = ws
             Stats.Count sic_sheets_obsolete
+            
             If lMode = Count Then
                 '~~ This is just the first call for counting the potentially new sheets
                 lSheetsObsolete = lSheetsObsolete + 1
@@ -1227,13 +1251,13 @@ Private Sub SyncSheetsObsolete()
                 If lSheetsNew > 0 Or lSheetsObsolete > 0 Then
                     If Not RestrictRenameAsserted Then
                         bAmbigous = True
-                        Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Target.Worksheets(sTargetSheetName))) = "Obsolete! Sync denied because ambigous until rename restriction is asserted. 1)"
+                        Sync.ConfInfo = "Obsolete! Ambigous 1)"
                     Else
                         bAmbigous = False
-                        Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Target.Worksheets(sTargetSheetName))) = "Obsolete! Will be removed. 2)"
+                        Sync.ConfInfo = "Obsolete! 2)"
                     End If
                 Else
-                    Sync.ConfInfo("Worksheet", Sync.SheetProjectName(ws:=Sync.Target.Worksheets(sTargetSheetName))) = "Obsolete! Will be removed."
+                    Sync.ConfInfo = "Obsolete!"
                 End If
             Else
                 If Not RestrictRenameAsserted Then GoTo xt
@@ -1243,7 +1267,6 @@ Private Sub SyncSheetsObsolete()
                 For Each ws In Sync.Target.Worksheets
                     If ws.CodeName = sTargetSheetCodeName Then
                         '~~ This is the obsolete sheet to be removed
-                        cLog.ServicedItem(TypeName(ws)) = ws.CodeName & "(" & ws.Name & ")"
                         Application.DisplayAlerts = False
                         ws.Delete
                         Application.DisplayAlerts = True
@@ -1385,7 +1408,6 @@ Public Function SyncTargetWithSource( _
     Loop
 
     If Not bSyncDenied Then
-        cLog.CompMaxLen = Sync.MaxLenTypeItem
         mSync.SyncTargetBackup bkp_folder, Sync.Target.FullName
         Stats.Clear
         lMode = Synchronize
@@ -1397,13 +1419,20 @@ Public Function SyncTargetWithSource( _
         
         SyncSheetsName
         SyncSheetsCodeName
-        Sync.CollectAllSyncItems
+        Sync.CollectAllSyncItems ' re-collect with new names
         
         SyncSheetsNew
-        Sync.CollectAllSyncItems
+        '~~ When a new sheet is copied from the source to the targget Workbook any ranges referring to another
+        '~~ sheet will be linked back to the source sheet. Because all sheets will be in synch here, these
+        '~~ links will be dropped.
+        DisconnectLinkedRanges
+        Sync.CollectAllSyncItems ' re-collect with new sheets
         
         SyncSheetsObsolete
-        Sync.CollectAllSyncItems
+        '~~ Removing sheets will leave invalid range names behind which are now removed
+        RemoveInvalidRangeNames
+        
+        Sync.CollectAllSyncItems ' to clear from removed sheets
         
         SyncSheetsCode
         SyncSheetsOrder
@@ -1418,8 +1447,6 @@ Public Function SyncTargetWithSource( _
         
         SyncNamesNew
         
-        RemoveInvalidRangeNames
-        DisconnectLinkedRanges
         Set dctChanged = Nothing
         SyncTargetWithSource = True
     End If
@@ -1450,13 +1477,16 @@ Private Sub SyncSheetsOrder()
     
     For i = 1 To Sync.Source.Worksheets.Count
         If Sync.TargetSheets.Exists(Sync.Source.Worksheets(i).Name) Then
-            SheetName = Sync.Source.Worksheets(i).Name
+            Set ws = Sync.Source.Worksheets(i)
+            SheetName = ws.Name
             If Sync.Target.Worksheets(i).Name <> SheetName Then
-                Debug.Print "Re-order due"
+                cLog.ServicedItem = ws
                 If i = 1 Then
                     Sync.Target.Worksheets(SheetName).Move Before:=Sheets(i + 1)
+                    cLog.Entry = "Order synched!"
                 Else
                     Sync.Target.Worksheets(SheetName).Move After:=Sheets(i)
+                    cLog.Entry = "Order synched!"
                 End If
             End If
         End If
@@ -1497,13 +1527,15 @@ Private Sub SyncVBCompsCodeChanged()
         If Not cSource.Changed Then GoTo next_vbc
         
         Stats.Count sic_non_doc_mods_code
+        cLog.ServicedItem = vbc
+        
         If lMode = Confirm Then
-            Sync.ConfInfo(cTarget.TypeString, vbc.Name) = "Changed"
+            Sync.ConfInfo = "Changed"
             sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
             If Not dctChanged.Exists(sCaption) _
             Then dctChanged.Add sCaption, cSource
         Else
-            cLog.ServicedItem(TypeName(vbc)) = vbc.Name
+            cLog.ServicedItem = vbc
             mRenew.ByImport rn_wb:=Sync.Target _
                           , rn_comp_name:=vbc.Name _
                           , rn_exp_file_full_name:=cSource.ExpFileFullName
@@ -1549,12 +1581,14 @@ Private Function SyncVBCompsNew()
         If CompExists(Sync.Target, vbc.Name) Then GoTo next_vbc
         
         '~~ No component exists under the source component's name
+        cLog.ServicedItem = vbc
         Stats.Count sic_non_doc_mod_new
+        
         If lMode = Confirm Then
-            Sync.ConfInfo(cSource.TypeString, vbc.Name) = "New! Corresponding source Workbook Export-File will by imported."
+            Sync.ConfInfo = "New! Corresponding source Workbook Export-File will by imported."
         Else
-            cLog.ServicedItem(TypeString(vbc)) = vbc.Name
             Sync.Target.VBProject.VBComponents.Import cSource.ExpFileFullName
+            cLog.Entry = "Component imported from Export-File '" & cSource.ExpFileFullName & "'"
         End If
         
         Set cSource = Nothing
@@ -1596,14 +1630,15 @@ Private Function SyncVBCompsObsolete()
         cTarget.CompName = vbc.Name
         If cTarget.Exists(Sync.Source) Then GoTo next_vbc
         
+        cLog.ServicedItem = vbc
         Stats.Count sic_non_doc_mod_obsolete
+        
         If lMode = Confirm Then
-            Sync.ConfInfo(TypeString(vbc), vbc.Name) = "Obsolete! Will be removed."
+            Sync.ConfInfo = "Obsolete!"
         Else
-            cLog.ServicedItem(TypeString(vbc)) = vbc.Name
             sType = cTarget.TypeString
             Sync.Target.VBProject.VBComponents.Remove vbc
-            cLog.Entry = "Obsolete (removed)"
+            cLog.Entry = "Removed!"
         End If
         Set cTarget = Nothing
 next_vbc:

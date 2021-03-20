@@ -9,36 +9,43 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private wbServiced          As Workbook
-Private sService            As String
-Private sServicedItem       As String
-Private sFile               As String
-Private sFolder             As String
-Private lMaxLenComp         As Long
-Private bNewLog             As Boolean
-Private sEntry              As String
+Private wbServiced              As Workbook
+Private sService                As String
+Private sFile                   As String
+Private sFolder                 As String
+Private bNewLog                 As Boolean
+Private sEntry                  As String
+Private sServicedItem           As String
+Private sServicedItemType       As String
+Private sServicedItemName       As String
+Private lMaxLenServicedItemType As Long
+Private lMaxLenServicedItemName As Long
 
 Private Sub Class_Initialize()
     bNewLog = True
 End Sub
 
-Private Property Get CompMaxLen() As Long:           CompMaxLen = lMaxLenComp:   End Property
+Friend Property Get MaxLenServicedItemType() As Long
+    MaxLenServicedItemType = lMaxLenServicedItemType
+End Property
 
-Public Property Let CompMaxLen(ByVal l As Long):    lMaxLenComp = l:            End Property
+Friend Property Get MaxLenServicedItemName() As Long
+    MaxLenServicedItemName = lMaxLenServicedItemName
+End Property
 
-Friend Property Let Entry(ByVal S As String)
+Friend Property Let Entry(ByVal s As String)
 ' ------------------------------------------
 ' Append an entry to the log file.
 ' ------------------------------------------
 Static sItem As String
-
-    If sServicedItem = vbNullString Then
-        sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & S
+  
+    If ServicedItem = vbNullString Then
+        sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & s
     Else
-        If sServicedItem = sItem Then
-            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.Space$(mCompMan.MaxLenTypeItem + 2) & S
+        If ServicedItem = sItem Then
+            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.Space$(Len(sItem)) & s
         Else
-            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sServicedItem & S
+            sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & ServicedItem & s
         End If
     End If
     mFile.Txt(ft_file:=sFile, ft_append:=True) = sEntry
@@ -48,11 +55,11 @@ End Property
 
 Friend Property Get File() As String:               File = sFile:               End Property
 
-Friend Property Let File(ByVal S As String):        sFile = S:                  End Property
+Friend Property Let File(ByVal s As String):        sFile = s:                  End Property
 
 Friend Property Get Folder() As String:             Folder = sFolder:           End Property
 
-Friend Property Let Folder(ByVal S As String):      sFolder = S:                End Property
+Friend Property Let Folder(ByVal s As String):      sFolder = s:                End Property
 
 'Friend Property Let Info(ByVal s As String)
 '' ------------------------------------------
@@ -102,26 +109,77 @@ Friend Property Let Service(ByVal sv_name As String)
                  Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "-")
 End Property
 
-Friend Property Let ServicedItem( _
-                  Optional ByVal si_type As String, _
-                           ByVal si_item As String)
-    sServicedItem = Align(Align(si_type, MAX_LEN_TYPE) & si_item, MaxLenTypeItem(wbServiced), , " ", ".") & ": "
+Friend Property Get ServicedItem() As Variant
+    If sServicedItemType = vbNullString And sServicedItemName = vbNullString Then
+        ServicedItem = sServicedItem
+    Else
+        sServicedItem = Align(sServicedItemType, lMaxLenServicedItemType) & " " & Align(sServicedItemName, lMaxLenServicedItemName, , " ", ".") & ": "
+        ServicedItem = sServicedItem
+    End If
+End Property
+
+Friend Property Let ServicedItem(ByRef v As Variant)
+' ----------------------------------------------------
+' Determine the serviced item's type and name string
+' for logging and compute the maximum length for both.
+' ----------------------------------------------------
+    
+    Dim vbc As VBComponent
+    Dim nm  As Name
+    Dim ws  As Worksheet
+    Dim ref As Reference
+    Dim shp As Shape
+    
+    Select Case TypeName(v)
+        Case "VBComponent"
+            Set vbc = v
+            Select Case vbc.Type
+                Case vbext_ct_ActiveXDesigner:  ServicedItemType = "ActiveX-Designer":  ServicedItemName = vbc.Name
+                Case vbext_ct_ClassModule:      ServicedItemType = "Class-Module":      ServicedItemName = vbc.Name
+                Case vbext_ct_MSForm:           ServicedItemType = "UserForm":          ServicedItemName = vbc.Name
+                Case vbext_ct_StdModule:        ServicedItemType = "Standard-Module":   ServicedItemName = vbc.Name
+                Case vbext_ct_Document
+                    If mCompMan.IsSheetComp(vbc) Then
+                                                ServicedItemType = "Worksheet":         ServicedItemName = vbc.Name
+                    Else
+                                                ServicedItemType = "Workbook":          ServicedItemName = vbc.Name
+                    End If
+            End Select
+        Case "Name":        Set nm = v:         ServicedItemType = "Name":              ServicedItemName = nm.Name & "(" & nm.RefersTo & ")"
+        Case "Reference":   Set ref = v:        ServicedItemType = TypeName(ref):       ServicedItemName = ref.Name
+        Case "Shape":       Set shp = v:        ServicedItemType = "Shape":             ServicedItemName = shp.Name
+        Case "Worksheet":   Set ws = v:         ServicedItemType = "Worksheet":         ServicedItemName = ws.Name & "(" & ws.CodeName & ")"
+        Case "String"
+            sServicedItemType = vbNullString
+            sServicedItemName = vbNullString
+            sServicedItem = Align(v, lMaxLenServicedItemType + lMaxLenServicedItemName + 1, , " ", ".") & ": "
+    End Select
+       
+End Property
+
+Private Property Let ServicedItemType(ByVal s As String)
+    Dim lMax As Long
+    sServicedItemType = s
+    lMaxLenServicedItemType = Max(lMaxLenServicedItemType, Len(sServicedItemType))
+End Property
+
+Private Property Let ServicedItemName(ByVal s As String)
+    Dim lMax As Long
+    sServicedItemName = s
+    lMaxLenServicedItemName = Max(lMaxLenServicedItemName, Len(sServicedItemName))
 End Property
 
 Friend Property Set ServicedWrkbk( _
                    Optional ByVal sw_new_log As Boolean = False, _
                             ByRef sw_wbServiced As Workbook)
-    
+' ----------------------------------------------------------------
+'
+' ----------------------------------------------------------------
     Dim vbc As VBComponent
     
     bNewLog = sw_new_log
     Set wbServiced = sw_wbServiced
     Me.Folder = sw_wbServiced.Path
-    If lMaxLenComp = 0 Then
-        For Each vbc In wbServiced.VBProject.VBComponents
-            lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
-        Next vbc
-    End If
     
     If sFile = vbNullString Then
         '~~ In case not a specific file had explicitely assigned before

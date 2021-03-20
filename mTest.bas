@@ -99,7 +99,8 @@ Public Sub Test_SynchTargetWithSource()
        
     If mService.SyncTargetWithSource(wb_target:=mCompMan.WbkGetOpen(sTarget) _
                                    , wb_source_name:=sSource _
-                                   , bkp_folder:=BkpFolder) _
+                                   , bkp_folder:=BkpFolder _
+                                    ) _
     Then
         ' -----------------------------------------------------------------
         Stop ' last chance to see the synch result in the target Workbook !
@@ -265,20 +266,17 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     
     With cComp
         .CompName = rnc_comp_name
-        cLog.ServicedItem(.TypeString) = .CompName
+        cLog.ServicedItem = .VBComp
         
         If .Wrkbk Is ActiveWorkbook Then
             Set wbActive = ActiveWorkbook
             Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
             cLog.Entry = "Active Workbook de-activated by creating a temporary Workbook"
         End If
-    
-        cLog.ServicedItem(.TypeString) = .CompName
-        
+            
         mRenew.ByImport rn_wb:=.Wrkbk _
                       , rn_comp_name:=.CompName _
                       , rn_exp_file_full_name:=rnc_exp_file_full_name
-
     End With
     
 xt: If Not wbTemp Is Nothing Then

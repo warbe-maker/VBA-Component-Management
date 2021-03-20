@@ -1,8 +1,8 @@
 Attribute VB_Name = "mShape"
 Option Explicit
 
-Private Function ErrSrc(ByVal S As String) As String
-    ErrSrc = "mShape." & S
+Private Function ErrSrc(ByVal s As String) As String
+    ErrSrc = "mShape." & s
 End Function
 
 Public Sub SyncProperties(ByRef shp_source As Shape, _
@@ -15,7 +15,7 @@ Public Sub SyncProperties(ByRef shp_source As Shape, _
     Const PROC = "SynchProperties"
     
     On Error GoTo eh
-    cLog.ServicedItem(TypeName(shp_target)) = shp_target.Name
+    cLog.ServicedItem = shp_target
     
     With shp_target
         On Error Resume Next

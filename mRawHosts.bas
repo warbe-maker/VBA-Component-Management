@@ -6,43 +6,43 @@ Option Explicit
 ' component name the values HostFullName and ExpFileFullName.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_HOST_FULL_NAME = "HostFullName"
-Private Const VNAME_IS_VB_RAW_PROJECT = "IsRawVbProject"
+Private Const VNAME_IS_VB_SOURCE_PROJECT = "IsRawVbProject"
 
 Public Property Get DAT_FILE() As String: DAT_FILE = mMe.CompManAddinPath & "\RawHosts.dat":   End Property
 
 Public Property Get FullName( _
                      Optional ByVal host_base_name As String) As String
-    FullName = Value(pp_section:=host_base_name, pp_value_name:=VNAME_HOST_FULL_NAME)
+    FullName = value(pp_section:=host_base_name, pp_value_name:=VNAME_HOST_FULL_NAME)
 End Property
 
 Public Property Let FullName( _
                      Optional ByVal host_base_name As String, _
                               ByVal host_full_name As String)
-    Value(pp_section:=host_base_name, pp_value_name:=VNAME_HOST_FULL_NAME) = host_full_name
+    value(pp_section:=host_base_name, pp_value_name:=VNAME_HOST_FULL_NAME) = host_full_name
 End Property
 
 Public Property Get IsRawVbProject( _
                      Optional ByVal host_base_name As String) As Boolean
-    IsRawVbProject = Value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_RAW_PROJECT)
+    IsRawVbProject = value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_SOURCE_PROJECT)
 End Property
 
 Public Property Let IsRawVbProject( _
                      Optional ByVal host_base_name As String, _
                               ByVal host_raw_project As Boolean)
-    Value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_RAW_PROJECT) = host_raw_project
+    value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_SOURCE_PROJECT) = host_raw_project
 End Property
 
-Private Property Get Value( _
+Private Property Get value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String) As Variant
     
-    Value = mFile.Value(pp_file:=DAT_FILE _
+    value = mFile.value(pp_file:=DAT_FILE _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
 End Property
 
-Private Property Let Value( _
+Private Property Let value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String, _
                     ByVal pp_value As Variant)
@@ -51,7 +51,7 @@ Private Property Let Value( _
 ' into the file RAWS_DAT_FILE.
 ' --------------------------------------------------
     
-    mFile.Value(pp_file:=DAT_FILE _
+    mFile.value(pp_file:=DAT_FILE _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value

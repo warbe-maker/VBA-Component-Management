@@ -38,60 +38,53 @@ Private Sub Class_Terminate()
     Set cllConfInfo = Nothing
 End Sub
 
-Public Sub DisplayCollectedSourceSheets()
-    Dim i   As Long
-    Dim ws  As Worksheet
-    Dim dct As Dictionary
+Friend Property Get ConfInfo( _
+              Optional ByRef serviced_item As Variant = Nothing) As String
+' -------------------------------------------------------
+' Returns the collected confirmation info as string,
+' completed with a summary.
+' -------------------------------------------------------
+    Dim v As Variant
+        
+    ConfInfoSummary
     
-    Debug.Print Align(S:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
-    Set dct = Me.SourceSheets
-    For i = 1 To dct.Count
-        Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
-        Debug.Print Align("Source", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.Name & ")"
-    Next i
-End Sub
-
-Public Sub DisplayCollectedTargetSheets()
-    Dim i   As Long
-    Dim ws  As Worksheet
-    Dim dct As Dictionary
-    
-    Debug.Print Align(S:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
-    Set dct = Me.SourceSheets
-    For i = 1 To dct.Count
-        Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
-        Debug.Print Align("Target", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.Name & ")"
-    Next i
-End Sub
-
-Public Sub DisplayCollectedSourceSheetShapes()
-    Dim v       As Variant
-    Dim dct     As Dictionary
-    Dim sSheet  As String
-    Dim sShape  As String
-    
-    Debug.Print Align(S:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
-    For Each v In Me.SourceSheetShapes
-        sSheet = mSync.KeySheetName(v)
-        sShape = mSync.KeyShapeName(v)
-        Debug.Print Align("Source", 10) & Align(sSheet, 30) & sShape
+    '~~ Compile result string
+    For Each v In cllConfInfo
+        ConfInfo = ConfInfo & v & vbLf
     Next v
-End Sub
-
-Public Sub DisplayCollectedTargetSheetShapes()
-    Dim v       As Variant
-    Dim dct     As Dictionary
-    Dim sSheet  As String
-    Dim sShape  As String
     
-    Debug.Print Align(S:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
-    For Each v In Me.TargetSheetShapes
-        sSheet = mSync.KeySheetName(v)
-        sShape = mSync.KeyShapeName(v)
-        Debug.Print Align("Source", 10) & Align(sSheet, 30) & sShape
-    Next v
-End Sub
+End Property
 
+Friend Property Let ConfInfo( _
+              Optional ByRef serviced_item As Variant = Nothing, _
+                       ByVal s As String)
+' ----------------------------------------------------------------
+' Append a confirmation info to a Collection.
+' Note: The clsLog class is used to determine the serviced item's
+'       type and name string in order to have the confirmation
+'       info consistent with the logged info.
+' ----------------------------------------------------------------
+    If cllConfInfo Is Nothing Then Set cllConfInfo = New Collection
+    With cLog
+        If Not TypeName(serviced_item) = "Nothing" Then
+            .ServicedItem = serviced_item
+        End If
+        sEntry = .ServicedItem & s
+    End With
+    cllConfInfo.Add sEntry
+End Property
+
+Friend Property Get MaxLenItem() As Long:
+    If lMaxLenItem = 0 Then
+        lMaxLenItem = mCompMan.MaxLenComp(Me.Source)
+        lMaxLenItem = mCompMan.MaxLenComp(Me.Target)
+    End If
+    MaxLenItem = lMaxLenItem
+End Property
+
+Friend Property Get MaxLenTypeItem() As Long
+    MaxLenTypeItem = lMaxLenTypeItem
+End Property
 
 Friend Property Let NewSheet( _
               Optional ByVal sheet_code_name As String, _
@@ -105,92 +98,8 @@ Friend Property Get NewSheetExists(ByVal sheet_name As String) As Boolean
     NewSheetExists = dctNewSheets.Exists(sheet_name)
 End Property
 
-Friend Property Get MaxLenTypeItem() As Long
-    MaxLenTypeItem = lMaxLenTypeItem
-End Property
-
-Friend Property Get ConfInfo( _
-              Optional ByVal ci_type As String, _
-              Optional ByVal ci_item As String) As String
-' -------------------------------------------------------
-' Returns the collected confirmation info as string,
-' completed with a summary.
-' -------------------------------------------------------
-    Dim v As Variant
-    Dim lMaxType        As Long
-    Dim lMaxItem        As Long
-    Dim sTypeItem       As String
-    Dim sTypeItemLast   As String
-        
-    ConfInfoSummary
-    
-    '~~ Get max lenghtes
-    For Each v In cllConfInfo
-        lMaxType = Max(lMaxType, Len(Split(v, "|")(0)))
-        lMaxItem = Max(lMaxItem, Len(Split(v, "|")(1)))
-    Next v
-    lMaxLenTypeItem = lMaxType + lMaxItem
-    
-    '~~ Compile result string
-    For Each v In cllConfInfo
-        sTypeItem = Align(Split(v, "|")(0), lMaxType + 1) & _
-                    Align(Split(v, "|")(1), lMaxItem, , " ", ".")
-                    
-        If sTypeItem = sTypeItemLast Then
-            ConfInfo = ConfInfo & vbLf & _
-                       VBA.Space$(Len(sTypeItem)) & _
-                       " : " & Split(v, "|")(2)
-        Else
-            ConfInfo = ConfInfo & vbLf & _
-                       sTypeItem & _
-                       " : " & Split(v, "|")(2)
-        End If
-        sTypeItemLast = sTypeItem
-    Next v
-    
-End Property
-
-Private Sub ConfInfoSummary()
-    Me.ConfInfo("Summary", "Standard-, Class Modules, UserForms") = _
-                Stats.AlignedValue(sic_non_doc_mod_total) & " Total, " & _
-                Stats.AlignedValue(sic_non_doc_mod_new) & " New, " & _
-                Stats.AlignedValue(sic_non_doc_mod_obsolete) & " Obsolete, " & _
-                Stats.AlignedValue(sic_non_doc_mods_code) & " Code-change"
-    Me.ConfInfo("Summary", "Names") = _
-                Stats.AlignedValue(sic_names_total) & " Total, " & _
-                Stats.AlignedValue(sic_names_new) & " New, " & _
-                Stats.AlignedValue(sic_names_obsolete) & " Obsolete"
-    Me.ConfInfo("Summary", "References") = _
-                Stats.AlignedValue(sic_refs_total) & " Total, " & _
-                Stats.AlignedValue(sic_refs_new) & " New, " & _
-                Stats.AlignedValue(sic_refs_obsolete) & " Obsolete"
-    Me.ConfInfo("Summary", "Shapes") = _
-                Stats.AlignedValue(sic_shapes_total) & " Total, " & _
-                Stats.AlignedValue(sic_shapes_new) & " New, " & _
-                Stats.AlignedValue(sic_shapes_obsolete) & " Obsolete"
-    Me.ConfInfo("Summary", "Sheets") = _
-                Stats.AlignedValue(sic_sheets_total) & " Total, " & _
-                Stats.AlignedValue(sic_sheets_new) & " New, " & _
-                Stats.AlignedValue(sic_sheets_obsolete) & " Obsolete, " & _
-                Stats.AlignedValue(sic_sheets_code) & " Code-change, " & _
-                Stats.AlignedValue(sic_sheets_codename) & " CodeName-change, " & _
-                Stats.AlignedValue(sic_sheets_name) & " Name-change"
-End Sub
-
-Friend Property Let ConfInfo( _
-              Optional ByVal ci_type As String, _
-              Optional ByVal ci_item As String, _
-                       ByVal S As String)
-' ------------------------------------------
-' Append a confirmation info to a Collection.
-' ------------------------------------------
-    If cllConfInfo Is Nothing Then Set cllConfInfo = New Collection
-    sEntry = ci_type & "|" & ci_item & "|" & S
-    cllConfInfo.Add sEntry
-End Property
-
-
 Friend Property Get Source() As Workbook:               Set Source = wbSyncSource:                      End Property
+
                  
 Friend Property Set Source(ByRef wb As Workbook):       Set wbSyncSource = wb:                          End Property
 
@@ -213,18 +122,6 @@ Friend Property Get TargetSheetComps() As Dictionary:   Set TargetSheetComps = d
 Friend Property Get TargetSheets() As Dictionary:       Set TargetSheets = dctTargetSheets:             End Property
 
 Friend Property Get TargetSheetShapes() As Dictionary:  Set TargetSheetShapes = dctTargetSheetShapes:   End Property
-
-Friend Property Get MaxLenItem() As Long:
-    If lMaxLenItem = 0 Then
-        lMaxLenItem = mCompMan.MaxLenComp(Me.Source)
-        lMaxLenItem = mCompMan.MaxLenComp(Me.Target)
-    End If
-    MaxLenItem = lMaxLenItem
-End Property
-
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "clsSync" & "." & sProc
-End Function
 
 Public Sub CollectAllSyncItems()
     Const PROC = "CollectAllSyncItems"
@@ -250,6 +147,7 @@ Public Sub CollectAllSyncItems()
     '~~ Source Worksheets by Name and by CodeName
     Stats.Count sic_sheets_total, wbSyncSource.Worksheets.Count
     For Each ws1 In wbSyncSource.Worksheets
+        cLog.ServicedItem = ws1 ' Compute max length for logged item type and item name
         With ws1
             mDct.DctAdd dctSourceSheets, .Name, .Name, order_bykey, seq_ascending, , , True
     '        mDct.DctAdd dctSourceSheets, .CodeName, .Name, order_bykey, seq_ascending, , , True
@@ -257,6 +155,7 @@ Public Sub CollectAllSyncItems()
             '~~ Source Workseet Shapes
             Stats.Count sic_shapes_total, .Shapes.Count
             For Each shp In .Shapes
+                cLog.ServicedItem = shp ' Compute max length for logged item type and item name
                 sKey = mSync.KeySheetShape(.Name, shp.Name)
                 mDct.DctAdd dctSourceSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
             Next shp
@@ -265,12 +164,14 @@ Public Sub CollectAllSyncItems()
      
     '~~ Target Worksheets by Name and by CodeName
     For Each ws2 In wbSyncTarget.Worksheets
+        cLog.ServicedItem = ws2 ' Compute max length for logged item type and item name
         With ws2
             mDct.DctAdd dctTargetSheets, .Name, .Name, order_bykey, seq_ascending, , , True
 '            mDct.DctAdd dctTargetSheets, .CodeName, .Name, order_bykey, seq_ascending, , , True
             
             '~~ Target Worksheet Shapes
             For Each shp In .Shapes
+                cLog.ServicedItem = shp ' Compute max length for logged item type and item name
                 sKey = mSync.KeySheetShape(.Name, shp.Name)
                 mDct.DctAdd dctTargetSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
             Next shp
@@ -280,11 +181,13 @@ Public Sub CollectAllSyncItems()
     '~~ Source and Target VBComponents
     Stats.Count sic_vbcomps_total, wbSyncSource.VBProject.VBComponents.Count
     For Each vbc In wbSyncSource.VBProject.VBComponents
+        cLog.ServicedItem = vbc ' Compute max length for logged item type and item name
         If mCompMan.IsSheetComp(vbc) Then
             mDct.DctAdd dctSourceSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
         End If
     Next vbc
     For Each vbc In wbSyncTarget.VBProject.VBComponents
+        cLog.ServicedItem = vbc ' Compute max length for logged item type and item name
         If IsSheetComp(vbc) Then
             mDct.DctAdd dctTargetSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
         End If
@@ -293,10 +196,12 @@ Public Sub CollectAllSyncItems()
     '~~ Source and Target Workbook Names
     Stats.Count sic_names_total, wbSyncSource.Names.Count
     For Each nm In wbSyncSource.Names
+        cLog.ServicedItem = nm ' Compute max length for logged item type and item name
         Set nmName = nm
         mDct.DctAdd dctSourceNames, nm.Name, nmName, order_bykey, seq_ascending, , , True
     Next nm
     For Each nm In wbSyncTarget.Names
+        cLog.ServicedItem = nm ' Compute max length for logged item type and item name
         Set nmName = nm
         mDct.DctAdd dctTargetNames, nm.Name, nmName, order_bykey, seq_ascending, , , True
     Next nm
@@ -308,6 +213,95 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeNext: Resume Next
     End Select
 End Sub
+
+Public Sub ConfInfoClear()
+    Set cllConfInfo = Nothing
+End Sub
+
+Private Sub ConfInfoSummary()
+    Me.ConfInfo("Summary Standard-, Class Modules, UserForms") = _
+                Stats.AlignedValue(sic_non_doc_mod_total) & " Total, " & _
+                Stats.AlignedValue(sic_non_doc_mod_new) & " New, " & _
+                Stats.AlignedValue(sic_non_doc_mod_obsolete) & " Obsolete, " & _
+                Stats.AlignedValue(sic_non_doc_mods_code) & " Code-change"
+    Me.ConfInfo("Summary Names") = _
+                Stats.AlignedValue(sic_names_total) & " Total, " & _
+                Stats.AlignedValue(sic_names_new) & " New, " & _
+                Stats.AlignedValue(sic_names_obsolete) & " Obsolete"
+    Me.ConfInfo("Summary References") = _
+                Stats.AlignedValue(sic_refs_total) & " Total, " & _
+                Stats.AlignedValue(sic_refs_new) & " New, " & _
+                Stats.AlignedValue(sic_refs_obsolete) & " Obsolete"
+    Me.ConfInfo("Summary Shapes") = _
+                Stats.AlignedValue(sic_shapes_total) & " Total, " & _
+                Stats.AlignedValue(sic_shapes_new) & " New, " & _
+                Stats.AlignedValue(sic_shapes_obsolete) & " Obsolete"
+    Me.ConfInfo("Summary Sheets") = _
+                Stats.AlignedValue(sic_sheets_total) & " Total, " & _
+                Stats.AlignedValue(sic_sheets_new) & " New, " & _
+                Stats.AlignedValue(sic_sheets_obsolete) & " Obsolete, " & _
+                Stats.AlignedValue(sic_sheets_code) & " Code-change, " & _
+                Stats.AlignedValue(sic_sheets_codename) & " CodeName-change, " & _
+                Stats.AlignedValue(sic_sheets_name) & " Name-change"
+End Sub
+
+Public Sub DisplayCollectedSourceSheets()
+    Dim i   As Long
+    Dim ws  As Worksheet
+    Dim dct As Dictionary
+    
+    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
+    Set dct = Me.SourceSheets
+    For i = 1 To dct.Count
+        Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
+        Debug.Print Align("Source", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.Name & ")"
+    Next i
+End Sub
+
+Public Sub DisplayCollectedSourceSheetShapes()
+    Dim v       As Variant
+    Dim dct     As Dictionary
+    Dim sSheet  As String
+    Dim sShape  As String
+    
+    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    For Each v In Me.SourceSheetShapes
+        sSheet = mSync.KeySheetName(v)
+        sShape = mSync.KeyShapeName(v)
+        Debug.Print Align("Source", 10) & Align(sSheet, 30) & sShape
+    Next v
+End Sub
+
+Public Sub DisplayCollectedTargetSheets()
+    Dim i   As Long
+    Dim ws  As Worksheet
+    Dim dct As Dictionary
+    
+    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
+    Set dct = Me.SourceSheets
+    For i = 1 To dct.Count
+        Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
+        Debug.Print Align("Target", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.Name & ")"
+    Next i
+End Sub
+
+Public Sub DisplayCollectedTargetSheetShapes()
+    Dim v       As Variant
+    Dim dct     As Dictionary
+    Dim sSheet  As String
+    Dim sShape  As String
+    
+    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    For Each v In Me.TargetSheetShapes
+        sSheet = mSync.KeySheetName(v)
+        sShape = mSync.KeyShapeName(v)
+        Debug.Print Align("Source", 10) & Align(sSheet, 30) & sShape
+    Next v
+End Sub
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "clsSync" & "." & sProc
+End Function
 
 Public Function SheetProjectName( _
                   Optional ByRef ws As Worksheet = Nothing, _
@@ -331,10 +325,6 @@ Public Function SheetProjectName( _
         End If
     End If
 End Function
-
-Public Sub ConfInfoClear()
-    Set cllConfInfo = Nothing
-End Sub
 
 Public Function TypeAndItem(ByVal tai_type As String, ByVal tai_item As String)
     TypeAndItem = Align(tai_type, MAX_LEN_TYPE) & tai_item
