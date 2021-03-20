@@ -28,8 +28,7 @@ Option Explicit
 ' W. Rauschenberger, Berlin Dec 2020
 ' See Github repo
 ' ------------------------------------------------------------------
-
-Friend Property Get HOSTED_RAWS() As String:    HOSTED_RAWS = "":   End Property
+Private Const HOSTED_RAWS = "mCompManClient"
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "wbAddIn" & "." & sProc
@@ -54,39 +53,27 @@ Private Sub Workbook_Open()
     Const PROC = "Workbook_Open"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     
     mErH.BoP ErrSrc(PROC)
     
     If mMe.IsDevInstnc Then
-        mMe.CfgAsserted ' assert a valid CompMan basic configuration
-        If mMe.AddInInstncWrkbkIsOpen Then
-            '~~ Essential! When the Development instance Workbook is opened, used Common Components
-            '~~ the origin code has changed can only be updated when the Addin instance Workbook is
-            '~~ open as well. However, since the VBProject has no reference to the Addin the Addin
-            '~~ will not be opened when the Development instance is the only Workbook open.
-            '~~ I.e. only when a Workbook referring to the Addin is opened the Addin will be opened as well.
-            mMe.UpdateRawClones
-        End If
+        '~~ ------------------------------------------------------------------
+        '~~ CompMan Workbook_Open service 'UpdateRawClones':
+        '~~ Executed by the Addin *) or via the development instance when open
+        '~~ *) automatically available only when referenced by the VB-Project
+        mCompManClient.CompManService "UpdateRawClones", HOSTED_RAWS
+        '~~ ------------------------------------------------------------------
+        mMe.DisplayStatus
     End If
         
-    With ThisWorkbook
-        '~~ Make sure the VBProject name is the Workbook's base name
-        '~~ Note that this is required to correctly identify (save, remove, restore) any reference
-        '~~ to the Addin in open Workbook when RenewByImport or SaveAsAddin is performed (see module mAddin)
-        If .VBProject.name <> fso.GetBaseName(.name) Then .VBProject.name = fso.GetBaseName(.name)
-        '~~ Unporotecting (the Addin) allows directly modify code in it - and saving it subsequently
-        '~~ as new Development instance (see method SaveasDev in module mAddin)
-        .Unprotect
-    End With
-    
+    ThisWorkbook.Unprotect
     
 xt: mErH.BoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
@@ -95,26 +82,28 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     Const PROC = "Workbook_BeforeSave"
     
     On Error GoTo eh
-    Dim wb As Workbook
-
-    If Not mMe.IsDevInstnc Then Exit Sub
-    
-    Set wb = ThisWorkbook
-    mErH.BoP ErrSrc(PROC)
-        
-    Application.EnableEvents = False
-    Application.StatusBar = "Saving Workbook '" & wb.name & "' please wait, this may take a few seconds"
-    wb.Save
-    Application.StatusBar = vbNullString
-    mCompMan.ExportChangedComponents wb, HOSTED_RAWS ' includes management of updated used Common Components
-    If Not wb.Saved Then
-        wb.Save        ' usually not required
+    '~~ ------------------------------------------------------------------
+    '~~ 'ExportChangedComponents' service, preferrably performed by the
+    '~~ CompMan Addin *), or when not available by this Workbook itself.
+    '~~ *) automatically available only when a Workbook is open which has
+    '~~    in the VBProject a Reference to the CompMan Addin.
+    If mMe.IsDevInstnc Then
+        mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
+        If Not ThisWorkbook.Saved Then
+            Application.EnableEvents = False
+            ThisWorkbook.Save
+            Application.EnableEvents = True
+        End If
     End If
+    '~~ ------------------------------------------------------------------
     
 xt: Application.EnableEvents = True
-    mErH.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: mErH.ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Sub
 

@@ -47,9 +47,26 @@ Private vErrReply           As Variant
 Private vArguments()        As Variant      ' The last procedures (with BoP) provided arguments
 Private cllRecentErrors     As Collection
 
-Private Property Let MostRecentError(ByVal lErrNo As Long)
-    If cllRecentErrors Is Nothing Then Set cllRecentErrors = New Collection
-    cllRecentErrors.Add lErrNo
+' -------------------------------------------
+' Buttons with Compile Argument Debugging = 1
+Public Property Get DebugOptResumeErrorLine() As String
+    DebugOptResumeErrorLine = "Debugging Option:" & vbLf & vbLf & "Stop and" & vbLf & "resume error line"
+End Property
+
+Public Property Get DebugOptResumeNext() As String
+    DebugOptResumeNext = "Debugging Option:" & vbLf & vbLf & "Resume Next"
+End Property
+
+Public Property Get DebugOptCleanExitAndContinue() As String
+    DebugOptCleanExitAndContinue = "Debugging Option:" & vbLf & vbLf & "Clean exit" & vbLf & "and continue"
+End Property
+' -------------------------------------------
+
+' Default error message button
+Public Property Get ErrMsgDefaultButton() As String:    ErrMsgDefaultButton = "Terminate execution":                                                  End Property
+
+Public Property Get ErrReply() As Variant
+    ErrReply = vErrReply
 End Property
 
 Public Property Get MostRecentError() As Long
@@ -60,48 +77,19 @@ Public Property Get MostRecentError() As Long
     End If
 End Property
 
+Private Property Let MostRecentError(ByVal lErrNo As Long)
+    If cllRecentErrors Is Nothing Then Set cllRecentErrors = New Collection
+    cllRecentErrors.Add lErrNo
+End Property
+
 Public Property Get RecentErrors() As Collection
     Set RecentErrors = cllRecentErrors
 End Property
-Public Property Get ErrReply() As Variant
-    ErrReply = vErrReply
-End Property
-
-Public Property Get DebugOpt1ResumeError() As String
-' --------------------------------------------------------------------
-' Button displayed when the Conditional Compile Argument Debugging = 1
-' --------------------------------------------------------------------
-    DebugOpt1ResumeError = "Debugging option 1:" & vbLf & vbLf & "Stop and Resume"
-End Property
-
-Public Property Get DebugOpt2ResumeNext() As String
-' --------------------------------------------------------------------
-' Button displayed when the Conditional Compile Argument Debugging = 1
-' --------------------------------------------------------------------
-    DebugOpt2ResumeNext = "Debugging option 2:" & vbLf & vbLf & "Resume Next"
-End Property
-
-' Default error message button
-Public Property Get ErrMsgDefaultButton() As String:    ErrMsgDefaultButton = "Terminate execution":                                                  End Property
 
 Private Property Get StckEntryProc() As String
     If Not StckIsEmpty _
     Then StckEntryProc = dctStck.Items()(0) _
     Else StckEntryProc = vbNullString
-End Property
-
-Public Property Get TestOpt1ResumeNext() As String
-' ---------------------------------------------------------------
-' Button displayed when the Conditional Compile Argument Test = 1
-' ---------------------------------------------------------------
-    TestOpt1ResumeNext = "Test option 1:" & vbLf & vbLf & "Continue with code line" & vbLf & "following the error line"
-End Property
-
-Public Property Get TestOpt2ExitAndContinue() As String
-' ---------------------------------------------------------------
-' Button displayed when the Conditional Compile Argument Test = 1
-' ---------------------------------------------------------------
-    TestOpt2ExitAndContinue = "Test option 2:" & vbLf & vbLf & "Exit procedure" & vbLf & "and continue with next"
 End Property
 
 Public Function AppErr(ByVal err_no As Long) As Long
@@ -175,98 +163,20 @@ Public Sub EoP(ByVal eop_id As String)
 ' ------------------------------------
 #If ExecTrace Then
     mTrc.EoP eop_id
-    mErH.StckPop eop_id
 #End If
+    mErH.StckPop eop_id
 End Sub
 
-Private Function ErrBttns( _
-           ByVal bttns As Variant) As Long
-' ----------------------------------------
-' Returns the number of specified bttns.
-' -----------------------------------------
-    Dim v As Variant
-    
-    For Each v In Split(bttns, ",")
-        If IsNumeric(v) Then
-            Select Case v
-                Case vbOKOnly:                              ErrBttns = ErrBttns + 1
-                Case vbOKCancel, vbYesNo, vbRetryCancel:    ErrBttns = ErrBttns + 2
-                Case vbAbortRetryIgnore, vbYesNoCancel:     ErrBttns = ErrBttns + 3
-            End Select
-        Else
-            Select Case v
-                Case vbNullString, vbLf, vbCr, vbCrLf
-                Case Else:  ErrBttns = ErrBttns + 1
-            End Select
-        End If
-    Next v
-
-End Function
-
-Private Function ErrDsply( _
-                    ByVal err_source As String, _
-                    ByVal err_number As Long, _
-                    ByVal err_dscrptn As String, _
-                    ByVal err_line As Long, _
-           Optional ByVal err_buttons As Variant = vbOKOnly) As Variant
-' ---------------------------------------------------------------------
-' Displays the error message. The displayed path to the error may be
-' provided as the error is passed on to the Entry Procedure or based on
-' the passed BoP/EoP services. In the first case the path to the error
-' may be pretty complete which in the second case the extent of detail
-' depends on which (how many) procedures do call the BoP/EoP service.
-'
-' W. Rauschenberger, Berlin, Nov 2020
-' ---------------------------------------------------------------------
-    
-    Dim sErrPath    As String
-    Dim sTitle      As String
-    Dim sLine       As String
-    Dim sDetails    As String
-    Dim sDscrptn    As String
-    Dim sInfo       As String
-    Dim sSource     As String
-    Dim sType       As String
-    Dim lNo         As Long
-    
-    ErrMsgMatter err_source:=err_source _
-               , err_no:=err_number _
-               , err_line:=err_line _
-               , err_dscrptn:=err_dscrptn _
-               , msg_title:=sTitle _
-               , msg_line:=sLine _
-               , msg_details:=sDetails _
-               , msg_source:=sSource _
-               , msg_dscrptn:=sDscrptn _
-               , msg_info:=sInfo _
-               , msg_type:=sType _
-               , msg_no:=lNo
-    sErrPath = ErrPathErrMsg(msg_details:=sType & lNo & " " & sLine _
-                           , err_source:=err_source)
-    '~~ Display the error message by means of the Common UserForm fMsg
-    With fMsg
-        .MsgTitle = sTitle
-        .MsgLabel(1) = "Error description:": .MsgText(1) = sDscrptn
-        
-        If ErrArgs = vbNullString _
-        Then .MsgLabel(2) = "Error source:": .MsgText(2) = sSource & sLine: .MsgMonoSpaced(2) = True _
-        Else .MsgLabel(2) = "Error source:": .MsgText(2) = sSource & sLine & vbLf & _
-                                                                       "(with arguments: " & ErrArgs & ")"
-        .MsgMonoSpaced(2) = True
-        .MsgLabel(3) = "Error path (call stack):":  .MsgText(3) = sErrPath
-        .MsgMonoSpaced(3) = True
-        .MsgLabel(4) = "Info:":              .MsgText(4) = sInfo
-        .MsgButtons = err_buttons
-        .Setup
-        
-        .show
-        If ErrBttns(err_buttons) = 1 Then
-            ErrDsply = err_buttons ' a single reply errbuttons return value cannot be obtained since the form is unloaded with its click
-        Else
-            ErrDsply = .ReplyValue ' when more than one button is displayed the form is unloadhen the return value is obtained
-        End If
-    End With
-
+Private Function ErrArgName(ByVal s As String) As Boolean
+    If Right(s, 1) = ":" _
+    Or Right(s, 1) = "=" _
+    Or Right(s, 2) = ": " _
+    Or Right(s, 2) = " :" _
+    Or Right(s, 2) = "= " _
+    Or Right(s, 2) = " =" _
+    Or Right(s, 3) = " : " _
+    Or Right(s, 3) = " = " _
+    Then ErrArgName = True
 End Function
 
 Private Function ErrArgs() As String
@@ -311,64 +221,110 @@ Private Function ErrArgs() As String
 
 End Function
 
-Private Function ErrArgName(ByVal s As String) As Boolean
-    If Right(s, 1) = ":" _
-    Or Right(s, 1) = "=" _
-    Or Right(s, 2) = ": " _
-    Or Right(s, 2) = " :" _
-    Or Right(s, 2) = "= " _
-    Or Right(s, 2) = " =" _
-    Or Right(s, 3) = " : " _
-    Or Right(s, 3) = " = " _
-    Then ErrArgName = True
+Private Function ErrBttns( _
+           ByVal bttns As Variant) As Long
+' ----------------------------------------
+' Returns the number of specified bttns.
+' -----------------------------------------
+    Dim v As Variant
+    
+    For Each v In Split(bttns, ",")
+        If IsNumeric(v) Then
+            Select Case v
+                Case vbOKOnly:                              ErrBttns = ErrBttns + 1
+                Case vbOKCancel, vbYesNo, vbRetryCancel:    ErrBttns = ErrBttns + 2
+                Case vbAbortRetryIgnore, vbYesNoCancel:     ErrBttns = ErrBttns + 3
+            End Select
+        Else
+            Select Case v
+                Case vbNullString, vbLf, vbCr, vbCrLf
+                Case Else:  ErrBttns = ErrBttns + 1
+            End Select
+        End If
+    Next v
+
 End Function
 
+Private Function ErrDsply( _
+                    ByVal err_source As String, _
+                    ByVal err_number As Long, _
+                    ByVal err_dscrptn As String, _
+                    ByVal err_line As Long, _
+           Optional ByVal err_buttons As Variant = vbOKOnly) As Variant
+' ---------------------------------------------------------------------
+' Displays the error message. The displayed path to the error may be
+' provided as the error is passed on to the Entry Procedure or based on
+' all passed BoP/EoP services. In the first case the path to the error
+' may be pretty complete, in the second case the extent of detail
+' depends on which (how many) procedures do call the BoP/EoP service.
+'
+' W. Rauschenberger, Berlin, Nov 2020
+' ---------------------------------------------------------------------
+    
+    Dim sErrPath    As String
+    Dim sTitle      As String
+    Dim sLine       As String
+    Dim sDetails    As String
+    Dim sDscrptn    As String
+    Dim sInfo       As String
+    Dim sSource     As String
+    Dim sType       As String
+    Dim lNo         As Long
+    
+    ErrMsgMatter err_source:=err_source _
+               , err_no:=err_number _
+               , err_line:=err_line _
+               , err_dscrptn:=err_dscrptn _
+               , msg_title:=sTitle _
+               , msg_line:=sLine _
+               , msg_details:=sDetails _
+               , msg_source:=sSource _
+               , msg_dscrptn:=sDscrptn _
+               , msg_info:=sInfo _
+               , msg_type:=sType _
+               , msg_no:=lNo
+    sErrPath = ErrPathErrMsg(msg_details:=sType & lNo & " " & sLine _
+                           , err_source:=err_source)
+#If Debuggin = 0 Then
+    If err_line = 0 Then
+        '~~ In case no error line is provided with the error message (commonly the case)
+        '~~ a hint regarding the Conditional Compile Argument which may be used to get
+        '~~ an option which supports 'resuming' it will be displayed.
+        If sInfo <> vbNullString Then sInfo = sInfo & vbLf & vbLf
+        sInfo = sInfo & "Attention Developers: The code line which caused/raised the error may be identified " & _
+                        "by setting the Conditional Compile Argument 'Debugging = 1'. The addtional displayed " & _
+                        "Debugging Option Button 'Stop and Resume error' can be used for example:" & vbLf & _
+                        "If mErH.ErrMsg(ErrSrc(PROC)) = mErH.DebugOptResumeErrorLine Then Stop: Resume"
+    End If
+#End If
+    
+    
+    
+    '~~ Display the error message by means of the Common UserForm fMsg
+    With fMsg
+        .MsgTitle = sTitle
+        .MsgLabel(1) = "Error description:": .MsgText(1) = sDscrptn
+        
+        If ErrArgs = vbNullString _
+        Then .MsgLabel(2) = "Error source:": .MsgText(2) = sSource & sLine: .MsgMonoSpaced(2) = True _
+        Else .MsgLabel(2) = "Error source:": .MsgText(2) = sSource & sLine & vbLf & _
+                                                                       "(with arguments: " & ErrArgs & ")"
+        .MsgMonoSpaced(2) = True
+        .MsgLabel(3) = "Error path (call stack):":  .MsgText(3) = sErrPath
+        .MsgMonoSpaced(3) = True
+        .MsgLabel(4) = "Info:":              .MsgText(4) = sInfo
+        .MsgButtons = err_buttons
+        .Setup
+        
+        .show
+        If ErrBttns(err_buttons) = 1 Then
+            ErrDsply = err_buttons ' a single reply errbuttons return value cannot be obtained since the form is unloaded with its click
+        Else
+            ErrDsply = .ReplyValue ' when more than one button is displayed the form is unloadhen the return value is obtained
+        End If
+    End With
 
-Private Sub ErrHndlrAddButtons(ByRef v1 As Variant, _
-                               ByRef v2 As Variant)
-' ---------------------------------------------------
-' Returns v1 followed by v2 whereby both may be a
-' errbuttons argument which means  a string, a
-' Dictionary or a Collection. When v1 is a Dictionary
-' or Collection v2 must be a string or long and vice
-' versa.
-' ---------------------------------------------------
-    
-    Dim dct As New Dictionary
-    Dim cll As New Collection
-    Dim v   As Variant
-    
-    Select Case TypeName(v1)
-        Case "Dictionary"
-            Select Case TypeName(v2)
-                Case "String", "Long": v1.Add v2, v2
-                Case Else ' Not added !
-            End Select
-        Case "Collection"
-            Select Case TypeName(v2)
-                Case "String", "Long": v1.Add v2
-                Case Else ' Not added !
-            End Select
-        Case "String", "Long"
-            Select Case TypeName(v2)
-                Case "String"
-                    v1 = v1 & "," & v2
-                Case "Dictionary"
-                    dct.Add v1, v1
-                    For Each v In v2
-                        dct.Add v, v
-                    Next v
-                    Set v2 = dct
-                Case "Collection"
-                    cll.Add v1
-                    For Each v In v2
-                        cll.Add v
-                    Next v
-                    Set v2 = cll
-            End Select
-    End Select
-    
-End Sub
+End Function
 
 Private Function ErrHndlrFailed( _
         ByVal err_number As Long, _
@@ -404,27 +360,6 @@ Private Function ErrHndlrFailed( _
     End If
 
 End Function
-
-Private Sub ErrHndlrManageButtons(ByRef err_buttons As Variant)
-
-    If err_buttons = vbNullString _
-    Then err_buttons = ErrMsgDefaultButton _
-    Else ErrHndlrAddButtons ErrMsgDefaultButton, err_buttons ' add the default button before the errbuttons specified
-    
-'~~ Special features are only available with the Alternative VBA MsgBox
-#If Debugging Or Test Then
-    ErrHndlrAddButtons err_buttons, vbLf ' errbuttons in new row
-#End If
-#If Debugging Then
-    ErrHndlrAddButtons err_buttons, DebugOpt1ResumeError
-    ErrHndlrAddButtons err_buttons, DebugOpt2ResumeNext
-#End If
-#If Test Then
-     ErrHndlrAddButtons err_buttons, TestOpt1ResumeNext
-     ErrHndlrAddButtons err_buttons, TestOpt2ExitAndContinue
-#End If
-
-End Sub
 
 Private Function ErrIsAsserted(ByVal err_no As Long) As Boolean
 ' -------------------------------------------------------------
@@ -475,7 +410,7 @@ Public Function ErrMsg( _
     
     If ErrHndlrFailed(err_number, err_source, err_buttons) Then GoTo xt
     If cllErrPath Is Nothing Then Set cllErrPath = New Collection
-    ErrHndlrManageButtons err_buttons
+    MsgManageButtons err_buttons
     ErrMsgMatter err_source:=err_source, err_no:=err_number, err_line:=err_line, err_dscrptn:=err_dscrptn, msg_details:=sDetails
     
     If sInitErrSource = vbNullString Then
@@ -524,8 +459,8 @@ Public Function ErrMsg( _
 #End If
 
 #If Test Then
-        '~~ When the Conditional Compile Argument Test = 1 and the error number is one asserted
-        '~~ the display of the error message is suspended to avoid a user interaction
+        '~~ When the Conditional Compile Argument Test = 1 and the error number is an asserted one
+        '~~ the display of the error message is suspended thereby avoiding a user interaction
         If Not ErrIsAsserted(lInitErrNo) _
         Then vErrReply = ErrDsply(err_source:=sInitErrSource, err_number:=lInitErrNo, err_dscrptn:=sInitErrDscrptn, err_line:=lInitErrLine, err_buttons:=err_buttons)
 #Else
@@ -533,12 +468,11 @@ Public Function ErrMsg( _
 #End If
         ErrMsg = vErrReply
         err_reply = vErrReply
-        Application.EnableEvents = True
 #If ExecTrace Then
     mTrc.Continue
 #End If
         Select Case vErrReply
-            Case DebugOpt1ResumeError, DebugOpt2ResumeNext, TestOpt1ResumeNext, TestOpt2ExitAndContinue
+            Case DebugOptResumeErrorLine, DebugOptResumeNext, DebugOptResumeNext, DebugOptCleanExitAndContinue
             Case Else: ErrPathErase
         End Select
 #If ExecTrace Then
@@ -588,7 +522,7 @@ Private Sub ErrMsgMatter(ByVal err_source As String, _
     msg_details = IIf(err_line <> 0, msg_type & msg_no & " in " & err_source & " (at line " & err_line & ")", msg_type & msg_no & " in " & err_source)
     msg_dscrptn = IIf(InStr(err_dscrptn, CONCAT) <> 0, Split(err_dscrptn, CONCAT)(0), err_dscrptn)
     If InStr(err_dscrptn, CONCAT) <> 0 Then msg_info = Split(err_dscrptn, CONCAT)(1)
-    msg_source = Application.name & ":  " & Application.ActiveWindow.Caption & ":  " & err_source
+    msg_source = Application.Name & ":  " & Application.ActiveWindow.Caption & ":  " & err_source
     
 End Sub
 
@@ -620,7 +554,7 @@ Private Function ErrPathErrMsg(ByVal msg_details As String, _
     If Not ErrPathIsEmpty Then
         '~~ When the error path is not empty and not only contains the error source procedure
         For i = cllErrorPath.Count To 1 Step -1
-            s = cllErrorPath.TrcEntryItem(i)
+            s = cllErrorPath(i)
             If i = cllErrorPath.Count _
             Then ErrPathErrMsg = s _
             Else ErrPathErrMsg = ErrPathErrMsg & vbLf & Space$(j * 2) & "|_" & s
@@ -662,6 +596,70 @@ End Function
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mErH." & sProc
 End Function
+
+Private Sub MsgAddButtons(ByRef v1 As Variant, _
+                          ByRef v2 As Variant)
+' ----------------------------------------------
+' Returns v1 followed by v2 whereby both may be
+' an msg_buttons argument, i.e. a string, a
+' Dictionary or a Collection. When v1 is a
+' Dictionary or Collection v2 must be a string
+' or long and vice versa.
+' ----------------------------------------------
+    
+    Dim dct As New Dictionary
+    Dim cll As New Collection
+    Dim v   As Variant
+    
+    Select Case TypeName(v1)
+        Case "Dictionary"
+            Select Case TypeName(v2)
+                Case "String", "Long": v1.Add v2, v2
+                Case Else ' Not added !
+            End Select
+        Case "Collection"
+            Select Case TypeName(v2)
+                Case "String", "Long": v1.Add v2
+                Case Else ' Not added !
+            End Select
+        Case "String", "Long"
+            Select Case TypeName(v2)
+                Case "String"
+                    v1 = v1 & "," & v2
+                Case "Dictionary"
+                    dct.Add v1, v1
+                    For Each v In v2
+                        dct.Add v, v
+                    Next v
+                    Set v2 = dct
+                Case "Collection"
+                    cll.Add v1
+                    For Each v In v2
+                        cll.Add v
+                    Next v
+                    Set v2 = cll
+            End Select
+    End Select
+    
+End Sub
+
+Private Sub MsgManageButtons(ByRef err_buttons As Variant)
+
+    If err_buttons = vbNullString _
+    Then err_buttons = ErrMsgDefaultButton _
+    Else MsgAddButtons ErrMsgDefaultButton, err_buttons ' add the default button before the errbuttons specified
+    
+'~~ Special features are only available with the Alternative VBA MsgBox
+#If Debugging Or Test Then
+    MsgAddButtons err_buttons, vbLf ' errbuttons in new row
+#End If
+#If Debugging Then
+    MsgAddButtons err_buttons, DebugOptResumeErrorLine
+    MsgAddButtons err_buttons, DebugOptResumeNext
+    MsgAddButtons err_buttons, DebugOptCleanExitAndContinue
+#End If
+
+End Sub
 
 Private Function StckBottom() As String
     If Not StckIsEmpty Then StckBottom = dctStck.Items()(0)

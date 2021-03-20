@@ -76,14 +76,14 @@ Private Declare PtrSafe Function DeletePrivateProfileSection _
                (ByVal Section As String, _
                 ByVal NoKey As Long, _
                 ByVal NoSetting As Long, _
-                ByVal name As String) As Long
+                ByVal Name As String) As Long
 
 Private Declare PtrSafe Function DeletePrivateProfileKey _
                 Lib "kernel32" Alias "WritePrivateProfileStringA" _
                (ByVal Section As String, _
                 ByVal Key As String, _
                 ByVal Setting As Long, _
-                ByVal name As String) As Long
+                ByVal Name As String) As Long
                  
 Private Declare PtrSafe Function GetPrivateProfileSectionNames _
                 Lib "kernel32.dll" Alias "GetPrivateProfileSectionNamesA" _
@@ -108,13 +108,34 @@ Private Property Get SplitStr(ByRef s As String)
     Else If InStr(s, vbCr) <> 0 Then SplitStr = vbCr
 End Property
 
+Public Property Let Arry( _
+           Optional ByVal fa_file As String, _
+           Optional ByVal fa_excl_empty_lines As Boolean = False, _
+           Optional ByRef fa_split As String = vbCrLf, _
+           Optional ByVal fa_append As Boolean = False, _
+                    ByVal fa_ar As Variant)
+' -----------------------------------------------------------------
+' Writes array (fa_ar) to file (fa_file) whereby the array is
+' joined to a text string using the line break string (fa_split)
+' which defaults to vbCrLf and is optionally returned by Arry-Get.
+' -----------------------------------------------------------------
+                    
+    mFile.Txt(ft_file:=fa_file _
+            , ft_append:=fa_append _
+            , ft_split:=fa_split _
+             ) = Join(fa_ar, fa_split)
+             
+End Property
+
 Public Property Get Arry( _
-           Optional ByVal fa_file_full_name As String, _
-           Optional ByVal fa_exclude_empty_records As Boolean = False) As Variant
-' ------------------------------------------------------------------------------------
-' Returns the content of the file (vFile) - which may be provided as file object or
-' full file name - as array by considering any kind of line break characters.
-' ------------------------------------------------------------------------------------
+           Optional ByVal fa_file As String, _
+           Optional ByVal fa_excl_empty_lines As Boolean = False, _
+           Optional ByRef fa_split As String, _
+           Optional ByVal fa_append As Boolean = False) As Variant
+' -----------------------------------------------------------------------
+' Returns the content of the file (fa_file) - a files full name - as
+' array, with the used line break string returned in (fa_split).
+' -----------------------------------------------------------------------
     Const PROC  As String = "Arry"
     
     On Error GoTo eh
@@ -128,17 +149,17 @@ Public Property Get Arry( _
     Dim j       As Long
     Dim v       As Variant
     
-    If Not fso.FileExists(fa_file_full_name) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named '" & fa_file_full_name & "' does not exist!"
+    If Not fso.FileExists(fa_file) _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named '" & fa_file & "' does not exist!"
     
     '~~ Unload file to a string
-    sFile = mFile.Txt(ft_file:=fa_file_full_name _
+    sFile = mFile.Txt(ft_file:=fa_file _
                     , ft_split:=sSplit _
                      )
     If sFile = vbNullString Then GoTo xt
     a = Split(sFile, sSplit)
     
-    If Not fa_exclude_empty_records Then
+    If Not fa_excl_empty_lines Then
         a1 = a
     Else
         '~~ Extract non-empty items
@@ -153,6 +174,7 @@ Public Property Get Arry( _
     End If
     
 xt: Arry = a1
+    fa_split = sSplit
     Set cll = Nothing
     Set fso = Nothing
     Exit Property
@@ -433,7 +455,7 @@ Private Function AppIsInstalled(ByVal sApp As String) As Boolean
     
     Dim i As Long: i = 1
     
-    Do Until Left(Environ$(i), 5) = "Path="
+    Do Until VBA.Left$(Environ$(i), 5) = "Path="
         i = i + 1
     Loop
     AppIsInstalled = InStr(Environ$(i), sApp) <> 0
@@ -604,7 +626,7 @@ Public Function Exists(ByVal fe_file As Variant, _
     If TypeOf fe_file Is File Then
         With New FileSystemObject
             On Error Resume Next
-            sTest = fe_file.name
+            sTest = fe_file.Name
             Exists = Err.Number = 0
             If Exists Then
                 '~~ Return the existing file as File object
@@ -637,7 +659,7 @@ Public Function Exists(ByVal fe_file As Variant, _
                         queue.Add sfldr ' enqueue (collect) all subfolders
                     Next sfldr
                     For Each fl In fldr.Files
-                        If InStr(fl.name, sFile) <> 0 And Left(fl.name, 1) <> "~" Then
+                        If InStr(fl.Name, sFile) <> 0 And VBA.Left$(fl.Name, 1) <> "~" Then
                             '~~ Return the existing file which meets the search criteria
                             '~~ as File object in a collection
                             fe_cll.Add fl
@@ -735,7 +757,7 @@ Public Sub NameRemove(ByVal pp_file As String, _
     DeletePrivateProfileKey Section:=pp_section _
                           , Key:=pp_value_name _
                           , Setting:=0 _
-                          , name:=pp_file
+                          , Name:=pp_file
 End Sub
 
 Public Function Differs( _
@@ -1110,7 +1132,7 @@ Public Sub SectionsRemove( _
         DeletePrivateProfileSection Section:=v _
                                   , NoKey:=0 _
                                   , NoSetting:=0 _
-                                  , name:=pp_file
+                                  , Name:=pp_file
     Next v
     
 xt: Set vNames = Nothing

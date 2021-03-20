@@ -88,10 +88,49 @@ Public Enum xlOnOff ' ------------------------------------
     xlOn = 1        ' System constants (identical values)
     xlOff = -4146   ' grouped for being used as Enum Type.
 End Enum            ' ------------------------------------
+Public Enum StringAlign
+    AlignLeft = 1
+    AlignRight = 2
+    AlignCentered = 3
+End Enum
 
 Public Property Get MsgReply() As Variant:          MsgReply = vMsgReply:   End Property
 
 Public Property Let MsgReply(ByVal v As Variant):   vMsgReply = v:          End Property
+
+Public Function Align( _
+                ByVal s As String, _
+                ByVal lngth As Long, _
+       Optional ByVal aligned As StringAlign = AlignLeft, _
+       Optional ByVal margin As String = vbNullString, _
+       Optional ByVal fill As String = " ") As String
+' ---------------------------------------------------------
+' Returns a string (s) with a lenght (lngth)
+' aligned (aligned) filled with characters (fill).
+' ---------------------------------------------------------
+    Dim SpaceLeft       As Long
+    Dim LengthRemaining As Long
+    
+    Select Case aligned
+        Case AlignLeft
+            If Len(s & margin) >= lngth _
+            Then Align = VBA.Left$(s & margin, lngth) _
+            Else Align = s & margin & VBA.String$(lngth - (Len(s & margin)), fill)
+        Case AlignRight
+            If Len(margin & s) >= lngth _
+            Then Align = VBA.Left$(margin & s, lngth) _
+            Else Align = VBA.String$(lngth - (Len(margin & s)), fill) & margin & s
+        Case AlignCentered
+            If Len(margin & s & margin) >= lngth Then
+                Align = margin & Left$(s, lngth - (2 * Len(margin))) & margin
+            Else
+                SpaceLeft = Max(1, ((lngth - Len(s) - (2 * Len(margin))) / 2))
+                Align = VBA.String$(SpaceLeft, fill) & margin & s & margin & VBA.String$(SpaceLeft, fill)
+                Align = VBA.Right$(Align, lngth)
+            End If
+    End Select
+
+End Function
 
 Public Function AppErr(ByVal lNo As Long) As Long
 ' -------------------------------------------------------------------------------
@@ -118,7 +157,7 @@ Public Function AppIsInstalled(ByVal sApp As String) As Boolean
     
     Dim i As Long: i = 1
     
-    Do Until left$(Environ$(i), 5) = "Path="
+    Do Until Left$(Environ$(i), 5) = "Path="
         i = i + 1
     Loop
     AppIsInstalled = InStr(Environ$(i), sApp) <> 0
@@ -358,11 +397,11 @@ Public Sub ArrayToRange(ByVal vArr As Variant, _
     If bOneCol Then
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(UBound(vArr), 1)
-        rTarget.Value = Application.Transpose(vArr)
+        rTarget.value = Application.Transpose(vArr)
     Else
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(1, UBound(vArr))
-        rTarget.Value = vArr
+        rTarget.value = vArr
     End If
     
 xt: Exit Sub
@@ -432,6 +471,18 @@ xt: Exit Function
 eh: ErrMsg ErrSrc(PROC)
 End Function
 
+Public Function Center(ByVal s1 As String, _
+                       ByVal l As Long, _
+               Optional ByVal sFill As String = " ") As String
+' ------------------------------------------------------------
+' Returns s1 centered in a string with length l.
+' ------------------------------------------------------------
+    Dim lSpace As Long
+    lSpace = Max(1, ((l - Len(s1)) / 2))
+    Center = VBA.String$(lSpace, sFill) & s1 & VBA.String$(lSpace, sFill)
+    Center = Right(Center, l)
+End Function
+
 Public Function CleanTrim(ByVal s As String, _
                  Optional ByVal ConvertNonBreakingSpace As Boolean = True) As String
 ' ----------------------------------------------------------------------------------
@@ -470,8 +521,25 @@ Public Function ElementOfIndex(ByVal a As Variant, _
     
 End Function
 
+Private Sub ErrMsg( _
+             ByVal err_source As String, _
+    Optional ByVal err_no As Long = 0, _
+    Optional ByVal err_dscrptn As String = vbNullString)
+' ------------------------------------------------------
+' This Common Component does not have its own error
+' handling. Instead it passes on any error to the
+' caller's error handling.
+' ------------------------------------------------------
+    
+    If err_no = 0 Then err_no = Err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+
+    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
+
+End Sub
+
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = ThisWorkbook.name & " mBasic." & sProc
+    ErrSrc = ThisWorkbook.Name & " mBasic." & sProc
 End Function
 
 Public Function IsCvName(ByVal v As Variant) As Boolean
@@ -589,21 +657,23 @@ Public Function SelectFolder( _
 
 End Function
 
-Private Sub ErrMsg( _
-             ByVal err_source As String, _
-    Optional ByVal err_no As Long = 0, _
-    Optional ByVal err_dscrptn As String = vbNullString)
-' ------------------------------------------------------
-' This Common Component does not have its own error
-' handling. Instead it passes on any error to the
-' caller's error handling.
-' ------------------------------------------------------
+Public Function Nbspd(ByVal s As String) As String
+' ------------------------------------------------
+' Returns a non-breaking-spaced string enclosed in two non-breaking spaces.
+' Example: Nbspd("   Ab c") = '  A b c  '
+' Note: Any number of leading, trailing, or contained spaces are removed.
+' in the
+' provided string are replaced by a single non-breaking space and any leading and trailing spaces.
+' -------------------------------------------------
+    Dim a() As Byte
+    Dim v   As Variant
     
-    If err_no = 0 Then err_no = Err.Number
-    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
-
-    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
-
-End Sub
-
+    a = StrConv(Replace(Trim(s), " ", vbNullString), vbFromUnicode)
+    Nbspd = Chr$(160) & Chr$(160)
+    For Each v In a
+        Nbspd = Nbspd & Chr$(v) & Chr$(160)
+    Next v
+    Nbspd = Nbspd & Chr$(160)
+    
+End Function
 
