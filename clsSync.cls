@@ -20,7 +20,6 @@ Private dctTargetNames          As Dictionary
 Private dctSourceSheetShapes    As Dictionary
 Private dctTargetSheetShapes    As Dictionary
 Private dctNewSheets            As Dictionary
-Private sConfItem               As String
 Private cllConfInfo             As Collection
 Private sEntry                  As String
 Private lMaxLenItem             As String
@@ -260,7 +259,6 @@ End Sub
 
 Public Sub DisplayCollectedSourceSheetShapes()
     Dim v       As Variant
-    Dim dct     As Dictionary
     Dim sSheet  As String
     Dim sShape  As String
     
@@ -287,7 +285,6 @@ End Sub
 
 Public Sub DisplayCollectedTargetSheetShapes()
     Dim v       As Variant
-    Dim dct     As Dictionary
     Dim sSheet  As String
     Dim sShape  As String
     

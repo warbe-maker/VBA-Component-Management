@@ -64,7 +64,6 @@ Private vbc                 As VBComponent  ' VBComponent managed by this Class 
 Private wb                  As Workbook     ' The class' Workbook
 Private sService            As String       ' Name of the 'Service' folder, i.e. the folder of the Workbook
 Private dctType             As Dictionary
-Private lMaxLenType         As Long
 Private lMaxLenComp         As Long
 Private sh                  As Worksheet
 
@@ -150,16 +149,16 @@ End Property
 
 Friend Property Get CompName() As String:           CompName = sCompName:       End Property
 
-Friend Property Let CompName(ByVal S As String)
+Friend Property Let CompName(ByVal s As String)
 ' ----------------------------------------------------------------
 ' Provides the properties: - CompName (sCompName)
 '                          - ExpFileFullName (sExpFileFullName)
 '                          - VBComp          (vbc)
 ' ----------------------------------------------------------------
-    sCompName = S
+    sCompName = s
     If Not wb Is Nothing Then
         If Me.Exists Then
-            Set vbc = wb.VBProject.VBComponents(S)
+            Set vbc = wb.VBProject.VBComponents(s)
             sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExtension
         End If
     End If
@@ -465,10 +464,10 @@ Friend Property Get WrkbkBaseName() As String:                 WrkbkBaseName = B
 
 Friend Property Get WrkbkFullName() As String:                 WrkbkFullName = sWrkbkFullName:                  End Property
 
-Friend Property Let WrkbkFullName(ByVal S As String):          sWrkbkFullName = S:                              End Property
+Friend Property Let WrkbkFullName(ByVal s As String):          sWrkbkFullName = s:                              End Property
 
-Private Function BaseName(ByVal S As String) As String
-    With New FileSystemObject:  BaseName = .GetBaseName(S): End With
+Private Function BaseName(ByVal s As String) As String
+    With New FileSystemObject:  BaseName = .GetBaseName(s): End With
 End Function
 
 Public Function CompType() As Dictionary

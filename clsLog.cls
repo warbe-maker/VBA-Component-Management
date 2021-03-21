@@ -158,13 +158,11 @@ Friend Property Let ServicedItem(ByRef v As Variant)
 End Property
 
 Private Property Let ServicedItemType(ByVal s As String)
-    Dim lMax As Long
     sServicedItemType = s
     lMaxLenServicedItemType = Max(lMaxLenServicedItemType, Len(sServicedItemType))
 End Property
 
 Private Property Let ServicedItemName(ByVal s As String)
-    Dim lMax As Long
     sServicedItemName = s
     lMaxLenServicedItemName = Max(lMaxLenServicedItemName, Len(sServicedItemName))
 End Property
@@ -175,7 +173,6 @@ Friend Property Set ServicedWrkbk( _
 ' ----------------------------------------------------------------
 '
 ' ----------------------------------------------------------------
-    Dim vbc As VBComponent
     
     bNewLog = sw_new_log
     Set wbServiced = sw_wbServiced

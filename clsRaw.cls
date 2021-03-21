@@ -58,12 +58,10 @@ Private sWrkbkBaseName          As String       ' Common Component host Workbook
 Private sWrkbkFullName          As String       ' Common Component host Workbook's full name
 Private vbc                     As VBComponent  ' VBComponent managed by this Class Module
 Private dctType                 As Dictionary
-Private lMaxLenType             As Long
 Private lMaxLenComp             As Long
 Private foExport                As Folder
 
 Private Sub Class_Initialize()
-    Dim v As Variant
     If dctType Is Nothing Then Set dctType = New Dictionary
     dctType.Add vbext_ct_ActiveXDesigner, "ActiveX Designer"
     dctType.Add vbext_ct_ClassModule, "Class Module"

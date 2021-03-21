@@ -40,7 +40,6 @@ End Property
 
 Public Sub RawClones( _
                ByRef urc_wb As Workbook, _
-               ByVal urc_comp_max_len As Long, _
                ByRef urc_clones As Dictionary)
 ' --------------------------------------------------------
 ' Updates any clone Workbook urc_wb. Note that clones are

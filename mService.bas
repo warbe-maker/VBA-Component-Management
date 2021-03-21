@@ -219,6 +219,10 @@ Public Function Denied(ByRef den_serviced_wb As Workbook, _
         sStatus = "Service denied! The Workbook is not the only one in its parent folder!"
         cLog.Entry = sStatus
         Denied = True
+    ElseIf Not AppIsInstalled("WinMerge") Then
+        sStatus = "Service denied! WinMerge is required but not installed!"
+        cLog.Entry = sStatus
+        Denied = True
     End If
     If Denied _
     Then Application.StatusBar = cLog.Service & sStatus
@@ -551,7 +555,6 @@ Public Sub UpdateRawClones( _
     End If
     
     mUpdate.RawClones urc_wb:=uc_wb _
-                    , urc_comp_max_len:=lMaxLenComp _
                     , urc_clones:=Clones(uc_wb)
 
 xt: If Not wbTemp Is Nothing Then
@@ -823,13 +826,7 @@ Public Sub CollectServicedItems()
     Const PROC = "CollectServicedItems"
     
     On Error GoTo eh
-    Dim ws1     As Worksheet
-    Dim ws2     As Worksheet
     Dim vbc     As VBComponent
-    Dim shp     As Shape
-    Dim nm      As Name
-    Dim nmName  As Name
-    Dim sKey    As String
     
     If dctServiced Is Nothing Then Set dctServiced = New Dictionary Else dctServiced.RemoveAll
     

@@ -73,7 +73,6 @@ Public asNoSynch()      As String
 Public lMaxCompLength   As Long
 Public dctHostedRaws    As Dictionary
 Public Stats            As clsStats
-Private sService        As String
 Private lMaxLenComp     As Long
 Private lMaxLenTypeItem As Long
 

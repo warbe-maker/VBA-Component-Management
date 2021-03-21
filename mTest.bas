@@ -239,8 +239,7 @@ Public Sub Test_Refs()
 End Sub
 
 Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
-                          ByVal rnc_comp_name As String, _
-                          ByRef rnc_wb As Workbook)
+                          ByVal rnc_comp_name As String)
 ' --------------------------------------------------------
 ' This test procedure is exclusively performed by the
 ' AddIn instance. It is run by the Development instance

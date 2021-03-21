@@ -22,7 +22,6 @@ Private cTarget                 As clsComp
 Private lSheetsObsolete         As Long
 Private lSheetsNew              As Long
 Private ManualSynchRequired     As Boolean
-Private lCompMaxLen             As Long
 
 Public Enum siCounter
     sic_cols_new
@@ -162,52 +161,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Property Get CompMaxLen() As Long
-' -------------------------------------------------------------
-' Returns the length of the longest element which may be
-' displayed with the syncronization confirmation info.
-' -------------------------------------------------------------
-    
-    Dim vbc As VBComponent
-    Dim ref As Reference
-    Dim l   As Long
-    Dim ws  As Worksheet
-    Dim shp As Shape
-    Dim nm  As Name
-    
-    If lCompMaxLen = 0 Then
-        With Sync
-            For Each vbc In .Target.VBProject.VBComponents: l = mBasic.Max(l, Len(vbc.Name)):   Next vbc
-            For Each vbc In .Source.VBProject.VBComponents: l = mBasic.Max(l, Len(vbc.Name)):   Next vbc
-            For Each ref In .Target.VBProject.References:   l = mBasic.Max(l, Len(ref.Name)):   Next ref
-            For Each ref In .Source.VBProject.References:   l = mBasic.Max(l, Len(ref.Name)):   Next ref
-            For Each ws In .Source.Worksheets
-                                                            l = mBasic.Max(l, ws.CodeName & "(" & ws.Name & ")")
-                For Each shp In ws.Shapes:                  l = mBasic.Max(l, Len(shp.Name)):   Next shp
-            Next ws
-            For Each ws In .Target.Worksheets
-                                                            l = mBasic.Max(l, ws.CodeName & "(" & ws.Name & ")")
-                For Each shp In ws.Shapes:                  l = mBasic.Max(l, Len(shp.Name)):   Next shp
-            Next ws
-            For Each nm In .Source.Names:                   l = mBasic.Max(l, Len(nm.Name) + Len(nm.RefersTo)): Next nm
-            For Each nm In .Target.Names:                   l = mBasic.Max(l, Len(nm.Name) + Len(nm.RefersTo)): Next nm
-        End With
-    End If
-    CompMaxLen = lCompMaxLen
-End Property
-
-Private Function CompSheetName( _
-                         ByRef wb As Workbook, _
-                         ByVal comp_name As String) As String
-    Dim ws As Worksheet
-    For Each ws In wb.Worksheets
-        If ws.CodeName = comp_name Then
-            CompSheetName = ws.Name
-            Exit For
-        End If
-    Next ws
-End Function
-
 Private Sub DisconnectLinkedRanges()
 ' --------------------------------------------
 ' Provided all sheets had been synchronized
@@ -251,49 +204,6 @@ Private Function NameExists( _
         NameExists = nm.Name = ne_nm.Name
         If NameExists Then Exit For
     Next nm
-End Function
-
-Private Function NameType(ByRef wb As Workbook, _
-                          ByVal nm As Name) As String
-    Const PROC = "NameTyüe"
-    
-    On Error GoTo eh
-    Dim lCells  As Long
-    Dim lRows   As Long
-    Dim lCols   As Long
-    Dim rng     As Range
-    Dim sSheet  As String
-    Dim ws      As Worksheet
-    
-    sSheet = Replace(Split(nm.RefersTo, "!")(0), "=", vbNullString)
-    Set ws = wb.Worksheets.Item(sSheet)
-    Set rng = ws.Range(nm.Name)
-
-    lCells = rng.Cells.CountLarge
-    lRows = rng.Rows.CountLarge
-    lCols = rng.Columns.CountLarge
-    
-    If lCells = 1 Then
-        NameType = "Cell-Name"
-    ElseIf lRows = 1 And rng.Columns.CountLarge = rng.EntireRow.Columns.CountLarge Then
-        NameType = "Row-Name"
-    ElseIf lRows > 1 And rng.Columns.CountLarge = rng.EntireRow.Columns.CountLarge Then
-        NameType = "Rows-Name"
-    ElseIf lCols = 1 And rng.Rows.CountLarge = rng.EntireColumn.Rows.CountLarge Then
-        NameType = "Col-Name"
-    ElseIf lCols > 1 And rng.Rows.CountLarge = rng.EntireColumn.Rows.CountLarge Then
-        NameType = "Cols-Name"
-    Else
-        NameType = "Range-Name"
-    End If
-    
-xt: Exit Function
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
 End Function
 
 Private Function RefExists( _
@@ -522,8 +432,6 @@ Private Function SheetShapeExists( _
     Const PROC = ""
     
     On Error GoTo eh
-    Dim i   As Long
-    Dim s   As String
     Dim ws  As Worksheet
     Dim shp As Shape
     
@@ -906,12 +814,8 @@ Private Sub SyncShapesProperties()
         
     On Error GoTo eh
     Dim v           As Variant
-    Dim wsSource    As Worksheet
-    Dim wsTarget    As Worksheet
     Dim sShape      As String
     Dim sSheet      As String
-    Dim shpSource   As Shape
-    Dim shpTarget   As Shape
     
     With Sync
         For Each v In .SourceSheetShapes
@@ -950,7 +854,6 @@ Private Sub SyncSheetsCode()
     Dim fso                 As New FileSystemObject
     Dim vbc                 As VBComponent
     Dim sCaption            As String
-    Dim sTargetSheetName    As String
     Dim sExpFile            As String
     
     For Each vbc In Sync.Source.VBProject.VBComponents
@@ -1006,7 +909,6 @@ Private Sub SyncSheetsCodeName()
     
     On Error GoTo eh
     Dim v                       As Variant
-    Dim wsSource                As Worksheet
     Dim wsTarget                As Worksheet
     Dim vbc                     As VBComponent
     Dim sSourceSheetCodeName    As String
@@ -1065,12 +967,6 @@ Private Sub SyncSheetsName()
     
     On Error GoTo eh
     Dim v                       As Variant
-    Dim wsSource                As Worksheet
-    Dim vbcSource               As VBComponent
-    Dim vbcTarget               As VBComponent
-    Dim ws                      As Worksheet
-    Dim sSheetName              As String
-    Dim vbc                     As VBComponent
     Dim sSourceSheetCodeName    As String
     Dim sSourceSheetName        As String
     Dim sTargetSheetCodeName    As String
@@ -1132,8 +1028,6 @@ Private Sub SyncSheetsNew()
     Const PROC = "SyncSheetsNew"
     
     On Error GoTo eh
-    Dim vbc                     As VBComponent
-    Dim i                       As Long
     Dim ws                      As Worksheet
     Dim sSourceSheetName        As String
     Dim sTargetSheetName        As String
@@ -1218,14 +1112,11 @@ Private Sub SyncSheetsObsolete()
     Const PROC = "SyncSheetsObsolete"
     
     On Error GoTo eh
-    Dim vbc                     As VBComponent
     Dim ws                      As Worksheet
     Dim cSource                 As clsRaw
     Dim cTarget                 As clsComp
     Dim v                       As Variant
-    Dim sSourceSheetName        As String
     Dim sTargetSheetName        As String
-    Dim sSourceSheetCodeName    As String
     Dim sTargetSheetCodeName    As String
     
     For Each v In Sync.TargetSheets
@@ -1304,7 +1195,6 @@ Public Function SyncTargetWithSource( _
     
     On Error GoTo eh
     Dim fso             As New FileSystemObject
-    Dim sConfirm        As String
     Dim v               As Variant
     Dim sMsg            As tMsg
     Dim sBttnCnfrmd     As String
@@ -1312,9 +1202,6 @@ Public Function SyncTargetWithSource( _
     Dim sBttnRestricted As String
     Dim cllButtons      As Collection
     Dim sReply          As String
-    Dim ts              As TextStream
-    Dim ws              As Worksheet
-    Dim vbc             As VBComponent
     
     Set Sync = New clsSync
     Set Stats = New clsStats
@@ -1616,8 +1503,6 @@ Private Function SyncVBCompsObsolete()
     Const PROC = "SyncVBCompsObsolete"
     
     On Error GoTo eh
-    Dim v           As Variant
-    Dim lType       As vbcmType
     Dim vbc         As VBComponent
     Dim sType       As String
     Dim cTarget     As clsComp

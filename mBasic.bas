@@ -661,19 +661,22 @@ Public Function Nbspd(ByVal s As String) As String
 ' ------------------------------------------------
 ' Returns a non-breaking-spaced string enclosed in two non-breaking spaces.
 ' Example: Nbspd("   Ab c") = '  A b c  '
-' Note: Any number of leading, trailing, or contained spaces are removed.
-' in the
-' provided string are replaced by a single non-breaking space and any leading and trailing spaces.
+' Note: Any number of leading or trailing spaces are removed, included
+'       spaces will be doubled.
 ' -------------------------------------------------
     Dim a() As Byte
     Dim v   As Variant
     
-    a = StrConv(Replace(Trim(s), " ", vbNullString), vbFromUnicode)
-    Nbspd = Chr$(160) & Chr$(160)
+    a = StrConv(s, vbFromUnicode)
+    Nbspd = " " & Chr$(160)
     For Each v In a
-        Nbspd = Nbspd & Chr$(v) & Chr$(160)
+        If Chr$(v) = " " Then
+            Nbspd = Nbspd & Chr$(160) & Chr$(160)
+        Else
+            Nbspd = Nbspd & Chr$(v) & Chr$(160)
+        End If
     Next v
-    Nbspd = Nbspd & Chr$(160)
+    Nbspd = Nbspd & " "
     
 End Function
 
