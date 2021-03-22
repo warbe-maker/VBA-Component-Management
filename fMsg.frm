@@ -213,7 +213,7 @@ End Property
 
 Private Property Let AppliedControl(ByVal v As Variant)
     If dctApplied Is Nothing Then Set dctApplied = New Dictionary
-    If Not IsApplied(v) Then dctApplied.Add v, v.name
+    If Not IsApplied(v) Then dctApplied.Add v, v.Name
 End Property
 
 Private Property Get ButtonsFrameHeight() As Single
@@ -1666,7 +1666,7 @@ Private Sub SetupMsgSectionMonoSpaced(ByVal Section As Long, _
         .Visible = True
         .MultiLine = True
         .WordWrap = False
-        .Font.name = sMonoSpacedFontName
+        .Font.Name = sMonoSpacedFontName
         .Font.Size = siMonoSpacedFontSize
         .AutoSize = True
         .Value = text
@@ -1807,12 +1807,12 @@ Private Sub SetupTitle()
         '~~ When a font name other then the standard UserForm font name is
         '~~ provided the extra hidden title label which mimics the title bar
         '~~ width is displayed. Otherwise it remains hidden.
-        If sTitleFontName <> vbNullString And sTitleFontName <> .Font.name Then
+        If sTitleFontName <> vbNullString And sTitleFontName <> .Font.Name Then
             With .laMsgTitle   ' Hidden by default
                 .Visible = True
                 .top = siTop
                 siTop = VgridPos(.top + .Height)
-                .Font.name = sTitleFontName
+                .Font.Name = sTitleFontName
                 If sTitleFontSize <> 0 Then
                     .Font.Size = sTitleFontSize
                 End If
@@ -1827,7 +1827,7 @@ Private Sub SetupTitle()
             With .laMsgTitle
                 With .Font
                     .Bold = False
-                    .name = Me.Font.name
+                    .Name = Me.Font.Name
                     .Size = 8.65   ' Value which comes to a length close to the length required
                 End With
                 .Visible = False

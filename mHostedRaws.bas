@@ -2,35 +2,35 @@ Attribute VB_Name = "mHostedRaws"
 Option Explicit
 ' ---------------------------------------------------------------------------
 ' Standard Module mRaw
-'                 Maintains for raw components identified by their
-'                 component name the values HostFullName and ExpFilePath.
+' Maintains for raw components identified by their component name,
+' the values HostFullName, and the ExpFileFullName.
 ' ---------------------------------------------------------------------------
 
-Private Const VALUE_HOST_FULL_NAME      As String = "HostFullName"
-Private Const VALUE_EXP_FILE_FULL_NAME  As String = "ExpFilePath"
+Private Const VNAME_HOST_FULL_NAME      As String = "HostFullName"
+Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
 Public Property Get DAT_FILE() As String: DAT_FILE = mMe.CompManAddinPath & "\HostedRaws.dat":   End Property
 
-Public Property Get ExpFilePath( _
+Public Property Get ExpFileFullName( _
                      Optional ByVal comp_name As String) As String
-    ExpFilePath = Value(pp_section:=comp_name, pp_value_name:=VALUE_EXP_FILE_FULL_NAME)
+    ExpFileFullName = Value(pp_section:=comp_name, pp_value_name:=VNAME_EXP_FILE_FULL_NAME)
 End Property
 
-Public Property Let ExpFilePath( _
+Public Property Let ExpFileFullName( _
                      Optional ByVal comp_name As String, _
                               ByVal ef_full_name As String)
-    Value(pp_section:=comp_name, pp_value_name:=VALUE_EXP_FILE_FULL_NAME) = ef_full_name
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_EXP_FILE_FULL_NAME) = ef_full_name
 End Property
 
 Public Property Get HostFullName( _
                      Optional ByVal comp_name As String) As String
-    HostFullName = Value(pp_section:=comp_name, pp_value_name:=VALUE_HOST_FULL_NAME)
+    HostFullName = Value(pp_section:=comp_name, pp_value_name:=VNAME_HOST_FULL_NAME)
 End Property
 
 Public Property Let HostFullName( _
                      Optional ByVal comp_name As String, _
                               ByVal hst_full_name As String)
-    Value(pp_section:=comp_name, pp_value_name:=VALUE_HOST_FULL_NAME) = hst_full_name
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_HOST_FULL_NAME) = hst_full_name
 End Property
 
 Private Property Get Value( _
@@ -46,8 +46,8 @@ Private Property Get Value( _
 xt: Exit Property
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: Exit Property
     End Select
 End Property
@@ -71,8 +71,8 @@ Private Property Let Value( _
 xt: Exit Property
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: Exit Property
     End Select
 End Property
@@ -101,8 +101,8 @@ Public Function MaxRawLenght() As Long
 xt: Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOpt1ResumeError: Stop: Resume
-        Case mErH.DebugOpt2ResumeNext: Resume Next
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Function
