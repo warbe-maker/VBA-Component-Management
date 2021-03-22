@@ -74,42 +74,11 @@ The _Component Management Services_ are available when the _[development instanc
   - a dedicated Addin-folder for the Addin-Workbook - preferably a dedicated folder like ../CompMan/Addin
   - a _Serviced-Root-Folder_ which is used to serve only Workbooks under this root but not when they are located elsewhere outside
  
-Once the Addin is established it will automatically be loaded with the first Workbook opened which ha a VBProject with a _Reference_ to it. When no Workbook refers to it, the Addin may be made available at any time via the CompMan-Development-Instance-Workbook.
+Once the Addin is established it will automatically be loaded with the first Workbook opened which has a _Reference_ to it. When no Workbook refers to it the Addin may be made available at any time via the CompMan-Development-Instance-Workbook.
 
-### Workbooks/VB-Projects hosting raws or using raw clones
-1. Copy the following into the Workbook component
-```vb
-Option Explicit
-                                    ' -------------------------------------------------------------
-Private Const HOSTED_RAWS = ""      ' Comma delimited names of Common Components hosted, developed,
-                                    ' tested, and provided by this Workbook - if any
-                                    ' -------------------------------------------------------------
+# Usage
 
-Private Sub Workbook_Open()
-    
-    '~~ ------------------------------------------------------------------
-    '~~ CompMan Workbook_Open service 'UpdateRawClones':
-    '~~ Executed by the Addin *) or via the development instance when open
-    '~~ *) automatically available only when referenced by the VB-Project
-    mCompManClient.CompManService "UpdateRawClones", HOSTED_RAWS
-    '~~ ------------------------------------------------------------------
-    
-End Sub
-
-Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
-
-    '~~ ------------------------------------------------------------------
-    '~~ 'ExportChangedComponents' service, preferrably performed by the
-    '~~ CompMan Addin, when not open alternatively by the open CompMan-
-    '~~ Development-Instance-Workbook. When neither is open the service
-    '~~ is not performed without notic.
-    mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
-    '~~ ------------------------------------------------------------------
-
-End Sub
-
-```
-2. Copy the module _mCompManClient_ from the open CompMan.xlsb Workbook into the Workbook or alternatively the following into a such named Standard-Module:
+In any Workbook (preferably in those which host a _Common-Component_) copy the module _mCompManClient_ from the open [CompMan.xlsb][1]  Workbook into the Workbook or copy the following code into a _Standard-Module_ named _mCompManClient_ (don't alter the name!):
 
 ```vb
 Option Explicit
@@ -147,15 +116,33 @@ Public Function CompManService(ByVal service As String, ByVal hosted As String) 
     End If
 End Function
 ````
+## Using the _ExportChangedComponents_ service
+This service should be obligatory in any Workbook which **hosts** a component which may potentially be used in other Workbooks. Copy the following declaration of _Common-Components_ hosted in the Workbook (if any, comma delimited module names) into the Workbook component:
 
-## Usage without Addin instance
-When there is no open CompMan-Addin-Workbook the above will service still be available when the CompMan.xlsb Workbook is open. Otherwise the Open_Workbook and the Workbook_Before_Save service will terminate without notice.
-For example, the _UpdateRawClones_ service will automatically update the _mCompManClient_ when it had been changed in the CompMan.xlsb Workbook - because the _ExportChangedComponents_ service will register it is hosted in it.
+`Private Const HOSTED_RAWS = vbNullstring`
 
-## Using the synchronization service, planning the release of a VB-Project modification
+Copy the following into the Workbook component's Workbook_Open event procedure:
 
-pending description
+`mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS`
 
+## Using the _UpdateRawClones_ service
+This service should be obligatory in any Workbook which **uses** components hosted in other Workbook's. Copy the following into the Workbook component's Workbook_Before_Save_ event procedure:
+
+`mCompManClient.CompManService "UpdateRawClones", HOSTED_RAWS`
+
+
+## Using the _SyncVBProject_ service
+Please be aware that synchronization does not include any data in Worksheets! The service is embedded in a step by step process for any Workbook/VB-Pproject of which the modification is to be managed with a minimum downtime for the productively used Workbook.
+1. Stop the productive use and prepare it as described above (productive use may continue when this had finished which should just take a couple of minutes)
+2. Copy the Workbook under a different name which includes the term **source** into a dedicated folder within the _Serviced-Root_ folder
+3. Make all required modifications and test them
+5. Copy (preferably move to ensure productive use is interrupted) the productive Workbook into a dedicated folder
+6. Ensure either the [CompMan.xlsb][1] or the _Compman-Addin_ is open
+7. Open the source and the target Workbook
+8. In the VBE immediate Window type `mService.SyncTargetWithSource`. The target and the source Workbook will be selected in an opened Dialog
+7. Confirm the displayed planned synchronizations.<br>Note that there is no danger since the Workbook is saved as backup in a dedicated folder within the Workbook folder!
+8. Complete the synchronization by **manually** redo design changes in Worksheets formattings, included columns and rows and new range names
+8. When successfully tested move the Workbook back to it's productive folder.
 
 
 [1]:https://gitcdn.link/repo/warbe-maker/VBA-Components-Management-Services/master/CompMan.xlsb
