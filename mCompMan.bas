@@ -128,10 +128,6 @@ Public Function IsWrkbkComp(ByRef vbc As VBComponent) As Boolean
     
 End Function
 
-    
-    
-    
-    
 Private Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
 
 Private Property Let HostedRaws(ByVal hr As Variant)
@@ -639,3 +635,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
+Public Function WinMergeIsInstalled() As Boolean
+    WinMergeIsInstalled = AppIsInstalled("WinMerge")
+End Function

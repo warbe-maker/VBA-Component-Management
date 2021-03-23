@@ -51,7 +51,6 @@ The service is used with the _Workbook\_Open_ event. It checks each _Component_ 
 ### Aim, Purpose
 Service for temporarily copied productive Workbooks for modifying the VB-Project while the productive Workbook remains in use. By this minimizing the down time of the productive Workbook to the time required for the "back-syncronization" of the modified VB-Project.
 
-
 ### Coverage, synchronization extent
 
 | Item        | Extent of synchronization |
@@ -76,86 +75,90 @@ The _Component Management Services_ are available when the _[development instanc
  
 Once the Addin is established it will automatically be loaded with the first Workbook opened which ha a VBProject with a _Reference_ to it. When no Workbook refers to it, the Addin may be made available at any time via the CompMan-Development-Instance-Workbook.
 
-### Workbooks/VB-Projects hosting raws or using raw clones
-1. Copy the following into the Workbook component
+## Usage
+### Common preconditions
+Every service will be denied unless the following preconditions are met:
+1. The basic configuration - confirmed with each Setup/Renew of the _CompMan-Addin-Folder_ - is complete and valid
+2. The serviced Workbook resides in a sub-folder of the configured _ServicedRootFolder_
+3. The serviced Workbook is the only Workbook in its parent folder
+4. The CompMan services are not _Paused_
+5. WinMerge is installed
+
+### Common usage requirement
+In any Workbook either using the _ExportChangedComponents_ and/or the _UpdateChangedRawClones_ service copy the following in a Standard-Module called _mCompManClient_:
 ```vb
 Option Explicit
-                                    ' -------------------------------------------------------------
-Private Const HOSTED_RAWS = ""      ' Comma delimited names of Common Components hosted, developed,
-                                    ' tested, and provided by this Workbook - if any
-                                    ' -------------------------------------------------------------
-
-Private Sub Workbook_Open()
-    
-    '~~ ------------------------------------------------------------------
-    '~~ CompMan Workbook_Open service 'UpdateRawClones':
-    '~~ Executed by the Addin *) or via the development instance when open
-    '~~ *) automatically available only when referenced by the VB-Project
-    mCompManClient.CompManService "UpdateRawClones", HOSTED_RAWS
-    '~~ ------------------------------------------------------------------
-    
-End Sub
-
-Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
-
-    '~~ ------------------------------------------------------------------
-    '~~ 'ExportChangedComponents' service, preferrably performed by the
-    '~~ CompMan Addin, when not open alternatively by the open CompMan-
-    '~~ Development-Instance-Workbook. When neither is open the service
-    '~~ is not performed without notic.
-    mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
-    '~~ ------------------------------------------------------------------
-
-End Sub
-
-```
-2. Copy the module _mCompManClient_ from the open CompMan.xlsb Workbook into the Workbook or alternatively the following into a such named Standard-Module:
-
-```vb
-Option Explicit
-' ----------------------------------------------------------------------------
-' Standard Module mCompManClient
-'                 Optionally used by any Workbook to:
-'                 - automatically update used Common Components (hosted,
-'                   developed, tested, and provided, by another Workbook)
-'                   with the Workbook_open event
-'                 - automatically export any changed VBComponent with
-'                   the Workbook_Before_Save event.
+' ----------------------------------------------------------------------
+' Standard Module mCompManClient, optionally used by any Workbook to:
+' - update used 'Common-Components' (hosted, developed, tested,
+'   and provided, by another Workbook) with the Workbook_open event
+' - export any changed VBComponent with the Workbook_Before_Save event.
 '
-' W. Rauschenberger, Berlin March 18 2021
+' W. Rauschenberger, Berlin March 2021
 '
 ' See also Github repo:
 ' https://github.com/warbe-maker/Excel-VB-Components-Management-Services
-' ----------------------------------------------------------------------------
+' ----------------------------------------------------------------------
 
-Public Function CompManService(ByVal service As String, ByVal hosted As String) As Boolean
-' ----------------------------------------------------------------------------
-' Execution of the CompMan service (service) preferrably via the CompMan-Addin
-' or when not available alternatively via the CompMan's development instance.
-' ----------------------------------------------------------------------------
+Public Sub CompManService(ByVal cm_service As String, _
+                          ByVal hosted As String)
+' -----------------------------------------------------
+' Execution of the CompMan service (cm_service) pre-
+' ferably via the CompMan-Addin or when not available
+' alternatively via the CompMan.xlsb Workbook.
+' -----------------------------------------------------
     Const COMPMAN_BY_ADDIN = "CompMan.xlam!mCompMan."
     Const COMPMAN_BY_DEVLP = "CompMan.xlsb!mCompMan."
     
     On Error Resume Next
-    Application.Run COMPMAN_BY_ADDIN & service, ThisWorkbook, hosted
+    Application.Run COMPMAN_BY_ADDIN & cm_service, ThisWorkbook, hosted
     If Err.Number = 1004 Then
         On Error Resume Next
-        Application.Run COMPMAN_BY_DEVLP & service, ThisWorkbook, hosted
+        Application.Run COMPMAN_BY_DEVLP & cm_service, ThisWorkbook, hosted
         If Err.Number = 1004 Then
-            Application.StatusBar = "'" & service & "' neither available by '" & COMPMAN_BY_ADDIN & "' nor by '" & COMPMAN_BY_DEVLP & "'!"
+            Application.StatusBar = "'" & cm_service & "' neither available by '" & COMPMAN_BY_ADDIN & "' nor by '" & COMPMAN_BY_DEVLP & "'!"
         End If
     End If
-End Function
-````
+End Sub
+```
 
-## Usage without Addin instance
-When there is no open CompMan-Addin-Workbook the above will service still be available when the CompMan.xlsb Workbook is open. Otherwise the Open_Workbook and the Workbook_Before_Save service will terminate without notice.
-For example, the _UpdateRawClones_ service will automatically update the _mCompManClient_ when it had been changed in the CompMan.xlsb Workbook - because the _ExportChangedComponents_ service will register it is hosted in it.
+### Using the _ExportChangedComponents_ service
+This service is crucial for all Workbooks which either host a commonly used component or which may become the source for a synchronization because both rely on up-to-date Export-Files.
 
-## Using the synchronization service, planning the release of a VB-Project modification
+In the concerned Workbook's Workbook-Component copy:
+```vb
+                                    ' -------------------------------------------------------------
+Private Const HOSTED_RAWS = ""      ' Comma delimited names of Common Components hosted, developed,
+                                    ' tested, and provided by this Workbook - if any
+                                    ' -------------------------------------------------------------
+```
 
-pending description
+and in the concerned Workbook's Workbook_BerforeSave event procedure copy:
+```vb
+Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
+    mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
+End Sub
+```
 
+### Using the _UpdateRawClones_ service
+In the concerned Workbook's Workbook_Open event procedure copy:
+```vb
+Private Sub Workbook_Open()
+    mCompManClient.CompManService "UpdateRawClones", HOSTED_RAWS
+End Sub
+
+```
+
+### Using the _SyncTargetWithSource_ service
+When either the [CompMan.xlsb][1] Workbook or the corresponding CompMan-Addin is open, in the _Immediate Window_ enter<br> `mService.SyncTargetWithSource`<br>A dialog will open for the selection of the source and the target Workbook. They are selected by their files even when already open. To avoid a possible irritation, opening them beforehand may be appropriate in case there are some not yet up-to-date used _Common-Components_.
+
+
+### Pausing/continuing the CompMan Add-in
+Use the corresponding command buttons when the [CompMan.xlsb][1] Workbook is open.
+
+  
+## Contribution
+Contribution of any kind is welcome raising issues or by commenting the corresponding post [Programmatically-updating-Excel-VBA-code][2].
 
 
 [1]:https://gitcdn.link/repo/warbe-maker/VBA-Components-Management-Services/master/CompMan.xlsb

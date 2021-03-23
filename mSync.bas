@@ -1236,7 +1236,7 @@ Public Function SyncTargetWithSource( _
         '~~ Get the collected info confirmed
         sMsg.Section(1).sText = Sync.ConfInfo
         sMsg.Section(1).bMonspaced = True
-        sMsg.Section(2).sText = "The above syncronisations need to be confirmed - or " & _
+        sMsg.Section(2).sText = "The above syncronisation issues need to be confirmed - or " & _
                                 "terminated in case of any concerns!"
         
         sBttnCnfrmd = "Synchronize" & vbLf & vbLf & fso.GetBaseName(Sync.Target.Name) & vbLf & " with " & vbLf & fso.GetBaseName(Sync.Source.Name)
@@ -1270,7 +1270,7 @@ Public Function SyncTargetWithSource( _
             cllButtons.Add v
         Next v
         
-        sReply = mMsg.Dsply(msg_title:="Confirm synchronization actions" _
+        sReply = mMsg.Dsply(msg_title:="Confirm the below synchronization issues" _
                           , msg:=sMsg _
                           , msg_buttons:=cllButtons _
                            )

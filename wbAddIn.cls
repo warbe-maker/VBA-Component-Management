@@ -68,6 +68,15 @@ Private Sub Workbook_Open()
         
     ThisWorkbook.Unprotect
     
+    Application.ScreenUpdating = False
+    With ActiveWindow
+        .DisplayHorizontalScrollBar = False
+        .DisplayVerticalScrollBar = False
+    End With
+    wsAddIn.Range("rngDisplayed").Select
+    ActiveWindow.Zoom = True
+    wsAddIn.Range("celSelect").Select
+    
 xt: mErH.BoP ErrSrc(PROC)
     Exit Sub
 

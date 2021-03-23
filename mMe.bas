@@ -229,7 +229,7 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
             '~~ referring to it is openend or when it is renewed.
             
             '~~ Renew steps log
-            wsAddIn.CurrentStatus = "''CompMan-Addin' setup but" & mBasic.Nbspd("not open!") & vbLf & _
+            wsAddIn.CurrentStatus = " 'CompMan-Addin' setup but  " & mBasic.Spaced("not open!") & vbLf & _
                                     "(will be opened with Setup/Renew or by a Workbook opened which refers to it)"
             If Not keep_renew_steps_result Then wsAddIn.RenewStepLogClear
             '~~ AddIn paused status
@@ -237,15 +237,15 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
             "The CompMan-AddIn is  s e t u p  but currently  n o t  o p e n !" & vbLf & _
             "(Renew or a Workbook opened which refers to it will open it)"
         Else ' AddIn is setup and open
-            wsAddIn.CurrentStatus = "''CompMan-Addin' Setup/Renewed and" & mBasic.Nbspd("open!")
+            wsAddIn.CurrentStatus = " 'CompMan-Addin' Setup/Renewed and  " & mBasic.Spaced("open!")
             If mMe.AddInPaused = True Then
-                wsAddIn.CurrentStatus = "The 'CompMan-AddIn' is currently  p a u s e d !"
+                wsAddIn.CurrentStatus = " 'CompMan-AddIn' is currently  " & mBasic.Spaced("paused!")
                 wsAddIn.CompManAddInPausedStatus = _
                 "The AddIn is currently  p a u s e d ! The Workbook_Open service 'UpdateRawClones' " & _
                 "and the Workbook_BeforeSave service 'ExportChangedComponents' will be bypassed " & _
                 "until the Addin is 'continued' again!"
             Else
-                wsAddIn.CurrentStatus = "''CompMan-AddIn' is currently" & mBasic.Nbspd("active!")
+                wsAddIn.CurrentStatus = " 'CompMan-AddIn' is currently  " & mBasic.Spaced("active!")
                 wsAddIn.CompManAddInPausedStatus = _
                 "The AddIn is currently  a c t i v e !  The services 'UpdateRawClones' and 'ExportChangedComponents'" & vbLf & _
                 "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
@@ -258,7 +258,7 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
             End If
         End If
     Else ' not or no longer (properly) setup
-        wsAddIn.CurrentStatus = "''CompMan-Addin' is currently  n o t  s e t u p !" & vbLf & _
+        wsAddIn.CurrentStatus = " 'CompMan-Addin' is currently  n o t  s e t u p !" & vbLf & _
                                 "(Setup/Renew must be performed to configure and setup the 'CompMan-Addin'"
         wsAddIn.RenewStepLogClear
         wsAddIn.CompManAddInPausedStatus = _
@@ -268,8 +268,8 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
         "- this Addin-Development-Instance-Workbook is opened and Setup/Renew is performed"
     End If
 
-    If Not AppIsInstalled("WinMerge") Then
-        wsAddIn.CurrentStatus = "WinMerge is not installed! Services will be denied."
+    If Not WinMergeIsInstalled Then
+        wsAddIn.CurrentStatus = "WinMerge is  " & mBasic.Spaced("not installed!") & vbLf & "Services will be denied."
     End If
 End Sub
 

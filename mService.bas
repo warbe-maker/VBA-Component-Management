@@ -219,7 +219,7 @@ Public Function Denied(ByRef den_serviced_wb As Workbook, _
         sStatus = "Service denied! The Workbook is not the only one in its parent folder!"
         cLog.Entry = sStatus
         Denied = True
-    ElseIf Not AppIsInstalled("WinMerge") Then
+    ElseIf Not WinMergeIsInstalled Then
         sStatus = "Service denied! WinMerge is required but not installed!"
         cLog.Entry = sStatus
         Denied = True
