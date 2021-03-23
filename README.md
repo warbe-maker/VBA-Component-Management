@@ -73,9 +73,9 @@ The _Component Management Services_ are available when the _[development instanc
   - a dedicated Addin-folder for the Addin-Workbook - preferably a dedicated folder like ../CompMan/Addin
   - a _Serviced-Root-Folder_ which is used to serve only Workbooks under this root but not when they are located elsewhere outside
  
-Once the Addin is established it will automatically be loaded with the first Workbook opened which ha a VBProject with a _Reference_ to it. When no Workbook refers to it, the Addin may be made available at any time via the CompMan-Development-Instance-Workbook.
+Once the Addin is established it will automatically be loaded with the first Workbook opened which has a _Reference_ to it. When no Workbook refers to it the Addin may be made available at any time via the CompMan-Development-Instance-Workbook.
 
-## Usage
+# Usage
 ### Common preconditions
 Every service will be denied unless the following preconditions are met:
 1. The basic configuration - confirmed with each Setup/Renew of the _CompMan-Addin-Folder_ - is complete and valid
@@ -83,6 +83,7 @@ Every service will be denied unless the following preconditions are met:
 3. The serviced Workbook is the only Workbook in its parent folder
 4. The CompMan services are not _Paused_
 5. WinMerge is installed
+In any Workbook (preferably in those which host a _Common-Component_) copy the module _mCompManClient_ from the open [CompMan.xlsb][1]  Workbook into the Workbook or copy the following code into a _Standard-Module_ named _mCompManClient_ (don't alter the name!):
 
 ### Common usage requirement
 In any Workbook either using the _ExportChangedComponents_ and/or the _UpdateChangedRawClones_ service copy the following in a Standard-Module called _mCompManClient_:
@@ -119,6 +120,7 @@ Public Sub CompManService(ByVal cm_service As String, _
             Application.StatusBar = "'" & cm_service & "' neither available by '" & COMPMAN_BY_ADDIN & "' nor by '" & COMPMAN_BY_DEVLP & "'!"
         End If
     End If
+
 End Sub
 ```
 
@@ -146,20 +148,16 @@ In the concerned Workbook's Workbook_Open event procedure copy:
 Private Sub Workbook_Open()
     mCompManClient.CompManService "UpdateRawClones", HOSTED_RAWS
 End Sub
-
 ```
 
 ### Using the _SyncTargetWithSource_ service
 When either the [CompMan.xlsb][1] Workbook or the corresponding CompMan-Addin is open, in the _Immediate Window_ enter<br> `mService.SyncTargetWithSource`<br>A dialog will open for the selection of the source and the target Workbook. They are selected by their files even when already open. To avoid a possible irritation, opening them beforehand may be appropriate in case there are some not yet up-to-date used _Common-Components_.
 
-
 ### Pausing/continuing the CompMan Add-in
 Use the corresponding command buttons when the [CompMan.xlsb][1] Workbook is open.
-
   
 ## Contribution
 Contribution of any kind is welcome raising issues or by commenting the corresponding post [Programmatically-updating-Excel-VBA-code][2].
-
 
 [1]:https://gitcdn.link/repo/warbe-maker/VBA-Components-Management-Services/master/CompMan.xlsb
 [2]:https://warbe-maker.github.io/vba/excel/code/component/management/2021/03/02/Programatically-updating-Excel-VBA-code.html
