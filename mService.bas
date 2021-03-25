@@ -93,7 +93,7 @@ Public Sub RenewComp( _
         sBaseName = fso.GetBaseName(rc_exp_file_full_name)
         '~~ Select the Export-File for the re-new service
         If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
-                          , sel_filters:="*" & cComp.ExpFileExtension _
+                          , sel_filters:="*" & cComp.ExpFileExt _
                           , sel_filter_name:="File" _
                           , sel_title:="Select the Export-File for the provided component '" & rc_comp_name & "'!" _
                           , sel_result:=flFile) _
@@ -249,20 +249,18 @@ Public Sub ExportChangedComponents( _
     
     On Error GoTo eh
     Dim vbc                 As VBComponent
-    Dim lComponents         As Long
-    Dim lCompsRemaining     As Long
-    Dim lExported           As Long
-    Dim sExported           As String
-    Dim bUpdated            As Boolean
-    Dim lUpdated            As Long
-    Dim sUpdated            As String
-    Dim sMsg                As String
-    Dim fso                 As New FileSystemObject
-    Dim sProgressDots       As String
-    Dim sStatus             As String
-    Dim v                   As Variant
-    Dim Comps               As clsComps
-    Dim dctChanged          As Dictionary
+    Dim lComponents As Long
+    Dim lRemaining  As Long
+    Dim lExported   As Long
+    Dim sExported   As String
+    Dim bUpdated    As Boolean
+    Dim lUpdated    As Long
+    Dim sUpdated    As String
+    Dim sMsg        As String
+    Dim fso         As New FileSystemObject
+    Dim v           As Variant
+    Dim Comps       As clsComps
+    Dim dctChanged  As Dictionary
     
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
@@ -270,7 +268,6 @@ Public Sub ExportChangedComponents( _
     Set wbServiced = ec_wb
     If mService.Denied(den_serviced_wb:=ec_wb, den_service:=PROC) Then GoTo xt
     
-    sStatus = cLog.Service
     Set Stats = New clsStats
     Set Comps = New clsComps
     Set Comps.Serviced = ec_wb
@@ -279,19 +276,21 @@ Public Sub ExportChangedComponents( _
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=ec_hosted _
                                             , mh_wb:=ec_wb) _
     Then
-        Application.StatusBar = cLog.Service & " failed. See log-file in Workbookfolder"
+        Application.StatusBar = cLog.Service & " Failed! See log-file in Workbookfolder"
         GoTo xt
     End If
     
     lComponents = ec_wb.VBProject.VBComponents.Count
-    lCompsRemaining = lComponents
-    sProgressDots = String$(lCompsRemaining, ".")
+    lRemaining = lComponents
 
     Set dctChanged = Comps.Changed
+    
     For Each v In dctChanged
         Set cComp = dctChanged(v)
-        sProgressDots = Left(sProgressDots, Len(sProgressDots) - 1)
-        Application.StatusBar = sStatus & sProgressDots & sExported & " " & vbc.Name
+        Set vbc = cComp.VBComp
+        DsplyProgress p_result:=sExported & " " & vbc.Name _
+                    , p_total:=Stats.Total(sic_comps_changed) _
+                    , p_done:=Stats.Total(sic_comps)
                 
         Select Case cComp.KindOfComp
             Case enRawClone
@@ -303,7 +302,7 @@ Public Sub ExportChangedComponents( _
                     '~~ Attention must be paid to the fact that the sequence of property assignments matters
                     .HostFullName = mHostedRaws.HostFullName(comp_name:=cComp.CompName)
                     .CompName = cComp.CompName
-                    .ExpFileExtension = cComp.ExpFileExtension  ' required to build the export file's full name
+                    .ExpFileExt = cComp.ExpFileExt  ' required to build the export file's full name
                     Set .ExpFile = fso.GetFile(.ExpFileFullName)
                     .CloneExpFileFullName = cComp.ExpFileFullName
                     .TypeString = cComp.TypeString
@@ -346,9 +345,7 @@ Public Sub ExportChangedComponents( _
                 With cComp
                     If .Changed Then
                         cLog.Entry = "Code changed! (temporary Export-File differs from last changes Export-File)"
-                        Application.StatusBar = sStatus & vbc.Name & " Export to '" & .ExpFileFullName & "'"
                         vbc.Export .ExpFileFullName
-                        sStatus = sStatus & vbc.Name & ", "
                         cLog.Entry = "Exported to '" & .ExpFileFullName & "'"
                         lExported = lExported + 1
                         If lExported = 1 _
@@ -367,7 +364,7 @@ Public Sub ExportChangedComponents( _
         End Select
                                 
 next_vbc:
-        lCompsRemaining = lCompsRemaining - 1
+        lRemaining = lRemaining - 1
         Set cComp = Nothing
         Set cRaw = Nothing
     Next v
@@ -518,31 +515,16 @@ Public Sub UpdateRawClones( _
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
     Dim sStatus     As String
-    Dim Clones      As clsClones
 
     mErH.BoP ErrSrc(PROC)
     If mService.Denied(den_serviced_wb:=uc_wb, den_service:=PROC, den_new_log:=True) Then GoTo xt
 
-    Application.StatusBar = sStatus & "Maintain hosted raws"
-    If Not mCompMan.ManageVbProjectProperties(mh_hosted:=uc_hosted _
-                                            , mh_wb:=uc_wb) _
-    Then
-        Application.StatusBar = cLog.Service & " failed. See log-file in Workbookfolder"
+    If Not mCompMan.ManageVbProjectProperties(mh_hosted:=uc_hosted, mh_wb:=uc_wb) Then
+        Application.StatusBar = cLog.Service & "Failed! See log-file in Workbook-folder"
         GoTo xt
     End If
-        
-    Application.StatusBar = sStatus & "De-activate '" & uc_wb.Name & "'"
-    If uc_wb Is ActiveWorkbook Then
-        '~~ De-activate the ActiveWorkbook by creating a temporary Workbook
-        Set wbActive = uc_wb
-        Set wbTemp = Workbooks.Add
-    End If
-    
-    Set Clones = New clsClones
-    Set Clones.Serviced = uc_wb
-    
-    Clones.CollectAllChanged
-    
+            
+    Set Stats = New clsStats
     mUpdate.RawClones urc_wb:=uc_wb _
                     , urc_clones:=Clones(uc_wb)
 
@@ -776,7 +758,7 @@ Private Function Clones( _
                 Set cRaw = New clsRaw
                 cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
                 cRaw.CompName = .CompName
-                cRaw.ExpFileExtension = .ExpFileExtension
+                cRaw.ExpFileExt = .ExpFileExt
                 cRaw.CloneExpFileFullName = .ExpFileFullName
                 cRaw.TypeString = .TypeString
                 If .Changed Then

@@ -47,9 +47,8 @@ End Property
 
 Public Sub CollectAllChanged()
 ' -------------------------------------------------------------------
-' Collect all changed Clone-Components. I.e. all VBComponents of
-' which the name is registered as a Raw-Component hosted in another
-' Workbook.
+' Collect all changed VBComponents. I.e. all VBComponents of which
+' a temporary Export-File differs from the regular (last) Export-File
 ' -------------------------------------------------------------------
     Const PROC = "CollectAllChanged"
     
@@ -58,12 +57,17 @@ Public Sub CollectAllChanged()
     Dim cComp       As clsComp
     Dim v           As Variant
     Dim dct         As Dictionary
+    Dim sChanged    As String
     
     Stats.Count sic_comps_total, wbServiced.VBProject.VBComponents.Count
     
     Set dct = Sorted
     For Each v In dct
         Set vbc = dct(v)
+        DsplyProgress p_result:=sChanged & " " & vbc.Name _
+                    , p_total:=Stats.Total(sic_comps_total) _
+                    , p_done:=Stats.Total(sic_comps)
+        
         Set cComp = New clsComp
         With cComp
             Set .Wrkbk = wbServiced
@@ -73,6 +77,9 @@ Public Sub CollectAllChanged()
             If .Changed Then
                 Stats.Count sic_comps_changed
                 mDct.DctAdd dctChanged, vbc.Type & vbc.Name, cComp, order_bykey, seq_ascending, , , True
+                If Stats.Total(sic_comps_changed) = 1 _
+                Then sChanged = vbc.Name _
+                Else sChanged = sChanged & ", " & vbc.Name
             Else
                 cLog.Entry = "Code un-changed"
             End If

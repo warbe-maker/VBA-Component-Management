@@ -19,11 +19,11 @@ Private vbc     As VBComponent
 Private vbcm    As CodeModule
 
 Private Property Get RenewService() As String
-    RenewService = AddInInstanceName & "!mRenew.ByImport"
+    RenewService = CompManAddinName & "!mRenew.ByImport"
 End Property
 
 Private Property Get UpdateClonesService() As String
-    UpdateClonesService = AddInInstanceName & "!mUpdate.RawClones"
+    UpdateClonesService = CompManAddinName & "!mUpdate.RawClones"
 End Property
 
 Public Sub Cleanup(Optional ByVal exp_file As String = vbNullString, _
@@ -246,7 +246,7 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
 ' This test procedure is exclusively performed by the
 ' AddIn instance. It is run by the Development instance
 ' with: Application.Run _
-'       AddInInstanceName & "!mTest.TestRenewComp" _
+'       CompManAddinName & "!mTest.TestRenewComp" _
 '       , <export-file-full-name> _
 '       , <comp-name> _
 '       , <wrkbk> _
@@ -361,7 +361,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
                 If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
-                                  , sel_filters:="*" & cComp.ExpFileExtension _
+                                  , sel_filters:="*" & cComp.ExpFileExt _
                                   , sel_filter_name:="bas-Export-Files" _
                                   , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
                                   , sel_result:=flExport) _
@@ -576,7 +576,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
                 If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
-                                  , sel_filters:="*" & cComp.ExpFileExtension _
+                                  , sel_filters:="*" & cComp.ExpFileExt _
                                   , sel_filter_name:="UserForm" _
                                   , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
                                   , sel_result:=flExport) _
@@ -643,7 +643,7 @@ Public Sub Test_BasicConfig()
     
 End Sub
 
-Public Sub Test_Clones()
+Public Sub Test_Changed_Clones()
     
     Dim Clones      As New clsClones
     
@@ -698,3 +698,34 @@ Public Sub Test_Changed_Comps()
 
 End Sub
 
+Public Sub Test_SynchFormating()
+
+    Dim BkpFolder   As String
+    Dim sTarget     As String
+    Dim sSource     As String
+    
+    Set cLog = New clsLog
+    Set Stats = New clsStats
+    Set Sync = New clsSync
+    
+    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Target-Project\Test_Sync_Target.xlsb"
+    sSource = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Source-Project\Test_Sync_Source.xlsb"
+    
+    Set Sync.Target = mCompMan.WbkGetOpen(sTarget)
+    Set Sync.Source = mCompMan.WbkGetOpen(sSource)
+    
+    Sync.CollectAllSyncItems
+    
+    mSync.SyncBackup BkpFolder, sTarget
+    mSyncRanges.SyncFormating
+    
+    If BkpFolder <> vbNullString Then
+        ' A backup had been made by the service which is now restored and the target is re-opened
+        mCompMan.WbkGetOpen(sTarget).Close SaveChanges:=False
+        mSync.SyncRestore BkpFolder
+        Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
+        mCompMan.WbkGetOpen sTarget
+        Application.EnableEvents = True
+    End If
+
+End Sub

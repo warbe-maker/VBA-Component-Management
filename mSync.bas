@@ -295,12 +295,13 @@ Public Sub SyncRestore( _
     Const PROC = "SyncRestore"
     
     On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim fo      As Folder
-    Dim fl      As File
-    Dim sBckp   As String
-    Dim lFiles  As Long
-        
+    Dim fso         As New FileSystemObject
+    Dim fo          As Folder
+    Dim fl          As File
+    Dim sBckp       As String
+    Dim lFiles      As Long
+    Dim BckpFile    As File
+    
     sBckp = backup_folder
     
     '~~ Select the desired backup folder when none is provided
@@ -324,6 +325,7 @@ Public Sub SyncRestore( _
     With fso
         For Each fl In .GetFolder(sBckp).Files
             lFiles = lFiles + 1
+            Set BckpFile = fl
         Next fl
         
         '~~ When the backup folder has more then 1 file terminate without notice
@@ -331,11 +333,11 @@ Public Sub SyncRestore( _
             Application.StatusBar = "Restore service denied! The selected backup folder contains more than one (the backup) file"
             GoTo xt
         End If
-        .CopyFile fl.Path, .GetParentFolderName(sBckp)
+        .CopyFile BckpFile.Path, .GetParentFolderName(sBckp) & "\" & BckpFile.Name
         
         '~~ Remove all backup folders
         For Each fo In .GetFolder(.GetParentFolderName(sBckp)).SubFolders
-            If InStr(1, fo.Path, "\" & BKP_FOLDER_PREFIX, vbTextCompare) = 0 Then .DeleteFolder fo.Path
+            If InStr(1, fo.Path, "\" & BKP_FOLDER_PREFIX, vbTextCompare) <> 0 Then .DeleteFolder fo.Path
         Next fo
     End With
     
@@ -349,7 +351,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub SyncBackup(ByRef bkp_folder As String, _
-                            ByVal sTarget As String)
+                      ByVal sTarget As String)
 ' -----------------------------------------------------
 ' Saves a copy of the synchronization target Workbook
 ' (Sync.Target) in a time-stamped folder under the

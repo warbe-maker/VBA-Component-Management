@@ -22,7 +22,7 @@ Option Explicit
 ' - CompName
 ' - Exists
 ' - ExpFile
-' - ExpFileExtension
+' - ExpFileExt
 ' - ExpFileFullName
 ' - ExpFilePath
 ' - ExpFolder
@@ -53,7 +53,7 @@ Private flExpFile           As File
 Private foExport            As Folder
 Private lKindOfComp         As enKindOfComp
 Private sCompName           As String       ' The class module's global component name
-Private sExpFileExtension   As String
+Private sExpFileExt         As String
 Private sExpFileFullName    As String       ' Full filespec for the Export-File of CompName
 Private sExpFilePath        As String       ' Folder for the Export-File of CompName
 Private sTmpFolder          As String
@@ -66,6 +66,10 @@ Private sService            As String       ' Name of the 'Service' folder, i.e.
 Private dctType             As Dictionary
 Private lMaxLenComp         As Long
 Private sh                  As Worksheet
+
+Private sRawHostFullName    As String       ' -------------------------------------------------------------------
+Private sRawExpFileExt      As String       ' Corresponding Raw-Component facts when the Component is a Raw-Clone
+Private sRawExpFileFullName As String       ' -------------------------------------------------------------------
 
 Private Sub Class_Initialize()
     If dctType Is Nothing Then Set dctType = New Dictionary Else dctType.RemoveAll
@@ -108,7 +112,7 @@ Friend Property Get Changed() As Boolean
                 .CreateFolder sTmpFolder
                 DoEvents
             End If
-            sTmpExpFileFullName = sTmpFolder & "\" & vbc.Name & sExpFileExtension
+            sTmpExpFileFullName = sTmpFolder & "\" & vbc.Name & sExpFileExt
             vbc.Export sTmpExpFileFullName
             DoEvents
     
@@ -159,7 +163,7 @@ Friend Property Let CompName(ByVal s As String)
     If Not wb Is Nothing Then
         If Me.Exists Then
             Set vbc = wb.VBProject.VBComponents(s)
-            sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExtension
+            sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExt
         End If
     End If
 End Property
@@ -211,26 +215,26 @@ End Property
 
 Friend Property Set ExpFile(ByVal fl As File):      Set flExpFile = fl:     End Property
 
-Friend Property Get ExpFileExtension() As String
+Friend Property Get ExpFileExt() As String
     
-    If sExpFileExtension = vbNullString Then
+    If sExpFileExt = vbNullString Then
         If vbc Is Nothing Then Set vbc = wb.VBProject.VBComponents(sCompName)
         With Me
             Select Case vbc.Type
-                Case vbext_ct_StdModule:    sExpFileExtension = ".bas"
-                Case vbext_ct_ClassModule:  sExpFileExtension = ".cls"
-                Case vbext_ct_MSForm:       sExpFileExtension = ".frm"
-                Case vbext_ct_Document:     sExpFileExtension = ".cls"
+                Case vbext_ct_StdModule:    sExpFileExt = ".bas"
+                Case vbext_ct_ClassModule:  sExpFileExt = ".cls"
+                Case vbext_ct_MSForm:       sExpFileExt = ".frm"
+                Case vbext_ct_Document:     sExpFileExt = ".cls"
             End Select
         End With
     End If
-    ExpFileExtension = sExpFileExtension
+    ExpFileExt = sExpFileExt
 
 End Property
 
 Friend Property Get ExpFileFullName() As String
     If sExpFileFullName = vbNullString Then
-        sExpFileFullName = Me.ExpFilePath & "\" & Me.CompName & Me.ExpFileExtension
+        sExpFileFullName = Me.ExpFilePath & "\" & Me.CompName & Me.ExpFileExt
     End If
     ExpFileFullName = sExpFileFullName
 End Property
@@ -253,7 +257,7 @@ Friend Property Get IsWrkbk() As Boolean
     
     Dim bSigned As Boolean
     On Error Resume Next
-    bSigned = vbc.Properties("VBASigned").value
+    bSigned = vbc.Properties("VBASigned").Value
     IsWrkbk = Err.Number = 0
     
 End Property
@@ -285,6 +289,12 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Property
 
 Friend Property Get MaxLenComp() As Long:           MaxLenComp = lMaxLenComp:   End Property
+
+Public Property Let RawExpFileExt(ByVal s As String):       sRawExpFileExt = s:         End Property
+
+Public Property Let RawExpFileFullName(ByVal s As String):  sRawExpFileFullName = s:    End Property
+
+Public Property Let RawHostFullName(ByVal s As String):     sRawHostFullName = s:       End Property
 
 Private Property Get ReplaceRawWithCloneConfirmed() As Boolean
 ' -------------------------------------------------------------
@@ -618,7 +628,7 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
         With cRaw
             .HostFullName = mHostedRaws.HostFullName(Me.CompName)
             .CompName = Me.CompName
-            .ExpFileExtension = Me.ExpFileExtension ' required to build the export file's full name
+            .ExpFileExt = Me.ExpFileExt ' required to build the export file's full name
             Set .ExpFile = fso.GetFile(.ExpFileFullName)
             Set .RawHost = mCompMan.WbkGetOpen(.HostFullName)
             Set .RawVbc = .RawHost.VBProject.VBComponents(.CompName)

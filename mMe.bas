@@ -62,13 +62,13 @@ Private dctAddInRefs    As Dictionary
 Private lRenewStep      As Long
 Private sRenewAction    As String
 
-Public Property Get AddInInstanceFullName() As String
-    AddInInstanceFullName = AddInPath & DBSLASH & AddInInstanceName
+Public Property Get CompManAddinFullName() As String
+    CompManAddinFullName = AddInPath & DBSLASH & CompManAddinName
 End Property
 
-Public Property Get AddInInstanceName() As String
+Public Property Get CompManAddinName() As String
     With New FileSystemObject
-        AddInInstanceName = .GetBaseName(ThisWorkbook.FullName) & "." & ADDIN_WORKBOOK_EXTENSION
+        CompManAddinName = .GetBaseName(ThisWorkbook.FullName) & "." & ADDIN_WORKBOOK_EXTENSION
     End With
 End Property
     
@@ -149,8 +149,8 @@ End Property
 
 Private Property Get RenewFinalResult() As String
     If bSucceeded _
-    Then RenewFinalResult = "Successful! The Addin '" & AddInInstanceName & "' has been renewed by the development instance '" & DevInstncName & "'" _
-    Else RenewFinalResult = "Failed! Renewing the Addin '" & AddInInstanceName & "' by the development instance '" & DevInstncName & "' failed!"
+    Then RenewFinalResult = "Successful! The Addin '" & CompManAddinName & "' has been renewed by the development instance '" & DevInstncName & "'" _
+    Else RenewFinalResult = "Failed! Renewing the Addin '" & CompManAddinName & "' by the development instance '" & DevInstncName & "' failed!"
 End Property
 
 Public Property Let RenewLogAction(ByVal la_action As String)
@@ -214,7 +214,7 @@ Private Property Get AddInIsSetup() As Boolean
 ' ------------------------------------------------------------
     With New FileSystemObject
         If mMe.CompManAddinPath <> vbNullString _
-        Then AddInIsSetup = .FileExists(mMe.CompManAddinPath & "\" & AddInInstanceName)
+        Then AddInIsSetup = .FileExists(mMe.CompManAddinPath & "\" & CompManAddinName)
     End With
 
 End Property
@@ -290,7 +290,7 @@ End Sub
 
 Private Function AddInInstncWrkbkExists() As Boolean
     Dim fso As New FileSystemObject
-    AddInInstncWrkbkExists = fso.FileExists(AddInInstanceFullName)
+    AddInInstncWrkbkExists = fso.FileExists(CompManAddinFullName)
 End Function
 
 Public Function AddInInstncWrkbkIsOpen() As Boolean
@@ -301,9 +301,9 @@ Public Function AddInInstncWrkbkIsOpen() As Boolean
     
     AddInInstncWrkbkIsOpen = False
     For i = 1 To Application.AddIns2.Count
-        If Application.AddIns2(i).Name = AddInInstanceName Then
+        If Application.AddIns2(i).Name = CompManAddinName Then
             On Error Resume Next
-            Set wbTarget = Application.Workbooks(AddInInstanceName)
+            Set wbTarget = Application.Workbooks(CompManAddinName)
             AddInInstncWrkbkIsOpen = Err.Number = 0
             GoTo xt
         End If
@@ -446,11 +446,15 @@ Public Sub RenewAddIn()
     bSucceeded = True
     
 xt: mMe.RenewLogAction = RenewFinalResult
-    wbSource.Saved = True
+    
     Application.ScreenUpdating = False
     mMe.DisplayStatus True
     Application.ScreenUpdating = True
+    
+    Application.EnableEvents = False
+    wbSource.Save
     Application.EnableEvents = True
+    
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -620,7 +624,7 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         For Each v In dct
             Set wb = dct.Item(v)
             For Each ref In wb.VBProject.References
-                If InStr(ref.Name, fso.GetBaseName(AddInInstanceName)) <> 0 Then
+                If InStr(ref.Name, fso.GetBaseName(CompManAddinName)) <> 0 Then
                     dctAddInRefs.Add wb, ref
                     sWbs = wb.Name & ", " & sWbs
                 End If
@@ -709,7 +713,7 @@ Private Function Renew_5_CloseAddinInstncWorkbook() As Boolean
     wbTarget.Close False
     Renew_5_CloseAddinInstncWorkbook = Err.Number = 0
     If Not Renew_5_CloseAddinInstncWorkbook _
-    Then mMe.RenewLogResult("Closing the 'CompMan-Addin' (" & AddInInstanceName & ") failed with:" & vbLf & _
+    Then mMe.RenewLogResult("Closing the 'CompMan-Addin' (" & CompManAddinName & ") failed with:" & vbLf & _
                             "(" & Err.Description & ")" _
                            ) = "Failed" _
     Else mMe.RenewLogResult = "Passed"
@@ -731,15 +735,15 @@ Private Function Renew_6_DeleteAddInInstanceWorkbook() As Boolean
     
     On Error GoTo eh
 
-    mMe.RenewLogAction = "Delete the 'CompMan-Addin' Workbook' (" & AddInInstanceName & ")"
+    mMe.RenewLogAction = "Delete the 'CompMan-Addin' Workbook' (" & CompManAddinName & ")"
     With New FileSystemObject
-        If .FileExists(AddInInstanceFullName) Then
+        If .FileExists(CompManAddinFullName) Then
             On Error Resume Next
-            .DeleteFile AddInInstanceFullName
+            .DeleteFile CompManAddinFullName
             Renew_6_DeleteAddInInstanceWorkbook = Err.Number = 0
             If Renew_6_DeleteAddInInstanceWorkbook _
             Then mMe.RenewLogResult = "Passed" _
-            Else mMe.RenewLogResult("Deleting the 'CompMan-Addin' (" & AddInInstanceName & ") failed with:" & vbLf & _
+            Else mMe.RenewLogResult("Deleting the 'CompMan-Addin' (" & CompManAddinName & ") failed with:" & vbLf & _
                                     "(" & Err.Description & ")" _
                                    ) = "Failed"
         Else
@@ -764,14 +768,14 @@ Private Function Renew_7_SaveDevInstncWorkbookAsAddin() As Boolean
     Const PROC = "Renew_7_SaveDevInstncWorkbookAsAddin"
     
     On Error GoTo eh
-    mMe.RenewLogAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ") as 'CompMan-Addin' (" & AddInInstanceName & ")"
+    mMe.RenewLogAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ") as 'CompMan-Addin' (" & CompManAddinName & ")"
     
     With Application
         If Not AddInInstncWrkbkExists Then
             '~~ At this point the Addin must no longer exist at its location
             .EnableEvents = False
             On Error Resume Next
-            wbSource.SaveAs AddInInstanceFullName, FileFormat:=xlAddInFormat
+            wbSource.SaveAs CompManAddinFullName, FileFormat:=xlAddInFormat
             Renew_7_SaveDevInstncWorkbookAsAddin = Err.Number = 0
             If Not Renew_7_SaveDevInstncWorkbookAsAddin _
             Then mMe.RenewLogResult("Save Development instance as Addin instance failed!" _
@@ -807,9 +811,9 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
     
     If Not AddInInstncWrkbkIsOpen Then
         If AddInInstncWrkbkExists Then
-            mMe.RenewLogAction = "Re-open the 'CompMan-Addin' (" & AddInInstanceName & ")"
+            mMe.RenewLogAction = "Re-open the 'CompMan-Addin' (" & CompManAddinName & ")"
             On Error Resume Next
-            Set wb = Application.Workbooks.Open(AddInInstanceFullName)
+            Set wb = Application.Workbooks.Open(CompManAddinFullName)
             If Err.Number = 0 Then
                 With New FileSystemObject
                     sBaseAddinName = .GetBaseName(wb.Name)
@@ -819,7 +823,7 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
                 mMe.RenewLogResult() = "Passed"
                 Renew_8_OpenAddinInstncWorkbook = True
             Else
-                mMe.RenewLogResult("(Re)opening the 'CompMan-Addin' (" & AddInInstanceName & ") failed with:" & vbLf & _
+                mMe.RenewLogResult("(Re)opening the 'CompMan-Addin' (" & CompManAddinName & ") failed with:" & vbLf & _
                                    "(" & Err.Description & ")" _
                                   ) = "Failed"
             End If
@@ -848,7 +852,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     
     For Each v In dctAddInRefs
         Set wb = v
-        wb.VBProject.References.AddFromFile AddInInstanceFullName
+        wb.VBProject.References.AddFromFile CompManAddinFullName
         sWbs = wb.Name & ", " & sWbs
         bOneRestored = True
     Next v
@@ -880,7 +884,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
         If Not DevInstncWorkbookExists Then
             '~~ At this point the Development instance Workbook must no longer exist at its location
             .EnableEvents = False
-            mMe.RenewLogAction = "Save the 'CompMan-Addin' (" & AddInInstanceName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")"
+            mMe.RenewLogAction = "Save the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")"
             
             On Error Resume Next
             wbAddIn.SaveAs DevInstncFullName, FileFormat:=xlDevlpFormat, ReadOnlyRecommended:=False
@@ -890,14 +894,14 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             Else wbDevlp.VBProject.Name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
-                mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & AddInInstanceName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ") failed!" _
+                mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ") failed!" _
                                   ) = "Failed"
             Else
                 mMe.RenewLogResult() = "Passed"
             End If
             .EnableEvents = True
         Else ' file still exists
-            mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & AddInInstanceName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ") failed!" _
+            mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ") failed!" _
                               ) = "Failed"
         End If
     End With

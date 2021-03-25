@@ -15,8 +15,8 @@ Option Explicit
 ' !!    via the development instance service mMe.RenewAddIn       !!
 '
 ' Properties:
-' - AddInInstanceFullName Full path/file name of the Addin Instance
-' - AddInInstanceName     File name of the Addin instance
+' - CompManAddinFullName Full path/file name of the Addin Instance
+' - CompManAddinName     File name of the Addin instance
 ' - DevlpInstanceName     File name of the Development and Test
 ' -                       instance
 ' - IsAddInInstance       Is TRUE when ThisWorkbook is the

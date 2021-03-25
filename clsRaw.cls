@@ -22,7 +22,7 @@ Option Explicit
 ' - Exists
 ' - ExistsBySheetName
 ' - ExpFile
-' - ExpFileExtension
+' - ExpFileExt
 ' - ExpFileFullName
 ' - ExpFilePath
 ' - HostFullName
@@ -45,7 +45,7 @@ Private dctChanges              As Dictionary
 Private flExpFile               As File
 Private sCloneExpFileFullName   As String
 Private sCompName               As String
-Private sExpFileExtension       As String
+Private sExpFileExt             As String
 Private sExpFileFullName        As String
 Private sExpFilePath            As String
 Private sHostFullName           As String
@@ -60,6 +60,7 @@ Private vbc                     As VBComponent  ' VBComponent managed by this Cl
 Private dctType                 As Dictionary
 Private lMaxLenComp             As Long
 Private foExport                As Folder
+Private vbcClone                As VBComponent
 
 Private Sub Class_Initialize()
     If dctType Is Nothing Then Set dctType = New Dictionary
@@ -176,7 +177,7 @@ Friend Property Let CompName(ByVal s As String)
     If Not wb Is Nothing Then
         If Me.Exists Then
             Set vbc = wb.VBProject.VBComponents(s)
-            sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExtension
+            sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExt
         End If
     End If
 End Property
@@ -235,25 +236,25 @@ Friend Property Set ExpFile(ByVal fl As File)
 
 End Property
 
-Friend Property Get ExpFileExtension() As String
+Friend Property Get ExpFileExt() As String
     
-    If sExpFileExtension = vbNullString Then
+    If sExpFileExt = vbNullString Then
         If vbc Is Nothing Then Set vbc = wb.VBProject.VBComponents(sCompName)
         With Me
             Select Case vbc.Type
-                Case vbext_ct_StdModule:    sExpFileExtension = ".bas"
-                Case vbext_ct_ClassModule:  sExpFileExtension = ".cls"
-                Case vbext_ct_MSForm:       sExpFileExtension = ".frm"
-                Case vbext_ct_Document:     sExpFileExtension = ".cls"
+                Case vbext_ct_StdModule:    sExpFileExt = ".bas"
+                Case vbext_ct_ClassModule:  sExpFileExt = ".cls"
+                Case vbext_ct_MSForm:       sExpFileExt = ".frm"
+                Case vbext_ct_Document:     sExpFileExt = ".cls"
             End Select
         End With
     End If
-    ExpFileExtension = sExpFileExtension
+    ExpFileExt = sExpFileExt
 
 End Property
 
-Friend Property Let ExpFileExtension(ByVal s As String)
-    sExpFileExtension = s
+Friend Property Let ExpFileExt(ByVal s As String)
+    sExpFileExt = s
     sExpFileFullName = Me.ExpFilePath & "\" & Me.CompName & s
 End Property
 
@@ -282,6 +283,10 @@ Friend Property Get RawType() As vbext_ComponentType:   RawType = vbcRaw.Type:  
 Friend Property Get RawVbc() As VBComponent:            Set RawVbc = vbcRaw:            End Property
 
 Friend Property Set RawVbc(ByRef vbc As VBComponent):   Set vbcRaw = vbc:               End Property
+
+Friend Property Get CloneVbc() As VBComponent:          Set CloneVbc = vbcClone:        End Property
+
+Friend Property Set CloneVbc(ByRef vbc As VBComponent):   Set vbcClone = vbc:               End Property
 
 Friend Property Get Service() As String
     If sService = vbNullString Then

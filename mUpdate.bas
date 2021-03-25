@@ -42,76 +42,67 @@ Public Sub RawClones( _
                ByRef urc_wb As Workbook, _
                ByRef urc_clones As Dictionary)
 ' --------------------------------------------------------
-' Updates any clone Workbook urc_wb. Note that clones are
-' identifiied by equally named components in another
+' Updates any clone in Workbook (urc_wb). Note that clones
+' are identifiied by equally named components in another
 ' workbook which are indicated 'hosted'.
 ' --------------------------------------------------------
     Const PROC = "RawClones"
     
     On Error GoTo eh
-    Dim sStatus     As String
-    Dim vbc         As VBComponent
-    Dim fso         As New FileSystemObject
-    Dim lReplaced   As Long
-    Dim sReplaced   As String
-    Dim v           As Variant
-    Dim bVerbose    As Boolean
-    Dim bSkip       As Boolean
+    Dim dctClonesTheRawChanged  As Dictionary
+    Dim vbc                     As VBComponent
+    Dim fso                     As New FileSystemObject
+    Dim sUpdated                As String
+    Dim v                       As Variant
+    Dim bVerbose                As Boolean
+    Dim bSkip                   As Boolean
+    Dim Clones                  As clsClones
+    Dim cRaw                    As clsRaw
+    Dim cClone                  As clsComp
+    
+    Set Clones = New clsClones
+    Set Clones.Serviced = urc_wb
+    Set dctClonesTheRawChanged = Clones.RawChanged
     
     bVerbose = True
-    sStatus = cLog.Service
-    '~~ Prevent any action for a Workbook opened with any irregularity
             
-    For Each v In urc_clones
-        Set vbc = v
-        Set cComp = New clsComp
-        With cComp
-            Set .Wrkbk = urc_wb
-            .CompName = vbc.Name
-            Set .VBComp = vbc
-
-            Application.StatusBar = sStatus & .CompName & " "
-            cLog.ServicedItem = vbc
-
-            Set cRaw = New clsRaw
-            cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
-            cRaw.CompName = .CompName
-            cRaw.ExpFileExtension = .ExpFileExtension ' required to build the raws export file full name
-            cRaw.CloneExpFileFullName = .ExpFileFullName
-            cRaw.TypeString = .TypeString
-            If cRaw.Changed Then
-                cLog.Entry = "The corresponding Raw's code changed! (its Export-File differs from the Clone's Export-File)"
-                Application.StatusBar = sStatus & vbc.Name & " Renew of '" & .CompName & "' by import of '" & cRaw.ExpFileFullName & "'"
-                If bVerbose Then
-                    UpdateCloneConfirmed ucc_comp_name:=vbc.Name _
-                                       , ucc_stay_verbose:=bVerbose _
-                                       , ucc_skip:=bSkip _
-                                       , ucc_clone:=cComp.ExpFileFullName _
-                                       , ucc_raw:=cRaw.ExpFileFullName
-                End If
-                If Not bSkip Then
-                    mRenew.ByImport rn_wb:=.Wrkbk _
-                         , rn_comp_name:=.CompName _
-                         , rn_exp_file_full_name:=cRaw.ExpFileFullName _
-                         , rn_status:=sStatus & " " & .CompName & " "
-                    cLog.Entry = "Clone component renewed/updated by (re-)import of '" & cRaw.ExpFileFullName & "'"
-                    lReplaced = lReplaced + 1
-                    sReplaced = .CompName & ", " & sReplaced
-                    '~~ Register the update being used to identify a potentially relevant
-                    '~~ change of the origin code
-                End If
-            Else
-                cLog.Entry = "The corresponding Raw's code has not changed! (its Export-File is identical with the Clone's Export-File)"
+    For Each v In dctClonesTheRawChanged
+        mCompMan.DsplyProgress p_result:=sUpdated _
+                             , p_total:=Stats.Total(sic_clone_comps) _
+                             , p_done:=Stats.Total(sic_clones_comps_updated)
+        Set cRaw = dctClonesTheRawChanged(v)
+        Set cClone = New clsComp
+        Set cClone.Wrkbk = urc_wb
+        cClone.CompName = cRaw.CompName
+        With cRaw
+            cLog.ServicedItem = .CloneVbc
+            cLog.Entry = "Corresponding Raw-Component's code changed! (its Export-File differs from the Clone's Export-File)"
+            If bVerbose Then
+                UpdateCloneConfirmed ucc_comp_name:=.CompName _
+                                   , ucc_stay_verbose:=bVerbose _
+                                   , ucc_skip:=bSkip _
+                                   , ucc_clone:=cClone.ExpFileFullName _
+                                   , ucc_raw:=cRaw.ExpFileFullName
             End If
-            sStatus = sStatus & " " & .CompName & ", "
+            If Not bSkip Then
+                mRenew.ByImport rn_wb:=urc_wb _
+                     , rn_comp_name:=.CompName _
+                     , rn_exp_file_full_name:=.ExpFileFullName
+                cLog.Entry = "Clone-Component renewed/updated by (re-)import of '" & cRaw.ExpFileFullName & "'"
+                Stats.Count sic_clones_comps_updated
+                If sUpdated = vbNullString _
+                Then sUpdated = .CompName _
+                Else sUpdated = .CompName & ", " & sUpdated
+            End If
         End With
-        Set cComp = Nothing
+        Set cClone = Nothing
         Set cRaw = Nothing
         
     Next v
-    DsplyStatusUpdateClonesResult sp_cloned_raws:=urc_clones.Count _
-                                , sp_no_replaced:=lReplaced _
-                                , sp_replaced:=sReplaced
+    If sUpdated = vbNullString _
+    Then Application.StatusBar = cLog.Service & "None updated (" & Stats.Total(sic_clones_comps_updated) & " of " & Stats.Total(sic_clone_comps) & ")" _
+    Else Application.StatusBar = cLog.Service & sUpdated & " (" & Stats.Total(sic_clones_comps_updated) & " of " & Stats.Total(sic_clone_comps) & ")"
+
 xt: Set fso = Nothing
     Exit Sub
 
@@ -193,33 +184,30 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Sub DsplyStatusUpdateClonesResult( _
-                           ByVal sp_cloned_raws As Long, _
-                           ByVal sp_no_replaced As Long, _
-                           ByRef sp_replaced As String)
-' --------------------------------------------------------
-' Display the service progress
-' --------------------------------------------------------
+Private Sub DisplayStatus( _
+                    ByVal sp_cloned_raws As Long, _
+                    ByVal sp_no_replaced As Long, _
+                    ByRef sp_replaced As String)
+' -------------------------------------------------
+' Display the services final result.
+' -------------------------------------------------
     Dim sMsg        As String
-    Dim sService    As String
-    sService = cLog.Service
     
     Select Case sp_cloned_raws
-        Case 0: sMsg = sService & "No 'Cloned Raw Component' in Workbook"
+        Case 0: sMsg = "No 'Cloned Raw Component' in Workbook"
         Case 1
             Select Case sp_no_replaced
-                Case 0:     sMsg = sService & "1 Clone-Component identified but its corresponding Raw-Component had not changed."
-                Case 1:     sMsg = sService & "1 of 1 Clone-Component updated because its corresponding Raw-Component had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
+                Case 0:     sMsg = "1 Clone-Component identified but its corresponding Raw-Component had not changed."
+                Case 1:     sMsg = "1 of 1 Clone-Component updated because its corresponding Raw-Component had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
             End Select
         Case Else
             Select Case sp_no_replaced
-                Case 0:     sMsg = sService & "None of the " & sp_cloned_raws & " Clone-Components has been updated because their corresponding Raws-Component had changed."
-                Case 1:     sMsg = sService & "1 of " & sp_cloned_raws & " Clone-Components has been updated because the corresponding Raw-Component has changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
-                Case Else:  sMsg = sService & sp_no_replaced & " of " & sp_cloned_raws & " Clone-Components have been updated because their corresponding Raw-Component had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
+                Case 0:     sMsg = "No Clone-Component updated (0 of " & sp_cloned_raws & ")"
+                Case 1:     sMsg = "1 of " & sp_cloned_raws & " Clone-Components has been updated because the corresponding Raw-Component has changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
+                Case Else:  sMsg = sp_no_replaced & " of " & sp_cloned_raws & " Clone-Components have been updated because their corresponding Raw-Component had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
             End Select
     End Select
-    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
-    Application.StatusBar = sMsg
+    DsplyProgress sMsg
 
 End Sub
 

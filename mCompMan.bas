@@ -75,6 +75,8 @@ Public Enum siCounter
     sic_comps
     sic_comps_changed
     sic_comps_total
+    sic_named_ranges
+    sic_named_ranges_total
     sic_names_new
     sic_names_obsolete
     sic_names_total
@@ -86,6 +88,7 @@ Public Enum siCounter
     sic_oobs_obsolete
     sic_oobs_total
     sic_raw_changed
+    sic_clones_comps_updated
     sic_refs_new
     sic_refs_obsolete
     sic_refs_total
@@ -303,7 +306,7 @@ Public Sub DisplayCodeChange(ByVal cmp_comp_name As String)
     With fso
         sTmpFolder = cComp.ExpFilePath & "\Temp"
         If Not .FolderExists(sTmpFolder) Then .CreateFolder sTmpFolder
-        sTempExpFileFullName = sTmpFolder & "\" & cComp.CompName & cComp.ExpFileExtension
+        sTempExpFileFullName = sTmpFolder & "\" & cComp.CompName & cComp.ExpFileExt
         cComp.VBComp.Export sTempExpFileFullName
         Set flExpTemp = .GetFile(sTempExpFileFullName)
     End With
@@ -556,6 +559,23 @@ Public Function TypeString(ByVal vbc As VBComponent) As String
     End Select
 End Function
 
+Public Sub DsplyProgress( _
+          Optional ByVal p_result As String = vbNullString, _
+          Optional ByVal p_total As Long = 0, _
+          Optional ByVal p_done As Long = 0)
+
+    Dim sService    As String
+    Dim sDots       As String
+    Dim sMsg        As String
+    
+    If p_total - p_done >= 0 Then sDots = VBA.String$(p_total - p_done, ".")
+    On Error Resume Next
+    sService = cLog.Service
+    sMsg = sService & sDots & p_result
+    If Len(sMsg) > 250 Then sMsg = Left(sMsg, 246) & "...."
+    Application.StatusBar = sMsg
+
+End Sub
 
 Public Sub SynchTargetWbWithSourceWb( _
                                ByRef wb_target As Workbook, _
