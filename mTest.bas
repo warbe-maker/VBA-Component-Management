@@ -642,3 +642,59 @@ Public Sub Test_BasicConfig()
     End If
     
 End Sub
+
+Public Sub Test_Clones()
+    
+    Dim Clones      As New clsClones
+    
+    Set Stats = New clsStats
+    Set Clones.Serviced = ThisWorkbook
+    Set cLog.ServicedWrkbk(True) = ThisWorkbook
+    cLog.File = mFile.Temp(, ".log")
+    Clones.CollectAllChanged
+    
+    Debug.Print Stats.Total(sic_comps_total) & " Components"
+    Debug.Print Stats.Total(sic_clone_comps) & " Clones"
+    Debug.Print Stats.Total(sic_clone_changed) & " Changed"
+    Debug.Print mFile.Txt(cLog.LogFile)
+    
+    Set Clones = Nothing
+    Set Stats = Nothing
+    With New FileSystemObject
+        If .FileExists(cLog.File) Then .DeleteFile (cLog.File)
+    End With
+    Set cLog = Nothing
+End Sub
+
+Public Sub Test_Changed_Comps()
+    
+    Dim Comps   As New clsComps
+    Dim Comp    As New clsComp
+    Dim v       As Variant
+    
+    Set Stats = New clsStats
+    Set Comps.Serviced = ThisWorkbook
+    Set cLog.ServicedWrkbk(True) = ThisWorkbook
+    cLog.File = mFile.Temp(, ".log")
+    Comps.CollectAllChanged
+    
+    For Each v In Comps.Changed
+        Set Comp = Comps.Changed(v)
+        cLog.ServicedItem = Comp.VBComp
+        cLog.Entry = "Code changed (export due)"
+        Set Comp = Nothing
+    Next v
+    
+    Debug.Print mFile.Txt(cLog.LogFile)
+    Debug.Print Stats.Total(sic_comps_total) & " Components"
+    Debug.Print Stats.Total(sic_comps_changed) & " Changed"
+        
+    Set Comps = Nothing
+    Set Stats = Nothing
+    With New FileSystemObject
+        If .FileExists(cLog.File) Then .DeleteFile (cLog.File)
+    End With
+    Set cLog = Nothing
+
+End Sub
+

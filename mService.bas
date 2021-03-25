@@ -233,6 +233,7 @@ Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mService." & s
 End Function
 
+
 Public Sub ExportChangedComponents( _
                              ByRef ec_wb As Workbook, _
                     Optional ByVal ec_hosted As String = vbNullString)
@@ -260,6 +261,8 @@ Public Sub ExportChangedComponents( _
     Dim sProgressDots       As String
     Dim sStatus             As String
     Dim v                   As Variant
+    Dim Comps               As clsComps
+    Dim dctChanged          As Dictionary
     
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
@@ -269,8 +272,9 @@ Public Sub ExportChangedComponents( _
     
     sStatus = cLog.Service
     Set Stats = New clsStats
-    CollectServicedItems
-    
+    Set Comps = New clsComps
+    Set Comps.Serviced = ec_wb
+        
     mCompMan.DeleteObsoleteExpFiles do_wb:=ec_wb
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=ec_hosted _
                                             , mh_wb:=ec_wb) _
@@ -283,32 +287,11 @@ Public Sub ExportChangedComponents( _
     lCompsRemaining = lComponents
     sProgressDots = String$(lCompsRemaining, ".")
 
-    For Each v In dctServiced
-        Set vbc = dctServiced(v)
-        Set cComp = New clsComp
+    Set dctChanged = Comps.Changed
+    For Each v In dctChanged
+        Set cComp = dctChanged(v)
         sProgressDots = Left(sProgressDots, Len(sProgressDots) - 1)
         Application.StatusBar = sStatus & sProgressDots & sExported & " " & vbc.Name
-        mTrc.BoC ErrSrc(PROC) & " " & vbc.Name
-        Set cComp = New clsComp
-        With cComp
-            Set .Wrkbk = ec_wb
-            .CompName = vbc.Name
-            cLog.ServicedItem = .VBComp
-            If CodeModuleIsEmpty(.VBComp) Then
-                '~~ Empty Code Modules are exported only when the Workbook is a Raw-VB-Project
-                If mRawHosts.Exists(.WrkbkBaseName) Then
-                    If Not mRawHosts.IsRawVbProject(.WrkbkBaseName) Then GoTo next_vbc
-                End If
-            End If
-            If Not fso.FileExists(.ExpFileFullName) Then
-                .VBComp.Export .ExpFileFullName
-                cLog.Entry = "Initially exported to '" & .ExpFileFullName & "'."
-            End If
-            If Not .Changed Then
-                cLog.Entry = "Code un-changed! (temporary Export-File identical with last change Export-File)"
-                GoTo next_vbc
-            End If
-        End With
                 
         Select Case cComp.KindOfComp
             Case enRawClone
@@ -384,7 +367,6 @@ Public Sub ExportChangedComponents( _
         End Select
                                 
 next_vbc:
-        mTrc.EoC ErrSrc(PROC) & " " & vbc.Name
         lCompsRemaining = lCompsRemaining - 1
         Set cComp = Nothing
         Set cRaw = Nothing
@@ -536,7 +518,8 @@ Public Sub UpdateRawClones( _
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
     Dim sStatus     As String
-    
+    Dim Clones      As clsClones
+
     mErH.BoP ErrSrc(PROC)
     If mService.Denied(den_serviced_wb:=uc_wb, den_service:=PROC, den_new_log:=True) Then GoTo xt
 
@@ -554,6 +537,11 @@ Public Sub UpdateRawClones( _
         Set wbActive = uc_wb
         Set wbTemp = Workbooks.Add
     End If
+    
+    Set Clones = New clsClones
+    Set Clones.Serviced = uc_wb
+    
+    Clones.CollectAllChanged
     
     mUpdate.RawClones urc_wb:=uc_wb _
                     , urc_clones:=Clones(uc_wb)
@@ -818,32 +806,3 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Function
-
-Public Sub CollectServicedItems()
-' ---------------------------------------------------------------
-' All VBComponents in the Workbbok (wbServiced) are collected for
-' being serviced.
-' ---------------------------------------------------------------
-    Const PROC = "CollectServicedItems"
-    
-    On Error GoTo eh
-    Dim vbc     As VBComponent
-    
-    If dctServiced Is Nothing Then Set dctServiced = New Dictionary Else dctServiced.RemoveAll
-    
-    Stats.Count sic_vbcomps_total, wbServiced.VBProject.VBComponents.Count
-    For Each vbc In wbServiced.VBProject.VBComponents
-        cLog.ServicedItem = vbc ' Compute max length for logged item type and item name
-        With vbc
-            mDct.DctAdd dctServiced, vbc.Type & ":" & vbc.Name, vbc, order_bykey, seq_ascending, , , True
-        End With
-    Next vbc
-     
-xt: Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-    End Select
-End Sub
-

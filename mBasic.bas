@@ -649,9 +649,7 @@ Public Function SelectFolder( _
     ' Open the select folder prompt
     With Application.FileDialog(msoFileDialogFolderPicker)
         .Title = sTitle
-        .AllowMultiSelect = False
-        .InitialFileName = mMe.ServicedRoot
-        If .Show = -1 Then ' if OK is pressed
+        If .show = -1 Then ' if OK is pressed
             sFolder = .SelectedItems(1)
         End If
     End With

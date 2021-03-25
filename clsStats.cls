@@ -32,7 +32,7 @@ Public Property Get AlignedValue(ByVal sic As siCounter) As String
     
     Value = Me.Total(sic)
     If sic = sic_non_doc_mod_total Then
-        Value = Me.Total(sic_vbcomps_total) - Me.Total(sic_sheets_total) - 1
+        Value = Me.Total(sic_comps_total) - Me.Total(sic_sheets_total) - 1
     End If
     
     AlignedValue = Align(CStr(Value), lMaxLen, AlignRight)
@@ -54,7 +54,6 @@ Public Sub Count( _
     End If
     aCount(c_sic) = aCount(c_sic) + c_value
 End Sub
-
 
 Private Sub Class_Initialize()
     Clear

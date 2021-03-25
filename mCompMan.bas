@@ -67,6 +67,42 @@ Public Enum vbcmType
     vbext_ct_Document = 100         ' .cls
 End Enum
 
+Public Enum siCounter
+    sic_clone_changed
+    sic_clone_comps
+    sic_cols_new
+    sic_cols_obsolete
+    sic_comps
+    sic_comps_changed
+    sic_comps_total
+    sic_names_new
+    sic_names_obsolete
+    sic_names_total
+    sic_non_doc_mods_code
+    sic_non_doc_mod_new
+    sic_non_doc_mod_obsolete
+    sic_non_doc_mod_total
+    sic_oobs_new
+    sic_oobs_obsolete
+    sic_oobs_total
+    sic_raw_changed
+    sic_refs_new
+    sic_refs_obsolete
+    sic_refs_total
+    sic_rows_new
+    sic_rows_obsolete
+    sic_shapes_new
+    sic_shapes_obsolete
+    sic_shapes_total
+    sic_shape_properties
+    sic_sheets_code
+    sic_sheets_codename
+    sic_sheets_name
+    sic_sheets_new
+    sic_sheets_obsolete
+    sic_sheets_total
+End Enum
+
 Public cComp            As clsComp
 Public cRaw             As clsRaw
 Public asNoSynch()      As String
@@ -123,7 +159,7 @@ Public Function IsWrkbkComp(ByRef vbc As VBComponent) As Boolean
     
     Dim bSigned As Boolean
     On Error Resume Next
-    bSigned = vbc.Properties("VBASigned").value
+    bSigned = vbc.Properties("VBASigned").Value
     IsWrkbkComp = Err.Number = 0
     
 End Function

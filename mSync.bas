@@ -14,38 +14,6 @@ Private Const BKP_FOLDER_PREFIX = "SyncBckp-"
 Public Sync                     As clsSync
 Private bSyncDenied             As Boolean      ' when True the synchronization is not performed
 Private cSource                 As clsRaw
-Private cTarget                 As clsComp
-
-Public Enum siCounter
-    sic_cols_new
-    sic_cols_obsolete
-    sic_names_new
-    sic_names_obsolete
-    sic_names_total
-    sic_oobs_new
-    sic_oobs_obsolete
-    sic_oobs_total
-    sic_refs_new
-    sic_refs_obsolete
-    sic_refs_total
-    sic_rows_obsolete
-    sic_rows_new
-    sic_shapes_new
-    sic_shapes_obsolete
-    sic_shape_properties
-    sic_shapes_total
-    sic_sheets_code
-    sic_sheets_codename
-    sic_sheets_name
-    sic_sheets_new
-    sic_sheets_obsolete
-    sic_sheets_total
-    sic_vbcomps_total
-    sic_non_doc_mods_code
-    sic_non_doc_mod_new
-    sic_non_doc_mod_obsolete
-    sic_non_doc_mod_total
-End Enum
 
 Public Enum SyncMode
     Count = 1
@@ -341,7 +309,7 @@ Public Sub SyncRestore( _
             .Title = "Select the desired backup folder"
             .AllowMultiSelect = False
             .InitialFileName = mMe.ServicedRoot
-            If .Show = -1 Then ' if OK is pressed
+            If .show = -1 Then ' if OK is pressed
                 sBckp = .SelectedItems(1)
             End If
         End With

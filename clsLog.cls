@@ -83,7 +83,11 @@ Friend Property Let Folder(ByVal s As String):      sFolder = s:                
 
 Friend Property Get LogFile() As File
     Dim sLogFullName    As String
-    sLogFullName = Me.Folder & "\" & Me.File
+    If InStr(Me.File, ":") <> 0 Then
+        sLogFullName = Me.File
+    Else
+        sLogFullName = Me.Folder & "\" & Me.File
+    End If
     With New FileSystemObject
         If Not .FileExists(sLogFullName) Then .CreateTextFile sLogFullName
         Set LogFile = .GetFile(sLogFullName)

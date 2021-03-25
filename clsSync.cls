@@ -254,7 +254,7 @@ Public Sub CollectAllSyncItems()
     DisplayCollectedTargetSheetOOBs
     
     '~~ Source and Target VBComponents
-    Stats.Count sic_vbcomps_total, wbSyncSource.VBProject.VBComponents.Count
+    Stats.Count sic_comps_total, wbSyncSource.VBProject.VBComponents.Count
     For Each vbc In wbSyncSource.VBProject.VBComponents
         cLog.ServicedItem = vbc ' Compute max length for logged item type and item name
         If mCompMan.IsSheetComp(vbc) Then
