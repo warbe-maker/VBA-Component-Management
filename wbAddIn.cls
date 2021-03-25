@@ -64,19 +64,16 @@ Private Sub Workbook_Open()
         mCompManClient.CompManService "UpdateRawClones", HOSTED_RAWS
         '~~ ------------------------------------------------------------------
         mMe.DisplayStatus
+        Application.ScreenUpdating = False
+        With ActiveWindow
+            .DisplayHorizontalScrollBar = False
+            .DisplayVerticalScrollBar = False
+        End With
+        wsAddIn.Activate
+        wsAddIn.Range("rngDisplayed").Select
+        ActiveWindow.Zoom = True
+        wsAddIn.Range("celSelect").Select
     End If
-        
-    ThisWorkbook.Unprotect
-    
-    Application.ScreenUpdating = False
-    With ActiveWindow
-        .DisplayHorizontalScrollBar = False
-        .DisplayVerticalScrollBar = False
-    End With
-    wsAddIn.Activate
-    wsAddIn.Range("rngDisplayed").Select
-    ActiveWindow.Zoom = True
-    wsAddIn.Range("celSelect").Select
     
 xt: mErH.BoP ErrSrc(PROC)
     Exit Sub
