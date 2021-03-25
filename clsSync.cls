@@ -9,33 +9,63 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private wbSyncSource            As Workbook
-Private wbSyncTarget            As Workbook
-Private dctSourceSheetComps     As Dictionary
-Private dctTargetSheetComps     As Dictionary
-Private dctSourceSheets         As Dictionary
-Private dctTargetSheets         As Dictionary
-Private dctSourceNames          As Dictionary
-Private dctTargetNames          As Dictionary
-Private dctSourceSheetShapes    As Dictionary
-Private dctTargetSheetShapes    As Dictionary
-Private dctNewSheets            As Dictionary
+Private bAmbigous               As Boolean          ' when True sync is only done when the below is confirmed True
+Private bRestrictRenameAsserted As Boolean          ' when False a sheet's CodeName a n d its Name may be changed at once
 Private cllConfInfo             As Collection
-Private sEntry                  As String
+Private dctChanged              As Dictionary       ' Confirm buttons and clsRaw items to display changed
+Private dctNameChange           As Dictionary
+Private dctNewSheets            As Dictionary
+Private dctSourceNames          As Dictionary
+Private dctSourceSheetOOBs      As Dictionary
+Private dctSourceSheetComps     As Dictionary
+Private dctSourceSheets         As Dictionary
+Private dctSourceSheetShapes    As Dictionary
+Private dctTargetNames          As Dictionary
+Private dctTargetSheetOOBs      As Dictionary
+Private dctTargetSheetComps     As Dictionary
+Private dctTargetSheets         As Dictionary
+Private dctTargetSheetShapes    As Dictionary
 Private lMaxLenItem             As String
 Private lMaxLenTypeItem         As Long
+Private lMode                   As SyncMode
+Private lSheetsNew              As Long
+Private lSheetsObsolete         As Long
+Private sEntry                  As String
+Private wbSyncSource            As Workbook
+Private wbSyncTarget            As Workbook
+Private bManualSynchRequired    As Boolean
+
+Private Sub Class_Initialize()
+    Set dctNameChange = New Dictionary
+    Set dctChanged = New Dictionary
+End Sub
 
 Private Sub Class_Terminate()
-    Set dctSourceSheetComps = Nothing
-    Set dctTargetSheetComps = Nothing
-    Set dctSourceSheets = Nothing
-    Set dctTargetSheets = Nothing
-    Set dctSourceNames = Nothing
-    Set dctTargetNames = Nothing
-    Set dctSourceSheetShapes = Nothing
-    Set dctTargetSheetShapes = Nothing
     Set cllConfInfo = Nothing
+    Set dctChanged = Nothing
+    Set dctNameChange = Nothing
+    Set dctNewSheets = Nothing
+    Set dctSourceNames = Nothing
+    Set dctSourceSheetComps = Nothing
+    Set dctSourceSheets = Nothing
+    Set dctSourceSheetShapes = Nothing
+    Set dctTargetNames = Nothing
+    Set dctTargetSheetComps = Nothing
+    Set dctTargetSheets = Nothing
+    Set dctTargetSheetShapes = Nothing
+    Set dctTargetSheetOOBs = Nothing
+    Set dctSourceSheetOOBs = Nothing
 End Sub
+
+Friend Property Let ManualSynchRequired(ByVal b As Boolean):    bManualSynchRequired = b:                           End Property
+Friend Property Get ManualSynchRequired() As Boolean:           ManualSynchRequired = bManualSynchRequired:         End Property
+Friend Property Get Ambigous() As Boolean:                      Ambigous = bAmbigous:                               End Property
+
+Friend Property Let Ambigous(ByVal b As Boolean):               bAmbigous = b:                                      End Property
+
+Public Property Get Changed() As Dictionary
+    Set Changed = dctChanged
+End Property
 
 Friend Property Get ConfInfo( _
               Optional ByRef serviced_item As Variant = Nothing) As String
@@ -85,6 +115,18 @@ Friend Property Get MaxLenTypeItem() As Long
     MaxLenTypeItem = lMaxLenTypeItem
 End Property
 
+Friend Property Get Mode() As SyncMode:         Mode = lMode:   End Property
+
+Friend Property Let Mode(ByVal l As SyncMode)
+    lMode = l
+    If lMode = Count Then
+        lSheetsNew = 0
+        lSheetsObsolete = 0
+    End If
+End Property
+
+Friend Property Get NameChange() As Dictionary:                 Set NameChange = dctNameChange:                     End Property
+
 Friend Property Let NewSheet( _
               Optional ByVal sheet_code_name As String, _
                        ByVal sheet_name As String)
@@ -93,34 +135,49 @@ Friend Property Let NewSheet( _
     If Not dctNewSheets.Exists(sheet_name) Then dctNewSheets.Add sheet_name, sheet_code_name
 End Property
 
-Friend Property Get NewSheetExists(ByVal sheet_name As String) As Boolean
-    NewSheetExists = dctNewSheets.Exists(sheet_name)
+Friend Property Get IsNewSheet(ByVal sheet_name As String) As Boolean
+    IsNewSheet = dctNewSheets.Exists(sheet_name)
 End Property
 
-Friend Property Get Source() As Workbook:               Set Source = wbSyncSource:                      End Property
+Friend Property Get RestrictRenameAsserted() As Boolean:        RestrictRenameAsserted = bRestrictRenameAsserted:       End Property
 
-                 
-Friend Property Set Source(ByRef wb As Workbook):       Set wbSyncSource = wb:                          End Property
+Friend Property Let RestrictRenameAsserted(ByVal b As Boolean): bRestrictRenameAsserted = b:                            End Property
 
-Friend Property Get SourceNames() As Dictionary:        Set SourceNames = dctSourceNames:               End Property
+Friend Property Get SheetsNew() As Long:                        SheetsNew = lSheetsNew:                                 End Property
 
-Friend Property Get SourceSheetComps() As Dictionary:   Set SourceSheetComps = dctSourceSheetComps:     End Property
+Friend Property Get SheetsObsolete() As Long:                   SheetsObsolete = lSheetsObsolete:                       End Property
 
-Friend Property Get SourceSheets() As Dictionary:       Set SourceSheets = dctSourceSheets:             End Property
+Friend Property Get Source() As Workbook:                       Set Source = wbSyncSource:                              End Property
 
-Friend Property Get SourceSheetShapes() As Dictionary:  Set SourceSheetShapes = dctSourceSheetShapes:   End Property
+Friend Property Set Source(ByRef wb As Workbook):               Set wbSyncSource = wb:                                  End Property
 
-Friend Property Get Target() As Workbook:               Set Target = wbSyncTarget:                      End Property
+Friend Property Get SourceNames() As Dictionary:                Set SourceNames = dctSourceNames:                       End Property
 
-Friend Property Set Target(ByRef wb As Workbook):       Set wbSyncTarget = wb:                          End Property
+Friend Property Get SourceSheetComps() As Dictionary:           Set SourceSheetComps = dctSourceSheetComps:             End Property
 
-Friend Property Get TargetNames() As Dictionary:        Set TargetNames = dctTargetNames:               End Property
+Friend Property Get SourceSheets() As Dictionary:               Set SourceSheets = dctSourceSheets:                     End Property
 
-Friend Property Get TargetSheetComps() As Dictionary:   Set TargetSheetComps = dctTargetSheetComps:     End Property
+Friend Property Get SourceSheetShapes() As Dictionary:          Set SourceSheetShapes = dctSourceSheetShapes:           End Property
 
-Friend Property Get TargetSheets() As Dictionary:       Set TargetSheets = dctTargetSheets:             End Property
+Friend Property Get SourceSheetOOBs() As Dictionary:            Set SourceSheetOOBs = dctSourceSheetOOBs:               End Property
 
-Friend Property Get TargetSheetShapes() As Dictionary:  Set TargetSheetShapes = dctTargetSheetShapes:   End Property
+Friend Property Get TargetSheetOOBs() As Dictionary:            Set TargetSheetOOBs = dctTargetSheetOOBs:               End Property
+
+Friend Property Get Target() As Workbook:                       Set Target = wbSyncTarget:                              End Property
+
+Friend Property Set Target(ByRef wb As Workbook):               Set wbSyncTarget = wb:                                  End Property
+
+Friend Property Get TargetNames() As Dictionary:                Set TargetNames = dctTargetNames:                       End Property
+
+Friend Property Get TargetSheetComps() As Dictionary:           Set TargetSheetComps = dctTargetSheetComps:             End Property
+
+Friend Property Get TargetSheets() As Dictionary:               Set TargetSheets = dctTargetSheets:                     End Property
+
+Friend Property Get TargetSheetShapes() As Dictionary:          Set TargetSheetShapes = dctTargetSheetShapes:           End Property
+
+Public Sub ChangedClear()
+    If dctChanged Is Nothing Then Set dctChanged = New Dictionary Else dctChanged.RemoveAll
+End Sub
 
 Public Sub CollectAllSyncItems()
     Const PROC = "CollectAllSyncItems"
@@ -133,6 +190,7 @@ Public Sub CollectAllSyncItems()
     Dim nm      As Name
     Dim nmName  As Name
     Dim sKey    As String
+    Dim oob     As OLEObject
     
     If dctSourceSheets Is Nothing Then Set dctSourceSheets = New Dictionary Else dctSourceSheets.RemoveAll
     If dctSourceSheetComps Is Nothing Then Set dctSourceSheetComps = New Dictionary Else dctSourceSheetComps.RemoveAll
@@ -142,6 +200,8 @@ Public Sub CollectAllSyncItems()
     If dctTargetSheetShapes Is Nothing Then Set dctTargetSheetShapes = New Dictionary Else dctTargetSheetShapes.RemoveAll
     If dctSourceNames Is Nothing Then Set dctSourceNames = New Dictionary Else dctSourceNames.RemoveAll
     If dctTargetNames Is Nothing Then Set dctTargetNames = New Dictionary Else dctTargetNames.RemoveAll
+    If dctSourceSheetOOBs Is Nothing Then Set dctSourceSheetOOBs = New Dictionary Else dctSourceSheetOOBs.RemoveAll
+    If dctTargetSheetOOBs Is Nothing Then Set dctTargetSheetOOBs = New Dictionary Else dctTargetSheetOOBs.RemoveAll
     
     '~~ Source Worksheets by Name and by CodeName
     Stats.Count sic_sheets_total, wbSyncSource.Worksheets.Count
@@ -155,12 +215,20 @@ Public Sub CollectAllSyncItems()
             Stats.Count sic_shapes_total, .Shapes.Count
             For Each shp In .Shapes
                 cLog.ServicedItem = shp ' Compute max length for logged item type and item name
-                sKey = mSync.KeySheetShape(.Name, shp.Name)
+                sKey = mSync.KeySheetControl(.Name, shp.Name)
                 mDct.DctAdd dctSourceSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
             Next shp
+            
+            '~~ Source Worksheet OLEObjects
+            For Each oob In .OLEObjects
+                cLog.ServicedItem = oob
+                sKey = mSync.KeySheetControl(.Name, oob.Name)
+                mDct.DctAdd dctSourceSheetOOBs, sKey, oob.Name, order_bykey, seq_ascending, , , True
+            Next oob
         End With
     Next ws1
-     
+    DisplayCollectedSourceSheetOOBs
+    
     '~~ Target Worksheets by Name and by CodeName
     For Each ws2 In wbSyncTarget.Worksheets
         cLog.ServicedItem = ws2 ' Compute max length for logged item type and item name
@@ -171,11 +239,19 @@ Public Sub CollectAllSyncItems()
             '~~ Target Worksheet Shapes
             For Each shp In .Shapes
                 cLog.ServicedItem = shp ' Compute max length for logged item type and item name
-                sKey = mSync.KeySheetShape(.Name, shp.Name)
+                sKey = mSync.KeySheetControl(.Name, shp.Name)
                 mDct.DctAdd dctTargetSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
             Next shp
+        
+            '~~ Target Worksheet OLEObjects
+            For Each oob In .OLEObjects
+                cLog.ServicedItem = oob
+                sKey = mSync.KeySheetControl(.Name, oob.Name)
+                mDct.DctAdd dctTargetSheetOOBs, sKey, oob.Name, order_bykey, seq_ascending, , , True
+            Next oob
         End With
     Next ws2
+    DisplayCollectedTargetSheetOOBs
     
     '~~ Source and Target VBComponents
     Stats.Count sic_vbcomps_total, wbSyncSource.VBProject.VBComponents.Count
@@ -244,6 +320,10 @@ Private Sub ConfInfoSummary()
                 Stats.AlignedValue(sic_sheets_name) & " Name-change"
 End Sub
 
+Public Sub CountSheetsNew():                    lSheetsNew = lSheetsNew + 1:            End Sub
+
+Public Sub CountSheetsObsolete():               lSheetsObsolete = lSheetsObsolete + 1:  End Sub
+
 Public Sub DisplayCollectedSourceSheets()
     Dim i   As Long
     Dim ws  As Worksheet
@@ -258,15 +338,15 @@ Public Sub DisplayCollectedSourceSheets()
 End Sub
 
 Public Sub DisplayCollectedSourceSheetShapes()
-    Dim v       As Variant
-    Dim sSheet  As String
-    Dim sShape  As String
+    Dim v           As Variant
+    Dim sSheet      As String
+    Dim sControl    As String
     
     Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
     For Each v In Me.SourceSheetShapes
         sSheet = mSync.KeySheetName(v)
-        sShape = mSync.KeyShapeName(v)
-        Debug.Print Align("Source", 10) & Align(sSheet, 30) & sShape
+        sControl = mSync.KeyControlName(v)
+        Debug.Print Align("Source", 10) & Align(sSheet, 30) & sControl
     Next v
 End Sub
 
@@ -284,15 +364,41 @@ Public Sub DisplayCollectedTargetSheets()
 End Sub
 
 Public Sub DisplayCollectedTargetSheetShapes()
-    Dim v       As Variant
-    Dim sSheet  As String
-    Dim sShape  As String
+    Dim v           As Variant
+    Dim sSheet      As String
+    Dim sControl    As String
     
     Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
     For Each v In Me.TargetSheetShapes
         sSheet = mSync.KeySheetName(v)
-        sShape = mSync.KeyShapeName(v)
-        Debug.Print Align("Source", 10) & Align(sSheet, 30) & sShape
+        sControl = mSync.KeyControlName(v)
+        Debug.Print Align("Source", 10) & Align(sSheet, 30) & sControl
+    Next v
+End Sub
+
+Public Sub DisplayCollectedTargetSheetOOBs()
+    Dim v           As Variant
+    Dim sSheet      As String
+    Dim sControl    As String
+    
+    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    For Each v In Me.TargetSheetOOBs
+        sSheet = mSync.KeySheetName(v)
+        sControl = mSync.KeyControlName(v)
+        Debug.Print Align("Target", 10) & Align(sSheet, 30) & sControl
+    Next v
+End Sub
+
+Public Sub DisplayCollectedSourceSheetOOBs()
+    Dim v           As Variant
+    Dim sSheet      As String
+    Dim sControl    As String
+    
+    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    For Each v In Me.SourceSheetOOBs
+        sSheet = mSync.KeySheetName(v)
+        sControl = mSync.KeyControlName(v)
+        Debug.Print Align("Source", 10) & Align(sSheet, 30) & sControl
     Next v
 End Sub
 

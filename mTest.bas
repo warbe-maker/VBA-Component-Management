@@ -87,7 +87,7 @@ Public Sub Test_SynchTargetWithSource()
 ' and a restore after the synch test. The target Workbook thus will not
 ' show the synch result unless the terst procedire is stopped.
 ' ---------------------------------------------------------------------
-    Const PROC = ""
+    Const PROC = "Test_SynchTargetWithSource"
     
     On Error GoTo eh
     Dim sSource     As String
@@ -99,6 +99,7 @@ Public Sub Test_SynchTargetWithSource()
        
     If mService.SyncTargetWithSource(wb_target:=mCompMan.WbkGetOpen(sTarget) _
                                    , wb_source_name:=sSource _
+                                   , restricted_sheet_rename_asserted:=True _
                                    , bkp_folder:=BkpFolder _
                                     ) _
     Then
@@ -108,21 +109,22 @@ Public Sub Test_SynchTargetWithSource()
         ' -----------------------------------------------------------------
     End If
     '~~ The backup is no longer reqired
+    
+xt:
     If BkpFolder <> vbNullString Then
-        ' A backup had been made by the service which is noew restored
+        ' A backup had been made by the service which is now restored and the target is re-opened
         mCompMan.WbkGetOpen(sTarget).Close SaveChanges:=False
-        mSync.SyncTargetRestore BkpFolder, sTarget
+        mSync.SyncRestore BkpFolder
         Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
         mCompMan.WbkGetOpen sTarget
         Application.EnableEvents = True
     End If
-    
-xt: Exit Sub
+    Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
         Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
 

@@ -397,11 +397,11 @@ Public Sub ArrayToRange(ByVal vArr As Variant, _
     If bOneCol Then
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(UBound(vArr), 1)
-        rTarget.value = Application.Transpose(vArr)
+        rTarget.Value = Application.Transpose(vArr)
     Else
         '~~ One column, n rows
         Set rTarget = r.Cells(1, 1).Resize(1, UBound(vArr))
-        rTarget.value = vArr
+        rTarget.Value = vArr
     End If
     
 xt: Exit Sub
@@ -649,7 +649,9 @@ Public Function SelectFolder( _
     ' Open the select folder prompt
     With Application.FileDialog(msoFileDialogFolderPicker)
         .Title = sTitle
-        If .show = -1 Then ' if OK is pressed
+        .AllowMultiSelect = False
+        .InitialFileName = mMe.ServicedRoot
+        If .Show = -1 Then ' if OK is pressed
             sFolder = .SelectedItems(1)
         End If
     End With

@@ -295,7 +295,7 @@ Public Sub ExportChangedComponents( _
             .CompName = vbc.Name
             cLog.ServicedItem = .VBComp
             If CodeModuleIsEmpty(.VBComp) Then
-                '~~ Empty Code Modules are exported only when the Workbook is a VB-Raw-Project
+                '~~ Empty Code Modules are exported only when the Workbook is a Raw-VB-Project
                 If mRawHosts.Exists(.WrkbkBaseName) Then
                     If Not mRawHosts.IsRawVbProject(.WrkbkBaseName) Then GoTo next_vbc
                 End If
@@ -392,8 +392,8 @@ next_vbc:
     
     sMsg = cLog.Service
     Select Case lExported
-        Case 0:     sMsg = sMsg & "None of the " & lComponents & " components' code has changed."
-        Case Else:  sMsg = sMsg & lExported & " of " & lComponents & " changed components exported: " & sExported
+        Case 0:     sMsg = sMsg & "No code changed (of " & lComponents & " components)"
+        Case Else:  sMsg = sMsg & sExported & " (" & lExported & " of " & lComponents & ")"
     End Select
     If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
     Application.StatusBar = sMsg
@@ -475,6 +475,7 @@ End Sub
 Public Function SyncTargetWithSource( _
                       Optional ByRef wb_target As Workbook = Nothing, _
                       Optional ByVal wb_source_name As String = vbNullString, _
+                      Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
                       Optional ByRef bkp_folder As String) As Boolean
 ' -----------------------------------------------------------------------------
 ' Synchronizes the target Workbook (wb_target) with the source Workbook
@@ -508,6 +509,7 @@ Public Function SyncTargetWithSource( _
         
     SyncTargetWithSource = mSync.SyncTargetWithSource(wb_target:=wb_target _
                                                     , wb_source:=wbRaw _
+                                                    , restricted_sheet_rename_asserted:=restricted_sheet_rename_asserted _
                                                     , bkp_folder:=bkp_folder)
 
 xt: mErH.EoP ErrSrc(PROC)
@@ -534,7 +536,6 @@ Public Sub UpdateRawClones( _
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
     Dim sStatus     As String
-    Dim lMaxLenComp As Long
     
     mErH.BoP ErrSrc(PROC)
     If mService.Denied(den_serviced_wb:=uc_wb, den_service:=PROC, den_new_log:=True) Then GoTo xt

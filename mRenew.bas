@@ -1,14 +1,20 @@
 Attribute VB_Name = "mRenew"
 Option Explicit
 
-Public Sub ByImport(ByRef rn_wb As Workbook, _
-                    ByVal rn_comp_name As String, _
-                    ByVal rn_exp_file_full_name As String, _
-           Optional ByVal rn_status As String = vbNullString)
-' -----------------------------------------------------------
-' Renews the component (rn_comp_name) in Workbook (rn_wb)
-' by importing the Export-File (rn_exp_file_full_name).
-' -----------------------------------------------------------
+Public Sub ByImport( _
+              ByRef rn_wb As Workbook, _
+              ByVal rn_comp_name As String, _
+              ByVal rn_exp_file_full_name As String, _
+     Optional ByVal rn_status As String = vbNullString)
+' -----------------------------------------------------
+' Renews/replaces the component (rn_comp_name) in
+' Workbook (rn_wb) by importing the Export-File
+' (rn_exp_file_full_name).
+' Note: Because a module cannot be deleted it is
+'       renamed and deleted. The rename puts it out of
+'       the way, deletion is done by the system when
+'       the process has ended.
+' -----------------------------------------------------
     Dim sTempName       As String
     Dim sExpFilePath    As String
     Dim fso             As New FileSystemObject
@@ -17,7 +23,7 @@ Public Sub ByImport(ByRef rn_wb As Workbook, _
     If rn_status <> vbNullString Then Application.StatusBar = rn_status & "Save and wait"
     SaveWbk rn_wb
     DoEvents:  Application.Wait Now() + 0.0000001 ' wait for 10 milliseconds
-    With rn_wb.VbProject
+    With rn_wb.VBProject
         If CompExists(ce_wb:=rn_wb, ce_comp_name:=rn_comp_name) Then
             '~~ Find a free/unused temporary name
             sTempName = GetTempName(ac_wb:=rn_wb, ac_comp_name:=rn_comp_name)
@@ -63,7 +69,7 @@ Private Function GetTempName(ByRef ac_wb As Workbook, _
     sTempName = ac_comp_name & "_Temp"
     Do
         On Error Resume Next
-        sTempName = ac_wb.VbProject.VBComponents(sTempName).Name
+        sTempName = ac_wb.VBProject.VBComponents(sTempName).Name
         If Err.Number <> 0 Then Exit Do ' a component with sTempName does not exist
         i = i + 1: sTempName = sTempName & i
     Loop
@@ -107,7 +113,7 @@ Private Function CompExists(ByRef ce_wb As Workbook, _
 ' ------------------------------------------------------------------
     Dim s As String
     On Error Resume Next
-    s = ce_wb.VbProject.VBComponents(ce_comp_name).Name
+    s = ce_wb.VBProject.VBComponents(ce_comp_name).Name
     CompExists = Err.Number = 0
 End Function
 
@@ -116,7 +122,7 @@ Private Function Extension(ByRef ext_wb As Workbook, _
 ' -----------------------------------------------------------------
 ' Returns the components Export-File extension
 ' -----------------------------------------------------------------
-    Select Case ext_wb.VbProject.VBComponents(ext_comp_name).Type
+    Select Case ext_wb.VBProject.VBComponents(ext_comp_name).Type
         Case vbext_ct_StdModule:    Extension = ".bas"
         Case vbext_ct_ClassModule:  Extension = ".cls"
         Case vbext_ct_MSForm:       Extension = ".frm"

@@ -129,6 +129,16 @@ Friend Property Let ServicedItem(ByRef v As Variant)
     Dim ws  As Worksheet
     Dim ref As Reference
     Dim shp As Shape
+    Dim oob As OLEObject
+    Dim tbt As ToggleButton
+    Dim tbx As TextBox
+    Dim sbt As SpinButton
+    Dim scb As ScrollBar
+    Dim obt As OptionButton
+    Dim lbx As ListBox
+    Dim lbl As Label
+    Dim img As Image
+    Dim cbt As CommandButton
     
     Select Case TypeName(v)
         Case "VBComponent"
@@ -145,14 +155,29 @@ Friend Property Let ServicedItem(ByRef v As Variant)
                                                 ServicedItemType = "Workbook":          ServicedItemName = vbc.Name
                     End If
             End Select
-        Case "Name":        Set nm = v:         ServicedItemType = "Name":              ServicedItemName = nm.Name & "(" & nm.RefersTo & ")"
-        Case "Reference":   Set ref = v:        ServicedItemType = TypeName(ref):       ServicedItemName = ref.Name
-        Case "Shape":       Set shp = v:        ServicedItemType = "Shape":             ServicedItemName = shp.Name
-        Case "Worksheet":   Set ws = v:         ServicedItemType = "Worksheet":         ServicedItemName = ws.Name & "(" & ws.CodeName & ")"
+        Case "Name":            Set nm = v:     ServicedItemType = "Name":              ServicedItemName = nm.Name & "(" & nm.RefersTo & ")"
+        Case "OLEObject"
+            Set oob = v
+            ServicedItemType = "(Sheet)ActiveX"
+            ServicedItemName = "(" & oob.Parent.Name & ")" & oob.Name
+        Case "Reference":       Set ref = v:    ServicedItemType = TypeName(ref):       ServicedItemName = ref.Name
+        Case "Shape":           Set shp = v:    ServicedItemType = "(Sheet)Shape":      ServicedItemName = "(" & shp.Parent.Name & ")" & shp.Name
+        Case "Worksheet":       Set ws = v:     ServicedItemType = "Worksheet":         ServicedItemName = ws.Name & "(" & ws.CodeName & ")"
         Case "String"
             sServicedItemType = vbNullString
             sServicedItemName = vbNullString
             sServicedItem = Align(v, lMaxLenServicedItemType + lMaxLenServicedItemName + 1, , " ", ".") & ": "
+        Case "CommandButton":   Set cbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
+        Case "Image":           Set img = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
+        Case "Label":           Set lbl = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
+        Case "ListBox":         Set lbx = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
+        Case "OptionButton":    Set obt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
+        Case "ScrollBar":       Set scb = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
+        Case "SpinButton":      Set sbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
+        Case "TextBox":         Set tbx = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
+        Case "ToggleButton":    Set tbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
+        Case Else
+            Debug.Print "TypeName '" & TypeName(v) & "' not yet considered"
     End Select
        
 End Property

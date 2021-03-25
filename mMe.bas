@@ -78,7 +78,7 @@ End Property
 
 Public Property Get AddInPaused() As Boolean
     Dim s As String
-    s = value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED)
+    s = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED)
     If s = vbNullString Then
         AddInPaused = False
     Else
@@ -87,7 +87,7 @@ Public Property Get AddInPaused() As Boolean
 End Property
 
 Public Property Let AddInPaused(ByVal b As Boolean)
-    value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED) = b
+    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED) = b
     With New FileSystemObject
         .CopyFile CFG_FILENAME, CompManAddinPath & "\" & .GetFileName(CFG_FILENAME)
     End With
@@ -100,7 +100,7 @@ End Property
 Private Property Get CFG_FILENAME() As String: CFG_FILENAME = ThisWorkbook.Path & "\CompMan.cfg": End Property
 
 Public Property Get CompManAddinPath() As String
-    CompManAddinPath = value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_FOLDER)
+    CompManAddinPath = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_FOLDER)
 End Property
 
 Public Property Let CompManAddinPath(ByVal s As String)
@@ -109,7 +109,7 @@ Public Property Let CompManAddinPath(ByVal s As String)
     On Error GoTo eh
     Dim fso As New FileSystemObject
     
-    value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_FOLDER) = s
+    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_FOLDER) = s
     fso.CopyFile CFG_FILENAME, VBA.Replace(s & "\", "\\", "\")
     
 xt: Set fso = Nothing
@@ -173,31 +173,31 @@ Public Property Let RenewStep(ByVal l As Long)
 End Property
 
 Public Property Get ServicedRoot() As String
-    ServicedRoot = value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_SERVICED_ROOT)
+    ServicedRoot = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_SERVICED_ROOT)
 End Property
 
 Public Property Let ServicedRoot(ByVal s As String)
-    value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_SERVICED_ROOT) = s
+    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_SERVICED_ROOT) = s
     With New FileSystemObject
         .CopyFile CFG_FILENAME, mMe.CompManAddinPath & "\" & .GetFileName(CFG_FILENAME)
     End With
 End Property
 
-Private Property Get value( _
+Private Property Get Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String) As Variant
     
-    value = mFile.value(pp_file:=CFG_FILENAME _
+    Value = mFile.Value(pp_file:=CFG_FILENAME _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
 End Property
 
-Private Property Let value( _
+Private Property Let Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String, _
                     ByVal pp_value As Variant)
-    mFile.value(pp_file:=CFG_FILENAME _
+    mFile.Value(pp_file:=CFG_FILENAME _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -220,7 +220,9 @@ Private Property Get AddInIsSetup() As Boolean
 End Property
 
 Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = False)
+    Const PROC = "DisplayStatus"
     
+    On Error GoTo eh
     wsAddIn.CurrentStatus = vbNullString
     wsAddIn.RenewStepLogTitle = "Log of the steps to Setup/Renew the 'CompMan-Addin'"
     If mMe.AddInIsSetup Then
@@ -229,7 +231,7 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
             '~~ referring to it is openend or when it is renewed.
             
             '~~ Renew steps log
-            wsAddIn.CurrentStatus = " 'CompMan-Addin' setup but  " & mBasic.Spaced("not open!") & vbLf & _
+            wsAddIn.CurrentStatus = mBasic.Spaced("not open!") & vbLf & _
                                     "(will be opened with Setup/Renew or by a Workbook opened which refers to it)"
             If Not keep_renew_steps_result Then wsAddIn.RenewStepLogClear
             '~~ AddIn paused status
@@ -237,15 +239,15 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
             "The CompMan-AddIn is  s e t u p  but currently  n o t  o p e n !" & vbLf & _
             "(Renew or a Workbook opened which refers to it will open it)"
         Else ' AddIn is setup and open
-            wsAddIn.CurrentStatus = " 'CompMan-Addin' Setup/Renewed and  " & mBasic.Spaced("open!")
+            wsAddIn.CurrentStatus = "Setup/Renewed and  " & mBasic.Spaced("open!")
             If mMe.AddInPaused = True Then
-                wsAddIn.CurrentStatus = " 'CompMan-AddIn' is currently  " & mBasic.Spaced("paused!")
+                wsAddIn.CurrentStatus = mBasic.Spaced("paused!")
                 wsAddIn.CompManAddInPausedStatus = _
                 "The AddIn is currently  p a u s e d ! The Workbook_Open service 'UpdateRawClones' " & _
                 "and the Workbook_BeforeSave service 'ExportChangedComponents' will be bypassed " & _
                 "until the Addin is 'continued' again!"
             Else
-                wsAddIn.CurrentStatus = " 'CompMan-AddIn' is currently  " & mBasic.Spaced("active!")
+                wsAddIn.CurrentStatus = mBasic.Spaced("active!")
                 wsAddIn.CompManAddInPausedStatus = _
                 "The AddIn is currently  a c t i v e !  The services 'UpdateRawClones' and 'ExportChangedComponents'" & vbLf & _
                 "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
@@ -258,7 +260,7 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
             End If
         End If
     Else ' not or no longer (properly) setup
-        wsAddIn.CurrentStatus = " 'CompMan-Addin' is currently  n o t  s e t u p !" & vbLf & _
+        wsAddIn.CurrentStatus = mBasic.Spaced("not setup!") & vbLf & _
                                 "(Setup/Renew must be performed to configure and setup the 'CompMan-Addin'"
         wsAddIn.RenewStepLogClear
         wsAddIn.CompManAddInPausedStatus = _
@@ -269,8 +271,16 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
     End If
 
     If Not WinMergeIsInstalled Then
-        wsAddIn.CurrentStatus = "WinMerge is  " & mBasic.Spaced("not installed!") & vbLf & "Services will be denied."
+        wsAddIn.CurrentStatus = "'WinMerge' is  " & mBasic.Spaced("not installed!") & vbLf & "(services will be denied)"
     End If
+
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 

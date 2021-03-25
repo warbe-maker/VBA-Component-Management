@@ -73,6 +73,7 @@ Private Sub Workbook_Open()
         .DisplayHorizontalScrollBar = False
         .DisplayVerticalScrollBar = False
     End With
+    wsAddIn.Activate
     wsAddIn.Range("rngDisplayed").Select
     ActiveWindow.Zoom = True
     wsAddIn.Range("celSelect").Select

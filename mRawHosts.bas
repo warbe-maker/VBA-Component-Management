@@ -23,7 +23,17 @@ End Property
 
 Public Property Get IsRawVbProject( _
                      Optional ByVal host_base_name As String) As Boolean
-    IsRawVbProject = value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_SOURCE_PROJECT)
+' ----------------------------------------------------------------------
+' Returns TRUE when the Workbook identified by its base name is known
+' as a Raw-VB-Project.
+' ----------------------------------------------------------------------
+    Dim s As String
+    s = value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_SOURCE_PROJECT)
+    If s = vbNullString Then
+        IsRawVbProject = False
+    Else
+        IsRawVbProject = CBool(s)
+    End If
 End Property
 
 Public Property Let IsRawVbProject( _

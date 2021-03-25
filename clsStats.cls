@@ -22,7 +22,7 @@ End Sub
 
 Public Property Get AlignedValue(ByVal sic As siCounter) As String
     Dim v       As Variant
-    Dim value   As Long
+    Dim Value   As Long
     
     If lMaxLen = 0 Then
         For Each v In aCount
@@ -30,12 +30,12 @@ Public Property Get AlignedValue(ByVal sic As siCounter) As String
         Next v
     End If
     
-    value = Me.Total(sic)
+    Value = Me.Total(sic)
     If sic = sic_non_doc_mod_total Then
-        value = Me.Total(sic_vbcomps_total) - Me.Total(sic_sheets_total) - 1
+        Value = Me.Total(sic_vbcomps_total) - Me.Total(sic_sheets_total) - 1
     End If
     
-    AlignedValue = Align(CStr(value), lMaxLen, AlignRight)
+    AlignedValue = Align(CStr(Value), lMaxLen, AlignRight)
 End Property
 
 Public Property Get Total(Optional ByVal sic As siCounter) As Long
@@ -43,16 +43,16 @@ Public Property Get Total(Optional ByVal sic As siCounter) As Long
 End Property
 
 Public Sub Count( _
-  Optional ByVal sic As siCounter, _
-  Optional ByVal value As Long = 1)
+  Optional ByVal c_sic As siCounter, _
+  Optional ByVal c_value As Long = 1)
 ' ----------------------------------
 ' Adds the (value) to the array
-' aCount under the index (sic).
+' aCount under the index (c_sic).
 ' ----------------------------------
-    If UBound(aCount) < sic Then
-        ReDim Preserve aCount(sic)
+    If UBound(aCount) < c_sic Then
+        ReDim Preserve aCount(c_sic)
     End If
-    aCount(sic) = aCount(sic) + value
+    aCount(c_sic) = aCount(c_sic) + c_value
 End Sub
 
 
