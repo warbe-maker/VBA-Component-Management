@@ -1,10 +1,6 @@
 # Management of Excel VB-Project Components
 **Export** changed components, **Update** components the raw had changed, and **Synchronization** of VB-Projects. 
-See also [Programatically updating Excel VBA code][2]
-
-
-The services are available when the [CompMan.xlsb][1] Workbook is downloaded and opened and this Workbook also offers to establish (or renew when modified) an Addin-Workbook by a _Renew_ service.<br>
-See also [Programmatically updating Excel VBA code][2]
+See also [Programatically updating Excel VBA code][2]. The services are available when the [CompMan.xlsb][1] Workbook is downloaded and opened. This Workbook also offers to _Setup/Renew_ an _Addin-Workbook_.
 
 ## Disambiguation
 Terms used in this VB-Project and all posts related to the matter.
