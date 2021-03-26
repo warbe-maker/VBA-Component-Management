@@ -196,6 +196,7 @@ Public Function Denied(ByRef den_serviced_wb As Workbook, _
 ' --------------------------------------------------------------------------
     Dim sStatus As String
     
+    If Log Is Nothing Then Set Log = New clsLog
     Set Log.ServicedWrkbk(sw_new_log:=den_new_log) = den_serviced_wb
     Log.Service = den_service
 
