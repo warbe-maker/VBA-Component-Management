@@ -1,5 +1,5 @@
 # Management of Excel VB-Project Components
-Installation, export, update, and synchronization services dealing with Excel-VBComponents. 
+**Export** changed components, **Update** components the raw had changed, and **Synchronization** of VB-Projects. 
 See also [Programatically updating Excel VBA code][2]
 
 
@@ -124,34 +124,36 @@ Public Sub CompManService(ByVal cm_service As String, _
 End Sub
 ```
 
-### Using the _ExportChangedComponents_ service
+### Using the Export service (_ExportChangedComponents_)
 This service is crucial for all Workbooks which either host a commonly used component or which may become the source for a synchronization because both rely on up-to-date Export-Files.
 
 In the concerned Workbook's Workbook-Component copy:
 ```vb
-                                    ' -------------------------------------------------------------
+
 Private Const HOSTED_RAWS = ""      ' Comma delimited names of Common Components hosted, developed,
                                     ' tested, and provided by this Workbook - if any
-                                    ' -------------------------------------------------------------
+
 ```
 
-and in the concerned Workbook's Workbook_BerforeSave event procedure copy:
+For the export of changed VBComponents, copy the following into the Workbook_BerforeSave event procedure:
 ```vb
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
 End Sub
 ```
 
-### Using the _UpdateRawClones_ service
-In the concerned Workbook's Workbook_Open event procedure copy:
+### Using the Update service (_UpdateRawClones_)
+For the update of any _Clone-Components_ of which the _Raw-Component_ had changed, copy the following into the _Workbook_Open_ event procedure:
 ```vb
 Private Sub Workbook_Open()
     mCompManClient.CompManService "UpdateRawClones", HOSTED_RAWS
 End Sub
 ```
 
-### Using the _SyncTargetWithSource_ service
-When either the [CompMan.xlsb][1] Workbook or the corresponding CompMan-Addin is open, in the _Immediate Window_ enter<br> `mService.SyncTargetWithSource`<br>A dialog will open for the selection of the source and the target Workbook. They are selected by their files even when already open. To avoid a possible irritation, opening them beforehand may be appropriate in case there are some not yet up-to-date used _Common-Components_.
+### Using the Synchronization service (_SyncTargetWithSource_)
+When either the _[CompMan.xlsb][1]_ Workbook or the corresponding _CompMan-Addin_ is open, in the _Immediate Window_ enter<br>
+`mService.SyncTargetWithSource`<br>
+A dialog will open for the selection of the source and the target Workbook through their file names regardless the are already open. To avoid a possible irritation, opening them beforehand may be appropriate. In case there are some not yet up-to-date used _Common-Components_ the update service will run and display a confirmation dialog. For more details using this service see th post [Programatically-updating-Excel-VBA-code][2]. 
 
 ### Pausing/continuing the CompMan Add-in
 Use the corresponding command buttons when the [CompMan.xlsb][1] Workbook is open.
