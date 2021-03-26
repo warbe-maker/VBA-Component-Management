@@ -240,15 +240,27 @@ Friend Property Get ExpFileFullName() As String
 End Property
 
 Friend Property Get ExpFilePath() As String
+' -------------------------------------------------------------------------------
+'
+' -------------------------------------------------------------------------------
     Dim fso As New FileSystemObject
-    If sExpFilePath = vbNullString Then
-        If Not Me.Wrkbk Is Nothing Then
-            sExpFilePath = fso.GetParentFolderName(Me.Wrkbk.FullName)
-        ElseIf Me.WrkbkFullName <> vbNullString Then
-            sExpFilePath = fso.GetParentFolderName(Me.WrkbkFullName)
+    Dim s   As String
+    
+    With fso
+        If Not Me.Wrkbk Is Nothing _
+        Then s = .GetParentFolderName(Me.Wrkbk.FullName) _
+        Else s = .GetParentFolderName(Me.WrkbkFullName)
+        If sExpFilePath = vbNullString Or sExpFilePath <> s & "\source" Then
+            sExpFilePath = s & "\source"
         End If
-    End If
-    ExpFilePath = sExpFilePath
+        
+        ExpFilePath = sExpFilePath
+        If Not .FolderExists(sExpFilePath) Then
+            .CreateFolder sExpFilePath
+        End If
+    End With
+    Set fso = Nothing
+    
 End Property
 
 Friend Property Get ExpFolder() As Folder:      Set ExpFolder = foExport:   End Property

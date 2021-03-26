@@ -12,13 +12,13 @@ Public Property Get DAT_FILE() As String: DAT_FILE = mMe.CompManAddinPath & "\Ra
 
 Public Property Get FullName( _
                      Optional ByVal host_base_name As String) As String
-    FullName = value(pp_section:=host_base_name, pp_value_name:=VNAME_HOST_FULL_NAME)
+    FullName = Value(pp_section:=host_base_name, pp_value_name:=VNAME_HOST_FULL_NAME)
 End Property
 
 Public Property Let FullName( _
                      Optional ByVal host_base_name As String, _
                               ByVal host_full_name As String)
-    value(pp_section:=host_base_name, pp_value_name:=VNAME_HOST_FULL_NAME) = host_full_name
+    Value(pp_section:=host_base_name, pp_value_name:=VNAME_HOST_FULL_NAME) = host_full_name
 End Property
 
 Public Property Get IsRawVbProject( _
@@ -28,7 +28,7 @@ Public Property Get IsRawVbProject( _
 ' as a Raw-VB-Project.
 ' ----------------------------------------------------------------------
     Dim s As String
-    s = value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_SOURCE_PROJECT)
+    s = Value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_SOURCE_PROJECT)
     If s = vbNullString Then
         IsRawVbProject = False
     Else
@@ -39,20 +39,20 @@ End Property
 Public Property Let IsRawVbProject( _
                      Optional ByVal host_base_name As String, _
                               ByVal host_raw_project As Boolean)
-    value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_SOURCE_PROJECT) = host_raw_project
+    Value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_SOURCE_PROJECT) = host_raw_project
 End Property
 
-Private Property Get value( _
+Private Property Get Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String) As Variant
     
-    value = mFile.value(pp_file:=DAT_FILE _
+    Value = mFile.Value(pp_file:=DAT_FILE _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
 End Property
 
-Private Property Let value( _
+Private Property Let Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String, _
                     ByVal pp_value As Variant)
@@ -61,7 +61,7 @@ Private Property Let value( _
 ' into the file RAWS_DAT_FILE.
 ' --------------------------------------------------
     
-    mFile.value(pp_file:=DAT_FILE _
+    mFile.Value(pp_file:=DAT_FILE _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
