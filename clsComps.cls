@@ -38,7 +38,7 @@ Private Property Get Sorted() As Dictionary
     Dim vbc As VBComponent
     
     For Each vbc In wbServiced.VBProject.VBComponents
-        cLog.ServicedItem = vbc
+        Log.ServicedItem = vbc
         mDct.DctAdd dct, vbc.Type & vbc.Name, vbc, order_bykey, seq_ascending, , , True
     Next vbc
     Set Sorted = dct
@@ -72,7 +72,7 @@ Public Sub CollectAllChanged()
         With cComp
             Set .Wrkbk = wbServiced
             .CompName = vbc.Name
-            cLog.ServicedItem = vbc
+            Log.ServicedItem = vbc
             Stats.Count sic_comps
             If .Changed Then
                 Stats.Count sic_comps_changed
@@ -81,7 +81,7 @@ Public Sub CollectAllChanged()
                 Then sChanged = vbc.Name _
                 Else sChanged = sChanged & ", " & vbc.Name
             Else
-                cLog.Entry = "Code un-changed"
+                Log.Entry = "Code un-changed"
             End If
         End With
 next_v:

@@ -18,13 +18,9 @@ Private wbTrgt  As Workbook
 Private vbc     As VBComponent
 Private vbcm    As CodeModule
 
-Private Property Get RenewService() As String
-    RenewService = CompManAddinName & "!mRenew.ByImport"
-End Property
+Private Property Get mRenew_ByImport() As String:           mRenew_ByImport = CompManAddinName & "!mRenew.ByImport":                    End Property
 
-Private Property Get UpdateClonesService() As String
-    UpdateClonesService = CompManAddinName & "!mUpdate.RawClones"
-End Property
+Private Property Get mService_UpdateRawClones() As String:  mService_UpdateRawClones = CompManAddinName & "!mService.UpdateRawClones":  End Property
 
 Public Sub Cleanup(Optional ByVal exp_file As String = vbNullString, _
                     Optional ByRef vbc As VBComponent = Nothing)
@@ -204,7 +200,7 @@ Public Sub Test_Log()
         If fso.FileExists(.LogFile.Path) Then fso.DeleteFile .LogFile.Path
     End With
     
-xt: Set cLog = Nothing
+xt: Set Log = Nothing
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -243,15 +239,10 @@ End Sub
 Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
                           ByVal rnc_comp_name As String)
 ' --------------------------------------------------------
-' This test procedure is exclusively performed by the
-' AddIn instance. It is run by the Development instance
-' with: Application.Run _
-'       CompManAddinName & "!mTest.TestRenewComp" _
-'       , <export-file-full-name> _
-'       , <comp-name> _
-'       , <wrkbk> _
-'       , False ' new log file
-'
+' This test procedure is exclusively initiated within the
+' 'CompMan-Development-Instance-Workbook and executed by
+' the 'CompMan-Addin' which needs to be open.
+' When these conditions are not met a message is displayed
 ' --------------------------------------------------------
     Const PROC = "Test_RenewComp"
     
@@ -262,17 +253,18 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     
     If mMe.IsDevInstnc Then GoTo xt
     
-    Set cLog.ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
-    cLog.Service = PROC
+    Log.File = mFile.Temp(, ".log")
+    Set Log.ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
+    Log.Service = PROC
     
     With cComp
         .CompName = rnc_comp_name
-        cLog.ServicedItem = .VBComp
+        Log.ServicedItem = .VBComp
         
         If .Wrkbk Is ActiveWorkbook Then
             Set wbActive = ActiveWorkbook
             Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
-            cLog.Entry = "Active Workbook de-activated by creating a temporary Workbook"
+            Log.Entry = "Active Workbook de-activated by creating a temporary Workbook"
         End If
             
         mRenew.ByImport rn_wb:=.Wrkbk _
@@ -282,18 +274,18 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
-        cLog.Entry = "Temporary created Workbook closed without save"
+        Log.Entry = "Temporary created Workbook closed without save"
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            cLog.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         Else
-            cLog.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
+            Log.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set cComp = Nothing
-    Set cLog = Nothing
+    Set Log = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -345,7 +337,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
-        If mMe.AddInInstncWrkbkIsOpen Then
+        If mMe.CompManAddinIsOpen Then
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
@@ -367,7 +359,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
                                   , sel_result:=flExport) _
                 Then sExpFile = flExport.Path
                 For i = 1 To repeat
-                    Application.Run RenewService _
+                    Application.Run mRenew_ByImport _
                                   , .Wrkbk _
                                   , .CompName _
                                   , .ExpFilePath
@@ -404,7 +396,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
-        If mMe.AddInInstncWrkbkIsOpen Then
+        If mMe.CompManAddinIsOpen Then
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
@@ -417,7 +409,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
                 .CompName = test_comp_name
             
                 For i = 1 To repeat
-                    Application.Run RenewService _
+                    Application.Run mRenew_ByImport _
                                   , .Wrkbk _
                                   , .CompName _
                                   , .ExpFilePath
@@ -454,7 +446,7 @@ Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
-        If mMe.AddInInstncWrkbkIsOpen Then
+        If mMe.CompManAddinIsOpen Then
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
@@ -467,7 +459,7 @@ Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
                 .CompName = test_comp_name
             
                 For i = 1 To repeat
-                    Application.Run RenewService _
+                    Application.Run mRenew_ByImport _
                                   , .Wrkbk _
                                   , .CompName _
                                   , .ExpFilePath
@@ -505,7 +497,7 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
-        If mMe.AddInInstncWrkbkIsOpen Then
+        If mMe.CompManAddinIsOpen Then
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
@@ -522,7 +514,7 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
                 '~~ -------------------------------------------------
                 sExpFile = .ExpFilePath ' the component's origin export file
                 For i = 1 To repeat
-                    Application.Run RenewService _
+                    Application.Run mRenew_ByImport _
                                   , .Wrkbk _
                                   , .CompName _
                                   , .ExpFilePath
@@ -560,7 +552,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
-        If mMe.AddInInstncWrkbkIsOpen Then
+        If mMe.CompManAddinIsOpen Then
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
@@ -582,7 +574,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
                                   , sel_result:=flExport) _
                 Then sExpFile = flExport.Path
                 For i = 1 To repeat
-                    Application.Run RenewService _
+                    Application.Run mRenew_ByImport _
                                   , .Wrkbk _
                                   , .CompName _
                                   , .ExpFilePath
@@ -606,24 +598,37 @@ Public Sub Test_UpdateRawClones()
     Const PROC  As String = "Test_UpdateRawClones"
     
     On Error GoTo eh
-    Dim lMaxCompLen As Long
+    Dim AddinService    As String
+    Dim AddinStatus     As String
     
-    If mMe.IsAddinInstnc Then Exit Sub
+    If mService.Denied(den_serviced_wb:=ThisWorkbook, den_service:=PROC) Then GoTo xt
+
+    AddinService = CompManAddinName & "!mService.UpdateRawClones"
+    If mMe.CompManAddinIsOpen Then
+        AddinStatus = " (currently the case) "
+    Else
+        AddinStatus = " (currently  " & mBasic.Spaced("not") & "  the case) "
+    End If
+    
     If mMe.IsDevInstnc Then
-        If mMe.AddInInstncWrkbkIsOpen Then
-            lMaxCompLen = MaxCompLength(wb:=ThisWorkbook)
-            ' ---------------------------------
-            '~~ Arguments for the Run:
-            '~~ uc_wb As Workbook
-            '~~ uc_comp_max_len As Long
-            '~~ uc_service As String
-            '~~ -------------------------------
-            mErH.BoP ErrSrc(PROC)
-            Application.Run UpdateClonesService _
-                          , lMaxCompLen _
-                          , cLog.Service
-            mErH.EoP ErrSrc(PROC)
+        mErH.BoP ErrSrc(PROC)
+        
+        On Error Resume Next
+        Application.Run AddinService _
+                      , ThisWorkbook
+        
+        If Err.Number = 1004 Then
+            MsgBox Title:="CompMan-Addin not open (required for test: " & PROC & "!" _
+                 , Prompt:="Application.Run " & vbLf & vbLf & AddinService & vbLf & vbLf & "failed because the 'CompMan-Addin' is not open!" _
+                 , Buttons:=vbExclamation
         End If
+        mErH.EoP ErrSrc(PROC)
+    Else
+        MsgBox Title:="Test " & PROC & " not executed!" _
+             , Prompt:="Executions of this test must not be performed 'within' the 'CompMan-Addin' Workbook." & vbLf & vbLf & _
+                       "The test requires the 'CompMan-Addin' (" & mMe.CompManAddinName & ") is open " & AddinStatus & " but must be performed " & _
+                       "from within the development instance (" & mMe.DevInstncFullName & ")." _
+             , Buttons:=vbExclamation
     End If
     
 xt: Exit Sub
@@ -649,21 +654,21 @@ Public Sub Test_Changed_Clones()
     
     Set Stats = New clsStats
     Set Clones.Serviced = ThisWorkbook
-    Set cLog.ServicedWrkbk(True) = ThisWorkbook
-    cLog.File = mFile.Temp(, ".log")
+    Set Log.ServicedWrkbk(True) = ThisWorkbook
+    Log.File = mFile.Temp(, ".log")
     Clones.CollectAllChanged
     
     Debug.Print Stats.Total(sic_comps_total) & " Components"
     Debug.Print Stats.Total(sic_clone_comps) & " Clones"
     Debug.Print Stats.Total(sic_clone_changed) & " Changed"
-    Debug.Print mFile.Txt(cLog.LogFile)
+    Debug.Print mFile.Txt(Log.LogFile)
     
     Set Clones = Nothing
     Set Stats = Nothing
     With New FileSystemObject
-        If .FileExists(cLog.File) Then .DeleteFile (cLog.File)
+        If .FileExists(Log.File) Then .DeleteFile (Log.File)
     End With
-    Set cLog = Nothing
+    Set Log = Nothing
 End Sub
 
 Public Sub Test_Changed_Comps()
@@ -674,37 +679,46 @@ Public Sub Test_Changed_Comps()
     
     Set Stats = New clsStats
     Set Comps.Serviced = ThisWorkbook
-    Set cLog.ServicedWrkbk(True) = ThisWorkbook
-    cLog.File = mFile.Temp(, ".log")
+    Set Log.ServicedWrkbk(True) = ThisWorkbook
+    Log.File = mFile.Temp(, ".log")
     Comps.CollectAllChanged
     
     For Each v In Comps.Changed
         Set Comp = Comps.Changed(v)
-        cLog.ServicedItem = Comp.VBComp
-        cLog.Entry = "Code changed (export due)"
+        Log.ServicedItem = Comp.VBComp
+        Log.Entry = "Code changed (export due)"
         Set Comp = Nothing
     Next v
     
-    Debug.Print mFile.Txt(cLog.LogFile)
+    Debug.Print mFile.Txt(Log.LogFile)
     Debug.Print Stats.Total(sic_comps_total) & " Components"
     Debug.Print Stats.Total(sic_comps_changed) & " Changed"
         
     Set Comps = Nothing
     Set Stats = Nothing
     With New FileSystemObject
-        If .FileExists(cLog.File) Then .DeleteFile (cLog.File)
+        If .FileExists(Log.File) Then .DeleteFile (Log.File)
     End With
-    Set cLog = Nothing
+    Set Log = Nothing
 
 End Sub
 
 Public Sub Test_SynchFormating()
-
+    Const PROC = "Test_SynchFormating"
+    
+    On Error GoTo eh
+    Dim fso         As New FileSystemObject
     Dim BkpFolder   As String
     Dim sTarget     As String
     Dim sSource     As String
+    Dim BttnDelete  As String
+    Dim BttnKeep    As String
+    Dim flLog       As File
+    Dim LastModif   As Date
     
-    Set cLog = New clsLog
+    Set Log = New clsLog
+    Log.File = mFile.Temp(ThisWorkbook.Path, ".log")
+    
     Set Stats = New clsStats
     Set Sync = New clsSync
     
@@ -713,14 +727,18 @@ Public Sub Test_SynchFormating()
     
     Set Sync.Target = mCompMan.WbkGetOpen(sTarget)
     Set Sync.Source = mCompMan.WbkGetOpen(sSource)
+    Set Log.ServicedWrkbk = Sync.Target
     
     Sync.CollectAllSyncItems
+    
+    LastModif = fso.GetFile(sTarget).DateLastModified
     
     mSync.SyncBackup BkpFolder, sTarget
     mSyncRanges.SyncFormating
     
     If BkpFolder <> vbNullString Then
         ' A backup had been made by the service which is now restored and the target is re-opened
+        
         mCompMan.WbkGetOpen(sTarget).Close SaveChanges:=False
         mSync.SyncRestore BkpFolder
         Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
@@ -728,4 +746,25 @@ Public Sub Test_SynchFormating()
         Application.EnableEvents = True
     End If
 
+xt: With New FileSystemObject
+        If .FileExists(Log.File) Then
+            Set flLog = .GetFile(Log.File)
+            BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
+            BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
+            If mMsg.Box(msg_title:=PROC & " Log-File" _
+                      , msg:=mFile.Txt(.GetFile(Log.File)) _
+                      , msg_monospaced:=True _
+                      , msg_buttons:=mMsg.Buttons(BttnDelete, BttnKeep) = BttnDelete) _
+            Then .DeleteFile flLog
+        End If
+    End With
+    Set Log = Nothing
+
+    Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub

@@ -94,7 +94,7 @@ Friend Property Let ConfInfo( _
 '       info consistent with the logged info.
 ' ----------------------------------------------------------------
     If cllConfInfo Is Nothing Then Set cllConfInfo = New Collection
-    With cLog
+    With Log
         If Not TypeName(serviced_item) = "Nothing" Then
             .ServicedItem = serviced_item
         End If
@@ -206,63 +206,60 @@ Public Sub CollectAllSyncItems()
     '~~ Source Worksheets by Name and by CodeName
     Stats.Count sic_sheets_total, wbSyncSource.Worksheets.Count
     For Each ws1 In wbSyncSource.Worksheets
-        cLog.ServicedItem = ws1 ' Compute max length for logged item type and item name
+        Log.ServicedItem = ws1 ' Compute max length for logged item type and item name
         With ws1
             mDct.DctAdd dctSourceSheets, .Name, .Name, order_bykey, seq_ascending, , , True
-    '        mDct.DctAdd dctSourceSheets, .CodeName, .Name, order_bykey, seq_ascending, , , True
-            
             '~~ Source Workseet Shapes
             Stats.Count sic_shapes_total, .Shapes.Count
             For Each shp In .Shapes
-                cLog.ServicedItem = shp ' Compute max length for logged item type and item name
+                Log.ServicedItem = shp ' Compute max length for logged item type and item name
                 sKey = mSync.KeySheetControl(.Name, shp.Name)
                 mDct.DctAdd dctSourceSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
             Next shp
             
             '~~ Source Worksheet OLEObjects
             For Each oob In .OLEObjects
-                cLog.ServicedItem = oob
+                Log.ServicedItem = oob
                 sKey = mSync.KeySheetControl(.Name, oob.Name)
                 mDct.DctAdd dctSourceSheetOOBs, sKey, oob.Name, order_bykey, seq_ascending, , , True
             Next oob
         End With
     Next ws1
-    DisplayCollectedSourceSheetOOBs
+'    DisplayCollectedSourceSheetOOBs
     
     '~~ Target Worksheets by Name and by CodeName
     For Each ws2 In wbSyncTarget.Worksheets
-        cLog.ServicedItem = ws2 ' Compute max length for logged item type and item name
+        Log.ServicedItem = ws2 ' Compute max length for logged item type and item name
         With ws2
             mDct.DctAdd dctTargetSheets, .Name, .Name, order_bykey, seq_ascending, , , True
-'            mDct.DctAdd dctTargetSheets, .CodeName, .Name, order_bykey, seq_ascending, , , True
             
             '~~ Target Worksheet Shapes
             For Each shp In .Shapes
-                cLog.ServicedItem = shp ' Compute max length for logged item type and item name
+                Log.ServicedItem = shp ' Compute max length for logged item type and item name
                 sKey = mSync.KeySheetControl(.Name, shp.Name)
                 mDct.DctAdd dctTargetSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
             Next shp
         
             '~~ Target Worksheet OLEObjects
             For Each oob In .OLEObjects
-                cLog.ServicedItem = oob
+                Log.ServicedItem = oob
                 sKey = mSync.KeySheetControl(.Name, oob.Name)
                 mDct.DctAdd dctTargetSheetOOBs, sKey, oob.Name, order_bykey, seq_ascending, , , True
             Next oob
         End With
     Next ws2
-    DisplayCollectedTargetSheetOOBs
+'    DisplayCollectedTargetSheetOOBs
     
     '~~ Source and Target VBComponents
     Stats.Count sic_comps_total, wbSyncSource.VBProject.VBComponents.Count
     For Each vbc In wbSyncSource.VBProject.VBComponents
-        cLog.ServicedItem = vbc ' Compute max length for logged item type and item name
+        Log.ServicedItem = vbc ' Compute max length for logged item type and item name
         If mCompMan.IsSheetComp(vbc) Then
             mDct.DctAdd dctSourceSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
         End If
     Next vbc
     For Each vbc In wbSyncTarget.VBProject.VBComponents
-        cLog.ServicedItem = vbc ' Compute max length for logged item type and item name
+        Log.ServicedItem = vbc ' Compute max length for logged item type and item name
         If IsSheetComp(vbc) Then
             mDct.DctAdd dctTargetSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
         End If
@@ -271,12 +268,12 @@ Public Sub CollectAllSyncItems()
     '~~ Source and Target Workbook Names
     Stats.Count sic_names_total, wbSyncSource.Names.Count
     For Each nm In wbSyncSource.Names
-        cLog.ServicedItem = nm ' Compute max length for logged item type and item name
+        Log.ServicedItem = nm ' Compute max length for logged item type and item name
         Set nmName = nm
         mDct.DctAdd dctSourceNames, nm.Name, nmName, order_bykey, seq_ascending, , , True
     Next nm
     For Each nm In wbSyncTarget.Names
-        cLog.ServicedItem = nm ' Compute max length for logged item type and item name
+        Log.ServicedItem = nm ' Compute max length for logged item type and item name
         Set nmName = nm
         mDct.DctAdd dctTargetNames, nm.Name, nmName, order_bykey, seq_ascending, , , True
     Next nm

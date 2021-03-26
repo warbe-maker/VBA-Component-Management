@@ -177,7 +177,7 @@ Public Sub SyncOOBsNew()
             '~~ to be copied and its Properties adjusted.
             Set wsSource = .Source.Worksheets(sSheet)
             Set oob = wsSource.OLEObjects(sControl)
-            cLog.ServicedItem = oob
+            Log.ServicedItem = oob
             If Sync.Mode = Confirm Then
                 '~~ New OLEObjects coming with new sheets are not displayed for confirmation
                 If Not .IsNewSheet(sSheet) Then
@@ -191,7 +191,7 @@ Public Sub SyncOOBsNew()
                     CopyOOB sc_source:=wsSource _
                             , sc_target:=wsTarget _
                             , sc_oob_name:=sControl
-                    cLog.Entry = "Copied from source sheet"
+                    Log.Entry = "Copied from source sheet"
                 End If
             End If
 next_oob:
@@ -239,7 +239,7 @@ Public Sub SyncShapesNew()
             '~~ to be copied and its Properties adjusted.
             Set wsSource = .Source.Worksheets(sSheet)
             Set shp = wsSource.Shapes(sControl)
-            cLog.ServicedItem = shp
+            Log.ServicedItem = shp
             If .Mode = Confirm Then
                 '~~ New shapes coming with new sheets are not displayed for confirmation
                 If Not .IsNewSheet(sSheet) Then
@@ -253,7 +253,7 @@ Public Sub SyncShapesNew()
                     CopyShape sc_source:=wsSource _
                             , sc_target:=wsTarget _
                             , sc_name:=sControl
-                    cLog.Entry = "Copied from source sheet"
+                    Log.Entry = "Copied from source sheet"
                 End If
             End If
 next_shape:
@@ -294,7 +294,7 @@ Public Sub SyncOOBsObsolete()
             Then GoTo next_oob
             Set wsTarget = .Target.Worksheets(sSheet)
             Set oob = wsTarget.OLEObjects(sControl)
-            cLog.ServicedItem = oob
+            Log.ServicedItem = oob
             
             Stats.Count sic_oobs_obsolete
             '~~ The target name does not exist in the source and thus  has become obsolete
@@ -302,7 +302,7 @@ Public Sub SyncOOBsObsolete()
                 .ConfInfo = "Obsolete!"
             Else
                 wsTarget.OLEObjects(sControl).Delete
-                cLog.Entry = "Deteted!"
+                Log.Entry = "Deteted!"
             End If
 next_oob:
         Next v
@@ -346,7 +346,7 @@ Public Sub SyncShapesObsolete()
             Then GoTo next_shape
             Set wsTarget = .Target.Worksheets(sSheet)
             Set shp = wsTarget.Shapes(sControl)
-            cLog.ServicedItem = shp
+            Log.ServicedItem = shp
             
             Stats.Count sic_shapes_obsolete
             '~~ The target name does not exist in the source and thus  has become obsolete
@@ -354,7 +354,7 @@ Public Sub SyncShapesObsolete()
                 .ConfInfo = "Obsolete!"
             Else
                 wsTarget.Shapes(sControl).Delete
-                cLog.Entry = "Deteted!"
+                Log.Entry = "Deteted!"
             End If
 next_shape:
         Next v
@@ -540,8 +540,8 @@ Private Sub SyncProperty( _
         On Error Resume Next ' The property may not be modifyable
         v_target = v_source
         If Err.Number = 0 _
-        Then cLog.Entry = "Property synched '" & s_property & "'" _
-        Else cLog.Entry = "Property synchronization failed (error " & Err.Number & ") '" & s_property & "'"
+        Then Log.Entry = "Property synched '" & s_property & "'" _
+        Else Log.Entry = "Property synchronization failed (error " & Err.Number & ") '" & s_property & "'"
     End If
 
 xt:
@@ -558,7 +558,7 @@ Private Sub SyncShapeProperties( _
     Const PROC = "SynchProperties"
     
     On Error GoTo eh
-    cLog.ServicedItem = shp_target
+    Log.ServicedItem = shp_target
     
     With shp_target
         On Error Resume Next
@@ -621,7 +621,7 @@ Private Sub SyncOOBProperties( _
     
     Set oobTarget = sop_target
     Set oobSource = sop_source
-    cLog.ServicedItem = oobTarget
+    Log.ServicedItem = oobTarget
         
     Debug.Print oobTarget.OLEType
     

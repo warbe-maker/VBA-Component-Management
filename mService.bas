@@ -2,8 +2,7 @@ Attribute VB_Name = "mService"
 Option Explicit
 
 Public Const SERVICES_LOG_FILE = "CompMan.Services.log"
-Public cLog         As New clsLog
-Public cStats       As New clsStats
+
 Private wbServiced  As Workbook
 Public dctServiced  As Dictionary
 
@@ -42,14 +41,16 @@ Public Sub RenewComp( _
 
     On Error GoTo eh
     Dim fso         As New FileSystemObject
-    Dim cComp       As New clsComp
+    Dim Comp        As New clsComp
     Dim flFile      As File
     Dim wbTemp      As Workbook
     Dim wbActive    As Workbook
     Dim sBaseName   As String
     
     If rc_wb Is Nothing Then Set rc_wb = ActiveWorkbook
-    cComp.Wrkbk = rc_wb
+    If Log Is Nothing Then Set Log = New clsLog
+    
+    Comp.Wrkbk = rc_wb
     If rc_exp_file_full_name <> vbNullString Then
         If Not fso.FileExists(rc_exp_file_full_name) Then
             rc_exp_file_full_name = vbNullString ' enforces selection when the component name is also not provided
@@ -57,8 +58,8 @@ Public Sub RenewComp( _
     End If
     
     If rc_comp_name <> vbNullString Then
-        cComp.CompName = rc_comp_name
-        If Not cComp.Exists Then
+        Comp.CompName = rc_comp_name
+        If Not Comp.Exists Then
             If rc_exp_file_full_name <> vbNullString Then
                 rc_comp_name = fso.GetBaseName(rc_exp_file_full_name)
             End If
@@ -76,7 +77,7 @@ Public Sub RenewComp( _
         '~~ Select the Export-File for the re-new service
         '~~ of which the base name will be regared as the component to be renewed.
         '~~ --------------------------------------------------------
-        If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
+        If mFile.SelectFile(sel_init_path:=Comp.ExpFilePath _
                           , sel_filters:="*.bas,*.cls,*.frm" _
                           , sel_filter_name:="File" _
                           , sel_title:="Select the Export-File for the re-new service" _
@@ -86,14 +87,14 @@ Public Sub RenewComp( _
     
     If rc_comp_name <> vbNullString _
     And rc_exp_file_full_name = vbNullString Then
-        cComp.CompName = rc_comp_name
+        Comp.CompName = rc_comp_name
         '~~ ------------------------------------------------
         '~~ Select the component's corresponding Export-File
         '~~ ------------------------------------------------
         sBaseName = fso.GetBaseName(rc_exp_file_full_name)
         '~~ Select the Export-File for the re-new service
-        If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
-                          , sel_filters:="*" & cComp.ExpFileExt _
+        If mFile.SelectFile(sel_init_path:=Comp.ExpFilePath _
+                          , sel_filters:="*" & Comp.ExpFileExt _
                           , sel_filter_name:="File" _
                           , sel_title:="Select the Export-File for the provided component '" & rc_comp_name & "'!" _
                           , sel_result:=flFile) _
@@ -108,8 +109,8 @@ Public Sub RenewComp( _
         GoTo xt ' no Export-File selected
     End If
     
-    With cComp
-        cLog.ServicedItem = .VBComp
+    With Comp
+        Log.ServicedItem = .VBComp
         If rc_comp_name <> vbNullString Then
             If fso.GetBaseName(rc_exp_file_full_name) <> rc_comp_name Then
                 MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
@@ -127,26 +128,26 @@ Public Sub RenewComp( _
         If .Wrkbk Is ActiveWorkbook Then
             Set wbActive = ActiveWorkbook
             Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
-            cLog.Entry = "Active Workbook de-activated by creating a temporary Workbook"
+            Log.Entry = "Active Workbook de-activated by creating a temporary Workbook"
         End If
             
         mRenew.ByImport rn_wb:=.Wrkbk _
              , rn_comp_name:=.CompName _
              , rn_exp_file_full_name:=rc_exp_file_full_name
-        cLog.Entry = "Component renewed/updated by (re-)import of '" & rc_exp_file_full_name & "'"
+        Log.Entry = "Component renewed/updated by (re-)import of '" & rc_exp_file_full_name & "'"
     End With
     
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
-        cLog.Entry = "Temporary created Workbook closed without save"
+        Log.Entry = "Temporary created Workbook closed without save"
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            cLog.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         End If
     End If
-    Set cComp = Nothing
+    Set Comp = Nothing
     Set fso = Nothing
     Exit Sub
 
@@ -161,7 +162,7 @@ Public Sub Continue()
 ' -------------------------------------------
 ' Continues the paused CompMan Addin Services
 ' -------------------------------------------
-    mMe.AddInPaused = False
+    mMe.CompManAddinPaused = False
     mMe.DisplayStatus
 End Sub
 
@@ -169,7 +170,7 @@ Public Sub Pause()
 ' ----------------------------------
 ' Pauses the CompMan Addin Services
 ' ---------------------------------
-    mMe.AddInPaused = True
+    mMe.CompManAddinPaused = True
     mMe.DisplayStatus
 End Sub
 
@@ -191,41 +192,41 @@ Public Function Denied(ByRef den_serviced_wb As Workbook, _
                        ByVal den_service As String, _
               Optional ByVal den_new_log As Boolean = False) As Boolean
 ' --------------------------------------------------------------------------
-' Returns True when all preconditions for a service execution are fulfilled.
+' Returns TRUE when all preconditions for a service execution are fulfilled.
 ' --------------------------------------------------------------------------
     Dim sStatus As String
     
-    Set cLog.ServicedWrkbk(sw_new_log:=den_new_log) = den_serviced_wb
-    cLog.Service = den_service
+    Set Log.ServicedWrkbk(sw_new_log:=den_new_log) = den_serviced_wb
+    Log.Service = den_service
 
     If Not mMe.BasicConfig Then
         sStatus = "Service denied! The Basic CompMan Configuration is invalid!"
-        cLog.Entry = sStatus
-        cLog.Entry = "The assertion of a valid basic configuration has been terminated though invalid!"
+        Log.Entry = sStatus
+        Log.Entry = "The assertion of a valid basic configuration has been terminated though invalid!"
         Denied = True
     ElseIf WbkIsRestoredBySystem(den_serviced_wb) Then
         sStatus = "Service denied! Workbook appears restored by the system!"
-        cLog.Entry = sStatus
+        Log.Entry = sStatus
         Denied = True
     ElseIf Not WbkInServicedRoot(den_serviced_wb) Then
         sStatus = "Service denied! Workbook is not within the configured 'serviced root': " & mMe.ServicedRoot & "!"
-        cLog.Entry = sStatus
+        Log.Entry = sStatus
         Denied = True
-    ElseIf mMe.AddInPaused Then
+    ElseIf mMe.CompManAddinPaused Then
         sStatus = "Service denied! The CompMan Addin is currently paused!"
-        cLog.Entry = sStatus
+        Log.Entry = sStatus
         Denied = True
     ElseIf FolderNotVbProjectExclusive(den_serviced_wb) Then
         sStatus = "Service denied! The Workbook is not the only one in its parent folder!"
-        cLog.Entry = sStatus
+        Log.Entry = sStatus
         Denied = True
     ElseIf Not WinMergeIsInstalled Then
         sStatus = "Service denied! WinMerge is required but not installed!"
-        cLog.Entry = sStatus
+        Log.Entry = sStatus
         Denied = True
     End If
     If Denied _
-    Then Application.StatusBar = cLog.Service & sStatus
+    Then Application.StatusBar = Log.Service & sStatus
 
 End Function
 
@@ -276,7 +277,7 @@ Public Sub ExportChangedComponents( _
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=ec_hosted _
                                             , mh_wb:=ec_wb) _
     Then
-        Application.StatusBar = cLog.Service & " Failed! See log-file in Workbookfolder"
+        Application.StatusBar = Log.Service & " Failed! See log-file in Workbookfolder"
         GoTo xt
     End If
     
@@ -311,7 +312,7 @@ Public Sub ExportChangedComponents( _
                 
                 With cComp
                     If .Changed And Not cRaw.Changed Then
-                        cLog.Entry = "The Clone's code changed! (a temporary Export-File differs from the last regular Export-File)"
+                        Log.Entry = "The Clone's code changed! (a temporary Export-File differs from the last regular Export-File)"
                         '~~ --------------------------------------------------------------------------
                         '~~ The code change in the clone component is now in question whether it is to
                         '~~ be ignored, i.e. the change is reverted with the Workbook's next open or
@@ -325,7 +326,7 @@ Public Sub ExportChangedComponents( _
                         If bUpdated Then
                             lUpdated = lUpdated + 1
                             sUpdated = vbc.Name & ", " & sUpdated
-                            cLog.Entry = """Remote Raw"" has been updated with code of ""Raw Clone"""
+                            Log.Entry = """Remote Raw"" has been updated with code of ""Raw Clone"""
                         End If
                         
                     ElseIf Not .Changed And cRaw.Changed Then
@@ -333,8 +334,8 @@ Public Sub ExportChangedComponents( _
                         '~~ The raw had changed since the Workbook's open. This case is not handled
                         '~~ along with the Workbook's Save event but with the Workbook's Open event
                         '~~ -----------------------------------------------------------------------
-                        cLog.Entry = "The Raw's code changed! (not considered with the export service)"
-                        cLog.Entry = "The Clone will be updated with the next Workbook open"
+                        Log.Entry = "The Raw's code changed! (not considered with the export service)"
+                        Log.Entry = "The Clone will be updated with the next Workbook open"
                     End If
                 End With
             
@@ -344,9 +345,9 @@ Public Sub ExportChangedComponents( _
             Case Else ' enInternal, enHostedRaw
                 With cComp
                     If .Changed Then
-                        cLog.Entry = "Code changed! (temporary Export-File differs from last changes Export-File)"
+                        Log.Entry = "Code changed! (temporary Export-File differs from last changes Export-File)"
                         vbc.Export .ExpFileFullName
-                        cLog.Entry = "Exported to '" & .ExpFileFullName & "'"
+                        Log.Entry = "Exported to '" & .ExpFileFullName & "'"
                         lExported = lExported + 1
                         If lExported = 1 _
                         Then sExported = vbc.Name _
@@ -357,7 +358,7 @@ Public Sub ExportChangedComponents( _
                     If .KindOfComp = enHostedRaw Then
                         If mHostedRaws.ExpFileFullName(comp_name:=.CompName) <> .ExpFileFullName Then
                             mHostedRaws.ExpFileFullName(comp_name:=.CompName) = .ExpFileFullName
-                            cLog.Entry = "Component's Export-File Full Name registered"
+                            Log.Entry = "Component's Export-File Full Name registered"
                         End If
                     End If
                 End With
@@ -369,7 +370,7 @@ next_vbc:
         Set cRaw = Nothing
     Next v
     
-    sMsg = cLog.Service
+    sMsg = Log.Service
     Select Case lExported
         Case 0:     sMsg = sMsg & "No code changed (of " & lComponents & " components)"
         Case Else:  sMsg = sMsg & sExported & " (" & lExported & " of " & lComponents & ")"
@@ -380,7 +381,7 @@ next_vbc:
 xt: Set dctHostedRaws = Nothing
     Set cComp = Nothing
     Set cRaw = Nothing
-    Set cLog = Nothing
+    Set Log = Nothing
     Set fso = Nothing
     mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
@@ -428,7 +429,7 @@ Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
     '~~ Prevent any action when the required preconditins are not met
     If mService.Denied(den_serviced_wb:=ea_wb, den_service:=PROC) Then GoTo xt
     
-    sStatus = cLog.Service
+    sStatus = Log.Service
 
     mCompMan.DeleteObsoleteExpFiles ea_wb
     
@@ -483,8 +484,8 @@ Public Function SyncTargetWithSource( _
     '~~ indicated by an '(' in the active window or workbook fullname.
     If mService.Denied(den_serviced_wb:=wb_target, den_service:=PROC) Then GoTo xt
 
-    Set cLog.ServicedWrkbk = wb_target
-    sStatus = cLog.Service
+    Set Log.ServicedWrkbk = wb_target
+    sStatus = Log.Service
         
     SyncTargetWithSource = mSync.SyncTargetWithSource(wb_target:=wb_target _
                                                     , wb_source:=wbRaw _
@@ -492,7 +493,7 @@ Public Function SyncTargetWithSource( _
                                                     , bkp_folder:=bkp_folder)
 
 xt: mErH.EoP ErrSrc(PROC)
-    Set cLog = Nothing
+    Set Log = Nothing
     Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -520,13 +521,12 @@ Public Sub UpdateRawClones( _
     If mService.Denied(den_serviced_wb:=uc_wb, den_service:=PROC, den_new_log:=True) Then GoTo xt
 
     If Not mCompMan.ManageVbProjectProperties(mh_hosted:=uc_hosted, mh_wb:=uc_wb) Then
-        Application.StatusBar = cLog.Service & "Failed! See log-file in Workbook-folder"
+        Application.StatusBar = Log.Service & "Failed! See log-file in Workbook-folder"
         GoTo xt
     End If
             
     Set Stats = New clsStats
-    mUpdate.RawClones urc_wb:=uc_wb _
-                    , urc_clones:=Clones(uc_wb)
+    mUpdate.RawClones uc_wb
 
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
@@ -537,7 +537,7 @@ xt: If Not wbTemp Is Nothing Then
         End If
     End If
     Set dctHostedRaws = Nothing
-    Set cLog = Nothing
+    Set Log = Nothing
     mErH.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -753,7 +753,7 @@ Private Function Clones( _
         With cComp
             Set .Wrkbk = cl_wb
             .CompName = vbc.Name
-            cLog.ServicedItem = .VBComp
+            Log.ServicedItem = .VBComp
             If .KindOfComp = enRawClone Then
                 Set cRaw = New clsRaw
                 cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
@@ -764,12 +764,12 @@ Private Function Clones( _
                 If .Changed Then
                     dct.Add vbc, vbc.Name
                 Else
-                    cLog.Entry = "Code un-changed."
+                    Log.Entry = "Code un-changed."
                 End If
                 If cRaw.Changed Then
                     If Not dct.Exists(vbc) Then dct.Add vbc, vbc.Name
                 Else
-                    cLog.Entry = "Corresponding Raw's code un-changed."
+                    Log.Entry = "Corresponding Raw's code un-changed."
                 End If
             End If
         End With

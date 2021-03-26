@@ -33,7 +33,7 @@ Public Sub SyncCode()
         cSource.CloneExpFileFullName = cTarget.ExpFileFullName
         If Not cSource.Changed Then GoTo next_sheet
         
-        cLog.ServicedItem = vbc
+        Log.ServicedItem = vbc
         Stats.Count sic_non_doc_mods_code
         
         If Sync.Mode = Confirm Then
@@ -46,7 +46,7 @@ Public Sub SyncCode()
             mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
                             , wb_source_full_name:=cSource.Wrkbk.FullName _
                             , sync_source_codelines:=cSource.CodeLines
-            cLog.Entry = "Code updated line-by-line with code from Export-File '" & sExpFile & "'"
+            Log.Entry = "Code updated line-by-line with code from Export-File '" & sExpFile & "'"
         End If
         Set cSource = Nothing
         Set cTarget = Nothing
@@ -90,7 +90,7 @@ Public Sub SyncCodeName()
         Then GoTo next_sheet
         If sTargetSheetCodeName <> sSourceSheetCodeName And sTargetSheetName = sSourceSheetName Then
             '~~ The sheet's CodName has changed while the sheet's Name remained unchanged
-            cLog.ServicedItem = wsTarget
+            Log.ServicedItem = wsTarget
             Stats.Count sic_sheets_codename
             
             If Sync.Mode = Confirm Then
@@ -103,7 +103,7 @@ Public Sub SyncCodeName()
                         '~~ because it is very likely code refers to the CodeName rather than to the sheet's Name or position
 '                        mSync.ByCodeLines sync_target_comp_name:=wsSource.CodeName _
                                         , wb_source_full_name:=SyncSource.FullName
-                        cLog.Entry = "CodeName changed to '" & sSourceSheetCodeName & "'"
+                        Log.Entry = "CodeName changed to '" & sSourceSheetCodeName & "'"
                         Exit For
                     End If
                 Next vbc
@@ -146,7 +146,7 @@ Public Sub SyncName()
                               ) _
             Then GoTo next_comp
             If sTargetSheetCodeName = sSourceSheetCodeName And sTargetSheetName <> sSourceSheetName Then
-                cLog.ServicedItem = .Source.Worksheets(sSourceSheetName)
+                Log.ServicedItem = .Source.Worksheets(sSourceSheetName)
                 Stats.Count sic_sheets_name
                 
                 '~~ The sheet's Name has changed while the sheets CodeName remained unchanged
@@ -155,7 +155,7 @@ Public Sub SyncName()
                     SourceSheetNameChange sSourceSheetName, sSourceSheetCodeName, sTargetSheetName, sTargetSheetCodeName
                 Else
                     .Target.Worksheets(sTargetSheetName).Name = sSourceSheetName
-                    cLog.Entry = "Name changed to '" & sSourceSheetName & "'."
+                    Log.Entry = "Name changed to '" & sSourceSheetName & "'."
                 End If
             End If
 next_comp:
@@ -213,7 +213,7 @@ Public Sub SyncNew()
         
                 '~~ The sheet not exist in the target Workbook under the Name nor under the CodeName.
                 Set ws = .Source.Worksheets(sSourceSheetName)
-                cLog.ServicedItem = ws
+                Log.ServicedItem = ws
                 Stats.Count sic_sheets_new
                 
                 If .Mode = Count Then
@@ -240,7 +240,7 @@ Public Sub SyncNew()
                     '~~ The new sheet is copied to the corresponding position in the target Workbook
                     .Source.Worksheets(sSourceSheetName).Copy _
                     After:=.Target.Sheets(.Target.Worksheets.Count)
-                    cLog.Entry = "Copied from source Workbook."
+                    Log.Entry = "Copied from source Workbook."
                 End If
             End If
 next_v:
@@ -298,7 +298,7 @@ Public Sub SyncObsolete()
                 '~~ Target sheet not or no longer exists in source Workbook
                 '~~ neither under the Name nor under the CodeName
                 Set ws = .Target.Worksheets(sTargetSheetName)
-                cLog.ServicedItem = ws
+                Log.ServicedItem = ws
                 Stats.Count sic_sheets_obsolete
                 
                 If .Mode = Count Then
@@ -328,7 +328,7 @@ Public Sub SyncObsolete()
                             Application.DisplayAlerts = False
                             ws.Delete
                             Application.DisplayAlerts = True
-                            cLog.Entry = "Obsolete (deleted)"
+                            Log.Entry = "Obsolete (deleted)"
                             Exit For
                         End If
                     Next ws
@@ -366,13 +366,13 @@ Public Sub SyncOrder()
             Set ws = Sync.Source.Worksheets(i)
             sSheet = ws.Name
             If Sync.Target.Worksheets(i).Name <> sSheet Then
-                cLog.ServicedItem = ws
+                Log.ServicedItem = ws
                 If i = 1 Then
                     Sync.Target.Worksheets(sSheet).Move Before:=Sheets(i + 1)
-                    cLog.Entry = "Order synched!"
+                    Log.Entry = "Order synched!"
                 Else
                     Sync.Target.Worksheets(sSheet).Move After:=Sheets(i)
-                    cLog.Entry = "Order synched!"
+                    Log.Entry = "Order synched!"
                 End If
             End If
         End If

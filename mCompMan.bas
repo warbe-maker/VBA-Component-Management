@@ -112,6 +112,7 @@ Public asNoSynch()      As String
 Public lMaxCompLength   As Long
 Public dctHostedRaws    As Dictionary
 Public Stats            As clsStats
+Public Log              As clsLog
 Private lMaxLenComp     As Long
 Private lMaxLenTypeItem As Long
 
@@ -267,7 +268,7 @@ Public Sub DeleteObsoleteExpFiles(ByRef do_wb As Workbook)
     With fso
         For Each v In cll
             .DeleteFile v
-            cLog.Entry = "Export-File obsolete (deleted because component no longer exists)"
+            Log.Entry = "Export-File obsolete (deleted because component no longer exists)"
         Next v
     End With
     
@@ -430,17 +431,17 @@ Public Function ManageVbProjectProperties( _
                     Then
                         mRawHosts.FullName(sHostBaseName) = mh_wb.FullName
                         mRawHosts.IsRawVbProject(sHostBaseName) = True
-                        cLog.Entry = "Location of VB-Raw-Project changed."
-                        cLog.Entry = "Service is terminated! The identical names for the VB-Clone-Project/Workbook and the VB-Raw-Project still confuses the CompMan services"
-                        cLog.Entry = "The VB-Clone-Project perferably should be given another name!"
+                        Log.Entry = "Location of VB-Raw-Project changed."
+                        Log.Entry = "Service is terminated! The identical names for the VB-Clone-Project/Workbook and the VB-Raw-Project still confuses the CompMan services"
+                        Log.Entry = "The VB-Clone-Project perferably should be given another name!"
                     Else
-                        cLog.Entry = "VB-Clone-Project name confused with VB-Raw-Project name."
-                        cLog.Entry = "Service is terminated, either of the two must be renamed and the service restarted."
+                        Log.Entry = "VB-Clone-Project name confused with VB-Raw-Project name."
+                        Log.Entry = "Service is terminated, either of the two must be renamed and the service restarted."
                     End If
                     GoTo xt
                 End If
                 HostedRaws.RemoveAll
-                cLog.Entry = "Workbook recognized as VB-Clone-Project of the VB-Raw-Project '" & VBA.Trim$(Split(sHosted, ":")(1)) & "'"
+                Log.Entry = "Workbook recognized as VB-Clone-Project of the VB-Raw-Project '" & VBA.Trim$(Split(sHosted, ":")(1)) & "'"
                 ManageVbProjectProperties = True
             
             ElseIf IsVBRawProject(sHosted) Then
@@ -448,7 +449,7 @@ Public Function ManageVbProjectProperties( _
                 mRawHosts.IsRawVbProject(sHostBaseName) = True
                 If mRawHosts.FullName(sHostBaseName) <> mh_wb.FullName Then
                     mRawHosts.FullName(sHostBaseName) = mh_wb.FullName
-                    cLog.Entry = "Workbook (re)registered as VB-Raw-Project located in '" & mh_wb.Path & "'"
+                    Log.Entry = "Workbook (re)registered as VB-Raw-Project located in '" & mh_wb.Path & "'"
                 End If
                 ManageVbProjectProperties = True
             End If
@@ -462,7 +463,7 @@ Public Function ManageVbProjectProperties( _
             If Not mHostedRaws.Exists(raw_comp_name:=v) _
             Or mHostedRaws.HostFullName(comp_name:=v) <> mh_wb.FullName Then
                 mHostedRaws.HostFullName(comp_name:=v) = mh_wb.FullName
-                cLog.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
+                Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
             End If
             If mHostedRaws.ExpFileFullName(v) = vbNullString Then
                 '~~ The component apparently had never been exported before
@@ -480,12 +481,12 @@ Public Function ManageVbProjectProperties( _
         For Each v In mHostedRaws.Components
             If mHostedRaws.HostFullName(comp_name:=v) = mh_wb.FullName Then
                 mHostedRaws.Remove comp_name:=v
-                cLog.Entry = "Component removed from '" & mRawHosts.DAT_FILE & "'"
+                Log.Entry = "Component removed from '" & mRawHosts.DAT_FILE & "'"
             End If
         Next v
         If mRawHosts.Exists(fso.GetBaseName(mh_wb.FullName)) Then
             mRawHosts.Remove (fso.GetBaseName(mh_wb.FullName))
-            cLog.Entry = "Workbook no longer a host for at least one raw component removed from '" & mRawHosts.DAT_FILE & "'"
+            Log.Entry = "Workbook no longer a host for at least one raw component removed from '" & mRawHosts.DAT_FILE & "'"
         End If
     End If
     ManageVbProjectProperties = True
@@ -570,7 +571,7 @@ Public Sub DsplyProgress( _
     
     If p_total - p_done >= 0 Then sDots = VBA.String$(p_total - p_done, ".")
     On Error Resume Next
-    sService = cLog.Service
+    sService = Log.Service
     sMsg = sService & sDots & p_result
     If Len(sMsg) > 250 Then sMsg = Left(sMsg, 246) & "...."
     Application.StatusBar = sMsg
@@ -595,7 +596,7 @@ Public Sub SynchTargetWbWithSourceWb( _
     mService.SyncTargetWithSource wb_target:=wb_target, wb_source_name:=wb_source
     
 xt: mErH.EoP ErrSrc(PROC)
-    Set cLog = Nothing
+    Set Log = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))

@@ -87,8 +87,8 @@ Private Sub DisconnectLinkedRanges()
         sName = Split(nm.RefersTo, "]")(1)
         If Err.Number = 0 Then
             nm.RefersTo = "=" & sName
-            cLog.ServicedItem = nm
-            cLog.Entry = "Link to source sheet removed"
+            Log.ServicedItem = nm
+            Log.Entry = "Link to source sheet removed"
         End If
     Next nm
     
@@ -130,9 +130,9 @@ Private Sub RemoveInvalidRangeNames()
     For Each nm In Sync.Target.Names
         Debug.Print nm.Value
         If InStr(nm.Value, "#") <> 0 Or InStr(nm.RefersTo, "#") <> 0 Then
-            cLog.ServicedItem = nm
+            Log.ServicedItem = nm
             nm.Delete
-            cLog.Entry = "Deleted! (invalid)"
+            Log.Entry = "Deleted! (invalid)"
         End If
     Next nm
 End Sub
@@ -150,7 +150,7 @@ Private Sub RenameSheet(ByRef rs_wb As Workbook, _
     For Each sh In rs_wb.Worksheets
         If sh.Name = rs_old_name Then
             sh.Name = rs_new_name
-            cLog.Entry = "Sheet-Name changed to '" & rs_new_name & "'"
+            Log.Entry = "Sheet-Name changed to '" & rs_new_name & "'"
             Exit For
         End If
     Next sh
@@ -179,9 +179,9 @@ Private Sub RenameWrkbkModule( _
         For Each vbc In .VBComponents
             If vbc.Type = vbext_ct_Document Then
                 If IsWrkbkComp(vbc) Then
-                    cLog.ServicedItem = vbc
+                    Log.ServicedItem = vbc
                     vbc.Name = rdm_new_name
-                    cLog.Entry = "Renamed to '" & rdm_new_name & "'"
+                    Log.Entry = "Renamed to '" & rdm_new_name & "'"
                     DoEvents
                     Exit For
                 End If
@@ -222,40 +222,40 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeNext: Resume Next
     End Select
 End Function
-
-Private Sub SheetsOrder()
-' -------------------------------------------------------
 '
-' -------------------------------------------------------
-    Const PROC = "SheetsOrder"
-    
-    On Error GoTo eh
-    Dim i           As Long
-    Dim wsSource    As Worksheet
-    Dim wsTarget    As Worksheet
-    
-    For i = 1 To Sync.Source.Worksheets.Count
-        Set wsSource = Sync.Source.Worksheets(i)
-        Set wsTarget = Sync.Target.Worksheets(i)
-        If wsSource.Name <> wsTarget.Name Then
-            '~~ Sheet position has changed
-            If Sync.Mode = Confirm Then
-                Stop ' pending confirmation info
-            Else
-                Stop ' pending implementation
-            End If
-        End If
-    Next i
-    
-xt: Exit Sub
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
-    End Select
-
-End Sub
+'Private Sub SheetsOrder()
+'' -------------------------------------------------------
+''
+'' -------------------------------------------------------
+'    Const PROC = "SheetsOrder"
+'
+'    On Error GoTo eh
+'    Dim i           As Long
+'    Dim wsSource    As Worksheet
+'    Dim wsTarget    As Worksheet
+'
+'    For i = 1 To Sync.Source.Worksheets.Count
+'        Set wsSource = Sync.Source.Worksheets(i)
+'        Set wsTarget = Sync.Target.Worksheets(i)
+'        If wsSource.Name <> wsTarget.Name Then
+'            '~~ Sheet position has changed
+'            If Sync.Mode = Confirm Then
+'                Stop ' pending confirmation info
+'            Else
+'                Stop ' pending implementation
+'            End If
+'        End If
+'    Next i
+'
+'xt: Exit Sub
+'
+'eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+'        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+'        Case mErH.DebugOptResumeNext: Resume Next
+'        Case mErH.ErrMsgDefaultButton: GoTo xt
+'    End Select
+'
+'End Sub
 
 Private Sub SyncConfirmation()
 ' ------------------------------------------------------------

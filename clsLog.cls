@@ -143,6 +143,7 @@ Friend Property Let ServicedItem(ByRef v As Variant)
     Dim lbl As Label
     Dim img As Image
     Dim cbt As CommandButton
+    Dim rng As Range
     
     Select Case TypeName(v)
         Case "VBComponent"
@@ -180,6 +181,7 @@ Friend Property Let ServicedItem(ByRef v As Variant)
         Case "SpinButton":      Set sbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
         Case "TextBox":         Set tbx = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
         Case "ToggleButton":    Set tbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
+        Case "Range":           Set rng = v:    ServicedItemType = "Named Range":       ServicedItemName = rng.Name.Name
         Case Else
             Debug.Print "TypeName '" & TypeName(v) & "' not yet considered"
     End Select

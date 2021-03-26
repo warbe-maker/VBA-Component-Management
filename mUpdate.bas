@@ -38,9 +38,7 @@ Private Property Get BttnSkipAll() As String
     BttnSkipAll = "Skip" & vbLf & "all"
 End Property
 
-Public Sub RawClones( _
-               ByRef urc_wb As Workbook, _
-               ByRef urc_clones As Dictionary)
+Public Sub RawClones(ByRef urc_wb As Workbook)
 ' --------------------------------------------------------
 ' Updates any clone in Workbook (urc_wb). Note that clones
 ' are identifiied by equally named components in another
@@ -75,8 +73,8 @@ Public Sub RawClones( _
         Set cClone.Wrkbk = urc_wb
         cClone.CompName = cRaw.CompName
         With cRaw
-            cLog.ServicedItem = .CloneVbc
-            cLog.Entry = "Corresponding Raw-Component's code changed! (its Export-File differs from the Clone's Export-File)"
+            Log.ServicedItem = .CloneVbc
+            Log.Entry = "Corresponding Raw-Component's code changed! (its Export-File differs from the Clone's Export-File)"
             If bVerbose Then
                 UpdateCloneConfirmed ucc_comp_name:=.CompName _
                                    , ucc_stay_verbose:=bVerbose _
@@ -88,7 +86,7 @@ Public Sub RawClones( _
                 mRenew.ByImport rn_wb:=urc_wb _
                      , rn_comp_name:=.CompName _
                      , rn_exp_file_full_name:=.ExpFileFullName
-                cLog.Entry = "Clone-Component renewed/updated by (re-)import of '" & cRaw.ExpFileFullName & "'"
+                Log.Entry = "Clone-Component renewed/updated by (re-)import of '" & cRaw.ExpFileFullName & "'"
                 Stats.Count sic_clones_comps_updated
                 If sUpdated = vbNullString _
                 Then sUpdated = .CompName _
@@ -100,8 +98,8 @@ Public Sub RawClones( _
         
     Next v
     If sUpdated = vbNullString _
-    Then Application.StatusBar = cLog.Service & "None updated (" & Stats.Total(sic_clones_comps_updated) & " of " & Stats.Total(sic_clone_comps) & ")" _
-    Else Application.StatusBar = cLog.Service & sUpdated & " (" & Stats.Total(sic_clones_comps_updated) & " of " & Stats.Total(sic_clone_comps) & ")"
+    Then Application.StatusBar = Log.Service & "None updated (" & Stats.Total(sic_clones_comps_updated) & " of " & Stats.Total(sic_clone_comps) & ")" _
+    Else Application.StatusBar = Log.Service & sUpdated & " (" & Stats.Total(sic_clones_comps_updated) & " of " & Stats.Total(sic_clone_comps) & ")"
 
 xt: Set fso = Nothing
     Exit Sub
@@ -148,7 +146,7 @@ Public Function UpdateCloneConfirmed( _
         .Section(2).bMonspaced = True
     End With
     Do
-        vReply = mMsg.Dsply(msg_title:=cLog.Service & "Update " & Spaced(ucc_comp_name) & "with changed raw" _
+        vReply = mMsg.Dsply(msg_title:=Log.Service & "Update " & Spaced(ucc_comp_name) & "with changed raw" _
                           , msg:=sMsg _
                           , msg_buttons:=cllButtons _
                            )

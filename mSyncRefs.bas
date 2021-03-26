@@ -18,13 +18,13 @@ Public Sub SyncNew()
     
     For Each ref In Sync.Source.VBProject.References
         If Not RefExists(Sync.Target, ref) Then
-            cLog.ServicedItem = ref
+            Log.ServicedItem = ref
             Stats.Count sic_refs_new
             If Sync.Mode = Confirm Then
                 Sync.ConfInfo = "New!"
             Else
                 Sync.Target.VBProject.References.AddFromGuid ref.GUID, ref.Major, ref.Minor
-                cLog.Entry = "Added"
+                Log.Entry = "Added"
             End If
         End If
     Next ref
@@ -52,14 +52,14 @@ Public Sub SyncObsolete()
     
     For Each ref In Sync.Target.VBProject.References
         If Not RefExists(Sync.Source, ref) Then
-            cLog.ServicedItem = ref
+            Log.ServicedItem = ref
             Stats.Count sic_refs_new
             sRef = ref.Name
             If Sync.Mode = Confirm Then
                 Sync.ConfInfo = "Obsolete!"
             Else
                 RefRemove ref
-                cLog.Entry = "Removed!"
+                Log.Entry = "Removed!"
             End If
         End If
     Next ref

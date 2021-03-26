@@ -36,7 +36,7 @@ Private Property Get Sorted() As Dictionary
     Dim vbc As VBComponent
     
     For Each vbc In wbServiced.VBProject.VBComponents
-        cLog.ServicedItem = vbc
+        Log.ServicedItem = vbc
         mDct.DctAdd dct, vbc.Type & vbc.Name, vbc, order_bykey, seq_ascending, , , True
     Next vbc
     Set Sorted = dct
@@ -72,7 +72,7 @@ Public Sub CollectAllChanged()
                         , p_total:=Stats.Total(sic_comps_total) _
                         , p_done:=Stats.Total(sic_comps)
             
-            cLog.ServicedItem = vbc
+            Log.ServicedItem = vbc
             If Not .KindOfComp = enRawClone Then GoTo next_vbc
             Stats.Count sic_clone_comps
             '~~ This is a Raw-Component's Clone-Component
@@ -90,7 +90,7 @@ Public Sub CollectAllChanged()
                 Then sChanged = vbc.Name _
                 Else sChanged = sChanged & ", " & vbc.Name
             Else
-                cLog.Entry = "Corresponding Raw's code un-changed."
+                Log.Entry = "Corresponding Raw's code un-changed."
             End If
         End With
 next_vbc:

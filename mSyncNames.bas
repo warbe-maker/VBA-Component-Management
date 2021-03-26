@@ -79,11 +79,11 @@ Public Sub SyncObsolete()
         Set nm = Sync.Target.Names.Item(v)
         '~~ The target name does not exist in the source and thus  has become obsolete
         If Sync.Mode = Confirm Then
-            cLog.ServicedItem = nm
+            Log.ServicedItem = nm
             Sync.ConfInfo = "Obsolete! Will be removed."
         Else
             nm.Delete
-            cLog.Entry = "Obsolete (removed)"
+            Log.Entry = "Obsolete (removed)"
         End If
 next_v:
     Next v

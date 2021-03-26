@@ -7,7 +7,7 @@ Option Private Module
 '                           and the development instance.
 '
 ' Public services:
-' - AddInInstncWrkbkIsOpen  Returns True when the AddIn instance Workbook is
+' - CompManAddinIsOpen  Returns True when the AddIn instance Workbook is
 '                           open
 ' - CompManAddinPath        Get/Let the configured path for the AddIn instance
 '                           of this Workbook
@@ -76,17 +76,17 @@ Private Property Get AddInPath() As String
     AddInPath = mMe.CompManAddinPath
 End Property
 
-Public Property Get AddInPaused() As Boolean
+Public Property Get CompManAddinPaused() As Boolean
     Dim s As String
     s = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED)
     If s = vbNullString Then
-        AddInPaused = False
+        CompManAddinPaused = False
     Else
-        AddInPaused = VBA.CBool(s)
+        CompManAddinPaused = VBA.CBool(s)
     End If
 End Property
 
-Public Property Let AddInPaused(ByVal b As Boolean)
+Public Property Let CompManAddinPaused(ByVal b As Boolean)
     Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED) = b
     With New FileSystemObject
         .CopyFile CFG_FILENAME, CompManAddinPath & "\" & .GetFileName(CFG_FILENAME)
@@ -207,14 +207,14 @@ Public Property Get xlAddInFormat() As Long:            xlAddInFormat = ADDIN_FO
 
 Public Property Get xlDevlpFormat() As Long:            xlDevlpFormat = DEVLP_FORMAT:                                       End Property
 
-Private Property Get AddInIsSetup() As Boolean
+Private Property Get CompManAddinIsSetup() As Boolean
 ' ------------------------------------------------------------
 ' Returns True when the CompMan-AddIn is configured and exists
 ' in the configured folder.
 ' ------------------------------------------------------------
     With New FileSystemObject
         If mMe.CompManAddinPath <> vbNullString _
-        Then AddInIsSetup = .FileExists(mMe.CompManAddinPath & "\" & CompManAddinName)
+        Then CompManAddinIsSetup = .FileExists(mMe.CompManAddinPath & "\" & CompManAddinName)
     End With
 
 End Property
@@ -225,8 +225,8 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
     On Error GoTo eh
     wsAddIn.CurrentStatus = vbNullString
     wsAddIn.RenewStepLogTitle = "Log of the steps to Setup/Renew the 'CompMan-Addin'"
-    If mMe.AddInIsSetup Then
-        If Not mMe.AddInInstncWrkbkIsOpen Then
+    If mMe.CompManAddinIsSetup Then
+        If Not mMe.CompManAddinIsOpen Then
             '~~ AddIn is setup but currently not open. It will be opened either when a Workbook
             '~~ referring to it is openend or when it is renewed.
             
@@ -240,16 +240,16 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
             "(Renew or a Workbook opened which refers to it will open it)"
         Else ' AddIn is setup and open
             wsAddIn.CurrentStatus = "Setup/Renewed and  " & mBasic.Spaced("open!")
-            If mMe.AddInPaused = True Then
+            If mMe.CompManAddinPaused = True Then
                 wsAddIn.CurrentStatus = mBasic.Spaced("paused!")
                 wsAddIn.CompManAddInPausedStatus = _
-                "The AddIn is currently  p a u s e d ! The Workbook_Open service 'UpdateRawClones' " & _
+                "The 'CompMan-Addin' is currently  p a u s e d ! The Workbook_Open service 'UpdateRawClones' " & _
                 "and the Workbook_BeforeSave service 'ExportChangedComponents' will be bypassed " & _
                 "until the Addin is 'continued' again!"
             Else
                 wsAddIn.CurrentStatus = mBasic.Spaced("active!")
                 wsAddIn.CompManAddInPausedStatus = _
-                "The AddIn is currently  a c t i v e !  The services 'UpdateRawClones' and 'ExportChangedComponents'" & vbLf & _
+                "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateRawClones' and 'ExportChangedComponents'" & vbLf & _
                 "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
                 "1. The Workbook is located in the configured 'Serviced-Development-Root-Folder' which currently is:" & vbLf & _
                 "   '" & mMe.ServicedRoot & "'" & vbLf & _
@@ -283,28 +283,27 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-
-Public Sub AddInContinue()
+Public Sub CompManAddinContinue()
     mService.Continue
 End Sub
 
-Private Function AddInInstncWrkbkExists() As Boolean
+Private Function CompManAddinWrkbkExists() As Boolean
     Dim fso As New FileSystemObject
-    AddInInstncWrkbkExists = fso.FileExists(CompManAddinFullName)
+    CompManAddinWrkbkExists = fso.FileExists(CompManAddinFullName)
 End Function
 
-Public Function AddInInstncWrkbkIsOpen() As Boolean
-    Const PROC = "AddInInstncWrkbkIsOpen"
+Public Function CompManAddinIsOpen() As Boolean
+    Const PROC = "CompManAddinIsOpen"
     
     On Error GoTo eh
     Dim i As Long
     
-    AddInInstncWrkbkIsOpen = False
+    CompManAddinIsOpen = False
     For i = 1 To Application.AddIns2.Count
         If Application.AddIns2(i).Name = CompManAddinName Then
             On Error Resume Next
             Set wbTarget = Application.Workbooks(CompManAddinName)
-            AddInInstncWrkbkIsOpen = Err.Number = 0
+            CompManAddinIsOpen = Err.Number = 0
             GoTo xt
         End If
     Next i
@@ -318,7 +317,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub AddInPause()
+Public Sub CompManAddinPause()
     mService.Pause
 End Sub
 
@@ -425,7 +424,7 @@ Public Sub RenewAddIn()
     wbSource.Activate
           
     '~~ Attempt to turn Addin to "IsAddin=False", uninstall and close it
-    If AddInInstncWrkbkIsOpen Then
+    If CompManAddinIsOpen Then
         Renew_4_Set_IsAddin_ToFalse wbTarget
         If Not Renew_5_CloseAddinInstncWorkbook Then GoTo xt
     End If
@@ -453,6 +452,7 @@ xt: mMe.RenewLogAction = RenewFinalResult
     
     Application.EnableEvents = False
     wbSource.Save
+    wbSource.Activate
     Application.EnableEvents = True
     
     Exit Sub
@@ -771,7 +771,7 @@ Private Function Renew_7_SaveDevInstncWorkbookAsAddin() As Boolean
     mMe.RenewLogAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ") as 'CompMan-Addin' (" & CompManAddinName & ")"
     
     With Application
-        If Not AddInInstncWrkbkExists Then
+        If Not CompManAddinWrkbkExists Then
             '~~ At this point the Addin must no longer exist at its location
             .EnableEvents = False
             On Error Resume Next
@@ -809,8 +809,8 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
     Dim sBaseAddinName  As String
     Dim sBaseDevName    As String
     
-    If Not AddInInstncWrkbkIsOpen Then
-        If AddInInstncWrkbkExists Then
+    If Not CompManAddinIsOpen Then
+        If CompManAddinWrkbkExists Then
             mMe.RenewLogAction = "Re-open the 'CompMan-Addin' (" & CompManAddinName & ")"
             On Error Resume Next
             Set wb = Application.Workbooks.Open(CompManAddinFullName)

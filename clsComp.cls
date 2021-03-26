@@ -275,7 +275,7 @@ Friend Property Get KindOfComp() As enKindOfComp
         ElseIf lKindOfComp = enKindOfComp.enUnknown Then
             lKindOfComp = enInternal
         End If
-'        cLog.Entry = Me.TypeString & " (" & KoCStrng(lKindOfComp) & ")"
+'        Log.Entry = Me.TypeString & " (" & KoCStrng(lKindOfComp) & ")"
     End If
     
 xt: KindOfComp = lKindOfComp
@@ -597,7 +597,7 @@ Public Sub ReplaceRawWithClone()
     mRenew.ByImport rn_wb:=wbRawHost _
                   , rn_comp_name:=sCompName _
                   , rn_exp_file_full_name:=Me.ExpFileFullName
-    cLog.Entry = "Raw-Component (hosted in '" & wbRawHost.Name & "' replaced by (re-)import of the clone's export file '" & Me.ExpFileFullName & "'"
+    Log.Entry = "Raw-Component (hosted in '" & wbRawHost.Name & "' replaced by (re-)import of the clone's export file '" & Me.ExpFileFullName & "'"
 
 xt: Exit Sub
 

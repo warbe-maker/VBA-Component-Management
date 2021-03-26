@@ -34,7 +34,7 @@ Public Sub SyncCodeChanges()
         If Not cSource.Changed Then GoTo next_vbc
         
         Stats.Count sic_non_doc_mods_code
-        cLog.ServicedItem = vbc
+        Log.ServicedItem = vbc
         
         If Sync.Mode = Confirm Then
             Sync.ConfInfo = "Changed"
@@ -42,11 +42,11 @@ Public Sub SyncCodeChanges()
             If Not Sync.Changed.Exists(sCaption) _
             Then Sync.Changed.Add sCaption, cSource
         Else
-            cLog.ServicedItem = vbc
+            Log.ServicedItem = vbc
             mRenew.ByImport rn_wb:=Sync.Target _
                           , rn_comp_name:=vbc.Name _
                           , rn_exp_file_full_name:=cSource.ExpFileFullName
-            cLog.Entry = "Renewed/updated by import of '" & cSource.ExpFileFullName & "'"
+            Log.Entry = "Renewed/updated by import of '" & cSource.ExpFileFullName & "'"
         End If
         
         Set cTarget = Nothing
@@ -90,14 +90,14 @@ Public Sub SyncNew()
             If CompExists(.Target, vbc.Name) Then GoTo next_vbc
             
             '~~ No component exists under the source component's name
-            cLog.ServicedItem = vbc
+            Log.ServicedItem = vbc
             Stats.Count sic_non_doc_mod_new
             
             If .Mode = Confirm Then
                 .ConfInfo = "New! Corresponding source Workbook Export-File will by imported."
             Else
                 .Target.VBProject.VBComponents.Import cSource.ExpFileFullName
-                cLog.Entry = "Component imported from Export-File '" & cSource.ExpFileFullName & "'"
+                Log.Entry = "Component imported from Export-File '" & cSource.ExpFileFullName & "'"
             End If
             
             Set cSource = Nothing
@@ -139,7 +139,7 @@ Public Sub SyncObsolete()
             cTarget.CompName = vbc.Name
             If cTarget.Exists(.Source) Then GoTo next_vbc
             
-            cLog.ServicedItem = vbc
+            Log.ServicedItem = vbc
             Stats.Count sic_non_doc_mod_obsolete
             
             If .Mode = Confirm Then
@@ -147,7 +147,7 @@ Public Sub SyncObsolete()
             Else
                 sType = cTarget.TypeString
                 .Target.VBProject.VBComponents.Remove vbc
-                cLog.Entry = "Removed!"
+                Log.Entry = "Removed!"
             End If
             Set cTarget = Nothing
 next_vbc:
