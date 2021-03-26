@@ -115,7 +115,11 @@ Public Property Let CompManAddinPath(ByVal s As String)
 xt: Set fso = Nothing
     Exit Property
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Property
 
 Public Property Get DevInstncFullName() As String

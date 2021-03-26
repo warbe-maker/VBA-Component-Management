@@ -352,7 +352,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
-                If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
+                If mFile.SelectFile(sel_init_path:=mCompMan.ExpFileFolderPath(.Wrkbk) _
                                   , sel_filters:="*" & cComp.ExpFileExt _
                                   , sel_filter_name:="bas-Export-Files" _
                                   , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
@@ -362,7 +362,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
                     Application.Run mRenew_ByImport _
                                   , .Wrkbk _
                                   , .CompName _
-                                  , .ExpFilePath
+                                  , sExpFile
                 Next i
             End With
             mErH.EoP ErrSrc(PROC)
@@ -388,7 +388,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
 ' The test asserts that a Workbook is able to renew its own VBA code provided
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
-    Const PROC = "Test_RenewComp_1b_Standard_Module_EXPFILE_Local"
+    Const PROC = "Test_RenewComp_1b_Standard_Module_ExpFile_Local"
     
     On Error GoTo eh
     Dim cComp   As New clsComp
@@ -412,7 +412,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
                     Application.Run mRenew_ByImport _
                                   , .Wrkbk _
                                   , .CompName _
-                                  , .ExpFilePath
+                                  , .ExpFileFullName
                 Next i
             End With
             mErH.EoP ErrSrc(PROC)
@@ -462,7 +462,7 @@ Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
                     Application.Run mRenew_ByImport _
                                   , .Wrkbk _
                                   , .CompName _
-                                  , .ExpFilePath
+                                  , .ExpFileFullName
                 Next i
             End With
             mErH.EoP ErrSrc(PROC)
@@ -493,7 +493,6 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
     On Error GoTo eh
     Dim cComp           As New clsComp
     Dim i               As Long
-    Dim sExpFile        As String
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
@@ -512,12 +511,11 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
                 '~~ -------------------------------------------------
                 '~~ First test with the components origin Export-File
                 '~~ -------------------------------------------------
-                sExpFile = .ExpFilePath ' the component's origin export file
                 For i = 1 To repeat
                     Application.Run mRenew_ByImport _
                                   , .Wrkbk _
                                   , .CompName _
-                                  , .ExpFilePath
+                                  , .ExpFileFullName
                 Next i
             End With
         End If
@@ -567,7 +565,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
-                If mFile.SelectFile(sel_init_path:=cComp.ExpFilePath _
+                If mFile.SelectFile(sel_init_path:=mCompMan.ExpFileFolderPath(.Wrkbk) _
                                   , sel_filters:="*" & cComp.ExpFileExt _
                                   , sel_filter_name:="UserForm" _
                                   , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
@@ -577,7 +575,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
                     Application.Run mRenew_ByImport _
                                   , .Wrkbk _
                                   , .CompName _
-                                  , .ExpFilePath
+                                  , sExpFile
                 Next i
             End With
             mErH.EoP ErrSrc(PROC)

@@ -20,7 +20,7 @@ Public Sub CloneRaws(Optional ByRef ic_wb As Workbook)
     If ic_wb Is Nothing Then Set ic_wb = ActiveWorkbook
     If mMe.IsAddinInstnc Then GoTo xt
     
-    For Each v In mHostedRaws.Components
+    For Each v In mRawsHosted.Components
         If i >= 7 Then
             cll.Add vbLf
             i = 0
@@ -50,7 +50,7 @@ Public Sub CloneRaws(Optional ByRef ic_wb As Workbook)
             Case Else
                 mRenew.ByImport rn_wb:=ic_wb _
                               , rn_comp_name:=vReply _
-                              , rn_exp_file_full_name:=mHostedRaws.ExpFileFullName(vReply)
+                              , rn_exp_file_full_name:=mRawsHosted.ExpFileFullName(vReply)
         End Select
     Loop
 xt: Exit Sub

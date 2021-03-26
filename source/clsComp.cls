@@ -106,7 +106,7 @@ Friend Property Get Changed() As Boolean
             If Not .FileExists(Me.ExpFileFullName) Then
                 Me.VBComp.Export Me.ExpFileFullName
             End If
-            sTmpFolder = Me.ExpFilePath & "\Temp"
+            sTmpFolder = mCompMan.ExpFileFolderPath(wb) & "\Temp"
             If Not .FolderExists(sTmpFolder) Then
                 DoEvents
                 .CreateFolder sTmpFolder
@@ -163,7 +163,7 @@ Friend Property Let CompName(ByVal s As String)
     If Not wb Is Nothing Then
         If Me.Exists Then
             Set vbc = wb.VBProject.VBComponents(s)
-            sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExt
+            sExpFileFullName = mCompMan.ExpFileFolderPath(wb) & "\" & sCompName & Me.ExpFileExt
         End If
     End If
 End Property
@@ -234,33 +234,9 @@ End Property
 
 Friend Property Get ExpFileFullName() As String
     If sExpFileFullName = vbNullString Then
-        sExpFileFullName = Me.ExpFilePath & "\" & Me.CompName & Me.ExpFileExt
+        sExpFileFullName = mCompMan.ExpFileFolderPath(wb) & "\" & Me.CompName & Me.ExpFileExt
     End If
     ExpFileFullName = sExpFileFullName
-End Property
-
-Friend Property Get ExpFilePath() As String
-' -------------------------------------------------------------------------------
-'
-' -------------------------------------------------------------------------------
-    Dim fso As New FileSystemObject
-    Dim s   As String
-    
-    With fso
-        If Not Me.Wrkbk Is Nothing _
-        Then s = .GetParentFolderName(Me.Wrkbk.FullName) _
-        Else s = .GetParentFolderName(Me.WrkbkFullName)
-        If sExpFilePath = vbNullString Or sExpFilePath <> s & "\source" Then
-            sExpFilePath = s & "\source"
-        End If
-        
-        ExpFilePath = sExpFilePath
-        If Not .FolderExists(sExpFilePath) Then
-            .CreateFolder sExpFilePath
-        End If
-    End With
-    Set fso = Nothing
-    
 End Property
 
 Friend Property Get ExpFolder() As Folder:      Set ExpFolder = foExport:   End Property
@@ -280,8 +256,8 @@ Friend Property Get KindOfComp() As enKindOfComp
     On Error GoTo eh
     
     If lKindOfComp = enKindOfComp.enUnknown Then
-        If mHostedRaws.Exists(sCompName) Then
-            If mHostedRaws.HostFullName(comp_name:=sCompName) = Me.Wrkbk.FullName _
+        If mRawsHosted.Exists(sCompName) Then
+            If mRawsHosted.HostFullName(comp_name:=sCompName) = Me.Wrkbk.FullName _
             Then lKindOfComp = enHostedRaw _
             Else lKindOfComp = enRawClone
         ElseIf lKindOfComp = enKindOfComp.enUnknown Then
@@ -386,8 +362,9 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Property
 
 Friend Property Get Service(Optional ByVal wb_full_name) As String
+    Dim fso As New FileSystemObject
     If sService = vbNullString Then
-        sService = Split(Me.Wrkbk.Path, "\")(UBound(Split(Me.Wrkbk.Path, "\")))
+        sService = fso.GetFileName(Me.Wrkbk.Path)
     End If
     Service = sService
 End Property
@@ -474,7 +451,7 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
     sExpFilePath = fso.GetParentFolderName(sWrkbkFullName)
     Set foExport = fso.GetFolder(sExpFilePath)
-    sService = Split(wb.Path, "\")(UBound(Split(wb.Path, "\")))
+    sService = fso.GetFileName(wb.Path)
     For Each vbc In wb.VBProject.VBComponents
         lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
     Next vbc
@@ -638,7 +615,7 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
     If ReplaceRawWithCloneConfirmed Then
             '~~ Get the origin host Workbook open
         With cRaw
-            .HostFullName = mHostedRaws.HostFullName(Me.CompName)
+            .HostFullName = mRawsHosted.HostFullName(Me.CompName)
             .CompName = Me.CompName
             .ExpFileExt = Me.ExpFileExt ' required to build the export file's full name
             Set .ExpFile = fso.GetFile(.ExpFileFullName)

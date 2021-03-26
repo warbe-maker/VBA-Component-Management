@@ -47,7 +47,6 @@ Private sCloneExpFileFullName   As String
 Private sCompName               As String
 Private sExpFileExt             As String
 Private sExpFileFullName        As String
-Private sExpFilePath            As String
 Private sHostFullName           As String
 Private vbcRaw                  As VBComponent
 Private wbRawHost               As Workbook
@@ -177,7 +176,7 @@ Friend Property Let CompName(ByVal s As String)
     If Not wb Is Nothing Then
         If Me.Exists Then
             Set vbc = wb.VBProject.VBComponents(s)
-            sExpFileFullName = Me.ExpFilePath & "\" & sCompName & Me.ExpFileExt
+            sExpFileFullName = mCompMan.ExpFileFolderPath(Me.HostFullName) & "\" & sCompName & Me.ExpFileExt
         End If
     End If
 End Property
@@ -190,7 +189,7 @@ Public Sub DsplyAllChanges()
     mFile.Compare fc_file_left:=sCloneExpFileFullName _
                 , fc_file_right:=sExpFileFullName _
                 , fc_left_title:="'Clone' component's export file '" & sCloneExpFileFullName & "'" _
-                , fc_right_title:="'Raw' component's export file '" & sExpFilePath & "'"
+                , fc_right_title:="'Raw' component's export file '" & Me.ExpFileFullName & "'"
 End Sub
 
 Friend Property Get Exists(Optional ByRef ex_wb As Workbook = Nothing) As Boolean
@@ -255,23 +254,17 @@ End Property
 
 Friend Property Let ExpFileExt(ByVal s As String)
     sExpFileExt = s
-    sExpFileFullName = Me.ExpFilePath & "\" & Me.CompName & s
+    sExpFileFullName = mCompMan.ExpFileFolderPath(Me.HostFullName) & "\" & Me.CompName & s
 End Property
 
 Friend Property Get ExpFileFullName() As String:        ExpFileFullName = sExpFileFullName:     End Property
 
-Friend Property Get ExpFilePath() As String:            ExpFilePath = sExpFilePath:             End Property
-
 Friend Property Get HostFullName() As String:           HostFullName = sHostFullName:           End Property
 
 Friend Property Let HostFullName(ByVal s As String)
+    Dim fso As New FileSystemObject
     sHostFullName = s
-    If sExpFilePath = vbNullString Then
-        With New FileSystemObject
-            sExpFilePath = .GetParentFolderName(s)
-        End With
-    End If
-    sService = Split(sExpFilePath, "\")(UBound(Split(sExpFilePath, "\")))
+    sService = fso.GetFileName(s)
 End Property
 
 Friend Property Get RawHost() As Workbook:              Set RawHost = wbRawHost:        End Property
@@ -289,8 +282,9 @@ Friend Property Get CloneVbc() As VBComponent:          Set CloneVbc = vbcClone:
 Friend Property Set CloneVbc(ByRef vbc As VBComponent):   Set vbcClone = vbc:               End Property
 
 Friend Property Get Service() As String
+    Dim fso As New FileSystemObject
     If sService = vbNullString Then
-        sService = Split(Me.ExpFilePath, "\")(UBound(Split(Me.ExpFilePath, "\")))
+        sService = fso.GetFileName(Me.HostFullName)
     End If
     Service = sService
 End Property
@@ -348,9 +342,8 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     Set wb = wbk
     sWrkbkFullName = wb.FullName
     sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
-    sExpFilePath = fso.GetParentFolderName(sWrkbkFullName)
-    Set foExport = fso.GetFolder(sExpFilePath)
-    sService = Split(wb.Path, "\")(UBound(Split(wb.Path, "\")))
+    Set foExport = fso.GetFolder(mCompMan.ExpFileFolderPath(wbk))
+    sService = wb.Name
     For Each vbc In wb.VBProject.VBComponents
         lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
     Next vbc

@@ -6,7 +6,6 @@ Option Explicit
 ' component name the values HostFullName and ExpFileFullName.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_HOST_FULL_NAME = "HostFullName"
-Private Const VNAME_IS_VB_SOURCE_PROJECT = "IsRawVbProject"
 
 Public Property Get DAT_FILE() As String: DAT_FILE = mMe.CompManAddinPath & "\RawHosts.dat":   End Property
 
@@ -19,27 +18,6 @@ Public Property Let FullName( _
                      Optional ByVal host_base_name As String, _
                               ByVal host_full_name As String)
     Value(pp_section:=host_base_name, pp_value_name:=VNAME_HOST_FULL_NAME) = host_full_name
-End Property
-
-Public Property Get IsRawVbProject( _
-                     Optional ByVal host_base_name As String) As Boolean
-' ----------------------------------------------------------------------
-' Returns TRUE when the Workbook identified by its base name is known
-' as a Raw-VB-Project.
-' ----------------------------------------------------------------------
-    Dim s As String
-    s = Value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_SOURCE_PROJECT)
-    If s = vbNullString Then
-        IsRawVbProject = False
-    Else
-        IsRawVbProject = CBool(s)
-    End If
-End Property
-
-Public Property Let IsRawVbProject( _
-                     Optional ByVal host_base_name As String, _
-                              ByVal host_raw_project As Boolean)
-    Value(pp_section:=host_base_name, pp_value_name:=VNAME_IS_VB_SOURCE_PROJECT) = host_raw_project
 End Property
 
 Private Property Get Value( _

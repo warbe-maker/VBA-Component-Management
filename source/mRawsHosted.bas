@@ -1,4 +1,4 @@
-Attribute VB_Name = "mHostedRaws"
+Attribute VB_Name = "mRawsHosted"
 Option Explicit
 ' ---------------------------------------------------------------------------
 ' Standard Module mRaw

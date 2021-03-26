@@ -1,6 +1,10 @@
 Attribute VB_Name = "mRenew"
 Option Explicit
 
+Private Function ErrSrc(ByVal s As String) As String
+    ErrSrc = "mRenew." & s
+End Function
+
 Public Sub ByImport( _
               ByRef rn_wb As Workbook, _
               ByVal rn_comp_name As String, _
@@ -14,10 +18,13 @@ Public Sub ByImport( _
 '       the way, deletion is done by the system when
 '       the process has ended.
 ' -----------------------------------------------------
+    Const PROC = "ByImport"
+    
+    On Error GoTo eh
     Dim sTempName       As String
-    Dim sExpFilePath    As String
     Dim fso             As New FileSystemObject
-
+    Dim cComp           As clsComp
+    
     Debug.Print NowMsec & " =========================="
     SaveWbk rn_wb
     DoEvents:  Application.Wait Now() + 0.0000001 ' wait for 10 milliseconds
@@ -36,15 +43,21 @@ Public Sub ByImport( _
         '~~ (Re-)import the component
         .VBComponents.Import rn_exp_file_full_name
         Debug.Print NowMsec & " '" & rn_comp_name & "' (re-)imported from '" & rn_exp_file_full_name & "'"
-        sExpFilePath = rn_wb.Path & "\" & rn_comp_name & Extension(ext_wb:=rn_wb, ext_comp_name:=rn_comp_name)
-        If Not fso.FileExists(sExpFilePath) Or rn_exp_file_full_name <> sExpFilePath Then
-            .VBComponents(rn_comp_name).Export sExpFilePath
-            Debug.Print NowMsec & " '" & rn_comp_name & "' exported to '" & sExpFilePath & "'"
-        End If
+        Set cComp = New clsComp
+        Set cComp.Wrkbk = rn_wb
+        cComp.CompName = rn_comp_name
+        .VBComponents(rn_comp_name).Export cComp.ExpFileFullName
+        Debug.Print NowMsec & " '" & rn_comp_name & "' exported to '" & cComp.ExpFileFullName & "'"
     End With
           
-    Set fso = Nothing
+xt: Set fso = Nothing
+    Exit Sub
     
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Sub
 
 Private Sub SaveWbk(ByRef rs_wb As Workbook)

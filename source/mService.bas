@@ -77,7 +77,7 @@ Public Sub RenewComp( _
         '~~ Select the Export-File for the re-new service
         '~~ of which the base name will be regared as the component to be renewed.
         '~~ --------------------------------------------------------
-        If mFile.SelectFile(sel_init_path:=Comp.ExpFilePath _
+        If mFile.SelectFile(sel_init_path:=mCompMan.ExpFileFolderPath(rc_wb) _
                           , sel_filters:="*.bas,*.cls,*.frm" _
                           , sel_filter_name:="File" _
                           , sel_title:="Select the Export-File for the re-new service" _
@@ -93,7 +93,7 @@ Public Sub RenewComp( _
         '~~ ------------------------------------------------
         sBaseName = fso.GetBaseName(rc_exp_file_full_name)
         '~~ Select the Export-File for the re-new service
-        If mFile.SelectFile(sel_init_path:=Comp.ExpFilePath _
+        If mFile.SelectFile(sel_init_path:=mCompMan.ExpFileFolderPath(rc_wb) _
                           , sel_filters:="*" & Comp.ExpFileExt _
                           , sel_filter_name:="File" _
                           , sel_title:="Select the Export-File for the provided component '" & rc_comp_name & "'!" _
@@ -275,12 +275,8 @@ Public Sub ExportChangedComponents( _
     Set Comps.Serviced = ec_wb
         
     mCompMan.DeleteObsoleteExpFiles do_wb:=ec_wb
-    If Not mCompMan.ManageVbProjectProperties(mh_hosted:=ec_hosted _
-                                            , mh_wb:=ec_wb) _
-    Then
-        Application.StatusBar = Log.Service & " Failed! See log-file in Workbookfolder"
-        GoTo xt
-    End If
+    mCompMan.ManageHostHostedProperty mh_hosted:=ec_hosted _
+                                    , mh_wb:=ec_wb
     
     lComponents = ec_wb.VBProject.VBComponents.Count
     lRemaining = lComponents
@@ -302,7 +298,7 @@ Public Sub ExportChangedComponents( _
                 With cRaw
                     '~~ Provide all available information rearding the remote raw component
                     '~~ Attention must be paid to the fact that the sequence of property assignments matters
-                    .HostFullName = mHostedRaws.HostFullName(comp_name:=cComp.CompName)
+                    .HostFullName = mRawsHosted.HostFullName(comp_name:=cComp.CompName)
                     .CompName = cComp.CompName
                     .ExpFileExt = cComp.ExpFileExt  ' required to build the export file's full name
                     Set .ExpFile = fso.GetFile(.ExpFileFullName)
@@ -357,8 +353,8 @@ Public Sub ExportChangedComponents( _
                     End If
                 
                     If .KindOfComp = enHostedRaw Then
-                        If mHostedRaws.ExpFileFullName(comp_name:=.CompName) <> .ExpFileFullName Then
-                            mHostedRaws.ExpFileFullName(comp_name:=.CompName) = .ExpFileFullName
+                        If mRawsHosted.ExpFileFullName(comp_name:=.CompName) <> .ExpFileFullName Then
+                            mRawsHosted.ExpFileFullName(comp_name:=.CompName) = .ExpFileFullName
                             Log.Entry = "Component's Export-File Full Name registered"
                         End If
                     End If
@@ -520,13 +516,10 @@ Public Sub UpdateRawClones( _
 
     mErH.BoP ErrSrc(PROC)
     If mService.Denied(den_serviced_wb:=uc_wb, den_service:=PROC, den_new_log:=True) Then GoTo xt
-
-    If Not mCompMan.ManageVbProjectProperties(mh_hosted:=uc_hosted, mh_wb:=uc_wb) Then
-        Application.StatusBar = Log.Service & "Failed! See log-file in Workbook-folder"
-        GoTo xt
-    End If
-            
+    mCompMan.ManageHostHostedProperty mh_hosted:=uc_hosted _
+                                    , mh_wb:=uc_wb
     Set Stats = New clsStats
+    
     mUpdate.RawClones uc_wb
 
 xt: If Not wbTemp Is Nothing Then
@@ -757,7 +750,7 @@ Private Function Clones( _
             Log.ServicedItem = .VBComp
             If .KindOfComp = enRawClone Then
                 Set cRaw = New clsRaw
-                cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
+                cRaw.HostFullName = mRawsHosted.HostFullName(comp_name:=.CompName)
                 cRaw.CompName = .CompName
                 cRaw.ExpFileExt = .ExpFileExt
                 cRaw.CloneExpFileFullName = .ExpFileFullName

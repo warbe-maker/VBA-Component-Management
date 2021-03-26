@@ -77,7 +77,7 @@ Public Sub CollectAllChanged()
             Stats.Count sic_clone_comps
             '~~ This is a Raw-Component's Clone-Component
             Set cRaw = New clsRaw
-            cRaw.HostFullName = mHostedRaws.HostFullName(comp_name:=.CompName)
+            cRaw.HostFullName = mRawsHosted.HostFullName(comp_name:=.CompName)
             cRaw.CompName = .CompName
             cRaw.ExpFileExt = .ExpFileExt
             cRaw.CloneExpFileFullName = .ExpFileFullName

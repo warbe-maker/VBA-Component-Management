@@ -42,8 +42,6 @@ Option Compare Text
 ' W. Rauschenberger Berlin August 2019
 ' -------------------------------------------------------------------------------
 Public Const MAX_LEN_TYPE                       As Long = 17
-Public Const VB_SOURCE_PROJECT                     As String = "VB-Raw-Project"
-Public Const VB_TARGET_PROJECT_OF_SOURCE_PROJECT    As String = "VB-Clone-Project of Raw-Project: "
 
 Public Enum enKindOfComp                ' The kind of Component in the sense of CompMan
         enUnknown = 0
@@ -115,6 +113,47 @@ Public Stats            As clsStats
 Public Log              As clsLog
 Private lMaxLenComp     As Long
 Private lMaxLenTypeItem As Long
+
+Public Function ExpFileFolderPath(ByVal v As Variant) As String
+' --------------------------------------------------------------------------
+' ! This is the only source for the location of a Workbook's Export-Files !
+' All Export-Files are placed in a '\source' sub-folder within the Workbook
+' folder. This maitains a clear Workbook folder which matters (not only)
+' when the Workbook-Folder is identical with a Github repo clone folder.
+' (v) may be provided as a Workbook object or a Workbook's FullName string
+' ----------------------------------------------------------------------------
+    Const PROC = "ExpFileFolderPath"
+    Const EXP_FILES_SUB_FOLDER = "\source"
+    
+    On Error GoTo eh
+    Dim fso As New FileSystemObject
+    Dim wb  As Workbook
+    Dim s   As String
+    
+    With fso
+        Select Case TypeName(v)
+            Case "Workbook"
+                Set wb = v
+                ExpFileFolderPath = wb.Path & EXP_FILES_SUB_FOLDER
+            Case "String"
+                s = v
+                If Not .FileExists(s) _
+                Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "'" & s & "' is not the FullName of an existing Workbook!"
+                ExpFileFolderPath = .GetParentFolderName(s) & EXP_FILES_SUB_FOLDER
+            Case Else
+                Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The required information about the concerned Workbook is neither provided as a Workbook object nor as a string identifying an existing Workbooks FullName"
+        End Select
+        If Not .FolderExists(ExpFileFolderPath) Then .CreateFolder ExpFileFolderPath
+    End With
+    
+xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Function
 
 Public Property Get MaxLenComp(Optional ByRef wb As Workbook = Nothing) As Long
     
@@ -192,10 +231,6 @@ Private Property Let HostedRaws(ByVal hr As Variant)
     
 End Property
 
-'Public Property Get Service() As String:            Service = sService:             End Property
-'
-'Public Property Let Service(ByVal srvc As String):  sService = srvc:                End Property
-
 Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
 ' -----------------------------------------------------------
 '
@@ -212,12 +247,12 @@ Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
         Set .Wrkbk = wb
         .CompName = cmp_comp_name
         Set .VBComp = wb.VBProject.VBComponents(.CompName)
-        sExpFileRaw = mHostedRaws.ExpFileFullName(cmp_comp_name)
+        sExpFileRaw = mRawsHosted.ExpFileFullName(cmp_comp_name)
     
         mFile.Compare fc_file_left:=.ExpFileFullName _
                     , fc_file_right:=sExpFileRaw _
                     , fc_left_title:="The cloned raw's current code in Workbook/VBProject " & cComp.WrkbkBaseName & " (" & .ExpFileFullName & ")" _
-                    , fc_right_title:="The remote raw's current code in Workbook/VBProject " & mBasic.BaseName(mHostedRaws.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
+                    , fc_right_title:="The remote raw's current code in Workbook/VBProject " & mBasic.BaseName(mRawsHosted.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
 
     End With
     Set cComp = Nothing
@@ -255,9 +290,29 @@ Public Sub DeleteObsoleteExpFiles(ByRef do_wb As Workbook)
     Dim fso     As New FileSystemObject
     Dim fl      As File
     Dim v       As Variant
-       
+    Dim cComp   As New clsComp
+    Dim sExp    As String
+    
+    '~~ Get Export-Files folder
+    For Each v In do_wb.VBProject.VBComponents
+        Set cComp.Wrkbk = do_wb
+        sExp = mCompMan.ExpFileFolderPath(do_wb)
+        Exit For
+    Next v
+    
+    If sExp <> do_wb.Path Then
+        '~~ Export-Folder location changed! Remove all Export-Files
+        '~~ The assumption for the Export-File location is invalid here anyway!
+        '~~ The clsComp is the exclusive source for this information
+        For Each fl In fso.GetFolder(do_wb.Path).Files
+            Select Case fso.GetExtensionName(fl.Path)
+                Case "bas", "cls", "frm", "frx": cll.Add fl.Path
+            End Select
+        Next fl
+    End If
+    
     '~~ Collect obsolete Export Files
-    For Each fl In fso.GetFolder(do_wb.Path).Files
+    For Each fl In fso.GetFolder(sExp).Files
         Select Case fso.GetExtensionName(fl.Path)
             Case "bas", "cls", "frm", "frx"
                 If Not mCompMan.CompExists(do_wb, fso.GetBaseName(fl.Path)) _
@@ -305,7 +360,7 @@ Public Sub DisplayCodeChange(ByVal cmp_comp_name As String)
     End With
     
     With fso
-        sTmpFolder = cComp.ExpFilePath & "\Temp"
+        sTmpFolder = mCompMan.ExpFileFolderPath(wb) & "\Temp"
         If Not .FolderExists(sTmpFolder) Then .CreateFolder sTmpFolder
         sTempExpFileFullName = sTmpFolder & "\" & cComp.CompName & cComp.ExpFileExt
         cComp.VBComp.Export sTempExpFileFullName
@@ -389,17 +444,16 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function ManageVbProjectProperties( _
-                                    ByVal mh_hosted As String, _
-                                    ByRef mh_wb As Workbook) As Boolean
-' ---------------------------------------------------------------------
-' - Registers a Workbook as raw host when it has at least one of the
-'   Workbook's (mh_wb) components indicated hosted
-' - Registers a Workbook as Sync-Source-VB-Project when mh_hosted not indicates
-'   a component but = VB_SOURCE_PROJECT
-' - Returns FALSE when the VbProjectProperties are invalid!
-' ---------------------------------------------------------------------
-    Const PROC = "ManageVbProjectProperties"
+Public Sub ManageHostHostedProperty( _
+                              ByVal mh_hosted As String, _
+                              ByRef mh_wb As Workbook)
+' ---------------------------------------------------------
+' - Registers a Workbook as 'Raw-Host' when it has at least
+'   one of the Workbook's (mh_wb) VBComponents indicated
+'   hosted.
+' - Registers each hosted 'Raw-Component' as such
+' ---------------------------------------------------------
+    Const PROC = "ManageHostHostedProperty"
     
     On Error GoTo eh
     Dim v               As Variant
@@ -412,75 +466,34 @@ Public Function ManageVbProjectProperties( _
     sHostBaseName = fso.GetBaseName(mh_wb.FullName)
     Set dctHostedRaws = New Dictionary
     HostedRaws = mh_hosted
-    
-    If HostedRaws.Count = 1 Then
-        sHosted = HostedRaws.Keys()(0)
-        If IsVBCloneProject(sHosted) Or IsVBRawProject(sHosted) Then
-            If IsVBCloneProject(sHosted) Then
-                '~~ The Workbook is indicated a VB-Clone-Project of a certain VB-Raw-Project
-                If mRawHosts.Exists(sHostBaseName) And mRawHosts.FullName(sHostBaseName) <> mh_wb.FullName Then
-                    '~~ The Workbook/VB-Project is known/registered as VB-Raw-Project in another folder under the
-                    '~~ same name which confuses it with the VB-Clone-Project unless they are named differently
-                    If mMsg.Box(msg_title:="VB-Clone-Project confused with VB-Raw-Project" _
-                              , msg:="The name of the VB-Clone-Project(Workbook) is identical with the VB-Raw-Project(Workbook)!" & vbLf & _
-                                     "The Workbook name '" & sHostBaseName & "' is already registered as VB-Raw-Project located in '" & _
-                                     mRawHosts.FullName(sHostBaseName) & "'. Reply ' Y e s ' when the VB-Raw-Project had been moved to another location " & _
-                                     "or the location/folder had been renamed, reply ' N o ' otherwise. The service will be terminated and the name of either " & _
-                                     "of the two VB-Projects(Workbooks) must be changed." _
-                              , msg_buttons:=vbYesNo) = vbYes _
-                    Then
-                        mRawHosts.FullName(sHostBaseName) = mh_wb.FullName
-                        mRawHosts.IsRawVbProject(sHostBaseName) = True
-                        Log.Entry = "Location of VB-Raw-Project changed."
-                        Log.Entry = "Service is terminated! The identical names for the VB-Clone-Project/Workbook and the VB-Raw-Project still confuses the CompMan services"
-                        Log.Entry = "The VB-Clone-Project perferably should be given another name!"
-                    Else
-                        Log.Entry = "VB-Clone-Project name confused with VB-Raw-Project name."
-                        Log.Entry = "Service is terminated, either of the two must be renamed and the service restarted."
-                    End If
-                    GoTo xt
-                End If
-                HostedRaws.RemoveAll
-                Log.Entry = "Workbook recognized as VB-Clone-Project of the VB-Raw-Project '" & VBA.Trim$(Split(sHosted, ":")(1)) & "'"
-                ManageVbProjectProperties = True
-            
-            ElseIf IsVBRawProject(sHosted) Then
-                '~~ The VB-Project has identified itself as VB-Raw-Project
-                mRawHosts.IsRawVbProject(sHostBaseName) = True
-                If mRawHosts.FullName(sHostBaseName) <> mh_wb.FullName Then
-                    mRawHosts.FullName(sHostBaseName) = mh_wb.FullName
-                    Log.Entry = "Workbook (re)registered as VB-Raw-Project located in '" & mh_wb.Path & "'"
-                End If
-                ManageVbProjectProperties = True
-            End If
-            GoTo xt
-        End If
-    End If
-                
+                    
     If HostedRaws.Count <> 0 Then
         For Each v In HostedRaws
-            '~~ Keep a record for each of the raw components hosted by this Workbook
-            If Not mHostedRaws.Exists(raw_comp_name:=v) _
-            Or mHostedRaws.HostFullName(comp_name:=v) <> mh_wb.FullName Then
-                mHostedRaws.HostFullName(comp_name:=v) = mh_wb.FullName
+            '~~ Keep a record for each of the VBComponents hosted by this Workbook
+            If Not mRawsHosted.Exists(raw_comp_name:=v) _
+            Or mRawsHosted.HostFullName(comp_name:=v) <> mh_wb.FullName Then
+                mRawsHosted.HostFullName(comp_name:=v) = mh_wb.FullName
                 Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
             End If
-            If mHostedRaws.ExpFileFullName(v) = vbNullString Then
-                '~~ The component apparently had never been exported before
-                Set cComp = New clsComp
-                With cComp
-                    Set .Wrkbk = mh_wb
-                    .CompName = v
+            Set cComp = New clsComp
+            With cComp
+                Set .Wrkbk = mh_wb
+                .CompName = v
+                If mRawsHosted.ExpFileFullName(v) = vbNullString _
+                Or mRawsHosted.ExpFileFullName(v) <> .ExpFileFullName Then
+                    '~~ The component is yet not registered or registered under an outdated location
+                    mRawsHosted.ExpFileFullName(v) = .ExpFileFullName
+                    '~~ Just in case its a new VBComponent - by the way
                     If Not fso.FileExists(.ExpFileFullName) Then .VBComp.Export .ExpFileFullName
-                    mHostedRaws.ExpFileFullName(v) = .ExpFileFullName
-                End With
-            End If
+                End If
+            End With
+            Set cComp = Nothing
         Next v
     Else
         '~~ Remove any raws still existing and pointing to this Workbook as host
-        For Each v In mHostedRaws.Components
-            If mHostedRaws.HostFullName(comp_name:=v) = mh_wb.FullName Then
-                mHostedRaws.Remove comp_name:=v
+        For Each v In mRawsHosted.Components
+            If mRawsHosted.HostFullName(comp_name:=v) = mh_wb.FullName Then
+                mRawsHosted.Remove comp_name:=v
                 Log.Entry = "Component removed from '" & mRawHosts.DAT_FILE & "'"
             End If
         Next v
@@ -489,26 +502,17 @@ Public Function ManageVbProjectProperties( _
             Log.Entry = "Workbook no longer a host for at least one raw component removed from '" & mRawHosts.DAT_FILE & "'"
         End If
     End If
-    ManageVbProjectProperties = True
 
 xt: Set fso = Nothing
     mErH.EoP ErrSrc(PROC)
-    Exit Function
+    Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
         Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: End
     End Select
-End Function
-
-Private Function IsVBCloneProject(ByVal s As String) As Boolean
-    IsVBCloneProject = InStr(s, mCompMan.VB_TARGET_PROJECT_OF_SOURCE_PROJECT) <> 0
-End Function
-
-Private Function IsVBRawProject(ByVal s As String) As Boolean
-    IsVBRawProject = s = mCompMan.VB_SOURCE_PROJECT
-End Function
+End Sub
 
 Public Sub DisplayChanges( _
            Optional ByVal fl_1 As String = vbNullString, _
