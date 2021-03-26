@@ -43,7 +43,7 @@ Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
 
 Private Const DIR_BEGIN_ID  As String = ">"     ' Begin procedure or code trace indicator
 Private Const DIR_END_ID    As String = "<"     ' End procedure or code trace indicator
-Private Const COMMENT       As String = " !!! "
+Private Const TRC_INFO_DELIM As String = " !!! "
 
 Private Const POS_ITMDRCTV      As Long = 1
 Private Const POS_ITMID         As Long = 2
@@ -1367,7 +1367,7 @@ Private Sub TrcEnd(ByVal id As String, _
     Dim top As Collection:  Set top = StckTop
     
     If inf <> vbNullString Then
-        inf = COMMENT & inf & COMMENT
+        inf = TRC_INFO_DELIM & inf & TRC_INFO_DELIM
     End If
     
     If Not StckEd(id:=id, lvl:=iTrcLvl) Then
