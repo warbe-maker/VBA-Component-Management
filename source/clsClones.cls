@@ -53,9 +53,10 @@ Public Sub CollectAllChanged()
     
     On Error GoTo eh
     Dim vbc         As VBComponent
-    Dim cComp       As clsComp
+    Dim CloneComp       As clsComp
     Dim sChanged    As String
     Dim v           As Variant
+    Dim RawComp     As clsRaw
     
     Stats.Clear
     Stats.Count sic_comps_total, wbServiced.VBProject.VBComponents.Count
@@ -63,8 +64,8 @@ Public Sub CollectAllChanged()
     For Each v In Sorted
         Set vbc = Sorted(v)
         Stats.Count sic_comps
-        Set cComp = New clsComp
-        With cComp
+        Set CloneComp = New clsComp
+        With CloneComp
             Set .Wrkbk = wbServiced
             .CompName = vbc.Name
             
@@ -76,16 +77,15 @@ Public Sub CollectAllChanged()
             If Not .KindOfComp = enRawClone Then GoTo next_vbc
             Stats.Count sic_clone_comps
             '~~ This is a Raw-Component's Clone-Component
-            Set cRaw = New clsRaw
-            cRaw.HostFullName = mRawsHosted.HostFullName(comp_name:=.CompName)
-            cRaw.CompName = .CompName
-            cRaw.ExpFileExt = .ExpFileExt
-            cRaw.CloneExpFileFullName = .ExpFileFullName
-            cRaw.TypeString = .TypeString
-            If cRaw.Changed Then
-                Set cRaw.CloneVbc = vbc
+            Set RawComp = New clsRaw
+            RawComp.WrkbkFullName = mRawsHosted.HostFullName(comp_name:=.CompName)
+            RawComp.CompName = .CompName
+            RawComp.ExpFileExt = .ExpFileExt
+            RawComp.CloneExpFileFullName = .ExpFileFullName
+            RawComp.TypeString = .TypeString
+            If RawComp.Changed(CloneComp) Then
                 Stats.Count sic_raw_changed
-                mDct.DctAdd dctChanged, vbc.Name, cRaw, order_bykey, seq_ascending, , , True
+                mDct.DctAdd dctChanged, vbc.Name, RawComp, order_bykey, seq_ascending, , , True
                 If Stats.Total(sic_clone_changed) = 1 _
                 Then sChanged = vbc.Name _
                 Else sChanged = sChanged & ", " & vbc.Name
@@ -94,8 +94,8 @@ Public Sub CollectAllChanged()
             End If
         End With
 next_vbc:
-        Set cComp = Nothing
-        Set cRaw = Nothing
+        Set CloneComp = Nothing
+        Set RawComp = Nothing
     Next v
     
 xt: Exit Sub

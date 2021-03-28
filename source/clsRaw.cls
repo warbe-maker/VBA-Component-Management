@@ -25,10 +25,10 @@ Option Explicit
 ' - ExpFileExt
 ' - ExpFileFullName
 ' - ExpFilePath
-' - HostFullName
+' - WrkbkFullName
 ' - RawHost
 ' - RawType
-' - RawVbc
+' - VBComp
 ' - Service
 ' - SheetName
 ' - TypeString
@@ -47,8 +47,6 @@ Private sCloneExpFileFullName   As String
 Private sCompName               As String
 Private sExpFileExt             As String
 Private sExpFileFullName        As String
-Private sHostFullName           As String
-Private vbcRaw                  As VBComponent
 Private wbRawHost               As Workbook
 Private sService                As String
 Private sTypeString             As String
@@ -58,7 +56,6 @@ Private sWrkbkFullName          As String       ' Common Component host Workbook
 Private vbc                     As VBComponent  ' VBComponent managed by this Class Module
 Private dctType                 As Dictionary
 Private lMaxLenComp             As Long
-Private foExport                As Folder
 Private vbcClone                As VBComponent
 
 Private Sub Class_Initialize()
@@ -75,6 +72,7 @@ Private Sub Class_Terminate()
 End Sub
 
 Friend Property Get Changed( _
+                      ByRef clone As clsComp, _
              Optional ByVal check_again As Boolean = False) As Boolean
 ' --------------------------------------------------------------------
 ' Returns TRUE when the raw's regular Export-File differs from the
@@ -95,7 +93,7 @@ Friend Property Get Changed( _
             Changed = True
         Else
             Set dctChanges = _
-            mFile.Differs(fd_file1:=fso.GetFile(sCloneExpFileFullName) _
+            mFile.Differs(fd_file1:=fso.GetFile(clone.ExpFileFullName) _
                         , fd_file2:=fso.GetFile(Me.ExpFileFullName) _
                         , fd_ignore_empty_records:=True _
                         , fd_compare:=vbTextCompare _
@@ -172,13 +170,18 @@ Friend Property Let CompName(ByVal s As String)
 '                          - ExpFileFullName (sExpFileFullName)
 '                          - VBComp          (vbc)
 ' -------------------------------------------------------------
+    Dim fso As New FileSystemObject
     sCompName = s
     If Not wb Is Nothing Then
         If Me.Exists Then
             Set vbc = wb.VBProject.VBComponents(s)
-            sExpFileFullName = mCompMan.ExpFileFolderPath(Me.HostFullName) & "\" & sCompName & Me.ExpFileExt
+            sExpFileFullName = mCompMan.ExpFileFolderPath(Me.WrkbkFullName) & "\" & sCompName & Me.ExpFileExt
+            If Not fso.FileExists(sExpFileFullName) Then
+                Stop ' ????
+            End If
         End If
     End If
+    Set fso = Nothing
 End Property
 
 Public Sub DsplyAllChanges()
@@ -254,37 +257,31 @@ End Property
 
 Friend Property Let ExpFileExt(ByVal s As String)
     sExpFileExt = s
-    sExpFileFullName = mCompMan.ExpFileFolderPath(Me.HostFullName) & "\" & Me.CompName & s
+    sExpFileFullName = mCompMan.ExpFileFolderPath(Me.WrkbkFullName) & "\" & Me.CompName & s
 End Property
 
-Friend Property Get ExpFileFullName() As String:        ExpFileFullName = sExpFileFullName:     End Property
+Friend Property Get ExpFileFullName() As String:                ExpFileFullName = sExpFileFullName:    End Property
 
-Friend Property Get HostFullName() As String:           HostFullName = sHostFullName:           End Property
+Friend Property Get WrkbkFullName() As String:                  WrkbkFullName = sWrkbkFullName:        End Property
 
-Friend Property Let HostFullName(ByVal s As String)
+Friend Property Let WrkbkFullName(ByVal s As String)
     Dim fso As New FileSystemObject
-    sHostFullName = s
+    sWrkbkFullName = s
     sService = fso.GetFileName(s)
 End Property
 
-Friend Property Get RawHost() As Workbook:              Set RawHost = wbRawHost:        End Property
+Friend Property Get VBComp() As VBComponent:                    Set VBComp = vbc:                       End Property
 
-Friend Property Set RawHost(ByVal wb As Workbook):      Set wbRawHost = wb:             End Property
+Friend Property Set VBComp(ByRef Comp As VBComponent):          Set vbc = Comp:                         End Property
 
-Friend Property Get RawType() As vbext_ComponentType:   RawType = vbcRaw.Type:          End Property
-
-Friend Property Get RawVbc() As VBComponent:            Set RawVbc = vbcRaw:            End Property
-
-Friend Property Set RawVbc(ByRef vbc As VBComponent):   Set vbcRaw = vbc:               End Property
-
-Friend Property Get CloneVbc() As VBComponent:          Set CloneVbc = vbcClone:        End Property
-
-Friend Property Set CloneVbc(ByRef vbc As VBComponent):   Set vbcClone = vbc:               End Property
+'Friend Property Get CloneVbc() As VBComponent:                  Set CloneVbc = vbcClone:                End Property
+'
+'Friend Property Set CloneVbc(ByRef vbc As VBComponent):         Set vbcClone = vbc:                     End Property
 
 Friend Property Get Service() As String
     Dim fso As New FileSystemObject
     If sService = vbNullString Then
-        sService = fso.GetFileName(Me.HostFullName)
+        sService = fso.GetFileName(Me.WrkbkFullName)
     End If
     Service = sService
 End Property
@@ -300,7 +297,7 @@ Friend Property Get TypeString() As String
     End If
 End Property
 
-Friend Property Let TypeString(ByVal s As String):      sTypeString = s:                End Property
+Friend Property Let TypeString(ByVal s As String):              sTypeString = s:                End Property
 
 Friend Property Get Wrkbk() As Workbook
     Const PROC = "Wrkbk_Get"
@@ -342,7 +339,6 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     Set wb = wbk
     sWrkbkFullName = wb.FullName
     sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
-    Set foExport = fso.GetFolder(mCompMan.ExpFileFolderPath(wbk))
     sService = wb.Name
     For Each vbc In wb.VBProject.VBComponents
         lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
@@ -353,7 +349,7 @@ End Property
 
 Friend Property Get WrkbkBaseName() As String
     With New FileSystemObject
-        WrkbkBaseName = .GetBaseName(sHostFullName)
+        WrkbkBaseName = .GetBaseName(sWrkbkFullName)
     End With
 End Property
 

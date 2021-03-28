@@ -31,14 +31,14 @@ Public Sub SyncCode()
             Set TargetComp.Wrkbk = .Target
             TargetComp.CompName = vbc.Name
             SourceComp.CloneExpFileFullName = TargetComp.ExpFileFullName
-            If Not SourceComp.Changed Then GoTo next_sheet
+            If Not SourceComp.Changed(TargetComp) Then GoTo next_sheet
             
             Log.ServicedItem = vbc
             Stats.Count sic_non_doc_mods_code
             
             If .Mode = Confirm Then
                 .ConfInfo = "Code changed!"
-                sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
+                sCaption = "Display code changes" & vbLf & vbLf & vbc.Name & vbLf
                 If Not .Changed.Exists(sCaption) _
                 Then .Changed.Add sCaption, SourceComp
             Else

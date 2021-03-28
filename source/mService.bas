@@ -250,7 +250,7 @@ Public Sub ExportChangedComponents( _
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
-    Dim vbc                 As VBComponent
+    Dim vbc         As VBComponent
     Dim lComponents As Long
     Dim lRemaining  As Long
     Dim lExported   As Long
@@ -263,6 +263,8 @@ Public Sub ExportChangedComponents( _
     Dim v           As Variant
     Dim Comps       As clsComps
     Dim dctChanged  As Dictionary
+    Dim Comp        As clsComp
+    Dim RawComp     As clsRaw
     
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
@@ -284,63 +286,61 @@ Public Sub ExportChangedComponents( _
     Set dctChanged = Comps.Changed
     
     For Each v In dctChanged
-        Set cComp = dctChanged(v)
-        Set vbc = cComp.VBComp
+        Set Comp = dctChanged(v)
+        Set vbc = Comp.VBComp
         DsplyProgress p_result:=sExported & " " & vbc.Name _
                     , p_total:=Stats.Total(sic_comps_changed) _
                     , p_done:=Stats.Total(sic_comps)
                 
-        Select Case cComp.KindOfComp
+        Select Case Comp.KindOfComp
             Case enRawClone
                 '~~ Establish a component class object which represents the cloned raw's remote instance
                 '~~ which is hosted in another Workbook
-                Set cRaw = New clsRaw
-                With cRaw
+                Set RawComp = New clsRaw
+                With RawComp
                     '~~ Provide all available information rearding the remote raw component
                     '~~ Attention must be paid to the fact that the sequence of property assignments matters
-                    .HostFullName = mRawsHosted.HostFullName(comp_name:=cComp.CompName)
-                    .CompName = cComp.CompName
-                    .ExpFileExt = cComp.ExpFileExt  ' required to build the export file's full name
+                    .WrkbkFullName = mRawsHosted.HostFullName(comp_name:=Comp.CompName)
+                    .CompName = Comp.CompName
+                    .ExpFileExt = Comp.ExpFileExt  ' required to build the export file's full name
                     Set .ExpFile = fso.GetFile(.ExpFileFullName)
-                    .CloneExpFileFullName = cComp.ExpFileFullName
-                    .TypeString = cComp.TypeString
-                    If Not .Changed And Not cComp.Changed Then GoTo next_vbc
+                    .CloneExpFileFullName = Comp.ExpFileFullName
+                    .TypeString = Comp.TypeString
+                    If Not .Changed(Comp) Then GoTo next_vbc
                 End With
                 
-                With cComp
-                    If .Changed And Not cRaw.Changed Then
-                        Log.Entry = "The Clone's code changed! (a temporary Export-File differs from the last regular Export-File)"
-                        '~~ --------------------------------------------------------------------------
-                        '~~ The code change in the clone component is now in question whether it is to
-                        '~~ be ignored, i.e. the change is reverted with the Workbook's next open or
-                        '~~ the raw code should be updated accordingly to make the change permanent
-                        '~~ for all users of the component.
-                        '~~ --------------------------------------------------------------------------
-                        .VBComp.Export .ExpFileFullName
-                        '~~ In case the raw had been imported manually the new check for a change will indicate no change
-                        If cRaw.Changed(check_again:=True) Then GoTo next_vbc
-                        .ReplaceRawWithCloneWhenConfirmed rwu_updated:=bUpdated ' when confirmed in user dialog
-                        If bUpdated Then
-                            lUpdated = lUpdated + 1
-                            sUpdated = vbc.Name & ", " & sUpdated
-                            Log.Entry = """Remote Raw"" has been updated with code of ""Raw Clone"""
-                        End If
-                        
-                    ElseIf Not .Changed And cRaw.Changed Then
-                        '~~ -----------------------------------------------------------------------
-                        '~~ The raw had changed since the Workbook's open. This case is not handled
-                        '~~ along with the Workbook's Save event but with the Workbook's Open event
-                        '~~ -----------------------------------------------------------------------
-                        Log.Entry = "The Raw's code changed! (not considered with the export service)"
-                        Log.Entry = "The Clone will be updated with the next Workbook open"
+                If Comp.Changed And Not RawComp.Changed(Comp) Then
+                    Log.Entry = "The Clone's code changed! (a temporary Export-File differs from the last regular Export-File)"
+                    '~~ --------------------------------------------------------------------------
+                    '~~ The code change in the clone component is now in question whether it is to
+                    '~~ be ignored, i.e. the change is reverted with the Workbook's next open or
+                    '~~ the raw code should be updated accordingly to make the change permanent
+                    '~~ for all users of the component.
+                    '~~ --------------------------------------------------------------------------
+                    Comp.VBComp.Export Comp.ExpFileFullName
+                    '~~ In case the raw had been imported manually the new check for a change will indicate no change
+                    If RawComp.Changed(Comp, check_again:=True) Then GoTo next_vbc
+                    Comp.ReplaceRawWithCloneWhenConfirmed rwu_updated:=bUpdated ' when confirmed in user dialog
+                    If bUpdated Then
+                        lUpdated = lUpdated + 1
+                        sUpdated = vbc.Name & ", " & sUpdated
+                        Log.Entry = """Remote Raw"" has been updated with code of ""Raw Clone"""
                     End If
-                End With
+                        
+                ElseIf Not Comp.Changed And RawComp.Changed(Comp) Then
+                    '~~ -----------------------------------------------------------------------
+                    '~~ The raw had changed since the Workbook's open. This case is not handled
+                    '~~ along with the Workbook's Save event but with the Workbook's Open event
+                    '~~ -----------------------------------------------------------------------
+                    Log.Entry = "The Raw's code changed! (not considered with the export service)"
+                    Log.Entry = "The Clone will be updated with the next Workbook open"
+                End If
             
             Case enKindOfComp.enUnknown
-                '~~ This should never be the case in is thus ignored
+                Stop '~~ This is supposed a sever coding error!
             
             Case Else ' enInternal, enHostedRaw
-                With cComp
+                With Comp
                     If .Changed Then
                         Log.Entry = "Code changed! (temporary Export-File differs from last changes Export-File)"
                         vbc.Export .ExpFileFullName
@@ -363,8 +363,8 @@ Public Sub ExportChangedComponents( _
                                 
 next_vbc:
         lRemaining = lRemaining - 1
-        Set cComp = Nothing
-        Set cRaw = Nothing
+        Set Comp = Nothing
+        Set RawComp = Nothing
     Next v
     
     sMsg = Log.Service
@@ -376,8 +376,8 @@ next_vbc:
     Application.StatusBar = sMsg
     
 xt: Set dctHostedRaws = Nothing
-    Set cComp = Nothing
-    Set cRaw = Nothing
+    Set Comp = Nothing
+    Set RawComp = Nothing
     Set Log = Nothing
     Set fso = Nothing
     mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
@@ -751,7 +751,7 @@ Private Function Clones( _
             Log.ServicedItem = .VBComp
             If .KindOfComp = enRawClone Then
                 Set cRaw = New clsRaw
-                cRaw.HostFullName = mRawsHosted.HostFullName(comp_name:=.CompName)
+                cRaw.WrkbkFullName = mRawsHosted.HostFullName(comp_name:=.CompName)
                 cRaw.CompName = .CompName
                 cRaw.ExpFileExt = .ExpFileExt
                 cRaw.CloneExpFileFullName = .ExpFileFullName
@@ -761,7 +761,7 @@ Private Function Clones( _
                 Else
                     Log.Entry = "Code un-changed."
                 End If
-                If cRaw.Changed Then
+                If cRaw.Changed(cComp) Then
                     If Not dct.Exists(vbc) Then dct.Add vbc, vbc.Name
                 Else
                     Log.Entry = "Corresponding Raw's code un-changed."

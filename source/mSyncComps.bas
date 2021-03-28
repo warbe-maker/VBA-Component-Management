@@ -16,7 +16,7 @@ Option Explicit
 '
 ' -----------------------------------------------------
 Private Function ErrSrc(ByVal s As String) As String
-    ErrSrc = "mSyncNames." & s
+    ErrSrc = "mSyncComps." & s
 End Function
 
 Public Sub SyncCodeChanges()
@@ -31,40 +31,40 @@ Public Sub SyncCodeChanges()
     Dim fso         As New FileSystemObject
     Dim vbc         As VBComponent
     Dim sCaption    As String
-    Dim cSource     As clsRaw
-    Dim cTarget     As clsComp
+    Dim SourceComp  As clsRaw
+    Dim TargetComp  As clsComp
     
     For Each vbc In Sync.Source.VBProject.VBComponents
         If mComp.IsSheetDocMod(vbc) Then GoTo next_vbc
-        Set cSource = New clsRaw
-        Set cSource.Wrkbk = Sync.Source
-        cSource.CompName = vbc.Name
-        If Not cSource.Exists(Sync.Target) Then GoTo next_vbc
+        Set SourceComp = New clsRaw
+        Set SourceComp.Wrkbk = Sync.Source
+        SourceComp.CompName = vbc.Name
+        If Not SourceComp.Exists(Sync.Target) Then GoTo next_vbc
         
-        Set cTarget = New clsComp
-        Set cTarget.Wrkbk = Sync.Target
-        cTarget.CompName = vbc.Name
-        cSource.CloneExpFileFullName = cTarget.ExpFileFullName
-        If Not cSource.Changed Then GoTo next_vbc
+        Set TargetComp = New clsComp
+        Set TargetComp.Wrkbk = Sync.Target
+        TargetComp.CompName = vbc.Name
+        SourceComp.CloneExpFileFullName = TargetComp.ExpFileFullName
+        If Not SourceComp.Changed(TargetComp) Then GoTo next_vbc
         
         Stats.Count sic_non_doc_mods_code
         Log.ServicedItem = vbc
         
         If Sync.Mode = Confirm Then
             Sync.ConfInfo = "Changed"
-            sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
+            sCaption = "Display code changes" & vbLf & vbLf & vbc.Name & vbLf
             If Not Sync.Changed.Exists(sCaption) _
-            Then Sync.Changed.Add sCaption, cSource
+            Then Sync.Changed.Add sCaption, SourceComp
         Else
             Log.ServicedItem = vbc
             mRenew.ByImport rn_wb:=Sync.Target _
                           , rn_comp_name:=vbc.Name _
                           , rn_exp_file_full_name:=cSource.ExpFileFullName
-            Log.Entry = "Renewed/updated by import of '" & cSource.ExpFileFullName & "'"
+            Log.Entry = "Renewed/updated by import of '" & SourceComp.ExpFileFullName & "'"
         End If
         
-        Set cTarget = Nothing
-        Set cSource = Nothing
+        Set TargetComp = Nothing
+        Set SourceComp = Nothing
 next_vbc:
     Next vbc
 

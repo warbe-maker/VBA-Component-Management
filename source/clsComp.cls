@@ -25,7 +25,6 @@ Option Explicit
 ' - ExpFileExt
 ' - ExpFileFullName
 ' - ExpFilePath
-' - ExpFolder
 ' - IsSheet
 ' - IsWorkbk
 ' - KindOfComp
@@ -50,7 +49,6 @@ Option Explicit
 ' -----------------------------------------------------------------------------------
 Private dctChanges          As Dictionary   ' Dictionary of code changes
 Private flExpFile           As File
-Private foExport            As Folder
 Private lKindOfComp         As enKindOfComp
 Private sCompName           As String       ' The class module's global component name
 Private sExpFileExt         As String
@@ -238,8 +236,6 @@ Friend Property Get ExpFileFullName() As String
     End If
     ExpFileFullName = sExpFileFullName
 End Property
-
-Friend Property Get ExpFolder() As Folder:      Set ExpFolder = foExport:   End Property
 
 Friend Property Get IsWrkbk() As Boolean
     
@@ -450,7 +446,6 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     sWrkbkFullName = wb.FullName
     sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
     sExpFilePath = fso.GetParentFolderName(sWrkbkFullName)
-    Set foExport = fso.GetFolder(sExpFilePath)
     sService = fso.GetFileName(wb.Path)
     For Each vbc In wb.VBProject.VBComponents
         lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
@@ -580,7 +575,7 @@ Public Sub ReplaceRawWithClone()
     Dim wbRawHost   As Workbook
         
     Application.EnableEvents = False ' prevent the UpdateRawClones service
-    Set wbRawHost = mCompMan.WbkGetOpen(cRaw.HostFullName) ' Wrkbk is the Workbook hosting the raw Component
+    Set wbRawHost = mCompMan.WbkGetOpen(cRaw.WrkbkFullName) ' Wrkbk is the Workbook hosting the raw Component
     Application.EnableEvents = True
     
     mRenew.ByImport rn_wb:=wbRawHost _
@@ -615,20 +610,20 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
     If ReplaceRawWithCloneConfirmed Then
             '~~ Get the origin host Workbook open
         With cRaw
-            .HostFullName = mRawsHosted.HostFullName(Me.CompName)
+            .WrkbkFullName = mRawsHosted.HostFullName(Me.CompName)
             .CompName = Me.CompName
             .ExpFileExt = Me.ExpFileExt ' required to build the export file's full name
             Set .ExpFile = fso.GetFile(.ExpFileFullName)
-            Set .RawHost = mCompMan.WbkGetOpen(.HostFullName)
-            Set .RawVbc = .RawHost.VBProject.VBComponents(.CompName)
+            Set .Wrkbk = mCompMan.WbkGetOpen(.WrkbkFullName)
+            Set .VBComp = .Wrkbk.VBProject.VBComponents(.CompName)
             .TypeString = Me.TypeString
-            Select Case .RawType
+            Select Case .VBComp.Type
                 Case vbext_ct_Document
                     '~~ A data module cannot be replaced like the other ones. Thus only its code
                     '~~ is synchronized - disregarding any consequences this may have when the
                     '~~ structure and design of the underlying Workbook or Worksheet has changed.
                     mSync.ByCodeLines sync_target_comp_name:=.CompName _
-                                    , wb_source_full_name:=.HostFullName _
+                                    , wb_source_full_name:=.WrkbkFullName _
                                     , sync_source_codelines:=.CodeLines
                 Case vbext_ct_ClassModule, vbext_ct_StdModule, vbext_ct_MSForm
                     Me.ReplaceRawWithClone

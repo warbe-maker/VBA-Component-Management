@@ -282,6 +282,7 @@ Private Sub CollectSyncIssuesForConfirmation()
     mSyncComps.SyncCodeChanges
     
     mSyncNames.SyncNew
+    mSyncNames.SyncObsolete
     
 xt: Exit Sub
 
@@ -487,6 +488,7 @@ Private Function DoSynchronization()
     mSyncComps.SyncCodeChanges
     
     mSyncNames.SyncNew
+    mSyncNames.SyncObsolete
     
     Sync.ChangedClear
 
@@ -527,8 +529,8 @@ Private Function GetSyncIssuesConfirmed() As Boolean
         sMsg.Section(2).sText = "The above syncronisation issues need to be confirmed - or " & _
                                 "terminated in case of any concerns!"
         
-        sBttnCnfrmd = "Synchronize" & vbLf & vbLf & fso.GetBaseName(Sync.Target.Name) & vbLf & " with " & vbLf & fso.GetBaseName(Sync.Source.Name)
-        sBttnTrmnt = "Terminate!" & vbLf & vbLf & "Synchronization denied" & vbLf & "because of concerns"
+        sBttnCnfrmd = "Synchronize"
+        sBttnTrmnt = "Terminate!"
         sBttnRestricted = "Confirmed" & vbLf & "that Sheet rename" & vbLf & "is restricted" & vbLf & "(either Name  o r  CodeName)"
         
         If Sync.Ambigous And Not Sync.RestrictRenameAsserted Then

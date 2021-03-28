@@ -21,7 +21,7 @@ Private Property Get BttnUpdateAll() As String
 End Property
 
 Private Property Let BttnDsplyChanges(ByVal comp_name As String)
-    sBttnDsplyChanges = "Display changes for" & vbLf & vbLf & Spaced(comp_name)
+    sBttnDsplyChanges = "Display code changes" & vbLf & vbLf & Spaced(comp_name)
 End Property
 Private Property Get BttnDsplyChanges() As String
     BttnDsplyChanges = sBttnDsplyChanges
@@ -72,9 +72,9 @@ Public Sub RawClones(ByRef urc_wb As Workbook)
         Set cClone = New clsComp
         Set cClone.Wrkbk = urc_wb
         cClone.CompName = cRaw.CompName
+        Log.ServicedItem = cClone.VBComp
+        Log.Entry = "Corresponding Raw-Component's code changed! (its Export-File differs from the Clone's Export-File)"
         With cRaw
-            Log.ServicedItem = .CloneVbc
-            Log.Entry = "Corresponding Raw-Component's code changed! (its Export-File differs from the Clone's Export-File)"
             If bVerbose Then
                 UpdateCloneConfirmed ucc_comp_name:=.CompName _
                                    , ucc_stay_verbose:=bVerbose _
