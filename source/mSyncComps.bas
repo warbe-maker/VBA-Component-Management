@@ -1,6 +1,20 @@
 Attribute VB_Name = "mSyncComps"
 Option Explicit
-
+' -----------------------------------------------------
+' Standard Module mSyncComps
+' Provides the services to synchronize VBComponents
+' between a source and a target Workbook/VB-Project.
+' All public services provide two modes:
+' - Confirm Collects synchronization issues for
+'   confirmation and all collects all changed
+'   VBComponents as
+'
+' Public services:
+' - SyncNew
+' - SyncObsolete
+' - SyncCodeChanges
+'
+' -----------------------------------------------------
 Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSyncNames." & s
 End Function
@@ -21,7 +35,7 @@ Public Sub SyncCodeChanges()
     Dim cTarget     As clsComp
     
     For Each vbc In Sync.Source.VBProject.VBComponents
-        If IsSheetComp(vbc) Then GoTo next_vbc
+        If mComp.IsSheetDocMod(vbc) Then GoTo next_vbc
         Set cSource = New clsRaw
         Set cSource.Wrkbk = Sync.Source
         cSource.CompName = vbc.Name
@@ -87,7 +101,7 @@ Public Sub SyncNew()
             Set cSource = New clsRaw
             Set cSource.Wrkbk = .Source
             cSource.CompName = vbc.Name
-            If CompExists(.Target, vbc.Name) Then GoTo next_vbc
+            If mComp.Exists(.Target, vbc.Name) Then GoTo next_vbc
             
             '~~ No component exists under the source component's name
             Log.ServicedItem = vbc

@@ -111,6 +111,7 @@ Public lMaxCompLength   As Long
 Public dctHostedRaws    As Dictionary
 Public Stats            As clsStats
 Public Log              As clsLog
+
 Private lMaxLenComp     As Long
 Private lMaxLenTypeItem As Long
 
@@ -122,8 +123,8 @@ Public Function ExpFileFolderPath(ByVal v As Variant) As String
 ' when the Workbook-Folder is identical with a Github repo clone folder.
 ' (v) may be provided as a Workbook object or a Workbook's FullName string
 ' ----------------------------------------------------------------------------
-    Const PROC = "ExpFileFolderPath"
-    Const EXP_FILES_SUB_FOLDER = "\source"
+    Const PROC                  As String = "ExpFileFolderPath"
+    Const EXP_FILES_SUB_FOLDER  As String = "\source"
     
     On Error GoTo eh
     Dim fso As New FileSystemObject
@@ -154,59 +155,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Function
-
-Public Property Get MaxLenComp(Optional ByRef wb As Workbook = Nothing) As Long
     
-    Dim vbc     As VBComponent
-    Dim lMax    As Long
-    
-    If Not wb Is Nothing Then
-        For Each vbc In wb.VBProject.VBComponents
-            lMax = mBasic.Max(lMax, Len(vbc.Name))
-        Next vbc
-    End If
-    lMaxLenComp = Max(lMax, lMaxLenComp)
-    MaxLenComp = lMaxLenComp
-End Property
-
-Public Property Get MaxLenTypeItem(Optional ByRef wb As Workbook) As Long
-    If Not wb Is Nothing Then
-        lMaxLenTypeItem = MAX_LEN_TYPE + MaxLenComp(wb)
-    End If
-    MaxLenTypeItem = lMaxLenTypeItem
-End Property
-    
-Public Function IsSheetComp( _
-                      ByRef vbc As VBComponent, _
-             Optional ByRef wb As Workbook = Nothing, _
-             Optional ByRef sh_name As String = vbNullString) As Boolean
-' -----------------------------------------------------------------------
-' Returns TRUE when the Component (vbc) represents a Worksheet. When the
-' optional Workbook (wb) is provided, the sheet's Name is returned
-' (sh_name).
-' ------------------------------------------------------------------------
-    Dim ws As Worksheet
-    
-    IsSheetComp = vbc.Type = vbext_ct_Document And Not IsWrkbkComp(vbc)
-    If Not wb Is Nothing Then
-        For Each ws In wb.Worksheets
-            If ws.CodeName = vbc.Name Then
-                sh_name = ws.Name
-                Exit For
-            End If
-        Next ws
-    End If
-End Function
-
-Public Function IsWrkbkComp(ByRef vbc As VBComponent) As Boolean
-    
-    Dim bSigned As Boolean
-    On Error Resume Next
-    bSigned = vbc.Properties("VBASigned").Value
-    IsWrkbkComp = Err.Number = 0
-    
-End Function
-
 Private Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
 
 Private Property Let HostedRaws(ByVal hr As Variant)
@@ -266,19 +215,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function CompExists( _
-                     ByRef ce_wb As Workbook, _
-                     ByVal ce_comp_name As String) As Boolean
-' -----------------------------------------------------------
-' Returns TRUE when the component (ce_comp_name) exists in
-' the Workbook (ce_wb).
-' -----------------------------------------------------------
-    Dim s As String
-    On Error Resume Next
-    s = ce_wb.VBProject.VBComponents(ce_comp_name).Name
-    CompExists = Err.Number = 0
-End Function
-
 Public Sub DeleteObsoleteExpFiles(ByRef do_wb As Workbook)
 ' --------------------------------------------------------------
 ' Delete Export Files the component does not or no longer exist.
@@ -315,7 +251,7 @@ Public Sub DeleteObsoleteExpFiles(ByRef do_wb As Workbook)
     For Each fl In fso.GetFolder(sExp).Files
         Select Case fso.GetExtensionName(fl.Path)
             Case "bas", "cls", "frm", "frx"
-                If Not mCompMan.CompExists(do_wb, fso.GetBaseName(fl.Path)) _
+                If Not mComp.Exists(do_wb, fso.GetBaseName(fl.Path)) _
                 Then cll.Add fl.Path
         End Select
     Next fl
@@ -551,19 +487,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function TypeString(ByVal vbc As VBComponent) As String
-    Select Case vbc.Type
-        Case vbext_ct_ActiveXDesigner:  TypeString = "ActiveX-Designer"
-        Case vbext_ct_ClassModule:      TypeString = "Class-Module"
-        Case vbext_ct_Document
-            If mCompMan.IsSheetComp(vbc) _
-            Then TypeString = "Document-Module (Worksheet)" _
-            Else TypeString = "Document-Module (Workbook)"
-        Case vbext_ct_MSForm:           TypeString = "UserForm"
-        Case vbext_ct_StdModule:        TypeString = "Standatd-Module"
-    End Select
-End Function
-
 Public Sub DsplyProgress( _
           Optional ByVal p_result As String = vbNullString, _
           Optional ByVal p_total As Long = 0, _
@@ -597,7 +520,7 @@ Public Sub SynchTargetWbWithSourceWb( _
     
     On Error GoTo eh
     mErH.BoP ErrSrc(PROC)
-    mService.SyncTargetWithSource wb_target:=wb_target, wb_source_name:=wb_source
+    mService.SyncVBProjects wb_target:=wb_target, wb_source_name:=wb_source
     
 xt: mErH.EoP ErrSrc(PROC)
     Set Log = Nothing

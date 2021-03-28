@@ -449,20 +449,21 @@ xt: mErH.EoP ErrSrc(PROC)
 eh: mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
-Public Function SyncTargetWithSource( _
-                      Optional ByRef wb_target As Workbook = Nothing, _
-                      Optional ByVal wb_source_name As String = vbNullString, _
-                      Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
-                      Optional ByRef bkp_folder As String) As Boolean
-' -----------------------------------------------------------------------------
-' Synchronizes the target Workbook (wb_target) with the source Workbook
-' (wb_source). Returns TRUE when successfully finished.
-' The service is performed provided:
-' - the CompMan basic configuration is complete and valid
-' - the Workbook is located within the configured "Serviced Root"
-' - the Workbook is the only one within its parent folder
-' - the CompMan Addin is not paused
+Public Function SyncVBProjects( _
+                Optional ByRef wb_target As Workbook = Nothing, _
+                Optional ByVal wb_source_name As String = vbNullString, _
+                Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
+                Optional ByRef bkp_folder As String) As Boolean
+' -----------------------------------------------------------------------------------
+' Synchronizes the target Workbook (wb_target) with the source Workbook (wb_source).
+' Returns TRUE when successfully finished. The service is denied when the following
+' preconditions are not met:
+' - CompMan basic configuration is complete and valid
+' - the Target-Workbook is located within the configured 'Serviced-Root'
+' - the Target-Workbook is the only Workbook in its parent folder
+' - CompMan services are not 'Paused'
 ' - the open/ed Workbook is not a restored version
+' - WinMerge is installed (used to display code changes)
 ' -----------------------------------------------------------------------------
     Const PROC = "SynchTargetWithSource"
     
@@ -484,10 +485,10 @@ Public Function SyncTargetWithSource( _
     Set Log.ServicedWrkbk = wb_target
     sStatus = Log.Service
         
-    SyncTargetWithSource = mSync.SyncTargetWithSource(wb_target:=wb_target _
-                                                    , wb_source:=wbRaw _
-                                                    , restricted_sheet_rename_asserted:=restricted_sheet_rename_asserted _
-                                                    , bkp_folder:=bkp_folder)
+    SyncVBProjects = mSync.SyncTargetWithSource(wb_target:=wb_target _
+                                              , wb_source:=wbRaw _
+                                              , restricted_sheet_rename_asserted:=restricted_sheet_rename_asserted _
+                                              , bkp_folder:=bkp_folder)
 
 xt: mErH.EoP ErrSrc(PROC)
     Set Log = Nothing

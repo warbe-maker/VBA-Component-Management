@@ -1,7 +1,6 @@
 Attribute VB_Name = "mSyncSheets"
 Option Explicit
 
-
 Public Sub SyncCode()
 ' -----------------------------------------------
 ' When lMode=Confirm all sheets which had changed
@@ -11,47 +10,49 @@ Public Sub SyncCode()
     Const PROC = "SyncCode"
     
     On Error GoTo eh
-    Dim fso                 As New FileSystemObject
-    Dim vbc                 As VBComponent
-    Dim sCaption            As String
-    Dim sExpFile            As String
-    Dim cSource             As clsRaw
-    Dim cTarget             As clsComp
+    Dim fso         As New FileSystemObject
+    Dim vbc         As VBComponent
+    Dim sCaption    As String
+    Dim sExpFile    As String
+    Dim SourceComp  As clsRaw
+    Dim TargetComp  As clsComp
     
-    For Each vbc In Sync.Source.VBProject.VBComponents
-        If Not vbc.Type = vbext_ct_Document Then GoTo next_sheet
-        If Not IsSheetComp(vbc) Then GoTo next_sheet
-        
-        Set cSource = New clsRaw
-        Set cSource.Wrkbk = Sync.Source
-        cSource.CompName = vbc.Name
-        If Not cSource.Exists(Sync.Target) Then GoTo next_sheet
-        
-        Set cTarget = New clsComp
-        Set cTarget.Wrkbk = Sync.Target
-        cTarget.CompName = vbc.Name
-        cSource.CloneExpFileFullName = cTarget.ExpFileFullName
-        If Not cSource.Changed Then GoTo next_sheet
-        
-        Log.ServicedItem = vbc
-        Stats.Count sic_non_doc_mods_code
-        
-        If Sync.Mode = Confirm Then
-            Sync.ConfInfo = "Code changed!"
-            sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
-            If Not Sync.Changed.Exists(sCaption) _
-            Then Sync.Changed.Add sCaption, cSource
-        Else
-            sExpFile = cSource.ExpFileFullName
-            mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
-                            , wb_source_full_name:=cSource.Wrkbk.FullName _
-                            , sync_source_codelines:=cSource.CodeLines
-            Log.Entry = "Code updated line-by-line with code from Export-File '" & sExpFile & "'"
-        End If
-        Set cSource = Nothing
-        Set cTarget = Nothing
+    With Sync
+        For Each vbc In .Source.VBProject.VBComponents
+            If Not vbc.Type = vbext_ct_Document Then GoTo next_sheet
+            If Not mComp.IsSheetDocMod(vbc) Then GoTo next_sheet
+            
+            Set SourceComp = New clsRaw
+            Set SourceComp.Wrkbk = .Source
+            SourceComp.CompName = vbc.Name
+            If Not SourceComp.Exists(.Target) Then GoTo next_sheet
+            
+            Set TargetComp = New clsComp
+            Set TargetComp.Wrkbk = .Target
+            TargetComp.CompName = vbc.Name
+            SourceComp.CloneExpFileFullName = TargetComp.ExpFileFullName
+            If Not SourceComp.Changed Then GoTo next_sheet
+            
+            Log.ServicedItem = vbc
+            Stats.Count sic_non_doc_mods_code
+            
+            If .Mode = Confirm Then
+                .ConfInfo = "Code changed!"
+                sCaption = "Display changes" & vbLf & "of" & vbLf & vbLf & vbc.Name & vbLf
+                If Not .Changed.Exists(sCaption) _
+                Then .Changed.Add sCaption, SourceComp
+            Else
+                sExpFile = SourceComp.ExpFileFullName
+                mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
+                                , wb_source_full_name:=SourceComp.Wrkbk.FullName _
+                                , sync_source_codelines:=SourceComp.CodeLines
+                Log.Entry = "Code updated line-by-line with code from Export-File '" & sExpFile & "'"
+            End If
+            Set SourceComp = Nothing
+            Set TargetComp = Nothing
 next_sheet:
-    Next vbc
+        Next vbc
+    End With
 
 xt: Set fso = Nothing
     Exit Sub
@@ -99,10 +100,9 @@ Public Sub SyncCodeName()
                 For Each vbc In Sync.Target.VBProject.VBComponents
                     If vbc.Name = sTargetSheetCodeName Then
                         vbc.Name = sSourceSheetCodeName
-                        '~~ When the sheet's CodeName has changed the sheet's code is synchronized line by line
-                        '~~ because it is very likely code refers to the CodeName rather than to the sheet's Name or position
-'                        mSync.ByCodeLines sync_target_comp_name:=wsSource.CodeName _
-                                        , wb_source_full_name:=SyncSource.FullName
+                        '~~ When the sheet's CodeName has changed the sheet's code will only also be
+                        '~~ synchronized when the CodeName is used - which should be the case because
+                        '~~ there's no motivation to change it otherwise
                         Log.Entry = "CodeName changed to '" & sSourceSheetCodeName & "'"
                         Exit For
                     End If

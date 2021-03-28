@@ -22,9 +22,18 @@ Private Property Get mRenew_ByImport() As String:           mRenew_ByImport = Co
 
 Private Property Get mService_UpdateRawClones() As String:  mService_UpdateRawClones = CompManAddinName & "!mService.UpdateRawClones":  End Property
 
-Public Sub Cleanup(Optional ByVal exp_file As String = vbNullString, _
-                    Optional ByRef vbc As VBComponent = Nothing)
-        
+Public Sub RemoveTestCodeChange( _
+                 Optional ByVal exp_file As String = vbNullString, _
+                 Optional ByRef vbc As VBComponent = Nothing)
+' ------------------------------------------------------------------
+' Removes a code line from the provided VBComponent (vbc) which has
+' been added for test purpose.
+' Used to reset the test environment to its initial state
+' ------------------------------------------------------------------
+    Const PROC = "RemoveTestCodeChange"
+    
+    On Error GoTo eh
+    
     If exp_file <> vbNullString Then
         With New FileSystemObject
             If .FileExists(exp_file) Then .DeleteFile exp_file
@@ -47,6 +56,13 @@ Public Sub Cleanup(Optional ByVal exp_file As String = vbNullString, _
     On Error Resume Next: wbSrc.Close SaveChanges:=False
     On Error Resume Next: wbTrgt.Close SaveChanges:=False
 
+xt: Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
@@ -77,13 +93,13 @@ Public Sub Regression()
     
 End Sub
   
-Public Sub Test_SynchTargetWithSource()
+Public Sub Test_SynchVBProjects()
 ' ---------------------------------------------------------------------
 ' Attention: This test preserves the target Workbook by a backup before
 ' and a restore after the synch test. The target Workbook thus will not
 ' show the synch result unless the terst procedire is stopped.
 ' ---------------------------------------------------------------------
-    Const PROC = "Test_SynchTargetWithSource"
+    Const PROC = "Test_SynchVBProjects"
     
     On Error GoTo eh
     Dim sSource     As String
@@ -93,11 +109,11 @@ Public Sub Test_SynchTargetWithSource()
     sTarget = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Target-Project\Test_Sync_Target.xlsb"
     sSource = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Source-Project\Test_Sync_Source.xlsb"
        
-    If mService.SyncTargetWithSource(wb_target:=mCompMan.WbkGetOpen(sTarget) _
-                                   , wb_source_name:=sSource _
-                                   , restricted_sheet_rename_asserted:=True _
-                                   , bkp_folder:=BkpFolder _
-                                    ) _
+    If mService.SyncVBProjects(wb_target:=mCompMan.WbkGetOpen(sTarget) _
+                             , wb_source_name:=sSource _
+                             , restricted_sheet_rename_asserted:=True _
+                             , bkp_folder:=BkpFolder _
+                              ) _
     Then
         ' -----------------------------------------------------------------
         Stop ' last chance to see the synch result in the target Workbook !
@@ -701,8 +717,8 @@ Public Sub Test_Changed_Comps()
 
 End Sub
 
-Public Sub Test_SynchFormating()
-    Const PROC = "Test_SynchFormating"
+Public Sub Test_Synch_RangesFormating()
+    Const PROC = "Test_Synch_RangesFormating"
     
     On Error GoTo eh
     Dim fso         As New FileSystemObject
@@ -766,3 +782,71 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: End
     End Select
 End Sub
+
+Public Sub Test_Synch_CompsChanged()
+    Const PROC = "Test_Synch_CompsChanged"
+    
+    On Error GoTo eh
+    Dim fso         As New FileSystemObject
+    Dim BkpFolder   As String
+    Dim sTarget     As String
+    Dim sSource     As String
+    Dim BttnDelete  As String
+    Dim BttnKeep    As String
+    Dim flLog       As File
+    Dim LastModif   As Date
+    
+    Set Log = New clsLog
+    Log.File = mFile.Temp(ThisWorkbook.Path, ".log")
+    
+    Set Stats = New clsStats
+    Set Sync = New clsSync
+    
+    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Target-Project\Test_Sync_Target.xlsb"
+    sSource = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Source-Project\Test_Sync_Source.xlsb"
+    
+    Set Sync.Target = mCompMan.WbkGetOpen(sTarget)
+    Set Sync.Source = mCompMan.WbkGetOpen(sSource)
+    Set Log.ServicedWrkbk = Sync.Target
+    
+    Sync.CollectAllSyncItems
+    
+    LastModif = fso.GetFile(sTarget).DateLastModified
+    
+    mSync.SyncBackup BkpFolder, sTarget
+    mSyncComps.SyncCodeChanges
+    
+    If BkpFolder <> vbNullString Then
+        ' A backup had been made by the service which is now restored and the target is re-opened
+        
+        mCompMan.WbkGetOpen(sTarget).Close SaveChanges:=False
+        mSync.SyncRestore BkpFolder
+        Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
+        mCompMan.WbkGetOpen sTarget
+        Application.EnableEvents = True
+    End If
+
+xt: With New FileSystemObject
+        If .FileExists(Log.File) Then
+            Set flLog = .GetFile(Log.File)
+            BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
+            BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
+            If mMsg.Box(msg_title:=PROC & " Log-File" _
+                      , msg:=mFile.Txt(.GetFile(Log.File)) _
+                      , msg_monospaced:=True _
+                      , msg_buttons:=mMsg.Buttons(BttnDelete, BttnKeep) = BttnDelete) _
+            Then .DeleteFile flLog
+        End If
+    End With
+    Set Log = Nothing
+
+    Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
+End Sub
+
+

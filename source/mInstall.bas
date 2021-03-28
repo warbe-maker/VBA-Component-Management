@@ -25,7 +25,7 @@ Public Sub CloneRaws(Optional ByRef ic_wb As Workbook)
             cll.Add vbLf
             i = 0
         End If
-        If Not mCompMan.CompExists(ce_wb:=ic_wb, ce_comp_name:=v) Then
+        If Not mComp.Exists(ic_wb, v) Then
             cll.Add v
             i = i + 1
         End If

@@ -103,18 +103,6 @@ Friend Property Let ConfInfo( _
     cllConfInfo.Add sEntry
 End Property
 
-Friend Property Get MaxLenItem() As Long:
-    If lMaxLenItem = 0 Then
-        lMaxLenItem = mCompMan.MaxLenComp(Me.Source)
-        lMaxLenItem = mCompMan.MaxLenComp(Me.Target)
-    End If
-    MaxLenItem = lMaxLenItem
-End Property
-
-Friend Property Get MaxLenTypeItem() As Long
-    MaxLenTypeItem = lMaxLenTypeItem
-End Property
-
 Friend Property Get Mode() As SyncMode:         Mode = lMode:   End Property
 
 Friend Property Let Mode(ByVal l As SyncMode)
@@ -254,13 +242,13 @@ Public Sub CollectAllSyncItems()
     Stats.Count sic_comps_total, wbSyncSource.VBProject.VBComponents.Count
     For Each vbc In wbSyncSource.VBProject.VBComponents
         Log.ServicedItem = vbc ' Compute max length for logged item type and item name
-        If mCompMan.IsSheetComp(vbc) Then
+        If mComp.IsSheetDocMod(vbc) Then
             mDct.DctAdd dctSourceSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
         End If
     Next vbc
     For Each vbc In wbSyncTarget.VBProject.VBComponents
         Log.ServicedItem = vbc ' Compute max length for logged item type and item name
-        If IsSheetComp(vbc) Then
+        If mComp.IsSheetDocMod(vbc) Then
             mDct.DctAdd dctTargetSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
         End If
     Next vbc

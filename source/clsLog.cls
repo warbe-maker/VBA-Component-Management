@@ -154,7 +154,7 @@ Friend Property Let ServicedItem(ByRef v As Variant)
                 Case vbext_ct_MSForm:           ServicedItemType = "UserForm":          ServicedItemName = vbc.Name
                 Case vbext_ct_StdModule:        ServicedItemType = "Standard-Module":   ServicedItemName = vbc.Name
                 Case vbext_ct_Document
-                    If mCompMan.IsSheetComp(vbc) Then
+                    If mComp.IsSheetDocMod(vbc) Then
                                                 ServicedItemType = "Worksheet":         ServicedItemName = vbc.Name
                     Else
                                                 ServicedItemType = "Workbook":          ServicedItemName = vbc.Name
