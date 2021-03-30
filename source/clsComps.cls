@@ -10,8 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private dctChanged  As Dictionary
-Private wbServiced  As Workbook
-Private cRaw        As clsRaw
+Private RawComp        As clsRaw
 
 Private Sub Class_Initialize()
     Set dctChanged = New Dictionary
@@ -21,13 +20,9 @@ Private Sub Class_Terminate()
     Set dctChanged = Nothing
 End Sub
 
-Friend Property Get Changed() As Dictionary
+Friend Property Get AllChanged() As Dictionary
     Me.CollectAllChanged
-    Set Changed = dctChanged
-End Property
-
-Friend Property Set Serviced(ByRef wb As Workbook)
-    Set wbServiced = wb
+    Set AllChanged = dctChanged
 End Property
 
 Private Property Get Sorted() As Dictionary
@@ -37,7 +32,7 @@ Private Property Get Sorted() As Dictionary
     Dim dct As Dictionary
     Dim vbc As VBComponent
     
-    For Each vbc In wbServiced.VBProject.VBComponents
+    For Each vbc In mService.Serviced.VBProject.VBComponents
         Log.ServicedItem = vbc
         mDct.DctAdd dct, vbc.Type & vbc.Name, vbc, order_bykey, seq_ascending, , , True
     Next vbc
@@ -46,20 +41,24 @@ Private Property Get Sorted() As Dictionary
 End Property
 
 Public Sub CollectAllChanged()
-' -------------------------------------------------------------------
-' Collect all changed VBComponents. I.e. all VBComponents of which
-' a temporary Export-File differs from the regular (last) Export-File
-' -------------------------------------------------------------------
+' --------------------------------------------------------------
+' Collect all changed VBComponents.
+' I.e. all VBComponents of which a temporary Export-File differs
+' from the regular (last) Export-File or which do not have such
+' a regular Export-File because they never have been exported
+' or the export folder has changed its name and/or location.
+' ---------------------------------------------------------------
     Const PROC = "CollectAllChanged"
     
     On Error GoTo eh
     Dim vbc         As VBComponent
-    Dim cComp       As clsComp
+    Dim Comp       As clsComp
     Dim v           As Variant
     Dim dct         As Dictionary
     Dim sChanged    As String
+    Dim CompChanged    As clsComp
     
-    Stats.Count sic_comps_total, wbServiced.VBProject.VBComponents.Count
+    Stats.Count sic_comps_total, mService.Serviced.VBProject.VBComponents.Count
     
     Set dct = Sorted
     For Each v In dct
@@ -68,15 +67,17 @@ Public Sub CollectAllChanged()
                     , p_total:=Stats.Total(sic_comps_total) _
                     , p_done:=Stats.Total(sic_comps)
         
-        Set cComp = New clsComp
-        With cComp
-            Set .Wrkbk = wbServiced
+        Set Comp = New clsComp
+        With Comp
+            Set .Wrkbk = mService.Serviced
             .CompName = vbc.Name
             Log.ServicedItem = vbc
             Stats.Count sic_comps
             If .Changed Then
                 Stats.Count sic_comps_changed
-                mDct.DctAdd dctChanged, vbc.Type & vbc.Name, cComp, order_bykey, seq_ascending, , , True
+                Set CompChanged = New clsComp
+                Set CompChanged = Comp
+                mDct.DctAdd dctChanged, vbc.Type & vbc.Name, CompChanged, order_bykey, seq_ascending, , , True
                 If Stats.Total(sic_comps_changed) = 1 _
                 Then sChanged = vbc.Name _
                 Else sChanged = sChanged & ", " & vbc.Name
@@ -85,8 +86,8 @@ Public Sub CollectAllChanged()
             End If
         End With
 next_v:
-        Set cComp = Nothing
-        Set cRaw = Nothing
+        Set Comp = Nothing
+        Set RawComp = Nothing
     Next v
     
 xt: Set dct = Nothing

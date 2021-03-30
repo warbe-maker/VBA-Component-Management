@@ -42,6 +42,7 @@ Option Explicit
 ' Services:
 ' - CompType
 ' - DsplyAllChanges
+' - Export
 ' - RemoteSheetExists
 ' - ReplaceRawWithClone
 ' - ReplaceRawWithCloneWhenConfirmed
@@ -89,41 +90,46 @@ Private Sub Class_Terminate()
 End Sub
 
 Friend Property Get Changed() As Boolean
-' --------------------------------------
-' returns TRUE when the temporary Export
-' File differs from the regular Export
-' File which indicates that the code had
-' changed.
-' --------------------------------------
+' ------------------------------------------------------------
+' Returns TRUE when the Component's Export-File dose not exist
+' or a temporary Export-File differs from the existing one.
+' ------------------------------------------------------------
     Const PROC = "Changed"
     
     On Error GoTo eh
+    Dim fso As New FileSystemObject
     
-    If dctChanges Is Nothing Then
-        With New FileSystemObject
-            If Not .FileExists(Me.ExpFileFullName) Then
-                Me.VBComp.Export Me.ExpFileFullName
-            End If
-            sTmpFolder = mCompMan.ExpFileFolderPath(wb) & "\Temp"
-            If Not .FolderExists(sTmpFolder) Then
-                DoEvents
-                .CreateFolder sTmpFolder
-                DoEvents
-            End If
-            sTmpExpFileFullName = sTmpFolder & "\" & vbc.Name & sExpFileExt
-            vbc.Export sTmpExpFileFullName
+    '~~ Any component its Export-File not exists is regarded changed
+    '~~ In fact it is either new or the Export-Folder location had changed
+    Changed = Not fso.FileExists(Me.ExpFileFullName)
+    If Changed Then GoTo xt
+    
+    '~~ Else, any component is regarded changed when the collection of changed lines (dctChanges)
+    '~~ not is nothing and the number of collected lines is <> 0
+    On Error Resume Next ' dctChanges may even not exist
+    Changed = dctChanges.Count <> 0
+    If Changed Then GoTo xt
+    
+    '~~ Else, any component is regarded changed when a temporary Export-File differs from the regular one
+    With fso
+        sTmpFolder = mCompMan.ExpFileFolderPath(wb) & "\Temp"
+        If Not .FolderExists(sTmpFolder) Then
             DoEvents
-    
-            Set dctChanges = _
-            mFile.Differs(fd_file1:=.GetFile(sTmpExpFileFullName) _
-                        , fd_file2:=.GetFile(Me.ExpFileFullName) _
-                        , fd_ignore_empty_records:=True _
-                        , fd_compare:=vbTextCompare _
-                        , fd_stop_after:=1 _
-                         )
-        End With
+            .CreateFolder sTmpFolder
+            DoEvents
+        End If
+        sTmpExpFileFullName = sTmpFolder & "\" & vbc.Name & sExpFileExt
+        vbc.Export sTmpExpFileFullName
+        DoEvents
 
-    End If
+        Set dctChanges = _
+        mFile.Differs(fd_file1:=.GetFile(sTmpExpFileFullName) _
+                    , fd_file2:=.GetFile(Me.ExpFileFullName) _
+                    , fd_ignore_empty_records:=True _
+                    , fd_compare:=vbTextCompare _
+                    , fd_stop_after:=1 _
+                     )
+    End With
     Changed = dctChanges.Count <> 0
     
 xt: Exit Property
@@ -152,11 +158,12 @@ End Property
 Friend Property Get CompName() As String:           CompName = sCompName:       End Property
 
 Friend Property Let CompName(ByVal s As String)
-' ----------------------------------------------------------------
-' Provides the properties: - CompName (sCompName)
-'                          - ExpFileFullName (sExpFileFullName)
-'                          - VBComp          (vbc)
-' ----------------------------------------------------------------
+' ---------------------------------------------
+' Provides the properties
+' - CompName        (sCompName)
+' - ExpFileFullName (sExpFileFullName)
+' - VBComp          (vbc)
+' ---------------------------------------------
     sCompName = s
     If Not wb Is Nothing Then
         If Me.Exists Then
@@ -231,6 +238,9 @@ Friend Property Get ExpFileExt() As String
 End Property
 
 Friend Property Get ExpFileFullName() As String
+' ------------------------------------------------------------------
+' Will already have been prepared along with 'Property Let CompName'
+' ------------------------------------------------------------------
     If sExpFileFullName = vbNullString Then
         sExpFileFullName = mCompMan.ExpFileFolderPath(wb) & "\" & Me.CompName & Me.ExpFileExt
     End If
@@ -280,7 +290,7 @@ Public Property Let RawExpFileFullName(ByVal s As String):  sRawExpFileFullName 
 
 Public Property Let RawHostFullName(ByVal s As String):     sRawHostFullName = s:       End Property
 
-Private Property Get ReplaceRawWithCloneConfirmed() As Boolean
+Private Property Get ReplaceRawWithCloneConfirmed(ByRef raw As clsRaw) As Boolean
 ' -------------------------------------------------------------
 ' Returns TRUE when the "reverse" code update is confirmed.
 ' --------------------------------------------------------------
@@ -315,7 +325,7 @@ Private Property Get ReplaceRawWithCloneConfirmed() As Boolean
     sTitle = "A ""Remotely hosted raw's clone has been modified in this VB-Project!"
     With sMsg
         .Section(1).sLabel = "About this incident:"
-        .Section(1).sText = "The module '" & Me.CompName & "' is a clone of the raw component hosted in Workbook '" & cRaw.WrkbkBaseName & "' " & _
+        .Section(1).sText = "The module '" & Me.CompName & "' is a clone of the raw component hosted in Workbook '" & raw.WrkbkBaseName & "' " & _
                             "This clone component's code has usually has been synched with the remote raw componet's code. " & _
                             "The remote raw hasn't been changed but the cloned component's code has."
         .Section(2).sLabel = "About the choices:"
@@ -338,9 +348,9 @@ Private Property Get ReplaceRawWithCloneConfirmed() As Boolean
                 Exit Do
             Case sReplyDsplyDiff
                 mFile.Compare fc_file_left:=Me.ExpFileFullName _
-                            , fc_file_right:=cRaw.ExpFileFullName _
+                            , fc_file_right:=raw.ExpFileFullName _
                             , fc_left_title:="The cloned raw's current code in Workbook/VBProject " & Me.WrkbkBaseName & " (" & Me.ExpFileFullName & ")" _
-                            , fc_right_title:="The remote raw's current code in Workbook/VBProject " & cRaw.WrkbkBaseName & " (" & cRaw.ExpFileFullName & ")"
+                            , fc_right_title:="The remote raw's current code in Workbook/VBProject " & raw.WrkbkBaseName & " (" & raw.ExpFileFullName & ")"
                 ' The question is re-displayed for a decison
             Case sReplyIgnore
                 ReplaceRawWithCloneConfirmed = False
@@ -515,6 +525,10 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsComp" & "." & sProc
 End Function
 
+Public Sub Export()
+    Me.VBComp.Export Me.ExpFileFullName
+End Sub
+
 Private Function KoCStrng(ByVal koc As enKindOfComp) As String
     Select Case koc
         Case enKindOfComp.enUnknown:        KoCStrng = "Unknown"
@@ -564,7 +578,7 @@ Public Function RemoteSheetExists( _
    
 End Function
 
-Public Sub ReplaceRawWithClone()
+Public Sub ReplaceRawWithClone(ByRef raw As clsRaw)
 ' --------------------------------------------------------------
 ' Replace the raw component's code with the Export-File of the
 ' clone component.
@@ -574,8 +588,8 @@ Public Sub ReplaceRawWithClone()
     On Error GoTo eh
     Dim wbRawHost   As Workbook
         
-    Application.EnableEvents = False ' prevent the UpdateRawClones service
-    Set wbRawHost = mCompMan.WbkGetOpen(cRaw.WrkbkFullName) ' Wrkbk is the Workbook hosting the raw Component
+    Application.EnableEvents = False ' prevent the 'UpdateRawClones' service when the Workbook is opened
+    Set wbRawHost = mCompMan.WbkGetOpen(raw.HostWrkbkFullName) ' Wrkbk is the Workbook hosting the raw Component
     Application.EnableEvents = True
     
     mRenew.ByImport rn_wb:=wbRawHost _
@@ -593,6 +607,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub ReplaceRawWithCloneWhenConfirmed( _
+                                      ByRef raw As clsRaw, _
                                       ByRef rwu_updated As Boolean)
 ' -------------------------------------------------------------------
 ' Provided confirmed by the user, replaces the raw code in the
@@ -607,14 +622,14 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
     On Error GoTo eh
     Dim fso As New FileSystemObject
     
-    If ReplaceRawWithCloneConfirmed Then
+    If ReplaceRawWithCloneConfirmed(raw) Then
             '~~ Get the origin host Workbook open
-        With cRaw
-            .WrkbkFullName = mRawsHosted.HostFullName(Me.CompName)
+        With raw
+            .HostWrkbkFullName = mRawsHosted.HostFullName(Me.CompName)
             .CompName = Me.CompName
             .ExpFileExt = Me.ExpFileExt ' required to build the export file's full name
             Set .ExpFile = fso.GetFile(.ExpFileFullName)
-            Set .Wrkbk = mCompMan.WbkGetOpen(.WrkbkFullName)
+            Set .Wrkbk = mCompMan.WbkGetOpen(.HostWrkbkFullName)
             Set .VBComp = .Wrkbk.VBProject.VBComponents(.CompName)
             .TypeString = Me.TypeString
             Select Case .VBComp.Type
@@ -623,13 +638,13 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
                     '~~ is synchronized - disregarding any consequences this may have when the
                     '~~ structure and design of the underlying Workbook or Worksheet has changed.
                     mSync.ByCodeLines sync_target_comp_name:=.CompName _
-                                    , wb_source_full_name:=.WrkbkFullName _
+                                    , wb_source_full_name:=.HostWrkbkFullName _
                                     , sync_source_codelines:=.CodeLines
                 Case vbext_ct_ClassModule, vbext_ct_StdModule, vbext_ct_MSForm
-                    Me.ReplaceRawWithClone
+                    Me.ReplaceRawWithClone raw
             End Select
             rwu_updated = True
-        End With ' cRaw
+        End With ' RawComp
     End If
 
 xt: Set fso = Nothing

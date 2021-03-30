@@ -1,5 +1,24 @@
 Attribute VB_Name = "mComp"
 Option Explicit
+' ------------------------------------------------------------------------
+' Standard-Module mComp
+'                   Elementary services for a VBComponent either provided
+'                   as object or name in in provided Workbbok.
+'
+' Public services:
+' - Exists          Returns TRUE when a components name exists in a
+'                   Workbook's VBProject
+' - IsSheetDocMod   Returns TRUE when a provided VBComponent object is of
+'                   a type Document-Module and represents a Worksheet
+' - IsWrkbDocMod    Returns TRUE when a provided VBComponent object is of
+'                   a type Document-Module and represents the Workbook
+' - TempName        Returns a temporary name for a provided
+'                   VBComponent's name which is not already used in
+'                   the provided Workbook/VBProject
+' - TypeString      Returns a provided VBComponent object's type as
+'                   string
+'
+' ------------------------------------------------------------------------
 
 Public Function Exists( _
                  ByRef wb As Workbook, _
@@ -13,7 +32,6 @@ Public Function Exists( _
     s = wb.VBProject.VBComponents(comp_name).Name
     Exists = Err.Number = 0
 End Function
-
 
 Public Function IsSheetDocMod( _
                         ByRef vbc As VBComponent, _
@@ -37,6 +55,31 @@ Public Function IsSheetDocMod( _
     End If
 End Function
 
+Public Function IsWrkbkDocMod(ByRef vbc As VBComponent) As Boolean
+    
+    Dim bSigned As Boolean
+    On Error Resume Next
+    bSigned = vbc.Properties("VBASigned").Value
+    IsWrkbkDocMod = Err.Number = 0
+    
+End Function
+
+Public Function TempName(ByRef wb As Workbook, _
+                         ByVal comp_name As String) As String
+' -----------------------------------------------------------
+' Returns a yet not existing temporary name for a component.
+' -----------------------------------------------------------
+    Dim i As Long
+    
+    TempName = comp_name & "_Temp"
+    Do
+        On Error Resume Next
+        TempName = wb.VBProject.VBComponents(TempName).Name
+        If Err.Number <> 0 Then Exit Do ' a component with sTempName does not exist
+        i = i + 1: TempName = TempName & i
+    Loop
+End Function
+
 Public Function TypeString(ByVal vbc As VBComponent) As String
     Select Case vbc.Type
         Case vbext_ct_ActiveXDesigner:  TypeString = "ActiveX-Designer"
@@ -48,14 +91,5 @@ Public Function TypeString(ByVal vbc As VBComponent) As String
         Case vbext_ct_MSForm:           TypeString = "UserForm"
         Case vbext_ct_StdModule:        TypeString = "Standatd-Module"
     End Select
-End Function
-
-Public Function IsWrkbkDocMod(ByRef vbc As VBComponent) As Boolean
-    
-    Dim bSigned As Boolean
-    On Error Resume Next
-    bSigned = vbc.Properties("VBASigned").Value
-    IsWrkbkDocMod = Err.Number = 0
-    
 End Function
 

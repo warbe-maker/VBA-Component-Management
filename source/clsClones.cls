@@ -10,8 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private dctChanged  As Dictionary
-Private wbServiced  As Workbook
-Private cRaw        As clsRaw
+Private RawComp        As clsRaw
 
 Private Sub Class_Initialize()
     Set dctChanged = New Dictionary
@@ -26,8 +25,6 @@ Friend Property Get RawChanged() As Dictionary
     Set RawChanged = dctChanged
 End Property
 
-Friend Property Set Serviced(ByRef wb As Workbook):     Set wbServiced = wb:        End Property
-
 Private Property Get Sorted() As Dictionary
 ' ----------------------------------------------------
 ' Return all components in ascendig order by type.name
@@ -35,7 +32,7 @@ Private Property Get Sorted() As Dictionary
     Dim dct As Dictionary
     Dim vbc As VBComponent
     
-    For Each vbc In wbServiced.VBProject.VBComponents
+    For Each vbc In mService.Serviced.VBProject.VBComponents
         Log.ServicedItem = vbc
         mDct.DctAdd dct, vbc.Type & vbc.Name, vbc, order_bykey, seq_ascending, , , True
     Next vbc
@@ -53,20 +50,20 @@ Public Sub CollectAllChanged()
     
     On Error GoTo eh
     Dim vbc         As VBComponent
-    Dim CloneComp       As clsComp
+    Dim CloneComp   As clsComp
     Dim sChanged    As String
     Dim v           As Variant
     Dim RawComp     As clsRaw
     
     Stats.Clear
-    Stats.Count sic_comps_total, wbServiced.VBProject.VBComponents.Count
+    Stats.Count sic_comps_total, mService.Serviced.VBProject.VBComponents.Count
         
     For Each v In Sorted
         Set vbc = Sorted(v)
         Stats.Count sic_comps
         Set CloneComp = New clsComp
         With CloneComp
-            Set .Wrkbk = wbServiced
+            Set .Wrkbk = mService.Serviced
             .CompName = vbc.Name
             
             DsplyProgress p_result:=sChanged & " " & vbc.Name _
@@ -78,7 +75,7 @@ Public Sub CollectAllChanged()
             Stats.Count sic_clone_comps
             '~~ This is a Raw-Component's Clone-Component
             Set RawComp = New clsRaw
-            RawComp.WrkbkFullName = mRawsHosted.HostFullName(comp_name:=.CompName)
+            RawComp.HostWrkbkFullName = mRawsHosted.HostFullName(comp_name:=.CompName)
             RawComp.CompName = .CompName
             RawComp.ExpFileExt = .ExpFileExt
             RawComp.CloneExpFileFullName = .ExpFileFullName

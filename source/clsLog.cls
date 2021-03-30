@@ -9,7 +9,6 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private wbServiced              As Workbook
 Private sService                As String
 Private sFile                   As String
 Private sFolder                 As String
@@ -94,13 +93,33 @@ Friend Property Get LogFile() As File
     End With
 End Property
 
-Friend Property Get Service() As String
+Friend Property Get Service( _
+             Optional ByVal new_log As Boolean = False) As String
     Service = sService
 End Property
 
-Friend Property Let Service(ByVal sv_name As String)
-
-    sService = sv_name & " by " & ThisWorkbook.Name & " for '" & wbServiced.Name & "': "
+Friend Property Let Service( _
+             Optional ByVal new_log As Boolean = False, _
+                      ByVal sv_name As String)
+' -------------------------------------------------------
+'
+' -------------------------------------------------------
+    sService = sv_name & " by " & ThisWorkbook.Name & " for '" & mService.Serviced.Name & "': "
+    
+    bNewLog = new_log
+    Me.Folder = mService.Serviced.Path
+    
+    If sFile = vbNullString Then
+        '~~ In case not a specific file had explicitely assigned before
+        sFile = Me.Folder & "\" & mService.SERVICES_LOG_FILE
+    End If
+    With New FileSystemObject
+        If bNewLog Then
+            If .FileExists(sFile) Then .DeleteFile sFile
+            .CreateTextFile (sFile)
+            bNewLog = False
+        End If
+    End With
     
     If mFile.Txt(ft_file:=sFile) <> vbNullString _
     Then mFile.Txt(ft_file:=sFile _
@@ -197,29 +216,3 @@ Private Property Let ServicedItemName(ByVal s As String)
     sServicedItemName = s
     lMaxLenServicedItemName = Max(lMaxLenServicedItemName, Len(sServicedItemName))
 End Property
-
-Friend Property Set ServicedWrkbk( _
-                   Optional ByVal sw_new_log As Boolean = False, _
-                            ByRef sw_wbServiced As Workbook)
-' ----------------------------------------------------------------
-'
-' ----------------------------------------------------------------
-    
-    bNewLog = sw_new_log
-    Set wbServiced = sw_wbServiced
-    Me.Folder = sw_wbServiced.Path
-    
-    If sFile = vbNullString Then
-        '~~ In case not a specific file had explicitely assigned before
-        sFile = Me.Folder & "\" & mService.SERVICES_LOG_FILE
-    End If
-    With New FileSystemObject
-        If bNewLog Then
-            If .FileExists(sFile) Then .DeleteFile sFile
-            .CreateTextFile (sFile)
-            bNewLog = False
-        End If
-    End With
-
-End Property
-

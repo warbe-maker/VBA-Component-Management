@@ -59,7 +59,7 @@ Public Sub SyncCodeChanges()
             Log.ServicedItem = vbc
             mRenew.ByImport rn_wb:=Sync.Target _
                           , rn_comp_name:=vbc.Name _
-                          , rn_exp_file_full_name:=cSource.ExpFileFullName
+                          , rn_exp_file_full_name:=SourceComp.ExpFileFullName
             Log.Entry = "Renewed/updated by import of '" & SourceComp.ExpFileFullName & "'"
         End If
         
@@ -88,19 +88,18 @@ Public Sub SyncNew()
     Const PROC = "SyncNew"
     
     On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim vbc     As VBComponent
-    Dim cComp   As clsComp
-    Dim cSource As clsRaw
+    Dim fso         As New FileSystemObject
+    Dim vbc         As VBComponent
+    Dim SourceComp  As clsRaw
     
     With Sync
         For Each vbc In Sync.Source.VBProject.VBComponents
             If vbc.Type = vbext_ct_Document Then GoTo next_vbc
             If vbc.Type = vbext_ct_ActiveXDesigner Then GoTo next_vbc
             
-            Set cSource = New clsRaw
-            Set cSource.Wrkbk = .Source
-            cSource.CompName = vbc.Name
+            Set SourceComp = New clsRaw
+            Set SourceComp.Wrkbk = .Source
+            SourceComp.CompName = vbc.Name
             If mComp.Exists(.Target, vbc.Name) Then GoTo next_vbc
             
             '~~ No component exists under the source component's name
@@ -110,16 +109,16 @@ Public Sub SyncNew()
             If .Mode = Confirm Then
                 .ConfInfo = "New! Corresponding source Workbook Export-File will by imported."
             Else
-                .Target.VBProject.VBComponents.Import cSource.ExpFileFullName
-                Log.Entry = "Component imported from Export-File '" & cSource.ExpFileFullName & "'"
+                .Target.VBProject.VBComponents.Import SourceComp.ExpFileFullName
+                Log.Entry = "Component imported from Export-File '" & SourceComp.ExpFileFullName & "'"
             End If
             
-            Set cSource = Nothing
+            Set SourceComp = Nothing
 next_vbc:
         Next vbc
     End With
 
-xt: Set cComp = Nothing
+xt: Set SourceComp = Nothing
     Set fso = Nothing
     Exit Sub
 
@@ -142,16 +141,16 @@ Public Sub SyncObsolete()
     On Error GoTo eh
     Dim vbc         As VBComponent
     Dim sType       As String
-    Dim cTarget     As clsComp
+    Dim TargetComp  As clsComp
     
     With Sync
         '~~ Collect obsolete Standard Modules, Class modules, and UserForms
         For Each vbc In .Target.VBProject.VBComponents
             If vbc.Type = vbext_ct_Document Then GoTo next_vbc
-            Set cTarget = New clsComp
-            Set cTarget.Wrkbk = .Target
-            cTarget.CompName = vbc.Name
-            If cTarget.Exists(.Source) Then GoTo next_vbc
+            Set TargetComp = New clsComp
+            Set TargetComp.Wrkbk = .Target
+            TargetComp.CompName = vbc.Name
+            If TargetComp.Exists(.Source) Then GoTo next_vbc
             
             Log.ServicedItem = vbc
             Stats.Count sic_non_doc_mod_obsolete
@@ -159,11 +158,11 @@ Public Sub SyncObsolete()
             If .Mode = Confirm Then
                 .ConfInfo = "Obsolete!"
             Else
-                sType = cTarget.TypeString
+                sType = TargetComp.TypeString
                 .Target.VBProject.VBComponents.Remove vbc
                 Log.Entry = "Removed!"
             End If
-            Set cTarget = Nothing
+            Set TargetComp = Nothing
 next_vbc:
         Next vbc
     End With

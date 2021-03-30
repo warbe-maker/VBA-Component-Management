@@ -11,16 +11,19 @@ Option Private Module
 Private Const TEST_CHANGE = "' Test code change"
 
 Private cTest   As clsTestService
-Private cComp   As New clsComp
 Private wbTest  As Workbook
 Private wbSrc   As Workbook
 Private wbTrgt  As Workbook
 Private vbc     As VBComponent
 Private vbcm    As CodeModule
 
-Private Property Get mRenew_ByImport() As String:           mRenew_ByImport = CompManAddinName & "!mRenew.ByImport":                    End Property
+Private Property Get mRenew_ByImport() As String
+    mRenew_ByImport = CompManAddinName & "!mRenew.ByImport"
+End Property
 
-Private Property Get mService_UpdateRawClones() As String:  mService_UpdateRawClones = CompManAddinName & "!mService.UpdateRawClones":  End Property
+Private Property Get mService_UpdateRawClones() As String
+    mService_UpdateRawClones = CompManAddinName & "!mCompManClient.UpdateRawClones"
+End Property
 
 Public Sub RemoveTestCodeChange( _
                  Optional ByVal exp_file As String = vbNullString, _
@@ -33,6 +36,7 @@ Public Sub RemoveTestCodeChange( _
     Const PROC = "RemoveTestCodeChange"
     
     On Error GoTo eh
+    Dim Comp   As clsComp
     
     If exp_file <> vbNullString Then
         With New FileSystemObject
@@ -49,7 +53,7 @@ Public Sub RemoveTestCodeChange( _
         End With
     End If
     
-    If Not cComp Is Nothing Then Set cComp = Nothing
+    If Not Comp Is Nothing Then Set Comp = Nothing
     If Not vbcm Is Nothing Then Set vbcm = Nothing
     If Not vbc Is Nothing Then Set vbc = Nothing
     On Error Resume Next: wbTest.Close SaveChanges:=False
@@ -145,40 +149,40 @@ Public Sub Test_01_KindOfComp()
 
     Dim wb      As Workbook
     Dim fso     As New FileSystemObject
-    Dim cComp   As clsComp
+    Dim Comp   As clsComp
     Dim sComp   As String
     
     Set wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsm")
 
     sComp = "mFile"
-    Set cComp = Nothing
-    Set cComp = New clsComp
-    With cComp
+    Set Comp = Nothing
+    Set Comp = New clsComp
+    With Comp
         Set .Wrkbk = wb
         Set .VBComp = wb.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enKindOfComp.enRawClone
     End With
 
     sComp = "fMsg"
-    Set cComp = Nothing
-    Set cComp = New clsComp
-    With cComp
+    Set Comp = Nothing
+    Set Comp = New clsComp
+    With Comp
         Set .Wrkbk = wb
         Set .VBComp = wb.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enRawClone
     End With
     
     sComp = "mTest"
-    Set cComp = Nothing
-    Set cComp = New clsComp
-    With cComp
+    Set Comp = Nothing
+    Set Comp = New clsComp
+    With Comp
         Set .Wrkbk = wb
         Set .VBComp = wb.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enInternal
     End With
     
 xt: wb.Close SaveChanges:=False
-    Set cComp = Nothing
+    Set Comp = Nothing
     Set fso = Nothing
     Exit Sub
     
@@ -203,10 +207,10 @@ Public Sub Test_Log()
     
     On Error GoTo eh
     Dim fso         As New FileSystemObject
-    Dim cLog        As New clsLog
     
-    With cLog
-        Set .ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
+    Set Log = New clsLog
+    Set mService.Serviced = ThisWorkbook
+    With Log
         .Service = ErrSrc(PROC)
         .ServicedItem = " <component-name> "
         .Entry = "Tested"
@@ -263,17 +267,17 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     Const PROC = "Test_RenewComp"
     
     Dim cLog        As New clsLog
-    Dim cComp       As New clsComp
+    Dim Comp        As New clsComp
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
     
     If mMe.IsDevInstnc Then GoTo xt
     
+    Set mService.Serviced = ThisWorkbook
     Log.File = mFile.Temp(, ".log")
-    Set Log.ServicedWrkbk(sw_new_log:=True) = ThisWorkbook
     Log.Service = PROC
     
-    With cComp
+    With Comp
         .CompName = rnc_comp_name
         Log.ServicedItem = .VBComp
         
@@ -300,7 +304,7 @@ xt: If Not wbTemp Is Nothing Then
             Log.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
-    Set cComp = Nothing
+    Set Comp = Nothing
     Set Log = Nothing
     Exit Sub
 
@@ -346,7 +350,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
     Const PROC          As String = "Test_RenewComp_1a_UserForm_ExpFile_Remote"
     
     On Error GoTo eh
-    Dim cComp           As New clsComp
+    Dim Comp            As New clsComp
     Dim i               As Long
     Dim sExpFile        As String
     Dim flExport        As File
@@ -361,7 +365,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
             '~~ rc_wb As Workbook
             '~~ -------------------------------
             mErH.BoP ErrSrc(PROC)
-            With cComp
+            With Comp
                 Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
                             
@@ -369,7 +373,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
                 If mFile.SelectFile(sel_init_path:=mCompMan.ExpFileFolderPath(.Wrkbk) _
-                                  , sel_filters:="*" & cComp.ExpFileExt _
+                                  , sel_filters:="*" & Comp.ExpFileExt _
                                   , sel_filter_name:="bas-Export-Files" _
                                   , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
                                   , sel_result:=flExport) _
@@ -385,7 +389,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
         End If
     End If
     
-xt: Set cComp = Nothing
+xt: Set Comp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -407,7 +411,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
     Const PROC = "Test_RenewComp_1b_Standard_Module_ExpFile_Local"
     
     On Error GoTo eh
-    Dim cComp   As New clsComp
+    Dim Comp    As New clsComp
     Dim i       As Long
     
     If mMe.IsAddinInstnc Then Exit Sub
@@ -420,7 +424,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
             '~~ rc_wb As Workbook
             '~~ -------------------------------
             mErH.BoP ErrSrc(PROC)
-            With cComp
+            With Comp
                 Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
             
@@ -435,7 +439,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
         End If
     End If
     
-xt: Set cComp = Nothing
+xt: Set Comp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -457,7 +461,7 @@ Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
     Const PROC = "Test_RenewComp_2_Class_Module_ExpFile_Local"
     
     On Error GoTo eh
-    Dim cComp   As New clsComp
+    Dim Comp    As New clsComp
     Dim i       As Long
     
     If mMe.IsAddinInstnc Then Exit Sub
@@ -470,7 +474,7 @@ Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
             '~~ rc_wb As Workbook
             '~~ -------------------------------
             mErH.BoP ErrSrc(PROC)
-            With cComp
+            With Comp
                 Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
             
@@ -485,7 +489,7 @@ Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
         End If
     End If
     
-xt: Set cComp = Nothing
+xt: Set Comp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -507,8 +511,8 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
     Const PROC          As String = "Test_RenewComp_3a_UserForm_ExpFile_Local"
     
     On Error GoTo eh
-    Dim cComp           As New clsComp
-    Dim i               As Long
+    Dim Comp    As New clsComp
+    Dim i       As Long
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
@@ -520,7 +524,7 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
             '~~ rc_wb As Workbook
             '~~ -------------------------------
             mErH.BoP ErrSrc(PROC)
-            With cComp
+            With Comp
                 Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
             
@@ -537,7 +541,7 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
         End If
     End If
     
-xt: Set cComp = Nothing
+xt: Set Comp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -559,10 +563,10 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
     Const PROC          As String = "Test_RenewComp_3b_UserForm_ExpFile_Remote"
     
     On Error GoTo eh
-    Dim cComp           As New clsComp
-    Dim i               As Long
-    Dim sExpFile        As String
-    Dim flExport        As File
+    Dim Comp        As New clsComp
+    Dim i           As Long
+    Dim sExpFile    As String
+    Dim flExport    As File
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
@@ -574,7 +578,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
             '~~ rc_wb As Workbook
             '~~ -------------------------------
             mErH.BoP ErrSrc(PROC)
-            With cComp
+            With Comp
                 Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
                             
@@ -582,7 +586,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
                 If mFile.SelectFile(sel_init_path:=mCompMan.ExpFileFolderPath(.Wrkbk) _
-                                  , sel_filters:="*" & cComp.ExpFileExt _
+                                  , sel_filters:="*" & Comp.ExpFileExt _
                                   , sel_filter_name:="UserForm" _
                                   , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
                                   , sel_result:=flExport) _
@@ -598,7 +602,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
         End If
     End If
     
-xt: Set cComp = Nothing
+xt: Set Comp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -615,9 +619,9 @@ Public Sub Test_UpdateRawClones()
     Dim AddinService    As String
     Dim AddinStatus     As String
     
-    If mService.Denied(den_serviced_wb:=ThisWorkbook, den_service:=PROC) Then GoTo xt
+    If mService.Denied(PROC) Then GoTo xt
 
-    AddinService = CompManAddinName & "!mService.UpdateRawClones"
+    AddinService = CompManAddinName & "!mCompMan.UpdateRawClones"
     If mMe.CompManAddinIsOpen Then
         AddinStatus = " (currently the case) "
     Else
@@ -666,9 +670,8 @@ Public Sub Test_Changed_Clones()
     
     Dim Clones      As New clsClones
     
+    Set mService.Serviced = ThisWorkbook
     Set Stats = New clsStats
-    Set Clones.Serviced = ThisWorkbook
-    Set Log.ServicedWrkbk(True) = ThisWorkbook
     Log.File = mFile.Temp(, ".log")
     Clones.CollectAllChanged
     
@@ -690,15 +693,16 @@ Public Sub Test_Changed_Comps()
     Dim Comps   As New clsComps
     Dim Comp    As New clsComp
     Dim v       As Variant
+    Dim dct     As Dictionary
     
+    Set mService.Serviced = ThisWorkbook
     Set Stats = New clsStats
-    Set Comps.Serviced = ThisWorkbook
-    Set Log.ServicedWrkbk(True) = ThisWorkbook
     Log.File = mFile.Temp(, ".log")
     Comps.CollectAllChanged
     
-    For Each v In Comps.Changed
-        Set Comp = Comps.Changed(v)
+    Set dct = Comps.AllChanged
+    For Each v In dct
+        Set Comp = dct(v)
         Log.ServicedItem = Comp.VBComp
         Log.Entry = "Code changed (export due)"
         Set Comp = Nothing
@@ -739,9 +743,9 @@ Public Sub Test_Synch_RangesFormating()
     sTarget = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Target-Project\Test_Sync_Target.xlsb"
     sSource = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Source-Project\Test_Sync_Source.xlsb"
     
-    Set Sync.Target = mCompMan.WbkGetOpen(sTarget)
+    Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
+    Set Sync.Target = mService.Serviced
     Set Sync.Source = mCompMan.WbkGetOpen(sSource)
-    Set Log.ServicedWrkbk = Sync.Target
     
     Sync.CollectAllSyncItems
     
@@ -795,19 +799,18 @@ Public Sub Test_Synch_CompsChanged()
     Dim BttnKeep    As String
     Dim flLog       As File
     Dim LastModif   As Date
-    
-    Set Log = New clsLog
-    Log.File = mFile.Temp(ThisWorkbook.Path, ".log")
-    
+        
     Set Stats = New clsStats
     Set Sync = New clsSync
-    
+    Set Log = New clsLog
+
     sTarget = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Target-Project\Test_Sync_Target.xlsb"
     sSource = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Source-Project\Test_Sync_Source.xlsb"
     
-    Set Sync.Target = mCompMan.WbkGetOpen(sTarget)
+    Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
+    Set Sync.Target = mService.Serviced
     Set Sync.Source = mCompMan.WbkGetOpen(sSource)
-    Set Log.ServicedWrkbk = Sync.Target
+    Log.File = mFile.Temp(mService.Serviced.Path, ".log")
     
     Sync.CollectAllSyncItems
     

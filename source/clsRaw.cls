@@ -14,7 +14,7 @@ Option Explicit
 ' type. I.e. a component a certain Workbook claims the raw
 ' version or the last developed version respectively.
 '
-' Friend Properties:
+' Friend(Public) Properties:
 ' - Changed
 ' - CloneExpFileFullName
 ' - CompName
@@ -25,14 +25,18 @@ Option Explicit
 ' - ExpFileExt
 ' - ExpFileFullName
 ' - ExpFilePath
-' - WrkbkFullName
+' - HostWrkbkFullName   In contrast to the clsComp Class Module a 'Raw-Component's' host Workbook
+'                       is not open because only its Export-File is used - which is registered and
+'                       obtained from the 'HostedRwas.dat' file by means of services in 'mRawsHosted'
 ' - RawHost
 ' - RawType
 ' - VBComp
 ' - Service
 ' - SheetName
 ' - TypeString
-' - Wrkbk
+' - Wrkbk               When the clsRaw represents a 'Synchronization-Source-Workbook' this Workbook
+'                       is allways open because its Worksheets, Names, Shapes, and References are
+'                       obtained
 ' - WrkbkBaseName
 '
 ' Services:
@@ -175,7 +179,7 @@ Friend Property Let CompName(ByVal s As String)
     If Not wb Is Nothing Then
         If Me.Exists Then
             Set vbc = wb.VBProject.VBComponents(s)
-            sExpFileFullName = mCompMan.ExpFileFolderPath(Me.WrkbkFullName) & "\" & sCompName & Me.ExpFileExt
+            sExpFileFullName = mCompMan.ExpFileFolderPath(Me.HostWrkbkFullName) & "\" & sCompName & Me.ExpFileExt
             If Not fso.FileExists(sExpFileFullName) Then
                 Stop ' ????
             End If
@@ -257,14 +261,14 @@ End Property
 
 Friend Property Let ExpFileExt(ByVal s As String)
     sExpFileExt = s
-    sExpFileFullName = mCompMan.ExpFileFolderPath(Me.WrkbkFullName) & "\" & Me.CompName & s
+    sExpFileFullName = mCompMan.ExpFileFolderPath(Me.HostWrkbkFullName) & "\" & Me.CompName & s
 End Property
 
 Friend Property Get ExpFileFullName() As String:                ExpFileFullName = sExpFileFullName:    End Property
 
-Friend Property Get WrkbkFullName() As String:                  WrkbkFullName = sWrkbkFullName:        End Property
+Friend Property Get HostWrkbkFullName() As String:              HostWrkbkFullName = sWrkbkFullName:    End Property
 
-Friend Property Let WrkbkFullName(ByVal s As String)
+Friend Property Let HostWrkbkFullName(ByVal s As String)
     Dim fso As New FileSystemObject
     sWrkbkFullName = s
     sService = fso.GetFileName(s)
@@ -274,14 +278,10 @@ Friend Property Get VBComp() As VBComponent:                    Set VBComp = vbc
 
 Friend Property Set VBComp(ByRef Comp As VBComponent):          Set vbc = Comp:                         End Property
 
-'Friend Property Get CloneVbc() As VBComponent:                  Set CloneVbc = vbcClone:                End Property
-'
-'Friend Property Set CloneVbc(ByRef vbc As VBComponent):         Set vbcClone = vbc:                     End Property
-
 Friend Property Get Service() As String
     Dim fso As New FileSystemObject
     If sService = vbNullString Then
-        sService = fso.GetFileName(Me.WrkbkFullName)
+        sService = fso.GetFileName(Me.HostWrkbkFullName)
     End If
     Service = sService
 End Property

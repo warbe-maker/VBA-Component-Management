@@ -482,8 +482,8 @@ Public Function BasicConfig( _
     Const BTTN_TERMINATE_CFG    As String = "Terminate the configuration"
     
     On Error GoTo eh
-    Dim sBttnAddin      As String: sBttnAddin = "Configure/change the" & vbLf & vbLf & FOLDER_ADDIN & vbLf & " "
-    Dim sBttnSrvcd      As String: sBttnSrvcd = "Configure/change the" & vbLf & vbLf & FOLDER_SERVICED & vbLf & " "
+    Dim sBttnAddin      As String: sBttnAddin = "Configure/change" & vbLf & vbLf & FOLDER_ADDIN & vbLf & " "
+    Dim sBttnSrvcd      As String: sBttnSrvcd = "Configure/change" & vbLf & vbLf & FOLDER_SERVICED & vbLf & " "
     
     Dim fso             As New FileSystemObject
     Dim sMsg            As tMsg
@@ -536,7 +536,6 @@ Public Function BasicConfig( _
                                 "2. A Workbook/VB-Project is only serviced by CompMan when in a subfolder of the configured '" & FOLDER_SERVICED & "'."
 
         End With
-        
         '~~ Buttons preparation
         If Not bFolderServiced Or Not bFolderAddin _
         Then Set cllButtons = mMsg.Buttons(sBttnSrvcd, sBttnAddin, vbLf, BTTN_TERMINATE_CFG) _
@@ -549,13 +548,13 @@ Public Function BasicConfig( _
         Select Case sReply
             Case sBttnAddin
                 Do
-                    sFolderAddin = mBasic.SelectFolder("Select the required 'Folder for the CompMan Add-in'")
+                    sFolderAddin = mBasic.SelectFolder("Select the obligatory 'CompMan-Addin-Folder'")
                     If sFolderAddin <> vbNullString Then Exit Do
                 Loop
                 bc_sync_confirm_info = True
             Case sBttnSrvcd
                 Do
-                    sFolderServiced = mBasic.SelectFolder("Select the required 'Root folder serviced by CompMan'")
+                    sFolderServiced = mBasic.SelectFolder("Select the obligatory 'CompMan-Serviced-Root-Folder'")
                     If sFolderServiced <> vbNullString Then Exit Do
                 Loop
                 bc_sync_confirm_info = True

@@ -55,11 +55,10 @@ Public Sub RawClones(ByRef urc_wb As Workbook)
     Dim bVerbose                As Boolean
     Dim bSkip                   As Boolean
     Dim Clones                  As clsClones
-    Dim cRaw                    As clsRaw
-    Dim cClone                  As clsComp
+    Dim RawComp                 As clsRaw
+    Dim CloneComp               As clsComp
     
     Set Clones = New clsClones
-    Set Clones.Serviced = urc_wb
     Set dctClonesTheRawChanged = Clones.RawChanged
     
     bVerbose = True
@@ -68,33 +67,33 @@ Public Sub RawClones(ByRef urc_wb As Workbook)
         mCompMan.DsplyProgress p_result:=sUpdated _
                              , p_total:=Stats.Total(sic_clone_comps) _
                              , p_done:=Stats.Total(sic_clones_comps_updated)
-        Set cRaw = dctClonesTheRawChanged(v)
-        Set cClone = New clsComp
-        Set cClone.Wrkbk = urc_wb
-        cClone.CompName = cRaw.CompName
-        Log.ServicedItem = cClone.VBComp
+        Set RawComp = dctClonesTheRawChanged(v)
+        Set CloneComp = New clsComp
+        Set CloneComp.Wrkbk = urc_wb
+        CloneComp.CompName = RawComp.CompName
+        Log.ServicedItem = CloneComp.VBComp
         Log.Entry = "Corresponding Raw-Component's code changed! (its Export-File differs from the Clone's Export-File)"
-        With cRaw
+        With RawComp
             If bVerbose Then
                 UpdateCloneConfirmed ucc_comp_name:=.CompName _
                                    , ucc_stay_verbose:=bVerbose _
                                    , ucc_skip:=bSkip _
-                                   , ucc_clone:=cClone.ExpFileFullName _
-                                   , ucc_raw:=cRaw.ExpFileFullName
+                                   , ucc_clone:=CloneComp.ExpFileFullName _
+                                   , ucc_raw:=.ExpFileFullName
             End If
             If Not bSkip Then
                 mRenew.ByImport rn_wb:=urc_wb _
                      , rn_comp_name:=.CompName _
                      , rn_exp_file_full_name:=.ExpFileFullName
-                Log.Entry = "Clone-Component renewed/updated by (re-)import of '" & cRaw.ExpFileFullName & "'"
+                Log.Entry = "Clone-Component renewed/updated by (re-)import of '" & RawComp.ExpFileFullName & "'"
                 Stats.Count sic_clones_comps_updated
                 If sUpdated = vbNullString _
                 Then sUpdated = .CompName _
                 Else sUpdated = .CompName & ", " & sUpdated
             End If
         End With
-        Set cClone = Nothing
-        Set cRaw = Nothing
+        Set CloneComp = Nothing
+        Set RawComp = Nothing
         
     Next v
     If sUpdated = vbNullString _
