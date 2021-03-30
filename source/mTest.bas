@@ -97,21 +97,21 @@ Public Sub Regression()
     
 End Sub
   
-Public Sub Test_SynchVBProjects()
+Public Sub Test_SyncVBProjects()
 ' ---------------------------------------------------------------------
 ' Attention: This test preserves the target Workbook by a backup before
 ' and a restore after the synch test. The target Workbook thus will not
 ' show the synch result unless the terst procedire is stopped.
 ' ---------------------------------------------------------------------
-    Const PROC = "Test_SynchVBProjects"
+    Const PROC = "Test_SyncVBProjects"
     
     On Error GoTo eh
     Dim sSource     As String
     Dim sTarget     As String
     Dim BkpFolder   As String
     
-    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Target-Project\Test_Sync_Target.xlsb"
-    sSource = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Source-Project\Test_Sync_Source.xlsb"
+    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncTarget\SyncTarget.xlsb"
+    sSource = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
        
     If mService.SyncVBProjects(wb_target:=mCompMan.WbkGetOpen(sTarget) _
                              , wb_source_name:=sSource _
