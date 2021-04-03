@@ -7,7 +7,7 @@ Option Explicit
 ' ---------------------------------------------------------------------------
 Private Const VNAME_HOST_FULL_NAME = "HostFullName"
 
-Public Property Get DAT_FILE() As String: DAT_FILE = mMe.CompManAddinPath & "\RawHosts.dat":   End Property
+Public Property Get RawHostsFile() As String: RawHostsFile = mMe.CompManAddinFolder & COMPMAN_ADMIN_FOLDER_NAME & "RawHosts.dat":   End Property
 
 Public Property Get FullName( _
                      Optional ByVal host_base_name As String) As String
@@ -24,7 +24,7 @@ Private Property Get Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String) As Variant
     
-    Value = mFile.Value(pp_file:=DAT_FILE _
+    Value = mFile.Value(pp_file:=RawHostsFile _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -36,10 +36,10 @@ Private Property Let Value( _
                     ByVal pp_value As Variant)
 ' --------------------------------------------------
 ' Write the value (pp_value) named (pp_value_name)
-' into the file RAWS_DAT_FILE.
+' into the file 'RawHostsFile'.
 ' --------------------------------------------------
     
-    mFile.Value(pp_file:=DAT_FILE _
+    mFile.Value(pp_file:=RawHostsFile _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -51,10 +51,10 @@ Public Function Exists(ByVal raw_host_base_name As String) As Boolean
 End Function
 
 Public Function Hosts() As Dictionary
-    Set Hosts = mFile.Sections(DAT_FILE)
+    Set Hosts = mFile.Sections(RawHostsFile)
 End Function
 
 Public Sub Remove(ByVal raw_host_base_name As String)
-    mFile.SectionsRemove pp_file:=DAT_FILE _
+    mFile.SectionsRemove pp_file:=RawHostsFile _
                        , pp_sections:=raw_host_base_name
 End Sub

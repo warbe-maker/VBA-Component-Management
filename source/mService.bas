@@ -211,7 +211,7 @@ Public Function Denied(ByVal den_service As String) As Boolean
         sStatus = "Service denied! Workbook appears restored by the system!"
         Log.Entry = sStatus
     ElseIf Not WbkInServicedRoot Then
-        sStatus = "Service denied! Workbook is not within the configured 'serviced root': " & mMe.ServicedRoot & "!"
+        sStatus = "Service denied! Workbook is not within the configured 'serviced root': " & mMe.ServicedRootFolder & "!"
         Log.Entry = sStatus
     ElseIf mMe.CompManAddinPaused Then
         sStatus = "Service denied! The CompMan Addin is currently paused!"
@@ -233,7 +233,7 @@ Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mService." & s
 End Function
 
-Public Sub ExportChangedComponents()
+Public Sub ExportChangedComponents(ByVal hosted As String)
 ' -----------------------------------------------------------
 ' Exclusively called by mCompMan.ExportChangedComponents,
 ' triggered by the Before_Save event.
@@ -265,9 +265,9 @@ Public Sub ExportChangedComponents()
     If mService.Serviced Is Nothing _
     Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                                  "(it may have been called directly via the 'Immediate Window'"
-    '~~ Prevent any action for a Workbook opened with any irregularity
-    '~~ indicated by an '(' in the active window or workbook fullname.
     If mService.Denied(PROC) Then GoTo xt
+    mCompMan.ManageHostHostedProperty hosted
+    
     mExport.ChangedComponents
         
 xt: Set dctHostedRaws = Nothing
@@ -358,7 +358,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function WbkInServicedRoot() As Boolean
-    WbkInServicedRoot = InStr(mService.Serviced.Path, mMe.ServicedRoot) <> 0
+    WbkInServicedRoot = InStr(mService.Serviced.Path, mMe.ServicedRootFolder) <> 0
 End Function
 
 Private Function WbkIsRestoredBySystem() As Boolean

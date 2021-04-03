@@ -141,7 +141,7 @@ Public Function UpdateCloneConfirmed( _
     With sMsg
         .Section(1).sLabel = "About"
         .Section(1).sText = "When the cloned raw in this Workbook is not updated the message will show up again the next time this Workbook is opened in the configured development root:"
-        .Section(2).sText = mMe.ServicedRoot
+        .Section(2).sText = mMe.ServicedRootFolder
         .Section(2).bMonspaced = True
     End With
     Do

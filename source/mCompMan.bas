@@ -4,7 +4,7 @@ Option Compare Text
 ' ----------------------------------------------------------------------------
 ' Standard Module mCompMan
 '          Services for the management of VBComponents in Workbooks provided:
-'          - stored within the 'ServicedRoot'
+'          - stored within the 'ServicedRootFolder'
 '          - have the Conditional Compile Argument 'CompMan = 1'
 '          - have 'CompMan' referenced
 '          - the Workbook resides in its own dedicated folder
@@ -358,8 +358,7 @@ Public Sub ExportChangedComponents( _
     mErH.BoP ErrSrc(PROC)
     Set mService.Serviced = ec_wb
     
-    mCompMan.ManageHostHostedProperty ec_hosted
-    mService.ExportChangedComponents
+    mService.ExportChangedComponents ec_hosted
     
 xt: mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
@@ -423,12 +422,12 @@ Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
         For Each v In mRawsHosted.Components
             If mRawsHosted.HostFullName(comp_name:=v) = mService.Serviced.FullName Then
                 mRawsHosted.Remove comp_name:=v
-                Log.Entry = "Component removed from '" & mRawHosts.DAT_FILE & "'"
+                Log.Entry = "Component removed from '" & mRawsHosted.HostedRawsFile & "'"
             End If
         Next v
         If mRawHosts.Exists(fso.GetBaseName(mService.Serviced.FullName)) Then
             mRawHosts.Remove (fso.GetBaseName(mService.Serviced.FullName))
-            Log.Entry = "Workbook no longer a host for at least one raw component removed from '" & mRawHosts.DAT_FILE & "'"
+            Log.Entry = "Workbook no longer a host for at least one raw component removed from '" & mRawHosts.RawHostsFile & "'"
         End If
     End If
 

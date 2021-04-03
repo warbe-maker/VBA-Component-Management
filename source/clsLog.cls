@@ -112,6 +112,7 @@ Friend Property Let Service( _
     If sFile = vbNullString Then
         '~~ In case not a specific file had explicitely assigned before
         sFile = Me.Folder & "\" & mService.SERVICES_LOG_FILE
+        If InStr(sFile, "\Addin") <> 0 Then Stop
     End If
     With New FileSystemObject
         If bNewLog Then

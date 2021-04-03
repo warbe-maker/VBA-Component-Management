@@ -319,7 +319,7 @@ Public Sub SyncRestore( _
         With Application.FileDialog(msoFileDialogFolderPicker)
             .Title = "Select the desired backup folder"
             .AllowMultiSelect = False
-            .InitialFileName = mMe.ServicedRoot
+            .InitialFileName = mMe.ServicedRootFolder
             If .show = -1 Then ' if OK is pressed
                 sBckp = .SelectedItems(1)
             End If

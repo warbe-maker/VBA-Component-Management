@@ -9,7 +9,7 @@ Option Explicit
 Private Const VNAME_HOST_FULL_NAME      As String = "HostFullName"
 Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
-Public Property Get DAT_FILE() As String: DAT_FILE = mMe.CompManAddinPath & "\HostedRaws.dat":   End Property
+Public Property Get HostedRawsFile() As String: HostedRawsFile = mMe.CompManAddinFolder & COMPMAN_ADMIN_FOLDER_NAME & "HostedRaws.dat":   End Property
 
 Public Property Get ExpFileFullName( _
                      Optional ByVal comp_name As String) As String
@@ -39,7 +39,7 @@ Private Property Get Value( _
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    Value = mFile.Value(pp_file:=DAT_FILE _
+    Value = mFile.Value(pp_file:=HostedRawsFile _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -58,12 +58,12 @@ Private Property Let Value( _
                     ByVal pp_value As Variant)
 ' --------------------------------------------------
 ' Write the value (pp_value) named (pp_value_name)
-' into the file RAWS_DAT_FILE.
+' into the file RAWS_HostedRawsFile.
 ' --------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    mFile.Value(pp_file:=DAT_FILE _
+    mFile.Value(pp_file:=HostedRawsFile _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -108,11 +108,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Function Components() As Dictionary
-    Set Components = mFile.SectionNames(DAT_FILE)
+    Set Components = mFile.SectionNames(HostedRawsFile)
 End Function
 
 Public Sub Remove(ByVal comp_name As String)
-    mFile.SectionsRemove pp_file:=DAT_FILE _
+    mFile.SectionsRemove pp_file:=HostedRawsFile _
                        , pp_sections:=comp_name
 End Sub
 
