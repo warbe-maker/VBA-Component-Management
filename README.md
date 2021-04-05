@@ -1,9 +1,11 @@
 # Management of Excel VB-Project Components
-**Export** of changed components, **Update** components the raw had changed, and **Synchronization** of VB-Projects. 
-See the [Programmatically updating Excel VBA code][2] post for more details. The _Component-Management-Services_ are available when the [_CompMan.xlsb_][1] Workbook is downloaded and opened. Alternatively the Workbook provides the _Setup/Renew_ for the services available as an  _Addin-Workbook_.
+- **Export** of changed components
+- **Update** of _Common-Components
+- **Synchronization** of _VB-Projects_
+ 
+Also see the [Programmatically updating Excel VBA code][2] post for more details.
 
 ## Disambiguation
-Terms used in this VB-Project and related posts.
 
 | Term             | Meaning                  |
 |------------------|------------------------- |
