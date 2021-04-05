@@ -15,9 +15,9 @@ Terms used in this VB-Project and related posts.
 |_Raw&#8209;Host_      | The Workbook/_VB-Project_ which hosts the _Raw-Component_ |
 |_Service_             | Generic term for any _Public Property_, _Public Sub_, or _Public Function_ of a _Component_ |
 |_VB&#8209;Project_    | Used synonymous with Workbook |
-|_Source&#8209;Workbook/VB&#8209;Project_   | The temporary copy of productive Workbook which becomes by then the _Target-Workbook/Project for the synchronization.|
-|_Target&#8209;Workbook/VB&#8209;Project_ | A _VP-Project_ which is a copy (i.e regarding the VB-Project code a clone) of a corresponding  _VB&#8209;Raw&#8209;Project_. The code of the clone project is kept up-to-date by means of a code synchronization service. |
-| _Workbook/VB&#8209;Project&#8209;Folder_ | A folder dedicated to a _Workbook/VB-Project_ with all its Export-Files (in a \source sub-folder). When the folder is the equivalent of a GitHub repo it may contain other files like a README and a LICENSE (provided GitHub is used for the project's versioning which not only  recommendable but also pretty easy to use.|
+|_Source&#8209;Workbook/<br>Source&#8209;VB&#8209;Project_   | The temporary copy of productive Workbook which becomes by then the _Target-Workbook/Project for the synchronization.|
+|_Target&#8209;Workbook<br>Target&#8209;VB&#8209;Project_ | A _VP-Project_ which is a copy (i.e regarding the VB-Project code a clone) of a corresponding  _VB&#8209;Raw&#8209;Project_. The code of the clone project is kept up-to-date by means of a code synchronization service. |
+| _Workbook&#8209;Folder_ | A folder dedicated to a _Workbook/VB-Project_ with all its Export-Files (in a \source sub-folder). When the folder is the equivalent of a GitHub repo it may contain other files like a README and a LICENSE (provided GitHub is used for the project's versioning which not only  recommendable but also pretty easy to use.|
 
 # Services
 ## Export service (_ExportChangedComponents_)
@@ -50,22 +50,23 @@ While the code of a sheet is fully synchronized design changes such like inserti
 1. Download and open [CompMan.xlsb][1]
 
 2. Optionally use the _Setup/Renew_ button to establish a CompMan-Addin. The service asks for two required basic configurations
-  - a dedicated Addin-folder for the Addin-Workbook - preferably a dedicated folder like ../CompMan/Addin
-  - a _Serviced-Root-Folder_ which is used to serve only Workbooks under this root but not when they are located elsewhere outside
+   - a folder for the Addin which will become the _Application.AltStartupPath_ and therefore defaults to it when already used
+   - a _Serviced-Root-Folder_ which is used to serve only Workbooks under this root but not when they are located elsewhere outside
  
-Once the Addin is established it will automatically be loaded with the first Workbook opened which has a _Reference_ to it. When no Workbook refers to it the Addin may be made available at any time via the CompMan-Development-Instance-Workbook.
+Once the _CompMan-Addin_ is established it will automatically be opened when Excel starts.
 
 # Usage
-### Common preconditions
-Every service will be denied unless the following preconditions are met:
-1. The basic configuration - confirmed with each Setup/Renew of the _CompMan-Addin-Folder_ - is complete and valid
+## Export (_ExportChangedComponents_) and Update (_UpdateRawClones_) service 
+### Preconditions
+The services will be denied when any of the following preconditions is not met:
+1. The basic configuration - confirmed with each Setup/Renew is complete and valid
 2. The serviced Workbook resides in a sub-folder of the configured _ServicedRootFolder_
 3. The serviced Workbook is the only Workbook in its parent folder
 4. The CompMan services are not _Paused_
 5. WinMerge is installed
 
-### Common usage requirement
-1. In any Workbook (preferably in those which host a _Common-Component_) copy the module _[mCompManClient}]3]_ from the open [CompMan.xlsb][1]  Workbook into the Workbook (drag and drop in the VBE)
+### Common usage requirements
+1. In any Workbook (specifically in those which host a _Common-Component_) copy the module _[mCompManClient][3]_ from the open _[CompMan.xlsb][1]_  Workbook into the Workbook (drag and drop in the VBE)
 2. For the **Export** service (_ExportChangedComponents_)<br>Crucial for all Workbooks which either **host** a _Common-Component_ or may be copied for synchronization one time (which will rely on up-to-date Export-Files).<br>In the concerned Workbook's Workbook-Component copy:
 ```vb
 
@@ -88,13 +89,13 @@ Private Sub Workbook_Open()
 End Sub
 ```
 
-### Using the synchronization service (_SyncVBProjects_)
+## Synchronization (_SyncVBProjects_) service 
 When either the _[CompMan.xlsb][1]_ Workbook or the corresponding _CompMan-Addin_ is open, in the _Immediate Window_ enter<br>
 `mService.SyncVBProjects`<br>
 A dialog will open for the selection of the source and the target Workbook through their file names regardless the are already open. To avoid a possible irritation, opening them beforehand may be appropriate. In case there are some not yet up-to-date used _Common-Components_ the update service will run and display a confirmation dialog. For more details using this service see th post [Programmatically-updating-Excel-VBA-code][2]. 
 
 ### Pausing/continuing the CompMan Add-in
-Use the corresponding command buttons when the [CompMan.xlsb][1] Workbook is open.
+Use the corresponding command buttons when the Workbook [CompMan.xlsb][1] is open.
   
 ## Contribution
 Contribution of any kind is welcome raising issues or by commenting the corresponding post [Programmatically-updating-Excel-VBA-code][2].
