@@ -85,7 +85,7 @@ Public Sub SyncNamedColumnsWidth( _
                         On Error Resume Next
                         RangeName = rngSource.Name.Name
                         If Err.Number = 0 Then
-                            '~~ This is a named range (row)
+                            '~~ This is a named column
                             On Error GoTo eh
                             rngTarget.EntireColumn.ColumnWidth = rngSource.ColumnWidth
                         End If
@@ -151,7 +151,7 @@ Public Sub SyncNamedRowsHeight( _
                         On Error Resume Next
                         RangeName = rngSource.Name.Name
                         If Err.Number = 0 Then
-                            '~~ This is a named range (row)
+                            '~~ This is a named row
                             On Error GoTo eh
                             rngTarget.EntireRow.RowHeight = rngSource.RowHeight
                         End If
