@@ -539,7 +539,7 @@ Private Sub ErrMsg( _
 End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = ThisWorkbook.Name & " mBasic." & sProc
+    ErrSrc = ThisWorkbook.name & " mBasic." & sProc
 End Function
 
 Public Function IsCvName(ByVal v As Variant) As Boolean

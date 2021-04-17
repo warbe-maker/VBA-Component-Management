@@ -1,68 +1,172 @@
 Attribute VB_Name = "mSyncSheets"
 Option Explicit
 
-Public Sub SyncCode()
-' -----------------------------------------------
-' When lMode=Confirm all sheets which had changed
-' are collected and provided for confirmation
-' else the changes are syncronized.
-' -----------------------------------------------
-    Const PROC = "SyncCode"
-    
+Private dctFinalName    As Dictionary
+
+' ------------------------------------------------------------------------
+' Property FinalName:
+' Used for sheet controls to ensure the use of the final sheet name -
+' which will be the case when the sheet controls are synchronized because
+' the sheet's name will have neen synchronized before.
+' ------------------------------------------------------------------------
+Public Property Get FinalName(Optional ByVal old_name As String) As String
+    FinalName = old_name
+    If Not dctFinalName Is Nothing Then
+        If dctFinalName.Exists(old_name) Then
+            FinalName = dctFinalName(old_name)
+        End If
+    End If
+End Property
+                      
+Public Property Let FinalName(Optional ByVal old_name As String, ByVal new_name As String)
+    If dctFinalName Is Nothing Then Set dctFinalName = New Dictionary
+    If Not dctFinalName.Exists(old_name) Then dctFinalName.Add old_name, new_name
+End Property
+
+Private Function ErrSrc(ByVal s As String) As String
+    ErrSrc = "mSyncSheets." & s
+End Function
+
+Private Function NameChange( _
+                      ByVal sh_name As String, _
+                      ByVal sh_code_name As String) As Boolean
+' ------------------------------------------------------------
+' Returns TRUE when either name is involved in a name change.
+' ------------------------------------------------------------
+    NameChange = Sync.NameChange.Exists(sh_name)
+    If Not NameChange Then NameChange = Sync.NameChange.Exists(sh_code_name)
+End Function
+
+Public Function SheetExists( _
+                       ByRef wb As Workbook, _
+              Optional ByRef sh1_name As String = vbNullString, _
+              Optional ByRef sh1_code_name As String = vbNullString, _
+              Optional ByRef sh2_name As String = vbNullString, _
+              Optional ByRef sh2_code_name As String = vbNullString) As Boolean
+' -----------------------------------------------------------------------------
+' Returns TRUE when the sheet identified by the name (sh1_name) and the
+' CodeName (sh1_code_name) exists in the Workbook (wb) either under the
+' provided Name or CodeName. Returns FALSE when the sheet not exists neither
+' under the Name nor under the CodeName. When the sheet exists its Name
+' (sh2_name) and its CodeName (sh2_code_name) is returned.
+' -----------------------------------------------------------------------------
+    Const PROC = "SheetExists"
+                             
     On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim vbc         As VBComponent
-    Dim sCaption    As String
-    Dim sExpFile    As String
-    Dim SourceComp  As clsRaw
-    Dim TargetComp  As clsComp
+    Dim ws As Worksheet
     
-    With Sync
-        For Each vbc In .Source.VBProject.VBComponents
-            If Not vbc.Type = vbext_ct_Document Then GoTo next_sheet
-            If Not mComp.IsSheetDocMod(vbc) Then GoTo next_sheet
-            
-            Set SourceComp = New clsRaw
-            Set SourceComp.Wrkbk = .Source
-            SourceComp.CompName = vbc.Name
-            If Not SourceComp.Exists(.Target) Then GoTo next_sheet
-            
-            Set TargetComp = New clsComp
-            Set TargetComp.Wrkbk = .Target
-            TargetComp.CompName = vbc.Name
-            SourceComp.CloneExpFileFullName = TargetComp.ExpFileFullName
-            If Not SourceComp.Changed(TargetComp) Then GoTo next_sheet
-            
-            Log.ServicedItem = vbc
-            Stats.Count sic_non_doc_mods_code
-            
-            If .Mode = Confirm Then
-                .ConfInfo = "Code changed!"
-                sCaption = "Display code changes" & vbLf & vbLf & vbc.Name & vbLf
-                If Not .Changed.Exists(sCaption) _
-                Then .Changed.Add sCaption, SourceComp
-            Else
-                sExpFile = SourceComp.ExpFileFullName
-                mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
-                                , wb_source_full_name:=SourceComp.Wrkbk.FullName _
-                                , sync_source_codelines:=SourceComp.CodeLines
-                Log.Entry = "Code updated line-by-line with code from Export-File '" & sExpFile & "'"
+    If sh1_name = vbNullString And sh1_code_name = vbNullString _
+    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Neither a Sheet's Name nor CodeName is provided!"
+    
+    For Each ws In wb.Worksheets
+        If sh1_name <> vbNullString Then
+            If ws.Name = sh1_name Then
+                SheetExists = True
+                Exit For
             End If
-            Set SourceComp = Nothing
-            Set TargetComp = Nothing
-next_sheet:
-        Next vbc
-    End With
-
-xt: Set fso = Nothing
-    Exit Sub
-
+        End If
+        If sh1_code_name <> vbNullString Then
+            If ws.CodeName = sh1_code_name Then
+                SheetExists = True
+                Exit For
+            End If
+        End If
+    Next ws
+    
+xt: If SheetExists Then
+        sh2_name = ws.Name
+        sh2_code_name = ws.CodeName
+        If sh2_name <> sh1_name Then FinalName(sh1_name) = sh2_name
+        If sh2_code_name <> sh1_code_name Then FinalName(sh1_code_name) = sh2_code_name
+    End If
+    Exit Function
+    
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
         Case mErH.DebugOptResumeNext: Resume Next
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
+End Function
+
+ 
+Private Sub SourceSheetNameChange( _
+                            ByVal sh1_name As String, _
+                            ByVal sh1_code_name As String, _
+                            ByVal sh2_name As String, _
+                            ByVal sh2_code_name As String)
+' ----------------------------------------------------------
+' Registers all sheet names involved in name changes.
+' ----------------------------------------------------------
+    With Sync
+        If Not .NameChange.Exists(sh1_name) Then .NameChange.Add sh1_name, sh1_name
+        If Not .NameChange.Exists(sh1_code_name) Then .NameChange.Add sh1_code_name, sh1_code_name
+        If Not .NameChange.Exists(sh2_name) Then .NameChange.Add sh2_name, sh2_name
+        If Not .NameChange.Exists(sh2_code_name) Then .NameChange.Add sh2_code_name, sh2_code_name
+    End With
 End Sub
+
+'Public Sub SyncCode()
+'' -----------------------------------------------
+'' When lMode=Confirm all sheets which had changed
+'' are collected and provided for confirmation
+'' else the changes are syncronized.
+'' -----------------------------------------------
+'    Const PROC = "SyncCode"
+'
+'    On Error GoTo eh
+'    Dim fso         As New FileSystemObject
+'    Dim vbc         As VBComponent
+'    Dim sCaption    As String
+'    Dim sExpFile    As String
+'    Dim SourceComp  As clsRaw
+'    Dim TargetComp  As clsComp
+'
+'    With Sync
+'        For Each vbc In .Source.VBProject.VBComponents
+'            If Not vbc.Type = vbext_ct_Document Then GoTo next_sheet
+'            If Not mComp.IsSheetDocMod(vbc) Then GoTo next_sheet
+'
+'            Set SourceComp = New clsRaw
+'            Set SourceComp.Wrkbk = .Source
+'            SourceComp.CompName = vbc.Name
+'            If Not SourceComp.Exists(.Target) Then GoTo next_sheet
+'
+'            Set TargetComp = New clsComp
+'            Set TargetComp.Wrkbk = .Target
+'            TargetComp.CompName = vbc.Name
+'            SourceComp.CloneExpFileFullName = TargetComp.ExpFileFullName
+'            If Not SourceComp.Changed(TargetComp) Then GoTo next_sheet
+'
+'            Log.ServicedItem = vbc
+'            Stats.Count sic_non_doc_mods_code
+'
+'            If .Mode = Confirm Then
+'                .ConfInfo = "Code changed!"
+'                sCaption = "Display code changes" & vbLf & vbLf & vbc.Name & vbLf
+'                If Not .Changed.Exists(sCaption) _
+'                Then .Changed.Add sCaption, SourceComp
+'            Else
+'                sExpFile = SourceComp.ExpFileFullName
+'                mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
+'                                , wb_source_full_name:=SourceComp.Wrkbk.FullName _
+'                                , sync_source_codelines:=SourceComp.CodeLines
+'                Log.Entry = "Code updated line-by-line with code from Export-File '" & sExpFile & "'"
+'            End If
+'            Set SourceComp = Nothing
+'            Set TargetComp = Nothing
+'next_sheet:
+'        Next vbc
+'    End With
+'
+'xt: Set fso = Nothing
+'    Exit Sub
+'
+'eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+'        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+'        Case mErH.DebugOptResumeNext: Resume Next
+'        Case mErH.ErrMsgDefaultButton: GoTo xt
+'    End Select
+'End Sub
 
 Public Sub SyncCodeName()
 ' ------------------------------------
@@ -173,8 +277,8 @@ End Sub
 
 Public Sub SyncNew()
 ' ---------------------------------------------------------------
-' Synchronize new sheets in the source Workbook (Sync.Source) with
-' the target Workbook (Sync.Target).
+' Synchronize sheets regarded new, i.e. which exist in the source
+' Workbook (Sync.Source) but not in the target Workbook (Sync.Target).
 ' - When the optional new sheets counter (sync_new_count) is
 '   provided, the new sheets are only counted
 ' - In lMode=Confirm only the syncronization infos are collect
@@ -192,27 +296,27 @@ Public Sub SyncNew()
     Const PROC = "SyncNew"
     
     On Error GoTo eh
-    Dim ws                      As Worksheet
-    Dim sSourceSheetName        As String
-    Dim sTargetSheetName        As String
-    Dim sSourceSheetCodeName    As String
-    Dim sTargetSheetCodeName    As String
-    Dim v                       As Variant
+    Dim ws                  As Worksheet
+    Dim sSourceName         As String
+    Dim sTargetName         As String
+    Dim sSourceCodeName     As String
+    Dim sTargetCodeName     As String
+    Dim v                   As Variant
     
     With Sync
         For Each v In .SourceSheets
-            sSourceSheetName = .SourceSheets(v)
-            sSourceSheetCodeName = SheetCodeName(.Source, sSourceSheetName)
+            sSourceName = .SourceSheets(v)
+            sSourceCodeName = SheetCodeName(.Source, sSourceName)
             If Not SheetExists(wb:=.Target _
-                             , sh1_name:=sSourceSheetName _
-                             , sh1_code_name:=sSourceSheetCodeName _
-                             , sh2_name:=sTargetSheetName _
-                             , sh2_code_name:=sTargetSheetCodeName _
+                             , sh1_name:=sSourceName _
+                             , sh1_code_name:=sSourceCodeName _
+                             , sh2_name:=sTargetName _
+                             , sh2_code_name:=sTargetCodeName _
                              ) Then
-                If NameChange(sSourceSheetName, sSourceSheetCodeName) Then GoTo next_v
+                If NameChange(sSourceName, sSourceCodeName) Then GoTo next_v
         
                 '~~ The sheet not exist in the target Workbook under the Name nor under the CodeName.
-                Set ws = .Source.Worksheets(sSourceSheetName)
+                Set ws = .Source.Worksheets(sSourceName)
                 Log.ServicedItem = ws
                 Stats.Count sic_sheets_new
                 
@@ -225,20 +329,20 @@ Public Sub SyncNew()
                         If Not .RestrictRenameAsserted Then
                             .Ambigous = True
                             .ConfInfo = "Ambigous new! 1)"
-                            .NewSheet(sSourceSheetCodeName) = sSourceSheetName
+                            .NewSheet(sSourceCodeName) = sSourceName
                         Else
                             .Ambigous = False
                             .ConfInfo = "New! 2)"
-                            .NewSheet(sSourceSheetCodeName) = sSourceSheetName
+                            .NewSheet(sSourceCodeName) = sSourceName
                         End If
                     Else
                         .ConfInfo = "New!"
-                        .NewSheet(sSourceSheetCodeName) = sSourceSheetName
+                        .NewSheet(sSourceCodeName) = sSourceName
                     End If
                 Else
                     '~~ This is the third call for getting the syncronizations done
                     '~~ The new sheet is copied to the corresponding position in the target Workbook
-                    .Source.Worksheets(sSourceSheetName).Copy _
+                    .Source.Worksheets(sSourceName).Copy _
                     After:=.Target.Sheets(.Target.Worksheets.Count)
                     Log.Entry = "Copied from source Workbook."
                 End If
@@ -357,26 +461,25 @@ Public Sub SyncOrder()
     Const PROC = "SyncOrder"
     
     On Error GoTo eh
-    Dim ws      As Worksheet
-    Dim sSheet  As String
-    Dim i       As Long
+    Dim wsSource    As Worksheet
+    Dim wsTarget    As Worksheet
+    Dim i           As Long
     
-    For i = 1 To Sync.Source.Worksheets.Count
-        If Sync.TargetSheets.Exists(Sync.Source.Worksheets(i).Name) Then
-            Set ws = Sync.Source.Worksheets(i)
-            sSheet = ws.Name
-            If Sync.Target.Worksheets(i).Name <> sSheet Then
-                Log.ServicedItem = ws
-                If i = 1 Then
-                    Sync.Target.Worksheets(sSheet).Move Before:=Sheets(i + 1)
+    While i > Sync.Source.Worksheets.Count
+        For i = 1 To Sync.Source.Worksheets.Count
+            If Sync.TargetSheets.Exists(Sync.Source.Worksheets(i).Name) Then
+                Set wsSource = Sync.Source.Worksheets(i)
+                Set wsTarget = Sync.Target.Worksheets(i)
+                If wsTarget.Name <> wsSource.Name Then
+                    Log.ServicedItem = wsTarget
+                    wsTarget.Move After:=Sheets(Sync.Target.Worksheets.Count)
                     Log.Entry = "Order synched!"
-                Else
-                    Sync.Target.Worksheets(sSheet).Move After:=Sheets(i)
-                    Log.Entry = "Order synched!"
+                    GoTo again
                 End If
             End If
-        End If
-    Next i
+        Next i
+again:
+    Wend
 
 xt: Exit Sub
 
@@ -387,47 +490,23 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function ErrSrc(ByVal s As String) As String
-    ErrSrc = "mSyncSheets." & s
-End Function
+Public Function SheetCodeName( _
+                        ByRef wb As Workbook, _
+                        ByVal sheet_name As String) As String
+' -----------------------------------------------------------
+' Returns the sheet's (sheet_name) CodeName in Workbook (wb).
+' When no sheet exists under the provided name a vbNullString
+' is returned.
+' -----------------------------------------------------------
+    Const PROC = "SheetCodeName"
 
-Private Function SheetExists( _
-                       ByRef wb As Workbook, _
-              Optional ByRef sh1_name As String = vbNullString, _
-              Optional ByRef sh1_code_name As String = vbNullString, _
-              Optional ByRef sh2_name As String = vbNullString, _
-              Optional ByRef sh2_code_name As String = vbNullString) As Boolean
-' -----------------------------------------------------------------------------
-' Returns TRUE when the sheet either under the Name (sh1_name) or under the
-' CodeName (sh1_code_name) exists in Workbook (wb).
-' Returns FALSE when the sheet not exists in the Workbook (wb) under either
-' name. When it exists by Name or CodeName both are returned (sh2_name,
-' sh2_code_name).
-' -----------------------------------------------------------------------------
-    Const PROC = "SheetExists"
-                             
     On Error GoTo eh
-    Dim ws As Worksheet
-    
-    If sh1_name = vbNullString And sh1_code_name = vbNullString _
-    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Neither a Sheet's Name nor CodeName is provided!"
+    Dim ws  As Worksheet
     
     For Each ws In wb.Worksheets
-        If sh1_name <> vbNullString Then
-            If ws.Name = sh1_name Then
-                sh2_name = ws.Name
-                sh2_code_name = ws.CodeName
-                SheetExists = True
-                Exit For
-            End If
-        End If
-        If sh1_code_name <> vbNullString Then
-            If ws.CodeName = sh1_code_name Then
-                sh2_name = ws.Name
-                sh2_code_name = ws.CodeName
-                SheetExists = True
-                Exit For
-            End If
+        If ws.Name = sheet_name Then
+            SheetCodeName = ws.CodeName
+            GoTo xt
         End If
     Next ws
     
@@ -436,33 +515,6 @@ xt: Exit Function
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
         Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
-End Function
- 
-Private Sub SourceSheetNameChange( _
-                            ByVal sh1_name As String, _
-                            ByVal sh1_code_name As String, _
-                            ByVal sh2_name As String, _
-                            ByVal sh2_code_name As String)
-' ----------------------------------------------------------
-' Registers all sheet names involved in name changes.
-' ----------------------------------------------------------
-    With Sync
-        If Not .NameChange.Exists(sh1_name) Then .NameChange.Add sh1_name, sh1_name
-        If Not .NameChange.Exists(sh1_code_name) Then .NameChange.Add sh1_code_name, sh1_code_name
-        If Not .NameChange.Exists(sh2_name) Then .NameChange.Add sh2_name, sh2_name
-        If Not .NameChange.Exists(sh2_code_name) Then .NameChange.Add sh2_code_name, sh2_code_name
-    End With
-End Sub
-
-Private Function NameChange( _
-                      ByVal sh_name As String, _
-                      ByVal sh_code_name As String) As Boolean
-' ------------------------------------------------------------
-' Returns TRUE when either name is involved in a name change.
-' ------------------------------------------------------------
-    NameChange = Sync.NameChange.Exists(sh_name)
-    If Not NameChange Then NameChange = Sync.NameChange.Exists(sh_code_name)
 End Function
 

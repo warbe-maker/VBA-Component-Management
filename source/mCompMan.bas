@@ -92,9 +92,9 @@ Public Enum siCounter
     sic_refs_total
     sic_rows_new
     sic_rows_obsolete
-    sic_shapes_new
-    sic_shapes_obsolete
-    sic_shapes_total
+    sic_sheet_controls_new
+    sic_sheet_controls_obsolete
+    sic_sheet_controls_total
     sic_shape_properties
     sic_sheets_code
     sic_sheets_codename
@@ -271,6 +271,7 @@ Public Sub DsplyProgress( _
     sService = Log.Service
     sMsg = sService & sDots & p_result
     If Len(sMsg) > 250 Then sMsg = Left(sMsg, 246) & "...."
+    If Right(sMsg, 1) = " " Then sMsg = Left(sMsg, Len(sMsg) - 1) & " ."
     Application.StatusBar = sMsg
 
 End Sub
@@ -457,6 +458,7 @@ Public Sub SynchTargetWbWithSourceWb( _
     
     On Error GoTo eh
     mErH.BoP ErrSrc(PROC)
+    Set mService.Serviced = wb_target
     mService.SyncVBProjects wb_target:=wb_target, wb_source_name:=wb_source
     
 xt: mErH.EoP ErrSrc(PROC)

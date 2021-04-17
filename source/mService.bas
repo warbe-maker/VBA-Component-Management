@@ -198,6 +198,9 @@ Public Function Denied(ByVal den_service As String) As Boolean
 ' --------------------------------------------------------------------------
 ' Returns TRUE when all preconditions for a service execution are fulfilled.
 ' --------------------------------------------------------------------------
+    Const PROC = "Denied"
+    
+    On Error GoTo eh
     Dim sStatus As String
     
     If Log Is Nothing Then Set Log = New clsLog
@@ -227,6 +230,14 @@ Public Function Denied(ByVal den_service As String) As Boolean
         Application.StatusBar = Log.Service & sStatus
         Denied = True
     End If
+
+xt: Exit Function
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: End
+    End Select
 End Function
 
 Private Function ErrSrc(ByVal s As String) As String
@@ -308,8 +319,8 @@ Public Function SyncVBProjects( _
                 Optional ByRef wb_target As Workbook = Nothing, _
                 Optional ByVal wb_source_name As String = vbNullString, _
                 Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
-                Optional ByRef bkp_folder As String) As Boolean
-' -----------------------------------------------------------------------------------
+                Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
+' --------------------------------------------------------------------------------------------
 ' Synchronizes the target Workbook (wb_target) with the source Workbook (wb_source).
 ' Returns TRUE when successfully finished. The service is denied when the following
 ' preconditions are not met:
@@ -321,7 +332,7 @@ Public Function SyncVBProjects( _
 ' - WinMerge is installed (used to display code changes)
 ' Note: This service is usually called by a developer via the 'Immediate Window'
 '       without arguments (may have already been provided by a test procedure).
-' -----------------------------------------------------------------------------
+' --------------------------------------------------------------------------------------------
     Const PROC = "SynchTargetWithSource"
     
     On Error GoTo eh
@@ -337,6 +348,8 @@ Public Function SyncVBProjects( _
     
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
+    Set mService.Serviced = wb_target
+    
     If mService.Denied(PROC) Then GoTo xt
 
     sStatus = Log.Service
@@ -344,7 +357,7 @@ Public Function SyncVBProjects( _
     SyncVBProjects = mSync.SyncTargetWithSource(wb_target:=wb_target _
                                               , wb_source:=wbRaw _
                                               , restricted_sheet_rename_asserted:=restricted_sheet_rename_asserted _
-                                              , bkp_folder:=bkp_folder)
+                                              , design_rows_cols_added_or_deleted:=design_rows_cols_added_or_deleted)
 
 xt: mErH.EoP ErrSrc(PROC)
     Set Log = Nothing
@@ -424,7 +437,7 @@ Private Function SyncSourceAndTargetSelected( _
                                                             "Source- and Target-Workbook/VBProject"
     
     Dim fso         As New FileSystemObject
-    Dim sMsg        As tMsg
+    Dim sMsg        As TypeMsg
     Dim sReply      As String
     Dim bWbClone    As Boolean
     Dim bWbRaw      As Boolean
@@ -458,18 +471,18 @@ Private Function SyncSourceAndTargetSelected( _
         If bWbRaw And bWbClone And Not cr_sync_confirm_info Then GoTo xt
         
         With sMsg
-            .Section(1).sLabel = TARGET_PROJECT & ":"
-            .Section(1).sText = sWbClone
-            .Section(1).bMonspaced = True
-            .Section(2).sLabel = SOURCE_PROJECT & ":"
-            .Section(2).sText = sWbRaw
-            .Section(2).bMonspaced = True
+            .Section(1).Label.Text = TARGET_PROJECT & ":"
+            .Section(1).Text.Text = sWbClone
+            .Section(1).Text.Monospaced = True
+            .Section(2).Label.Text = SOURCE_PROJECT & ":"
+            .Section(2).Text.Text = sWbRaw
+            .Section(2).Text.Monospaced = True
             
             If cr_sync_confirm_info _
-            Then .Section(3).sText = "Please sync_confirm_info the provided VB-Clone- and VB-Raw-Project." _
-            Else .Section(3).sText = "Please provide/complete the VB-Clone- (sync target) and the VB-Raw-Project (sync source)."
+            Then .Section(3).Text.Text = "Please sync_confirm_info the provided VB-Clone- and VB-Raw-Project." _
+            Else .Section(3).Text.Text = "Please provide/complete the VB-Clone- (sync target) and the VB-Raw-Project (sync source)."
             
-            .Section(3).sText = .Section(3).sText & vbLf & vbLf & _
+            .Section(3).Text.Text = .Section(3).Text.Text & vbLf & vbLf & _
                                 "Attention!" & vbLf & _
                                 "1. The '" & TARGET_PROJECT & "' must not be identical with the '" & SOURCE_PROJECT & "' and the two Workbooks must not have the same name." & vbLf & _
                                 "2. Both VB-Projects/Workbook must exclusively reside in their parent Workbook" & vbLf & _
@@ -482,9 +495,9 @@ Private Function SyncSourceAndTargetSelected( _
         Then Set cllButtons = mMsg.Buttons(sBttnSourceProject, sBttnTargetProject, vbLf, sBttnTerminate) _
         Else Set cllButtons = mMsg.Buttons(sBttCloneRawConfirmed, vbLf, sBttnSourceProject, sBttnTargetProject)
         
-        sReply = mMsg.Dsply(msg_title:="Basic configuration of the Component Management (CompMan Addin)" _
-                          , msg:=sMsg _
-                          , msg_buttons:=cllButtons _
+        sReply = mMsg.Dsply(dsply_title:="Basic configuration of the Component Management (CompMan Addin)" _
+                          , dsply_msg:=sMsg _
+                          , dsply_buttons:=cllButtons _
                            )
         Select Case sReply
             Case sBttnTargetProject

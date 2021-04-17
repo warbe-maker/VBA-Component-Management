@@ -222,7 +222,7 @@ End Property
 
 Private Property Let AppliedControl(ByVal v As Variant)
     If dctApplied Is Nothing Then Set dctApplied = New Dictionary
-    If Not IsApplied(v) Then dctApplied.Add v, v.Name
+    If Not IsApplied(v) Then dctApplied.Add v, v.name
 End Property
 
 Private Property Get ButtonsFrameHeight() As Single
@@ -536,13 +536,13 @@ Public Sub AdjustStartupPosition(ByRef pUserForm As Object, _
             With pUserForm
                 .StartupPosition = 0
                 .Left = pOwner.Left + ((pOwner.Width - .Width) / 2)
-                .top = pOwner.top + ((pOwner.Height - .Height) / 2)
+                .Top = pOwner.Top + ((pOwner.Height - .Height) / 2)
             End With
         Case sup_CenterScreen           ' Assign the Left and Top properties after switching to sup_Manual positioning.
             With pUserForm
                 .StartupPosition = sup_Manual
                 .Left = (wVirtualScreenWidth - .Width) / 2
-                .top = (wVirtualScreenHeight - .Height) / 2
+                .Top = (wVirtualScreenHeight - .Height) / 2
             End With
     End Select
     '~~ Avoid falling off screen. Misplacement can be caused by multiple screens when the primary display
@@ -550,9 +550,9 @@ Public Sub AdjustStartupPosition(ByRef pUserForm As Object, _
     '~~ right fits, then check if the top-left is still on the screen (which gets priority).
     With pUserForm
         If ((.Left + .Width) > (wVirtualScreenLeft + wVirtualScreenWidth)) Then .Left = ((wVirtualScreenLeft + wVirtualScreenWidth) - .Width)
-        If ((.top + .Height) > (wVirtualScreenTop + wVirtualScreenHeight)) Then .top = ((wVirtualScreenTop + wVirtualScreenHeight) - .Height)
+        If ((.Top + .Height) > (wVirtualScreenTop + wVirtualScreenHeight)) Then .Top = ((wVirtualScreenTop + wVirtualScreenHeight) - .Height)
         If (.Left < wVirtualScreenLeft) Then .Left = wVirtualScreenLeft
-        If (.top < wVirtualScreenTop) Then .top = wVirtualScreenTop
+        If (.Top < wVirtualScreenTop) Then .Top = wVirtualScreenTop
     End With
     
 End Sub
@@ -655,7 +655,7 @@ End Sub
 ' -----------------------------------------------------------
 Private Sub CenterVertical(ByVal centerfr As MSForms.Frame, _
                            ByVal infr As MSForms.Frame)
-    centerfr.top = (infr.Height / 2) - (centerfr.heigth / 2)
+    centerfr.Top = (infr.Height / 2) - (centerfr.heigth / 2)
 End Sub
 
 ' The reply button click event is the only code using
@@ -1097,8 +1097,8 @@ Private Sub ResizeAndRepositionAreas()
         With v
             If IsApplied(v) Then
                 .Visible = True
-                .top = siTop
-                siTop = VgridPos(.top + .Height + VSPACE_AREAS)
+                .Top = siTop
+                siTop = VgridPos(.Top + .Height + VSPACE_AREAS)
             End If
         End With
     Next v
@@ -1147,11 +1147,11 @@ Private Sub ResizeAndRepositionButtonRows()
         lButtons = dct(v)
         Set frRow = v
         With frRow
-            .top = siTop
+            .Top = siTop
             .Height = siHeight
             .Width = AppliedButtonRowWidth(lButtons)
             siMaxButtonRowWidth = Max(siMaxButtonRowWidth, .Width)
-            siTop = .top + .Height + siVmarginButtons
+            siTop = .Top + .Height + siVmarginButtons
         End With
     Next v
     Set dct = Nothing
@@ -1188,7 +1188,7 @@ Private Sub ResizeAndRepositionButtons()
                         .Left = siLeft
                         .Width = siMaxButtonWidth
                         .Height = siMaxButtonHeight
-                        .top = siVmarginFrames
+                        .Top = siVmarginFrames
                         siLeft = .Left + .Width + siHmarginButtons
                         If IsNumeric(vDefaultButton) Then
                             If lButton = vDefaultButton Then .Default = True
@@ -1259,7 +1259,7 @@ Private Sub ResizeAndRepositionButtonsFrame()
     If IsApplied(fr) Then
         With fr
             .Visible = True
-            .top = siVmarginFrames
+            .Top = siVmarginFrames
             .Width = ButtonsFrameWidth
             .Height = ButtonsFrameHeight
             If bVscrollbarButtonsArea _
@@ -1292,7 +1292,7 @@ Private Sub ResizeAndRepositionMsgArea()
             
     If IsApplied(frArea) Then
         siTop = siVmarginFrames
-        Me.Height = Max(Me.Height, frArea.top + frArea.Height + (VSPACE_AREAS * 4))
+        Me.Height = Max(Me.Height, frArea.Top + frArea.Height + (VSPACE_AREAS * 4))
     End If
     
 xt: Exit Sub
@@ -1328,36 +1328,36 @@ Private Sub ResizeAndRepositionMsgSections()
             If IsApplied(la) Then
                 With la
                     .Visible = True
-                    .top = siTop
+                    .Top = siTop
                     .Width = frSection.Width - siHmarginFrames
-                    siTop = VgridPos(.top + .Height)
+                    siTop = VgridPos(.Top + .Height)
                 End With
             End If
             
             If IsApplied(tb) Then
                 With tb
                     .Visible = True
-                    .top = siVmarginFrames
+                    .Top = siVmarginFrames
                 End With
                 With frText
                     .Visible = True
-                    .top = siTop
+                    .Top = siTop
                     .Height = tb.Height + (siVmarginFrames * 2)
-                    siTop = .top + .Height + siVmarginFrames
+                    siTop = .Top + .Height + siVmarginFrames
                     If .ScrollBars = fmScrollBarsBoth Or frText.ScrollBars = fmScrollBarsHorizontal Then
-                        .Height = tb.top + tb.Height + VSPACE_SCROLLBAR + siVmarginFrames
+                        .Height = tb.Top + tb.Height + VSPACE_SCROLLBAR + siVmarginFrames
                     Else
-                        .Height = tb.top + tb.Height + siVmarginFrames
+                        .Height = tb.Top + tb.Height + siVmarginFrames
                     End If
                 End With
             End If
                 
             If IsApplied(frSection) Then
                 With frSection
-                    .top = siTopSection
+                    .Top = siTopSection
                     .Visible = True
-                    .Height = frText.top + frText.Height + siVmarginFrames
-                    siTopSection = VgridPos(.top + .Height + siVmarginFrames + VSPACE_SECTIONS)
+                    .Height = frText.Top + frText.Height + siVmarginFrames
+                    siTopSection = VgridPos(.Top + .Height + siVmarginFrames + VSPACE_SECTIONS)
                 End With
             End If
                 
@@ -1368,7 +1368,7 @@ Private Sub ResizeAndRepositionMsgSections()
         End If
     Next i
     
-    DsgnMsgArea.Height = frSection.top + frSection.Height + siVmarginFrames
+    DsgnMsgArea.Height = frSection.Top + frSection.Height + siVmarginFrames
 xt: Exit Sub
     
 eh: ErrMsg ErrSrc(PROC)
@@ -1691,10 +1691,10 @@ Private Sub SetupMsgSection(ByVal msg_section As Long)
                 .Caption = SectionLabel.text
                 With .Font
                     If SectionLabel.Monospaced Then
-                        If SectionLabel.FontName <> vbNullString Then .Name = SectionLabel.FontName Else .Name = LABEL_MONOSPACED_DEFAULT_FONT_NAME
+                        If SectionLabel.FontName <> vbNullString Then .name = SectionLabel.FontName Else .name = LABEL_MONOSPACED_DEFAULT_FONT_NAME
                         If SectionLabel.FontSize <> 0 Then .Size = SectionLabel.FontSize Else .Size = LABEL_MONOSPACED_DEFAULT_FONT_SIZE
                     Else
-                        If SectionLabel.FontName <> vbNullString Then .Name = SectionLabel.FontName Else .Name = LABEL_PROPSPACED_DEFAULT_FONT_NAME
+                        If SectionLabel.FontName <> vbNullString Then .name = SectionLabel.FontName Else .name = LABEL_PROPSPACED_DEFAULT_FONT_NAME
                         If SectionLabel.FontSize <> 0 Then .Size = SectionLabel.FontSize Else .Size = LABEL_PROPSPACED_DEFAULT_FONT_SIZE
                     End If
                     If SectionLabel.FontItalic Then .Italic = True
@@ -1703,10 +1703,10 @@ Private Sub SetupMsgSection(ByVal msg_section As Long)
                 End With
                 If SectionLabel.FontColor <> 0 Then .ForeColor = SectionLabel.FontColor Else .ForeColor = rgbBlack
             End With
-            frText.top = la.top + la.Height
+            frText.Top = la.Top + la.Height
             AppliedControl = la
         Else
-            frText.top = 0
+            frText.Top = 0
         End If
         
         If SectionMessage.Monospaced Then
@@ -1750,7 +1750,7 @@ Private Sub SetupMsgSectionMonoSpaced(ByVal msg_section As Long)
             .Italic = SectionMsg.FontItalic
             .Underline = SectionMsg.FontUnderline
             If SectionMsg.FontSize <> 0 Then .Size = SectionMsg.FontSize Else .Size = LABEL_MONOSPACED_DEFAULT_FONT_SIZE
-            If SectionMsg.FontName <> vbNullString Then .Name = SectionMsg.FontName Else .Name = LABEL_MONOSPACED_DEFAULT_FONT_NAME
+            If SectionMsg.FontName <> vbNullString Then .name = SectionMsg.FontName Else .name = LABEL_MONOSPACED_DEFAULT_FONT_NAME
         End With
         If SectionMsg.FontColor <> 0 Then .ForeColor = SectionMsg.FontColor Else .ForeColor = rgbBlack
         .AutoSize = True
@@ -1826,7 +1826,7 @@ Private Sub SetupMsgSectionPropSpaced(ByVal msg_section As Long)
         .Width = frText.Width - siHmarginFrames
         .Value = SectionMsg.text
         With .Font
-            If SectionMsg.FontName <> vbNullString Then .Name = SectionMsg.FontName Else .Name = TEXT_PROPSPACED_DEFAULT_FONT_NAME
+            If SectionMsg.FontName <> vbNullString Then .name = SectionMsg.FontName Else .name = TEXT_PROPSPACED_DEFAULT_FONT_NAME
             If SectionMsg.FontSize <> 0 Then .Size = SectionMsg.FontSize Else .Size = TEXT_PROPSPACED_DEFAULT_FONT_SIZE
             If SectionMsg.FontBold Then .Bold = True
             If SectionMsg.FontItalic Then .Italic = True
@@ -1903,12 +1903,12 @@ Private Sub SetupTitle()
         '~~ When a font name other then the standard UserForm font name is
         '~~ provided the extra hidden title label which mimics the title bar
         '~~ width is displayed. Otherwise it remains hidden.
-        If sTitleFontName <> vbNullString And sTitleFontName <> .Font.Name Then
+        If sTitleFontName <> vbNullString And sTitleFontName <> .Font.name Then
             With .laMsgTitle   ' Hidden by default
                 .Visible = True
-                .top = siTop
-                siTop = VgridPos(.top + .Height)
-                .Font.Name = sTitleFontName
+                .Top = siTop
+                siTop = VgridPos(.Top + .Height)
+                .Font.name = sTitleFontName
                 If sTitleFontSize <> 0 Then
                     .Font.Size = sTitleFontSize
                 End If
@@ -1923,7 +1923,7 @@ Private Sub SetupTitle()
             With .laMsgTitle
                 With .Font
                     .Bold = False
-                    .Name = Me.Font.Name
+                    .name = Me.Font.name
                     .Size = 8.65   ' Value which comes to a length close to the length required
                 End With
                 .Visible = False

@@ -35,7 +35,8 @@ Public Sub SyncCodeChanges()
     Dim TargetComp  As clsComp
     
     For Each vbc In Sync.Source.VBProject.VBComponents
-        If mComp.IsSheetDocMod(vbc) Then GoTo next_vbc
+'        If mComp.IsSheetDocMod(vbc) Then GoTo next_vbc
+
         Set SourceComp = New clsRaw
         Set SourceComp.Wrkbk = Sync.Source
         SourceComp.CompName = vbc.Name
@@ -57,10 +58,17 @@ Public Sub SyncCodeChanges()
             Then Sync.Changed.Add sCaption, SourceComp
         Else
             Log.ServicedItem = vbc
-            mRenew.ByImport rn_wb:=Sync.Target _
-                          , rn_comp_name:=vbc.Name _
-                          , rn_exp_file_full_name:=SourceComp.ExpFileFullName
-            Log.Entry = "Renewed/updated by import of '" & SourceComp.ExpFileFullName & "'"
+            If mComp.IsWrkbkDocMod(vbc) Or mComp.IsSheetDocMod(vbc) Then
+                mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
+                                , wb_source_full_name:=SourceComp.Wrkbk.FullName _
+                                , sync_source_codelines:=SourceComp.CodeLines
+                Log.Entry = "Code updated line-by-line with code from Export-File '" & SourceComp.ExpFileFullName & "'"
+            Else
+                mRenew.ByImport rn_wb:=Sync.Target _
+                              , rn_comp_name:=vbc.Name _
+                              , rn_exp_file_full_name:=SourceComp.ExpFileFullName
+                Log.Entry = "Renewed/updated by import of '" & SourceComp.ExpFileFullName & "'"
+            End If
         End If
         
         Set TargetComp = Nothing

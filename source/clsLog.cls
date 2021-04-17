@@ -24,14 +24,6 @@ Private Sub Class_Initialize()
     bNewLog = True
 End Sub
 
-Friend Property Get MaxLenServicedItemType() As Long
-    MaxLenServicedItemType = lMaxLenServicedItemType
-End Property
-
-Friend Property Get MaxLenServicedItemName() As Long
-    MaxLenServicedItemName = lMaxLenServicedItemName
-End Property
-
 Friend Property Let Entry(ByVal s As String)
 ' ------------------------------------------
 ' Append an entry to the log file.
@@ -60,26 +52,6 @@ Friend Property Get Folder() As String:             Folder = sFolder:           
 
 Friend Property Let Folder(ByVal s As String):      sFolder = s:                End Property
 
-'Friend Property Let Info(ByVal s As String)
-'' ------------------------------------------
-'' Append an info line to the log file.
-'' ------------------------------------------
-'Static sItem As String
-'
-'    If sServicedItem = vbNullString Then
-'        sEntry = s
-'    Else
-'        If sServicedItem = sItem Then
-'            sEntry = VBA.Space$(Len(sServicedItem) + 2) & s
-'        Else
-'            sEntry = sServicedItem & ": " & s
-'        End If
-'    End If
-'    mFile.Txt(ft_file:=sFile, ft_append:=True) = sEntry
-'    sItem = sServicedItem
-'
-'End Property
-
 Friend Property Get LogFile() As File
     Dim sLogFullName    As String
     If InStr(Me.File, ":") <> 0 Then
@@ -93,6 +65,14 @@ Friend Property Get LogFile() As File
     End With
 End Property
 
+Friend Property Get MaxLenServicedItemName() As Long
+    MaxLenServicedItemName = lMaxLenServicedItemName
+End Property
+
+Friend Property Get MaxLenServicedItemType() As Long
+    MaxLenServicedItemType = lMaxLenServicedItemType
+End Property
+
 Friend Property Get Service( _
              Optional ByVal new_log As Boolean = False) As String
     Service = sService
@@ -104,6 +84,10 @@ Friend Property Let Service( _
 ' -------------------------------------------------------
 '
 ' -------------------------------------------------------
+    Const PROC = "Service-Let"
+    
+    On Error GoTo eh
+    
     sService = sv_name & " by " & ThisWorkbook.Name & " for '" & mService.Serviced.Name & "': "
     
     bNewLog = new_log
@@ -131,6 +115,14 @@ Friend Property Let Service( _
             , ft_append:=True _
              ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sService & vbCrLf & _
                  Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "-")
+
+xt: Exit Property
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
 End Property
 
 Friend Property Get ServicedItem() As Variant
@@ -172,22 +164,24 @@ Friend Property Let ServicedItem(ByRef v As Variant)
                 Case vbext_ct_ActiveXDesigner:  ServicedItemType = "ActiveX-Designer":  ServicedItemName = vbc.Name
                 Case vbext_ct_ClassModule:      ServicedItemType = "Class-Module":      ServicedItemName = vbc.Name
                 Case vbext_ct_MSForm:           ServicedItemType = "UserForm":          ServicedItemName = vbc.Name
-                Case vbext_ct_StdModule:        ServicedItemType = "Standard-Module":   ServicedItemName = vbc.Name
+                Case vbext_ct_StdModule:        ServicedItemType = "Standard-Module":                                           ServicedItemName = vbc.Name
                 Case vbext_ct_Document
                     If mComp.IsSheetDocMod(vbc) Then
-                                                ServicedItemType = "Worksheet":         ServicedItemName = vbc.Name
+                                                ServicedItemType = "Worksheet CodeName":                                        ServicedItemName = vbc.Name
                     Else
-                                                ServicedItemType = "Workbook":          ServicedItemName = vbc.Name
+                                                ServicedItemType = "Workbook":                                                  ServicedItemName = vbc.Name
                     End If
             End Select
-        Case "Name":            Set nm = v:     ServicedItemType = "Name":              ServicedItemName = nm.Name & "(" & nm.RefersTo & ")"
-        Case "OLEObject"
-            Set oob = v
-            ServicedItemType = "(Sheet)ActiveX"
-            ServicedItemName = "(" & oob.Parent.Name & ")" & oob.Name
-        Case "Reference":       Set ref = v:    ServicedItemType = TypeName(ref):       ServicedItemName = ref.Name
-        Case "Shape":           Set shp = v:    ServicedItemType = "(Sheet)Shape":      ServicedItemName = "(" & shp.Parent.Name & ")" & shp.Name
-        Case "Worksheet":       Set ws = v:     ServicedItemType = "Worksheet":         ServicedItemName = ws.Name & "(" & ws.CodeName & ")"
+        Case "Name"
+            Set nm = v
+            ServicedItemType = "Name"
+            ServicedItemName = Replace(nm.Name, nm.Parent.Name & "!", vbNullString) & "(" & nm.RefersTo & ")"
+            If MaxLenServicedItemName = 60 Then Stop
+
+        Case "OLEObject":       Set oob = v:    ServicedItemType = "(Sheet)ActiveX":    ServicedItemName = "(" & oob.Parent.Name & ")" & oob.Name
+        Case "Reference":       Set ref = v:    ServicedItemType = TypeName(ref):                                               ServicedItemName = ref.Name
+        Case "Shape":           Set shp = v:    ServicedItemType = shp.Parent.Name & "(" & mSheetControls.CntrlType(shp) & ")": ServicedItemName = mSheetControls.CntrlName(shp)
+        Case "Worksheet":       Set ws = v:     ServicedItemType = "Worksheet Name(CodeName)":                                  ServicedItemName = FinalName(ws.Name) & "(" & FinalName(ws.CodeName) & ")"
         Case "String"
             sServicedItemType = vbNullString
             sServicedItemName = vbNullString
@@ -205,7 +199,19 @@ Friend Property Let ServicedItem(ByRef v As Variant)
         Case Else
             Debug.Print "TypeName '" & TypeName(v) & "' not yet considered"
     End Select
-       
+End Property
+
+Private Property Get ServicedItemName() As String
+    ServicedItemName = sServicedItemName & "(" & lMaxLenServicedItemName & ")"
+End Property
+
+Private Property Let ServicedItemName(ByVal s As String)
+    sServicedItemName = s
+    lMaxLenServicedItemName = Max(lMaxLenServicedItemName, Len(sServicedItemName))
+End Property
+
+Private Property Get ServicedItemType() As String
+    ServicedItemType = sServicedItemType & "(" & lMaxLenServicedItemType & ")"
 End Property
 
 Private Property Let ServicedItemType(ByVal s As String)
@@ -213,7 +219,7 @@ Private Property Let ServicedItemType(ByVal s As String)
     lMaxLenServicedItemType = Max(lMaxLenServicedItemType, Len(sServicedItemType))
 End Property
 
-Private Property Let ServicedItemName(ByVal s As String)
-    sServicedItemName = s
-    lMaxLenServicedItemName = Max(lMaxLenServicedItemName, Len(sServicedItemName))
-End Property
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "clsLog" & "." & sProc
+End Function
+

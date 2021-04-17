@@ -109,33 +109,19 @@ Public Sub Test_SyncVBProjects()
     Dim sSource     As String
     Dim sTarget     As String
     Dim BkpFolder   As String
-    
+        
     sTarget = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncTarget\SyncTarget.xlsb"
     sSource = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
-       
-    If mService.SyncVBProjects(wb_target:=mCompMan.WbkGetOpen(sTarget) _
-                             , wb_source_name:=sSource _
-                             , restricted_sheet_rename_asserted:=True _
-                             , bkp_folder:=BkpFolder _
-                              ) _
-    Then
-        ' -----------------------------------------------------------------
-        Stop ' last chance to see the synch result in the target Workbook !
-        '    ' traget Workbook will be restored as test Workbook
-        ' -----------------------------------------------------------------
-    End If
-    '~~ The backup is no longer reqired
+           
+    Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
+    mSync.SyncRestore sTarget
     
-xt:
-    If BkpFolder <> vbNullString Then
-        ' A backup had been made by the service which is now restored and the target is re-opened
-        mCompMan.WbkGetOpen(sTarget).Close SaveChanges:=False
-        mSync.SyncRestore BkpFolder
-        Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
-        mCompMan.WbkGetOpen sTarget
-        Application.EnableEvents = True
-    End If
-    Exit Sub
+    mService.SyncVBProjects wb_target:=mCompMan.WbkGetOpen(sTarget) _
+                          , wb_source_name:=sSource _
+                          , restricted_sheet_rename_asserted:=True _
+                          , design_rows_cols_added_or_deleted:=False
+    
+xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
@@ -143,6 +129,57 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.ErrMsgDefaultButton: GoTo xt
     End Select
 End Sub
+
+Public Sub Test_SyncColWidth()
+' ---------------------------------------------------------------------
+' Attention: This test preserves the target Workbook by a backup before
+' and a restore after the synch test. The target Workbook thus will not
+' show the synch result unless the terst procedire is stopped.
+' ---------------------------------------------------------------------
+    Const PROC = "Test_SyncColWidth"
+    
+    On Error GoTo eh
+    Dim sSource     As String
+    Dim sTarget     As String
+    Dim BkpFolder   As String
+    Dim wbSource    As Workbook
+    Dim wbTarget    As Workbook
+    Dim wsSource    As Worksheet
+    Dim wsTarget    As Worksheet
+    Dim ws          As Worksheet
+    Dim sSheetName  As String
+    
+    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncTarget\SyncTarget.xlsb"
+    sSource = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
+    
+    mSync.SyncRestore sTarget
+    mSync.SyncBackup sTarget
+    
+    Set wbTarget = mCompMan.WbkGetOpen(sTarget)
+    Set wbSource = mCompMan.WbkGetOpen(sSource)
+    
+    For Each ws In wbSource.Worksheets
+        If mSyncSheets.SheetExists(wb:=wbTarget _
+                                 , sh1_name:=ws.Name _
+                                 , sh1_code_name:=ws.CodeName _
+                                 , sh2_name:=sSheetName _
+                                  ) _
+        Then
+            mSyncRanges.SyncNamedColumnsWidth ws_source:=ws _
+                                            , ws_target:=wbTarget.Worksheets(sSheetName)
+        
+        End If
+    Next ws
+    
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
 
 Public Sub Test_01_KindOfComp()
     Const PROC = "Test_01_KindOfComp"
@@ -214,9 +251,9 @@ Public Sub Test_Log()
         .Service = ErrSrc(PROC)
         .ServicedItem = " <component-name> "
         .Entry = "Tested"
-        mMsg.Box msg_title:="Test-Log:" _
-               , msg:=mFile.Txt(ft_file:=.LogFile.Path) _
-               , msg_monospaced:=True
+        mMsg.Box box_title:="Test-Log:" _
+               , box_msg:=mFile.Txt(ft_file:=.LogFile.Path) _
+               , box_monospaced:=True
         If fso.FileExists(.LogFile.Path) Then fso.DeleteFile .LogFile.Path
     End With
     
@@ -751,28 +788,22 @@ Public Sub Test_Synch_RangesFormating()
     
     LastModif = fso.GetFile(sTarget).DateLastModified
     
-    mSync.SyncBackup BkpFolder, sTarget
+    mSync.SyncBackup sTarget
     mSyncRanges.SyncFormating
-    
-    If BkpFolder <> vbNullString Then
-        ' A backup had been made by the service which is now restored and the target is re-opened
-        
-        mCompMan.WbkGetOpen(sTarget).Close SaveChanges:=False
-        mSync.SyncRestore BkpFolder
-        Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
-        mCompMan.WbkGetOpen sTarget
-        Application.EnableEvents = True
-    End If
+    mSync.SyncRestore sTarget
+    Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
+    mCompMan.WbkGetOpen sTarget
+    Application.EnableEvents = True
 
 xt: With New FileSystemObject
         If .FileExists(Log.File) Then
             Set flLog = .GetFile(Log.File)
             BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
             BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
-            If mMsg.Box(msg_title:=PROC & " Log-File" _
-                      , msg:=mFile.Txt(.GetFile(Log.File)) _
-                      , msg_monospaced:=True _
-                      , msg_buttons:=mMsg.Buttons(BttnDelete, BttnKeep) = BttnDelete) _
+            If mMsg.Box(box_title:=PROC & " Log-File" _
+                      , box_msg:=mFile.Txt(.GetFile(Log.File)) _
+                      , box_monospaced:=True _
+                      , box_buttons:=mMsg.Buttons(BttnDelete, BttnKeep) = BttnDelete) _
             Then .DeleteFile flLog
         End If
     End With
@@ -804,8 +835,8 @@ Public Sub Test_Synch_CompsChanged()
     Set Sync = New clsSync
     Set Log = New clsLog
 
-    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Target-Project\Test_Sync_Target.xlsb"
-    sSource = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Source-Project\Test_Sync_Source.xlsb"
+    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncTarget\SyncTarget.xlsb"
+    sSource = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
     
     Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
     Set Sync.Target = mService.Serviced
@@ -816,28 +847,22 @@ Public Sub Test_Synch_CompsChanged()
     
     LastModif = fso.GetFile(sTarget).DateLastModified
     
-    mSync.SyncBackup BkpFolder, sTarget
+    mSync.SyncBackup sTarget
     mSyncComps.SyncCodeChanges
-    
-    If BkpFolder <> vbNullString Then
-        ' A backup had been made by the service which is now restored and the target is re-opened
-        
-        mCompMan.WbkGetOpen(sTarget).Close SaveChanges:=False
-        mSync.SyncRestore BkpFolder
-        Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
-        mCompMan.WbkGetOpen sTarget
-        Application.EnableEvents = True
-    End If
+    mSync.SyncRestore sTarget
+    Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
+    mCompMan.WbkGetOpen sTarget
+    Application.EnableEvents = True
 
 xt: With New FileSystemObject
         If .FileExists(Log.File) Then
             Set flLog = .GetFile(Log.File)
             BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
             BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
-            If mMsg.Box(msg_title:=PROC & " Log-File" _
-                      , msg:=mFile.Txt(.GetFile(Log.File)) _
-                      , msg_monospaced:=True _
-                      , msg_buttons:=mMsg.Buttons(BttnDelete, BttnKeep) = BttnDelete) _
+            If mMsg.Box(box_title:=PROC & " Log-File" _
+                      , box_msg:=mFile.Txt(.GetFile(Log.File)) _
+                      , box_monospaced:=True _
+                      , box_buttons:=mMsg.Buttons(BttnDelete, BttnKeep) = BttnDelete) _
             Then .DeleteFile flLog
         End If
     End With
@@ -852,4 +877,34 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Public Sub Test_SheetControls_Name_and_Type()
+' --------------------------------------------------
+' List all sheet controls ordered ascending by name.
+' --------------------------------------------------
+    Const PROC = "Test_SheetControls_Name_and_Type"
+    
+    On Error GoTo eh
+    Dim ws  As Worksheet
+    Dim shp As Shape
+    Dim dct As New Dictionary
+    Dim v   As Variant
+    Dim sWb As String
+    Dim sWs As String
+    
+    sWb = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
+    sWs = "Test_B1"
+    
+    Set ws = mCompMan.WbkGetOpen(sWb).Worksheets(sWs)
+    For Each shp In ws.Shapes
+        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.Name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
+    Next shp
+    For Each v In dct
+        Debug.Print dct(v), Tab(45), v
+    Next v
+
+xt: Set dct = Nothing
+    Exit Sub
+    
+eh: Stop: Resume
+End Sub
 

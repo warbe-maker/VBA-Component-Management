@@ -207,11 +207,12 @@ Private Function ErrSrc(ByVal sProc As String) As String
 End Function
 
 Private Sub CleanUpObsoleteExpFiles()
-' --------------------------------------------------------------
-' Deletes all Export-Files the component not or no longer exists
-' and all those in the Workbook-Folder or any of its sub-folders
-' which is not the current specified Export-Folder.
-' --------------------------------------------------------------
+' ------------------------------------------------------
+' - Deletes all Export-Files for which the corresponding
+'   component not or no longer exists.
+' - Delete all Export-Files in another but the current
+'   Export-Folder
+' -------------------------------------------------------
     Const PROC = "CleanUpObsoleteExpFiles"
     
     On Error GoTo eh
@@ -235,12 +236,16 @@ Private Sub CleanUpObsoleteExpFiles()
             For Each fosub In fo.SubFolders
                 cll.Add fosub ' enqueue it
             Next fosub
-            For Each fl In fo.Files
-                Select Case fso.GetExtensionName(fl.Path)
-                    Case "bas", "cls", "frm", "frx"
-                        fso.DeleteFile (fl)
-                End Select
-            Next fl
+            If fo.ParentFolder = mService.Serviced.Path Or fo.Path = mService.Serviced.Path Then
+                '~~ Cleanup is done only in the Workbook-folder and any direct sub-folder
+                '~~ Folders in sub-folders are exempted.
+                For Each fl In fo.Files
+                    Select Case fso.GetExtensionName(fl.Path)
+                        Case "bas", "cls", "frm", "frx"
+                            fso.DeleteFile (fl)
+                    End Select
+                Next fl
+            End If
         End If
     Loop
     Set cll = Nothing

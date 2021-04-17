@@ -55,6 +55,137 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
+Public Sub SyncNamedColumnsWidth( _
+                    Optional ByRef ws_source As Worksheet = Nothing, _
+                    Optional ByRef ws_target As Worksheet = Nothing)
+    Const PROC = "SyncWidthNamedColumns"
+    
+    On Error GoTo eh
+    Dim rngSource   As Range
+    Dim rngTarget   As Range
+    Dim i           As Long
+    Dim ws          As Worksheet
+    Dim sSheetName  As String
+    Dim RangeName   As String
+    
+    If ws_source Is Nothing And ws_target Is Nothing Then
+        For Each ws In Sync.Source.Worksheets
+            If mSyncSheets.SheetExists(wb:=Sync.Target _
+                                     , sh1_name:=ws.Name _
+                                     , sh1_code_name:=ws.CodeName _
+                                     , sh2_name:=sSheetName _
+                                      ) _
+            Then
+                Set ws_target = Sync.Target.Worksheets(sSheetName)
+                Set ws_source = ws
+                With ws
+                    For i = 1 To .UsedRange.Columns.CountLarge
+                        Set rngSource = ws_source.Columns.Item(i)
+                        Set rngTarget = ws_target.Columns.Item(i)
+                        On Error Resume Next
+                        RangeName = rngSource.Name.Name
+                        If Err.Number = 0 Then
+                            '~~ This is a named range (row)
+                            On Error GoTo eh
+                            rngTarget.EntireColumn.ColumnWidth = rngSource.ColumnWidth
+                        End If
+                    Next i
+                End With
+            End If
+        Next ws
+    Else
+        With ws_source
+            For i = 1 To .UsedRange.Columns.CountLarge
+                Set rngSource = ws_source.Columns.Item(i)
+                Set rngTarget = ws_target.Columns.Item(i)
+                On Error Resume Next
+                RangeName = rngSource.Name.Name
+                If Err.Number = 0 Then
+                    '~~ This is a named range (row)
+                    On Error GoTo eh
+                    rngTarget.EntireColumn.ColumnWidth = rngSource.ColumnWidth
+                End If
+            Next i
+        End With
+    End If
+    
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
+Public Sub SyncNamedRowsHeight( _
+                    Optional ByRef ws_source As Worksheet = Nothing, _
+                    Optional ByRef ws_target As Worksheet = Nothing)
+' --------------------------------------------------------------------
+'
+' --------------------------------------------------------------------
+    Const PROC = "SyncNamedRowsHeight"
+    
+    On Error GoTo eh
+    Dim rngSource   As Range
+    Dim rngTarget   As Range
+    Dim i           As Long
+    Dim ws          As Worksheet
+    Dim sSheetName  As String
+    Dim RangeName   As String
+    
+    If ws_source Is Nothing And ws_target Is Nothing Then
+        For Each ws In Sync.Source.Worksheets
+            If mSyncSheets.SheetExists(wb:=Sync.Target _
+                                     , sh1_name:=ws.Name _
+                                     , sh1_code_name:=ws.CodeName _
+                                     , sh2_name:=sSheetName _
+                                      ) _
+            Then
+                Set ws_target = Sync.Target.Worksheets(sSheetName)
+                Set ws_source = ws
+                With ws
+                    For i = 1 To .UsedRange.Rows.CountLarge
+                        Set rngSource = ws_source.Rows.Item(i)
+                        Set rngTarget = ws_target.Rows.Item(i)
+                        On Error Resume Next
+                        RangeName = rngSource.Name.Name
+                        If Err.Number = 0 Then
+                            '~~ This is a named range (row)
+                            On Error GoTo eh
+                            rngTarget.EntireRow.RowHeight = rngSource.RowHeight
+                        End If
+                    Next i
+                End With
+            End If
+        Next ws
+    Else
+        With ws_source
+            For i = 1 To .UsedRange.Rows.CountLarge
+                Set rngSource = ws_source.Rows.Item(i)
+                Set rngTarget = ws_target.Rows.Item(i)
+                On Error Resume Next
+                RangeName = rngSource.Name.Name
+                If Err.Number = 0 Then
+                    '~~ This is a named range (row)
+                    On Error GoTo eh
+                    rngTarget.EntireRow.RowHeight = rngSource.RowHeight
+                End If
+            Next i
+        End With
+    End If
+    
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+        Case mErH.ErrMsgDefaultButton: GoTo xt
+    End Select
+End Sub
+
+
+
 Private Sub SyncProperties( _
                      ByRef sf_source As Range, _
                      ByRef sf_target As Range)

@@ -300,7 +300,7 @@ Private Property Get ReplaceRawWithCloneConfirmed(ByRef raw As clsRaw) As Boolea
     Dim sReplyUpdateOrigin      As String
     Dim sReplyDsplyDiff         As String
     Dim sReplyIgnore            As String
-    Dim sMsg                    As tMsg
+    Dim sMsg                    As TypeMsg
     Dim cllButtons              As Collection
     Dim sTitle                  As String
     Dim sReply                  As String
@@ -324,23 +324,23 @@ Private Property Get ReplaceRawWithCloneConfirmed(ByRef raw As clsRaw) As Boolea
     '~~ Offer options
     sTitle = "A ""Remotely hosted raw's clone has been modified in this VB-Project!"
     With sMsg
-        .Section(1).sLabel = "About this incident:"
-        .Section(1).sText = "The module '" & Me.CompName & "' is a clone of the raw component hosted in Workbook '" & raw.WrkbkBaseName & "' " & _
+        .Section(1).Label.Text = "About this incident:"
+        .Section(1).Text.Text = "The module '" & Me.CompName & "' is a clone of the raw component hosted in Workbook '" & raw.WrkbkBaseName & "' " & _
                             "This clone component's code has usually has been synched with the remote raw componet's code. " & _
                             "The remote raw hasn't been changed but the cloned component's code has."
-        .Section(2).sLabel = "About the choices:"
-        .Section(2).sText = "When the code modification is ignored it will be regarded temporarily only and overwrtitten with the next open of this Workbook. " & _
+        .Section(2).Label.Text = "About the choices:"
+        .Section(2).Text.Text = "When the code modification is ignored it will be regarded temporarily only and overwrtitten with the next open of this Workbook. " & _
                             "When the remote The module, updated when this Workbook has opened, is no longer identical with its origin. " & _
                             "I.e. the component's code has been changed in this Workbook using it instead of in the " & _
                             "Workbook the origin is ""hosted""."
-        .Section(3).sText = "Take your decission or postpone it after having displayed the difference."
+        .Section(3).Text.Text = "Take your decission or postpone it after having displayed the difference."
     End With
         
     sReply = sReplyDsplyDiff
     Do
-        sReply = mMsg.Dsply(msg_title:=sTitle, _
-                            msg:=sMsg, _
-                            msg_buttons:=cllButtons _
+        sReply = mMsg.Dsply(dsply_title:=sTitle, _
+                            dsply_msg:=sMsg, _
+                            dsply_buttons:=cllButtons _
                            )
         Select Case sReply
             Case sReplyUpdateOrigin
@@ -375,9 +375,9 @@ Friend Property Get Service(Optional ByVal wb_full_name) As String
     Service = sService
 End Property
 
-Friend Property Get Sheet() As Worksheet:               Set Sheet = sh:            End Property
+Friend Property Get sheet() As Worksheet:               Set sheet = sh:            End Property
 
-Friend Property Set Sheet(ByRef wsh As Worksheet):      Set sh = wsh:               End Property
+Friend Property Set sheet(ByRef wsh As Worksheet):      Set sh = wsh:               End Property
 
 Friend Property Get TypeString() As String
 ' ----------------------------------------
@@ -492,7 +492,7 @@ Public Sub DsplyAllChanges()
     Const PROC = "DsplyAllChanges"
     
     On Error GoTo eh
-    Dim sMsg As tMsg
+    Dim sMsg As TypeMsg
     
     If Me.Changed Then
         mFile.Compare fc_file_left:=sTmpExpFileFullName _
@@ -500,16 +500,16 @@ Public Sub DsplyAllChanges()
                     , fc_left_title:="'Clone' component's export file '" & sTmpExpFileFullName & "'" _
                     , fc_right_title:="'Raw' component's export file '" & Me.ExpFileFullName & "'"
     Else
-        sMsg.Section(1).sText = "The Export Files of the component '" & Me.CompName & "'"
-        sMsg.Section(2).sText = "Temp Export:    " & sTmpExpFileFullName & vbLf & _
+        sMsg.Section(1).Text.Text = "The Export Files of the component '" & Me.CompName & "'"
+        sMsg.Section(2).Text.Text = "Temp Export:    " & sTmpExpFileFullName & vbLf & _
                                 "Current Exüort: " & Me.ExpFileFullName
-        sMsg.Section(2).bMonspaced = True
-        sMsg.Section(3).sText = "are identical. The clone component has thus not changed."
-        sMsg.Section(4).sLabel = "Please note!"
-        sMsg.Section(4).sText = "Differences in empty code lines or upper/lower case differences do not constitute a relevant code change."
+        sMsg.Section(2).Text.Monospaced = True
+        sMsg.Section(3).Text.Text = "are identical. The clone component has thus not changed."
+        sMsg.Section(4).Label.Text = "Please note!"
+        sMsg.Section(4).Text.Text = "Differences in empty code lines or upper/lower case differences do not constitute a relevant code change."
         
-        mMsg.Dsply msg_title:="Display of code changes failed!" _
-                 , msg:=sMsg
+        mMsg.Dsply dsply_title:="Display of code changes failed!" _
+                 , dsply_msg:=sMsg
     End If
     
 xt: Exit Sub

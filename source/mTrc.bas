@@ -481,6 +481,8 @@ Public Sub Dsply()
     Dim cllTrcEntry As Collection
     Dim sTrace      As String
     Dim lLenHeader  As Long
+    Dim SctnLabel   As TypeMsgLabel
+    Dim SctnText    As TypeMsgText
     
     If TrcIsEmpty Then Exit Sub
     
@@ -507,8 +509,13 @@ Public Sub Dsply()
     With fMsg
         .MaxFormWidthPrcntgOfScreenSize = 95
         .MsgTitle = "Execution Trace, displayed because the Conditional Compile Argument ""ExecTrace = 1""!"
-        .MsgText(1) = sTrace:   .MsgMonoSpaced(1) = True
-        .MsgLabel(2) = "About overhead, precision, etc.:": .MsgText(2) = DsplyAbout
+        
+        SctnText.Text = sTrace:   SctnText.Monospaced = True
+        .MsgText(1) = SctnText
+        
+        SctnLabel.Text = "About overhead, precision, etc.:":    SctnText.Text = DsplyAbout: SctnText.FontSize = 8
+        .MsgLabel(2) = SctnLabel:                               .MsgText(2) = SctnText
+        
         .Setup
         .show
     End With
@@ -534,20 +541,17 @@ Private Function DsplyAbout() As String
     cyTcksOvrhdItm = ComputeTcksOvrhdItem
     dblOvrhdPcntg = (dblTtlScsOvrhdNtry / NtryScsElpsd(NtryLst)) * 100
     
-    DsplyAbout = "> The trace itself, i.e. the collection of the begin and end data for each traced item " & _
-                 "(procedure or code) caused a performance loss of " & Format$(dblTtlScsOvrhdNtry, sFrmtScsOvrhdItm) & _
-                 " seconds (=" & Format$(dblOvrhdPcntg, "0.00") & "%). " _
-               & "For a best possible execution time precision the overhead per traced item " _
-               & "has been deducted from each of the " & cllTrc.Count / 2 & " traced item's execution time." _
-      & vbLf _
-      & "> The precision (decimals) for the displayed seconds defaults to 0,000000 (6 decimals) which may " _
-      & "be changed via the property ""DisplayedSecsPrecision""." _
-      & vbLf _
-      & "> The displayed execution time varies from execution to execution and can only be estimated " _
-      & "as an average of many executions." _
-      & vbLf _
-      & "> When an error had been displayed the trace had been paused and continued when the user had pressed a button. " & _
-        "  For a correct trace of an item's execution time any paused times had been subtracted."
+    DsplyAbout = "> The trace itself, i.e. the collection of the begin and end data for each traced procedure or code snippet " & vbLf _
+               & "  caused a performance loss of " & Format$(dblTtlScsOvrhdNtry, sFrmtScsOvrhdItm) & " seconds (=" & Format$(dblOvrhdPcntg, "0.00") & "%). " _
+               & "For a best possible execution time precision" & vbLf _
+               & "  the overhead per traced item has been deducted from each of the " & cllTrc.Count / 2 & " traced item's execution time." & vbLf _
+               & "> The precision (decimals) for the displayed seconds defaults to 0,000000 (6 decimals)." & vbLf _
+               & "  This may be changed via the 'DisplayedSecsPrecision' Property." & vbLf _
+               & "> Though the traced execution time comes with the highest possible precisssion it will vary from execution" & vbLf _
+               & "  to execution because of different system conditions. For an estimation of the average execution time and" & vbLf _
+               & "  the possible time spread, the trace will have to be repeated several times." & vbLf _
+               & "> When an error had been displayed the trace will have paused and continued when the a reply button is pressed." & vbLf _
+               & "  For a best possible correct execution time trace any paused time is subtracted."
 
 End Function
 
@@ -818,6 +822,8 @@ Private Function DsplyNtryAllCnsstnt(ByRef dct As Dictionary) As Boolean
     Dim j               As Long
     Dim sComment        As String
     Dim sTrace          As String
+    Dim SctnLabel       As TypeMsgLabel
+    Dim SctnText        As TypeMsgText
     
     If dct Is Nothing Then Set dct = New Dictionary
         
@@ -870,8 +876,12 @@ next_begin_entry:
         Next v
         With fMsg
             .MsgTitle = "Inconsistent begin/end trace code lines!"
-            .MsgLabel(1) = "The following incosistencies made a trace result display useless/impossible:"
-            .MsgText(1) = sTrace:   .MsgMonoSpaced(1) = True
+            
+            SctnLabel.Text = "Due to the following inconsistencies the display of the trace result became useless/impossible:"
+            SctnText.Text = sTrace:   SctnText.Monospaced = True
+            .MsgLabel(1) = SctnLabel
+            .MsgText(1) = SctnText
+            
             .Setup
             .show
         End With

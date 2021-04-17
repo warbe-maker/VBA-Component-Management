@@ -70,15 +70,25 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub DisconnectLinkedRanges()
-' --------------------------------------------
-' Provided all sheets had been synchronized
-' any range still linked to a source Workbooks
-' range must be disconnected.
-' --------------------------------------------
-    Dim nm As Name
-    Dim sName As String
+Private Sub ClearLinksToSource()
+' -----------------------------------------------------------------------------
+' Provided all sheets, form controls and ActiveX controls had been synchronized
+' there may still be references to the source Workbook for range names and
+' form control OnAction specification which are to be eliminated.
+' -----------------------------------------------------------------------------
+    Const PROC = ""
     
+    On Error GoTo eh
+    Dim v           As Variant
+    Dim ws          As Worksheet
+    Dim shp         As Shape
+    Dim nm          As Name
+    Dim sName       As String
+    Dim sOnAction   As String
+    Dim SheetName   As String
+    Dim ControlName As String
+    
+    '~~ Clear back-referred range names
     For Each nm In Sync.Target.Names
         On Error Resume Next
         sName = Split(nm.RefersTo, "]")(1)
@@ -89,6 +99,23 @@ Private Sub DisconnectLinkedRanges()
         End If
     Next nm
     
+    '~~ Clear OnAction configuration
+    For Each v In Sync.TargetSheetControls
+        SheetName = mSync.KeySheetName(v)
+        ControlName = mSync.KeyControlName(v)
+        Set shp = Sync.Target.Worksheets(SheetName).Shapes(ControlName)
+        On Error Resume Next
+        sOnAction = shp.OnAction
+        sOnAction = Replace(sOnAction, Sync.Source.Name, Sync.Target.Name)
+        shp.OnAction = sOnAction
+    Next v
+    
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
 End Sub
 
 Private Function ErrSrc(ByVal s As String) As String
@@ -123,15 +150,26 @@ Private Sub RemoveInvalidRangeNames()
 ' Removes names which point to a range which not or no longer
 ' exists.
 ' -----------------------------------------------------------
+    Const PROC = "RemoveInvalidRangeNames"
+    
+    On Error GoTo eh
     Dim nm As Name
     For Each nm In Sync.Target.Names
         Debug.Print nm.Value
         If InStr(nm.Value, "#") <> 0 Or InStr(nm.RefersTo, "#") <> 0 Then
             Log.ServicedItem = nm
+            On Error Resume Next
             nm.Delete
             Log.Entry = "Deleted! (invalid)"
         End If
     Next nm
+
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
 End Sub
 
 Private Sub RenameSheet(ByRef rs_wb As Workbook, _
@@ -193,32 +231,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeNext: Resume Next
     End Select
 End Sub
-
-Public Function SheetCodeName( _
-                        ByRef sync_wb As Workbook, _
-                        ByVal sync_sheet_name As String) As String
-' ----------------------------------------------------------------
-'
-' ----------------------------------------------------------------
-    Const PROC = "SheetCodeName"
-
-    On Error GoTo eh
-    Dim ws  As Worksheet
-    
-    For Each ws In sync_wb.Worksheets
-        If ws.Name = sync_sheet_name Then
-            SheetCodeName = ws.CodeName
-            GoTo xt
-        End If
-    Next ws
-    
-xt: Exit Function
-    
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-    End Select
-End Function
 '
 'Private Sub SheetsOrder()
 '' -------------------------------------------------------
@@ -272,14 +284,13 @@ Private Sub CollectSyncIssuesForConfirmation()
     mSyncSheets.SyncCodeName
     mSyncSheets.SyncNew
     mSyncSheets.SyncObsolete
-    mSyncSheets.SyncCode
-    
-    mSyncSheetCtrls.SyncShapesNew
-    mSyncSheetCtrls.SyncShapesObsolete
-    
+
     mSyncComps.SyncNew
     mSyncComps.SyncObsolete
     mSyncComps.SyncCodeChanges
+    
+    mSyncSheetCtrls.SyncControlsNew
+    mSyncSheetCtrls.SyncControlsObsolete
     
     mSyncNames.SyncNew
     mSyncNames.SyncObsolete
@@ -292,15 +303,10 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub SyncRestore( _
-        Optional ByVal backup_folder As String = vbNullString)
+Public Sub SyncRestore(ByVal sWrkbk As String)
 ' ------------------------------------------------------------
-' Restores a synchronization target Workbook with its backup.
-' ! The backup folder has just file with the name of the     !
-' ! file to restore in the backup folder's parent folder.    !
-' The backup folder is selected when not provided. When the
-' selected or provided folder is not a backup folder the
-' service terminates without notice.
+' Restores a synchronization target Workbook by deleting it
+' and renaming the ....Backup file
 ' ------------------------------------------------------------
     Const PROC = "SyncRestore"
     
@@ -312,46 +318,17 @@ Public Sub SyncRestore( _
     Dim lFiles      As Long
     Dim BckpFile    As File
     
-    sBckp = backup_folder
-    
-    '~~ Select the desired backup folder when none is provided
-    If sBckp = vbNullString Then
-        With Application.FileDialog(msoFileDialogFolderPicker)
-            .Title = "Select the desired backup folder"
-            .AllowMultiSelect = False
-            .InitialFileName = mMe.ServicedRootFolder
-            If .show = -1 Then ' if OK is pressed
-                sBckp = .SelectedItems(1)
-            End If
-        End With
-    End If
-    
-    '~~ When the provided or selected folder is not a backup folder terminate without notice
-    If InStr(1, sBckp, BKP_FOLDER_PREFIX, vbTextCompare) = 0 Then
-        Application.StatusBar = "Restore service denied! The selected or provided folder's name not begins with '" & BKP_FOLDER_PREFIX & "'"
-        GoTo xt
-    End If
-    
+    On Error Resume Next
+    mCompMan.WbkGetOpen(sWrkbk).Close SaveChanges:=False
     With fso
-        For Each fl In .GetFolder(sBckp).Files
-            lFiles = lFiles + 1
-            Set BckpFile = fl
-        Next fl
-        
-        '~~ When the backup folder has more then 1 file terminate without notice
-        If lFiles > 1 Then
-            Application.StatusBar = "Restore service denied! The selected backup folder contains more than one (the backup) file"
-            GoTo xt
+        If .FileExists(sWrkbk & ".Backup") Then
+            .CopyFile sWrkbk & ".Backup", sWrkbk
+            .DeleteFile sWrkbk & ".Backup"
         End If
-        .CopyFile BckpFile.Path, .GetParentFolderName(sBckp) & "\" & BckpFile.Name
-        
-        '~~ Remove all backup folders
-        For Each fo In .GetFolder(.GetParentFolderName(sBckp)).SubFolders
-            If InStr(1, fo.Path, "\" & BKP_FOLDER_PREFIX, vbTextCompare) <> 0 Then .DeleteFolder fo.Path
-        Next fo
     End With
     
 xt: Set fso = Nothing
+    mCompMan.WbkGetOpen sWrkbk
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -360,31 +337,20 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub SyncBackup(ByRef bkp_folder As String, _
-                      ByVal sTarget As String)
+Public Sub SyncBackup(ByVal sWrkbk As String)
 ' -----------------------------------------------------
 ' Saves a copy of the synchronization target Workbook
-' (Sync.Target) in a time-stamped folder under the
-' Workbook folder returned in (bkp_folder).
+' (Sync.Target) under its name with a suffix .Backup
 ' -----------------------------------------------------
     Const PROC = "SyncBackup"
     
     On Error GoTo eh
-    Dim BckpFolderName  As String
-    Dim fo              As Folder
     
-    BckpFolderName = BKP_FOLDER_PREFIX & Format$(Now(), "YYMMDD-hhmmss")
     With New FileSystemObject
-        While .FolderExists(.GetParentFolderName(sTarget) & "\" & BckpFolderName)
-            Application.Wait Now() + 0.000001
-            BckpFolderName = "Bckup-" & Format$(Now(), "YYMMDD-hhmmss")
-        Wend
-        Set fo = .CreateFolder(.GetParentFolderName(sTarget) & "\" & BckpFolderName)
-        .CopyFile sTarget, fo.Path & "\" & .GetFileName(sTarget)
+        .CopyFile sWrkbk, sWrkbk & ".Backup"
     End With
 
-xt: bkp_folder = fo.Path
-    Exit Sub
+xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case mErH.DebugOptResumeErrorLine: Stop: Resume
@@ -396,7 +362,7 @@ Public Function SyncTargetWithSource( _
           ByRef wb_target As Workbook, _
           ByRef wb_source As Workbook, _
  Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
- Optional ByRef bkp_folder As String) As Boolean
+ Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
 ' --------------------------------------------------------------------
 ' Synchronizes a target Workbook (Sync.Target) with a source Workbook
 ' (Sync.Source). Returns TRUE when finished without error.
@@ -406,6 +372,13 @@ Public Function SyncTargetWithSource( _
     On Error GoTo eh
     Set Sync = New clsSync
     Set Stats = New clsStats
+        
+    Log.Service = PROC
+    mCompMan.DsplyProgress
+    
+    '~~ Make sure both Workbook's Export-Files are up-to-date
+    wb_source.Save
+    wb_target.Save
     
     Sync.ChangedClear
     Sync.RestrictRenameAsserted = restricted_sheet_rename_asserted
@@ -424,8 +397,8 @@ Public Function SyncTargetWithSource( _
     bSyncDenied = True
 
     If GetSyncIssuesConfirmed Then
-        mSync.SyncBackup bkp_folder, Sync.Target.FullName
-        DoSynchronization
+        mSync.SyncBackup wb_target.FullName
+        DoSynchronization design_rows_cols_added_or_deleted
         SyncTargetWithSource = True
     End If
     
@@ -439,7 +412,8 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function DoSynchronization()
+Private Function DoSynchronization( _
+                    Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
 ' -------------------------------------------------
 ' Perform all synch services in 'Synchronize' mode.
 ' -------------------------------------------------
@@ -454,38 +428,42 @@ Private Function DoSynchronization()
     mSyncRefs.SyncNew
     mSyncRefs.SyncObsolete
     
-    mSyncSheets.SyncName
     mSyncSheets.SyncCodeName
+    mSyncSheets.SyncName
     Sync.CollectAllSyncItems ' re-collect with new names
     
     mSyncSheets.SyncNew
+    mSyncSheets.SyncObsolete
     '~~ When a new sheet is copied from the source to the targget Workbook any ranges referring to another
     '~~ sheet will be linked back to the source sheet. Because all sheets will be in synch here, these
     '~~ links will be dropped.
-    DisconnectLinkedRanges
     Sync.CollectAllSyncItems ' re-collect with new sheets
     
-    mSyncSheets.SyncObsolete
     '~~ Removing sheets will leave invalid range names behind which are now removed
     RemoveInvalidRangeNames
     Sync.CollectAllSyncItems ' to clear from removed sheets
     
-    mSyncSheets.SyncCode
     mSyncSheets.SyncOrder
-    
-    mSyncSheetCtrls.SyncShapesNew
-    mSyncSheetCtrls.SyncShapesObsolete
-    mSyncSheetCtrls.SyncShapesProperties
-    Sync.CollectAllSyncItems ' to clear from removed items
-    
-    mSyncSheetCtrls.SyncOOBsNew
-    mSyncSheetCtrls.SyncOOBsObsolete
-    mSyncSheetCtrls.SyncOOBsProperties
     Sync.CollectAllSyncItems ' to clear from removed items
     
     mSyncComps.SyncNew
     mSyncComps.SyncObsolete
     mSyncComps.SyncCodeChanges
+    
+    If Not design_rows_cols_added_or_deleted Then
+        mSyncRanges.SyncNamedColumnsWidth
+        mSyncRanges.SyncNamedRowsHeight
+    End If
+    
+    mSyncSheetCtrls.SyncControlsNew
+    mSyncSheetCtrls.SyncControlsObsolete
+    Sync.CollectAllSyncItems ' to clear from removed items
+    Sync.CollectAllSyncItems ' to clear from removed items
+    
+    mSyncSheetCtrls.SyncControlsProperties
+    Sync.CollectAllSyncItems ' to clear from removed items
+    
+    ClearLinksToSource
     
     mSyncNames.SyncNew
     mSyncNames.SyncObsolete
@@ -512,7 +490,7 @@ Private Function GetSyncIssuesConfirmed() As Boolean
     On Error GoTo eh
     Dim fso             As New FileSystemObject
     Dim v               As Variant
-    Dim sMsg            As tMsg
+    Dim sMsg            As TypeMsg
     Dim sBttnCnfrmd     As String
     Dim sBttnTrmnt      As String
     Dim sBttnRestricted As String
@@ -524,9 +502,12 @@ Private Function GetSyncIssuesConfirmed() As Boolean
         CollectSyncIssuesForConfirmation
         
         '~~ Display the collected synchronization issues for confirmation
-        sMsg.Section(1).sText = Sync.ConfInfo
-        sMsg.Section(1).bMonspaced = True
-        sMsg.Section(2).sText = "The above syncronisation issues need to be confirmed - or " & _
+        With sMsg.Section(1).Text
+            .Text = Sync.ConfInfo
+            .Monospaced = True
+            .FontSize = 8.5
+        End With
+        sMsg.Section(2).Text.Text = "The above syncronisation issues need to be confirmed - or " & _
                                 "terminated in case of any concerns!"
         
         sBttnCnfrmd = "Synchronize"
@@ -540,29 +521,29 @@ Private Function GetSyncIssuesConfirmed() As Boolean
             '~~ may indicate that both sheet names (Name and CodeName) had been changed which cannot be synchronized
             '~~ because of the missing mapping.
             Set cllButtons = mMsg.Buttons(sBttnRestricted, sBttnTrmnt, vbLf)
-            sMsg.Section(3).sText = "1) Sheets in the source Workbbook of which neither the Name nor the CodeName refers to a counterpart in the target Workbook " & _
+            sMsg.Section(3).Text.Text = "1) Sheets in the source Workbbook of which neither the Name nor the CodeName refers to a counterpart in the target Workbook " & _
                                     "are regarded  " & mBasic.Spaced("new") & ". Sheets in the target Workbook in contrast are regarded  " & mBasic.Spaced("obsolete.") & _
                                     "  However, this assumption only holds true when  " & mBasic.Spaced("never") & "  a sheet's Name  a n d  its CodeName is changed. " & _
                                     "Because this is absolutely crucial for this syncronization it needs to be explicitely  " & mBasic.Spaced("asserted.")
         Else
             Set cllButtons = mMsg.Buttons(sBttnCnfrmd, sBttnTrmnt, vbLf)
-            sMsg.Section(3).sText = "2) New and Obsolete sheets had been made unambigous by the assertion that never a sheet's Name  a n d  its CodeName is changed."
+            sMsg.Section(3).Text.Text = "2) New and Obsolete sheets had been made unambigous by the assertion that never a sheet's Name  a n d  its CodeName is changed."
         End If
         
         If Sync.ManualSynchRequired Then
-            sMsg.Section(4).sText = "3) Because this synchronization service (yet) not uses a manifest for sheet design changes " & _
+            sMsg.Section(4).Text.Text = "3) Because this synchronization service (yet) not uses a manifest for sheet design changes " & _
                                     "all these kind of syncronization issues remain a manual task. All these remaining tasks can " & _
                                     "be found in the services' log file in the target Workbook's folder."
         Else
-            sMsg.Section(4).sText = vbNullString
+            sMsg.Section(4).Text.Text = vbNullString
         End If
         For Each v In Sync.Changed
             cllButtons.Add v
         Next v
         
-        sReply = mMsg.Dsply(msg_title:="Confirm the below synchronization issues" _
-                          , msg:=sMsg _
-                          , msg_buttons:=cllButtons _
+        sReply = mMsg.Dsply(dsply_title:="Confirm the below synchronization issues" _
+                          , dsply_msg:=sMsg _
+                          , dsply_buttons:=cllButtons _
                            )
         Select Case sReply
             Case sBttnTrmnt
@@ -584,7 +565,7 @@ Private Function GetSyncIssuesConfirmed() As Boolean
     Loop
     
 xt: Set fso = Nothing
-    Set Sync = Nothing
+'    Set Sync = Nothing
     Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))

@@ -19,12 +19,12 @@ Private dctSourceNames          As Dictionary
 Private dctSourceSheetOOBs      As Dictionary
 Private dctSourceSheetComps     As Dictionary
 Private dctSourceSheets         As Dictionary
-Private dctSourceSheetShapes    As Dictionary
+Private dctSourceSheetControls  As Dictionary
 Private dctTargetNames          As Dictionary
 Private dctTargetSheetOOBs      As Dictionary
 Private dctTargetSheetComps     As Dictionary
 Private dctTargetSheets         As Dictionary
-Private dctTargetSheetShapes    As Dictionary
+Private dctTargetSheetControls  As Dictionary
 Private lMaxLenItem             As String
 Private lMaxLenTypeItem         As Long
 Private lMode                   As SyncMode
@@ -48,11 +48,11 @@ Private Sub Class_Terminate()
     Set dctSourceNames = Nothing
     Set dctSourceSheetComps = Nothing
     Set dctSourceSheets = Nothing
-    Set dctSourceSheetShapes = Nothing
+    Set dctSourceSheetControls = Nothing
     Set dctTargetNames = Nothing
     Set dctTargetSheetComps = Nothing
     Set dctTargetSheets = Nothing
-    Set dctTargetSheetShapes = Nothing
+    Set dctTargetSheetControls = Nothing
     Set dctTargetSheetOOBs = Nothing
     Set dctSourceSheetOOBs = Nothing
 End Sub
@@ -145,7 +145,7 @@ Friend Property Get SourceSheetComps() As Dictionary:           Set SourceSheetC
 
 Friend Property Get SourceSheets() As Dictionary:               Set SourceSheets = dctSourceSheets:                     End Property
 
-Friend Property Get SourceSheetShapes() As Dictionary:          Set SourceSheetShapes = dctSourceSheetShapes:           End Property
+Friend Property Get SourceSheetControls() As Dictionary:        Set SourceSheetControls = dctSourceSheetControls:       End Property
 
 Friend Property Get SourceSheetOOBs() As Dictionary:            Set SourceSheetOOBs = dctSourceSheetOOBs:               End Property
 
@@ -161,7 +161,7 @@ Friend Property Get TargetSheetComps() As Dictionary:           Set TargetSheetC
 
 Friend Property Get TargetSheets() As Dictionary:               Set TargetSheets = dctTargetSheets:                     End Property
 
-Friend Property Get TargetSheetShapes() As Dictionary:          Set TargetSheetShapes = dctTargetSheetShapes:           End Property
+Friend Property Get TargetSheetControls() As Dictionary:        Set TargetSheetControls = dctTargetSheetControls:       End Property
 
 Public Sub ChangedClear()
     If dctChanged Is Nothing Then Set dctChanged = New Dictionary Else dctChanged.RemoveAll
@@ -184,59 +184,33 @@ Public Sub CollectAllSyncItems()
     If dctSourceSheetComps Is Nothing Then Set dctSourceSheetComps = New Dictionary Else dctSourceSheetComps.RemoveAll
     If dctTargetSheets Is Nothing Then Set dctTargetSheets = New Dictionary Else dctTargetSheets.RemoveAll
     If dctTargetSheetComps Is Nothing Then Set dctTargetSheetComps = New Dictionary Else dctTargetSheetComps.RemoveAll
-    If dctSourceSheetShapes Is Nothing Then Set dctSourceSheetShapes = New Dictionary Else dctSourceSheetShapes.RemoveAll
-    If dctTargetSheetShapes Is Nothing Then Set dctTargetSheetShapes = New Dictionary Else dctTargetSheetShapes.RemoveAll
+    If dctSourceSheetControls Is Nothing Then Set dctSourceSheetControls = New Dictionary Else dctSourceSheetControls.RemoveAll
+    If dctTargetSheetControls Is Nothing Then Set dctTargetSheetControls = New Dictionary Else dctTargetSheetControls.RemoveAll
     If dctSourceNames Is Nothing Then Set dctSourceNames = New Dictionary Else dctSourceNames.RemoveAll
     If dctTargetNames Is Nothing Then Set dctTargetNames = New Dictionary Else dctTargetNames.RemoveAll
     If dctSourceSheetOOBs Is Nothing Then Set dctSourceSheetOOBs = New Dictionary Else dctSourceSheetOOBs.RemoveAll
     If dctTargetSheetOOBs Is Nothing Then Set dctTargetSheetOOBs = New Dictionary Else dctTargetSheetOOBs.RemoveAll
     
-    '~~ Source Worksheets by Name and by CodeName
+    '~~ Source Worksheets by Name and by CodeName  and the sheet's FormControls and OLEObjects
     Stats.Count sic_sheets_total, wbSyncSource.Worksheets.Count
     For Each ws1 In wbSyncSource.Worksheets
         Log.ServicedItem = ws1 ' Compute max length for logged item type and item name
         With ws1
             mDct.DctAdd dctSourceSheets, .Name, .Name, order_bykey, seq_ascending, , , True
-            '~~ Source Workseet Shapes
-            Stats.Count sic_shapes_total, .Shapes.Count
-            For Each shp In .Shapes
-                Log.ServicedItem = shp ' Compute max length for logged item type and item name
-                sKey = mSync.KeySheetControl(.Name, shp.Name)
-                mDct.DctAdd dctSourceSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
-            Next shp
-            
-            '~~ Source Worksheet OLEObjects
-            For Each oob In .OLEObjects
-                Log.ServicedItem = oob
-                sKey = mSync.KeySheetControl(.Name, oob.Name)
-                mDct.DctAdd dctSourceSheetOOBs, sKey, oob.Name, order_bykey, seq_ascending, , , True
-            Next oob
+            Stats.Count sic_sheet_controls_total, .Shapes.Count
+            CollectSheetControls ws1, dctSourceSheetControls
         End With
     Next ws1
-'    DisplayCollectedSourceSheetOOBs
     
-    '~~ Target Worksheets by Name and by CodeName
+    '~~ Target Worksheets by Name and by CodeName and the sheet's FormControls and OLEObjects
     For Each ws2 In wbSyncTarget.Worksheets
         Log.ServicedItem = ws2 ' Compute max length for logged item type and item name
         With ws2
             mDct.DctAdd dctTargetSheets, .Name, .Name, order_bykey, seq_ascending, , , True
-            
-            '~~ Target Worksheet Shapes
-            For Each shp In .Shapes
-                Log.ServicedItem = shp ' Compute max length for logged item type and item name
-                sKey = mSync.KeySheetControl(.Name, shp.Name)
-                mDct.DctAdd dctTargetSheetShapes, sKey, .Name, order_bykey, seq_ascending, , , True
-            Next shp
-        
-            '~~ Target Worksheet OLEObjects
-            For Each oob In .OLEObjects
-                Log.ServicedItem = oob
-                sKey = mSync.KeySheetControl(.Name, oob.Name)
-                mDct.DctAdd dctTargetSheetOOBs, sKey, oob.Name, order_bykey, seq_ascending, , , True
-            Next oob
+            Stats.Count sic_sheet_controls_total, .Shapes.Count
+            CollectSheetControls ws2, dctTargetSheetControls
         End With
     Next ws2
-'    DisplayCollectedTargetSheetOOBs
     
     '~~ Source and Target VBComponents
     Stats.Count sic_comps_total, wbSyncSource.VBProject.VBComponents.Count
@@ -274,6 +248,35 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Sub CollectSheetControls( _
+                           ByRef ws As Worksheet, _
+                           ByRef dct As Dictionary)
+' -------------------------------------------------------
+'
+' -------------------------------------------------------
+    Const PROC = "CollectSheetControls"
+    
+    On Error GoTo eh
+    Dim shp     As Shape
+    Dim sName   As String
+    Dim sKey    As String
+    
+    For Each shp In ws.Shapes
+        Log.ServicedItem = shp ' Compute max length for logged item type and item name
+        sName = mSheetControls.CntrlName(shp)
+        sKey = mSync.KeySheetControl(sheet_name:=ws.Name, control_name:=sName)
+'        Debug.Print "Key='" & sKey & "'", Tab(50), "Item='" & sName & "'"
+        mDct.DctAdd dct, sKey, sName, order_bykey, seq_ascending, , , True
+    Next shp
+
+xt: Exit Sub
+    
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case mErH.DebugOptResumeErrorLine: Stop: Resume
+        Case mErH.DebugOptResumeNext: Resume Next
+    End Select
+End Sub
+
 Public Sub ConfInfoClear()
     Set cllConfInfo = Nothing
 End Sub
@@ -293,9 +296,9 @@ Private Sub ConfInfoSummary()
                 Stats.AlignedValue(sic_refs_new) & " New, " & _
                 Stats.AlignedValue(sic_refs_obsolete) & " Obsolete"
     Me.ConfInfo("Summary Shapes") = _
-                Stats.AlignedValue(sic_shapes_total) & " Total, " & _
-                Stats.AlignedValue(sic_shapes_new) & " New, " & _
-                Stats.AlignedValue(sic_shapes_obsolete) & " Obsolete"
+                Stats.AlignedValue(sic_sheet_controls_total) & " Total, " & _
+                Stats.AlignedValue(sic_sheet_controls_new) & " New, " & _
+                Stats.AlignedValue(sic_sheet_controls_obsolete) & " Obsolete"
     Me.ConfInfo("Summary Sheets") = _
                 Stats.AlignedValue(sic_sheets_total) & " Total, " & _
                 Stats.AlignedValue(sic_sheets_new) & " New, " & _
@@ -314,7 +317,7 @@ Public Sub DisplayCollectedSourceSheets()
     Dim ws  As Worksheet
     Dim dct As Dictionary
     
-    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
+    Debug.Print Align(align_s:="T/S", align_lngth:=10, align_mode:=AlignCentered) & Align("Key", 30) & "Item"
     Set dct = Me.SourceSheets
     For i = 1 To dct.Count
         Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
@@ -322,13 +325,13 @@ Public Sub DisplayCollectedSourceSheets()
     Next i
 End Sub
 
-Public Sub DisplayCollectedSourceSheetShapes()
+Public Sub DisplayCollectedSourceSheetControls()
     Dim v           As Variant
     Dim sSheet      As String
     Dim sControl    As String
     
-    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
-    For Each v In Me.SourceSheetShapes
+    Debug.Print Align(align_s:="T/S", align_lngth:=10, align_mode:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    For Each v In Me.SourceSheetControls
         sSheet = mSync.KeySheetName(v)
         sControl = mSync.KeyControlName(v)
         Debug.Print Align("Source", 10) & Align(sSheet, 30) & sControl
@@ -340,7 +343,7 @@ Public Sub DisplayCollectedTargetSheets()
     Dim ws  As Worksheet
     Dim dct As Dictionary
     
-    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Key", 30) & "Item"
+    Debug.Print Align(align_s:="T/S", align_lngth:=10, align_mode:=AlignCentered) & Align("Key", 30) & "Item"
     Set dct = Me.SourceSheets
     For i = 1 To dct.Count
         Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
@@ -348,13 +351,13 @@ Public Sub DisplayCollectedTargetSheets()
     Next i
 End Sub
 
-Public Sub DisplayCollectedTargetSheetShapes()
+Public Sub DisplayCollectedTargetSheetControls()
     Dim v           As Variant
     Dim sSheet      As String
     Dim sControl    As String
     
-    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
-    For Each v In Me.TargetSheetShapes
+    Debug.Print Align(align_s:="T/S", align_lngth:=10, align_mode:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    For Each v In Me.TargetSheetControls
         sSheet = mSync.KeySheetName(v)
         sControl = mSync.KeyControlName(v)
         Debug.Print Align("Source", 10) & Align(sSheet, 30) & sControl
@@ -366,7 +369,7 @@ Public Sub DisplayCollectedTargetSheetOOBs()
     Dim sSheet      As String
     Dim sControl    As String
     
-    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    Debug.Print Align(align_s:="T/S", align_lngth:=10, align_mode:=AlignCentered) & Align("Sheet", 30) & "Shape"
     For Each v In Me.TargetSheetOOBs
         sSheet = mSync.KeySheetName(v)
         sControl = mSync.KeyControlName(v)
@@ -379,7 +382,7 @@ Public Sub DisplayCollectedSourceSheetOOBs()
     Dim sSheet      As String
     Dim sControl    As String
     
-    Debug.Print Align(s:="T/S", lngth:=10, aligned:=AlignCentered) & Align("Sheet", 30) & "Shape"
+    Debug.Print Align(align_s:="T/S", align_lngth:=10, align_mode:=AlignCentered) & Align("Sheet", 30) & "Shape"
     For Each v In Me.SourceSheetOOBs
         sSheet = mSync.KeySheetName(v)
         sControl = mSync.KeyControlName(v)

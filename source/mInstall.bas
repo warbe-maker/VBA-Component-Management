@@ -15,7 +15,7 @@ Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
     Dim cll     As New Collection
     Dim i       As Long
     Dim vReply  As Variant
-    Dim sMsg    As tMsg
+    Dim sMsg    As TypeMsg
     
     If ic_wb Is Nothing Then Set ic_wb = ActiveWorkbook
     If mMe.IsAddinInstnc Then GoTo xt
@@ -32,17 +32,17 @@ Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
     Next v
     cll.Add vbLf
     cll.Add BTT_INST_DONE
-    sMsg.Section(1).sText = ""
-    sMsg.Section(2).sLabel = "Please note!"
-    sMsg.Section(2).sText = "The selection contains all known 'Raw-Components/Common-Components' which are not already installed " & _
+    sMsg.Section(1).Text.Text = ""
+    sMsg.Section(2).Label.Text = "Please note!"
+    sMsg.Section(2).Text.Text = "The selection contains all known 'Raw-Components/Common-Components' which are not already installed " & _
                             "(i.e. imported). Any components missed may either not be indicated 'hosted' in any Workbook or the Workbook " & _
                             "does not reside within the configured 'Serviced-Root-Folder'" & vbLf & _
                             "(currently  " & mBasic.Spaced(mMe.ServicedRootFolder) & "  )."
     
     Do
-        vReply = mMsg.Dsply(msg_title:="Select one of the available 'Raw-Components/Common-Components') yet not installed in '" & ic_wb.Name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
-                        , msg:=sMsg _
-                        , msg_buttons:=cll _
+        vReply = mMsg.Dsply(dsply_title:="Select one of the available 'Raw-Components/Common-Components') yet not installed in '" & ic_wb.Name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
+                        , dsply_msg:=sMsg _
+                        , dsply_buttons:=cll _
                          )
         Select Case vReply
             Case BTT_INST_DONE: Exit Do

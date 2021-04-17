@@ -138,18 +138,20 @@ Friend Property Get CodeLines() As Dictionary
     
     '~~ Remove the extra module information lines
     For i = dct.Count - 1 To 0 Step -1
-        If Left(dct.Items()(i - 1), Len(ATTRIB_VB)) = ATTRIB_VB Then Exit For
+        If Left(dct.Items()(i), Len(ATTRIB_VB)) = ATTRIB_VB Then Exit For
     Next i
     
-    For j = 0 To i - 1
+    For j = 0 To i
+'        Debug.Print dct.Items()(0)
         dct.Remove dct.Keys()(0)
     Next j
-    
     '~~ Remove any leading or trailing empty items
     If dct.Count = 0 Then GoTo xt
     While dct.Items()(0) = vbNullString
         dct.Remove dct.Keys()(0)
     Wend
+    
+'    Debug.Print dct.Items()(0)
     
     ' Remove any trailing empty items
     While dct.Items()(dct.Count - 1) = vbNullString
@@ -181,7 +183,10 @@ Friend Property Let CompName(ByVal s As String)
             Set vbc = wb.VBProject.VBComponents(s)
             sExpFileFullName = mCompMan.ExpFileFolderPath(Me.HostWrkbkFullName) & "\" & sCompName & Me.ExpFileExt
             If Not fso.FileExists(sExpFileFullName) Then
-                Stop ' ????
+                MsgBox Title:="An obligatory Export-File is missing!" _
+                     , Prompt:="The obligatory Export-File '" & sExpFileFullName & "' for the Component '" & sCompName & "' is missing!" _
+                     , Buttons:=vbCritical
+                      Stop ' ????
             End If
         End If
     End If

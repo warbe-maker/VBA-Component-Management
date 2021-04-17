@@ -123,7 +123,7 @@ Public Function UpdateCloneConfirmed( _
     
     On Error GoTo eh
     Dim cllButtons      As Collection
-    Dim sMsg            As tMsg
+    Dim sMsg            As TypeMsg
     Dim vReply          As Variant
     
     BttnDsplyChanges = ucc_comp_name
@@ -139,15 +139,15 @@ Public Function UpdateCloneConfirmed( _
                )
     
     With sMsg
-        .Section(1).sLabel = "About"
-        .Section(1).sText = "When the cloned raw in this Workbook is not updated the message will show up again the next time this Workbook is opened in the configured development root:"
-        .Section(2).sText = mMe.ServicedRootFolder
-        .Section(2).bMonspaced = True
+        .Section(1).Label.Text = "About"
+        .Section(1).Text.Text = "When the cloned raw in this Workbook is not updated the message will show up again the next time this Workbook is opened in the configured development root:"
+        .Section(2).Text.Text = mMe.ServicedRootFolder
+        .Section(2).Text.Monospaced = True
     End With
     Do
-        vReply = mMsg.Dsply(msg_title:=Log.Service & "Update " & Spaced(ucc_comp_name) & "with changed raw" _
-                          , msg:=sMsg _
-                          , msg_buttons:=cllButtons _
+        vReply = mMsg.Dsply(dsply_title:=Log.Service & "Update " & Spaced(ucc_comp_name) & "with changed raw" _
+                          , dsply_msg:=sMsg _
+                          , dsply_buttons:=cllButtons _
                            )
         Select Case vReply
             Case BttnDsplyChanges

@@ -222,7 +222,7 @@ End Property
 
 Private Property Let AppliedControl(ByVal v As Variant)
     If dctApplied Is Nothing Then Set dctApplied = New Dictionary
-    If Not IsApplied(v) Then dctApplied.Add v, v.Name
+    If Not IsApplied(v) Then dctApplied.Add v, v.name
 End Property
 
 Private Property Get ButtonsFrameHeight() As Single
@@ -1691,10 +1691,10 @@ Private Sub SetupMsgSection(ByVal msg_section As Long)
                 .Caption = SectionLabel.text
                 With .Font
                     If SectionLabel.Monospaced Then
-                        If SectionLabel.FontName <> vbNullString Then .Name = SectionLabel.FontName Else .Name = LABEL_MONOSPACED_DEFAULT_FONT_NAME
+                        If SectionLabel.FontName <> vbNullString Then .name = SectionLabel.FontName Else .name = LABEL_MONOSPACED_DEFAULT_FONT_NAME
                         If SectionLabel.FontSize <> 0 Then .Size = SectionLabel.FontSize Else .Size = LABEL_MONOSPACED_DEFAULT_FONT_SIZE
                     Else
-                        If SectionLabel.FontName <> vbNullString Then .Name = SectionLabel.FontName Else .Name = LABEL_PROPSPACED_DEFAULT_FONT_NAME
+                        If SectionLabel.FontName <> vbNullString Then .name = SectionLabel.FontName Else .name = LABEL_PROPSPACED_DEFAULT_FONT_NAME
                         If SectionLabel.FontSize <> 0 Then .Size = SectionLabel.FontSize Else .Size = LABEL_PROPSPACED_DEFAULT_FONT_SIZE
                     End If
                     If SectionLabel.FontItalic Then .Italic = True
@@ -1750,7 +1750,7 @@ Private Sub SetupMsgSectionMonoSpaced(ByVal msg_section As Long)
             .Italic = SectionMsg.FontItalic
             .Underline = SectionMsg.FontUnderline
             If SectionMsg.FontSize <> 0 Then .Size = SectionMsg.FontSize Else .Size = LABEL_MONOSPACED_DEFAULT_FONT_SIZE
-            If SectionMsg.FontName <> vbNullString Then .Name = SectionMsg.FontName Else .Name = LABEL_MONOSPACED_DEFAULT_FONT_NAME
+            If SectionMsg.FontName <> vbNullString Then .name = SectionMsg.FontName Else .name = LABEL_MONOSPACED_DEFAULT_FONT_NAME
         End With
         If SectionMsg.FontColor <> 0 Then .ForeColor = SectionMsg.FontColor Else .ForeColor = rgbBlack
         .AutoSize = True
@@ -1826,7 +1826,7 @@ Private Sub SetupMsgSectionPropSpaced(ByVal msg_section As Long)
         .Width = frText.Width - siHmarginFrames
         .Value = SectionMsg.text
         With .Font
-            If SectionMsg.FontName <> vbNullString Then .Name = SectionMsg.FontName Else .Name = TEXT_PROPSPACED_DEFAULT_FONT_NAME
+            If SectionMsg.FontName <> vbNullString Then .name = SectionMsg.FontName Else .name = TEXT_PROPSPACED_DEFAULT_FONT_NAME
             If SectionMsg.FontSize <> 0 Then .Size = SectionMsg.FontSize Else .Size = TEXT_PROPSPACED_DEFAULT_FONT_SIZE
             If SectionMsg.FontBold Then .Bold = True
             If SectionMsg.FontItalic Then .Italic = True
@@ -1903,12 +1903,12 @@ Private Sub SetupTitle()
         '~~ When a font name other then the standard UserForm font name is
         '~~ provided the extra hidden title label which mimics the title bar
         '~~ width is displayed. Otherwise it remains hidden.
-        If sTitleFontName <> vbNullString And sTitleFontName <> .Font.Name Then
+        If sTitleFontName <> vbNullString And sTitleFontName <> .Font.name Then
             With .laMsgTitle   ' Hidden by default
                 .Visible = True
                 .top = siTop
                 siTop = VgridPos(.top + .Height)
-                .Font.Name = sTitleFontName
+                .Font.name = sTitleFontName
                 If sTitleFontSize <> 0 Then
                     .Font.Size = sTitleFontSize
                 End If
@@ -1923,7 +1923,7 @@ Private Sub SetupTitle()
             With .laMsgTitle
                 With .Font
                     .Bold = False
-                    .Name = Me.Font.Name
+                    .name = Me.Font.name
                     .Size = 8.65   ' Value which comes to a length close to the length required
                 End With
                 .Visible = False

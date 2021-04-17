@@ -516,7 +516,7 @@ Public Function BasicConfig( _
     Dim sBttnSrvcd      As String: sBttnSrvcd = "Configure/change" & vbLf & vbLf & FOLDER_SERVICED & vbLf & " "
     
     Dim fso                         As New FileSystemObject
-    Dim sMsg                        As tMsg
+    Dim sMsg                        As TypeMsg
     Dim sReply                      As String
     Dim sCompManAddinFolder         As String
     Dim sServicedRootFolder         As String
@@ -557,20 +557,20 @@ Public Function BasicConfig( _
         If CompManAddinFolderIsValid And ServicedRootFolderIsValid And Not bc_sync_confirm_info Then GoTo xt
         
         With sMsg
-            .Section(1).sLabel = FOLDER_SERVICED & ":"
-            .Section(1).sText = sServicedRootFolder
-            .Section(1).bMonspaced = True
-            .Section(2).sLabel = FOLDER_ADDIN & ":"
-            .Section(2).sText = sCompManAddinFolder
-            .Section(2).bMonspaced = True
+            .Section(1).Label.Text = FOLDER_SERVICED & ":"
+            .Section(1).Text.Text = sServicedRootFolder
+            .Section(1).Text.Monospaced = True
+            .Section(2).Label.Text = FOLDER_ADDIN & ":"
+            .Section(2).Text.Text = sCompManAddinFolder
+            .Section(2).Text.Monospaced = True
             
             If bc_sync_confirm_info _
-            Then .Section(3).sText = "Please sync_confirm_info the above Basic CompMan Configuration." _
-            Else .Section(3).sText = "Please configure/complete the required Basic CompMan Configuration."
+            Then .Section(3).Text.Text = "Please sync_confirm_info the above Basic CompMan Configuration." _
+            Else .Section(3).Text.Text = "Please configure/complete the required Basic CompMan Configuration."
             
-            .Section(4).sLabel = "Attention!"
-            .Section(4).bMonspaced = True
-            .Section(4).sText = "1. The '" & FOLDER_ADDIN & "' must not be identical with the '" & FOLDER_SERVICED & "'" & vbLf & _
+            .Section(4).Label.Text = "Attention!"
+            .Section(4).Text.Monospaced = True
+            .Section(4).Text.Text = "1. The '" & FOLDER_ADDIN & "' must not be identical with the '" & FOLDER_SERVICED & "'" & vbLf & _
                                     "or any of its subfolders." & vbLf & _
                                 "2. The 'export' and the 'update' service are only available for Workbooks/VB-Projects when" & vbLf & _
                                 "   located in a subfolder of the configured '" & FOLDER_SERVICED & "'. In other words, " & vbLf & _
@@ -583,9 +583,9 @@ Public Function BasicConfig( _
         Then Set cllButtons = mMsg.Buttons(sBttnSrvcd, sBttnAddin, vbLf, BTTN_TERMINATE_CFG) _
         Else Set cllButtons = mMsg.Buttons(BTTN_CFG_CONFIRMED, vbLf, sBttnSrvcd, sBttnAddin)
         
-        sReply = mMsg.Dsply(msg_title:="Basic configuration of the Component Management (CompMan Addin)" _
-                          , msg:=sMsg _
-                          , msg_buttons:=cllButtons _
+        sReply = mMsg.Dsply(dsply_title:="Basic configuration of the Component Management (CompMan Addin)" _
+                          , dsply_msg:=sMsg _
+                          , dsply_buttons:=cllButtons _
                            )
         Select Case sReply
             Case sBttnAddin
@@ -700,7 +700,7 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         sWbs = Left(sWbs, Len(sWbs) - 2)
         mMe.RenewLogResult() = "Passed"
     Else
-        mMe.RenewLogResult(sRenewAction & vbLf & "None of the open Workbook's VBProject had a 'Referrence' to the 'CompMan-Addin'" _
+        mMe.RenewLogResult(sRenewAction & vbLf & "None of the open Workbook's VBProject had a 'Reference' to the 'CompMan-Addin'" _
                           ) = "Passed"
     End If
     
