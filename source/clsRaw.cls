@@ -8,11 +8,10 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
-' ------------------------------------------------------------
-' Class Module clsRaw
-' Provides Properties and services for a Raw component of any
-' type. I.e. a component a certain Workbook claims the raw
-' version or the last developed version respectively.
+' ----------------------------------------------------------------------------------------
+' Class Module clsRaw:  Provides Properties and services for a Raw component of any
+'                       type. I.e. a component a certain Workbook claims the raw
+'                       version or the last developed version respectively.
 '
 ' Friend(Public) Properties:
 ' - Changed
@@ -25,9 +24,12 @@ Option Explicit
 ' - ExpFileExt
 ' - ExpFileFullName
 ' - ExpFilePath
-' - HostWrkbkFullName   In contrast to the clsComp Class Module a 'Raw-Component's' host Workbook
-'                       is not open because only its Export-File is used - which is registered and
-'                       obtained from the 'HostedRwas.dat' file by means of services in 'mRawsHosted'
+' - HostWrkbkFullName   In contrast to the clsComp Class Module a 'Raw-Component's'
+'                       host Workbook is usually not open. The name of the Export-
+'                       File is obtained from the .dat files in the 'CompMan-Addin-Folder'
+'                       where the data had been registered when the 'Raw-Host's'
+'                       'Raw-Component' had been exported with the Workbook_BeforeSave
+'                       event.
 ' - RawHost
 ' - RawType
 ' - VBComp
@@ -35,7 +37,7 @@ Option Explicit
 ' - SheetName
 ' - TypeString
 ' - Wrkbk               When the clsRaw represents a 'Synchronization-Source-Workbook' this Workbook
-'                       is allways open because its Worksheets, Names, Shapes, and References are
+'                       is always open because its Worksheets, Names, Shapes, and References are
 '                       obtained
 ' - WrkbkBaseName
 '
@@ -43,8 +45,8 @@ Option Explicit
 ' - DsplyAllChanges
 ' - RemoteSheetExists
 '
-' W. Rauschenberger Berlin, Jan 2021 (last revised)
-' -----------------------------------------------------------
+' W. Rauschenberger Berlin, April 2021 (last revised)
+' ----------------------------------------------------------------------------------------
 Private dctChanges              As Dictionary
 Private flExpFile               As File
 Private sCloneExpFileFullName   As String
@@ -92,19 +94,18 @@ Friend Property Get Changed( _
     Dim fso As New FileSystemObject
     
     If dctChanges Is Nothing Or check_again Then
-        If Not fso.FileExists(sCloneExpFileFullName) Then
-            Set dctChanges = New Dictionary
-            Changed = True
-        Else
-            Set dctChanges = _
-            mFile.Differs(fd_file1:=fso.GetFile(clone.ExpFileFullName) _
-                        , fd_file2:=fso.GetFile(Me.ExpFileFullName) _
-                        , fd_ignore_empty_records:=True _
-                        , fd_compare:=vbTextCompare _
-                        , fd_stop_after:=1 _
-                         )
-            Changed = dctChanges.Count <> 0
+        If Not fso.FileExists(clone.ExpFileFullName) Then
+            '~~ The component never had been exported yet or the Export-File has been deleted
+            clone.Export
         End If
+        Set dctChanges = _
+        mFile.Differs(fd_file1:=fso.GetFile(clone.ExpFileFullName) _
+                    , fd_file2:=fso.GetFile(Me.ExpFileFullName) _
+                    , fd_ignore_empty_records:=True _
+                    , fd_compare:=vbTextCompare _
+                    , fd_stop_after:=1 _
+                     )
+        Changed = dctChanges.Count <> 0
     End If
             
 xt: Set fso = Nothing

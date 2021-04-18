@@ -27,7 +27,7 @@ Option Private Module
 '                           Components of which the Raw code has changed. This
 '                           service only runs provided the Addin instance
 '                           Workbook is open (see RenewAddIn service).
-' - ServicedRootFolder            When the AddIn is open and not  p a u s e d the
+' - ServicedRootFolder      When the AddIn is open and not  p a u s e d the
 '                           Workbook_Open service 'UpdateRawClones' and the
 '                           Workbook_BeforeSave service 'ExportChangedComponents'
 '                           will be executed for Workbooks calling them under
@@ -45,15 +45,15 @@ Option Private Module
 ' W. Rauschenberger, Berlin Nov 2020
 ' ---------------------------------------------------------------------------
 Public Const COMPMAN_ADMIN_FOLDER_NAME      As String = "\CompManAdmin\"
-Public Const FOLDER_SERVICED                As String = "Root folder serviced by CompMan"
+Public Const FOLDER_SERVICED                As String = "Serviced-By-CompMan folder"
 
+Private Const FOLDER_ADDIN                  As String = "CompMan-Addin folder"
 Private Const SECTION_BASE_CONFIG           As String = "BaseConfiguration"
 Private Const VNAME_SERVICED_ROOT           As String = "VBDevProjectsRoot"
 Private Const VNAME_COMPMAN_ADDIN_FOLDER    As String = "CompManAddInPath"
 Private Const VNAME_COMPMAN_ADDIN_PAUSED    As String = "CompManAddInPaused"
 Private Const ADDIN_WORKBOOK_EXTENSION      As String = "xlam"      ' Extension may depend on Excel version
 Private Const DEVLP_WORKBOOK_EXTENSION      As String = "xlsb"      ' Extension may depend on Excel version
-Private Const FOLDER_ADDIN                  As String = "Folder for the CompMan Add-in"
 
 Private wbDevlp         As Workbook
 Private wbSource        As Workbook                     ' This development instance as the renew source
@@ -557,26 +557,38 @@ Public Function BasicConfig( _
         If CompManAddinFolderIsValid And ServicedRootFolderIsValid And Not bc_sync_confirm_info Then GoTo xt
         
         With sMsg
-            .Section(1).Label.Text = FOLDER_SERVICED & ":"
-            .Section(1).Text.Text = sServicedRootFolder
-            .Section(1).Text.Monospaced = True
-            .Section(2).Label.Text = FOLDER_ADDIN & ":"
-            .Section(2).Text.Text = sCompManAddinFolder
-            .Section(2).Text.Monospaced = True
-            
-            If bc_sync_confirm_info _
-            Then .Section(3).Text.Text = "Please sync_confirm_info the above Basic CompMan Configuration." _
-            Else .Section(3).Text.Text = "Please configure/complete the required Basic CompMan Configuration."
-            
-            .Section(4).Label.Text = "Attention!"
-            .Section(4).Text.Monospaced = True
-            .Section(4).Text.Text = "1. The '" & FOLDER_ADDIN & "' must not be identical with the '" & FOLDER_SERVICED & "'" & vbLf & _
-                                    "or any of its subfolders." & vbLf & _
-                                "2. The 'export' and the 'update' service are only available for Workbooks/VB-Projects when" & vbLf & _
-                                "   located in a subfolder of the configured '" & FOLDER_SERVICED & "'. In other words, " & vbLf & _
-                                "   when a serviced Workbook is moved elsewhere for production it will not be bothered " & vbLf & _
-                                "   with CompMan services even when they are called by the Workbook."
-
+            With .Section(1)
+                .Label.Text = FOLDER_SERVICED & ":"
+                .Label.FontBold = True
+                With .Text
+                    .Text = sServicedRootFolder
+                    .FontColor = rgbBlue
+                    .FontBold = True
+                    .Monospaced = True
+                End With
+            End With
+            With .Section(2)
+                .Label.Text = FOLDER_ADDIN & ":"
+                .Label.FontBold = True
+                With .Text
+                    .Text = sCompManAddinFolder
+                    .FontColor = rgbBlue
+                    .FontBold = True
+                    .Monospaced = True
+                End With
+            End With
+            With .Section(3).Text
+                .FontSize = 8.5
+                .Text = "- Must not be identical with the " & FOLDER_SERVICED & vbLf & _
+                        "  or any of its subfolders." & vbLf & vbLf & _
+                        "- For Workbooks 'outside' this folder (i.e. productive) an 'export' or" & vbLf & _
+                        "  an 'update' service will not be applied."
+            End With
+            With .Section(4)
+                If bc_sync_confirm_info _
+                Then .Text.Text = "Please confirm the above 'Basic CompMan Configuration'." _
+                Else .Text.Text = "Please configure/complete the 'Basic CompMan Configuration'."
+            End With
         End With
         '~~ Buttons preparation
         If Not ServicedRootFolderIsValid Or Not CompManAddinFolderIsValid _

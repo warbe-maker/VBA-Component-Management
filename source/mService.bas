@@ -351,7 +351,7 @@ Public Function SyncVBProjects( _
     Set mService.Serviced = wb_target
     
     If mService.Denied(PROC) Then GoTo xt
-
+    
     sStatus = Log.Service
         
     SyncVBProjects = mSync.SyncTargetWithSource(wb_target:=wb_target _
@@ -479,8 +479,8 @@ Private Function SyncSourceAndTargetSelected( _
             .Section(2).Text.Monospaced = True
             
             If cr_sync_confirm_info _
-            Then .Section(3).Text.Text = "Please sync_confirm_info the provided VB-Clone- and VB-Raw-Project." _
-            Else .Section(3).Text.Text = "Please provide/complete the VB-Clone- (sync target) and the VB-Raw-Project (sync source)."
+            Then .Section(3).Text.Text = "Please confirm the above current 'Basic CompMan Configuration'." _
+            Else .Section(3).Text.Text = "Please provide/complete the 'Basic CompMan Configuration'."
             
             .Section(3).Text.Text = .Section(3).Text.Text & vbLf & vbLf & _
                                 "Attention!" & vbLf & _

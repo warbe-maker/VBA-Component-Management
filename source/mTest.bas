@@ -908,3 +908,10 @@ xt: Set dct = Nothing
 eh: Stop: Resume
 End Sub
 
+Public Sub ClearIW()
+    Application.VBE.Windows("Direktbereich").SetFocus
+        If Application.VBE.ActiveWindow.Caption = "Direktbereich" And Application.VBE.ActiveWindow.Visible Then
+        Application.SendKeys "^a {DEL} {HOME}"
+    End If
+End Sub
+
