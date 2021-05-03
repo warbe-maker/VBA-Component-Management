@@ -35,7 +35,7 @@ Public Property Get AlignedValue(ByVal sic As siCounter) As String
         Value = Me.Total(sic_comps_total) - Me.Total(sic_sheets_total) - 1
     End If
     
-    AlignedValue = Align(CStr(Value), lMaxLen, AlignRight)
+    AlignedValue = mBasic.Align(CStr(Value), lMaxLen, AlignRight)
 End Property
 
 Public Property Get Total(Optional ByVal sic As siCounter) As Long

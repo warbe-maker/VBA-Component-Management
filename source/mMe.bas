@@ -108,7 +108,7 @@ Private Property Get CompManCfgFileName() As String
 '       knowing the location it is finally copied to.
 ' ------------------------------------------------------------------------
     Dim fso As New FileSystemObject
-    Select Case fso.GetExtensionName(ThisWorkbook.Name)
+    Select Case fso.GetExtensionName(ThisWorkbook.name)
         Case "xlam"
             '~~ When the CompMan-Addin requests the CompMan.cfg file
             '~~ it is the one which resides in the 'CompManAdmin' sub-folder
@@ -181,11 +181,15 @@ Public Property Get IsDevInstnc() As Boolean
     End With
 End Property
 
-Private Property Get RenewFinalResult() As String
-    If bSucceeded _
-    Then RenewFinalResult = "Successful! The Addin '" & CompManAddinName & "' has been renewed by the development instance '" & DevInstncName & "'" _
-    Else RenewFinalResult = "Failed! Renewing the Addin '" & CompManAddinName & "' by the development instance '" & DevInstncName & "' failed!"
-End Property
+Private Sub RenewFinalResult()
+    If bSucceeded Then
+        mMe.RenewLogAction = "Successful!"
+        RenewLogResult("Successful! The Addin '" & CompManAddinName & "' has been renewed by the development instance '" & DevInstncName & "'") = "Passed"
+    Else
+        mMe.RenewLogAction = "Not Successful!"
+        mMe.RenewLogResult("Renewing the Addin '" & CompManAddinName & "' by the development instance '" & DevInstncName & "' failed!") = "Failed"
+    End If
+End Sub
 
 Public Property Let RenewLogAction(ByVal la_action As String)
     lRenewStep = lRenewStep + 1
@@ -202,7 +206,7 @@ End Property
 Public Property Get RenewStep() As Long:    RenewStep = lRenewStep: End Property
 
 Public Property Let RenewStep(ByVal l As Long)
-    If l = 0 Then wsAddIn.RenewStepLogClear
+'    If l = 0 Then wsAddIn.RenewStepLogClear
     lRenewStep = l
 End Property
 
@@ -258,7 +262,6 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
     
     On Error GoTo eh
     wsAddIn.CurrentStatus = vbNullString
-    wsAddIn.RenewStepLogTitle = "Log of the steps to Setup/Renew the 'CompMan-Addin'"
     If mMe.CompManAddinIsSetup Then
         If Not mMe.CompManAddinIsOpen Then
             '~~ AddIn is setup but currently not open. It will be opened either when a Workbook
@@ -267,7 +270,6 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
             '~~ Renew steps log
             wsAddIn.CurrentStatus = mBasic.Spaced("not open!") & vbLf & _
                                     "(will be opened with Setup/Renew or by a Workbook opened which refers to it)"
-            If Not keep_renew_steps_result Then wsAddIn.RenewStepLogClear
             '~~ AddIn paused status
             wsAddIn.CompManAddInPausedStatus = _
             "The CompMan-AddIn is  s e t u p  but currently  n o t  o p e n !" & vbLf & _
@@ -296,7 +298,6 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
     Else ' not or no longer (properly) setup
         wsAddIn.CurrentStatus = mBasic.Spaced("not setup!") & vbLf & _
                                 "(Setup/Renew must be performed to configure and setup the 'CompMan-Addin'"
-        wsAddIn.RenewStepLogClear
         wsAddIn.CompManAddInPausedStatus = _
         "The CompMan-Addin is currently  n o t  s e t u p !" & vbLf & vbLf & _
         "Renew is required to establish the Addin. The Addin, once established, will subsequently be opened when:" & vbLf & _
@@ -334,7 +335,7 @@ Public Function CompManAddinIsOpen() As Boolean
     
     CompManAddinIsOpen = False
     For i = 1 To Application.AddIns2.Count
-        If Application.AddIns2(i).Name = CompManAddinName Then
+        If Application.AddIns2(i).name = CompManAddinName Then
             On Error Resume Next
             Set wbTarget = Application.Workbooks(CompManAddinName)
             CompManAddinIsOpen = Err.Number = 0
@@ -437,8 +438,6 @@ Public Sub RenewAddIn()
     Application.EnableEvents = False
     bSucceeded = False
                             
-    wsAddIn.Range("rngRenewLogTitle") = "Log of the steps to Setup/Renew the 'CompMan-Addin'"
-
     '~~ Get the CompMan base configuration confirmed or changed
     If Not Renew_0_ConfirmConfig Then GoTo xt
                          
@@ -478,7 +477,7 @@ Public Sub RenewAddIn()
     
     bSucceeded = True
     
-xt: mMe.RenewLogAction = RenewFinalResult
+xt: RenewFinalResult
     
     Application.ScreenUpdating = False
     mMe.DisplayStatus True
@@ -660,7 +659,6 @@ End Function
 
 Private Function Renew_0_ConfirmConfig() As Boolean
     mMe.RenewLogAction = "Assert 'CompMan's Basic Configuration'"
-    wsAddIn.RenewStepLogSubTitle = vbNullString
     Renew_0_ConfirmConfig = BasicConfig(bc_sync_confirm_info:=True)
     If Renew_0_ConfirmConfig _
     Then mMe.RenewLogResult = "Passed" _
@@ -692,9 +690,9 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         For Each v In dct
             Set wb = dct.Item(v)
             For Each ref In wb.VBProject.References
-                If InStr(ref.Name, fso.GetBaseName(CompManAddinName)) <> 0 Then
+                If InStr(ref.name, fso.GetBaseName(CompManAddinName)) <> 0 Then
                     dctAddInRefs.Add wb, ref
-                    sWbs = wb.Name & ", " & sWbs
+                    sWbs = wb.name & ", " & sWbs
                 End If
             Next ref
         Next v
@@ -885,9 +883,9 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
             Set wb = Application.Workbooks.Open(CompManAddinFullName)
             If Err.Number = 0 Then
                 With New FileSystemObject
-                    sBaseAddinName = .GetBaseName(wb.Name)
-                    sBaseDevName = .GetBaseName(ThisWorkbook.Name)
-                    wb.VBProject.Name = sBaseAddinName
+                    sBaseAddinName = .GetBaseName(wb.name)
+                    sBaseDevName = .GetBaseName(ThisWorkbook.name)
+                    wb.VBProject.name = sBaseAddinName
                 End With
                 mMe.RenewLogResult() = "Passed"
                 Renew_8_OpenAddinInstncWorkbook = True
@@ -922,7 +920,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     For Each v In dctAddInRefs
         Set wb = v
         wb.VBProject.References.AddFromFile CompManAddinFullName
-        sWbs = wb.Name & ", " & sWbs
+        sWbs = wb.name & ", " & sWbs
         bOneRestored = True
     Next v
     
@@ -960,7 +958,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             
             If Not mCompMan.WbkIsOpen(io_name:=DevInstncName) _
             Then Stop _
-            Else wbDevlp.VBProject.Name = fso.GetBaseName(DevInstncName)
+            Else wbDevlp.VBProject.name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
                 mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ") failed!" _
