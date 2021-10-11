@@ -113,6 +113,16 @@ Public Log              As clsLog
 Private lMaxLenComp     As Long
 Private lMaxLenTypeItem As Long
 
+Private Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
+End Function
     
 Private Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
 
@@ -304,10 +314,10 @@ Public Function ExpFileFolderPath(ByVal v As Variant) As String
             Case "String"
                 s = v
                 If Not .FileExists(s) _
-                Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "'" & s & "' is not the FullName of an existing Workbook!"
+                Then Err.Raise AppErr(1), ErrSrc(PROC), "'" & s & "' is not the FullName of an existing Workbook!"
                 ExpFileFolderPath = .GetParentFolderName(s) & EXP_FILES_SUB_FOLDER
             Case Else
-                Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The required information about the concerned Workbook is neither provided as a Workbook object nor as a string identifying an existing Workbooks FullName"
+                Err.Raise AppErr(1), ErrSrc(PROC), "The required information about the concerned Workbook is neither provided as a Workbook object nor as a string identifying an existing Workbooks FullName"
         End Select
         If Not .FolderExists(ExpFileFolderPath) Then .CreateFolder ExpFileFolderPath
     End With
@@ -553,7 +563,7 @@ Public Function WbkIsOpen( _
         WbkIsOpen = Err.Number = 0
     Else
         On Error Resume Next
-        io_name = Application.Workbooks(io_name).Name
+        io_name = Application.Workbooks(io_name).name
         WbkIsOpen = Err.Number = 0
     End If
 

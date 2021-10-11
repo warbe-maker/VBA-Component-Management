@@ -1,6 +1,17 @@
 Attribute VB_Name = "mExport"
 Option Explicit
 
+Private Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
+End Function
+
 Public Sub All()
 ' --------------------------------------------------------------
 ' Standard-Module mExport
@@ -33,13 +44,13 @@ Public Sub All()
     CleanUpObsoleteExpFiles
     
     If mMe.IsAddinInstnc _
-    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
     
     For Each vbc In mService.Serviced.VBProject.VBComponents
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = mService.Serviced
-            .CompName = vbc.Name ' this assignment provides the name for the export file
+            .CompName = vbc.name ' this assignment provides the name for the export file
             vbc.Export .ExpFileFullName
         End With
         Set Comp = Nothing
@@ -100,7 +111,7 @@ Public Sub ChangedComponents()
         Set Comp = dctChanged(v)
         Set vbc = Comp.VBComp
         Log.ServicedItem = vbc
-        DsplyProgress p_result:=sExported & " " & vbc.Name _
+        DsplyProgress p_result:=sExported & " " & vbc.name _
                     , p_total:=Stats.Total(sic_comps_changed) _
                     , p_done:=Stats.Total(sic_comps)
                 
@@ -135,7 +146,7 @@ Public Sub ChangedComponents()
                     Comp.ReplaceRawWithCloneWhenConfirmed raw:=RawComp, rwu_updated:=bUpdated ' when confirmed in user dialog
                     If bUpdated Then
                         lUpdated = lUpdated + 1
-                        sUpdated = vbc.Name & ", " & sUpdated
+                        sUpdated = vbc.name & ", " & sUpdated
                         Log.Entry = """Remote Raw"" has been updated with code of ""Raw Clone"""
                     End If
                         
@@ -159,8 +170,8 @@ Public Sub ChangedComponents()
                         Log.Entry = "Exported to '" & .ExpFileFullName & "'"
                         lExported = lExported + 1
                         If lExported = 1 _
-                        Then sExported = vbc.Name _
-                        Else sExported = sExported & ", " & vbc.Name
+                        Then sExported = vbc.name _
+                        Else sExported = sExported & ", " & vbc.name
                         GoTo next_vbc
                     End If
                 

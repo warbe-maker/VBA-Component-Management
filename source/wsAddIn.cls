@@ -51,8 +51,8 @@ Public Sub LogRenewStep( _
 ' ---------------------------------------------------------------
 '
 ' ---------------------------------------------------------------
-    Dim Msg         As TypeMsg
-    Dim l           As Long: l = mMe.RenewStep
+    Dim Msg As String
+    Dim l   As Long: l = mMe.RenewStep
     
     RenewStep = l
     If rn_result <> vbNullString Then RenewResult = rn_result
@@ -60,10 +60,7 @@ Public Sub LogRenewStep( _
     If RenewResult <> vbNullString Then ProgressMsg RenewStep, RenewResult, RenewAction
     
     If RenewStep > 1 And RenewResult <> vbNullString Then
-        With Msg.Section(1).Text
-            .Text = sProgressMsg
-            .Monospaced = True
-        End With
+        Msg = sProgressMsg
         mMsg.Progress prgrs_title:="Log of the steps to Setup/Renew the 'CompMan-Addin'" _
                     , prgrs_msg:=Msg
         sProgressMsg = vbNullString

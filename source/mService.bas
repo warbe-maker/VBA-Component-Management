@@ -12,6 +12,17 @@ Public Property Set Serviced(ByRef wb As Workbook)
     Set wbServiced = wb
 End Property
 
+Private Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
+End Function
+
 Public Sub RenewComp( _
       Optional ByVal rc_exp_file_full_name As String = vbNullString, _
       Optional ByVal rc_comp_name As String = vbNullString, _
@@ -149,7 +160,7 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
             Set wbActive = Nothing
         End If
     End If
@@ -190,7 +201,7 @@ End Function
 Public Function CompMaxLen(ByRef ml_wb As Workbook) As Long
     Dim vbc As VBComponent
     For Each vbc In ml_wb.VBProject.VBComponents
-        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.Name))
+        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.name))
     Next vbc
 End Function
 
@@ -274,7 +285,7 @@ Public Sub ExportChangedComponents(ByVal hosted As String)
     
     mErH.BoP ErrSrc(PROC)
     If mService.Serviced Is Nothing _
-    Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                                  "(it may have been called directly via the 'Immediate Window'"
     If mService.Denied(PROC) Then GoTo xt
     mCompMan.ManageHostHostedProperty hosted
@@ -473,10 +484,10 @@ Private Function SyncSourceAndTargetSelected( _
         With sMsg
             .Section(1).Label.Text = TARGET_PROJECT & ":"
             .Section(1).Text.Text = sWbClone
-            .Section(1).Text.Monospaced = True
+            .Section(1).Text.MonoSpaced = True
             .Section(2).Label.Text = SOURCE_PROJECT & ":"
             .Section(2).Text.Text = sWbRaw
-            .Section(2).Text.Monospaced = True
+            .Section(2).Text.MonoSpaced = True
             
             If cr_sync_confirm_info _
             Then .Section(3).Text.Text = "Please confirm the above current 'Basic CompMan Configuration'." _
@@ -576,7 +587,7 @@ Private Function Clones( _
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = cl_wb
-            .CompName = vbc.Name
+            .CompName = vbc.name
             Log.ServicedItem = .VBComp
             If .KindOfComp = enRawClone Then
                 Set RawComp = New clsRaw
@@ -586,12 +597,12 @@ Private Function Clones( _
                 RawComp.CloneExpFileFullName = .ExpFileFullName
                 RawComp.TypeString = .TypeString
                 If .Changed Then
-                    dct.Add vbc, vbc.Name
+                    dct.Add vbc, vbc.name
                 Else
                     Log.Entry = "Code un-changed."
                 End If
                 If RawComp.Changed(Comp) Then
-                    If Not dct.Exists(vbc) Then dct.Add vbc, vbc.Name
+                    If Not dct.Exists(vbc) Then dct.Add vbc, vbc.name
                 Else
                     Log.Entry = "Corresponding Raw's code un-changed."
                 End If

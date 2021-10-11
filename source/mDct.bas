@@ -15,7 +15,7 @@ Option Explicit
 ' - DictDiff    Returns True when tow Dictionaries were different
 '
 ' Uses:         No other modules
-'               Note: mErH, mTrc, and fMsg are for the mTest module only
+'               Note: mErH, mTrc, fMsg, mMsg are for the mTest module only
 '
 ' Requires:     "Microsoft Scripting Runtime"
 '               Note: The reference to "Microsoft Visual Basic Application Extensibility .."
@@ -47,8 +47,15 @@ Public Enum enDctAddOptions ' Dictionary add/insert modes
     seq_entry
 End Enum
 
-Private Function AppErr(ByVal lNo As Long) As Long
-    AppErr = IIf(lNo < 0, lNo - vbObjectError, vbObjectError + lNo)
+Private Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
 End Function
 
 Public Sub DctAdd(ByRef add_dct As Dictionary, _
@@ -121,7 +128,7 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
         '~~ When a add_target is specified it must exist
         If (bSeqAfterTrgt Or bSeqBeforeTrgt) And bOrderByKey Then
             If Not add_dct.Exists(add_target) _
-            Then Err.Raise mBasic.AppErr(5), ErrSrc(PROC), "The add_target add_key for an add before/after add_key does not exists!"
+            Then Err.Raise AppErr(5), ErrSrc(PROC), "The add_target add_key for an add before/after add_key does not exists!"
         ElseIf (bSeqAfterTrgt Or bSeqBeforeTrgt) And bOrderByItem Then
             If Not DctAddItemExists(add_dct, add_target) _
             Then Err.Raise AppErr(6), ErrSrc(PROC), "The add_target itemfor an add before/after add_item does not exists!"
@@ -151,14 +158,14 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
     If bOrderByKey Then
         If VarType(add_key) = vbObject Then
             On Error Resume Next
-            add_key.Name = add_key.Name
+            add_key.name = add_key.name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
         End If
     ElseIf bOrderByItem Then
         If VarType(add_item) = vbObject Then
             On Error Resume Next
-            add_item.Name = add_item.Name
+            add_item.name = add_item.name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
         End If
@@ -327,13 +334,13 @@ Private Function DctAddOrderValue(ByVal dctkey As Variant, _
     If bOrderByKey Then
     
         If VarType(dctkey) = vbObject _
-        Then DctAddOrderValue = dctkey.Name _
+        Then DctAddOrderValue = dctkey.name _
         Else DctAddOrderValue = dctkey
         
     ElseIf bOrderByItem Then
     
         If VarType(dctitem) = vbObject _
-        Then DctAddOrderValue = dctitem.Name _
+        Then DctAddOrderValue = dctitem.name _
         Else DctAddOrderValue = dctitem
     
     End If
@@ -432,7 +439,7 @@ Private Function DctAddItemExists( _
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = ThisWorkbook.Name & " mDct." & sProc
+    ErrSrc = ThisWorkbook.name & " mDct." & sProc
 End Function
 
 

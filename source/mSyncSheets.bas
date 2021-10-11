@@ -23,6 +23,17 @@ Public Property Let FinalName(Optional ByVal old_name As String, ByVal new_name 
     If Not dctFinalName.Exists(old_name) Then dctFinalName.Add old_name, new_name
 End Property
 
+Private Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
+End Function
+
 Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSyncSheets." & s
 End Function
@@ -56,11 +67,11 @@ Public Function SheetExists( _
     Dim ws As Worksheet
     
     If sh1_name = vbNullString And sh1_code_name = vbNullString _
-    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Neither a Sheet's Name nor CodeName is provided!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "Neither a Sheet's Name nor CodeName is provided!"
     
     For Each ws In wb.Worksheets
         If sh1_name <> vbNullString Then
-            If ws.Name = sh1_name Then
+            If ws.name = sh1_name Then
                 SheetExists = True
                 Exit For
             End If
@@ -74,7 +85,7 @@ Public Function SheetExists( _
     Next ws
     
 xt: If SheetExists Then
-        sh2_name = ws.Name
+        sh2_name = ws.name
         sh2_code_name = ws.CodeName
         If sh2_name <> sh1_name Then FinalName(sh1_name) = sh2_name
         If sh2_code_name <> sh1_code_name Then FinalName(sh1_code_name) = sh2_code_name
@@ -202,8 +213,8 @@ Public Sub SyncCodeName()
                 Sync.ConfInfo = "CodeName change to '" & sSourceSheetCodeName & "'"
             Else
                 For Each vbc In Sync.Target.VBProject.VBComponents
-                    If vbc.Name = sTargetSheetCodeName Then
-                        vbc.Name = sSourceSheetCodeName
+                    If vbc.name = sTargetSheetCodeName Then
+                        vbc.name = sSourceSheetCodeName
                         '~~ When the sheet's CodeName has changed the sheet's code will only also be
                         '~~ synchronized when the CodeName is used - which should be the case because
                         '~~ there's no motivation to change it otherwise
@@ -258,7 +269,7 @@ Public Sub SyncName()
                     .ConfInfo = "Name change to '" & sSourceSheetName & "'."
                     SourceSheetNameChange sSourceSheetName, sSourceSheetCodeName, sTargetSheetName, sTargetSheetCodeName
                 Else
-                    .Target.Worksheets(sTargetSheetName).Name = sSourceSheetName
+                    .Target.Worksheets(sTargetSheetName).name = sSourceSheetName
                     Log.Entry = "Name changed to '" & sSourceSheetName & "'."
                 End If
             End If
@@ -467,10 +478,10 @@ Public Sub SyncOrder()
     
     While i > Sync.Source.Worksheets.Count
         For i = 1 To Sync.Source.Worksheets.Count
-            If Sync.TargetSheets.Exists(Sync.Source.Worksheets(i).Name) Then
+            If Sync.TargetSheets.Exists(Sync.Source.Worksheets(i).name) Then
                 Set wsSource = Sync.Source.Worksheets(i)
                 Set wsTarget = Sync.Target.Worksheets(i)
-                If wsTarget.Name <> wsSource.Name Then
+                If wsTarget.name <> wsSource.name Then
                     Log.ServicedItem = wsTarget
                     wsTarget.Move After:=Sheets(Sync.Target.Worksheets.Count)
                     Log.Entry = "Order synched!"
@@ -504,7 +515,7 @@ Public Function SheetCodeName( _
     Dim ws  As Worksheet
     
     For Each ws In wb.Worksheets
-        If ws.Name = sheet_name Then
+        If ws.name = sheet_name Then
             SheetCodeName = ws.CodeName
             GoTo xt
         End If

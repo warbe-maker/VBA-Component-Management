@@ -77,6 +77,17 @@ Private Sub Class_Terminate()
     Set dctChanges = Nothing
 End Sub
 
+Private Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
+End Function
+
 Friend Property Get Changed( _
                       ByRef clone As clsComp, _
              Optional ByVal check_again As Boolean = False) As Boolean
@@ -223,7 +234,7 @@ End Property
 Friend Property Get ExistsBySheetName(ByVal eb_name As String) As Boolean
     Dim ws As Worksheet
     For Each ws In Me.Wrkbk.Worksheets
-        ExistsBySheetName = ws.Name = eb_name
+        ExistsBySheetName = ws.name = eb_name
         If ExistsBySheetName Then Exit For
     Next ws
 End Property
@@ -313,7 +324,7 @@ Friend Property Get Wrkbk() As Workbook
     
     If wb Is Nothing Then
         If Not fso.FileExists(sWrkbkFullName) _
-        Then Err.Raise mErH.AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
+        Then Err.Raise AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
         Set wb = mCompMan.WbkGetOpen(sWrkbkFullName)
     Else
         Set Wrkbk = wb
@@ -345,9 +356,9 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     Set wb = wbk
     sWrkbkFullName = wb.FullName
     sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
-    sService = wb.Name
+    sService = wb.name
     For Each vbc In wb.VBProject.VBComponents
-        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
+        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.name))
     Next vbc
     Set fso = Nothing
     
@@ -384,18 +395,18 @@ Public Function RemoteSheetExists( _
     Dim vbc As VBComponent
     
     For Each ws In rs_wb.Worksheets
-        If rs_ws_name <> vbNullString And ws.Name = rs_ws_name Then
+        If rs_ws_name <> vbNullString And ws.name = rs_ws_name Then
             Set rs_ws = ws
             If rs_ws_codename = vbNullString Then rs_ws_codename = ws.CodeName
             Exit For
         ElseIf rs_ws_codename <> vbNullString And ws.CodeName = rs_ws_codename Then
             Set rs_ws = ws
-            If rs_ws_name = vbNullString Then rs_ws_name = ws.Name
+            If rs_ws_name = vbNullString Then rs_ws_name = ws.name
         End If
     Next ws
     
     For Each vbc In rs_wb.VBProject.VBComponents
-        If rs_ws_codename <> vbNullString And vbc.Name = rs_ws_codename Then
+        If rs_ws_codename <> vbNullString And vbc.name = rs_ws_codename Then
             Set rs_vbc = vbc
             Exit For
         End If
