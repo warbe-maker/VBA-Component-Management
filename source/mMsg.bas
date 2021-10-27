@@ -120,9 +120,23 @@ Public Function Progress( _
           Optional ByVal prgrs_max_width As Long = 80, _
           Optional ByVal prgrs_max_height As Long = 70) As Variant
 ' -------------------------------------------------------------------------------------
-' Progress display using an instance of the Common VBA Message Form. When no instance
-' for the provided title (prgrs_title) exists one is created, else the existing
-' instance is used.
+' Displays an instance of the Common VBA Message Form (fMsg) modeless for a series of
+' progress messages. When no instance for the provided title (prgrs_title) exists one
+' is created, else the existing instance is used. This allows multiple modeless message
+' windows at the same time. Arguments:
+' - prgrs_title ........: Text displayed at the window handele bar. Identifies the
+'                         progress. I.e. a different title would display a process in
+'                         another instance of the fMsg form.
+' - prgrs_msg ..........: The process message displayed.
+' - prgrs_header .......: The text displayed above the prgrs_msg
+' - prgrs_footer .......: The text displayed below the prgrs_msg.
+'                         Defaults to "Process in progress! Please wait."
+' - prgrs_msg_append ...: Defaults to True. Any text provided with prgrs_msg is
+'                         appended to the text already displayed
+' - prgrs_msg_monospaced: Displays the prgrs_msg monospaced
+' - prgrs_min_width ....: Defaults to 400
+' - prgrs_max_width ....: Defaults to 80% of the screen size
+' - prgrs_max_height ...: Defaults to 70% of the screen size
 '
 ' See: https://warbe-maker.github.io/vba/common/2020/11/17/Common-VBA-Message-Form.html
 '
@@ -135,23 +149,16 @@ Public Function Progress( _
     Dim MsgForm As fMsg
 
     Set MsgForm = Form(prgrs_title)
-    With Msg.Section(1)
-        With .Label
-            .Text = prgrs_header
-            .MonoSpaced = prgrs_msg_monospaced
-            .FontBold = True
-        End With
-        With .Text
-            .Text = prgrs_msg
-            .MonoSpaced = prgrs_msg_monospaced
-        End With
-    End With
-    With Msg.Section(2).Text
-        .Text = prgrs_footer
-        .FontColor = rgbBlue
-        .FontSize = 8
-        .FontBold = True
-    End With
+    Msg.Section(1).Label.Text = prgrs_header
+    Msg.Section(1).Label.MonoSpaced = prgrs_msg_monospaced
+    Msg.Section(1).Label.FontBold = True
+    Msg.Section(1).Text.Text = prgrs_msg
+    Msg.Section(1).Text.MonoSpaced = prgrs_msg_monospaced
+    
+    Msg.Section(2).Label.Text = prgrs_footer
+    Msg.Section(2).Label.FontColor = rgbBlue
+    Msg.Section(2).Label.FontSize = 8
+    Msg.Section(2).Label.FontBold = True
     
     If Trim(MsgForm.MsgTitle) <> Trim(prgrs_title) Then
         With MsgForm
@@ -163,6 +170,7 @@ Public Function Progress( _
             .MsgTitle = prgrs_title
             .MsgLabel(1) = Msg.Section(1).Label
             .MsgText(1) = Msg.Section(1).Text
+            .MsgLabel(2) = Msg.Section(2).Label
             .MsgText(2) = Msg.Section(2).Text
             .MsgButtons = vbNullString
             .ProgressFollowUp = True
