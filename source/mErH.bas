@@ -257,7 +257,7 @@ Private Function ErrDsply( _
                     ByVal err_dscrptn As String, _
                     ByVal err_line As Long, _
            Optional ByVal err_buttons As Variant = vbOKOnly) As Variant
-' ---------------------------------------------------------------------
+' ------------------------------------------------------------------------------
 ' Displays the error message. The displayed path to the error may be
 ' provided as the error is passed on to the 'Entry-Procedure' or based on
 ' all passed BoP/EoP services. In the first case the path to the error
@@ -265,7 +265,7 @@ Private Function ErrDsply( _
 ' depends on which (how many) procedures do call the BoP/EoP service.
 '
 ' W. Rauschenberger, Berlin, Nov 2020
-' ---------------------------------------------------------------------
+' ------------------------------------------------------------------------------
     
     Dim sErrPath    As String
     Dim sTitle      As String
@@ -276,7 +276,8 @@ Private Function ErrDsply( _
     Dim sSource     As String
     Dim sType       As String
     Dim lNo         As Long
-    Dim SctnText     As TypeMsgText
+    Dim ErrMsgText  As TypeMsg
+    Dim SctnText    As TypeMsgText
     Dim SctnLabel   As TypeMsgLabel
     
     ErrMsgMatter err_source:=err_source _
@@ -319,36 +320,51 @@ Private Function ErrDsply( _
                         "   will make debugging extremely quick and easy."
 #End If
     End If
-      
-    '~~ Display the error message by means of the Common UserForm fMsg
-    With fMsg
-        .MsgTitle = sTitle
-        SctnLabel.Text = "Error description:":  SctnText.Text = sDscrptn
-        .MsgLabel(1) = SctnLabel:               .MsgText(1) = SctnText
-        
-        If ErrArgs = vbNullString _
-        Then SctnLabel.Text = "Error source:": SctnText.Text = sSource & sLine: SctnText.MonoSpaced = True _
-        Else SctnLabel.Text = "Error source:": SctnText.Text = sSource & sLine & vbLf & "(with arguments: " & ErrArgs & ")"
-        SctnText.MonoSpaced = True
-        .MsgLabel(2) = SctnLabel:   .MsgText(2) = SctnText
-        
-        SctnLabel.Text = "Error path (call stack):":    SctnText.Text = sErrPath:    SctnText.MonoSpaced = True
-        .MsgLabel(3) = SctnLabel:                       .MsgText(3) = SctnText
-        
-        SctnLabel.Text = "About this error:":           SctnText.Text = sInfo:       SctnText.MonoSpaced = False: SctnText.FontSize = 8.5
-        .MsgLabel(4) = SctnLabel:                       .MsgText(4) = SctnText
-        
-        .MsgButtons = err_buttons
-        .Setup
-        
-        .show
-        If ErrBttns(err_buttons) = 1 Then
-            ErrDsply = err_buttons ' a single reply errbuttons return value cannot be obtained since the form is unloaded with its click
-        Else
-            ErrDsply = .ReplyValue ' when more than one button is displayed the form is unloadhen the return value is obtained
-        End If
+                       
+    '~~ Display the error message via the Common Component procedure mMsg.Dsply
+    With ErrMsgText.Section(1)
+        With .Label
+            .Text = "Error description:"
+            .FontColor = rgbBlue
+        End With
+        .Text.Text = sDscrptn
     End With
-
+    With ErrMsgText.Section(2)
+        With .Label
+            .Text = "Error source:"
+            .FontColor = rgbBlue
+        End With
+        If ErrArgs = vbNullString _
+        Then .Text.Text = sSource & " " & sLine: SctnText.MonoSpaced = True _
+        Else .Text.Text = sSource & " " & sLine & vbLf & "(with arguments: " & ErrArgs & ")"
+        .Text.MonoSpaced = True
+    End With
+    With ErrMsgText.Section(3)
+        With .Label
+            .Text = "Error path (call stack):"
+            .FontColor = rgbBlue
+        End With
+        .Text.Text = sErrPath
+        .Text.MonoSpaced = True
+    End With
+    With ErrMsgText.Section(4)
+        If sInfo = vbNullString Then
+            .Label.Text = vbNullString
+            .Text.Text = vbNullString
+        Else
+            .Label.Text = "About this error:"
+            .Text.Text = sInfo
+            .Text.FontSize = 8.5
+        End If
+        .Label.FontColor = rgbBlue
+    End With
+    
+    mMsg.Dsply dsply_title:=sTitle _
+             , dsply_msg:=ErrMsgText _
+             , dsply_buttons:=err_buttons
+    
+    ErrDsply = mMsg.RepliedWith
+    
 End Function
 
 Private Function ErrHndlrFailed( _
@@ -410,14 +426,13 @@ Public Function ErrMsg( _
          Optional ByVal err_line As Long = 0, _
          Optional ByVal err_buttons As Variant = vbNullString, _
          Optional ByRef err_reply As Variant) As Variant
-' ---------------------------------------------------------------
-' When the errbuttons argument specifies more than one button
-' the error message is immediately displayed and the users choice
-' is returned to the caller, else when the caller (err_source)
-' is the 'Entry-Procedure' the error is displayed with the path
-' to the error, else the error is passed on to the Entry
-' Procedure whereby the path to the error is composed/assembled.
-' ---------------------------------------------------------------
+' ------------------------------------------------------------------------------
+' When the buttons (err_buttons) argument specifies more than one button the
+' error message is immediately displayed and the users choice is returned to the
+' caller, else when the caller (err_source) is the 'Entry-Procedure' the error
+' is displayed with the path to the error, else the error is passed on to the
+' Entry Procedure whereby the path to the error is composed/assembled.
+' ------------------------------------------------------------------------------
     
     Static lInitErrNo       As Long
     Static lInitErrLine     As Long
@@ -538,7 +553,7 @@ Public Function ErrMsg( _
         lInitErrNo = 0
     End If
     
-xt:
+xt: Exit Function
 End Function
 
 Private Sub ErrMsgMatter(ByVal err_source As String, _
@@ -572,7 +587,7 @@ Private Sub ErrMsgMatter(ByVal err_source As String, _
     msg_details = IIf(err_line <> 0, msg_type & msg_no & " in " & err_source & " (at line " & err_line & ")", msg_type & msg_no & " in " & err_source)
     msg_dscrptn = IIf(InStr(err_dscrptn, CONCAT) <> 0, Split(err_dscrptn, CONCAT)(0), err_dscrptn)
     If InStr(err_dscrptn, CONCAT) <> 0 Then msg_info = Split(err_dscrptn, CONCAT)(1)
-    msg_source = Application.name ' & ":  " & Application.ActiveWindow.Caption & ":  " & err_source
+    msg_source = Application.ActiveWindow.Caption & ":  " & err_source
     
 End Sub
 

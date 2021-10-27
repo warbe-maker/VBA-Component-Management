@@ -478,8 +478,8 @@ Public Function Dsply(ByVal dsply_title As String, _
     With fMsg
         .ReplyWithIndex = dsply_reply_with_index
         If dsply_max_height > 0 Then .MsgHeightMaxSpecAsPoSS = dsply_max_height ' percentage of screen height
-        If dsply_max_width > 0 Then .MsgWidthMaxSpecAsPoSS = dsply_max_width   ' percentage of screen width
-        If dsply_min_width > 0 Then .MsgWidthMinSpecInPt = dsply_min_width                     ' defaults to 300 pt. the absolute minimum is 200 pt
+        If dsply_max_width > 0 Then .MsgWidthMaxSpecAsPoSS = dsply_max_width    ' percentage of screen width
+        If dsply_min_width > 0 Then .MsgWidthMinSpecInPt = dsply_min_width      ' defaults to 300 pt. the absolute minimum is 200 pt
         If dsply_min_button_width > 0 Then .MinButtonWidth = dsply_min_button_width
         .MsgTitle = dsply_title
         For i = 1 To fMsg.NoOfDesignedMsgSects
@@ -538,38 +538,70 @@ Public Function ReplyString( _
     
 End Function
 
-
-Private Sub ErrMsg( _
-             ByVal err_source As String, _
-    Optional ByVal err_no As Long = 0, _
-    Optional ByVal err_dscrptn As String = vbNullString, _
-    Optional ByVal err_line As Long = 0)
+Public Function ErrMsg(ByVal err_source As String, _
+              Optional ByVal err_no As Long = 0, _
+              Optional ByVal err_dscrptn As String = vbNullString, _
+              Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' This 'Common VBA Component' uses only a kind of minimum error handling!
+' Displays a proper designe error message providing the option to resume the
+' error line when the Conditional Compile Argument Debugging = 1.
 ' ------------------------------------------------------------------------------
     Dim ErrNo   As Long
     Dim ErrDesc As String
     Dim ErrType As String
     Dim errline As Long
     Dim AtLine  As String
+    Dim Buttons As Long
+    Dim Msg     As TypeMsg
     
     If err_no = 0 Then err_no = Err.Number
     If err_no < 0 Then
         ErrNo = AppErr(err_no)
-        ErrType = "Applicatin error "
+        ErrType = "Application error "
     Else
         ErrNo = err_no
         ErrType = "Runtime error "
     End If
-    If err_dscrptn = vbNullString Then ErrDesc = Err.Description Else ErrDesc = err_dscrptn
+    
     If err_line = 0 Then errline = Erl
     If err_line <> 0 Then AtLine = " at line " & err_line
-    MsgBox Title:=ErrType & ErrNo & " in " & err_source _
-         , Prompt:="Error : " & ErrDesc & vbLf & _
-                   "Source: " & err_source & AtLine _
-         , Buttons:=vbCritical
-End Sub
-Private Function ErrSrc(ByVal s As String) As String
-    ErrSrc = "mMsg." & s
+    
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error message available ---"
+    With Msg.Section(1)
+        .Label.Text = "Error:"
+        .Label.FontColor = rgbBlue
+        .Text.Text = err_dscrptn
+    End With
+    With Msg.Section(2)
+        .Label.Text = "Source:"
+        .Label.FontColor = rgbBlue
+        .Text.Text = err_source & AtLine
+    End With
+
+#If Debugging Then
+    Buttons = vbYesNo
+    With Msg.Section(3)
+        .Label.Text = "Debugging: (Conditional Compile Argument 'Debugging = 1')"
+        .Label.FontColor = rgbBlue
+        .Text.Text = "Yes = Resume error line, No = Continue"
+    End With
+    With Msg.Section(4)
+        .Label.Text = "About debugging:"
+        .Label.FontColor = rgbBlue
+        .Text.Text = "To make use of the debugging option have an error handling line" & vbLf & _
+                     "eh: If mMsg.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume"
+    End With
+#Else
+    Buttons = vbCritical
+#End If
+    
+    ErrMsg = Dsply(dsply_title:=ErrType & ErrNo & " in " & err_source & AtLine _
+                 , dsply_msg:=Msg _
+                 , dsply_buttons:=Buttons)
+End Function
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "mMsg." & sProc
 End Function
 

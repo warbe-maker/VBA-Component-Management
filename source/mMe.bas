@@ -184,29 +184,31 @@ End Property
 Private Sub RenewFinalResult()
     If bSucceeded Then
         mMe.RenewLogAction = "Successful!"
-        RenewLogResult("Successful! The Addin '" & CompManAddinName & "' has been renewed by the development instance '" & DevInstncName & "'") = "Passed"
+        RenewLogResult(la_last:=True, la_result_text:="Successful! The Addin '" & CompManAddinName & "' has been renewed by the development instance '" & DevInstncName & "'") = "Passed"
     Else
         mMe.RenewLogAction = "Not Successful!"
-        mMe.RenewLogResult("Renewing the Addin '" & CompManAddinName & "' by the development instance '" & DevInstncName & "' failed!") = "Failed"
+        mMe.RenewLogResult(la_last:=True, la_result_text:="Renewing the Addin '" & CompManAddinName & "' by the development instance '" & DevInstncName & "' failed!") = "Failed"
     End If
 End Sub
 
-Public Property Let RenewLogAction(ByVal la_action As String)
+Public Property Let RenewLogAction(Optional ByVal la_last As Boolean = False, _
+                                            ByVal la_action As String)
     lRenewStep = lRenewStep + 1
     sRenewAction = la_action
-    wsAddIn.LogRenewStep rn_action:=sRenewAction
+    wsAddIn.LogRenewStep rn_action:=sRenewAction _
+                       , rn_last_step:=la_last
 End Property
 
 Public Property Let RenewLogResult( _
                     Optional ByVal la_result_text As String = vbNullString, _
+                    Optional ByVal la_last As Boolean = False, _
                              ByVal la_result As String)
-    wsAddIn.LogRenewStep rn_result:=la_result, rn_action:=la_result_text
+    wsAddIn.LogRenewStep rn_result:=la_result, rn_action:=la_result_text, rn_last_step:=la_last
 End Property
 
 Public Property Get RenewStep() As Long:    RenewStep = lRenewStep: End Property
 
 Public Property Let RenewStep(ByVal l As Long)
-'    If l = 0 Then wsAddIn.RenewStepLogClear
     lRenewStep = l
 End Property
 
@@ -563,7 +565,7 @@ Public Function BasicConfig( _
                     .Text = sServicedRootFolder
                     .FontColor = rgbBlue
                     .FontBold = True
-                    .Monospaced = True
+                    .MonoSpaced = True
                 End With
             End With
             With .Section(2)
@@ -573,7 +575,7 @@ Public Function BasicConfig( _
                     .Text = sCompManAddinFolder
                     .FontColor = rgbBlue
                     .FontBold = True
-                    .Monospaced = True
+                    .MonoSpaced = True
                 End With
             End With
             With .Section(3).Text

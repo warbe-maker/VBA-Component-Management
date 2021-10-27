@@ -511,19 +511,28 @@ Public Function ElementOfIndex(ByVal a As Variant, _
     
 End Function
 
-Private Sub ErrMsg( _
-             ByVal err_source As String, _
-    Optional ByVal err_no As Long = 0, _
-    Optional ByVal err_dscrptn As String = vbNullString, _
-    Optional ByVal err_line As Long = 0)
+Public Function ErrMsg(ByVal err_source As String, _
+          Optional ByVal err_no As Long = 0, _
+          Optional ByVal err_dscrptn As String = vbNullString, _
+         Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' This 'Common VBA Component' uses only a kind of minimum error handling!
+' Common, minimum VBA error handling providing the means to resume the error
+' line when the Conditional Compile Argument Debugging=1.
+' Usage: When this procedure is copied into any desired module the statement
+'        If ErrMsg(ErrSrc(PROC) = vbYes Then: Stop: Resume
+'        is appropriate
+'        The caller provides the source of the error through ErrSrc(PROC) where
+'        ErrSrc is a procedure available in the module using this ErrMsg and
+'        PROC is the constant identifying the procedure
+' Uses: AppErr to translate a negative programmed application error into its
+'              original positive number
 ' ------------------------------------------------------------------------------
     Dim ErrNo   As Long
     Dim ErrDesc As String
     Dim ErrType As String
     Dim errline As Long
     Dim AtLine  As String
+    Dim Buttons As Long
     
     If err_no = 0 Then err_no = Err.Number
     If err_no < 0 Then
@@ -533,14 +542,26 @@ Private Sub ErrMsg( _
         ErrNo = err_no
         ErrType = "Runtime error "
     End If
-    If err_dscrptn = vbNullString Then ErrDesc = Err.Description Else ErrDesc = err_dscrptn
+    
     If err_line = 0 Then errline = Erl
     If err_line <> 0 Then AtLine = " at line " & err_line
-    MsgBox Title:=ErrType & ErrNo & " in " & err_source _
-         , Prompt:="Error : " & ErrDesc & vbLf & _
-                   "Source: " & err_source & AtLine _
-         , Buttons:=vbCritical
-End Sub
+    
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error message available ---"
+    ErrDesc = "Error: " & vbLf & err_dscrptn & vbLf & vbLf & "Source: " & vbLf & err_source & AtLine
+
+    
+#If Debugging Then
+    Buttons = vbYesNo
+    ErrDesc = ErrDesc & vbLf & vbLf & "Debugging: Yes=Resume error line, No=Continue"
+#Else
+    Buttons = vbCritical
+#End If
+    
+    ErrMsg = MsgBox(Title:=ErrType & ErrNo & " in " & err_source _
+                  , Prompt:=ErrDesc _
+                  , Buttons:=Buttons)
+End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = ThisWorkbook.name & " mBasic." & sProc

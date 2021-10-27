@@ -47,7 +47,8 @@ End Property
 
 Public Sub LogRenewStep( _
                Optional ByVal rn_action As String = vbNullString, _
-               Optional ByVal rn_result As String = vbNullString)
+               Optional ByVal rn_result As String = vbNullString, _
+               Optional ByVal rn_last_step As Boolean = False)
 ' ---------------------------------------------------------------
 '
 ' ---------------------------------------------------------------
@@ -61,8 +62,18 @@ Public Sub LogRenewStep( _
     
     If RenewStep > 1 And RenewResult <> vbNullString Then
         Msg = sProgressMsg
-        mMsg.Progress prgrs_title:="Log of the steps to Setup/Renew the 'CompMan-Addin'" _
-                    , prgrs_msg:=Msg
+        If Not rn_last_step Then
+            mMsg.Progress prgrs_title:="Log of the steps to Setup/Renew the 'CompMan-Addin'" _
+                        , prgrs_msg:=Msg _
+                        , prgrs_msg_monospaced:=True _
+                        , prgrs_min_width:=600
+        Else
+            mMsg.Progress prgrs_title:="Log of the steps to Setup/Renew the 'CompMan-Addin'" _
+                        , prgrs_msg:=Msg _
+                        , prgrs_msg_monospaced:=True _
+                        , prgrs_footer:="Renew process finished! Close window." _
+                        , prgrs_min_width:=600
+        End If
         sProgressMsg = vbNullString
     End If
     RenewResult = vbNullString
