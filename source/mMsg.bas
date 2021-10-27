@@ -155,10 +155,10 @@ Public Function Progress( _
     Msg.Section(1).Text.Text = prgrs_msg
     Msg.Section(1).Text.MonoSpaced = prgrs_msg_monospaced
     
-    Msg.Section(2).Label.Text = prgrs_footer
-    Msg.Section(2).Label.FontColor = rgbBlue
-    Msg.Section(2).Label.FontSize = 8
-    Msg.Section(2).Label.FontBold = True
+    Msg.Section(2).Text.Text = prgrs_footer
+    Msg.Section(2).Text.FontColor = rgbBlue
+    Msg.Section(2).Text.FontSize = 8
+    Msg.Section(2).Text.FontBold = True
     
     If Trim(MsgForm.MsgTitle) <> Trim(prgrs_title) Then
         With MsgForm
@@ -170,7 +170,6 @@ Public Function Progress( _
             .MsgTitle = prgrs_title
             .MsgLabel(1) = Msg.Section(1).Label
             .MsgText(1) = Msg.Section(1).Text
-            .MsgLabel(2) = Msg.Section(2).Label
             .MsgText(2) = Msg.Section(2).Text
             .MsgButtons = vbNullString
             .ProgressFollowUp = True
