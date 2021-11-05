@@ -132,7 +132,7 @@ Public Function Align( _
 
 End Function
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
+Public Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
 ' Ensures that a programmed (i.e. an application) error numbers never conflicts
 ' with the number of a VB runtime error. Thr function returns a given positive
@@ -140,7 +140,7 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
 ' negative value. When the provided number is negative it returns the original
 ' positive "application" error number e.g. for being used with an error message.
 ' ------------------------------------------------------------------------------
-    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
+    If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function
 
 Public Function AppIsInstalled(ByVal sApp As String) As Boolean
@@ -512,55 +512,120 @@ Public Function ElementOfIndex(ByVal a As Variant, _
 End Function
 
 Public Function ErrMsg(ByVal err_source As String, _
-          Optional ByVal err_no As Long = 0, _
-          Optional ByVal err_dscrptn As String = vbNullString, _
-         Optional ByVal err_line As Long = 0) As Variant
+              Optional ByVal err_no As Long = 0, _
+              Optional ByVal err_dscrptn As String = vbNullString, _
+              Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Common, minimum VBA error handling providing the means to resume the error
-' line when the Conditional Compile Argument Debugging=1.
-' Usage: When this procedure is copied into any desired module the statement
-'        If ErrMsg(ErrSrc(PROC) = vbYes Then: Stop: Resume
-'        is appropriate
-'        The caller provides the source of the error through ErrSrc(PROC) where
-'        ErrSrc is a procedure available in the module using this ErrMsg and
-'        PROC is the constant identifying the procedure
-' Uses: AppErr to translate a negative programmed application error into its
-'              original positive number
+' This is a kind of universal error message which includes a debugging option.
+' It may be copied into any module - turned into a Private function. When the/my
+' Common VBA Error Handling Component (ErH) is installed and the Conditional
+' Compile Argument 'CommErHComp = 1' the error message will be displayed by
+' means of the Common VBA Message Component (fMsg, mMsg).
+'
+' Usage: When this procedure is copied as a Private Function into any desired
+'        module an error handling which consideres the possible Conditional
+'        Compile Argument 'Debugging = 1' will look as follows
+'
+'            Const PROC = "procedure-name"
+'            On Error Goto eh
+'        ....
+'        xt: Exit Sub/Function/Property
+'
+'        eh: Select Case ErrMsg(ErrSrc(PROC)
+'               Case vbYes: Stop: Resume
+'               Case vbNo:  Resume Next
+'               Case Else:  Goto xt
+'            End Select
+'        End Sub/Function/Property
+'
+'        The above may appear a lot of code lines but will be a godsend in case
+'        of an error!
+'
+' Used:  - For programmed application errors (Err.Raise AppErr(n), ....) the
+'          function AppErr will be used which turns the positive number into a
+'          negative one. The error message will regard a negative error number
+'          as an 'Application Error' and will use AppErr to turn it back for
+'          the message into its original positive number. Together with the
+'          ErrSrc there will be no need to maintain numerous different error
+'          numbers for a VB-Project.
+'        - The caller provides the source of the error through the module
+'          specific function ErrSrc(PROC) which adds the module name to the
+'          procedure name.
 ' ------------------------------------------------------------------------------
-    Dim ErrNo   As Long
-    Dim ErrDesc As String
-    Dim ErrType As String
-    Dim errline As Long
-    Dim AtLine  As String
-    Dim Buttons As Long
+    Dim ErrBttns    As Variant
+    Dim ErrAtLine   As String
+    Dim ErrDesc     As String
+    Dim ErrLine     As Long
+    Dim ErrNo       As Long
+    Dim ErrSrc      As String
+    Dim ErrText     As String
+    Dim ErrTitle    As String
+    Dim ErrType     As String
     
+    '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
-    If err_no < 0 Then
-        ErrNo = AppErr(err_no)
-        ErrType = "Applicatin error "
-    Else
-        ErrNo = err_no
-        ErrType = "Runtime error "
-    End If
-    
-    If err_line = 0 Then errline = Erl
-    If err_line <> 0 Then AtLine = " at line " & err_line
-    
+    If err_line = 0 Then ErrLine = Erl
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
-    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error message available ---"
-    ErrDesc = "Error: " & vbLf & err_dscrptn & vbLf & vbLf & "Source: " & vbLf & err_source & AtLine
-
+    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
+    
+    '~~ Determine the type of error
+    Select Case err_no
+        Case Is < 0
+            ErrNo = AppErr(err_no)
+            ErrType = "Application Error "
+        Case Else
+            ErrNo = err_no
+            If (InStr(1, err_dscrptn, "DAO") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC Teradata Driver") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC") <> 0 _
+            Or InStr(1, err_dscrptn, "Oracle") <> 0) _
+            Then ErrType = "Database Error " _
+            Else ErrType = "VB Runtime Error "
+    End Select
+    
+    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
+    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
+    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
+       
+    ErrText = "Error: " & vbLf & _
+              err_dscrptn & vbLf & vbLf & _
+              "Source: " & vbLf & _
+              err_source & ErrAtLine
     
 #If Debugging Then
-    Buttons = vbYesNo
-    ErrDesc = ErrDesc & vbLf & vbLf & "Debugging: Yes=Resume error line, No=Continue"
+    ErrBttns = vbYesNoCancel
+    ErrText = ErrText & vbLf & vbLf & _
+              "Debugging:" & vbLf & _
+              "Yes    = Resume error line" & vbLf & _
+              "No     = Resume Next (skip error line)" & vbLf & _
+              "Cancel = Terminate"
 #Else
-    Buttons = vbCritical
+    ErrBttns = vbCritical
 #End If
     
-    ErrMsg = MsgBox(Title:=ErrType & ErrNo & " in " & err_source _
-                  , Prompt:=ErrDesc _
-                  , Buttons:=Buttons)
+#If CommErHComp Then
+    '~~ When the Common VBA Error Handling Component (ErH) is installed/used by in the VB-Project
+    ErrMsg = mErH.ErrMsg(err_source:=err_source, err_number:=err_no, err_dscrptn:=err_dscrptn, err_line:=err_line)
+    '~~ Translate back the elaborated reply buttons mErrH.ErrMsg displays and returns to the simple yes/No/Cancel
+    '~~ replies with the VBA MsgBox.
+    Select Case ErrMsg
+        Case mErH.DebugOptResumeErrorLine:  ErrMsg = vbYes
+        Case mErH.DebugOptResumeNext:       ErrMsg = vbNo
+        Case Else:                          ErrMsg = vbCancel
+    End Select
+#Else
+    '~~ When the Common VBA Error Handling Component (ErH) is not used/installed there might still be the
+    '~~ Common VBA Message Component (Msg) be installed/used
+#If CommMsgComp Then
+    ErrMsg = mMsg.ErrMsg(err_source:=err_source)
+#Else
+    '~~ None of the Common Components is installed/used
+    ErrMsg = MsgBox(Title:=ErrTitle _
+                  , Prompt:=ErrText _
+                  , Buttons:=ErrBttns)
+#End If
+#End If
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
@@ -700,4 +765,3 @@ Public Function Spaced(ByVal s As String) As String
     Next i
 
 End Function
-

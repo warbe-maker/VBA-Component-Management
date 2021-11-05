@@ -23,7 +23,7 @@ Public Property Let FinalName(Optional ByVal old_name As String, ByVal new_name 
     If Not dctFinalName.Exists(old_name) Then dctFinalName.Add old_name, new_name
 End Property
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
+Public Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
 ' Ensures that a programmed (i.e. an application) error numbers never conflicts
 ' with the number of a VB runtime error. Thr function returns a given positive
@@ -31,7 +31,7 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
 ' negative value. When the provided number is negative it returns the original
 ' positive "application" error number e.g. for being used with an error message.
 ' ------------------------------------------------------------------------------
-    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
+    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
 End Function
 
 Private Function ErrSrc(ByVal s As String) As String

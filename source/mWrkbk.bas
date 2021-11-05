@@ -53,21 +53,15 @@ Const ERR_GOW01 = "A Workbook with the provided name (parameter vWb) is open. Ho
 Const ERR_GOW02 = "A Workbook named '<>' (parameter vWb) is not open. A full name must be provided to get it opened!"
 Const ERR_GOW03 = "A Workbook file named '<>' (parameter vWb) does not exist!"
 
-Private Function AppErr(ByVal err_no As Long) As Long
-' -----------------------------------------------------------------
-' Used with Err.Raise AppErr(<l>).
-' When the error number <l> is > 0 it is considered an "Application
-' Error Number and vbObjectErrror is added to it into a negative
-' number in order not to confuse with a VB runtime error.
-' When the error number <l> is negative it is considered an
-' Application Error and vbObjectError is added to convert it back
-' into its origin positive number.
-' ------------------------------------------------------------------
-    If err_no < 0 Then
-        AppErr = err_no - vbObjectError
-    Else
-        AppErr = vbObjectError + err_no
-    End If
+Private Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function
 
 Private Function checkHwnds(ByRef xlApps() As Application, hWnd As LongPtr) As Boolean
@@ -302,7 +296,7 @@ Public Function IsOpen(ByVal wb As Variant, _
             Set OpenWbk = OpenWbks.Item(BaseName)
             '~~ When a Workbook's Name is provided the Workbook is only regarde open when the open
             '~~ Workbook has the same name (i.e. including its extension)
-            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
+            If fso.GetFile(OpenWbk.FullName).name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
     ElseIf mWrkbk.IsFullName(wb) Then
         If OpenWbks.Exists(BaseName) Then
@@ -310,7 +304,7 @@ Public Function IsOpen(ByVal wb As Variant, _
             Set OpenWbk = OpenWbks.Item(BaseName)
             '~~ The provided (wb) specifies an exist Workbook file. This Workbook is regarded open (and returned as opject)
             '~~ when a Workbook with its Name (including the extension!) is open regardless in which location
-            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
+            If fso.GetFile(OpenWbk.FullName).name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
     ElseIf mWrkbk.IsObject(wb) Then
         If Opened.Exists(BaseName) Then
@@ -381,7 +375,7 @@ Public Function Opened() As Dictionary
         .CompareMode = TextCompare
         For Each app In aApps
             For Each wbk In app.Workbooks
-                If Not .Exists(fso.GetBaseName(wbk.Name)) Then .Add fso.GetBaseName(wbk.Name), wbk
+                If Not .Exists(fso.GetBaseName(wbk.name)) Then .Add fso.GetBaseName(wbk.name), wbk
             Next wbk
         Next app
     End With

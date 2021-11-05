@@ -108,7 +108,7 @@ Private Property Get SplitStr(ByRef s As String)
     Else If InStr(s, vbCr) <> 0 Then SplitStr = vbCr
 End Property
 
-Public Property Let Arry( _
+Public Property Let arry( _
            Optional ByVal fa_file As String, _
            Optional ByVal fa_excl_empty_lines As Boolean = False, _
            Optional ByRef fa_split As String = vbCrLf, _
@@ -127,7 +127,7 @@ Public Property Let Arry( _
              
 End Property
 
-Public Property Get Arry( _
+Public Property Get arry( _
            Optional ByVal fa_file As String, _
            Optional ByVal fa_excl_empty_lines As Boolean = False, _
            Optional ByRef fa_split As String, _
@@ -173,7 +173,7 @@ Public Property Get Arry( _
         Next v
     End If
     
-xt: Arry = a1
+xt: arry = a1
     fa_split = sSplit
     Set cll = Nothing
     Set fso = Nothing
@@ -429,21 +429,15 @@ xt: Exit Property
 eh: ErrMsg ErrSrc(PROC)
 End Property
 
-Private Function AppErr(ByVal err_no As Long) As Long
-' -----------------------------------------------------------------
-' Used with Err.Raise AppErr(<l>).
-' When the error number <l> is > 0 it is considered an "Application
-' Error Number and vbObjectErrror is added to it into a negative
-' number in order not to confuse with a VB runtime error.
-' When the error number <l> is negative it is considered an
-' Application Error and vbObjectError is added to convert it back
-' into its origin positive number.
-' ------------------------------------------------------------------
-    If err_no < 0 Then
-        AppErr = err_no - vbObjectError
-    Else
-        AppErr = vbObjectError + err_no
-    End If
+Private Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function
 
 Private Function AppIsInstalled(ByVal sApp As String) As Boolean

@@ -55,7 +55,7 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
 ' negative value. When the provided number is negative it returns the original
 ' positive "application" error number e.g. for being used with an error message.
 ' ------------------------------------------------------------------------------
-    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
+    If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function
 
 Public Sub DctAdd(ByRef add_dct As Dictionary, _
@@ -249,13 +249,13 @@ on_error:
 #If Debugging Then
     Debug.Print Err.Description: Stop: Resume
 #End If
-    ErrMsg errnumber:=Err.Number, errsource:=ErrSrc(PROC), errdscrptn:=Err.Description, errline:=Erl
+    ErrMsg errnumber:=Err.Number, errsource:=ErrSrc(PROC), errdscrptn:=Err.Description, ErrLine:=Erl
 End Sub
 
 Private Sub ErrMsg(ByVal errnumber As Long, _
                   ByVal errsource As String, _
                   ByVal errdscrptn As String, _
-                  ByVal errline As String)
+                  ByVal ErrLine As String)
 ' ----------------------------------------------------
 ' Display the error message by means of the VBA MsgBox
 ' ----------------------------------------------------
@@ -264,7 +264,7 @@ Private Sub ErrMsg(ByVal errnumber As Long, _
     Dim sErrPath    As String
     
     sErrMsg = "Description: " & vbLf & ErrMsgErrDscrptn(errdscrptn) & vbLf & vbLf & _
-              "Source:" & vbLf & errsource & ErrMsgErrLine(errline)
+              "Source:" & vbLf & errsource & ErrMsgErrLine(ErrLine)
     sErrPath = vbNullString ' only available with the mErrHndlr module
     If sErrPath <> vbNullString _
     Then sErrMsg = sErrMsg & vbLf & vbLf & _
@@ -272,7 +272,7 @@ Private Sub ErrMsg(ByVal errnumber As Long, _
     If ErrMsgInfo(errdscrptn) <> vbNullString _
     Then sErrMsg = sErrMsg & vbLf & vbLf & _
                    "Info:" & vbLf & ErrMsgInfo(errdscrptn)
-    MsgBox sErrMsg, vbCritical, ErrMsgErrType(errnumber, errsource) & " in " & errsource & ErrMsgErrLine(errline)
+    MsgBox sErrMsg, vbCritical, ErrMsgErrType(errnumber, errsource) & " in " & errsource & ErrMsgErrLine(ErrLine)
 
 End Sub
 
@@ -297,9 +297,9 @@ Private Function ErrMsgErrType( _
    
 End Function
 
-Private Function ErrMsgErrLine(ByVal errline As Long) As String
-    If errline <> 0 _
-    Then ErrMsgErrLine = " (at line " & errline & ")" _
+Private Function ErrMsgErrLine(ByVal ErrLine As Long) As String
+    If ErrLine <> 0 _
+    Then ErrMsgErrLine = " (at line " & ErrLine & ")" _
     Else ErrMsgErrLine = vbNullString
 End Function
 
@@ -412,7 +412,7 @@ on_error:
 #If Debugging Then
     Debug.Print Err.Description: Stop: Resume
 #End If
-    ErrMsg errnumber:=Err.Number, errsource:=ErrSrc(PROC), errdscrptn:=Err.Description, errline:=Erl
+    ErrMsg errnumber:=Err.Number, errsource:=ErrSrc(PROC), errdscrptn:=Err.Description, ErrLine:=Erl
 End Function
 
 Private Function DctAddItemExists( _
