@@ -36,7 +36,7 @@ Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
 Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
 ' ------------------------------------------------------------
-Public Const MSG_WIDTH_MIN_LIMIT_PERCENTAGE    As Long = 15
+Public Const MSG_WIDTH_MIN_LIMIT_PERCENTAGE    As Long = 25
 Public Const MSG_WIDTH_MAX_LIMIT_PERCENTAGE    As Long = 95
 Public Const MSG_HEIGHT_MIN_LIMIT_PERCENTAGE   As Long = 20
 Public Const MSG_HEIGHT_MAX_LIMIT_PERCENTAGE   As Long = 85
@@ -319,6 +319,7 @@ Public Sub ButtonsAdd(ByVal msg_buttons As Variant, _
                 ButtonsAdd arry, to_collection ' call recursively with the array as argument
         End Select
     End If
+    
 End Sub
 
 Public Function ButtonsArray(ByVal msg_buttons As Variant) As Variant
@@ -362,6 +363,7 @@ Public Function ButtonsString(ByVal msg_buttons As Variant) As String
 ' Returns the button captions (msg_buttons) which may be provided as komma
 ' delimited string, array, collection, or Dictionary, as komma delimited string.
 ' ------------------------------------------------------------------------------
+    Const PROC = "ButtonsString"
     
     On Error GoTo eh
     Dim v As Variant
@@ -388,7 +390,8 @@ Public Function ButtonsString(ByVal msg_buttons As Variant) As String
     End If
 
 xt: Exit Function
-eh: Debug.Print Err.Description: Stop: Resume
+
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Function
 
 Private Sub ConvertPixelsToPoints(Optional ByVal x_dpi As Single, _
@@ -592,59 +595,68 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mMsg." & sProc
 End Function
 
-Public Function Form(ByVal frm_caption As String, _
+Public Function Form(ByVal frm_title As String, _
             Optional ByVal frm_unload As Boolean = False, _
             Optional ByVal frm_caller As String = vbNullString) As fMsg
 ' -------------------------------------------------------------------------
-' Returns an instance of the fMsg UserForm which is uniquely identified by
-' by the caption (frm_caption). When the instance is already collected in
-' the MsgForms Dictionary and it effectively exists this instance is
-' returned. Else the no longer existing instance is removed from the
-' dictionary and a new instance is created, stored in the Dictionary and
-' returned.
+' Returns an instance - in this case of the UserForm fMsg whereby the
+' instance uniquely identified by its title (frm_title). instead of using
+' the form objects property "Caption" frm_title becomes the key in a
+' Dictionary of this UserForm's instances with the frm_title as the key.
+' How it works:
+' When an instance seems to already exists because there is an entry in the
+' "Forms" Dictionary with the window title (frm_title) as the key and it
+' effectively exists in the system this instance is returned. Else the no
+' longer existing instance is removed from the "Forms" Dictionary, a new
+' instance is created, stored in the Dictionary and returned.
+' When frm_unload is true a possibly already existing Userform is unloaded
+' at first - and a new one will be created ...
+' The argument frm_caller is for test purpose only to Debug.Print to which
+' procedure an existing or new instance is returned.
 ' -------------------------------------------------------------------------
     Const PROC = "Form"
     
     On Error GoTo eh
-    Static MsgForms As Dictionary   ' Collection of active form instances with their caption as the key
-    Dim MsgForm     As fMsg
-
+    Static Forms    As Dictionary    ' Collection of active form instances with their caption as the key
+    Dim Instance    As fMsg
+    
     If frm_caller <> vbNullString Then frm_caller = "(" & frm_caller & ")"
     
-    If MsgForms Is Nothing Then Set MsgForms = New Dictionary
+    If Forms Is Nothing Then Set Forms = New Dictionary
     
     If frm_unload Then
-        If MsgForms.Exists(frm_caption) Then
+        If Forms.Exists(frm_title) Then
             On Error Resume Next
-            Unload MsgForm(frm_caption)
-            MsgForms.Remove frm_caption
+            Unload Forms(frm_title)
+            Forms.Remove frm_title
+            Debug.Print "fMsg instance titled ||" & frm_title & "|| unloaded (just in case still loaded) and removed from the Dictionary!"
         End If
         Exit Function
     End If
     
-    If Not MsgForms.Exists(frm_caption) Then
+    If Not Forms.Exists(frm_title) Then
         '~~ There is no evidence of an already existing fMsg instance
-        Set MsgForm = New fMsg
-        Debug.Print "fMsg instance titled ||" & frm_caption & "|| new created, initalized and returned to caller " & frm_caller
-        MsgForms.Add frm_caption, MsgForm
-        Debug.Print "fMsg instance titled ||" & frm_caption & "|| saved to Dictionary"
+        Set Instance = New fMsg
+        Debug.Print "fMsg instance titled ||" & frm_title & "|| new created, initalized and returned to caller " & frm_caller
+        Forms.Add frm_title, Instance
+        Debug.Print "fMsg instance titled ||" & frm_title & "|| saved to Dictionary"
     Else
         '~~ An fMsg instance exists in the Dictionary, it may however no longer exist in the system
         On Error Resume Next
-        Set MsgForm = MsgForms(frm_caption)
+        Set Instance = Forms(frm_title)
         Select Case Err.Number
             Case 0
-                Debug.Print "fMsg instance titled ||" & frm_caption & "|| returned to caller " & frm_caller
+                Debug.Print "fMsg instance titled ||" & frm_title & "|| returned to caller " & frm_caller
             Case 13
                 '~~ The fMsg instance no longer exists
-                If MsgForms.Exists(frm_caption) Then
-                    MsgForms.Remove frm_caption
-                    Debug.Print "fMsg instance titled ||" & frm_caption & "|| removed from Dictionary"
+                If Forms.Exists(frm_title) Then
+                    Forms.Remove frm_title
+                    Debug.Print "fMsg instance titled ||" & frm_title & "|| removed from Dictionary"
                 End If
-                Set MsgForm = New fMsg
-                Debug.Print "fMsg instance titled ||" & frm_caption & "|| created, initialized and returned to caller " & frm_caller
-                MsgForms.Add frm_caption, MsgForm
-                Debug.Print "fMsg instance titled ||" & frm_caption & "|| saved to Dictionary"
+                Set Instance = New fMsg
+                Debug.Print "fMsg instance titled ||" & frm_title & "|| created, initialized and returned to caller " & frm_caller
+                Forms.Add frm_title, Instance
+                Debug.Print "fMsg instance titled ||" & frm_title & "|| saved to Dictionary"
             Case Else
                 '~~ Unknown error!
                 Debug.Print "Unexpectd error number " & Err.Number & "!"
@@ -654,10 +666,10 @@ Public Function Form(ByVal frm_caption As String, _
         
     End If
 
-xt: Set Form = MsgForm
+xt: Set Form = Instance
     Exit Function
 
-eh: ErrMsg ErrSrc(PROC)
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Function
 
 Private Function Max(ParamArray va() As Variant) As Variant
@@ -765,7 +777,7 @@ Public Function Monitor( _
       
 xt: Exit Function
 
-eh: ErrMsg ErrSrc(PROC)
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Function
 
 Public Function Pnts(ByVal pt_value As Long, _
