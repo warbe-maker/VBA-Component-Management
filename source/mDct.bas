@@ -91,7 +91,7 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
     Dim vValueNew       As Variant ' the argument add_key's/add_item's value
     Dim vValueTarget    As Variant ' the add before/after add_key/add_item's value
     
-    On Error GoTo on_error
+    On Error GoTo eh
     
     If add_dct Is Nothing Then Set add_dct = New Dictionary
     
@@ -141,7 +141,7 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
         '~~ is entry sequence the add_item will just be added
         If .Count = 0 Or bEntrySequence Then
             .Add add_key, add_item
-            GoTo end_proc
+            GoTo xt
         End If
         
         '~~ When the add_order is by add_key and not stay with first entry added
@@ -149,7 +149,7 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
         If bOrderByKey And Not add_staywithfirst Then
             If .Exists(add_key) Then
                 If VarType(add_item) = vbObject Then Set .Item(add_key) = add_item Else .Item(add_key) = add_item
-                GoTo end_proc
+                GoTo xt
             End If
         End If
     End With
@@ -181,7 +181,7 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
         '~~ is less than the add_order argument just add it and exit
         If bSeqAscending And vValueNew > vValueExisting Then
             .Add add_key, add_item
-            GoTo end_proc
+            GoTo xt
         End If
     End With
         
@@ -242,61 +242,126 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
     Set add_dct = dctTemp
     Set dctTemp = Nothing
 
-end_proc:
-    Exit Sub
+xt: Exit Sub
 
-on_error:
-#If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+End Sub
+
+Private Function ErrMsg(ByVal err_source As String, _
+              Optional ByVal err_no As Long = 0, _
+              Optional ByVal err_dscrptn As String = vbNullString, _
+              Optional ByVal err_line As Long = 0) As Variant
+' ------------------------------------------------------------------------------
+' This is a kind of universal error message which includes a debugging option.
+' It may be copied into any module - turned into a Private function. When the/my
+' Common VBA Error Handling Component (ErH) is installed and the Conditional
+' Compile Argument 'CommErHComp = 1' the error message will be displayed by
+' means of the Common VBA Message Component (fMsg, mMsg).
+'
+' Usage: When this procedure is copied as a Private Function into any desired
+'        module an error handling which consideres the possible Conditional
+'        Compile Argument 'Debugging = 1' will look as follows
+'
+'            Const PROC = "procedure-name"
+'            On Error Goto eh
+'        ....
+'        xt: Exit Sub/Function/Property
+'
+'        eh: Select Case ErrMsg(ErrSrc(PROC)
+'               Case vbYes: Stop: Resume
+'               Case vbNo:  Resume Next
+'               Case Else:  Goto xt
+'            End Select
+'        End Sub/Function/Property
+'
+'        The above may appear a lot of code lines but will be a godsend in case
+'        of an error!
+'
+' Used:  - For programmed application errors (Err.Raise AppErr(n), ....) the
+'          function AppErr will be used which turns the positive number into a
+'          negative one. The error message will regard a negative error number
+'          as an 'Application Error' and will use AppErr to turn it back for
+'          the message into its original positive number. Together with the
+'          ErrSrc there will be no need to maintain numerous different error
+'          numbers for a VB-Project.
+'        - The caller provides the source of the error through the module
+'          specific function ErrSrc(PROC) which adds the module name to the
+'          procedure name.
+' ------------------------------------------------------------------------------
+    Dim ErrBttns    As Variant
+    Dim ErrAtLine   As String
+    Dim ErrDesc     As String
+    Dim ErrLine     As Long
+    Dim ErrNo       As Long
+    Dim ErrSrc      As String
+    Dim ErrText     As String
+    Dim ErrTitle    As String
+    Dim ErrType     As String
+    
+    '~~ Obtain error information from the Err object for any argument not provided
+    If err_no = 0 Then err_no = Err.Number
+    If err_line = 0 Then ErrLine = Erl
+    If err_source = vbNullString Then err_source = Err.Source
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
+    
+    '~~ Determine the type of error
+    Select Case err_no
+        Case Is < 0
+            ErrNo = AppErr(err_no)
+            ErrType = "Application Error "
+        Case Else
+            ErrNo = err_no
+            If (InStr(1, err_dscrptn, "DAO") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC Teradata Driver") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC") <> 0 _
+            Or InStr(1, err_dscrptn, "Oracle") <> 0) _
+            Then ErrType = "Database Error " _
+            Else ErrType = "VB Runtime Error "
+    End Select
+    
+    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
+    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
+    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
+       
+    ErrText = "Error: " & vbLf & _
+              err_dscrptn & vbLf & vbLf & _
+              "Source: " & vbLf & _
+              err_source & ErrAtLine
+    
+#If Debugging = 1 Then
+    ErrBttns = vbYesNoCancel
+    ErrText = ErrText & vbLf & vbLf & _
+              "Debugging:" & vbLf & _
+              "Yes    = Resume error line" & vbLf & _
+              "No     = Resume Next (skip error line)" & vbLf & _
+              "Cancel = Terminate"
+#Else
+    ErrBttns = vbCritical
 #End If
-    ErrMsg errnumber:=Err.Number, errsource:=ErrSrc(PROC), errdscrptn:=Err.Description, ErrLine:=Erl
-End Sub
-
-Private Sub ErrMsg(ByVal errnumber As Long, _
-                  ByVal errsource As String, _
-                  ByVal errdscrptn As String, _
-                  ByVal ErrLine As String)
-' ----------------------------------------------------
-' Display the error message by means of the VBA MsgBox
-' ----------------------------------------------------
     
-    Dim sErrMsg     As String
-    Dim sErrPath    As String
-    
-    sErrMsg = "Description: " & vbLf & ErrMsgErrDscrptn(errdscrptn) & vbLf & vbLf & _
-              "Source:" & vbLf & errsource & ErrMsgErrLine(ErrLine)
-    sErrPath = vbNullString ' only available with the mErrHndlr module
-    If sErrPath <> vbNullString _
-    Then sErrMsg = sErrMsg & vbLf & vbLf & _
-                   "Path:" & vbLf & sErrPath
-    If ErrMsgInfo(errdscrptn) <> vbNullString _
-    Then sErrMsg = sErrMsg & vbLf & vbLf & _
-                   "Info:" & vbLf & ErrMsgInfo(errdscrptn)
-    MsgBox sErrMsg, vbCritical, ErrMsgErrType(errnumber, errsource) & " in " & errsource & ErrMsgErrLine(ErrLine)
-
-End Sub
-
-Private Function ErrMsgErrType( _
-        ByVal errnumber As Long, _
-        ByVal errsource As String) As String
-' ------------------------------------------
-' Return the kind of error considering the
-' Err.Source and the error number.
-' ------------------------------------------
-
-   If InStr(1, Err.Source, "DAO") <> 0 _
-   Or InStr(1, Err.Source, "ODBC Teradata Driver") <> 0 _
-   Or InStr(1, Err.Source, "ODBC") <> 0 _
-   Or InStr(1, Err.Source, "Oracle") <> 0 Then
-      ErrMsgErrType = "Database Error"
-   Else
-      If errnumber > 0 _
-      Then ErrMsgErrType = "VB Runtime Error" _
-      Else ErrMsgErrType = "Application Error"
-   End If
-   
+#If CommErHComp = 1 Then
+    '~~ When the Common VBA Error Handling Component (ErH) is installed/used by in the VB-Project
+    ErrMsg = mErH.ErrMsg(err_source:=err_source, err_number:=err_no, err_dscrptn:=err_dscrptn, err_line:=err_line)
+    '~~ Translate back the elaborated reply buttons of mErrH.ErrMsg displays into Yes/No/Cancel
+    '~~ replies with the VBA MsgBox.
+    Select Case ErrMsg
+        Case mErH.DebugOptResumeErrorLine:  ErrMsg = vbYes
+        Case mErH.DebugOptResumeNext:       ErrMsg = vbNo
+        Case Else:                          ErrMsg = vbCancel
+    End Select
+#Else
+#If CommMsgComp = 1 Then
+    '~~ When the Common VBA Message Component (mMsg/fMsg) is not used/installed there might still be the
+    ErrMsg = mMsg.ErrMsg(err_source:=err_source)
+#Else
+    '~~ None of the Common Components is installed/used
+    ErrMsg = MsgBox(Title:=ErrTitle _
+                  , Prompt:=ErrText _
+                  , Buttons:=ErrBttns)
+#End If
+#End If
 End Function
-
 Private Function ErrMsgErrLine(ByVal ErrLine As Long) As String
     If ErrLine <> 0 _
     Then ErrMsgErrLine = " (at line " & ErrLine & ")" _
@@ -365,25 +430,25 @@ Const PROC  As String = "DictDiffers"
 Dim i       As Long
 Dim v       As Variant
 
-    On Error GoTo on_error
+    On Error GoTo eh
     
     '~~ Difference in entries
     DctDiffers = dct1.Count <> dct2.Count
-    If DctDiffers Then GoTo exit_proc
+    If DctDiffers Then GoTo xt
     
     If diffitems Then
         '~~ Difference in items
         For i = 0 To dct1.Count - 1
             If VarType(dct1.Items()(i)) = vbObject And VarType(dct1.Items()(i)) = vbObject Then
                 DctDiffers = Not dct1.Items()(i) Is dct2.Items()(i)
-                If DctDiffers Then GoTo exit_proc
+                If DctDiffers Then GoTo xt
             ElseIf (VarType(dct1.Items()(i)) = vbObject And VarType(dct1.Items()(i)) <> vbObject) _
                 Or (VarType(dct1.Items()(i)) <> vbObject And VarType(dct1.Items()(i)) = vbObject) Then
                 DctDiffers = True
-                GoTo exit_proc
+                GoTo xt
             ElseIf dct1.Items()(i) <> dct2.Items()(i) Then
                 DctDiffers = True
-                GoTo exit_proc
+                GoTo xt
             End If
         Next i
     End If
@@ -393,26 +458,21 @@ Dim v       As Variant
         For i = 0 To dct1.Count - 1
             If VarType(dct1.Keys()(i)) = vbObject And VarType(dct1.Keys()(i)) = vbObject Then
                 DctDiffers = Not dct1.Keys()(i) Is dct2.Keys()(i)
-                If DctDiffers Then GoTo exit_proc
+                If DctDiffers Then GoTo xt
             ElseIf (VarType(dct1.Keys()(i)) = vbObject And VarType(dct1.Keys()(i)) <> vbObject) _
                 Or (VarType(dct1.Keys()(i)) <> vbObject And VarType(dct1.Keys()(i)) = vbObject) Then
                 DctDiffers = True
-                GoTo exit_proc
+                GoTo xt
             ElseIf dct1.Keys()(i) <> dct2.Keys()(i) Then
                 DctDiffers = True
-                GoTo exit_proc
+                GoTo xt
             End If
         Next i
     End If
        
-exit_proc:
-    Exit Function
+xt: Exit Function
     
-on_error:
-#If Debugging Then
-    Debug.Print Err.Description: Stop: Resume
-#End If
-    ErrMsg errnumber:=Err.Number, errsource:=ErrSrc(PROC), errdscrptn:=Err.Description, ErrLine:=Erl
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Function
 
 Private Function DctAddItemExists( _

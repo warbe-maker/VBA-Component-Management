@@ -37,9 +37,9 @@ Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, B
 Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
 ' ------------------------------------------------------------
 Public Const MSG_WIDTH_MIN_LIMIT_PERCENTAGE    As Long = 25
-Public Const MSG_WIDTH_MAX_LIMIT_PERCENTAGE    As Long = 95
+Public Const MSG_WIDTH_MAX_LIMIT_PERCENTAGE    As Long = 98
 Public Const MSG_HEIGHT_MIN_LIMIT_PERCENTAGE   As Long = 20
-Public Const MSG_HEIGHT_MAX_LIMIT_PERCENTAGE   As Long = 85
+Public Const MSG_HEIGHT_MAX_LIMIT_PERCENTAGE   As Long = 95
 
 Public Const END_OF_PROGRESS As String = "EndOfProgress"
 
@@ -81,11 +81,13 @@ Public Property Get Modeless() As Boolean:          Modeless = bModeless:   End 
 
 Public Property Let Modeless(ByVal b As Boolean):   bModeless = b:          End Property
 
-Private Property Get ScreenHeight() As Single
+Public Property Get ScreenHeight() As Single
+'    Debug.Print "Screen-Height: " & GetSystemMetrics32(SM_CYVIRTUALSCREEN) & " dpi"
     ConvertPixelsToPoints y_dpi:=GetSystemMetrics32(SM_CYVIRTUALSCREEN), y_pts:=ScreenHeight
 End Property
 
-Private Property Get ScreenWidth() As Single
+Public Property Get ScreenWidth() As Single
+'    Debug.Print "Screen-Width: " & GetSystemMetrics32(SM_CXVIRTUALSCREEN) & " dpi"
     ConvertPixelsToPoints x_dpi:=GetSystemMetrics32(SM_CXVIRTUALSCREEN), x_pts:=ScreenWidth
 End Property
 
@@ -124,18 +126,20 @@ Public Sub AssertWidthAndHeight(ByRef width_min As Long, _
     Dim MsgHeightMinLimitPt As Long:    MsgHeightMinLimitPt = Pnts(MSG_HEIGHT_MIN_LIMIT_PERCENTAGE, "h")
     
     '~~ Convert all percentage arguments into pt arguments
-    If width_max <= 100 Then width_max = Pnts(width_max, "w")
-    If width_min <= 100 Then width_min = Pnts(width_min, "w")
-    If height_max <= 100 Then height_max = Pnts(height_max, "h")
-    If height_min <= 100 Then height_min = Pnts(height_min, "h")
+    If width_max <> 0 And width_max <= 100 Then width_max = Pnts(width_max, "w")
+    If width_min <> 0 And width_min <= 100 Then width_min = Pnts(width_min, "w")
+    If height_max <> 0 And height_max <= 100 Then height_max = Pnts(height_max, "h")
+    If height_min <> 0 And height_min <= 100 Then height_min = Pnts(height_min, "h")
         
-    '~~ Set all invalid, improper, or useless arguments to sensible values
+    '~~ Provide sensible values for all invalid, improper, or useless
     If width_min > width_max Then width_min = width_max
     If height_min > height_max Then height_min = height_max
     If width_min < MsgWidthMinLimitPt Then width_min = MsgWidthMinLimitPt
-    If width_max = 0 Or width_max > MsgWidthMaxLimitPt Then width_max = MsgWidthMaxLimitPt
+    If width_max <= width_min Then width_max = width_min
+    If width_max > MsgWidthMaxLimitPt Then width_max = MsgWidthMaxLimitPt
     If height_min < MsgHeightMinLimitPt Then height_min = MsgHeightMinLimitPt
-    If height_max = 0 Or height_max > MsgHeightMaxLimitPt Then height_max = MsgHeightMaxLimitPt
+    If height_max = 0 Or height_max < height_min Then height_max = height_min
+    If height_max > MsgHeightMaxLimitPt Then height_max = MsgHeightMaxLimitPt
     
 End Sub
 
@@ -182,7 +186,7 @@ Public Function Box(ByVal box_title As String, _
     
     '~~ In order to avoid any interferance with modeless displayed fMsg form
     '~~ all services create and use their own instance identified by the message title.
-    Set MsgForm = Form(box_title)
+    Set MsgForm = MsgInstance(box_title)
     With MsgForm
         .MsgTitle = box_title
         .MsgText(1) = Message
@@ -199,7 +203,7 @@ Public Function Box(ByVal box_title As String, _
         '|| For testing purpose it may be appropriate to out-comment the Setup.  ||
         .Setup '                                                                 ||
         '+------------------------------------------------------------------------+
-        .show
+        .Show
     End With
     Box = RepliedWith
 
@@ -399,7 +403,8 @@ Private Sub ConvertPixelsToPoints(Optional ByVal x_dpi As Single, _
                                   Optional ByRef x_pts As Single, _
                                   Optional ByRef y_pts As Single)
 ' ------------------------------------------------------------------------------
-' Returns pixels (device dependent) to points (used by Excel).
+' Returns pixels (device dependent) to points.
+' Results verified by: https://pixelsconverter.com/px-to-pt.
 ' ------------------------------------------------------------------------------
     
     Dim hDC            As Long
@@ -412,9 +417,14 @@ Private Sub ConvertPixelsToPoints(Optional ByVal x_dpi As Single, _
     PixelsPerInchX = GetDeviceCaps(hDC, LOGPIXELSX)
     PixelsPerInchY = GetDeviceCaps(hDC, LOGPIXELSY)
     RetVal = ReleaseDC(0, hDC)
-    If Not IsMissing(x_dpi) And Not IsMissing(x_pts) Then x_pts = x_dpi * TWIPSPERINCH / 20 / PixelsPerInchX
-    If Not IsMissing(y_dpi) And Not IsMissing(y_pts) Then y_pts = y_dpi * TWIPSPERINCH / 20 / PixelsPerInchY
-
+    If Not IsMissing(x_dpi) And Not IsMissing(x_pts) Then
+        x_pts = x_dpi * TWIPSPERINCH / 20 / PixelsPerInchX
+'        If Not x_pts = 0 Then Debug.Print x_dpi & " dpi = " & x_pts & " pt"
+    End If
+    If Not IsMissing(y_dpi) And Not IsMissing(y_pts) Then
+        y_pts = y_dpi * TWIPSPERINCH / 20 / PixelsPerInchY
+'        If Not y_pts = 0 Then Debug.Print y_dpi & " dpi = " & y_pts & " pt"
+    End If
 End Sub
 
                                      
@@ -465,7 +475,7 @@ Public Function Dsply(ByVal dsply_title As String, _
                        , dsply_height_min _
                        , dsply_height_max
     
-    Set MsgForm = Form(dsply_title)
+    Set MsgForm = MsgInstance(dsply_title)
     
     With MsgForm
         .ReplyWithIndex = dsply_button_reply_with_index
@@ -490,11 +500,11 @@ Public Function Dsply(ByVal dsply_title As String, _
         .Setup '                                                                 ||
         If dsply_modeless Then
             DisplayDone = False
-            .show vbModeless
+            .Show vbModeless
             .top = 1
             .Left = 1
         Else
-            .show vbModal
+            .Show vbModal
         End If
     End With
     Dsply = RepliedWith
@@ -556,7 +566,7 @@ Public Function ErrMsg(ByVal err_source As String, _
         .Text.Text = err_source & ErrAtLine
     End With
 
-#If Debugging Then
+#If Debugging = 1 Then
     ErrBttns = vbYesNoCancel
     With ErrMsgText.Section(3)
         .Label.Text = "Debugging: (Conditional Compile Argument 'Debugging = 1')"
@@ -595,79 +605,63 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mMsg." & sProc
 End Function
 
-Public Function Form(ByVal frm_title As String, _
-            Optional ByVal frm_unload As Boolean = False, _
-            Optional ByVal frm_caller As String = vbNullString) As fMsg
+Public Function MsgInstance(ByVal fi_key As String, _
+                   Optional ByVal fi_unload As Boolean = False) As fMsg
 ' -------------------------------------------------------------------------
-' Returns an instance - in this case of the UserForm fMsg whereby the
-' instance uniquely identified by its title (frm_title). instead of using
-' the form objects property "Caption" frm_title becomes the key in a
-' Dictionary of this UserForm's instances with the frm_title as the key.
-' How it works:
-' When an instance seems to already exists because there is an entry in the
-' "Forms" Dictionary with the window title (frm_title) as the key and it
-' effectively exists in the system this instance is returned. Else the no
-' longer existing instance is removed from the "Forms" Dictionary, a new
-' instance is created, stored in the Dictionary and returned.
-' When frm_unload is true a possibly already existing Userform is unloaded
-' at first - and a new one will be created ...
-' The argument frm_caller is for test purpose only to Debug.Print to which
-' procedure an existing or new instance is returned.
+' Returns an instance of the UserForm fMsg which is definitely
+' identified by anything uniqe for the instance (fi_key). This may be what
+' becomes the title (property Caption) or even an object such like a
+' Worksheet (if the instance is Worksheet specific). An already existing or
+' new created instance is maintained in a static Dictionary with fi_key as
+' the key and returned to the caller. When fi_unload is true only a possibly
+' already existing Userform identified by fi_key is unloaded.
+'
+' Requires: Reference to the "Microsoft Scripting Runtime".
+' Usage   : The fMsg has to be replaced by the name of the desired
+'           UserForm
 ' -------------------------------------------------------------------------
-    Const PROC = "Form"
+    Const PROC = "MsgInstance"
     
     On Error GoTo eh
-    Static Forms    As Dictionary    ' Collection of active form instances with their caption as the key
-    Dim Instance    As fMsg
+    Static Instances As Dictionary    ' Collection of (possibly still)  active form instances
     
-    If frm_caller <> vbNullString Then frm_caller = "(" & frm_caller & ")"
+    If Instances Is Nothing Then Set Instances = New Dictionary
     
-    If Forms Is Nothing Then Set Forms = New Dictionary
-    
-    If frm_unload Then
-        If Forms.Exists(frm_title) Then
+    If fi_unload Then
+        If Instances.Exists(fi_key) Then
             On Error Resume Next
-            Unload Forms(frm_title)
-            Forms.Remove frm_title
-            Debug.Print "fMsg instance titled ||" & frm_title & "|| unloaded (just in case still loaded) and removed from the Dictionary!"
+            Unload Instances(fi_key) ' The instance may be already unloaded
+            Instances.Remove fi_key
         End If
         Exit Function
     End If
     
-    If Not Forms.Exists(frm_title) Then
-        '~~ There is no evidence of an already existing fMsg instance
-        Set Instance = New fMsg
-        Debug.Print "fMsg instance titled ||" & frm_title & "|| new created, initalized and returned to caller " & frm_caller
-        Forms.Add frm_title, Instance
-        Debug.Print "fMsg instance titled ||" & frm_title & "|| saved to Dictionary"
+    If Not Instances.Exists(fi_key) Then
+        '~~ There is no evidence of an already existing instance
+        Set MsgInstance = New fMsg
+        Instances.Add fi_key, MsgInstance
     Else
-        '~~ An fMsg instance exists in the Dictionary, it may however no longer exist in the system
+        '~~ An instance identified by fi_key exists in the Dictionary.
+        '~~ It may however have already been unloaded.
         On Error Resume Next
-        Set Instance = Forms(frm_title)
+        Set MsgInstance = Instances(fi_key)
         Select Case Err.Number
             Case 0
-                Debug.Print "fMsg instance titled ||" & frm_title & "|| returned to caller " & frm_caller
             Case 13
-                '~~ The fMsg instance no longer exists
-                If Forms.Exists(frm_title) Then
-                    Forms.Remove frm_title
-                    Debug.Print "fMsg instance titled ||" & frm_title & "|| removed from Dictionary"
+                If Instances.Exists(fi_key) Then
+                    '~~ The apparently no longer existing instance is removed from the Dictionarys
+                    Instances.Remove fi_key
                 End If
-                Set Instance = New fMsg
-                Debug.Print "fMsg instance titled ||" & frm_title & "|| created, initialized and returned to caller " & frm_caller
-                Forms.Add frm_title, Instance
-                Debug.Print "fMsg instance titled ||" & frm_title & "|| saved to Dictionary"
+                Set MsgInstance = New fMsg
+                Instances.Add fi_key, MsgInstance
             Case Else
                 '~~ Unknown error!
-                Debug.Print "Unexpectd error number " & Err.Number & "!"
-                Err.Raise AppErr(1), ErrSrc(PROC), "Unknown/unrecognized error!"
+                Err.Raise 1 + vbObjectError, ErrSrc(PROC), "Unknown/unrecognized error!"
         End Select
         On Error GoTo -1
-        
     End If
 
-xt: Set Form = Instance
-    Exit Function
+xt: Exit Function
 
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Function
@@ -731,7 +725,7 @@ Public Function Monitor( _
                        , mntr_height_min _
                        , mntr_height_max
     
-    Set MsgForm = Form(mntr_title)
+    Set MsgForm = MsgInstance(mntr_title)
     msg.Section(1).Label.Text = mntr_header
     msg.Section(1).Label.MonoSpaced = mntr_msg_monospaced
     msg.Section(1).Label.FontBold = True
@@ -764,7 +758,7 @@ Public Function Monitor( _
             '|| For testing purpose it may be appropriate to out-comment the Setup.  ||
             .Setup '                                                                 ||
             '+------------------------------------------------------------------------+
-            .show vbModeless
+            .Show vbModeless
             GoTo xt
         End With
     Else
@@ -805,8 +799,8 @@ Public Function Prcnt(ByVal pc_value As Long, _
 ' ------------------------------------------------------------------------------
     If pc_value > 100 Then
         If UCase(Left(pc_dimension, 1)) = "W" _
-        Then Prcnt = RoundUp(pc_value / (ScreenWidth / 100)) _
-        Else Prcnt = RoundUp(pc_value / (ScreenHeight / 100))
+        Then Prcnt = Int(pc_value / (ScreenWidth / 100)) _
+        Else Prcnt = Int(pc_value / (ScreenHeight / 100))
     Else
         Prcnt = pc_value
     End If
