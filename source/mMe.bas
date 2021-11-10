@@ -2,17 +2,17 @@ Attribute VB_Name = "mMe"
 Option Explicit
 Option Private Module
 ' ---------------------------------------------------------------------------
-' Standard Module mMe       Services for the self management like the relation
-'                           between the Component Management AddIn instance
-'                           and the development instance.
+' Standard Module mMe   Services for the self management like the relation
+'                       between the Component Management AddIn instance
+'                       and the development instance.
 '
 ' Public services:
-' - CompManAddinIsOpen  Returns True when the AddIn instance Workbook is
+' - CompManAddinIsOpen      Returns True when the AddIn instance Workbook is
 '                           open
-' - CompManAddinFolder        Get/Let the configured path for the AddIn instance
-'                           of this Workbook
-' - CfgAsserted             Returns True when the required properties (paths)
-'                           are configured and exist
+' - CompManAddinFolder      Get/Let the configured path for the AddIn
+'                           instance of this Workbook
+' - CfgAsserted             Returns True when the required properties
+'                           (the paths) are configured and exist
 ' - ControlItemRenewAdd     Used when the development and test instance
 '                           Workbook is opened to add a RenewAddIn control
 '                           item to the "Add-Ins" poupup menu.
@@ -24,9 +24,10 @@ Option Private Module
 '                           in its Development instance Workbook.
 ' - UpdateRawClones         Exclusively performed fro within the Development
 '                           instance Workbook to update its own used Clone
-'                           Components of which the Raw code has changed. This
-'                           service only runs provided the Addin instance
-'                           Workbook is open (see RenewAddIn service).
+'                           Components of which the Raw code has changed.
+'                           This service only runs provided the Addin
+'                           instance Workbook is open (see RenewAddIn
+'                           service).
 ' - ServicedRootFolder      When the AddIn is open and not  p a u s e d the
 '                           Workbook_Open service 'UpdateRawClones' and the
 '                           Workbook_BeforeSave service 'ExportChangedComponents'
@@ -40,8 +41,8 @@ Option Private Module
 ' - mWrkbk                  GetOpen and Opened service
 ' - mMsg                    Dsply, Box, and Buttons service used by the
 '                           RenewAddin,  Renew_1_ConfirmConfig service
+' - mErH                    Common VBA Error Handling
 '
-' Requires:
 ' W. Rauschenberger, Berlin Nov 2020
 ' ---------------------------------------------------------------------------
 Public Const COMPMAN_ADMIN_FOLDER_NAME      As String = "\CompManAdmin\"

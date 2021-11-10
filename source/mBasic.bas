@@ -511,7 +511,7 @@ Public Function ElementOfIndex(ByVal a As Variant, _
     
 End Function
 
-Private Function ErrMsg(ByVal err_source As String, _
+Public Function ErrMsg(ByVal err_source As String, _
               Optional ByVal err_no As Long = 0, _
               Optional ByVal err_dscrptn As String = vbNullString, _
               Optional ByVal err_line As Long = 0) As Variant
@@ -593,7 +593,7 @@ Private Function ErrMsg(ByVal err_source As String, _
               "Source: " & vbLf & _
               err_source & ErrAtLine
     
-#If Debugging = 1 Then
+#If Debugging Then
     ErrBttns = vbYesNoCancel
     ErrText = ErrText & vbLf & vbLf & _
               "Debugging:" & vbLf & _
@@ -604,10 +604,10 @@ Private Function ErrMsg(ByVal err_source As String, _
     ErrBttns = vbCritical
 #End If
     
-#If CommErHComp = 1 Then
+#If CommErHComp Then
     '~~ When the Common VBA Error Handling Component (ErH) is installed/used by in the VB-Project
     ErrMsg = mErH.ErrMsg(err_source:=err_source, err_number:=err_no, err_dscrptn:=err_dscrptn, err_line:=err_line)
-    '~~ Translate back the elaborated reply buttons of mErrH.ErrMsg displays into Yes/No/Cancel
+    '~~ Translate back the elaborated reply buttons mErrH.ErrMsg displays and returns to the simple yes/No/Cancel
     '~~ replies with the VBA MsgBox.
     Select Case ErrMsg
         Case mErH.DebugOptResumeErrorLine:  ErrMsg = vbYes
@@ -615,8 +615,9 @@ Private Function ErrMsg(ByVal err_source As String, _
         Case Else:                          ErrMsg = vbCancel
     End Select
 #Else
-#If CommMsgComp = 1 Then
-    '~~ When the Common VBA Message Component (mMsg/fMsg) is not used/installed there might still be the
+    '~~ When the Common VBA Error Handling Component (ErH) is not used/installed there might still be the
+    '~~ Common VBA Message Component (Msg) be installed/used
+#If CommMsgComp Then
     ErrMsg = mMsg.ErrMsg(err_source:=err_source)
 #Else
     '~~ None of the Common Components is installed/used
@@ -738,7 +739,7 @@ Public Function SelectFolder( _
     ' Open the select folder prompt
     With Application.FileDialog(msoFileDialogFolderPicker)
         .Title = sTitle
-        If .show = -1 Then ' if OK is pressed
+        If .Show = -1 Then ' if OK is pressed
             sFolder = .SelectedItems(1)
         End If
     End With

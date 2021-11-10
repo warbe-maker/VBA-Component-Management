@@ -8,26 +8,16 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
-' ------------------------------------------------------------------
-' !! This Workbook exists as two instances:                       !!
-' !! 1. The development instance CompManDev.xlsb                  !!
-' !! 2. The Addin instance CompMan.xlma which is setup/renewed    !!
-' !!    via the development instance service mMe.RenewAddIn       !!
+' ------------------------------------------------------------------------------
+' !! This Workbook exists as two instances:                                   !!
+' !! 1. The development instance CompManDev.xlsb                              !!
+' !! 2. The Addin instance CompMan.xlma which is setup/renewed via the        !!
+' !!    development instance service mMe.RenewAddIn                           !!
 '
-' Properties:
-' - CompManAddinFullName Full path/file name of the Addin Instance
-' - CompManAddinName     File name of the Addin instance
-' - DevlpInstanceName     File name of the Development and Test
-' -                       instance
-' - IsAddInInstance       Is TRUE when ThisWorkbook is the
-'                         AddIn instance
-' - IsDevlpInstance       Is TRUE when ThisWorkbook is the
-'                         development and test instance
-' - xlAddInFormat         The file format for the SaveAs operation
+' See: https://github.com/warbe-maker/Excel-VB-Components-Management-Services
 '
 ' W. Rauschenberger, Berlin Dec 2020
-' See Github repo
-' ------------------------------------------------------------------
+' ------------------------------------------------------------------------------
 Private Const HOSTED_RAWS = "mCompManClient"
 
 Private Function ErrSrc(ByVal sProc As String) As String
@@ -35,7 +25,7 @@ Private Function ErrSrc(ByVal sProc As String) As String
 End Function
 
 Private Sub Workbook_Open()
-' -------------------------------------------------------------------------
+' ------------------------------------------------------------------------------
 ' Attention: ThisWorkbook's raw clones (i.e. the used common components)
 '            are only updated when the CompMan Addin is active. This is
 '            only the case when at least one Workbook referring to it is
@@ -49,7 +39,7 @@ Private Sub Workbook_Open()
 '            Addin will be active - the development instance will be opened
 '            to get its cloned raws updated and the Addin instance will be
 '            renewed.
-' -------------------------------------------------------------------------
+' ------------------------------------------------------------------------------
     Const PROC = "Workbook_Open"
     
     On Error GoTo eh
