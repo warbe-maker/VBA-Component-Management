@@ -179,7 +179,11 @@ xt: arry = a1
     Set fso = Nothing
     Exit Property
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Property
 
 Public Function ValueExists( _
@@ -263,7 +267,11 @@ xt: Set SectionNames = dct
     Set dct = Nothing
     Exit Function
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Property Get Txt( _
@@ -312,7 +320,11 @@ Public Property Get Txt( _
 
 xt: Exit Property
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Property
 
 Public Property Let Txt( _
@@ -355,7 +367,11 @@ xt: ts.Close
     Set ts = Nothing
     Exit Property
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Property
 
 Public Property Get Value( _
@@ -388,7 +404,11 @@ Public Property Get Value( _
     
 xt: Exit Property
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Property
 
 Public Property Let Value( _
@@ -426,7 +446,11 @@ Public Property Let Value( _
 
 xt: Exit Property
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Property
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
@@ -497,7 +521,11 @@ Public Function Compare(ByVal fc_file_left As String, _
         
 xt: Exit Function
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Sub Delete(ByVal v As Variant)
@@ -512,23 +540,122 @@ Public Sub Delete(ByVal v As Variant)
     
 End Sub
 
-Private Sub ErrMsg( _
-             ByVal err_source As String, _
-    Optional ByVal err_no As Long = 0, _
-    Optional ByVal err_dscrptn As String = vbNullString)
-' ------------------------------------------------------
-' This Common Component does not have its own error but
-' passes on any error to the caller instead.
-' ------------------------------------------------------
+Private Function ErrMsg(ByVal err_source As String, _
+               Optional ByVal err_no As Long = 0, _
+               Optional ByVal err_dscrptn As String = vbNullString, _
+               Optional ByVal err_line As Long = 0) As Variant
+' ------------------------------------------------------------------------------
+' This is a kind of universal error message which includes a debugging option.
+' It may be copied into any module - turned into a Private function. When the/my
+' Common VBA Error Handling Component (ErH) is installed and the Conditional
+' Compile Argument 'CommErHComp = 1' the error message will be displayed by
+' means of the Common VBA Message Component (fMsg, mMsg).
+'
+' Usage: When this procedure is copied as a Private Function into any desired
+'        module an error handling which consideres the possible Conditional
+'        Compile Argument 'Debugging = 1' will look as follows
+'
+'            Const PROC = "procedure-name"
+'            On Error Goto eh
+'        ....
+'        xt: Exit Sub/Function/Property
+'
+'        eh: Select Case ErrMsg(ErrSrc(PROC)
+'               Case vbYes: Stop: Resume
+'               Case vbNo:  Resume Next
+'               Case Else:  Goto xt
+'            End Select
+'        End Sub/Function/Property
+'
+'        The above may appear a lot of code lines but will be a godsend in case
+'        of an error!
+'
+' Used:  - For programmed application errors (Err.Raise AppErr(n), ....) the
+'          function AppErr will be used which turns the positive number into a
+'          negative one. The error message will regard a negative error number
+'          as an 'Application Error' and will use AppErr to turn it back for
+'          the message into its original positive number. Together with the
+'          ErrSrc there will be no need to maintain numerous different error
+'          numbers for a VB-Project.
+'        - The caller provides the source of the error through the module
+'          specific function ErrSrc(PROC) which adds the module name to the
+'          procedure name.
+' ------------------------------------------------------------------------------
+    Dim ErrBttns    As Variant
+    Dim ErrAtLine   As String
+    Dim ErrDesc     As String
+    Dim ErrLine     As Long
+    Dim ErrNo       As Long
+    Dim ErrSrc      As String
+    Dim ErrText     As String
+    Dim ErrTitle    As String
+    Dim ErrType     As String
     
+    '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
+    If err_line = 0 Then ErrLine = Erl
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
-
-    Err.Raise Number:=err_no _
-            , Source:=err_source _
-            , Description:="Error in '" & err_source & "': " & err_dscrptn
-
-End Sub
+    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
+    
+    '~~ Determine the type of error
+    Select Case err_no
+        Case Is < 0
+            ErrNo = AppErr(err_no)
+            ErrType = "Application Error "
+        Case Else
+            ErrNo = err_no
+            If (InStr(1, err_dscrptn, "DAO") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC Teradata Driver") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC") <> 0 _
+            Or InStr(1, err_dscrptn, "Oracle") <> 0) _
+            Then ErrType = "Database Error " _
+            Else ErrType = "VB Runtime Error "
+    End Select
+    
+    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
+    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
+    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
+       
+    ErrText = "Error: " & vbLf & _
+              err_dscrptn & vbLf & vbLf & _
+              "Source: " & vbLf & _
+              err_source & ErrAtLine
+    
+#If Debugging Then
+    ErrBttns = vbYesNoCancel
+    ErrText = ErrText & vbLf & vbLf & _
+              "Debugging:" & vbLf & _
+              "Yes    = Resume error line" & vbLf & _
+              "No     = Resume Next (skip error line)" & vbLf & _
+              "Cancel = Terminate"
+#Else
+    ErrBttns = vbCritical
+#End If
+    
+#If CommErHComp Then
+    '~~ When the Common VBA Error Handling Component (ErH) is installed/used by in the VB-Project
+    ErrMsg = ErrMsg(err_source:=err_source, err_number:=err_no, err_dscrptn:=err_dscrptn, err_line:=err_line)
+    '~~ Translate back the elaborated reply buttons mErrH.ErrMsg displays and returns to the simple yes/No/Cancel
+    '~~ replies with the VBA MsgBox.
+    Select Case ErrMsg
+        Case mErH.DebugOptResumeErrorLine:  ErrMsg = vbYes
+        Case mErH.DebugOptResumeNext:       ErrMsg = vbNo
+        Case Else:                          ErrMsg = vbCancel
+    End Select
+#Else
+    '~~ When the Common VBA Error Handling Component (ErH) is not used/installed there might still be the
+    '~~ Common VBA Message Component (Msg) be installed/used
+#If CommMsgComp Then
+    ErrMsg = mMsg.ErrMsg(err_source:=err_source)
+#Else
+    '~~ None of the Common Components is installed/used
+    ErrMsg = MsgBox(Title:=ErrTitle _
+                  , Prompt:=ErrText _
+                  , Buttons:=ErrBttns)
+#End If
+#End If
+End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mFile." & sProc
@@ -575,9 +702,12 @@ Public Function Search(ByVal fs_root As String, _
 xt: Set Search = cllRet
     Exit Function
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
-
 
 Public Function Exists(ByVal fe_file As Variant, _
               Optional ByRef fe_fso As File = Nothing, _
@@ -662,7 +792,11 @@ Public Function Exists(ByVal fe_file As Variant, _
 
 xt: Exit Function
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Function Extension(ByVal fe_file As Variant)
@@ -708,7 +842,11 @@ Private Function Fc(ByVal fc_file1 As String, fc_file2 As String)
         
 xt: Exit Function
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Property Get Temp( _
@@ -881,7 +1019,11 @@ xt: Set Differs = dctDif
     Set dctF2 = Nothing
     Exit Function
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Private Function DiffItem( _
@@ -953,7 +1095,11 @@ xt: Set vNames = Nothing
     Set dct = Nothing
     Exit Sub
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
 Public Property Get Sections( _
@@ -1001,7 +1147,11 @@ xt: Set Sections = dctS
     Set dctV = Nothing
     Exit Property
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Property
 
 #If Test Then
@@ -1047,7 +1197,11 @@ Private Property Let Sections( _
     
 xt: Exit Property
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Property
 
 Private Function NamesInArg( _
@@ -1090,7 +1244,11 @@ Private Function NamesInArg( _
 xt: Set NamesInArg = cll
     Exit Function
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Sub SectionsRemove( _
@@ -1120,7 +1278,11 @@ Public Sub SectionsRemove( _
 xt: Set vNames = Nothing
     Exit Sub
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
 Public Function SelectFile( _
@@ -1151,7 +1313,7 @@ Public Function SelectFile( _
             .Filters.Add sel_filter_name, v
          Next v
          
-        If .show = -1 Then
+        If .Show = -1 Then
             '~~ A fie had been selected
            With New FileSystemObject
             Set sel_result = .GetFile(fDialog.SelectedItems(1))
@@ -1163,7 +1325,11 @@ Public Function SelectFile( _
 
 xt: Exit Function
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Private Function ShellRun(sCmd As String) As String
@@ -1240,7 +1406,11 @@ Public Property Get Dict(ByVal fd_file As Variant) As Dictionary
 xt: Set Dict = dct
     Exit Property
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Property
 
 Public Function ValueNames( _
@@ -1309,7 +1479,11 @@ Public Function ValueNames( _
 xt: Set dctNames = Nothing
     Exit Function
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Function Values( _
@@ -1370,7 +1544,11 @@ Public Function Values( _
 xt: Set Values = dct
     Exit Function
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 

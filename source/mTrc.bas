@@ -355,8 +355,11 @@ Private Sub ComputeSecsGrssOvrhdNet()
 xt: Set cll = Nothing
     Exit Sub
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-    Set cllTrc = Nothing
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
 Private Function ComputeSecsOvrhdTtlEntry() As Double
@@ -379,7 +382,11 @@ Private Function ComputeSecsOvrhdTtlEntry() As Double
 
 xt: Exit Function
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
     Set cllTrc = Nothing
 End Function
 
@@ -405,8 +412,11 @@ Private Sub ComputeTcksElpsd()
 xt: Set cll = Nothing
     Exit Sub
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-    Set cllTrc = Nothing
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
 Private Sub ComputeTcksNet()
@@ -429,8 +439,11 @@ Private Sub ComputeTcksNet()
 xt: Set cll = Nothing
     Exit Sub
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-    Set cllTrc = Nothing
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
 Private Function ComputeTcksOvrhdItem() As Currency
@@ -453,7 +466,11 @@ Private Function ComputeTcksOvrhdItem() As Currency
 
 xt: Exit Function
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
     Set cllTrc = Nothing
 End Function
 
@@ -699,7 +716,11 @@ Private Function DsplyHdr(ByRef lLenHeaderData As Long) As String
 
 xt: Exit Function
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
     Set cllTrc = Nothing
 End Function
 
@@ -782,7 +803,11 @@ Private Function DsplyLn(ByVal trc_entry As Collection) As String
 
 xt: Exit Function
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
     Set cllTrc = Nothing
 End Function
 
@@ -874,7 +899,11 @@ next_begin_entry:
 
 xt: Exit Function
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Private Function DsplyTcksDffToScs(ByVal beginticks As Currency, _
@@ -1213,7 +1242,11 @@ Private Function Ntry(ByVal ntry_tcks As Currency, _
     
 xt: Exit Function
     
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Private Function NtryIsBegin(ByVal v As Collection, _
@@ -1345,7 +1378,11 @@ Private Function StckEd(ByVal stck_id As String, _
     Next i
 xt: Exit Function
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Private Function StckIsEmpty() As Boolean
@@ -1452,7 +1489,11 @@ Private Sub TrcAdd( _
 
 xt: Exit Sub
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
 Private Sub TrcBgn(ByVal trc_id As String, _
@@ -1482,7 +1523,11 @@ Private Sub TrcBgn(ByVal trc_id As String, _
 
 xt: Exit Sub
     
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
 Private Sub TrcEnd(ByVal trc_id As String, _
@@ -1528,7 +1573,11 @@ Private Sub TrcEnd(ByVal trc_id As String, _
 
 xt: Exit Sub
     
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case vbNo:  Stop: Resume Next
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
 Private Function TrcIsEmpty() As Boolean
