@@ -286,15 +286,20 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
                 "until the Addin is 'continued' again!"
             Else
                 wsAddIn.CurrentStatus = mBasic.Spaced("active!")
+                wsAddIn.RenewInfo = _
+                "Please note:" & vbLf & vbLf & _
+                "O n l y  once a Workbook (a VBProject respectively) is opened which has a Reference to 'CompMan' " & _
+                "the Addin is automatically opened along with it - and available for others. " & vbLf & _
+                "When only Workbook without such a reference are opened the Development-Instance-Workbook " & _
+                "needs to be opened before hand in order to have Common Components updated."
+
                 wsAddIn.CompManAddInPausedStatus = _
                 "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateRawClones' and 'ExportChangedComponents'" & vbLf & _
                 "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
                 "1. The Workbook is located in the configured 'Serviced-Development-Root-Folder' which currently is:" & vbLf & _
                 "   '" & mMe.ServicedRootFolder & "'" & vbLf & _
                 "2. The Workbook is the only one in its parent folder" & vbLf & _
-                "3. The Workbook is not a restored version" & vbLf & vbLf & _
-                "Note: When the VBProject has a Reference to 'CompMan' the Addin would automatically be opened with it." & vbLf & _
-                "      Otherwise this Development-Instance-Workbook needs to be opened and Setup/Renew must be performed."
+                "3. The Workbook is not a restored version" & vbLf
             End If
         End If
     Else ' not or no longer (properly) setup
@@ -633,7 +638,7 @@ xt: If CompManAddinFolderIsValid Then
         '~~ The admin folder is now at its possibly new location and the information can be stored into the config file
         mMe.CompManAddinFolder = sCompManAddinFolder
         Application.AltStartupPath = sCompManAddinFolder
-        TrustThisFolder FolderPath:=sCompManAddinFolder
+        TrustThisFolder FolderPath:=Application.AltStartupPath
     End If
     If ServicedRootFolderIsValid Then mMe.ServicedRootFolder = sServicedRootFolder
     BasicConfig = ServicedRootFolderIsValid And CompManAddinFolderIsValid

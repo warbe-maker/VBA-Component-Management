@@ -29,6 +29,8 @@ Private Sub ProgressMsg(ByVal prgrs_step As Long, ByVal prgrs_result As String, 
     End If
 End Sub
 
+Public Property Let RenewInfo(ByVal s As String):                       Me.Range("rngRenewInfo").Value = s:                 End Property
+
 Public Property Let CompManAddInPausedStatus(ByVal s As String):        Me.Range("rngCompManPauseStatus").Value = s:        End Property
 
 Public Property Get CurrentStatus() As String:                          CurrentStatus = Me.Range("rngCurrentStatus").Value: End Property
