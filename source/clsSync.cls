@@ -175,8 +175,8 @@ Public Sub CollectAllSyncItems()
     Dim ws2     As Worksheet
     Dim vbc     As VBComponent
     Dim shp     As Shape
-    Dim nm      As Name
-    Dim nmName  As Name
+    Dim nm      As name
+    Dim nmName  As name
     Dim sKey    As String
     Dim oob     As OLEObject
     
@@ -196,7 +196,7 @@ Public Sub CollectAllSyncItems()
     For Each ws1 In wbSyncSource.Worksheets
         Log.ServicedItem = ws1 ' Compute max length for logged item type and item name
         With ws1
-            mDct.DctAdd dctSourceSheets, .Name, .Name, order_bykey, seq_ascending, , , True
+            mDct.DctAdd dctSourceSheets, .name, .name, order_bykey, seq_ascending, , , True
             Stats.Count sic_sheet_controls_total, .Shapes.Count
             CollectSheetControls ws1, dctSourceSheetControls
         End With
@@ -206,7 +206,7 @@ Public Sub CollectAllSyncItems()
     For Each ws2 In wbSyncTarget.Worksheets
         Log.ServicedItem = ws2 ' Compute max length for logged item type and item name
         With ws2
-            mDct.DctAdd dctTargetSheets, .Name, .Name, order_bykey, seq_ascending, , , True
+            mDct.DctAdd dctTargetSheets, .name, .name, order_bykey, seq_ascending, , , True
             Stats.Count sic_sheet_controls_total, .Shapes.Count
             CollectSheetControls ws2, dctTargetSheetControls
         End With
@@ -217,13 +217,13 @@ Public Sub CollectAllSyncItems()
     For Each vbc In wbSyncSource.VBProject.VBComponents
         Log.ServicedItem = vbc ' Compute max length for logged item type and item name
         If mComp.IsSheetDocMod(vbc) Then
-            mDct.DctAdd dctSourceSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
+            mDct.DctAdd dctSourceSheetComps, vbc.name, vbc, order_bykey, seq_ascending, , , True
         End If
     Next vbc
     For Each vbc In wbSyncTarget.VBProject.VBComponents
         Log.ServicedItem = vbc ' Compute max length for logged item type and item name
         If mComp.IsSheetDocMod(vbc) Then
-            mDct.DctAdd dctTargetSheetComps, vbc.Name, vbc, order_bykey, seq_ascending, , , True
+            mDct.DctAdd dctTargetSheetComps, vbc.name, vbc, order_bykey, seq_ascending, , , True
         End If
     Next vbc
     
@@ -232,19 +232,19 @@ Public Sub CollectAllSyncItems()
     For Each nm In wbSyncSource.Names
         Log.ServicedItem = nm ' Compute max length for logged item type and item name
         Set nmName = nm
-        mDct.DctAdd dctSourceNames, nm.Name, nmName, order_bykey, seq_ascending, , , True
+        mDct.DctAdd dctSourceNames, nm.name, nmName, order_bykey, seq_ascending, , , True
     Next nm
     For Each nm In wbSyncTarget.Names
         Log.ServicedItem = nm ' Compute max length for logged item type and item name
         Set nmName = nm
-        mDct.DctAdd dctTargetNames, nm.Name, nmName, order_bykey, seq_ascending, , , True
+        mDct.DctAdd dctTargetNames, nm.name, nmName, order_bykey, seq_ascending, , , True
     Next nm
 
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -264,7 +264,7 @@ Private Sub CollectSheetControls( _
     For Each shp In ws.Shapes
         Log.ServicedItem = shp ' Compute max length for logged item type and item name
         sName = mSheetControls.CntrlName(shp)
-        sKey = mSync.KeySheetControl(sheet_name:=ws.Name, control_name:=sName)
+        sKey = mSync.KeySheetControl(sheet_name:=ws.name, control_name:=sName)
 '        Debug.Print "Key='" & sKey & "'", Tab(50), "Item='" & sName & "'"
         mDct.DctAdd dct, sKey, sName, order_bykey, seq_ascending, , , True
     Next shp
@@ -272,8 +272,8 @@ Private Sub CollectSheetControls( _
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -321,7 +321,7 @@ Public Sub DisplayCollectedSourceSheets()
     Set dct = Me.SourceSheets
     For i = 1 To dct.Count
         Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
-        Debug.Print Align("Source", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.Name & ")"
+        Debug.Print Align("Source", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.name & ")"
     Next i
 End Sub
 
@@ -347,7 +347,7 @@ Public Sub DisplayCollectedTargetSheets()
     Set dct = Me.SourceSheets
     For i = 1 To dct.Count
         Set ws = Me.Source.Worksheets(dct.Items()(i - 1))
-        Debug.Print Align("Target", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.Name & ")"
+        Debug.Print Align("Target", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.name & ")"
     Next i
 End Sub
 
@@ -404,12 +404,12 @@ Public Function SheetProjectName( _
 ' CodeName (wb and vbc).
 ' ----------------------------------------------------------------------
     If Not ws Is Nothing Then
-        SheetProjectName = ws.CodeName & "(" & ws.Name & ")"
+        SheetProjectName = ws.CodeName & "(" & ws.name & ")"
     ElseIf Not wb Is Nothing Then
         If Not vbc Is Nothing Then
             For Each ws In wb.Worksheets
-                If ws.CodeName = vbc.Name Then
-                    SheetProjectName = vbc.Name & "(" & ws.Name & ")"
+                If ws.CodeName = vbc.name Then
+                    SheetProjectName = vbc.name & "(" & ws.name & ")"
                     Exit For
                 End If
             Next ws

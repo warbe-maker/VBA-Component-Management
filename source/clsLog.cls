@@ -119,9 +119,8 @@ Friend Property Let Service( _
 xt: Exit Property
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Property
 

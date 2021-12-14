@@ -246,12 +246,12 @@ Private Sub CopyShape( _
     Dim TargetShape As Shape
     
     For Each SourceShape In sc_source.Shapes
-        If SourceShape.Name <> sc_name Then GoTo next_shape
+        If SourceShape.name <> sc_name Then GoTo next_shape
         SourceShape.Copy
         sc_target.Paste
         Set TargetShape = sc_target.Shapes(sc_target.Shapes.Count)
         With TargetShape
-            .Name = sc_name
+            .name = sc_name
             .top = SourceShape.top
             .Left = SourceShape.Left
             .Width = SourceShape.Width
@@ -272,12 +272,12 @@ Private Sub CopyOOB( _
     Dim TargetOOB As OLEObject
     
     For Each SourceOOB In sc_source.OLEObjects
-        If SourceOOB.Name <> sc_oob_name Then GoTo next_shape
+        If SourceOOB.name <> sc_oob_name Then GoTo next_shape
         SourceOOB.Copy
         sc_target.Paste
         Set TargetOOB = sc_target.OLEObjects(sc_target.OLEObjects.Count)
         With TargetOOB
-            .Name = sc_oob_name
+            .name = sc_oob_name
             .top = SourceOOB.top
             .Left = SourceOOB.Left
             .Width = SourceOOB.Width
@@ -341,8 +341,8 @@ next_oob:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -400,8 +400,8 @@ next_shape:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -448,8 +448,8 @@ next_oob:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -497,8 +497,8 @@ next_shape:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -536,8 +536,8 @@ next_shape:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -578,8 +578,8 @@ next_shape:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -678,7 +678,7 @@ Private Sub SyncProperty( _
         On Error Resume Next ' The property may not be modifyable
         v_target = v_source
         Select Case Err.Number
-            Case 0:     Log.Entry = "Property synched: " & CntrlPropertyName(en) & "(from '" & CStr(v_target) & "' to '" & CStr(v_source) & "')"
+            Case 0:     Log.Entry = "Property synced: " & CntrlPropertyName(en) & "(from '" & CStr(v_target) & "' to '" & CStr(v_source) & "')"
             Case Else
                 Log.Entry = "Property synchronization failed (error " & Err.Number & ") '" & CntrlPropertyName(en) & "'"
         End Select
@@ -754,7 +754,7 @@ Private Sub SyncCntrlProperties( _
         en = enMouseIcon:           SyncProperty en, .MouseIcon, cntrl_source.MouseIcon
         en = enMousePointer:        SyncProperty en, .MousePointer, cntrl_source.MousePointer
         en = enMultiSelect:         SyncProperty en, .MultiSelect, cntrl_source.MultiSelect
-        en = enName:                SyncProperty en, .Name, cntrl_source.Name
+        en = enName:                SyncProperty en, .name, cntrl_source.name
         en = enOnAction:            SyncProperty en, .OnAction, cntrl_source.OnAction
         en = enPicture:             SyncProperty en, .Picture, cntrl_source.Picture
         en = enPicturePosition:     SyncProperty en, .PicturePosition, cntrl_source.PicturePosition
@@ -782,7 +782,10 @@ Private Sub SyncCntrlProperties( _
 xt: On Error GoTo -1
     Exit Sub
     
-eh: Resume Next
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub
 
 Private Sub SyncOOBProperties( _
@@ -818,7 +821,7 @@ Private Sub SyncOOBProperties( _
         SyncProperty .Height, oobSource.Height, "OLEObject.Height"
         SyncProperty .Left, oobSource.Left, "OLEObject.Left"
         SyncProperty .LinkedCell, oobSource.LinkedCell, "OLEObject.LinkedCell"
-        SyncProperty .Name, oobSource.Name, "OLEObject.Name"
+        SyncProperty .name, oobSource.name, "OLEObject.Name"
         SyncProperty .OLEType, oobSource.OLEType, "OLEObject.OLEType"
         SyncProperty .Placement, oobSource.Placement, "OLEObject.Placement"
         SyncProperty .PrintObject, oobSource.PrintObject, "OLEObject.PrintObject"
@@ -826,12 +829,13 @@ Private Sub SyncOOBProperties( _
         SyncProperty .SourceName, oobSource.SourceName, "OLEObject.SourceName"
         SyncProperty .top, oobSource.top, "OLEObject.Top"
     End With
+
 xt: On Error GoTo -1
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 

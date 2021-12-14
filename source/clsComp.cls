@@ -146,9 +146,8 @@ Friend Property Get Changed() As Boolean
 xt: Exit Property
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Property
 
@@ -287,9 +286,8 @@ xt: KindOfComp = lKindOfComp
     Exit Property
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Property
 
@@ -330,14 +328,14 @@ Private Property Get ReplaceRawWithCloneConfirmed(ByRef raw As clsRaw) As Boolea
     sReplyIgnore = "Ignore the code change:" & vbLf & vbLf & _
                    "The change will be overwritten by the" & vbLf & _
                    "next open of this Workbook."
-    Set cllButtons = mMsg.Buttons(sReplyUpdateOrigin, sReplyDsplyDiff, sReplyIgnore)
+    mMsg.Buttons cllButtons, sReplyUpdateOrigin, sReplyDsplyDiff, sReplyIgnore
     
     '~~ Offer options
     sTitle = "A ""Remotely hosted raw's clone has been modified in this VB-Project!"
     With sMsg
         .Section(1).Label.Text = "About this incident:"
         .Section(1).Text.Text = "The module '" & Me.CompName & "' is a clone of the raw component hosted in Workbook '" & raw.WrkbkBaseName & "' " & _
-                            "This clone component's code has usually has been synched with the remote raw componet's code. " & _
+                            "This clone component's code has usually has been synced with the remote raw componet's code. " & _
                             "The remote raw hasn't been changed but the cloned component's code has."
         .Section(2).Label.Text = "About the choices:"
         .Section(2).Text.Text = "When the code modification is ignored it will be regarded temporarily only and overwrtitten with the next open of this Workbook. " & _
@@ -372,9 +370,8 @@ Private Property Get ReplaceRawWithCloneConfirmed(ByRef raw As clsRaw) As Boolea
 xt: Exit Property
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Property
 
@@ -444,9 +441,8 @@ xt: Set fso = Nothing
     Exit Property
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Property
 
@@ -526,9 +522,8 @@ Public Sub DsplyAllChanges()
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -611,9 +606,8 @@ Public Sub ReplaceRawWithClone(ByRef raw As clsRaw)
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -662,9 +656,8 @@ xt: Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 

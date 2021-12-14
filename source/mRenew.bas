@@ -33,7 +33,7 @@ Public Sub ByImport( _
             '~~ Find a free/unused temporary name
             sTempName = mComp.TempName(wb:=rn_wb, comp_name:=rn_comp_name)
             '~~ Rename the component when it already exists
-            .VBComponents(rn_comp_name).Name = sTempName
+            .VBComponents(rn_comp_name).name = sTempName
             Debug.Print NowMsec & " '" & rn_comp_name & "' renamed to '" & sTempName & "'"
 '           DoEvents:  Application.Wait Now() + 0.0000001 ' wait for 10 milliseconds
             .VBComponents.Remove .VBComponents(sTempName) ' will not take place until process has ended!
@@ -54,9 +54,8 @@ xt: Set fso = Nothing
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 

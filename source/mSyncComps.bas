@@ -39,12 +39,12 @@ Public Sub SyncCodeChanges()
 
         Set SourceComp = New clsRaw
         Set SourceComp.Wrkbk = Sync.Source
-        SourceComp.CompName = vbc.Name
+        SourceComp.CompName = vbc.name
         If Not SourceComp.Exists(Sync.Target) Then GoTo next_vbc
         
         Set TargetComp = New clsComp
         Set TargetComp.Wrkbk = Sync.Target
-        TargetComp.CompName = vbc.Name
+        TargetComp.CompName = vbc.name
         SourceComp.CloneExpFileFullName = TargetComp.ExpFileFullName
         If Not SourceComp.Changed(TargetComp) Then GoTo next_vbc
         
@@ -53,19 +53,19 @@ Public Sub SyncCodeChanges()
         
         If Sync.Mode = Confirm Then
             Sync.ConfInfo = "Changed"
-            sCaption = "Display code changes" & vbLf & vbLf & vbc.Name & vbLf
+            sCaption = "Display code changes" & vbLf & vbLf & vbc.name & vbLf
             If Not Sync.Changed.Exists(sCaption) _
             Then Sync.Changed.Add sCaption, SourceComp
         Else
             Log.ServicedItem = vbc
             If mComp.IsWrkbkDocMod(vbc) Or mComp.IsSheetDocMod(vbc) Then
-                mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
+                mSync.ByCodeLines sync_target_comp_name:=vbc.name _
                                 , wb_source_full_name:=SourceComp.Wrkbk.FullName _
                                 , sync_source_codelines:=SourceComp.CodeLines
                 Log.Entry = "Code updated line-by-line with code from Export-File '" & SourceComp.ExpFileFullName & "'"
             Else
                 mRenew.ByImport rn_wb:=Sync.Target _
-                              , rn_comp_name:=vbc.Name _
+                              , rn_comp_name:=vbc.name _
                               , rn_exp_file_full_name:=SourceComp.ExpFileFullName
                 Log.Entry = "Renewed/updated by import of '" & SourceComp.ExpFileFullName & "'"
             End If
@@ -80,9 +80,8 @@ xt: Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -107,8 +106,8 @@ Public Sub SyncNew()
             
             Set SourceComp = New clsRaw
             Set SourceComp.Wrkbk = .Source
-            SourceComp.CompName = vbc.Name
-            If mComp.Exists(.Target, vbc.Name) Then GoTo next_vbc
+            SourceComp.CompName = vbc.name
+            If mComp.Exists(.Target, vbc.name) Then GoTo next_vbc
             
             '~~ No component exists under the source component's name
             Log.ServicedItem = vbc
@@ -131,9 +130,8 @@ xt: Set SourceComp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -157,7 +155,7 @@ Public Sub SyncObsolete()
             If vbc.Type = vbext_ct_Document Then GoTo next_vbc
             Set TargetComp = New clsComp
             Set TargetComp.Wrkbk = .Target
-            TargetComp.CompName = vbc.Name
+            TargetComp.CompName = vbc.name
             If TargetComp.Exists(.Source) Then GoTo next_vbc
             
             Log.ServicedItem = vbc
@@ -178,9 +176,8 @@ next_vbc:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 

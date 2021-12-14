@@ -93,9 +93,8 @@ xt: If SheetExists Then
     Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Function
 
@@ -173,9 +172,8 @@ End Sub
 '    Exit Sub
 '
 'eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-'        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-'        Case mErH.DebugOptResumeNext: Resume Next
-'        Case mErH.ErrMsgDefaultButton: GoTo xt
+'        Case vbResume:  Stop: Resume
+'        Case Else:     GoTo xt
 '    End Select
 'End Sub
 
@@ -230,9 +228,8 @@ next_sheet:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -280,9 +277,8 @@ next_comp:
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -365,9 +361,8 @@ next_v:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -458,9 +453,8 @@ next_v:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -484,7 +478,7 @@ Public Sub SyncOrder()
                 If wsTarget.name <> wsSource.name Then
                     Log.ServicedItem = wsTarget
                     wsTarget.Move After:=Sheets(Sync.Target.Worksheets.Count)
-                    Log.Entry = "Order synched!"
+                    Log.Entry = "Order synced!"
                     GoTo again
                 End If
             End If
@@ -495,9 +489,8 @@ again:
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -524,8 +517,8 @@ Public Function SheetCodeName( _
 xt: Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Function
 

@@ -64,9 +64,8 @@ xt: Set cSource = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -82,7 +81,7 @@ Private Sub ClearLinksToSource()
     Dim v           As Variant
     Dim ws          As Worksheet
     Dim shp         As Shape
-    Dim nm          As Name
+    Dim nm          As name
     Dim sName       As String
     Dim sOnAction   As String
     Dim SheetName   As String
@@ -106,15 +105,15 @@ Private Sub ClearLinksToSource()
         Set shp = Sync.Target.Worksheets(SheetName).Shapes(ControlName)
         On Error Resume Next
         sOnAction = shp.OnAction
-        sOnAction = Replace(sOnAction, Sync.Source.Name, Sync.Target.Name)
+        sOnAction = Replace(sOnAction, Sync.Source.name, Sync.Target.name)
         shp.OnAction = sOnAction
     Next v
     
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -137,10 +136,10 @@ End Function
 
 Private Function NameExists( _
                       ByRef ne_wb As Workbook, _
-                      ByVal ne_nm As Name) As Boolean
-    Dim nm As Name
+                      ByVal ne_nm As name) As Boolean
+    Dim nm As name
     For Each nm In ne_wb.Names
-        NameExists = nm.Name = ne_nm.Name
+        NameExists = nm.name = ne_nm.name
         If NameExists Then Exit For
     Next nm
 End Function
@@ -153,7 +152,7 @@ Private Sub RemoveInvalidRangeNames()
     Const PROC = "RemoveInvalidRangeNames"
     
     On Error GoTo eh
-    Dim nm As Name
+    Dim nm As name
     For Each nm In Sync.Target.Names
         Debug.Print nm.Value
         If InStr(nm.Value, "#") <> 0 Or InStr(nm.RefersTo, "#") <> 0 Then
@@ -167,8 +166,8 @@ Private Sub RemoveInvalidRangeNames()
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -183,8 +182,8 @@ Private Sub RenameSheet(ByRef rs_wb As Workbook, _
     On Error GoTo eh
     Dim sh  As Worksheet
     For Each sh In rs_wb.Worksheets
-        If sh.Name = rs_old_name Then
-            sh.Name = rs_new_name
+        If sh.name = rs_old_name Then
+            sh.name = rs_new_name
             Log.Entry = "Sheet-Name changed to '" & rs_new_name & "'"
             Exit For
         End If
@@ -193,8 +192,8 @@ Private Sub RenameSheet(ByRef rs_wb As Workbook, _
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -215,7 +214,7 @@ Private Sub RenameWrkbkModule( _
             If vbc.Type = vbext_ct_Document Then
                 If mComp.IsWrkbkDocMod(vbc) Then
                     Log.ServicedItem = vbc
-                    vbc.Name = rdm_new_name
+                    vbc.name = rdm_new_name
                     Log.Entry = "Renamed to '" & rdm_new_name & "'"
                     DoEvents
                     Exit For
@@ -227,8 +226,8 @@ Private Sub RenameWrkbkModule( _
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 '
@@ -259,11 +258,9 @@ End Sub
 'xt: Exit Sub
 '
 'eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-'        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-'        Case mErH.DebugOptResumeNext: Resume Next
-'        Case mErH.ErrMsgDefaultButton: GoTo xt
+'        Case vbResume:  Stop: Resume
+'        Case Else:      GoTo xt
 '    End Select
-'
 'End Sub
 
 Private Sub CollectSyncIssuesForConfirmation()
@@ -298,8 +295,8 @@ Private Sub CollectSyncIssuesForConfirmation()
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine:  Stop: Resume
-        Case mErH.DebugOptResumeNext:       Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -332,8 +329,8 @@ xt: Set fso = Nothing
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -353,8 +350,8 @@ Public Sub SyncBackup(ByVal sWrkbk As String)
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
          
@@ -406,9 +403,8 @@ xt: Set Sync = Nothing
     Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Function
 
@@ -473,9 +469,8 @@ Private Function DoSynchronization( _
 xt: Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Function
 
@@ -504,7 +499,7 @@ Private Function GetSyncIssuesConfirmed() As Boolean
         '~~ Display the collected synchronization issues for confirmation
         With sMsg.Section(1).Text
             .Text = Sync.ConfInfo
-            .Monospaced = True
+            .MonoSpaced = True
             .FontSize = 8.5
         End With
         sMsg.Section(2).Text.Text = "The above syncronisation issues need to be confirmed - or " & _
@@ -520,13 +515,13 @@ Private Function GetSyncIssuesConfirmed() As Boolean
             '~~ be mapped between the source and the target Workbook are either obsolete or new. The mapping inability
             '~~ may indicate that both sheet names (Name and CodeName) had been changed which cannot be synchronized
             '~~ because of the missing mapping.
-            Set cllButtons = mMsg.Buttons(sBttnRestricted, sBttnTrmnt, vbLf)
+            mMsg.Buttons cllButtons, sBttnRestricted, sBttnTrmnt, vbLf
             sMsg.Section(3).Text.Text = "1) Sheets in the source Workbbook of which neither the Name nor the CodeName refers to a counterpart in the target Workbook " & _
                                     "are regarded  " & mBasic.Spaced("new") & ". Sheets in the target Workbook in contrast are regarded  " & mBasic.Spaced("obsolete.") & _
                                     "  However, this assumption only holds true when  " & mBasic.Spaced("never") & "  a sheet's Name  a n d  its CodeName is changed. " & _
                                     "Because this is absolutely crucial for this syncronization it needs to be explicitely  " & mBasic.Spaced("asserted.")
         Else
-            Set cllButtons = mMsg.Buttons(sBttnCnfrmd, sBttnTrmnt, vbLf)
+            mMsg.Buttons cllButtons, sBttnCnfrmd, sBttnTrmnt, vbLf
             sMsg.Section(3).Text.Text = "2) New and Obsolete sheets had been made unambigous by the assertion that never a sheet's Name  a n d  its CodeName is changed."
         End If
         
@@ -569,9 +564,8 @@ xt: Set fso = Nothing
     Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Function
 
@@ -597,9 +591,8 @@ xt: Set fso = Nothing
     Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Function
 
@@ -628,7 +621,7 @@ Private Function WbkIsOpen( _
             WbkIsOpen = Err.Number = 0
         Else
             On Error Resume Next
-            wb_base_name = Application.Workbooks(wb_base_name).Name
+            wb_base_name = Application.Workbooks(wb_base_name).name
             WbkIsOpen = Err.Number = 0
         End If
     End With
@@ -636,9 +629,8 @@ Private Function WbkIsOpen( _
 xt: Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Function
 

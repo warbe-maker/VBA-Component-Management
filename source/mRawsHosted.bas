@@ -46,9 +46,8 @@ Private Property Get Value( _
 xt: Exit Property
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: Exit Property
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Property
 
@@ -71,9 +70,8 @@ Private Property Let Value( _
 xt: Exit Property
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: Exit Property
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Property
 
@@ -101,9 +99,8 @@ Public Function MaxRawLenght() As Long
 xt: Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Function
 

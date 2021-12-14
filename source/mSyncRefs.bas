@@ -32,9 +32,8 @@ Public Sub SyncNew()
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -54,7 +53,7 @@ Public Sub SyncObsolete()
         If Not RefExists(Sync.Source, ref) Then
             Log.ServicedItem = ref
             Stats.Count sic_refs_new
-            sRef = ref.Name
+            sRef = ref.name
             If Sync.Mode = Confirm Then
                 Sync.ConfInfo = "Obsolete!"
             Else
@@ -67,11 +66,9 @@ Public Sub SyncObsolete()
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
-
 End Sub
 
 Private Function RefExists( _
@@ -83,7 +80,7 @@ Private Function RefExists( _
     Dim ref As Reference
     
     For Each ref In re_wb.VBProject.References
-        RefExists = ref.Name = re_ref.Name
+        RefExists = ref.name = re_ref.name
         If RefExists Then Exit Function
     Next ref
 
@@ -97,7 +94,7 @@ Private Sub RefRemove(ByVal rr_ref As Reference)
     
     With Sync.Target.VBProject
         For Each ref In .References
-            If ref.Name = rr_ref.Name Then
+            If ref.name = rr_ref.name Then
                 .References.Remove ref
                 Exit Sub
             End If

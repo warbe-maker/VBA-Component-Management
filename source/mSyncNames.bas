@@ -20,7 +20,7 @@ Public Sub SyncNew()
     Const PROC = "SyncNew"
     
     On Error GoTo eh
-    Dim nm              As Name
+    Dim nm              As name
     Dim v               As Variant
     Dim SheetReferred   As String
     
@@ -47,8 +47,8 @@ next_v:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -65,12 +65,12 @@ Public Sub SyncObsolete()
 '   be made prior copy of the Workbook for a VB-Project
 '   modification.
 ' - Precondition: The Worksheet's CodeName and Name are identical
-'   both Workbooks. I.e. these need to be synched first.
+'   both Workbooks. I.e. these need to be synced first.
 ' ---------------------------------------------------------------
     Const PROC = "SyncObsolete"
     
     On Error GoTo eh
-    Dim nm  As Name
+    Dim nm  As name
     Dim v   As Variant
     
     For Each v In Sync.TargetNames
@@ -91,7 +91,7 @@ next_v:
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub

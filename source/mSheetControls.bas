@@ -468,17 +468,17 @@ Public Function CntrlName(ByVal shp As Shape) As String
     Dim j       As Long
     Dim shp1    As Shape
     
-    Set wb = Application.Workbooks(shp.Parent.Parent.Name)
-    Set ws = wb.Worksheets(shp.Parent.Name)
+    Set wb = Application.Workbooks(shp.Parent.Parent.name)
+    Set ws = wb.Worksheets(shp.Parent.name)
     With ws
         For Each shp1 In .Shapes
             If shp1.Type = msoOLEControlObject Then j = j + 1
             If Not shp1 Is shp Then GoTo next_shp
             Select Case shp1.Type
                 Case msoOLEControlObject
-                    CntrlName = ws.OLEObjects(j).Name
+                    CntrlName = ws.OLEObjects(j).name
                 Case msoFormControl
-                    CntrlName = shp1.Name
+                    CntrlName = shp1.name
                 Case Else
                     Debug.Print "Shape-Type: '" & shp1.Type & "' Not implemented"
             End Select
@@ -488,7 +488,10 @@ next_shp:
 
 xt: Exit Function
 
-eh: Debug.Print Err.Description: Stop: Resume
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Public Function CntrlType( _
@@ -507,8 +510,8 @@ Public Function CntrlType( _
     Dim j       As Long
     Dim shp1    As Shape
     
-    Set wb = Application.Workbooks(shp.Parent.Parent.Name)
-    Set ws = wb.Worksheets(shp.Parent.Name)
+    Set wb = Application.Workbooks(shp.Parent.Parent.name)
+    Set ws = wb.Worksheets(shp.Parent.name)
     With ws
         For Each shp1 In .Shapes
             If shp1.Type = msoOLEControlObject Then
@@ -531,7 +534,10 @@ next_shp1:
 
 xt: Exit Function
 
-eh: Debug.Print Err.Description: Stop: Resume
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Public Function CntrlTypeString(ByVal en As XlFormControl) As String
@@ -592,7 +598,7 @@ Public Sub ListAscendingByName(ByVal wsh As Worksheet)
     
     With wsh
         For Each shp In .Shapes
-            Debug.Print .Name & "(" & CntrlType(shp) & ")", Tab(45), CntrlName(shp)
+            Debug.Print .name & "(" & CntrlType(shp) & ")", Tab(45), CntrlName(shp)
         Next shp
     End With
     
@@ -618,7 +624,7 @@ Public Function ControlExists( _
     Dim shp As Shape
     
     For Each ws In sync_wb.Worksheets
-        If ws.Name <> sync_sheet_name And ws.CodeName <> sync_sheet_code_name _
+        If ws.name <> sync_sheet_name And ws.CodeName <> sync_sheet_code_name _
         Then GoTo next_sheet
         For Each shp In ws.Shapes
             ControlExists = CntrlName(shp) = sync_sheet_control_name
@@ -630,8 +636,8 @@ next_sheet:
 xt: Exit Function
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Function
 

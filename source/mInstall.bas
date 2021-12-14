@@ -40,7 +40,7 @@ Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
                             "(currently  " & mBasic.Spaced(mMe.ServicedRootFolder) & "  )."
     
     Do
-        vReply = mMsg.Dsply(dsply_title:="Select one of the available 'Raw-Components/Common-Components') yet not installed in '" & ic_wb.Name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
+        vReply = mMsg.Dsply(dsply_title:="Select one of the available 'Raw-Components/Common-Components') yet not installed in '" & ic_wb.name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
                         , dsply_msg:=sMsg _
                         , dsply_buttons:=cll _
                          )
@@ -55,9 +55,8 @@ Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 

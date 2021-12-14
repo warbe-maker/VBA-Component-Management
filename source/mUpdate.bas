@@ -104,9 +104,8 @@ xt: Set fso = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -128,21 +127,20 @@ Public Function UpdateCloneConfirmed( _
     
     BttnDsplyChanges = ucc_comp_name
     BttnUpdateStayVerbose = ucc_comp_name
-    Set cllButtons = _
-    mMsg.Buttons(BttnDsplyChanges _
+    mMsg.Buttons cllButtons _
+               , BttnDsplyChanges _
                , vbLf _
                , BttnUpdateStayVerbose _
                , BttnSkipStayVerbose _
                , vbLf _
                , BttnUpdateAll _
-               , BttnSkipAll _
-               )
+               , BttnSkipAll
     
     With sMsg
         .Section(1).Label.Text = "About"
         .Section(1).Text.Text = "When the cloned raw in this Workbook is not updated the message will show up again the next time this Workbook is opened in the configured development root:"
         .Section(2).Text.Text = mMe.ServicedRootFolder
-        .Section(2).Text.Monospaced = True
+        .Section(2).Text.MonoSpaced = True
     End With
     Do
         vReply = mMsg.Dsply(dsply_title:=Log.Service & "Update " & Spaced(ucc_comp_name) & "with changed raw" _
@@ -175,9 +173,8 @@ Public Function UpdateCloneConfirmed( _
 xt: Exit Function
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Function
 

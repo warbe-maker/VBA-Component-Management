@@ -1,4 +1,4 @@
-Attribute VB_Name = "mTest"
+Attribute VB_Name = "mCompManTest"
 Option Explicit
 Option Private Module
 ' -------------------------------------------------------
@@ -63,9 +63,8 @@ Public Sub RemoveTestCodeChange( _
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -77,7 +76,7 @@ Private Function MaxCompLength(ByRef wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
         For Each vbc In wb.VBProject.VBComponents
-            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.Name))
+            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
         Next vbc
     End If
 End Function
@@ -124,9 +123,8 @@ Public Sub Test_SyncVBProjects()
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -160,7 +158,7 @@ Public Sub Test_SyncColWidth()
     
     For Each ws In wbSource.Worksheets
         If mSyncSheets.SheetExists(wb:=wbTarget _
-                                 , sh1_name:=ws.Name _
+                                 , sh1_name:=ws.name _
                                  , sh1_code_name:=ws.CodeName _
                                  , sh2_name:=sSheetName _
                                   ) _
@@ -174,9 +172,8 @@ Public Sub Test_SyncColWidth()
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -224,9 +221,8 @@ xt: wb.Close SaveChanges:=False
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -261,11 +257,9 @@ xt: Set Log = Nothing
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
-
 End Sub
 
 Public Sub Test_Refs()
@@ -335,10 +329,10 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
             Set wbActive = Nothing
         Else
-            Log.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
+            Log.Entry = "Workbook '" & wbActive.name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set Comp = Nothing
@@ -346,9 +340,8 @@ xt: If Not wbTemp Is Nothing Then
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: GoTo xt
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -369,9 +362,8 @@ xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -430,9 +422,8 @@ xt: Set Comp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -480,9 +471,8 @@ xt: Set Comp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -530,9 +520,8 @@ xt: Set Comp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -582,9 +571,8 @@ xt: Set Comp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -643,9 +631,8 @@ xt: Set Comp = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -689,9 +676,8 @@ Public Sub Test_UpdateRawClones()
 xt: Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -770,6 +756,7 @@ Public Sub Test_Synch_RangesFormating()
     Dim BttnKeep    As String
     Dim flLog       As File
     Dim LastModif   As Date
+    Dim bttns       As Collection
     
     Set Log = New clsLog
     Log.File = mFile.Temp(ThisWorkbook.Path, ".log")
@@ -800,10 +787,11 @@ xt: With New FileSystemObject
             Set flLog = .GetFile(Log.File)
             BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
             BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
+            mMsg.Buttons bttns, BttnDelete, BttnKeep
             If mMsg.Box(box_title:=PROC & " Log-File" _
                       , box_msg:=mFile.Txt(.GetFile(Log.File)) _
                       , box_monospaced:=True _
-                      , box_buttons:=mMsg.Buttons(BttnDelete, BttnKeep) = BttnDelete) _
+                      , box_buttons:=bttns) = BttnDelete _
             Then .DeleteFile flLog
         End If
     End With
@@ -812,9 +800,8 @@ xt: With New FileSystemObject
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -830,7 +817,8 @@ Public Sub Test_Synch_CompsChanged()
     Dim BttnKeep    As String
     Dim flLog       As File
     Dim LastModif   As Date
-        
+    Dim bttns       As Collection
+    
     Set Stats = New clsStats
     Set Sync = New clsSync
     Set Log = New clsLog
@@ -859,10 +847,11 @@ xt: With New FileSystemObject
             Set flLog = .GetFile(Log.File)
             BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
             BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
+            mMsg.Buttons bttns, BttnDelete, BttnKeep
             If mMsg.Box(box_title:=PROC & " Log-File" _
                       , box_msg:=mFile.Txt(.GetFile(Log.File)) _
                       , box_monospaced:=True _
-                      , box_buttons:=mMsg.Buttons(BttnDelete, BttnKeep) = BttnDelete) _
+                      , box_buttons:=bttns) = BttnDelete _
             Then .DeleteFile flLog
         End If
     End With
@@ -871,9 +860,8 @@ xt: With New FileSystemObject
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
-        Case mErH.ErrMsgDefaultButton: End
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
@@ -896,7 +884,7 @@ Public Sub Test_SheetControls_Name_and_Type()
     
     Set ws = mCompMan.WbkGetOpen(sWb).Worksheets(sWs)
     For Each shp In ws.Shapes
-        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.Name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
+        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
     Next shp
     For Each v In dct
         Debug.Print dct(v), Tab(45), v
@@ -905,7 +893,10 @@ Public Sub Test_SheetControls_Name_and_Type()
 xt: Set dct = Nothing
     Exit Sub
     
-eh: Stop: Resume
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub
 
 Public Sub ClearIW()

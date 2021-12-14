@@ -34,7 +34,7 @@ Private Property Get Sorted() As Dictionary
     
     For Each vbc In mService.Serviced.VBProject.VBComponents
         Log.ServicedItem = vbc
-        mDct.DctAdd dct, vbc.Type & vbc.Name, vbc, order_bykey, seq_ascending, , , True
+        mDct.DctAdd dct, vbc.Type & vbc.name, vbc, order_bykey, seq_ascending, , , True
     Next vbc
     Set Sorted = dct
     Set dct = Nothing
@@ -63,24 +63,24 @@ Public Sub CollectAllChanged()
     Set dct = Sorted
     For Each v In dct
         Set vbc = dct(v)
-        DsplyProgress p_result:=sChanged & " " & vbc.Name _
+        DsplyProgress p_result:=sChanged & " " & vbc.name _
                     , p_total:=Stats.Total(sic_comps_total) _
                     , p_done:=Stats.Total(sic_comps)
         
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = mService.Serviced
-            .CompName = vbc.Name
+            .CompName = vbc.name
             Log.ServicedItem = vbc
             Stats.Count sic_comps
             If .Changed Then
                 Stats.Count sic_comps_changed
                 Set CompChanged = New clsComp
                 Set CompChanged = Comp
-                mDct.DctAdd dctChanged, vbc.Type & vbc.Name, CompChanged, order_bykey, seq_ascending, , , True
+                mDct.DctAdd dctChanged, vbc.Type & vbc.name, CompChanged, order_bykey, seq_ascending, , , True
                 If Stats.Total(sic_comps_changed) = 1 _
-                Then sChanged = vbc.Name _
-                Else sChanged = sChanged & ", " & vbc.Name
+                Then sChanged = vbc.name _
+                Else sChanged = sChanged & ", " & vbc.name
             Else
                 Log.Entry = "Code un-changed"
             End If
@@ -94,8 +94,8 @@ xt: Set dct = Nothing
     Exit Sub
     
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case mErH.DebugOptResumeErrorLine: Stop: Resume
-        Case mErH.DebugOptResumeNext: Resume Next
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
 End Sub
 
