@@ -450,6 +450,21 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+
+Public Sub RemoveTempRenamed()
+
+    Dim cmp As VBComponent
+    
+    With mService.Serviced.VBProject
+        For Each cmp In .VBComponents
+            If InStr(cmp.name, mComp.RENAMED_BY_COMPMAN) <> 0 Then
+                .VBComponents.Remove cmp
+            End If
+        Next cmp
+    End With
+
+End Sub
+
 Public Sub SynchTargetWbWithSourceWb( _
                                ByRef wb_target As Workbook, _
                                ByVal wb_source As String)

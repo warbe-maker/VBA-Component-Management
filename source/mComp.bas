@@ -19,6 +19,7 @@ Option Explicit
 '                   string
 '
 ' ------------------------------------------------------------------------
+Public Const RENAMED_BY_COMPMAN = "_RenamedByCompMan"
 
 Public Function Exists( _
                  ByRef wb As Workbook, _
@@ -29,7 +30,7 @@ Public Function Exists( _
 ' -----------------------------------------------------
     Dim s As String
     On Error Resume Next
-    s = wb.VBProject.VBComponents(comp_name).Name
+    s = wb.VBProject.VBComponents(comp_name).name
     Exists = Err.Number = 0
 End Function
 
@@ -47,8 +48,8 @@ Public Function IsSheetDocMod( _
     IsSheetDocMod = vbc.Type = vbext_ct_Document And Not mComp.IsWrkbkDocMod(vbc)
     If Not wb Is Nothing Then
         For Each ws In wb.Worksheets
-            If ws.CodeName = vbc.Name Then
-                sh_name = ws.Name
+            If ws.CodeName = vbc.name Then
+                sh_name = ws.name
                 Exit For
             End If
         Next ws
@@ -64,17 +65,17 @@ Public Function IsWrkbkDocMod(ByRef vbc As VBComponent) As Boolean
     
 End Function
 
-Public Function TempName(ByRef wb As Workbook, _
-                         ByVal comp_name As String) As String
-' -----------------------------------------------------------
-' Returns a yet not existing temporary name for a component.
-' -----------------------------------------------------------
+Public Function TempName(ByVal tn_wb As Workbook, _
+                         ByVal tn_comp_name As String) As String
+' ----------------------------------------------------------------------------
+' Returns a yet not existing temporary name for a component (tn_comp_name).
+' ----------------------------------------------------------------------------
     Dim i As Long
     
-    TempName = comp_name & "_Temp"
+    TempName = tn_comp_name & RENAMED_BY_COMPMAN
     Do
         On Error Resume Next
-        TempName = wb.VBProject.VBComponents(TempName).Name
+        TempName = tn_wb.VBProject.VBComponents(TempName).name
         If Err.Number <> 0 Then Exit Do ' a component with sTempName does not exist
         i = i + 1: TempName = TempName & i
     Loop

@@ -31,7 +31,7 @@ Public Sub ByImport( _
     With rn_wb.VBProject
         If mComp.Exists(wb:=rn_wb, comp_name:=rn_comp_name) Then
             '~~ Find a free/unused temporary name
-            sTempName = mComp.TempName(wb:=rn_wb, comp_name:=rn_comp_name)
+            sTempName = mComp.TempName(tn_wb:=rn_wb, tn_comp_name:=rn_comp_name)
             '~~ Rename the component when it already exists
             .VBComponents(rn_comp_name).name = sTempName
             Debug.Print NowMsec & " '" & rn_comp_name & "' renamed to '" & sTempName & "'"
