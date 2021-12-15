@@ -1,6 +1,6 @@
 # Management of Excel VB-Project Components
-- **Export** of changed components
-- **Update** of _Common-Components
+- **Export** of changed Components
+- **Update** of used _Common Components_
 - **Synchronization** of _VB-Projects_
  
 Also see the [Programmatically updating Excel VBA code][2] post for more details.
