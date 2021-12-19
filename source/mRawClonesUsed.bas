@@ -1,74 +1,37 @@
-Attribute VB_Name = "mRawsHosted"
+Attribute VB_Name = "mRawClonesUsed"
 Option Explicit
 ' ---------------------------------------------------------------------------
-' Standard Module mRawsHosted
-' Maintains in a file (HostedRawsFile) for all registered raw components,
+' Standard Module mRawClonesUsed
+' Maintains in a file (UsedRawClones) for all used cloned raw components,
 ' i.e. common components managed by CompMan services. The file has the
 ' following structure:
 '
 ' [<component-name]
-' HostFullName=<host-full-name>
-' ExpFileFullName=<export-file-full-name>
 ' RevisionNumber=yyyy-mm-dd.n
 '
-' The entries (sections) are maintained along with the Workbook_BeforeSave
-' event via the ExportChangedComponents service. The revision number is
-' increased by one with each save whereby it starts with one for each day.
+' The entries (sections) are maintained along with the Workbook_Open
+' event via the UpdateRawClones service. The revision number is the copy
+' of the revision number provided by mRawsHosted.RevisionNumber.
 ' ---------------------------------------------------------------------------
-Private Const VNAME_HOST_FULL_NAME      As String = "HostFullName"
-Private Const VNAME_REVISION_DATE       As String = "RevisionDate"
 Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
-Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
-Public Property Get HostedRawsFile() As String: HostedRawsFile = mMe.CompManAddinFolder & COMPMAN_ADMIN_FOLDER_NAME & "HostedRaws.dat":   End Property
-
-Public Property Get ExpFileFullName( _
-                     Optional ByVal comp_name As String) As String
-    ExpFileFullName = Value(pp_section:=comp_name, pp_value_name:=VNAME_EXP_FILE_FULL_NAME)
-End Property
-
-Public Property Let ExpFileFullName( _
-                     Optional ByVal comp_name As String, _
-                              ByVal exp_file_full_name As String)
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_EXP_FILE_FULL_NAME) = exp_file_full_name
-End Property
-
-Private Property Get RevisionDate( _
-                     Optional ByVal comp_name As String) As String
-    RevisionDate = Split(Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER), ".")(0)
+Private Property Get UsedRawClonesFile() As String
+    Dim wb As Workbook: Set wb = mService.Serviced
+    UsedRawClonesFile = Replace(wb.FullName, wb.Name, "UsedRawsClones.dat")
 End Property
 
 Public Property Get RevisionNumber( _
-                     Optional ByVal comp_name As String) As String
+                          Optional ByVal comp_name As String) As String
 ' ----------------------------------------------------------------------------
 ' Returns the revision number in the format YYYY-MM-DD.n
 ' ----------------------------------------------------------------------------
     RevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER)
 End Property
 
-Public Sub RevisionNumberIncrease(ByVal comp_name As String)
-' ----------------------------------------------------------------------------
-' Increases the revision number by one starting with 1 for a new day.
-' ----------------------------------------------------------------------------
-    Dim RevNo As Long
-    
-    RevNo = Split(RevisionNumber(comp_name), ".")(1)
-    If RevisionDate(comp_name) <> Format(Now(), "YYYY-MM-DD") _
-    Then RevNo = 1 _
-    Else RevNo = RevNo + 1
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = Format(Now(), "YYYY-MM-DD") & "." & RevNo
-
-End Sub
-
-Public Property Get HostFullName( _
-                     Optional ByVal comp_name As String) As String
-    HostFullName = Value(pp_section:=comp_name, pp_value_name:=VNAME_HOST_FULL_NAME)
-End Property
-
-Public Property Let HostFullName( _
-                     Optional ByVal comp_name As String, _
-                              ByVal hst_full_name As String)
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_HOST_FULL_NAME) = hst_full_name
+Public Property Let RevisionNumber( _
+                          Optional ByVal comp_name As String, _
+                                   ByVal rev_no As String)
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = rev_no
 End Property
 
 Private Property Get Value( _

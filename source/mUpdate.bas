@@ -86,6 +86,7 @@ Public Sub RawClones(ByRef urc_wb As Workbook)
                      , rn_comp_name:=.CompName _
                      , rn_exp_file_full_name:=.ExpFileFullName
                 Log.Entry = "Clone-Component renewed/updated by (re-)import of '" & RawComp.ExpFileFullName & "'"
+                mRawClonesUsed.RevisionNumber = mRawsHosted.RevisionNumber
                 Stats.Count sic_clones_comps_updated
                 If sUpdated = vbNullString _
                 Then sUpdated = .CompName _
@@ -127,21 +128,30 @@ Public Function UpdateCloneConfirmed( _
     
     BttnDsplyChanges = ucc_comp_name
     BttnUpdateStayVerbose = ucc_comp_name
-    mMsg.Buttons cllButtons _
-               , BttnDsplyChanges _
-               , vbLf _
-               , BttnUpdateStayVerbose _
-               , BttnSkipStayVerbose _
-               , vbLf _
-               , BttnUpdateAll _
-               , BttnSkipAll
+    mMsg.Buttons cllButtons, BttnDsplyChanges _
+                     , vbLf, BttnUpdateStayVerbose, BttnSkipStayVerbose _
+                     , vbLf, BttnUpdateAll, BttnSkipAll
     
     With sMsg
-        .Section(1).Label.Text = "About"
-        .Section(1).Text.Text = "When the cloned raw in this Workbook is not updated the message will show up again the next time this Workbook is opened in the configured development root:"
+        .Section(1).Label.Text = "About this update:"
+        .Section(1).Text.Text = "When the raw clone used in this Workbook is not updated the message will show up again " & _
+                                "the next time this Workbook is opened - provided it is located/opened in the  in the " & _
+                                "configured development root folder:"
         .Section(2).Text.Text = mMe.ServicedRootFolder
         .Section(2).Text.MonoSpaced = True
+        With .Section(3)
+            If mRawsHosted.RevisionNumber = mRawClonesUsed.RevisionNumber Then
+                .Label.Text = "Attention!"
+                .Label.FontColor = rgbRed
+                .Text.Text = "It appears that the code of the raw clone used in this Workbook has been modified. This modification will be " & _
+                             "reverted with this update. Displaying the difference will be the last chance to modify the raw component in its " & _
+                             "hosting Workbook (" & mRawsHosted.HostFullName(ucc_comp_name) & ")."
+            Else
+                .Text.Text = vbNullString
+            End If
+        End With
     End With
+    
     Do
         vReply = mMsg.Dsply(dsply_title:=Log.Service & "Update " & Spaced(ucc_comp_name) & "with changed raw" _
                           , dsply_msg:=sMsg _
