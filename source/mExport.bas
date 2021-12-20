@@ -2,7 +2,7 @@ Attribute VB_Name = "mExport"
 Option Explicit
 
 Public Function AppErr(ByVal app_err_no As Long) As Long
-' ------------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Ensures that a programmed (i.e. an application) error numbers never conflicts
 ' with the number of a VB runtime error. Thr function returns a given positive
 ' number (app_err_no) with the vbObjectError added - which turns it into a
@@ -50,7 +50,7 @@ Public Sub All()
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = mService.Serviced
-            .CompName = vbc.name ' this assignment provides the name for the export file
+            .CompName = vbc.Name ' this assignment provides the name for the export file
             vbc.Export .ExpFileFullName
         End With
         Set Comp = Nothing
@@ -66,14 +66,17 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub ChangedComponents()
-' --------------------------------------------------------------------
-' Exclusively performed/trigered by the Before_Save event:
-' - Any code change (detected by the comparison of a temporary export
-'   file with the current export file) is backed-up/exported
-' - Outdated Export Files (components no longer existing) are removed
+' ----------------------------------------------------------------------------
+' Exclusively performed/trigered by the Workbook_BeforeSave event. Exports
+' all changed components. I.e. any code change (detected by the comparison of
+' a temporary export file with the current export file) is exported. Outdated
+' Export Files (of components which do not longer exist or exist in another
+' but the currently used export folder) are removed. Because any code
+' modification in a raw clone (a used common conponent managed by CompMan
+' services) is reverted along with the next open
 ' - Clone code modifications update the raw code when confirmed by the
 '   user
-' --------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC = "ChangedComponents"
     
     On Error GoTo eh
@@ -114,7 +117,7 @@ Public Sub ChangedComponents()
         Set Comp = dctChanged(v)
         Set vbc = Comp.VBComp
         Log.ServicedItem = vbc
-        DsplyProgress p_result:=sExported & " " & vbc.name _
+        DsplyProgress p_result:=sExported & " " & vbc.Name _
                     , p_total:=Stats.Total(sic_comps_changed) _
                     , p_done:=Stats.Total(sic_comps)
                 
@@ -135,31 +138,24 @@ Public Sub ChangedComponents()
                     If Not .Changed(Comp) Then GoTo next_vbc
                 End With
                 
-                If Comp.Changed And Not RawComp.Changed(Comp) Then
-                    Log.Entry = "The Clone's code changed! (a temporary Export-File differs from the last regular Export-File)"
+                If Comp.Changed Then
+                    Log.Entry = "The used raw clone's code has been modified! (a temporary Export-File differs from the last regular Export-File)"
                     '~~ --------------------------------------------------------------------------
-                    '~~ The code change in the clone component is now in question whether it is to
-                    '~~ be ignored, i.e. the change is reverted with the Workbook's next open or
-                    '~~ the raw code should be updated accordingly to make the change permanent
-                    '~~ for all users of the component.
+                    '~~ The code modification in the raw clone component will be reverted with
+                    '~~ the Workbook's next open unless the raw code is updated correspondingly in
+                    '~~ the meantime in order to make the modification permanent.
                     '~~ --------------------------------------------------------------------------
-                    Comp.VBComp.Export Comp.ExpFileFullName
-                    '~~ In case the raw had been imported manually the new check for a change will indicate no change
-                    If RawComp.Changed(Comp, check_again:=True) Then GoTo next_vbc
-                    Comp.ReplaceRawWithCloneWhenConfirmed raw:=RawComp, rwu_updated:=bUpdated ' when confirmed in user dialog
-                    If bUpdated Then
-                        lUpdated = lUpdated + 1
-                        sUpdated = vbc.name & ", " & sUpdated
-                        Log.Entry = """Remote Raw"" has been updated with code of ""Raw Clone"""
-                    End If
-                        
-                ElseIf Not Comp.Changed And RawComp.Changed(Comp) Then
+                    If mRawClonesUsed.RevisionNumber = mRawsHosted.RevisionNumber _
+                    Then DisplayRawCloneModificationWarning Comp.CompName
+                    Comp.Export
+                Else
                     '~~ -----------------------------------------------------------------------
                     '~~ The raw had changed since the Workbook's open. This case is not handled
                     '~~ along with the Workbook's Save event but with the Workbook's Open event
                     '~~ -----------------------------------------------------------------------
                     Log.Entry = "The Raw's code changed! (not considered with the export service)"
                     Log.Entry = "The Clone will be updated with the next Workbook open"
+                    mRawClonesUsed.RevisionNumber = mRawsHosted.RevisionNumber
                 End If
             
             Case enKindOfComp.enUnknown
@@ -173,16 +169,17 @@ Public Sub ChangedComponents()
                         Log.Entry = "Exported to '" & .ExpFileFullName & "'"
                         lExported = lExported + 1
                         If lExported = 1 _
-                        Then sExported = vbc.name _
-                        Else sExported = sExported & ", " & vbc.name
+                        Then sExported = vbc.Name _
+                        Else sExported = sExported & ", " & vbc.Name
                         GoTo next_vbc
                     End If
                 
                     If .KindOfComp = enHostedRaw Then
-                        If mRawsHosted.ExpFileFullName(comp_name:=.CompName) <> .ExpFileFullName Then
-                            mRawsHosted.ExpFileFullName(comp_name:=.CompName) = .ExpFileFullName
+                        If mRawsHosted.ExpFileFullName(.CompName) <> .ExpFileFullName Then
+                            mRawsHosted.ExpFileFullName(.CompName) = .ExpFileFullName
                             Log.Entry = "Component's Export-File Full Name registered"
                         End If
+                        mRawsHosted.RevisionNumberIncrease .CompName
                     End If
                 End With
         End Select
@@ -214,6 +211,16 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Private Sub DisplayRawCloneModificationWarning(ByVal comp_name As String)
+    VBA.MsgBox Prompt:="The code of the raw clone '" & comp_name & "' used in this VB-Project has been modified. " & _
+                       "This modification will be reverted with the next open of the Workbook " & _
+                       "unless the modification is made in the raw in order to make it permanent." _
+            , Buttons:=vbOKOnly + vbCritical _
+            , Title:="Raw clone code modification!"
+End Sub
+
+
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mExport." & sProc
