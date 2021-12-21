@@ -1,7 +1,7 @@
-Attribute VB_Name = "mRawClonesUsed"
+Attribute VB_Name = "mCommCompsUsed"
 Option Explicit
 ' ---------------------------------------------------------------------------
-' Standard Module mRawClonesUsed
+' Standard Module mCommCompsUsed
 ' Maintains in a file (UsedRawClones) for all used cloned raw components,
 ' i.e. common components managed by CompMan services. The file has the
 ' following structure:
@@ -11,13 +11,13 @@ Option Explicit
 '
 ' The entries (sections) are maintained along with the Workbook_Open
 ' event via the UpdateRawClones service. The revision number is the copy
-' of the revision number provided by mRawsHosted.RevisionNumber.
+' of the revision number provided by mCommComps.RevisionNumber.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
 
 Private Property Get UsedRawClonesFile() As String
     Dim wb As Workbook: Set wb = mService.Serviced
-    UsedRawClonesFile = Replace(wb.FullName, wb.Name, "UsedRawsClones.dat")
+    UsedRawClonesFile = Replace(wb.FullName, wb.name, "UsedRawsClones.dat")
 End Property
 
 Public Property Get RevisionNumber( _
@@ -40,7 +40,7 @@ Private Property Get Value( _
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    Value = mFile.Value(pp_file:=HostedRawsFile _
+    Value = mFile.Value(pp_file:=UsedRawClonesFile _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -58,12 +58,12 @@ Private Property Let Value( _
                     ByVal pp_value As Variant)
 ' --------------------------------------------------
 ' Write the value (pp_value) named (pp_value_name)
-' into the file RAWS_HostedRawsFile.
+' into the file RAWS_CommCompsFile.
 ' --------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    mFile.Value(pp_file:=HostedRawsFile _
+    mFile.Value(pp_file:=UsedRawClonesFile _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -106,11 +106,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Function Components() As Dictionary
-    Set Components = mFile.SectionNames(HostedRawsFile)
+    Set Components = mFile.SectionNames(CommCompsFile)
 End Function
 
 Public Sub Remove(ByVal comp_name As String)
-    mFile.SectionsRemove pp_file:=HostedRawsFile _
+    mFile.SectionsRemove pp_file:=CommCompsFile _
                        , pp_sections:=comp_name
 End Sub
 

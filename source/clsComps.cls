@@ -52,18 +52,18 @@ Public Sub CollectAllChanged()
     
     On Error GoTo eh
     Dim vbc         As VBComponent
-    Dim Comp       As clsComp
+    Dim Comp        As clsComp
     Dim v           As Variant
     Dim dct         As Dictionary
     Dim sChanged    As String
-    Dim CompChanged    As clsComp
+    Dim CompChanged As clsComp
     
     Stats.Count sic_comps_total, mService.Serviced.VBProject.VBComponents.Count
     
     Set dct = Sorted
     For Each v In dct
         Set vbc = dct(v)
-        DsplyProgress p_result:=sChanged & " " & vbc.name _
+        mCompMan.DsplyProgress p_result:=sChanged & " " & vbc.name _
                     , p_total:=Stats.Total(sic_comps_total) _
                     , p_done:=Stats.Total(sic_comps)
         
@@ -77,7 +77,7 @@ Public Sub CollectAllChanged()
                 Stats.Count sic_comps_changed
                 Set CompChanged = New clsComp
                 Set CompChanged = Comp
-                mDct.DctAdd dctChanged, vbc.Type & vbc.name, CompChanged, order_bykey, seq_ascending, , , True
+                mDct.DctAdd dctChanged, vbc.name, CompChanged, order_bykey, seq_ascending, , , True
                 If Stats.Total(sic_comps_changed) = 1 _
                 Then sChanged = vbc.name _
                 Else sChanged = sChanged & ", " & vbc.name

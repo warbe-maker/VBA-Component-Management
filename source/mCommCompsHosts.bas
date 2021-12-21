@@ -1,13 +1,14 @@
-Attribute VB_Name = "mRawHosts"
+Attribute VB_Name = "mCommCompsHosts"
 Option Explicit
 ' ---------------------------------------------------------------------------
-' Standard Module mHost
+' Standard Module mCommCompsHosts
 ' Maintains for raw components identified by their
 ' component name the values HostFullName and ExpFileFullName.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_HOST_FULL_NAME = "HostFullName"
 
-Public Property Get RawHostsFile() As String: RawHostsFile = mMe.CompManAddinFolder & COMPMAN_ADMIN_FOLDER_NAME & "RawHosts.dat":   End Property
+Public Property Get CommCompsFolder() As String:    CommCompsFolder = mMe.ServicedRootFolder & "\Common-Components":    End Property
+Public Property Get CommCompsHostsFile() As String: CommCompsHostsFile = CommCompsFolder & "\CommCompsHosts.dat":       End Property
 
 Public Property Get FullName( _
                      Optional ByVal host_base_name As String) As String
@@ -24,7 +25,7 @@ Private Property Get Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String) As Variant
     
-    Value = mFile.Value(pp_file:=RawHostsFile _
+    Value = mFile.Value(pp_file:=CommCompsHostsFile _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -36,10 +37,10 @@ Private Property Let Value( _
                     ByVal pp_value As Variant)
 ' --------------------------------------------------
 ' Write the value (pp_value) named (pp_value_name)
-' into the file 'RawHostsFile'.
+' into the file 'CommCompsHostsFile'.
 ' --------------------------------------------------
     
-    mFile.Value(pp_file:=RawHostsFile _
+    mFile.Value(pp_file:=CommCompsHostsFile _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -51,10 +52,10 @@ Public Function Exists(ByVal raw_host_base_name As String) As Boolean
 End Function
 
 Public Function Hosts() As Dictionary
-    Set Hosts = mFile.Sections(RawHostsFile)
+    Set Hosts = mFile.Sections(CommCompsHostsFile)
 End Function
 
 Public Sub Remove(ByVal raw_host_base_name As String)
-    mFile.SectionsRemove pp_file:=RawHostsFile _
+    mFile.SectionsRemove pp_file:=CommCompsHostsFile _
                        , pp_sections:=raw_host_base_name
 End Sub

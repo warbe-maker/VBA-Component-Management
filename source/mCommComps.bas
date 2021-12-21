@@ -1,8 +1,8 @@
-Attribute VB_Name = "mRawsHosted"
+Attribute VB_Name = "mCommComps"
 Option Explicit
 ' ---------------------------------------------------------------------------
-' Standard Module mRawsHosted
-' Maintains in a file (HostedRawsFile) for all registered raw components,
+' Standard Module mCommComps
+' Maintains in a file (CommCompsFile) for all registered raw components,
 ' i.e. common components managed by CompMan services. The file has the
 ' following structure:
 '
@@ -20,7 +20,8 @@ Private Const VNAME_REVISION_DATE       As String = "RevisionDate"
 Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
 Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
-Public Property Get HostedRawsFile() As String: HostedRawsFile = mMe.CompManAddinFolder & COMPMAN_ADMIN_FOLDER_NAME & "HostedRaws.dat":   End Property
+Public Property Get CommCompsFolder() As String:    CommCompsFolder = mMe.ServicedRootFolder & "\Common-Components": End Property
+Public Property Get CommCompsFile() As String:      CommCompsFile = CommCompsFolder & "\CommComps.dat":             End Property
 
 Public Property Get ExpFileFullName( _
                      Optional ByVal comp_name As String) As String
@@ -50,12 +51,16 @@ Public Sub RevisionNumberIncrease(ByVal comp_name As String)
 ' ----------------------------------------------------------------------------
 ' Increases the revision number by one starting with 1 for a new day.
 ' ----------------------------------------------------------------------------
-    Dim RevNo As Long
+    Dim RevNo       As Long
     
-    RevNo = Split(RevisionNumber(comp_name), ".")(1)
-    If RevisionDate(comp_name) <> Format(Now(), "YYYY-MM-DD") _
-    Then RevNo = 1 _
-    Else RevNo = RevNo + 1
+    If RevisionNumber(comp_name) = vbNullString Then
+        RevNo = 1
+    Else
+        RevNo = Split(RevisionNumber(comp_name), ".")(1)
+        If RevisionDate(comp_name) <> Format(Now(), "YYYY-MM-DD") _
+        Then RevNo = 1 _
+        Else RevNo = RevNo + 1
+    End If
     Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = Format(Now(), "YYYY-MM-DD") & "." & RevNo
 
 End Sub
@@ -77,7 +82,7 @@ Private Property Get Value( _
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    Value = mFile.Value(pp_file:=HostedRawsFile _
+    Value = mFile.Value(pp_file:=CommCompsFile _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -95,12 +100,12 @@ Private Property Let Value( _
                     ByVal pp_value As Variant)
 ' --------------------------------------------------
 ' Write the value (pp_value) named (pp_value_name)
-' into the file RAWS_HostedRawsFile.
+' into the file RAWS_CommCompsFile.
 ' --------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    mFile.Value(pp_file:=HostedRawsFile _
+    mFile.Value(pp_file:=CommCompsFile _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -143,11 +148,11 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Function Components() As Dictionary
-    Set Components = mFile.SectionNames(HostedRawsFile)
+    Set Components = mFile.SectionNames(CommCompsFile)
 End Function
 
 Public Sub Remove(ByVal comp_name As String)
-    mFile.SectionsRemove pp_file:=HostedRawsFile _
+    mFile.SectionsRemove pp_file:=CommCompsFile _
                        , pp_sections:=comp_name
 End Sub
 

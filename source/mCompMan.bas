@@ -45,8 +45,8 @@ Public Const MAX_LEN_TYPE As Long = 17
 
 Public Enum enKindOfComp       ' The kind of VBComponent in the sense of CompMan
     enUnknown = 0
-    enHostedRaw = 1
-    enRawClone = 2             ' The Component is a used raw, i.e. the raw is hosted by another Workbook
+    enCommCompHosted = 1
+    enCommCompUsed = 2             ' The Component is a used raw, i.e. the raw is hosted by another Workbook
     enInternal = 3             ' Neither a hosted nor a used Raw Common Component
 End Enum
 
@@ -156,20 +156,20 @@ Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
     
     On Error GoTo eh
     Dim sExpFileRaw As String
-    Dim wb          As Workbook
+    Dim Wb          As Workbook
     Dim Comp        As New clsComp
     
-    Set wb = ActiveWorkbook
+    Set Wb = ActiveWorkbook
     With Comp
-        Set .Wrkbk = wb
+        Set .Wrkbk = Wb
         .CompName = cmp_comp_name
-        Set .VBComp = wb.VBProject.VBComponents(.CompName)
-        sExpFileRaw = mRawsHosted.ExpFileFullName(cmp_comp_name)
+        Set .VBComp = Wb.VBProject.VBComponents(.CompName)
+        sExpFileRaw = mCommComps.ExpFileFullName(cmp_comp_name)
     
         mFile.Compare fc_file_left:=.ExpFileFullName _
                     , fc_file_right:=sExpFileRaw _
                     , fc_left_title:="The cloned raw's current code in Workbook/VBProject " & Comp.WrkbkBaseName & " (" & .ExpFileFullName & ")" _
-                    , fc_right_title:="The remote raw's current code in Workbook/VBProject " & mBasic.BaseName(mRawsHosted.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
+                    , fc_right_title:="The remote raw's current code in Workbook/VBProject " & mBasic.BaseName(mCommComps.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
 
     End With
     Set Comp = Nothing
@@ -300,14 +300,14 @@ Public Function ExpFileFolderPath(ByVal v As Variant) As String
     
     On Error GoTo eh
     Dim fso As New FileSystemObject
-    Dim wb  As Workbook
+    Dim Wb  As Workbook
     Dim s   As String
     
     With fso
         Select Case TypeName(v)
             Case "Workbook"
-                Set wb = v
-                ExpFileFolderPath = wb.Path & EXP_FILES_SUB_FOLDER
+                Set Wb = v
+                ExpFileFolderPath = Wb.Path & EXP_FILES_SUB_FOLDER
             Case "String"
                 s = v
                 If Not .FileExists(s) _
@@ -407,19 +407,19 @@ Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
     If HostedRaws.Count <> 0 Then
         For Each v In HostedRaws
             '~~ Keep a record for each of the VBComponents hosted by this Workbook
-            If Not mRawsHosted.Exists(raw_comp_name:=v) _
-            Or mRawsHosted.HostFullName(comp_name:=v) <> mService.Serviced.FullName Then
-                mRawsHosted.HostFullName(comp_name:=v) = mService.Serviced.FullName
+            If Not mCommComps.Exists(raw_comp_name:=v) _
+            Or mCommComps.HostFullName(comp_name:=v) <> mService.Serviced.FullName Then
+                mCommComps.HostFullName(comp_name:=v) = mService.Serviced.FullName
                 Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
             End If
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = mService.Serviced
                 .CompName = v
-                If mRawsHosted.ExpFileFullName(v) = vbNullString _
-                Or mRawsHosted.ExpFileFullName(v) <> .ExpFileFullName Then
+                If mCommComps.ExpFileFullName(v) = vbNullString _
+                Or mCommComps.ExpFileFullName(v) <> .ExpFileFullName Then
                     '~~ The component is yet not registered or registered under an outdated location
-                    mRawsHosted.ExpFileFullName(v) = .ExpFileFullName
+                    mCommComps.ExpFileFullName(v) = .ExpFileFullName
                     '~~ Just in case its a new VBComponent - by the way
                     If Not fso.FileExists(.ExpFileFullName) Then .VBComp.Export .ExpFileFullName
                 End If
@@ -428,15 +428,15 @@ Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
         Next v
     Else
         '~~ Remove any raws still existing and pointing to this Workbook as host
-        For Each v In mRawsHosted.Components
-            If mRawsHosted.HostFullName(comp_name:=v) = mService.Serviced.FullName Then
-                mRawsHosted.Remove comp_name:=v
-                Log.Entry = "Component removed from '" & mRawsHosted.HostedRawsFile & "'"
+        For Each v In mCommComps.Components
+            If mCommComps.HostFullName(comp_name:=v) = mService.Serviced.FullName Then
+                mCommComps.Remove comp_name:=v
+                Log.Entry = "Component removed from '" & mCommComps.CommCompsFile & "'"
             End If
         Next v
-        If mRawHosts.Exists(fso.GetBaseName(mService.Serviced.FullName)) Then
-            mRawHosts.Remove (fso.GetBaseName(mService.Serviced.FullName))
-            Log.Entry = "Workbook no longer a host for at least one raw component removed from '" & mRawHosts.RawHostsFile & "'"
+        If mCommCompsHosts.Exists(fso.GetBaseName(mService.Serviced.FullName)) Then
+            mCommCompsHosts.Remove (fso.GetBaseName(mService.Serviced.FullName))
+            Log.Entry = "Workbook no longer a host for at least one raw component removed from '" & mCommCompsHosts.CommCompsHostsFile & "'"
         End If
     End If
 

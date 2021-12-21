@@ -40,7 +40,7 @@ Option Explicit
 ' Optional:             fMsg, mMsg, mErH
 '
 '
-' See: https://Github.com/warbe-maker/VBA-Basic-Procedures
+' See: Public Github repositiory https://Github.com/warbe-maker/VBA-Basic-Procedures
 '
 ' W. Rauschenberger, Berlin Nov. 2021
 ' ----------------------------------------------------------------------------

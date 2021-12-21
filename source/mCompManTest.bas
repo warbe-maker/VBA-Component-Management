@@ -72,10 +72,10 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mTest" & "." & sProc
 End Function
 
-Private Function MaxCompLength(ByRef wb As Workbook) As Long
+Private Function MaxCompLength(ByRef Wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
-        For Each vbc In wb.VBProject.VBComponents
+        For Each vbc In Wb.VBProject.VBComponents
             MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
         Next vbc
     End If
@@ -157,7 +157,7 @@ Public Sub Test_SyncColWidth()
     Set wbSource = mCompMan.WbkGetOpen(sSource)
     
     For Each ws In wbSource.Worksheets
-        If mSyncSheets.SheetExists(wb:=wbTarget _
+        If mSyncSheets.SheetExists(Wb:=wbTarget _
                                  , sh1_name:=ws.name _
                                  , sh1_code_name:=ws.CodeName _
                                  , sh2_name:=sSheetName _
@@ -181,41 +181,41 @@ End Sub
 Public Sub Test_01_KindOfComp()
     Const PROC = "Test_01_KindOfComp"
 
-    Dim wb      As Workbook
+    Dim Wb      As Workbook
     Dim fso     As New FileSystemObject
     Dim Comp   As clsComp
     Dim sComp   As String
     
-    Set wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsm")
+    Set Wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsm")
 
     sComp = "mFile"
     Set Comp = Nothing
     Set Comp = New clsComp
     With Comp
-        Set .Wrkbk = wb
-        Set .VBComp = wb.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = enKindOfComp.enRawClone
+        Set .Wrkbk = Wb
+        Set .VBComp = Wb.VBProject.VBComponents(sComp)
+        Debug.Assert .KindOfComp() = enKindOfComp.enCommCompUsed
     End With
 
     sComp = "fMsg"
     Set Comp = Nothing
     Set Comp = New clsComp
     With Comp
-        Set .Wrkbk = wb
-        Set .VBComp = wb.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = enRawClone
+        Set .Wrkbk = Wb
+        Set .VBComp = Wb.VBProject.VBComponents(sComp)
+        Debug.Assert .KindOfComp() = enCommCompUsed
     End With
     
     sComp = "mTest"
     Set Comp = Nothing
     Set Comp = New clsComp
     With Comp
-        Set .Wrkbk = wb
-        Set .VBComp = wb.VBProject.VBComponents(sComp)
+        Set .Wrkbk = Wb
+        Set .VBComp = Wb.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enInternal
     End With
     
-xt: wb.Close SaveChanges:=False
+xt: Wb.Close SaveChanges:=False
     Set Comp = Nothing
     Set fso = Nothing
     Exit Sub

@@ -45,10 +45,9 @@ End Property
 Public Sub Count( _
   Optional ByVal c_sic As siCounter, _
   Optional ByVal c_value As Long = 1)
-' ----------------------------------
-' Adds the (value) to the array
-' aCount under the index (c_sic).
-' ----------------------------------
+' -------------------------------------------------------------
+' Adds the (value) to the array aCount under the index (c_sic).
+' -------------------------------------------------------------
     If UBound(aCount) < c_sic Then
         ReDim Preserve aCount(c_sic)
     End If

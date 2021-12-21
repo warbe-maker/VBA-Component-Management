@@ -86,7 +86,7 @@ Public Sub RawClones(ByRef urc_wb As Workbook)
                      , rn_comp_name:=.CompName _
                      , rn_exp_file_full_name:=.ExpFileFullName
                 Log.Entry = "Clone-Component renewed/updated by (re-)import of '" & RawComp.ExpFileFullName & "'"
-                mRawClonesUsed.RevisionNumber = mRawsHosted.RevisionNumber
+                mCommCompsUsed.RevisionNumber(RawComp.CompName) = mCommComps.RevisionNumber(RawComp.CompName)
                 Stats.Count sic_clones_comps_updated
                 If sUpdated = vbNullString _
                 Then sUpdated = .CompName _
@@ -140,12 +140,12 @@ Public Function UpdateCloneConfirmed( _
         .Section(2).Text.Text = mMe.ServicedRootFolder
         .Section(2).Text.MonoSpaced = True
         With .Section(3)
-            If mRawsHosted.RevisionNumber = mRawClonesUsed.RevisionNumber Then
+            If mCommComps.RevisionNumber(ucc_comp_name) = mCommCompsUsed.RevisionNumber(ucc_comp_name) Then
                 .Label.Text = "Attention!"
                 .Label.FontColor = rgbRed
                 .Text.Text = "It appears that the code of the raw clone used in this Workbook has been modified. This modification will be " & _
                              "reverted with this update. Displaying the difference will be the last chance to modify the raw component in its " & _
-                             "hosting Workbook (" & mRawsHosted.HostFullName(ucc_comp_name) & ")."
+                             "hosting Workbook (" & mCommComps.HostFullName(ucc_comp_name) & ")."
             Else
                 .Text.Text = vbNullString
             End If

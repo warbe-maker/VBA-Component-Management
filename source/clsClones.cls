@@ -66,16 +66,16 @@ Public Sub CollectAllChanged()
             Set .Wrkbk = mService.Serviced
             .CompName = vbc.name
             
-            DsplyProgress p_result:=sChanged & " " & vbc.name _
-                        , p_total:=Stats.Total(sic_comps_total) _
-                        , p_done:=Stats.Total(sic_comps)
+            mCompMan.DsplyProgress p_result:=sChanged & " " & vbc.name _
+                                 , p_total:=Stats.Total(sic_comps_total) _
+                                 , p_done:=Stats.Total(sic_comps)
             
             Log.ServicedItem = vbc
-            If Not .KindOfComp = enRawClone Then GoTo next_vbc
+            If Not .KindOfComp = enCommCompUsed Then GoTo next_vbc
             Stats.Count sic_clone_comps
             '~~ This is a Raw-Component's Clone-Component
             Set RawComp = New clsRaw
-            RawComp.HostWrkbkFullName = mRawsHosted.HostFullName(comp_name:=.CompName)
+            RawComp.HostWrkbkFullName = mCommComps.HostFullName(comp_name:=.CompName)
             RawComp.CompName = .CompName
             RawComp.ExpFileExt = .ExpFileExt
             RawComp.CloneExpFileFullName = .ExpFileFullName

@@ -8,8 +8,8 @@ Public Property Get Serviced() As Workbook
     Set Serviced = wbServiced
 End Property
 
-Public Property Set Serviced(ByRef wb As Workbook)
-    Set wbServiced = wb
+Public Property Set Serviced(ByRef Wb As Workbook)
+    Set wbServiced = Wb
 End Property
 
 Public Function AppErr(ByVal app_err_no As Long) As Long
@@ -226,7 +226,7 @@ Public Function Denied(ByVal den_service As String) As Boolean
     ElseIf Not WbkInServicedRoot Then
         sStatus = "Service denied! Workbook is not within the configured 'serviced root': " & mMe.ServicedRootFolder & "!"
         Log.Entry = sStatus
-    ElseIf mMe.CompManAddinPaused Then
+    ElseIf mMe.CompManAddinPaused And mMe.IsAddinInstnc Then
         sStatus = "Service denied! The CompMan Addin is currently paused!"
         Log.Entry = sStatus
     ElseIf FolderNotVbProjectExclusive Then
@@ -582,9 +582,9 @@ Private Function Clones( _
             Set .Wrkbk = cl_wb
             .CompName = vbc.name
             Log.ServicedItem = .VBComp
-            If .KindOfComp = enRawClone Then
+            If .KindOfComp = enCommCompUsed Then
                 Set RawComp = New clsRaw
-                RawComp.HostWrkbkFullName = mRawsHosted.HostFullName(comp_name:=.CompName)
+                RawComp.HostWrkbkFullName = mCommComps.HostFullName(comp_name:=.CompName)
                 RawComp.CompName = .CompName
                 RawComp.ExpFileExt = .ExpFileExt
                 RawComp.CloneExpFileFullName = .ExpFileFullName

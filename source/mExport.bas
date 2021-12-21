@@ -50,7 +50,7 @@ Public Sub All()
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = mService.Serviced
-            .CompName = vbc.Name ' this assignment provides the name for the export file
+            .CompName = vbc.name ' this assignment provides the name for the export file
             vbc.Export .ExpFileFullName
         End With
         Set Comp = Nothing
@@ -81,10 +81,11 @@ Public Sub ChangedComponents()
     
     On Error GoTo eh
     Dim vbc         As VBComponent
+    Dim vbc1        As VBComponent
     Dim lComponents As Long
     Dim lRemaining  As Long
     Dim lExported   As Long
-    Dim sExported   As String
+    Dim sExported   As String   ' comma separated exported component names
     Dim bUpdated    As Boolean
     Dim lUpdated    As Long
     Dim sUpdated    As String
@@ -95,6 +96,8 @@ Public Sub ChangedComponents()
     Dim dctChanged  As Dictionary
     Dim Comp        As clsComp
     Dim RawComp     As clsRaw
+    Dim dctAll      As Dictionary
+    Dim Wb          As Workbook
     
     mErH.BoP ErrSrc(PROC)
     '~~ Prevent any action for a Workbook opened with any irregularity
@@ -103,91 +106,73 @@ Public Sub ChangedComponents()
     
     Set Stats = New clsStats
     Set Comps = New clsComps
-        
+    
     '~~ Remove any obsolete Export-Files within the Workbook folder
     '~~ I.e. of no longer existing VBComponents or at an outdated location
     CleanUpObsoleteExpFiles
-        
-    lComponents = mService.Serviced.VBProject.VBComponents.Count
-    lRemaining = lComponents
-
-    Set dctChanged = Comps.AllChanged ' selection of all changed components
     
-    For Each v In dctChanged
-        Set Comp = dctChanged(v)
-        Set vbc = Comp.VBComp
-        Log.ServicedItem = vbc
-        DsplyProgress p_result:=sExported & " " & vbc.Name _
-                    , p_total:=Stats.Total(sic_comps_changed) _
-                    , p_done:=Stats.Total(sic_comps)
-                
-        Select Case Comp.KindOfComp
-            Case enRawClone
-                '~~ Establish a component class object which represents the cloned raw's remote instance
-                '~~ which is hosted in another Workbook
-                Set RawComp = New clsRaw
-                With RawComp
-                    '~~ Provide all available information rearding the remote raw component
-                    '~~ Attention must be paid to the fact that the sequence of property assignments matters
-                    .HostWrkbkFullName = mRawsHosted.HostFullName(comp_name:=Comp.CompName)
-                    .CompName = Comp.CompName
-                    .ExpFileExt = Comp.ExpFileExt  ' required to build the export file's full name
-                    Set .ExpFile = fso.GetFile(.ExpFileFullName)
-                    .CloneExpFileFullName = Comp.ExpFileFullName
-                    .TypeString = Comp.TypeString
-                    If Not .Changed(Comp) Then GoTo next_vbc
-                End With
-                
-                If Comp.Changed Then
-                    Log.Entry = "The used raw clone's code has been modified! (a temporary Export-File differs from the last regular Export-File)"
-                    '~~ --------------------------------------------------------------------------
-                    '~~ The code modification in the raw clone component will be reverted with
-                    '~~ the Workbook's next open unless the raw code is updated correspondingly in
-                    '~~ the meantime in order to make the modification permanent.
-                    '~~ --------------------------------------------------------------------------
-                    If mRawClonesUsed.RevisionNumber = mRawsHosted.RevisionNumber _
-                    Then DisplayRawCloneModificationWarning Comp.CompName
-                    Comp.Export
-                Else
-                    '~~ -----------------------------------------------------------------------
-                    '~~ The raw had changed since the Workbook's open. This case is not handled
-                    '~~ along with the Workbook's Save event but with the Workbook's Open event
-                    '~~ -----------------------------------------------------------------------
-                    Log.Entry = "The Raw's code changed! (not considered with the export service)"
-                    Log.Entry = "The Clone will be updated with the next Workbook open"
-                    mRawClonesUsed.RevisionNumber = mRawsHosted.RevisionNumber
-                End If
-            
-            Case enKindOfComp.enUnknown
-                Stop '~~ This is supposed a sever coding error!
-            
-            Case Else ' enInternal, enHostedRaw
-                With Comp
-                    If .Changed Then
-                        Log.Entry = "Code changed! (temporary Export-File differs from last changes Export-File)"
-                        vbc.Export .ExpFileFullName
-                        Log.Entry = "Exported to '" & .ExpFileFullName & "'"
+    Set dctAll = AllComps
+    lComponents = dctAll.Count
+    Stats.Count sic_comps_total, lComponents
+    lRemaining = lComponents
+    
+    For Each v In dctAll
+        Set Comp = dctAll(v)
+        With Comp
+            Log.ServicedItem = .VBComp
+            If Not .Changed Then
+                Debug.Print "Unchanged " & .KoCStrng(.KindOfComp) & " .CompName: " & .CompName
+                If .KindOfComp = enCommCompUsed _
+                Then mCommCompsUsed.RevisionNumber(.CompName) = mCommComps.RevisionNumber(.CompName)
+            Else
+                '~~ Process components the code has changed
+                Debug.Print "Changed   " & .KoCStrng(.KindOfComp) & " .CompName: " & .CompName
+                Select Case .KindOfComp
+                    Case enInternal
+                        .Export
                         lExported = lExported + 1
                         If lExported = 1 _
-                        Then sExported = vbc.Name _
-                        Else sExported = sExported & ", " & vbc.Name
-                        GoTo next_vbc
-                    End If
-                
-                    If .KindOfComp = enHostedRaw Then
-                        If mRawsHosted.ExpFileFullName(.CompName) <> .ExpFileFullName Then
-                            mRawsHosted.ExpFileFullName(.CompName) = .ExpFileFullName
-                            Log.Entry = "Component's Export-File Full Name registered"
-                        End If
-                        mRawsHosted.RevisionNumberIncrease .CompName
-                    End If
-                End With
-        End Select
-                                
-next_vbc:
-        lRemaining = lRemaining - 1
+                        Then sExported = .CompName _
+                        Else sExported = sExported & ", " & .CompName
+                    
+                    Case enCommCompUsed
+                        Log.Entry = "The used raw clone's code has been modified! " & _
+                                    "(a temporary Export-File differs from the last regular Export-File)"
+                        '~~ --------------------------------------------------------------------------
+                        '~~ The code modification in the raw clone component will be reverted with the
+                        '~~ Workbook's next open unless the raw code is updated correspondingly.
+                        '~~ --------------------------------------------------------------------------
+                        DisplayRawCloneModificationWarning Comp.CompName
+                        .Export
+                        lExported = lExported + 1
+                        If lExported = 1 _
+                        Then sExported = .CompName _
+                        Else sExported = sExported & ", " & .CompName
+    
+                    Case enCommCompHosted
+                        Log.Entry = "The hosted raw's code has been modified! " & _
+                                    "(temporary Export-File differs from last changes Export-File)"
+                        .Export
+                        Log.Entry = "Exported to '" & .ExpFileFullName & "'"
+                        mCommComps.RevisionNumberIncrease .CompName
+                        
+                        lExported = lExported + 1
+                        If lExported = 1 _
+                        Then sExported = .CompName _
+                        Else sExported = sExported & ", " & .CompName
+                        mCommComps.ExpFileFullName(.CompName) = .ExpFileFullName
+                    
+                    Case Else
+                        Stop '~~ This is supposed a sever coding error!
+                End Select
+            End If
+            lRemaining = lRemaining - 1
+            mCompMan.DsplyProgress p_result:=sExported & " " & String(lRemaining, ".") _
+                                 , p_total:=Stats.Total(sic_comps_changed) _
+                                 , p_done:=Stats.Total(sic_comps)
+        End With
         Set Comp = Nothing
-        Set RawComp = Nothing
+next_v:
     Next v
     
     sMsg = Log.Service
@@ -212,6 +197,29 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Function AllComps() As Dictionary
+    Dim Wb      As Workbook
+    Dim vbc     As VBComponent
+    Dim Comp    As clsComp
+    Dim dct     As Dictionary
+    
+    Set Wb = mService.Serviced
+    With Wb.VBProject
+        Debug.Print ".VBComponents.Count: " & .VBComponents.Count
+        For Each vbc In .VBComponents
+            Set Comp = New clsComp
+            With Comp
+                Set .Wrkbk = Wb
+                .CompName = vbc.name
+                Set .VBComp = vbc
+            End With
+            mDct.DctAdd add_dct:=dct, add_key:=vbc.name, add_item:=Comp, add_order:=order_bykey
+        Next vbc
+    End With
+    Debug.Print "dct.Count: " & dct.Count
+    Set AllComps = dct
+    
+End Function
 Private Sub DisplayRawCloneModificationWarning(ByVal comp_name As String)
     VBA.MsgBox Prompt:="The code of the raw clone '" & comp_name & "' used in this VB-Project has been modified. " & _
                        "This modification will be reverted with the next open of the Workbook " & _

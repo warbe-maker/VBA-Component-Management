@@ -60,7 +60,7 @@ Private sTmpExpFileFullName As String
 Private sWrkbkBaseName      As String       ' Common Component host Workbook's base name
 Private sWrkbkFullName      As String       ' Common Component host Workbook's full name
 Private vbc                 As VBComponent  ' VBComponent managed by this Class Module
-Private wb                  As Workbook     ' The class' Workbook
+Private Wb                  As Workbook     ' The class' Workbook
 Private sService            As String       ' Name of the 'Service' folder, i.e. the folder of the Workbook
 Private dctType             As Dictionary
 Private lMaxLenComp         As Long
@@ -81,7 +81,7 @@ End Sub
 
 Private Sub Class_Terminate()
     Set dctChanges = Nothing
-    Set wb = Nothing
+    Set Wb = Nothing
     Set vbc = Nothing
     With New FileSystemObject
         If .FolderExists(sTmpFolder) Then .DeleteFolder sTmpFolder
@@ -123,7 +123,7 @@ Friend Property Get Changed() As Boolean
     
     '~~ Else, any component is regarded changed when a temporary Export-File differs from the regular one
     With fso
-        sTmpFolder = mCompMan.ExpFileFolderPath(wb) & "\Temp"
+        sTmpFolder = mCompMan.ExpFileFolderPath(Wb) & "\Temp"
         If Not .FolderExists(sTmpFolder) Then
             DoEvents
             .CreateFolder sTmpFolder
@@ -157,7 +157,7 @@ Friend Property Get CodeName( _
 ' Returns the sheet's CodeName through its Name.
 ' --------------------------------------------------------
     Dim wsh As Worksheet
-    For Each wsh In wb.Worksheets
+    For Each wsh In Wb.Worksheets
         If sh.name = scn_name Then
             CodeName = wsh.CodeName
             Exit For
@@ -175,10 +175,10 @@ Friend Property Let CompName(ByVal s As String)
 ' - VBComp          (vbc)
 ' ---------------------------------------------
     sCompName = s
-    If Not wb Is Nothing Then
+    If Not Wb Is Nothing Then
         If Me.Exists Then
-            Set vbc = wb.VBProject.VBComponents(s)
-            sExpFileFullName = mCompMan.ExpFileFolderPath(wb) & "\" & sCompName & Me.ExpFileExt
+            Set vbc = Wb.VBProject.VBComponents(s)
+            sExpFileFullName = mCompMan.ExpFileFolderPath(Wb) & "\" & sCompName & Me.ExpFileExt
         End If
     End If
 End Property
@@ -191,7 +191,7 @@ Friend Property Get Exists(Optional ByRef ex_wb As Workbook = Nothing) As Boolea
         Exists = Not v Is Nothing
     ElseIf vbc Is Nothing Then
         On Error Resume Next
-        Set vbc = wb.VBProject.VBComponents(sCompName)
+        Set vbc = Wb.VBProject.VBComponents(sCompName)
         Exists = Not vbc Is Nothing
     Else
         Exists = Not vbc Is Nothing
@@ -233,7 +233,7 @@ Friend Property Set ExpFile(ByVal fl As File):      Set flExpFile = fl:     End 
 Friend Property Get ExpFileExt() As String
     
     If sExpFileExt = vbNullString Then
-        If vbc Is Nothing Then Set vbc = wb.VBProject.VBComponents(sCompName)
+        If vbc Is Nothing Then Set vbc = Wb.VBProject.VBComponents(sCompName)
         With Me
             Select Case vbc.Type
                 Case vbext_ct_StdModule:    sExpFileExt = ".bas"
@@ -252,7 +252,7 @@ Friend Property Get ExpFileFullName() As String
 ' Will already have been prepared along with 'Property Let CompName'
 ' ------------------------------------------------------------------
     If sExpFileFullName = vbNullString Then
-        sExpFileFullName = mCompMan.ExpFileFolderPath(wb) & "\" & Me.CompName & Me.ExpFileExt
+        sExpFileFullName = mCompMan.ExpFileFolderPath(Wb) & "\" & Me.CompName & Me.ExpFileExt
     End If
     ExpFileFullName = sExpFileFullName
 End Property
@@ -272,10 +272,10 @@ Friend Property Get KindOfComp() As enKindOfComp
     On Error GoTo eh
     
     If lKindOfComp = enKindOfComp.enUnknown Then
-        If mRawsHosted.Exists(sCompName) Then
-            If mRawsHosted.HostFullName(comp_name:=sCompName) = Me.Wrkbk.FullName _
-            Then lKindOfComp = enHostedRaw _
-            Else lKindOfComp = enRawClone
+        If mCommComps.Exists(sCompName) Then
+            If mCommComps.HostFullName(comp_name:=sCompName) = Me.Wrkbk.FullName _
+            Then lKindOfComp = enCommCompHosted _
+            Else lKindOfComp = enCommCompUsed
         ElseIf lKindOfComp = enKindOfComp.enUnknown Then
             lKindOfComp = enInternal
         End If
@@ -398,27 +398,6 @@ Friend Property Get TypeString() As String
     End If
 End Property
 
-'Private Function UserFormSizeIsDifferent( _
-'                                   ByVal sid_file_1 As File, _
-'                                   ByVal sid_file_2 As File) As Boolean
-'    Dim sFrxFile1Path  As String
-'    Dim sFrxFile2Path  As String
-'    Dim fso             As New FileSystemObject
-'
-'    sFrxFile1Path = Replace$(sid_file_1.Path, ".frm", ".frx")
-'    sFrxFile2Path = Replace$(sid_file_2.Path, ".frm", ".frx")
-'
-'    With fso
-'        If sid_file_1.Size <> sid_file_2.Size Then
-'            UserFormSizeIsDifferent = True
-'        ElseIf .GetFile(sFrxFile1Path).Size <> .GetFile(sFrxFile2Path).Size Then
-'            UserFormSizeIsDifferent = True
-'        End If
-'    End With
-'    Set fso = Nothing
-'
-'End Function
-
 Friend Property Get VBComp() As VBComponent:    Set VBComp = vbc:   End Property
 
 Friend Property Set VBComp(ByRef vb_comp As VBComponent):       Set vbc = vb_comp:                      End Property
@@ -429,12 +408,12 @@ Friend Property Get Wrkbk() As Workbook
     On Error GoTo eh
     Dim fso As New FileSystemObject
     
-    If wb Is Nothing Then
+    If Wb Is Nothing Then
         If Not fso.FileExists(sWrkbkFullName) _
         Then Err.Raise AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
-        Set wb = mCompMan.WbkGetOpen(sWrkbkFullName)
+        Set Wb = mCompMan.WbkGetOpen(sWrkbkFullName)
     Else
-        Set Wrkbk = wb
+        Set Wrkbk = Wb
     End If
     
 xt: Set fso = Nothing
@@ -459,12 +438,12 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     Dim fso As New FileSystemObject
     Dim vbc As VBComponent
     
-    Set wb = wbk
-    sWrkbkFullName = wb.FullName
+    Set Wb = wbk
+    sWrkbkFullName = Wb.FullName
     sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
     sExpFilePath = fso.GetParentFolderName(sWrkbkFullName)
-    sService = fso.GetFileName(wb.Path)
-    For Each vbc In wb.VBProject.VBComponents
+    sService = fso.GetFileName(Wb.Path)
+    For Each vbc In Wb.VBProject.VBComponents
         lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.name))
     Next vbc
     Set fso = Nothing
@@ -535,12 +514,12 @@ Public Sub Export()
     Me.VBComp.Export Me.ExpFileFullName
 End Sub
 
-Private Function KoCStrng(ByVal koc As enKindOfComp) As String
+Public Function KoCStrng(ByVal koc As enKindOfComp) As String
     Select Case koc
         Case enKindOfComp.enUnknown:        KoCStrng = "Unknown"
         Case enKindOfComp.enInternal:       KoCStrng = "Internal, neither Raw nor Clone"
-        Case enKindOfComp.enRawClone:       KoCStrng = "Clone"
-        Case enKindOfComp.enHostedRaw:      KoCStrng = "Raw (Hosted)"
+        Case enKindOfComp.enCommCompUsed:       KoCStrng = "Clone"
+        Case enKindOfComp.enCommCompHosted:      KoCStrng = "Raw (Hosted)"
     End Select
 End Function
 
@@ -630,7 +609,7 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
     If ReplaceRawWithCloneConfirmed(raw) Then
             '~~ Get the origin host Workbook open
         With raw
-            .HostWrkbkFullName = mRawsHosted.HostFullName(Me.CompName)
+            .HostWrkbkFullName = mCommComps.HostFullName(Me.CompName)
             .CompName = Me.CompName
             .ExpFileExt = Me.ExpFileExt ' required to build the export file's full name
             Set .ExpFile = fso.GetFile(.ExpFileFullName)
