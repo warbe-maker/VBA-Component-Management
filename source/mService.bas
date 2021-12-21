@@ -269,7 +269,7 @@ Public Sub ExportChangedComponents(ByVal hosted As String)
 '       Export-File found within the Workbook-Folder outside
 '       the specified Export-Folder is removed.
 ' Attention: This procedure is called exclusively by
-'            mCompMan.UpdateRawClones! When called directly
+'            mCompMan.UpdateCommonCompsUsed! When called directly
 '            by the user, e.g. via the 'Imediate Window' an
 '            error will be raised because an 'mService.Serviced'
 '            Workbook is not set.

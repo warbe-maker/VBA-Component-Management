@@ -7,7 +7,6 @@ Private sUpdateStayVerbose      As String
 Private sBttnDsplyChanges       As String
 Private sBttnSkipStayVerbose    As String
 
-
 Private Property Let BttnUpdateStayVerbose(ByVal comp_name As String)
     sUpdateStayVerbose = "Update" & vbLf & vbLf & Spaced(comp_name) & vbLf & vbLf & "(stay verbose)"
 End Property
@@ -23,6 +22,7 @@ End Property
 Private Property Let BttnDsplyChanges(ByVal comp_name As String)
     sBttnDsplyChanges = "Display code changes" & vbLf & vbLf & Spaced(comp_name)
 End Property
+
 Private Property Get BttnDsplyChanges() As String
     BttnDsplyChanges = sBttnDsplyChanges
 End Property
@@ -38,16 +38,16 @@ Private Property Get BttnSkipAll() As String
     BttnSkipAll = "Skip" & vbLf & "all"
 End Property
 
-Public Sub RawClones(ByRef urc_wb As Workbook)
+Public Sub CommonCompsUsed(ByRef urc_wb As Workbook)
 ' --------------------------------------------------------
 ' Updates any clone in Workbook (urc_wb). Note that clones
 ' are identifiied by equally named components in another
 ' workbook which are indicated 'hosted'.
 ' --------------------------------------------------------
-    Const PROC = "RawClones"
+    Const PROC = "CommonCompsUsed"
     
     On Error GoTo eh
-    Dim dctClonesTheRawChanged  As Dictionary
+    Dim dctCommCompsHostedChanged  As Dictionary
     Dim vbc                     As VBComponent
     Dim fso                     As New FileSystemObject
     Dim sUpdated                As String
@@ -59,15 +59,15 @@ Public Sub RawClones(ByRef urc_wb As Workbook)
     Dim CloneComp               As clsComp
     
     Set Clones = New clsClones
-    Set dctClonesTheRawChanged = Clones.RawChanged
+    Set dctCommCompsHostedChanged = Clones.RawChanged
     
     bVerbose = True
             
-    For Each v In dctClonesTheRawChanged
+    For Each v In dctCommCompsHostedChanged
         mCompMan.DsplyProgress p_result:=sUpdated _
                              , p_total:=Stats.Total(sic_clone_comps) _
                              , p_done:=Stats.Total(sic_clones_comps_updated)
-        Set RawComp = dctClonesTheRawChanged(v)
+        Set RawComp = dctCommCompsHostedChanged(v)
         Set CloneComp = New clsComp
         Set CloneComp.Wrkbk = urc_wb
         CloneComp.CompName = RawComp.CompName
@@ -85,8 +85,8 @@ Public Sub RawClones(ByRef urc_wb As Workbook)
                 mRenew.ByImport rn_wb:=urc_wb _
                      , rn_comp_name:=.CompName _
                      , rn_exp_file_full_name:=.ExpFileFullName
-                Log.Entry = "Clone-Component renewed/updated by (re-)import of '" & RawComp.ExpFileFullName & "'"
-                mCommCompsUsed.RevisionNumber(RawComp.CompName) = mCommComps.RevisionNumber(RawComp.CompName)
+                Log.Entry = "Clone-Component renewed/updated by (re-)import of '" & .ExpFileFullName & "'"
+                mCommCompsUsed.RevisionNumber(.CompName) = mCommComps.RevisionNumber(.CompName)
                 Stats.Count sic_clones_comps_updated
                 If sUpdated = vbNullString _
                 Then sUpdated = .CompName _

@@ -2,18 +2,20 @@ Attribute VB_Name = "mCommComps"
 Option Explicit
 ' ---------------------------------------------------------------------------
 ' Standard Module mCommComps
-' Maintains in a file (CommCompsFile) for all registered raw components,
-' i.e. common components managed by CompMan services. The file has the
-' following structure:
+' Maintains in the Common Components folfer (CommCompsFolder)
+' - a file named (CommCompsFile) for all registered Common Components (i.e.
+'   components managed by CompMan services. The file has the following
+'   structure:
+'   [<component-name]
+'   HostFullName=<host-full-name>
+'   ExpFileFullName=<export-file-full-name>
+'   RevisionNumber=yyyy-mm-dd.n
+'   The entries (sections) are maintained along with the Workbook_BeforeSave
+'   event via the ExportChangedComponents service. The revision number is
+'   increased by one with each save whereby it starts with one for each day.
 '
-' [<component-name]
-' HostFullName=<host-full-name>
-' ExpFileFullName=<export-file-full-name>
-' RevisionNumber=yyyy-mm-dd.n
-'
-' The entries (sections) are maintained along with the Workbook_BeforeSave
-' event via the ExportChangedComponents service. The revision number is
-' increased by one with each save whereby it starts with one for each day.
+' - copies of the most recently changed Common Components which are the
+'   source for the update of outdated Common Components used in VB-Projects.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_HOST_FULL_NAME      As String = "HostFullName"
 Private Const VNAME_REVISION_DATE       As String = "RevisionDate"
@@ -22,6 +24,27 @@ Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
 Public Property Get CommCompsFolder() As String:    CommCompsFolder = mMe.ServicedRootFolder & "\Common-Components": End Property
 Public Property Get CommCompsFile() As String:      CommCompsFile = CommCompsFolder & "\CommComps.dat":             End Property
+
+Public Property Get ExpFile( _
+                    Optional ByVal comp_name) As File
+    Dim FileName    As String
+    
+    With New FileSystemObject
+        FileName = .GetFileName(ExpFileFullName(comp_name))
+        Set ExpFile = .GetFile(CommCompsFolder & "\" & FileName)
+    End With
+End Property
+
+Public Property Let ExpFile( _
+                    Optional ByVal comp_name, _
+                             ByVal comp_exp_file As File)
+    Dim FileName As String
+    
+    With New FileSystemObject
+        FileName = .GetFileName(comp_exp_file.name)
+        .CopyFile comp_exp_file, CommCompsFolder & "\" & comp_name
+    End With
+End Property
 
 Public Property Get ExpFileFullName( _
                      Optional ByVal comp_name As String) As String
@@ -39,6 +62,12 @@ Private Property Get RevisionDate( _
     RevisionDate = Split(Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER), ".")(0)
 End Property
 
+Public Property Let RevisionNumber( _
+                     Optional ByVal comp_name As String, _
+                              ByVal comp_revision_number As String)
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = comp_revision_number
+End Property
+
 Public Property Get RevisionNumber( _
                      Optional ByVal comp_name As String) As String
 ' ----------------------------------------------------------------------------
@@ -47,23 +76,6 @@ Public Property Get RevisionNumber( _
     RevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER)
 End Property
 
-Public Sub RevisionNumberIncrease(ByVal comp_name As String)
-' ----------------------------------------------------------------------------
-' Increases the revision number by one starting with 1 for a new day.
-' ----------------------------------------------------------------------------
-    Dim RevNo       As Long
-    
-    If RevisionNumber(comp_name) = vbNullString Then
-        RevNo = 1
-    Else
-        RevNo = Split(RevisionNumber(comp_name), ".")(1)
-        If RevisionDate(comp_name) <> Format(Now(), "YYYY-MM-DD") _
-        Then RevNo = 1 _
-        Else RevNo = RevNo + 1
-    End If
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = Format(Now(), "YYYY-MM-DD") & "." & RevNo
-
-End Sub
 
 Public Property Get HostFullName( _
                      Optional ByVal comp_name As String) As String

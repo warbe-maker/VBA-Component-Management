@@ -22,14 +22,14 @@ Option Private Module
 '                           "Add-Ins" popup menu or executed via the
 '                           VBE when the code of the Addin had been modified
 '                           in its Development instance Workbook.
-' - UpdateRawClones         Exclusively performed fro within the Development
+' - UpdateCommonCompsUsed         Exclusively performed fro within the Development
 '                           instance Workbook to update its own used Clone
 '                           Components of which the Raw code has changed.
 '                           This service only runs provided the Addin
 '                           instance Workbook is open (see RenewAddIn
 '                           service).
 ' - ServicedRootFolder      When the AddIn is open and not  p a u s e d the
-'                           Workbook_Open service 'UpdateRawClones' and the
+'                           Workbook_Open service 'UpdateCommonCompsUsed' and the
 '                           Workbook_BeforeSave service 'ExportChangedComponents'
 '                           will be executed for Workbooks calling them under
 '                           the two additional preconditions:
@@ -281,7 +281,7 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
             If mMe.CompManAddinPaused = True Then
                 wsAddIn.CurrentStatus = mBasic.Spaced("paused!")
                 wsAddIn.CompManAddInPausedStatus = _
-                "The 'CompMan-Addin' is currently  p a u s e d ! The Workbook_Open service 'UpdateRawClones' " & _
+                "The 'CompMan-Addin' is currently  p a u s e d ! The Workbook_Open service 'UpdateCommonCompsUsed' " & _
                 "and the Workbook_BeforeSave service 'ExportChangedComponents' will be bypassed " & _
                 "until the Addin is 'continued' again!"
             Else
@@ -294,7 +294,7 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
                 "needs to be opened before hand in order to have Common Components updated."
 
                 wsAddIn.CompManAddInPausedStatus = _
-                "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateRawClones' and 'ExportChangedComponents'" & vbLf & _
+                "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateCommonCompsUsed' and 'ExportChangedComponents'" & vbLf & _
                 "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
                 "1. The Workbook is located in the configured 'Serviced-Development-Root-Folder' which currently is:" & vbLf & _
                 "   '" & mMe.ServicedRootFolder & "'" & vbLf & _
@@ -677,7 +677,7 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
     On Error GoTo eh
     Dim dct         As Dictionary
     Dim v           As Variant
-    Dim wb          As Workbook
+    Dim Wb          As Workbook
     Dim ref         As Reference
     Dim sWbs        As String
     Dim bOneRemoved As Boolean
@@ -689,19 +689,19 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         Set dct = mWrkbk.Opened ' Returns a Dictionary with all open Workbooks in any application instance
         Set dctAddInRefs = New Dictionary
         For Each v In dct
-            Set wb = dct.Item(v)
-            For Each ref In wb.VBProject.References
+            Set Wb = dct.Item(v)
+            For Each ref In Wb.VBProject.References
                 If InStr(ref.name, fso.GetBaseName(CompManAddinName)) <> 0 Then
-                    dctAddInRefs.Add wb, ref
-                    sWbs = wb.name & ", " & sWbs
+                    dctAddInRefs.Add Wb, ref
+                    sWbs = Wb.name & ", " & sWbs
                 End If
             Next ref
         Next v
         
         For Each v In dctAddInRefs
-            Set wb = v
+            Set Wb = v
             Set ref = dctAddInRefs(v)
-            wb.VBProject.References.Remove ref
+            Wb.VBProject.References.Remove ref
             bOneRemoved = True
         Next v
         bAllRemoved = True
@@ -742,15 +742,15 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Renew_4_Set_IsAddin_ToFalse(ByRef wb As Workbook)
+Private Sub Renew_4_Set_IsAddin_ToFalse(ByRef Wb As Workbook)
     Const PROC = "Renew_4_Set_IsAddin_ToFalse"
     
     On Error GoTo eh
 
     mMe.RenewLogAction = "Set the 'IsAddin' property of the 'CompMan-Addin' to FALSE"
     
-    If wb.IsAddin = True Then
-        wb.IsAddin = False
+    If Wb.IsAddin = True Then
+        Wb.IsAddin = False
         mMe.RenewLogResult() = "Passed"
     Else
         mMe.RenewLogResult("The 'IsAddin' property of the 'ComMan-Addin' was already set to FALSE" _
@@ -867,7 +867,7 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
     Const PROC = "Renew_8_OpenAddinInstncWorkbook"
     
     On Error GoTo eh
-    Dim wb              As Workbook
+    Dim Wb              As Workbook
     Dim sBaseAddinName  As String
     Dim sBaseDevName    As String
     
@@ -875,12 +875,12 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
         If CompManAddinWrkbkExists Then
             mMe.RenewLogAction = "Re-open the 'CompMan-Addin' (" & CompManAddinName & ")"
             On Error Resume Next
-            Set wb = Application.Workbooks.Open(CompManAddinFullName)
+            Set Wb = Application.Workbooks.Open(CompManAddinFullName)
             If Err.Number = 0 Then
                 With New FileSystemObject
-                    sBaseAddinName = .GetBaseName(wb.name)
+                    sBaseAddinName = .GetBaseName(Wb.name)
                     sBaseDevName = .GetBaseName(ThisWorkbook.name)
-                    wb.VBProject.name = sBaseAddinName
+                    Wb.VBProject.name = sBaseAddinName
                 End With
                 mMe.RenewLogResult() = "Passed"
                 Renew_8_OpenAddinInstncWorkbook = True
@@ -905,16 +905,16 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     
     On Error GoTo eh
     Dim v               As Variant
-    Dim wb              As Workbook
+    Dim Wb              As Workbook
     Dim sWbs            As String
     Dim bOneRestored    As Boolean
     
     mMe.RenewLogAction = "Restore all saved 'References' to the 'CompMan-Addin' in open Workbooks"
     
     For Each v In dctAddInRefs
-        Set wb = v
-        wb.VBProject.References.AddFromFile CompManAddinFullName
-        sWbs = wb.name & ", " & sWbs
+        Set Wb = v
+        Wb.VBProject.References.AddFromFile CompManAddinFullName
+        sWbs = Wb.name & ", " & sWbs
         bOneRestored = True
     Next v
     

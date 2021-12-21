@@ -24,6 +24,10 @@ End Property
 Private Property Get Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String) As Variant
+' ----------------------------------------------------------------------------
+' Returns the value named (pp_value_name) from the section (pp_section) in the
+' file CommCompsHostsFile.
+' ----------------------------------------------------------------------------
     
     Value = mFile.Value(pp_file:=CommCompsHostsFile _
                       , pp_section:=pp_section _

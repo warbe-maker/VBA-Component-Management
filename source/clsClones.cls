@@ -41,11 +41,10 @@ Private Property Get Sorted() As Dictionary
 End Property
 
 Public Sub CollectAllChanged()
-' -----------------------------------------------------
-' Collect all changed Clone-Components.
-' I.e. all VBComponents of which the name is registered
-' as a Raw-Component hosted in another Workbook.
-' ------------------------------------------------------
+' ----------------------------------------------------------------------------
+' Collect all changed Clone-Components. I.e. all VBComponents of which the
+' name is registered as a Common Component hosted in another Workbook.
+' ----------------------------------------------------------------------------
     Const PROC = "CollectAllChanged"
     
     On Error GoTo eh

@@ -21,8 +21,8 @@ Private Property Get mRenew_ByImport() As String
     mRenew_ByImport = CompManAddinName & "!mRenew.ByImport"
 End Property
 
-Private Property Get mService_UpdateRawClones() As String
-    mService_UpdateRawClones = CompManAddinName & "!mCompManClient.UpdateRawClones"
+Private Property Get mService_UpdateCommonCompsUsed() As String
+    mService_UpdateCommonCompsUsed = CompManAddinName & "!mCompManClient.UpdateCommonCompsUsed"
 End Property
 
 Public Sub RemoveTestCodeChange( _
@@ -636,8 +636,8 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_UpdateRawClones()
-    Const PROC  As String = "Test_UpdateRawClones"
+Public Sub Test_UpdateCommonCompsUsed()
+    Const PROC  As String = "Test_UpdateCommonCompsUsed"
     
     On Error GoTo eh
     Dim AddinService    As String
@@ -645,7 +645,7 @@ Public Sub Test_UpdateRawClones()
     
     If mService.Denied(PROC) Then GoTo xt
 
-    AddinService = CompManAddinName & "!mCompMan.UpdateRawClones"
+    AddinService = CompManAddinName & "!mCompMan.UpdateCommonCompsUsed"
     If mMe.CompManAddinIsOpen Then
         AddinStatus = " (currently the case) "
     Else
@@ -778,7 +778,7 @@ Public Sub Test_Synch_RangesFormating()
     mSync.SyncBackup sTarget
     mSyncRanges.SyncFormating
     mSync.SyncRestore sTarget
-    Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
+    Application.EnableEvents = False ' The open service UpdateCommonCompsUsed would start with a new log-file otherwise
     mCompMan.WbkGetOpen sTarget
     Application.EnableEvents = True
 
@@ -838,7 +838,7 @@ Public Sub Test_Synch_CompsChanged()
     mSync.SyncBackup sTarget
     mSyncComps.SyncCodeChanges
     mSync.SyncRestore sTarget
-    Application.EnableEvents = False ' The open service UpdateRawClones would start with a new log-file otherwise
+    Application.EnableEvents = False ' The open service UpdateCommonCompsUsed would start with a new log-file otherwise
     mCompMan.WbkGetOpen sTarget
     Application.EnableEvents = True
 

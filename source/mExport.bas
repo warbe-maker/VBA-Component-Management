@@ -1,17 +1,6 @@
 Attribute VB_Name = "mExport"
 Option Explicit
 
-Public Function AppErr(ByVal app_err_no As Long) As Long
-' ----------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
-End Function
-
 Public Sub All()
 ' --------------------------------------------------------------
 ' Standard-Module mExport
@@ -64,6 +53,39 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Private Function AllComps() As Dictionary
+    Dim Wb      As Workbook
+    Dim vbc     As VBComponent
+    Dim Comp    As clsComp
+    Dim dct     As Dictionary
+    
+    Set Wb = mService.Serviced
+    With Wb.VBProject
+        For Each vbc In .VBComponents
+            Set Comp = New clsComp
+            With Comp
+                Set .Wrkbk = Wb
+                .CompName = vbc.name
+                Set .VBComp = vbc
+            End With
+            mDct.DctAdd add_dct:=dct, add_key:=vbc.name, add_item:=Comp, add_order:=order_bykey
+        Next vbc
+    End With
+    Set AllComps = dct
+    
+End Function
+
+Public Function AppErr(ByVal app_err_no As Long) As Long
+' ----------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
+End Function
 
 Public Sub ChangedComponents()
 ' ----------------------------------------------------------------------------
@@ -121,12 +143,16 @@ Public Sub ChangedComponents()
         With Comp
             Log.ServicedItem = .VBComp
             If Not .Changed Then
-                Debug.Print "Unchanged " & .KoCStrng(.KindOfComp) & " .CompName: " & .CompName
-                If .KindOfComp = enCommCompUsed _
-                Then mCommCompsUsed.RevisionNumber(.CompName) = mCommComps.RevisionNumber(.CompName)
+                Select Case .KindOfComp
+                    Case enCommCompUsed
+                        mCommCompsUsed.RevisionNumber(.CompName) = mCommComps.RevisionNumber(.CompName)
+                    Case enCommCompHosted
+                        If mCommCompsHosted.RevisionNumber = vbNullString _
+                        Then mCommCompsHosted.RevisionNumberIncrease .CompName          ' initial setting
+                        mCommCompsHosted.ExpFileFullName(.CompName) = .ExpFileFullName  ' update in case
+                End Select
             Else
                 '~~ Process components the code has changed
-                Debug.Print "Changed   " & .KoCStrng(.KindOfComp) & " .CompName: " & .CompName
                 Select Case .KindOfComp
                     Case enInternal
                         .Export
@@ -154,7 +180,10 @@ Public Sub ChangedComponents()
                                     "(temporary Export-File differs from last changes Export-File)"
                         .Export
                         Log.Entry = "Exported to '" & .ExpFileFullName & "'"
-                        mCommComps.RevisionNumberIncrease .CompName
+                        mCommCompsHosted.RevisionNumberIncrease .CompName
+                        mCommCompsHosted.ExpFileFullName(.CompName) = .ExpFileFullName
+                        mCommComps.RevisionNumber(.CompName) = mCommCompsHosted.RevisionNumber(.CompName)
+                        mCommComps.CommCompExpFile(.CompName) = .ExpFile ' maintain a copy as source for all using VB-Projects
                         
                         lExported = lExported + 1
                         If lExported = 1 _
@@ -196,43 +225,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-Private Function AllComps() As Dictionary
-    Dim Wb      As Workbook
-    Dim vbc     As VBComponent
-    Dim Comp    As clsComp
-    Dim dct     As Dictionary
-    
-    Set Wb = mService.Serviced
-    With Wb.VBProject
-        Debug.Print ".VBComponents.Count: " & .VBComponents.Count
-        For Each vbc In .VBComponents
-            Set Comp = New clsComp
-            With Comp
-                Set .Wrkbk = Wb
-                .CompName = vbc.name
-                Set .VBComp = vbc
-            End With
-            mDct.DctAdd add_dct:=dct, add_key:=vbc.name, add_item:=Comp, add_order:=order_bykey
-        Next vbc
-    End With
-    Debug.Print "dct.Count: " & dct.Count
-    Set AllComps = dct
-    
-End Function
-Private Sub DisplayRawCloneModificationWarning(ByVal comp_name As String)
-    VBA.MsgBox Prompt:="The code of the raw clone '" & comp_name & "' used in this VB-Project has been modified. " & _
-                       "This modification will be reverted with the next open of the Workbook " & _
-                       "unless the modification is made in the raw in order to make it permanent." _
-            , Buttons:=vbOKOnly + vbCritical _
-            , Title:="Raw clone code modification!"
-End Sub
-
-
-
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mExport." & sProc
-End Function
 
 Private Sub CleanUpObsoleteExpFiles()
 ' ------------------------------------------------------
@@ -307,4 +299,16 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Private Sub DisplayRawCloneModificationWarning(ByVal comp_name As String)
+    VBA.MsgBox Prompt:="The code of the raw clone '" & comp_name & "' used in this VB-Project has been modified. " & _
+                       "This modification will be reverted with the next open of the Workbook " & _
+                       "unless the modification is made in the raw in order to make it permanent." _
+            , Buttons:=vbOKOnly + vbCritical _
+            , Title:="Raw clone code modification!"
+End Sub
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "mExport." & sProc
+End Function
 

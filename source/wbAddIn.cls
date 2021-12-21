@@ -48,10 +48,10 @@ Private Sub Workbook_Open()
     
     If mMe.IsDevInstnc Then
         '~~ ------------------------------------------------------------------
-        '~~ CompMan Workbook_Open service 'UpdateRawClones':
+        '~~ CompMan Workbook_Open service 'UpdateCommonCompsUsed':
         '~~ Executed by the Addin *) or via the development instance when open
         '~~ *) automatically available only when referenced by the VB-Project
-        mCompManClient.CompManService "UpdateRawClones", HOSTED_RAWS
+        mCompManClient.CompManService "UpdateCommonCompsUsed", HOSTED_RAWS
         '~~ ------------------------------------------------------------------
         mMe.DisplayStatus
         Application.ScreenUpdating = False

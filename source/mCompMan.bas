@@ -493,14 +493,14 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub UpdateRawClones( _
+Public Sub UpdateCommonCompsUsed( _
                      ByRef uc_wb As Workbook, _
             Optional ByVal uc_hosted As String = vbNullString)
 ' ------------------------------------------------------------
 ' Updates a clone component with the Export-File of the remote
 ' raw component provided the raw's code has changed.
 ' ------------------------------------------------------------
-    Const PROC = "UpdateRawClones"
+    Const PROC = "UpdateCommonCompsUsed"
     
     On Error GoTo eh
     mErH.BoP ErrSrc(PROC)
@@ -511,7 +511,7 @@ Public Sub UpdateRawClones( _
     
     mCompMan.ManageHostHostedProperty uc_hosted
     Set Stats = New clsStats
-    mUpdate.RawClones mService.Serviced
+    mUpdate.CommonCompsUsed mService.Serviced
     
 xt: Set Log = Nothing
     mErH.EoP ErrSrc(PROC)
