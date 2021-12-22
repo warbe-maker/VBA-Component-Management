@@ -145,11 +145,12 @@ Public Sub ChangedComponents()
             If Not .Changed Then
                 Select Case .KindOfComp
                     Case enCommCompUsed
-                        mCommCompsUsed.RevisionNumber(.CompName) = mCommComps.RevisionNumber(.CompName)
+                        mComCompsUsed.RevisionNumber(.CompName) = mComCompsSaved.RevisionNumber(.CompName)
                     Case enCommCompHosted
-                        If mCommCompsHosted.RevisionNumber = vbNullString _
-                        Then mCommCompsHosted.RevisionNumberIncrease .CompName          ' initial setting
-                        mCommCompsHosted.ExpFileFullName(.CompName) = .ExpFileFullName  ' update in case
+                        If mComCompsHosted.RevisionNumber(.CompName) = vbNullString _
+                        Then mComCompsHosted.RevisionNumberIncrease .CompName                               ' initial setting
+                        mComCompsSaved.Update .CompName, .ExpFile                                           ' update in case appropriate
+                        Log.Entry = "Export file in folder '" & mComCompsSaved.ComCompsFile & "' updated"
                 End Select
             Else
                 '~~ Process components the code has changed
@@ -180,16 +181,17 @@ Public Sub ChangedComponents()
                                     "(temporary Export-File differs from last changes Export-File)"
                         .Export
                         Log.Entry = "Exported to '" & .ExpFileFullName & "'"
-                        mCommCompsHosted.RevisionNumberIncrease .CompName
-                        mCommCompsHosted.ExpFileFullName(.CompName) = .ExpFileFullName
-                        mCommComps.RevisionNumber(.CompName) = mCommCompsHosted.RevisionNumber(.CompName)
-                        mCommComps.CommCompExpFile(.CompName) = .ExpFile ' maintain a copy as source for all using VB-Projects
-                        
+                        mComCompsHosted.RevisionNumberIncrease .CompName
+                        mComCompsHosted.ExpFileFullName(.CompName) = .ExpFileFullName
+                        mComCompsSaved.RevisionNumber(.CompName) = mComCompsHosted.RevisionNumber(.CompName)
+                        mComCompsSaved.ExpFile(.CompName) = .ExpFile ' maintain a copy as source for all using VB-Projects
+                        Log.Entry = "Export file updated in folder '" & mComCompsSaved.ComCompsFile & "'"
+
                         lExported = lExported + 1
                         If lExported = 1 _
                         Then sExported = .CompName _
                         Else sExported = sExported & ", " & .CompName
-                        mCommComps.ExpFileFullName(.CompName) = .ExpFileFullName
+                        mComCompsSaved.ExpFileFullName(.CompName) = .ExpFileFullName
                     
                     Case Else
                         Stop '~~ This is supposed a sever coding error!

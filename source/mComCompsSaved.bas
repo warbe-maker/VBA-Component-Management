@@ -1,9 +1,9 @@
-Attribute VB_Name = "mCommComps"
+Attribute VB_Name = "mComCompsSaved"
 Option Explicit
 ' ---------------------------------------------------------------------------
-' Standard Module mCommComps
-' Maintains in the Common Components folfer (CommCompsFolder)
-' - a file named (CommCompsFile) for all registered Common Components (i.e.
+' Standard Module mComCompsSaved
+' Maintains in the Common Components folfer (ComCompsFolder)
+' - a file named (ComCompsFile) for all registered Common Components (i.e.
 '   components managed by CompMan services. The file has the following
 '   structure:
 '   [<component-name]
@@ -22,8 +22,9 @@ Private Const VNAME_REVISION_DATE       As String = "RevisionDate"
 Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
 Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
-Public Property Get CommCompsFolder() As String:    CommCompsFolder = mMe.ServicedRootFolder & "\Common-Components": End Property
-Public Property Get CommCompsFile() As String:      CommCompsFile = CommCompsFolder & "\CommComps.dat":             End Property
+Public Property Get ComCompsFile() As String:      ComCompsFile = ComCompsFolder & "\ComCompsSaved.dat":            End Property
+
+Public Property Get ComCompsFolder() As String:    ComCompsFolder = mMe.ServicedRootFolder & "\Common-Components":  End Property
 
 Public Property Get ExpFile( _
                     Optional ByVal comp_name) As File
@@ -31,7 +32,7 @@ Public Property Get ExpFile( _
     
     With New FileSystemObject
         FileName = .GetFileName(ExpFileFullName(comp_name))
-        Set ExpFile = .GetFile(CommCompsFolder & "\" & FileName)
+        Set ExpFile = .GetFile(ComCompsFolder & "\" & FileName)
     End With
 End Property
 
@@ -42,7 +43,7 @@ Public Property Let ExpFile( _
     
     With New FileSystemObject
         FileName = .GetFileName(comp_exp_file.name)
-        .CopyFile comp_exp_file, CommCompsFolder & "\" & comp_name
+        .CopyFile comp_exp_file, ComCompsFolder & "\" & comp_name
     End With
 End Property
 
@@ -57,26 +58,6 @@ Public Property Let ExpFileFullName( _
     Value(pp_section:=comp_name, pp_value_name:=VNAME_EXP_FILE_FULL_NAME) = exp_file_full_name
 End Property
 
-Private Property Get RevisionDate( _
-                     Optional ByVal comp_name As String) As String
-    RevisionDate = Split(Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER), ".")(0)
-End Property
-
-Public Property Let RevisionNumber( _
-                     Optional ByVal comp_name As String, _
-                              ByVal comp_revision_number As String)
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = comp_revision_number
-End Property
-
-Public Property Get RevisionNumber( _
-                     Optional ByVal comp_name As String) As String
-' ----------------------------------------------------------------------------
-' Returns the revision number in the format YYYY-MM-DD.n
-' ----------------------------------------------------------------------------
-    RevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER)
-End Property
-
-
 Public Property Get HostFullName( _
                      Optional ByVal comp_name As String) As String
     HostFullName = Value(pp_section:=comp_name, pp_value_name:=VNAME_HOST_FULL_NAME)
@@ -88,13 +69,32 @@ Public Property Let HostFullName( _
     Value(pp_section:=comp_name, pp_value_name:=VNAME_HOST_FULL_NAME) = hst_full_name
 End Property
 
+Private Property Get RevisionDate( _
+                     Optional ByVal comp_name As String) As String
+    RevisionDate = Split(Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER), ".")(0)
+End Property
+
+Public Property Get RevisionNumber( _
+                     Optional ByVal comp_name As String) As String
+' ----------------------------------------------------------------------------
+' Returns the revision number in the format YYYY-MM-DD.n
+' ----------------------------------------------------------------------------
+    RevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER)
+End Property
+
+Public Property Let RevisionNumber( _
+                     Optional ByVal comp_name As String, _
+                              ByVal comp_revision_number As String)
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = comp_revision_number
+End Property
+
 Private Property Get Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String) As Variant
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    Value = mFile.Value(pp_file:=CommCompsFile _
+    Value = mFile.Value(pp_file:=ComCompsFile _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -112,12 +112,12 @@ Private Property Let Value( _
                     ByVal pp_value As Variant)
 ' --------------------------------------------------
 ' Write the value (pp_value) named (pp_value_name)
-' into the file RAWS_CommCompsFile.
+' into the file RAWS_ComCompsFile.
 ' --------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    mFile.Value(pp_file:=CommCompsFile _
+    mFile.Value(pp_file:=ComCompsFile _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -129,6 +129,23 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Property
+
+Public Sub Update(ByVal comp_name As String, _
+                  ByVal exp_file As File)
+' ----------------------------------------------------------------------------
+' Updates the export file in the Common Components folder when appropriate.
+' ----------------------------------------------------------------------------
+    If RevisionNumber(comp_name) = vbNullString Then
+        ExpFile(comp_name) = exp_file
+    ElseIf RevisionNumber(comp_name) < mComCompsHosted.RevisionNumber(comp_name) Then
+        ExpFile(comp_name) = exp_file
+    End If
+    RevisionNumber(comp_name) = mComCompsHosted.RevisionNumber(comp_name)
+End Sub
+
+Public Function Components() As Dictionary
+    Set Components = mFile.SectionNames(ComCompsFile)
+End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mRaw" & "." & sProc
@@ -159,13 +176,8 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function Components() As Dictionary
-    Set Components = mFile.SectionNames(CommCompsFile)
-End Function
-
 Public Sub Remove(ByVal comp_name As String)
-    mFile.SectionsRemove pp_file:=CommCompsFile _
+    mFile.SectionsRemove pp_file:=ComCompsFile _
                        , pp_sections:=comp_name
 End Sub
-
 

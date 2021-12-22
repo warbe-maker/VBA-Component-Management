@@ -39,15 +39,15 @@ Private Property Get BttnSkipAll() As String
 End Property
 
 Public Sub CommonCompsUsed(ByRef urc_wb As Workbook)
-' --------------------------------------------------------
-' Updates any clone in Workbook (urc_wb). Note that clones
-' are identifiied by equally named components in another
-' workbook which are indicated 'hosted'.
-' --------------------------------------------------------
+' ----------------------------------------------------------------------------
+' Updates any Common Component used in Workbook (urc_wb). Note that Common
+' Components are identifiied by equally named components in another workbook
+' which is indicated the 'host' Workbook.
+' ----------------------------------------------------------------------------
     Const PROC = "CommonCompsUsed"
     
     On Error GoTo eh
-    Dim dctCommCompsHostedChanged  As Dictionary
+    Dim dctComCompsHostedChanged  As Dictionary
     Dim vbc                     As VBComponent
     Dim fso                     As New FileSystemObject
     Dim sUpdated                As String
@@ -59,15 +59,15 @@ Public Sub CommonCompsUsed(ByRef urc_wb As Workbook)
     Dim CloneComp               As clsComp
     
     Set Clones = New clsClones
-    Set dctCommCompsHostedChanged = Clones.RawChanged
+    Set dctComCompsHostedChanged = Clones.RawChanged
     
     bVerbose = True
             
-    For Each v In dctCommCompsHostedChanged
+    For Each v In dctComCompsHostedChanged
         mCompMan.DsplyProgress p_result:=sUpdated _
                              , p_total:=Stats.Total(sic_clone_comps) _
                              , p_done:=Stats.Total(sic_clones_comps_updated)
-        Set RawComp = dctCommCompsHostedChanged(v)
+        Set RawComp = dctComCompsHostedChanged(v)
         Set CloneComp = New clsComp
         Set CloneComp.Wrkbk = urc_wb
         CloneComp.CompName = RawComp.CompName
@@ -86,7 +86,7 @@ Public Sub CommonCompsUsed(ByRef urc_wb As Workbook)
                      , rn_comp_name:=.CompName _
                      , rn_exp_file_full_name:=.ExpFileFullName
                 Log.Entry = "Clone-Component renewed/updated by (re-)import of '" & .ExpFileFullName & "'"
-                mCommCompsUsed.RevisionNumber(.CompName) = mCommComps.RevisionNumber(.CompName)
+                mComCompsUsed.RevisionNumber(.CompName) = mComCompsSaved.RevisionNumber(.CompName)
                 Stats.Count sic_clones_comps_updated
                 If sUpdated = vbNullString _
                 Then sUpdated = .CompName _
@@ -140,12 +140,12 @@ Public Function UpdateCloneConfirmed( _
         .Section(2).Text.Text = mMe.ServicedRootFolder
         .Section(2).Text.MonoSpaced = True
         With .Section(3)
-            If mCommComps.RevisionNumber(ucc_comp_name) = mCommCompsUsed.RevisionNumber(ucc_comp_name) Then
+            If mComCompsSaved.RevisionNumber(ucc_comp_name) = mComCompsUsed.RevisionNumber(ucc_comp_name) Then
                 .Label.Text = "Attention!"
                 .Label.FontColor = rgbRed
                 .Text.Text = "It appears that the code of the raw clone used in this Workbook has been modified. This modification will be " & _
                              "reverted with this update. Displaying the difference will be the last chance to modify the raw component in its " & _
-                             "hosting Workbook (" & mCommComps.HostFullName(ucc_comp_name) & ")."
+                             "hosting Workbook (" & mComCompsSaved.HostFullName(ucc_comp_name) & ")."
             Else
                 .Text.Text = vbNullString
             End If

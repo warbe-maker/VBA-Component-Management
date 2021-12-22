@@ -272,8 +272,8 @@ Friend Property Get KindOfComp() As enKindOfComp
     On Error GoTo eh
     
     If lKindOfComp = enKindOfComp.enUnknown Then
-        If mCommComps.Exists(sCompName) Then
-            If mCommComps.HostFullName(comp_name:=sCompName) = Me.Wrkbk.FullName _
+        If mComCompsSaved.Exists(sCompName) Then
+            If mComCompsSaved.HostFullName(comp_name:=sCompName) = Me.Wrkbk.FullName _
             Then lKindOfComp = enCommCompHosted _
             Else lKindOfComp = enCommCompUsed
         ElseIf lKindOfComp = enKindOfComp.enUnknown Then
@@ -609,7 +609,7 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
     If ReplaceRawWithCloneConfirmed(raw) Then
             '~~ Get the origin host Workbook open
         With raw
-            .HostWrkbkFullName = mCommComps.HostFullName(Me.CompName)
+            .HostWrkbkFullName = mComCompsSaved.HostFullName(Me.CompName)
             .CompName = Me.CompName
             .ExpFileExt = Me.ExpFileExt ' required to build the export file's full name
             Set .ExpFile = fso.GetFile(.ExpFileFullName)

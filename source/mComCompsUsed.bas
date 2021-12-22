@@ -1,39 +1,30 @@
-Attribute VB_Name = "mCommCompsHosted"
+Attribute VB_Name = "mComCompsUsed"
 Option Explicit
 ' ---------------------------------------------------------------------------
-' Standard Module mCommCompsHosted
-' Maintains in a file named CommCompsHosted.dat for each Workbook which hosts
-' at least one Common Component with the following structure:
+' Standard Module mComCompsUsed
+' Maintains in a file (UsedRawClones) for all used cloned raw components,
+' i.e. common components managed by CompMan services. The file has the
+' following structure:
 '
 ' [<component-name]
-' ExpFileFullName=<export-file-full-name>
 ' RevisionNumber=yyyy-mm-dd.n
 '
-' The entries (sections) are maintained along with the Workbook_BeforeSave
-' event via the ExportChangedComponents service. The revision number is
-' increased whith each saved modification.
+' The entries (sections) are maintained along with the Workbook_Open
+' event via the UpdateCommonCompsUsed service. The revision number is the copy
+' of the revision number provided by mComCompsSaved.RevisionNumber.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
-Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
-Private Property Get CommCompsHostedFile() As String
+Private Property Get UsedRawClonesFile() As String
     Dim Wb As Workbook: Set Wb = mService.Serviced
-    CommCompsHostedFile = Replace(Wb.FullName, Wb.name, "CommCompsHosted.dat")
-End Property
-
-Public Property Get ExpFileFullName( _
-                     Optional ByVal comp_name As String) As String
-    ExpFileFullName = Value(pp_section:=comp_name, pp_value_name:=VNAME_EXP_FILE_FULL_NAME)
-End Property
-
-Public Property Let ExpFileFullName( _
-                     Optional ByVal comp_name As String, _
-                              ByVal exp_file_full_name As String)
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_EXP_FILE_FULL_NAME) = exp_file_full_name
+    UsedRawClonesFile = Replace(Wb.FullName, Wb.name, "ComCompsUsed.dat")
 End Property
 
 Public Property Get RevisionNumber( _
                           Optional ByVal comp_name As String) As String
+' ----------------------------------------------------------------------------
+' Returns the revision number in the format YYYY-MM-DD.n
+' ----------------------------------------------------------------------------
     RevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER)
 End Property
 
@@ -46,14 +37,13 @@ End Property
 Private Property Get Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String) As Variant
+    Const PROC = "Value_Let"
 ' ----------------------------------------------------------------------------
 ' Returns the value named (pp_value_name) from the section (pp_section) in the
-' file CommCompsHostedFile.
+' file UsedRawClonesFile.
 ' ----------------------------------------------------------------------------
-    Const PROC = "Value_Let"
-    
     On Error GoTo eh
-    Value = mFile.Value(pp_file:=CommCompsHostedFile _
+    Value = mFile.Value(pp_file:=UsedRawClonesFile _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -71,12 +61,12 @@ Private Property Let Value( _
                     ByVal pp_value As Variant)
 ' ----------------------------------------------------------------------------
 ' Writes the value (pp_value) under the name (pp_value_name) into the
-' CommCompsHostedFile.
+' UsedRawClonesFile.
 ' ----------------------------------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    mFile.Value(pp_file:=CommCompsHostedFile _
+    mFile.Value(pp_file:=UsedRawClonesFile _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -88,10 +78,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Property
-
-Public Function Components() As Dictionary
-    Set Components = mFile.SectionNames(CommCompsFile)
-End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mRaw" & "." & sProc
@@ -122,28 +108,13 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
+Public Function Components() As Dictionary
+    Set Components = mFile.SectionNames(ComCompsFile)
+End Function
+
 Public Sub Remove(ByVal comp_name As String)
-    mFile.SectionsRemove pp_file:=CommCompsFile _
+    mFile.SectionsRemove pp_file:=ComCompsFile _
                        , pp_sections:=comp_name
 End Sub
 
-Public Sub RevisionNumberIncrease(ByVal comp_name As String)
-' ----------------------------------------------------------------------------
-' Increases the revision number by one starting with 1 for a new day.
-' ----------------------------------------------------------------------------
-    Dim RevNo   As Long
-    Dim RevDate As String
-    
-    If RevisionNumber(comp_name) = vbNullString Then
-        RevNo = 1
-    Else
-        RevNo = Split(RevisionNumber(comp_name), ".")(1)
-        RevDate = Split(RevisionNumber(comp_name), ".")(0)
-        If RevDate <> Format(Now(), "YYYY-MM-DD") _
-        Then RevNo = 1 _
-        Else RevNo = RevNo + 1
-    End If
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = Format(Now(), "YYYY-MM-DD") & "." & RevNo
-
-End Sub
 

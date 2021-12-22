@@ -164,12 +164,12 @@ Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
         Set .Wrkbk = Wb
         .CompName = cmp_comp_name
         Set .VBComp = Wb.VBProject.VBComponents(.CompName)
-        sExpFileRaw = mCommComps.ExpFileFullName(cmp_comp_name)
+        sExpFileRaw = mComCompsSaved.ExpFileFullName(cmp_comp_name)
     
         mFile.Compare fc_file_left:=.ExpFileFullName _
                     , fc_file_right:=sExpFileRaw _
                     , fc_left_title:="The cloned raw's current code in Workbook/VBProject " & Comp.WrkbkBaseName & " (" & .ExpFileFullName & ")" _
-                    , fc_right_title:="The remote raw's current code in Workbook/VBProject " & mBasic.BaseName(mCommComps.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
+                    , fc_right_title:="The remote raw's current code in Workbook/VBProject " & mBasic.BaseName(mComCompsSaved.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
 
     End With
     Set Comp = Nothing
@@ -407,19 +407,19 @@ Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
     If HostedRaws.Count <> 0 Then
         For Each v In HostedRaws
             '~~ Keep a record for each of the VBComponents hosted by this Workbook
-            If Not mCommComps.Exists(raw_comp_name:=v) _
-            Or mCommComps.HostFullName(comp_name:=v) <> mService.Serviced.FullName Then
-                mCommComps.HostFullName(comp_name:=v) = mService.Serviced.FullName
+            If Not mComCompsSaved.Exists(raw_comp_name:=v) _
+            Or mComCompsSaved.HostFullName(comp_name:=v) <> mService.Serviced.FullName Then
+                mComCompsSaved.HostFullName(comp_name:=v) = mService.Serviced.FullName
                 Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
             End If
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = mService.Serviced
                 .CompName = v
-                If mCommComps.ExpFileFullName(v) = vbNullString _
-                Or mCommComps.ExpFileFullName(v) <> .ExpFileFullName Then
+                If mComCompsSaved.ExpFileFullName(v) = vbNullString _
+                Or mComCompsSaved.ExpFileFullName(v) <> .ExpFileFullName Then
                     '~~ The component is yet not registered or registered under an outdated location
-                    mCommComps.ExpFileFullName(v) = .ExpFileFullName
+                    mComCompsSaved.ExpFileFullName(v) = .ExpFileFullName
                     '~~ Just in case its a new VBComponent - by the way
                     If Not fso.FileExists(.ExpFileFullName) Then .VBComp.Export .ExpFileFullName
                 End If
@@ -428,15 +428,15 @@ Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
         Next v
     Else
         '~~ Remove any raws still existing and pointing to this Workbook as host
-        For Each v In mCommComps.Components
-            If mCommComps.HostFullName(comp_name:=v) = mService.Serviced.FullName Then
-                mCommComps.Remove comp_name:=v
-                Log.Entry = "Component removed from '" & mCommComps.CommCompsFile & "'"
+        For Each v In mComCompsSaved.Components
+            If mComCompsSaved.HostFullName(comp_name:=v) = mService.Serviced.FullName Then
+                mComCompsSaved.Remove comp_name:=v
+                Log.Entry = "Component removed from '" & mComCompsSaved.ComCompsFile & "'"
             End If
         Next v
-        If mCommCompsHosts.Exists(fso.GetBaseName(mService.Serviced.FullName)) Then
-            mCommCompsHosts.Remove (fso.GetBaseName(mService.Serviced.FullName))
-            Log.Entry = "Workbook no longer a host for at least one raw component removed from '" & mCommCompsHosts.CommCompsHostsFile & "'"
+        If mComCompsHosts.Exists(fso.GetBaseName(mService.Serviced.FullName)) Then
+            mComCompsHosts.Remove (fso.GetBaseName(mService.Serviced.FullName))
+            Log.Entry = "Workbook no longer a host for at least one raw component removed from '" & mComCompsHosts.ComCompsHostsFile & "'"
         End If
     End If
 

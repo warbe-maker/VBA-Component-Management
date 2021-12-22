@@ -525,9 +525,11 @@ Public Sub Dsply()
         .Text.FontSize = 8
     End With
     
-    mMsg.Dsply dsply_title:="Execution Trace, displayed because the Conditional Compile Argument ""ExecTrace = 1""!" _
+    mMsg.Dsply dsply_title:="Execution Trace " & Format(Now(), "MM-DD hh:mm:ss") & _
+                            " (displayed because the Conditional Compile Argument ""ExecTrace = 1""!)" _
              , dsply_msg:=TrcResult _
-             , dsply_width_min:=60
+             , dsply_width_min:=60 _
+             , dsply_modeless:=True
             
 xt: mTrc.Terminate
     Exit Sub

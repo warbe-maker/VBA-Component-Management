@@ -1,14 +1,14 @@
-Attribute VB_Name = "mCommCompsHosts"
+Attribute VB_Name = "mComCompsHosts"
 Option Explicit
 ' ---------------------------------------------------------------------------
-' Standard Module mCommCompsHosts
+' Standard Module mComCompsHosts
 ' Maintains for raw components identified by their
 ' component name the values HostFullName and ExpFileFullName.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_HOST_FULL_NAME = "HostFullName"
 
-Public Property Get CommCompsFolder() As String:    CommCompsFolder = mMe.ServicedRootFolder & "\Common-Components":    End Property
-Public Property Get CommCompsHostsFile() As String: CommCompsHostsFile = CommCompsFolder & "\CommCompsHosts.dat":       End Property
+Public Property Get ComCompsFolder() As String:    ComCompsFolder = mMe.ServicedRootFolder & "\Common-Components":    End Property
+Public Property Get ComCompsHostsFile() As String: ComCompsHostsFile = ComCompsFolder & "\ComCompsHosts.dat":       End Property
 
 Public Property Get FullName( _
                      Optional ByVal host_base_name As String) As String
@@ -26,10 +26,10 @@ Private Property Get Value( _
            Optional ByVal pp_value_name As String) As Variant
 ' ----------------------------------------------------------------------------
 ' Returns the value named (pp_value_name) from the section (pp_section) in the
-' file CommCompsHostsFile.
+' file ComCompsHostsFile.
 ' ----------------------------------------------------------------------------
     
-    Value = mFile.Value(pp_file:=CommCompsHostsFile _
+    Value = mFile.Value(pp_file:=ComCompsHostsFile _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -41,10 +41,10 @@ Private Property Let Value( _
                     ByVal pp_value As Variant)
 ' --------------------------------------------------
 ' Write the value (pp_value) named (pp_value_name)
-' into the file 'CommCompsHostsFile'.
+' into the file 'ComCompsHostsFile'.
 ' --------------------------------------------------
     
-    mFile.Value(pp_file:=CommCompsHostsFile _
+    mFile.Value(pp_file:=ComCompsHostsFile _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -56,10 +56,10 @@ Public Function Exists(ByVal raw_host_base_name As String) As Boolean
 End Function
 
 Public Function Hosts() As Dictionary
-    Set Hosts = mFile.Sections(CommCompsHostsFile)
+    Set Hosts = mFile.Sections(ComCompsHostsFile)
 End Function
 
 Public Sub Remove(ByVal raw_host_base_name As String)
-    mFile.SectionsRemove pp_file:=CommCompsHostsFile _
+    mFile.SectionsRemove pp_file:=ComCompsHostsFile _
                        , pp_sections:=raw_host_base_name
 End Sub
