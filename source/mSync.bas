@@ -370,7 +370,7 @@ Public Function SyncTargetWithSource( _
     Set Sync = New clsSync
     Set Stats = New clsStats
         
-    Log.Service = PROC
+    Log.Service = ErrSrc(PROC)
     mCompMan.DsplyProgress
     
     '~~ Make sure both Workbook's Export-Files are up-to-date

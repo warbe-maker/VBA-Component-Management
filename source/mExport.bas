@@ -137,11 +137,13 @@ Public Sub ChangedComponents()
     lComponents = dctAll.Count
     Stats.Count sic_comps_total, lComponents
     lRemaining = lComponents
+    If Log Is Nothing Then Set Log = New clsLog
+    Log.Service = ErrSrc(PROC)
     
     For Each v In dctAll
         Set Comp = dctAll(v)
         With Comp
-            Debug.Print ".CompName: " & .CompName
+'            Debug.Print ".CompName: " & .CompName
 '            If .CompName = "mCompManClient" Then Stop
             Log.ServicedItem = .VBComp
             If Not .Changed Then
@@ -200,21 +202,21 @@ Public Sub ChangedComponents()
                 End Select
             End If
             lRemaining = lRemaining - 1
-            mCompMan.DsplyProgress p_result:=sExported & " " & String(lRemaining, ".") _
-                                 , p_total:=Stats.Total(sic_comps_changed) _
-                                 , p_done:=Stats.Total(sic_comps)
+            sMsg = Log.Service
+            sMsg = sMsg & lExported & " of " & lComponents & " changed"
+            If lExported > 0 _
+            Then sMsg = sMsg & " (" & sExported & ")"
+            sMsg = sMsg & " " & String(lRemaining, ".")
+            If Len(sMsg) > 255 Then
+                sMsg = Left(sMsg, 251) & " ..."
+            End If
+            Application.StatusBar = sMsg
         End With
         Set Comp = Nothing
 next_v:
     Next v
+    Application.StatusBar = vbNullString: Application.StatusBar = sMsg
     
-    sMsg = Log.Service
-    Select Case lExported
-        Case 0:     sMsg = sMsg & "No code changed (of " & lComponents & " components)"
-        Case Else:  sMsg = sMsg & sExported & " (" & lExported & " of " & lComponents & ")"
-    End Select
-    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 251) & " ..."
-    Application.StatusBar = sMsg
     
 xt: Set dctHostedRaws = Nothing
     Set Comp = Nothing

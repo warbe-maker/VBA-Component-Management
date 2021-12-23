@@ -88,7 +88,7 @@ Friend Property Let Service( _
     
     On Error GoTo eh
     
-    sService = sv_name & " by " & ThisWorkbook.name & " for '" & mService.Serviced.name & "': "
+    sService = "'" & sv_name & "(" & ThisWorkbook.name & ")' for '" & mService.Serviced.name & "': "
     
     bNewLog = new_log
     Me.Folder = mService.Serviced.Path

@@ -306,7 +306,7 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     
     Set mService.Serviced = ThisWorkbook
     Log.File = mFile.Temp(, ".log")
-    Log.Service = PROC
+    Log.Service = ErrSrc(PROC)
     
     With Comp
         .CompName = rnc_comp_name
