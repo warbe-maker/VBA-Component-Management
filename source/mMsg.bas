@@ -748,7 +748,7 @@ Public Function Monitor( _
     Const PROC = "Monitor"
    
     On Error GoTo eh
-    Dim msg     As TypeMsg
+    Dim Msg     As TypeMsg
     Dim MsgForm As fMsg
 
     AssertWidthAndHeight mntr_width_min _
@@ -757,24 +757,24 @@ Public Function Monitor( _
                        , mntr_height_max
     
     Set MsgForm = MsgInstance(mntr_title)
-    msg.Section(1).Label.Text = mntr_header
-    msg.Section(1).Label.MonoSpaced = mntr_msg_monospaced
-    msg.Section(1).Label.FontBold = True
-    msg.Section(1).Text.Text = mntr_msg
-    msg.Section(1).Text.MonoSpaced = mntr_msg_monospaced
+    Msg.Section(1).Label.Text = mntr_header
+    Msg.Section(1).Label.MonoSpaced = mntr_msg_monospaced
+    Msg.Section(1).Label.FontBold = True
+    Msg.Section(1).Text.Text = mntr_msg
+    Msg.Section(1).Text.MonoSpaced = mntr_msg_monospaced
     
-    msg.Section(2).Text.Text = mntr_footer
-    msg.Section(2).Text.FontColor = rgbBlue
-    msg.Section(2).Text.FontSize = 8
-    msg.Section(2).Text.FontBold = True
+    Msg.Section(2).Text.Text = mntr_footer
+    Msg.Section(2).Text.FontColor = rgbBlue
+    Msg.Section(2).Text.FontSize = 8
+    Msg.Section(2).Text.FontBold = True
     
     If Trim(MsgForm.MsgTitle) <> Trim(mntr_title) Then
         With MsgForm
             '~~ A new title starts a new progress message
             .MsgTitle = mntr_title
-            .MsgLabel(1) = msg.Section(1).Label
-            .MsgText(1) = msg.Section(1).Text
-            .MsgText(2) = msg.Section(2).Text
+            .MsgLabel(1) = Msg.Section(1).Label
+            .MsgText(1) = Msg.Section(1).Text
+            .MsgText(2) = Msg.Section(2).Text
             .MsgButtons = mntr_buttons
             .MsgWidthMin = mntr_width_min   ' pt min width
             .MsgWidthMax = mntr_width_max   ' pt max width
@@ -797,7 +797,7 @@ Public Function Monitor( _
         Application.ScreenUpdating = False
         MsgForm.Monitor mntr_text:=mntr_msg _
                       , mntr_append:=mntr_msg_append _
-                      , mntr_footer:=msg.Section(2).Text.Text
+                      , mntr_footer:=Msg.Section(2).Text.Text
     End If
       
 xt: Exit Function

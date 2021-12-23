@@ -29,11 +29,11 @@ Public Sub ByImport( _
     SaveWbk rn_wb
     DoEvents:  Application.Wait Now() + 0.0000001 ' wait for 10 milliseconds
     With rn_wb.VBProject
-        If mComp.Exists(wb:=rn_wb, comp_name:=rn_comp_name) Then
+        If mComp.Exists(Wb:=rn_wb, comp_name:=rn_comp_name) Then
             '~~ Find a free/unused temporary name
             sTempName = mComp.TempName(tn_wb:=rn_wb, tn_comp_name:=rn_comp_name)
             '~~ Rename the component when it already exists
-            .VBComponents(rn_comp_name).name = sTempName
+            .VBComponents(rn_comp_name).Name = sTempName
             Debug.Print NowMsec & " '" & rn_comp_name & "' renamed to '" & sTempName & "'"
 '           DoEvents:  Application.Wait Now() + 0.0000001 ' wait for 10 milliseconds
             .VBComponents.Remove .VBComponents(sTempName) ' will not take place until process has ended!
@@ -53,7 +53,7 @@ Public Sub ByImport( _
 xt: Set fso = Nothing
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

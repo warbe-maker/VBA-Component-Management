@@ -49,7 +49,7 @@ Private Function NameChange( _
 End Function
 
 Public Function SheetExists( _
-                       ByRef wb As Workbook, _
+                       ByRef Wb As Workbook, _
               Optional ByRef sh1_name As String = vbNullString, _
               Optional ByRef sh1_code_name As String = vbNullString, _
               Optional ByRef sh2_name As String = vbNullString, _
@@ -69,9 +69,9 @@ Public Function SheetExists( _
     If sh1_name = vbNullString And sh1_code_name = vbNullString _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "Neither a Sheet's Name nor CodeName is provided!"
     
-    For Each ws In wb.Worksheets
+    For Each ws In Wb.Worksheets
         If sh1_name <> vbNullString Then
-            If ws.name = sh1_name Then
+            If ws.Name = sh1_name Then
                 SheetExists = True
                 Exit For
             End If
@@ -85,14 +85,14 @@ Public Function SheetExists( _
     Next ws
     
 xt: If SheetExists Then
-        sh2_name = ws.name
+        sh2_name = ws.Name
         sh2_code_name = ws.CodeName
         If sh2_name <> sh1_name Then FinalName(sh1_name) = sh2_name
         If sh2_code_name <> sh1_code_name Then FinalName(sh1_code_name) = sh2_code_name
     End If
     Exit Function
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -171,7 +171,7 @@ End Sub
 'xt: Set fso = Nothing
 '    Exit Sub
 '
-'eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 '        Case vbResume:  Stop: Resume
 '        Case Else:     GoTo xt
 '    End Select
@@ -195,7 +195,7 @@ Public Sub SyncCodeName()
     For Each v In Sync.SourceSheets
         sSourceSheetName = Sync.SourceSheets(v)
         sSourceSheetCodeName = SheetCodeName(Sync.Source, sSourceSheetName)
-        If Not SheetExists(wb:=Sync.Target _
+        If Not SheetExists(Wb:=Sync.Target _
                          , sh1_name:=sSourceSheetName _
                          , sh1_code_name:=sSourceSheetCodeName _
                          , sh2_name:=sTargetSheetName _
@@ -211,8 +211,8 @@ Public Sub SyncCodeName()
                 Sync.ConfInfo = "CodeName change to '" & sSourceSheetCodeName & "'"
             Else
                 For Each vbc In Sync.Target.VBProject.VBComponents
-                    If vbc.name = sTargetSheetCodeName Then
-                        vbc.name = sSourceSheetCodeName
+                    If vbc.Name = sTargetSheetCodeName Then
+                        vbc.Name = sSourceSheetCodeName
                         '~~ When the sheet's CodeName has changed the sheet's code will only also be
                         '~~ synchronized when the CodeName is used - which should be the case because
                         '~~ there's no motivation to change it otherwise
@@ -227,7 +227,7 @@ next_sheet:
 
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -250,7 +250,7 @@ Public Sub SyncName()
         For Each v In .SourceSheets
             sSourceSheetName = .SourceSheets(v)
             sSourceSheetCodeName = SheetCodeName(.Source, sSourceSheetName)
-            If Not SheetExists(wb:=.Target _
+            If Not SheetExists(Wb:=.Target _
                              , sh1_name:=sSourceSheetName _
                              , sh1_code_name:=sSourceSheetCodeName _
                              , sh2_name:=sTargetSheetName _
@@ -266,7 +266,7 @@ Public Sub SyncName()
                     .ConfInfo = "Name change to '" & sSourceSheetName & "'."
                     SourceSheetNameChange sSourceSheetName, sSourceSheetCodeName, sTargetSheetName, sTargetSheetCodeName
                 Else
-                    .Target.Worksheets(sTargetSheetName).name = sSourceSheetName
+                    .Target.Worksheets(sTargetSheetName).Name = sSourceSheetName
                     Log.Entry = "Name changed to '" & sSourceSheetName & "'."
                 End If
             End If
@@ -276,7 +276,7 @@ next_comp:
     
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -314,7 +314,7 @@ Public Sub SyncNew()
         For Each v In .SourceSheets
             sSourceName = .SourceSheets(v)
             sSourceCodeName = SheetCodeName(.Source, sSourceName)
-            If Not SheetExists(wb:=.Target _
+            If Not SheetExists(Wb:=.Target _
                              , sh1_name:=sSourceName _
                              , sh1_code_name:=sSourceCodeName _
                              , sh2_name:=sTargetName _
@@ -360,7 +360,7 @@ next_v:
        
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -399,7 +399,7 @@ Public Sub SyncObsolete()
         For Each v In .TargetSheets
             sTargetSheetName = .TargetSheets(v)
             sTargetSheetCodeName = SheetCodeName(.Target, sTargetSheetName)
-            If Not SheetExists(wb:=.Source _
+            If Not SheetExists(Wb:=.Source _
                              , sh1_name:=sTargetSheetName _
                              , sh1_code_name:=sTargetSheetCodeName _
                              ) Then
@@ -452,7 +452,7 @@ next_v:
     
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -472,10 +472,10 @@ Public Sub SyncOrder()
     
     While i > Sync.Source.Worksheets.Count
         For i = 1 To Sync.Source.Worksheets.Count
-            If Sync.TargetSheets.Exists(Sync.Source.Worksheets(i).name) Then
+            If Sync.TargetSheets.Exists(Sync.Source.Worksheets(i).Name) Then
                 Set wsSource = Sync.Source.Worksheets(i)
                 Set wsTarget = Sync.Target.Worksheets(i)
-                If wsTarget.name <> wsSource.name Then
+                If wsTarget.Name <> wsSource.Name Then
                     Log.ServicedItem = wsTarget
                     wsTarget.Move After:=Sheets(Sync.Target.Worksheets.Count)
                     Log.Entry = "Order synced!"
@@ -488,14 +488,14 @@ again:
 
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Sub
 
 Public Function SheetCodeName( _
-                        ByRef wb As Workbook, _
+                        ByRef Wb As Workbook, _
                         ByVal sheet_name As String) As String
 ' -----------------------------------------------------------
 ' Returns the sheet's (sheet_name) CodeName in Workbook (wb).
@@ -507,8 +507,8 @@ Public Function SheetCodeName( _
     On Error GoTo eh
     Dim ws  As Worksheet
     
-    For Each ws In wb.Worksheets
-        If ws.name = sheet_name Then
+    For Each ws In Wb.Worksheets
+        If ws.Name = sheet_name Then
             SheetCodeName = ws.CodeName
             GoTo xt
         End If
@@ -516,7 +516,7 @@ Public Function SheetCodeName( _
     
 xt: Exit Function
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

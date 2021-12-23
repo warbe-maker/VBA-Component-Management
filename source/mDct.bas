@@ -158,14 +158,14 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
     If bOrderByKey Then
         If VarType(add_key) = vbObject Then
             On Error Resume Next
-            add_key.name = add_key.name
+            add_key.Name = add_key.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
         End If
     ElseIf bOrderByItem Then
         If VarType(add_item) = vbObject Then
             On Error Resume Next
-            add_item.name = add_item.name
+            add_item.Name = add_item.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
         End If
@@ -429,13 +429,13 @@ Private Function DctAddOrderValue(ByVal dctkey As Variant, _
     If bOrderByKey Then
     
         If VarType(dctkey) = vbObject _
-        Then DctAddOrderValue = dctkey.name _
+        Then DctAddOrderValue = dctkey.Name _
         Else DctAddOrderValue = dctkey
         
     ElseIf bOrderByItem Then
     
         If VarType(dctitem) = vbObject _
-        Then DctAddOrderValue = dctitem.name _
+        Then DctAddOrderValue = dctitem.Name _
         Else DctAddOrderValue = dctitem
     
     End If
@@ -532,7 +532,7 @@ Private Function DctAddItemExists( _
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = ThisWorkbook.name & " mDct." & sProc
+    ErrSrc = ThisWorkbook.Name & " mDct." & sProc
 End Function
 
 

@@ -21,8 +21,8 @@ Private Property Get mRenew_ByImport() As String
     mRenew_ByImport = CompManAddinName & "!mRenew.ByImport"
 End Property
 
-Private Property Get mService_UpdateCommonCompsUsed() As String
-    mService_UpdateCommonCompsUsed = CompManAddinName & "!mCompManClient.UpdateCommonCompsUsed"
+Private Property Get mService_UpdateComCompsUsed() As String
+    mService_UpdateComCompsUsed = CompManAddinName & "!mCompManClient.UpdateComCompsUsed"
 End Property
 
 Public Sub RemoveTestCodeChange( _
@@ -62,7 +62,7 @@ Public Sub RemoveTestCodeChange( _
 
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -76,7 +76,7 @@ Private Function MaxCompLength(ByRef Wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
         For Each vbc In Wb.VBProject.VBComponents
-            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
+            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.Name))
         Next vbc
     End If
 End Function
@@ -122,7 +122,7 @@ Public Sub Test_SyncVBProjects()
     
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -158,7 +158,7 @@ Public Sub Test_SyncColWidth()
     
     For Each ws In wbSource.Worksheets
         If mSyncSheets.SheetExists(Wb:=wbTarget _
-                                 , sh1_name:=ws.name _
+                                 , sh1_name:=ws.Name _
                                  , sh1_code_name:=ws.CodeName _
                                  , sh2_name:=sSheetName _
                                   ) _
@@ -171,7 +171,7 @@ Public Sub Test_SyncColWidth()
     
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -220,7 +220,7 @@ xt: Wb.Close SaveChanges:=False
     Set fso = Nothing
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -256,7 +256,7 @@ Public Sub Test_Log()
 xt: Set Log = Nothing
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -329,17 +329,17 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         Else
-            Log.Entry = "Workbook '" & wbActive.name & "' re-activated by closing the temporary created Workbook"
+            Log.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set Comp = Nothing
     Set Log = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -361,7 +361,7 @@ Public Sub Test_RenewComp_0_Regression()
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -421,7 +421,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
 xt: Set Comp = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -470,7 +470,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
 xt: Set Comp = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -519,7 +519,7 @@ Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
 xt: Set Comp = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -570,7 +570,7 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
 xt: Set Comp = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -630,14 +630,14 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
 xt: Set Comp = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Sub
 
-Public Sub Test_UpdateCommonCompsUsed()
-    Const PROC  As String = "Test_UpdateCommonCompsUsed"
+Public Sub Test_UpdateComCompsUsed()
+    Const PROC  As String = "Test_UpdateComCompsUsed"
     
     On Error GoTo eh
     Dim AddinService    As String
@@ -645,7 +645,7 @@ Public Sub Test_UpdateCommonCompsUsed()
     
     If mService.Denied(PROC) Then GoTo xt
 
-    AddinService = CompManAddinName & "!mCompMan.UpdateCommonCompsUsed"
+    AddinService = CompManAddinName & "!mCompMan.UpdateComCompsUsed"
     If mMe.CompManAddinIsOpen Then
         AddinStatus = " (currently the case) "
     Else
@@ -675,7 +675,7 @@ Public Sub Test_UpdateCommonCompsUsed()
     
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -778,7 +778,7 @@ Public Sub Test_Synch_RangesFormating()
     mSync.SyncBackup sTarget
     mSyncRanges.SyncFormating
     mSync.SyncRestore sTarget
-    Application.EnableEvents = False ' The open service UpdateCommonCompsUsed would start with a new log-file otherwise
+    Application.EnableEvents = False ' The open service UpdateComCompsUsed would start with a new log-file otherwise
     mCompMan.WbkGetOpen sTarget
     Application.EnableEvents = True
 
@@ -799,7 +799,7 @@ xt: With New FileSystemObject
 
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -838,7 +838,7 @@ Public Sub Test_Synch_CompsChanged()
     mSync.SyncBackup sTarget
     mSyncComps.SyncCodeChanges
     mSync.SyncRestore sTarget
-    Application.EnableEvents = False ' The open service UpdateCommonCompsUsed would start with a new log-file otherwise
+    Application.EnableEvents = False ' The open service UpdateComCompsUsed would start with a new log-file otherwise
     mCompMan.WbkGetOpen sTarget
     Application.EnableEvents = True
 
@@ -859,7 +859,7 @@ xt: With New FileSystemObject
 
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -884,7 +884,7 @@ Public Sub Test_SheetControls_Name_and_Type()
     
     Set ws = mCompMan.WbkGetOpen(sWb).Worksheets(sWs)
     For Each shp In ws.Shapes
-        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
+        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.Name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
     Next shp
     For Each v In dct
         Debug.Print dct(v), Tab(45), v
@@ -893,7 +893,7 @@ Public Sub Test_SheetControls_Name_and_Type()
 xt: Set dct = Nothing
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

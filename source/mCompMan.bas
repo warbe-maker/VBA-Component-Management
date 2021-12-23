@@ -176,7 +176,7 @@ Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
 
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -212,7 +212,7 @@ Public Sub DisplayChanges( _
 
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -258,7 +258,7 @@ xt: If fso.FolderExists(sTmpFolder) Then fso.DeleteFolder (sTmpFolder)
     Set fso = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -321,7 +321,7 @@ Public Function ExpFileFolderPath(ByVal v As Variant) As String
     
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -344,22 +344,21 @@ Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Sub
 
-Public Sub ExportChangedComponents( _
-                             ByRef ec_wb As Workbook, _
-                    Optional ByVal ec_hosted As String = vbNullString)
+Public Function ExportChangedComponents( _
+                ByRef ec_wb As Workbook, _
+       Optional ByVal ec_hosted As String = vbNullString)
 ' --------------------------------------------------------------------
 ' Exclusively performed/trigered by the Before_Save event:
 ' - Any code change (detected by the comparison of a temporary export
 '   file with the current export file) is backed-up/exported
 ' - Outdated Export Files (components no longer existing) are removed
-' - Clone code modifications update the raw code when confirmed by the
-'   user
+' - Returns FALSE when not executed
 ' --------------------------------------------------------------------------
     Const PROC = "ExportChangedComponents"
     
@@ -367,17 +366,20 @@ Public Sub ExportChangedComponents( _
     
     mErH.BoP ErrSrc(PROC)
     Set mService.Serviced = ec_wb
+    '
+    If mMe.CompManAddinIsPaused And mMe.IsAddinInstnc Then GoTo xt
     
     mService.ExportChangedComponents ec_hosted
+    ExportChangedComponents = True
     
 xt: mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
-    Exit Sub
+    Exit Function
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
+End Function
 
 Public Sub Install()
     mService.Install ActiveWorkbook
@@ -444,7 +446,7 @@ xt: Set fso = Nothing
     mErH.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -457,7 +459,7 @@ Public Sub RemoveTempRenamed()
     
     With mService.Serviced.VBProject
         For Each cmp In .VBComponents
-            If InStr(cmp.name, mComp.RENAMED_BY_COMPMAN) <> 0 Then
+            If InStr(cmp.Name, mComp.RENAMED_BY_COMPMAN) <> 0 Then
                 .VBComponents.Remove cmp
             End If
         Next cmp
@@ -487,41 +489,56 @@ xt: mErH.EoP ErrSrc(PROC)
     Set Log = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Sub
 
-Public Sub UpdateCommonCompsUsed( _
-                     ByRef uc_wb As Workbook, _
-            Optional ByVal uc_hosted As String = vbNullString)
-' ------------------------------------------------------------
-' Updates a clone component with the Export-File of the remote
-' raw component provided the raw's code has changed.
-' ------------------------------------------------------------
-    Const PROC = "UpdateCommonCompsUsed"
+Public Function UpdateComCompsUsed( _
+                ByRef uc_wb As Workbook, _
+       Optional ByVal uc_hosted As String = vbNullString) As Boolean
+' ------------------------------------------------------------------------------
+' Updates all used Common Components. Returns with FALSE when the function is
+' executed from within the Development instance and the serviced Workbook is the
+' Development Instance.
+' ------------------------------------------------------------------------------
+    Const PROC = "UpdateComCompsUsed"
     
     On Error GoTo eh
+    Dim Msg As TypeMsg
+    
     mErH.BoP ErrSrc(PROC)
     
     Set Log = New clsLog
     Set mService.Serviced = uc_wb
+    If mMe.IsDevInstnc And uc_wb.Name = mMe.DevInstncName Then
+        With Msg.Section(1)
+            .Text.Text = "The only CompMan instance available is the Development Instance. " & _
+                         "This may be the case either when no Addin Instance had yet been established " & _
+                         "or the Addin Instance is currently paused. This is no problem for any " & _
+                         "VB-Project but for the Development Instance itself. To update used " & _
+                         "Common Components which had changed it requires the Addin Instance to " & _
+                         "get this done."
+        End With
+        mMsg.Dsply dsply_title:="The CompMan Development Instance Workbook cannot update itself!" _
+                 , dsply_msg:=Msg
+    End If
     If mService.Denied(PROC) Then GoTo xt
     
     mCompMan.ManageHostHostedProperty uc_hosted
     Set Stats = New clsStats
-    mUpdate.CommonCompsUsed mService.Serviced
+    mUpdate.ComCompsUsed mService.Serviced
     
 xt: Set Log = Nothing
     mErH.EoP ErrSrc(PROC)
-    Exit Sub
+    Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
+End Function
 
 Public Function WbkGetOpen(ByVal go_wb_full_name As String) As Workbook
 ' ---------------------------------------------------------------------
@@ -542,7 +559,7 @@ Public Function WbkGetOpen(ByVal go_wb_full_name As String) As Workbook
 xt: Set fso = Nothing
     Exit Function
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -572,13 +589,13 @@ Public Function WbkIsOpen( _
         WbkIsOpen = Err.Number = 0
     Else
         On Error Resume Next
-        io_name = Application.Workbooks(io_name).name
+        io_name = Application.Workbooks(io_name).Name
         WbkIsOpen = Err.Number = 0
     End If
 
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

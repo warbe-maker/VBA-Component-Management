@@ -38,13 +38,13 @@ Private Property Get BttnSkipAll() As String
     BttnSkipAll = "Skip" & vbLf & "all"
 End Property
 
-Public Sub CommonCompsUsed(ByRef urc_wb As Workbook)
+Public Sub ComCompsUsed(ByRef urc_wb As Workbook)
 ' ----------------------------------------------------------------------------
 ' Updates any Common Component used in Workbook (urc_wb). Note that Common
 ' Components are identifiied by equally named components in another workbook
 ' which is indicated the 'host' Workbook.
 ' ----------------------------------------------------------------------------
-    Const PROC = "CommonCompsUsed"
+    Const PROC = "ComCompsUsed"
     
     On Error GoTo eh
     Dim dctComCompsHostedChanged  As Dictionary
@@ -104,7 +104,7 @@ Public Sub CommonCompsUsed(ByRef urc_wb As Workbook)
 xt: Set fso = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -182,7 +182,7 @@ Public Function UpdateCloneConfirmed( _
     
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

@@ -129,7 +129,7 @@ Friend Property Get Changed() As Boolean
             .CreateFolder sTmpFolder
             DoEvents
         End If
-        sTmpExpFileFullName = sTmpFolder & "\" & vbc.name & sExpFileExt
+        sTmpExpFileFullName = sTmpFolder & "\" & vbc.Name & sExpFileExt
         vbc.Export sTmpExpFileFullName
         DoEvents
 
@@ -137,7 +137,7 @@ Friend Property Get Changed() As Boolean
         mFile.Differs(fd_file1:=.GetFile(sTmpExpFileFullName) _
                     , fd_file2:=.GetFile(Me.ExpFileFullName) _
                     , fd_ignore_empty_records:=True _
-                    , fd_compare:=vbTextCompare _
+                    , fd_compare:=vbBinaryCompare _
                     , fd_stop_after:=1 _
                      )
     End With
@@ -145,7 +145,7 @@ Friend Property Get Changed() As Boolean
     
 xt: Exit Property
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -158,7 +158,7 @@ Friend Property Get CodeName( _
 ' --------------------------------------------------------
     Dim wsh As Worksheet
     For Each wsh In Wb.Worksheets
-        If sh.name = scn_name Then
+        If sh.Name = scn_name Then
             CodeName = wsh.CodeName
             Exit For
         End If
@@ -201,7 +201,7 @@ End Property
 Friend Property Get ExistsBySheetName(Optional ByVal eb_name As String) As Boolean
     Dim ws As Worksheet
     For Each ws In Me.Wrkbk.Worksheets
-        ExistsBySheetName = ws.name = eb_name
+        ExistsBySheetName = ws.Name = eb_name
         If ExistsBySheetName Then Exit For
     Next ws
 End Property
@@ -286,7 +286,7 @@ Friend Property Get KindOfComp() As enKindOfComp
 xt: KindOfComp = lKindOfComp
     Exit Property
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -370,7 +370,7 @@ Private Property Get ReplaceRawWithCloneConfirmed(ByRef raw As clsRaw) As Boolea
                                             
 xt: Exit Property
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -420,7 +420,7 @@ Friend Property Get Wrkbk() As Workbook
 xt: Set fso = Nothing
     Exit Property
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -445,7 +445,7 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     sExpFilePath = fso.GetParentFolderName(sWrkbkFullName)
     sService = fso.GetFileName(Wb.Path)
     For Each vbc In Wb.VBProject.VBComponents
-        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.name))
+        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
     Next vbc
     Set fso = Nothing
     
@@ -501,7 +501,7 @@ Public Sub DsplyAllChanges()
     
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -545,18 +545,18 @@ Public Function RemoteSheetExists( _
     Dim vbc As VBComponent
     
     For Each ws In rs_wb.Worksheets
-        If rs_ws_name <> vbNullString And ws.name = rs_ws_name Then
+        If rs_ws_name <> vbNullString And ws.Name = rs_ws_name Then
             Set rs_ws = ws
             If rs_ws_codename = vbNullString Then rs_ws_codename = ws.CodeName
             Exit For
         ElseIf rs_ws_codename <> vbNullString And ws.CodeName = rs_ws_codename Then
             Set rs_ws = ws
-            If rs_ws_name = vbNullString Then rs_ws_name = ws.name
+            If rs_ws_name = vbNullString Then rs_ws_name = ws.Name
         End If
     Next ws
     
     For Each vbc In rs_wb.VBProject.VBComponents
-        If rs_ws_codename <> vbNullString And vbc.name = rs_ws_codename Then
+        If rs_ws_codename <> vbNullString And vbc.Name = rs_ws_codename Then
             Set rs_vbc = vbc
             Exit For
         End If
@@ -574,18 +574,18 @@ Public Sub ReplaceRawWithClone(ByRef raw As clsRaw)
     On Error GoTo eh
     Dim wbRawHost   As Workbook
         
-    Application.EnableEvents = False ' prevent the 'UpdateCommonCompsUsed' service when the Workbook is opened
+    Application.EnableEvents = False ' prevent the 'UpdateComCompsUsed' service when the Workbook is opened
     Set wbRawHost = mCompMan.WbkGetOpen(raw.HostWrkbkFullName) ' Wrkbk is the Workbook hosting the raw Component
     Application.EnableEvents = True
     
     mRenew.ByImport rn_wb:=wbRawHost _
                   , rn_comp_name:=sCompName _
                   , rn_exp_file_full_name:=Me.ExpFileFullName
-    Log.Entry = "Raw-Component (hosted in '" & wbRawHost.name & "' replaced by (re-)import of the clone's export file '" & Me.ExpFileFullName & "'"
+    Log.Entry = "Raw-Component (hosted in '" & wbRawHost.Name & "' replaced by (re-)import of the clone's export file '" & Me.ExpFileFullName & "'"
 
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -635,7 +635,7 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
 xt: Set fso = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

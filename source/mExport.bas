@@ -39,7 +39,7 @@ Public Sub All()
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = mService.Serviced
-            .CompName = vbc.name ' this assignment provides the name for the export file
+            .CompName = vbc.Name ' this assignment provides the name for the export file
             vbc.Export .ExpFileFullName
         End With
         Set Comp = Nothing
@@ -48,7 +48,7 @@ Public Sub All()
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -66,10 +66,10 @@ Private Function AllComps() As Dictionary
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = Wb
-                .CompName = vbc.name
+                .CompName = vbc.Name
                 Set .VBComp = vbc
             End With
-            mDct.DctAdd add_dct:=dct, add_key:=vbc.name, add_item:=Comp, add_order:=order_bykey
+            mDct.DctAdd add_dct:=dct, add_key:=vbc.Name, add_item:=Comp, add_order:=order_bykey
         Next vbc
     End With
     Set AllComps = dct
@@ -300,7 +300,7 @@ xt: Set cll = Nothing
     Set fl = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

@@ -56,7 +56,7 @@ Private sExpFileFullName        As String
 Private wbRawHost               As Workbook
 Private sService                As String
 Private sTypeString             As String
-Private wb                      As Workbook
+Private Wb                      As Workbook
 Private sWrkbkBaseName          As String       ' Common Component host Workbook's base name
 Private sWrkbkFullName          As String       ' Common Component host Workbook's full name
 Private vbc                     As VBComponent  ' VBComponent managed by this Class Module
@@ -113,7 +113,7 @@ Friend Property Get Changed( _
         mFile.Differs(fd_file1:=fso.GetFile(clone.ExpFileFullName) _
                     , fd_file2:=fso.GetFile(Me.ExpFileFullName) _
                     , fd_ignore_empty_records:=True _
-                    , fd_compare:=vbTextCompare _
+                    , fd_compare:=vbBinaryCompare _
                     , fd_stop_after:=1 _
                      )
         Changed = dctChanges.Count <> 0
@@ -122,7 +122,7 @@ Friend Property Get Changed( _
 xt: Set fso = Nothing
     Exit Property
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -172,7 +172,7 @@ Friend Property Get CodeLines() As Dictionary
 xt: Set CodeLines = dct
     Exit Property
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -188,9 +188,9 @@ Friend Property Let CompName(ByVal s As String)
 ' -------------------------------------------------------------
     Dim fso As New FileSystemObject
     sCompName = s
-    If Not wb Is Nothing Then
+    If Not Wb Is Nothing Then
         If Me.Exists Then
-            Set vbc = wb.VBProject.VBComponents(s)
+            Set vbc = Wb.VBProject.VBComponents(s)
             sExpFileFullName = mCompMan.ExpFileFolderPath(Me.HostWrkbkFullName) & "\" & sCompName & Me.ExpFileExt
             If Not fso.FileExists(sExpFileFullName) Then
                 MsgBox Title:="An obligatory Export-File is missing!" _
@@ -222,7 +222,7 @@ Friend Property Get Exists(Optional ByRef ex_wb As Workbook = Nothing) As Boolea
         Exists = Not v Is Nothing
     ElseIf vbc Is Nothing Then
         On Error Resume Next
-        Set vbc = wb.VBProject.VBComponents(sCompName)
+        Set vbc = Wb.VBProject.VBComponents(sCompName)
         Exists = Not vbc Is Nothing
     Else
         Exists = Not vbc Is Nothing
@@ -232,7 +232,7 @@ End Property
 Friend Property Get ExistsBySheetName(ByVal eb_name As String) As Boolean
     Dim ws As Worksheet
     For Each ws In Me.Wrkbk.Worksheets
-        ExistsBySheetName = ws.name = eb_name
+        ExistsBySheetName = ws.Name = eb_name
         If ExistsBySheetName Then Exit For
     Next ws
 End Property
@@ -260,7 +260,7 @@ End Property
 Friend Property Get ExpFileExt() As String
     
     If sExpFileExt = vbNullString Then
-        If vbc Is Nothing Then Set vbc = wb.VBProject.VBComponents(sCompName)
+        If vbc Is Nothing Then Set vbc = Wb.VBProject.VBComponents(sCompName)
         With Me
             Select Case vbc.Type
                 Case vbext_ct_StdModule:    sExpFileExt = ".bas"
@@ -320,18 +320,18 @@ Friend Property Get Wrkbk() As Workbook
     On Error GoTo eh
     Dim fso As New FileSystemObject
     
-    If wb Is Nothing Then
+    If Wb Is Nothing Then
         If Not fso.FileExists(sWrkbkFullName) _
         Then Err.Raise AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
-        Set wb = mCompMan.WbkGetOpen(sWrkbkFullName)
+        Set Wb = mCompMan.WbkGetOpen(sWrkbkFullName)
     Else
-        Set Wrkbk = wb
+        Set Wrkbk = Wb
     End If
     
 xt: Set fso = Nothing
     Exit Property
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -350,12 +350,12 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     Dim fso As New FileSystemObject
     Dim vbc As VBComponent
     
-    Set wb = wbk
-    sWrkbkFullName = wb.FullName
+    Set Wb = wbk
+    sWrkbkFullName = Wb.FullName
     sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
-    sService = wb.name
-    For Each vbc In wb.VBProject.VBComponents
-        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.name))
+    sService = Wb.Name
+    For Each vbc In Wb.VBProject.VBComponents
+        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
     Next vbc
     Set fso = Nothing
     
@@ -392,18 +392,18 @@ Public Function RemoteSheetExists( _
     Dim vbc As VBComponent
     
     For Each ws In rs_wb.Worksheets
-        If rs_ws_name <> vbNullString And ws.name = rs_ws_name Then
+        If rs_ws_name <> vbNullString And ws.Name = rs_ws_name Then
             Set rs_ws = ws
             If rs_ws_codename = vbNullString Then rs_ws_codename = ws.CodeName
             Exit For
         ElseIf rs_ws_codename <> vbNullString And ws.CodeName = rs_ws_codename Then
             Set rs_ws = ws
-            If rs_ws_name = vbNullString Then rs_ws_name = ws.name
+            If rs_ws_name = vbNullString Then rs_ws_name = ws.Name
         End If
     Next ws
     
     For Each vbc In rs_wb.VBProject.VBComponents
-        If rs_ws_codename <> vbNullString And vbc.name = rs_ws_codename Then
+        If rs_ws_codename <> vbNullString And vbc.Name = rs_ws_codename Then
             Set rs_vbc = vbc
             Exit For
         End If

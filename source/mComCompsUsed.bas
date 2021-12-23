@@ -10,14 +10,14 @@ Option Explicit
 ' RevisionNumber=yyyy-mm-dd.n
 '
 ' The entries (sections) are maintained along with the Workbook_Open
-' event via the UpdateCommonCompsUsed service. The revision number is the copy
+' event via the UpdateComCompsUsed service. The revision number is the copy
 ' of the revision number provided by mComCompsSaved.RevisionNumber.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
 
 Private Property Get UsedRawClonesFile() As String
     Dim Wb As Workbook: Set Wb = mService.Serviced
-    UsedRawClonesFile = Replace(Wb.FullName, Wb.name, "ComCompsUsed.dat")
+    UsedRawClonesFile = Replace(Wb.FullName, Wb.Name, "ComCompsUsed.dat")
 End Property
 
 Public Property Get RevisionNumber( _
@@ -51,7 +51,7 @@ Private Property Get Value( _
                        )
 xt: Exit Property
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -75,7 +75,7 @@ Private Property Let Value( _
 
 xt: Exit Property
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -104,7 +104,7 @@ Public Function MaxRawLenght() As Long
     
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

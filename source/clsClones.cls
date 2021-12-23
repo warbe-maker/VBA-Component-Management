@@ -34,7 +34,7 @@ Private Property Get Sorted() As Dictionary
     
     For Each vbc In mService.Serviced.VBProject.VBComponents
         Log.ServicedItem = vbc
-        mDct.DctAdd dct, vbc.Type & vbc.name, vbc, order_bykey, seq_ascending, , , True
+        mDct.DctAdd dct, vbc.Type & vbc.Name, vbc, order_bykey, seq_ascending, , , True
     Next vbc
     Set Sorted = dct
     Set dct = Nothing
@@ -63,9 +63,9 @@ Public Sub CollectAllChanged()
         Set CloneComp = New clsComp
         With CloneComp
             Set .Wrkbk = mService.Serviced
-            .CompName = vbc.name
+            .CompName = vbc.Name
             
-            mCompMan.DsplyProgress p_result:=sChanged & " " & vbc.name _
+            mCompMan.DsplyProgress p_result:=sChanged & " " & vbc.Name _
                                  , p_total:=Stats.Total(sic_comps_total) _
                                  , p_done:=Stats.Total(sic_comps)
             
@@ -81,10 +81,10 @@ Public Sub CollectAllChanged()
             RawComp.TypeString = .TypeString
             If RawComp.Changed(CloneComp) Then
                 Stats.Count sic_raw_changed
-                mDct.DctAdd dctChanged, vbc.name, RawComp, order_bykey, seq_ascending, , , True
+                mDct.DctAdd dctChanged, vbc.Name, RawComp, order_bykey, seq_ascending, , , True
                 If Stats.Total(sic_clone_changed) = 1 _
-                Then sChanged = vbc.name _
-                Else sChanged = sChanged & ", " & vbc.name
+                Then sChanged = vbc.Name _
+                Else sChanged = sChanged & ", " & vbc.Name
             Else
                 Log.Entry = "Corresponding Raw's code un-changed."
             End If
@@ -96,7 +96,7 @@ next_vbc:
     
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

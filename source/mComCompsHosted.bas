@@ -18,7 +18,7 @@ Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
 Private Property Get ComCompsHostedFile() As String
     Dim Wb As Workbook: Set Wb = mService.Serviced
-    ComCompsHostedFile = Replace(Wb.FullName, Wb.name, "ComCompsHosted.dat")
+    ComCompsHostedFile = Replace(Wb.FullName, Wb.Name, "ComCompsHosted.dat")
 End Property
 
 Public Property Get ExpFileFullName( _
@@ -59,7 +59,7 @@ Private Property Get Value( _
                        )
 xt: Exit Property
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -83,7 +83,7 @@ Private Property Let Value( _
 
 xt: Exit Property
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -116,7 +116,7 @@ Public Function MaxRawLenght() As Long
     
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

@@ -34,7 +34,7 @@ Private Property Get Sorted() As Dictionary
     
     For Each vbc In mService.Serviced.VBProject.VBComponents
         Log.ServicedItem = vbc
-        mDct.DctAdd dct, vbc.Type & vbc.name, vbc, order_bykey, seq_ascending, , , True
+        mDct.DctAdd dct, vbc.Type & vbc.Name, vbc, order_bykey, seq_ascending, , , True
     Next vbc
     Set Sorted = dct
     Set dct = Nothing
@@ -63,24 +63,24 @@ Public Sub CollectAllChanged()
     Set dct = Sorted
     For Each v In dct
         Set vbc = dct(v)
-        mCompMan.DsplyProgress p_result:=sChanged & " " & vbc.name _
+        mCompMan.DsplyProgress p_result:=sChanged & " " & vbc.Name _
                     , p_total:=Stats.Total(sic_comps_total) _
                     , p_done:=Stats.Total(sic_comps)
         
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = mService.Serviced
-            .CompName = vbc.name
+            .CompName = vbc.Name
             Log.ServicedItem = vbc
             Stats.Count sic_comps
             If .Changed Then
                 Stats.Count sic_comps_changed
                 Set CompChanged = New clsComp
                 Set CompChanged = Comp
-                mDct.DctAdd dctChanged, vbc.name, CompChanged, order_bykey, seq_ascending, , , True
+                mDct.DctAdd dctChanged, vbc.Name, CompChanged, order_bykey, seq_ascending, , , True
                 If Stats.Total(sic_comps_changed) = 1 _
-                Then sChanged = vbc.name _
-                Else sChanged = sChanged & ", " & vbc.name
+                Then sChanged = vbc.Name _
+                Else sChanged = sChanged & ", " & vbc.Name
             Else
                 Log.Entry = "Code un-changed"
             End If
@@ -93,7 +93,7 @@ next_v:
 xt: Set dct = Nothing
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

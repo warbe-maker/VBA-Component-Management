@@ -63,7 +63,7 @@ xt: Set cSource = Nothing
     Set ws = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -81,7 +81,7 @@ Private Sub ClearLinksToSource()
     Dim v           As Variant
     Dim ws          As Worksheet
     Dim shp         As Shape
-    Dim nm          As name
+    Dim nm          As Name
     Dim sName       As String
     Dim sOnAction   As String
     Dim SheetName   As String
@@ -105,13 +105,13 @@ Private Sub ClearLinksToSource()
         Set shp = Sync.Target.Worksheets(SheetName).Shapes(ControlName)
         On Error Resume Next
         sOnAction = shp.OnAction
-        sOnAction = Replace(sOnAction, Sync.Source.name, Sync.Target.name)
+        sOnAction = Replace(sOnAction, Sync.Source.Name, Sync.Target.Name)
         shp.OnAction = sOnAction
     Next v
     
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -136,10 +136,10 @@ End Function
 
 Private Function NameExists( _
                       ByRef ne_wb As Workbook, _
-                      ByVal ne_nm As name) As Boolean
-    Dim nm As name
+                      ByVal ne_nm As Name) As Boolean
+    Dim nm As Name
     For Each nm In ne_wb.Names
-        NameExists = nm.name = ne_nm.name
+        NameExists = nm.Name = ne_nm.Name
         If NameExists Then Exit For
     Next nm
 End Function
@@ -152,7 +152,7 @@ Private Sub RemoveInvalidRangeNames()
     Const PROC = "RemoveInvalidRangeNames"
     
     On Error GoTo eh
-    Dim nm As name
+    Dim nm As Name
     For Each nm In Sync.Target.Names
         Debug.Print nm.Value
         If InStr(nm.Value, "#") <> 0 Or InStr(nm.RefersTo, "#") <> 0 Then
@@ -165,7 +165,7 @@ Private Sub RemoveInvalidRangeNames()
 
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -182,8 +182,8 @@ Private Sub RenameSheet(ByRef rs_wb As Workbook, _
     On Error GoTo eh
     Dim sh  As Worksheet
     For Each sh In rs_wb.Worksheets
-        If sh.name = rs_old_name Then
-            sh.name = rs_new_name
+        If sh.Name = rs_old_name Then
+            sh.Name = rs_new_name
             Log.Entry = "Sheet-Name changed to '" & rs_new_name & "'"
             Exit For
         End If
@@ -191,7 +191,7 @@ Private Sub RenameSheet(ByRef rs_wb As Workbook, _
 
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -214,7 +214,7 @@ Private Sub RenameWrkbkModule( _
             If vbc.Type = vbext_ct_Document Then
                 If mComp.IsWrkbkDocMod(vbc) Then
                     Log.ServicedItem = vbc
-                    vbc.name = rdm_new_name
+                    vbc.Name = rdm_new_name
                     Log.Entry = "Renamed to '" & rdm_new_name & "'"
                     DoEvents
                     Exit For
@@ -225,7 +225,7 @@ Private Sub RenameWrkbkModule( _
     
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -257,7 +257,7 @@ End Sub
 '
 'xt: Exit Sub
 '
-'eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 '        Case vbResume:  Stop: Resume
 '        Case Else:      GoTo xt
 '    End Select
@@ -294,7 +294,7 @@ Private Sub CollectSyncIssuesForConfirmation()
     
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -328,7 +328,7 @@ xt: Set fso = Nothing
     mCompMan.WbkGetOpen sWrkbk
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -349,7 +349,7 @@ Public Sub SyncBackup(ByVal sWrkbk As String)
 
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -402,7 +402,7 @@ Public Function SyncTargetWithSource( _
 xt: Set Sync = Nothing
     Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -468,7 +468,7 @@ Private Function DoSynchronization( _
 
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -563,7 +563,7 @@ xt: Set fso = Nothing
 '    Set Sync = Nothing
     Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -590,7 +590,7 @@ Private Function WbkGetOpen(ByVal go_wb_full_name As String) As Workbook
 xt: Set fso = Nothing
     Exit Function
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -621,14 +621,14 @@ Private Function WbkIsOpen( _
             WbkIsOpen = Err.Number = 0
         Else
             On Error Resume Next
-            wb_base_name = Application.Workbooks(wb_base_name).name
+            wb_base_name = Application.Workbooks(wb_base_name).Name
             WbkIsOpen = Err.Number = 0
         End If
     End With
 
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

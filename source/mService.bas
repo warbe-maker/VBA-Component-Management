@@ -160,7 +160,7 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         End If
     End If
@@ -168,7 +168,7 @@ xt: If Not wbTemp Is Nothing Then
     Set fso = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -178,16 +178,20 @@ Public Sub Continue()
 ' -------------------------------------------
 ' Continues the paused CompMan Addin Services
 ' -------------------------------------------
-    mMe.CompManAddinPaused = False
-    mMe.DisplayStatus
+    If mMe.IsDevInstnc Then
+        mMe.CompManAddinIsPaused = False
+        mMe.DisplayStatus
+    End If
 End Sub
 
 Public Sub Pause()
 ' ----------------------------------
 ' Pauses the CompMan Addin Services
 ' ---------------------------------
-    mMe.CompManAddinPaused = True
-    mMe.DisplayStatus
+    If mMe.IsDevInstnc Then
+        mMe.CompManAddinIsPaused = True
+        mMe.DisplayStatus
+    End If
 End Sub
 
 Private Function CodeModuleIsEmpty(ByRef vbc As VBComponent) As Boolean
@@ -200,7 +204,7 @@ End Function
 Public Function CompMaxLen(ByRef ml_wb As Workbook) As Long
     Dim vbc As VBComponent
     For Each vbc In ml_wb.VBProject.VBComponents
-        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.name))
+        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.Name))
     Next vbc
 End Function
 
@@ -226,7 +230,7 @@ Public Function Denied(ByVal den_service As String) As Boolean
     ElseIf Not WbkInServicedRoot Then
         sStatus = "Service denied! Workbook is not within the configured 'serviced root': " & mMe.ServicedRootFolder & "!"
         Log.Entry = sStatus
-    ElseIf mMe.CompManAddinPaused And mMe.IsAddinInstnc Then
+    ElseIf mMe.CompManAddinIsPaused And mMe.IsAddinInstnc Then
         sStatus = "Service denied! The CompMan Addin is currently paused!"
         Log.Entry = sStatus
     ElseIf FolderNotVbProjectExclusive Then
@@ -243,7 +247,7 @@ Public Function Denied(ByVal den_service As String) As Boolean
 
 xt: Exit Function
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -269,7 +273,7 @@ Public Sub ExportChangedComponents(ByVal hosted As String)
 '       Export-File found within the Workbook-Folder outside
 '       the specified Export-Folder is removed.
 ' Attention: This procedure is called exclusively by
-'            mCompMan.UpdateCommonCompsUsed! When called directly
+'            mCompMan.UpdateComCompsUsed! When called directly
 '            by the user, e.g. via the 'Imediate Window' an
 '            error will be raised because an 'mService.Serviced'
 '            Workbook is not set.
@@ -298,7 +302,7 @@ xt: Set dctHostedRaws = Nothing
     mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -371,7 +375,7 @@ xt: mErH.EoP ErrSrc(PROC)
     Set Log = Nothing
     Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -399,7 +403,7 @@ Public Sub Install(Optional ByRef in_wb As Workbook = Nothing)
 xt: mErH.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -553,7 +557,7 @@ xt: If bWbClone Then
     SyncSourceAndTargetSelected = bWbClone And bWbRaw
     Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -580,7 +584,7 @@ Private Function Clones( _
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = cl_wb
-            .CompName = vbc.name
+            .CompName = vbc.Name
             Log.ServicedItem = .VBComp
             If .KindOfComp = enCommCompUsed Then
                 Set RawComp = New clsRaw
@@ -590,12 +594,12 @@ Private Function Clones( _
                 RawComp.CloneExpFileFullName = .ExpFileFullName
                 RawComp.TypeString = .TypeString
                 If .Changed Then
-                    dct.Add vbc, vbc.name
+                    dct.Add vbc, vbc.Name
                 Else
                     Log.Entry = "Code un-changed."
                 End If
                 If RawComp.Changed(Comp) Then
-                    If Not dct.Exists(vbc) Then dct.Add vbc, vbc.name
+                    If Not dct.Exists(vbc) Then dct.Add vbc, vbc.Name
                 Else
                     Log.Entry = "Corresponding Raw's code un-changed."
                 End If
@@ -610,7 +614,7 @@ xt: mErH.EoP ErrSrc(PROC)
     Set fso = Nothing
     Exit Function
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

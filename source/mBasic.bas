@@ -730,7 +730,7 @@ xt: Exit Function
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = ThisWorkbook.name & " mBasic." & sProc
+    ErrSrc = ThisWorkbook.Name & " mBasic." & sProc
 End Function
 
 Public Function IsCvName(ByVal v As Variant) As Boolean

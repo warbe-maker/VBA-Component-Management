@@ -48,10 +48,10 @@ Private Sub Workbook_Open()
     
     If mMe.IsDevInstnc Then
         '~~ ------------------------------------------------------------------
-        '~~ CompMan Workbook_Open service 'UpdateCommonCompsUsed':
+        '~~ CompMan Workbook_Open service 'UpdateComCompsUsed':
         '~~ Executed by the Addin *) or via the development instance when open
         '~~ *) automatically available only when referenced by the VB-Project
-        mCompManClient.CompManService "UpdateCommonCompsUsed", HOSTED_RAWS
+        mCompManClient.CompManService "UpdateComCompsUsed", HOSTED_RAWS
         '~~ ------------------------------------------------------------------
         mMe.DisplayStatus
         Application.ScreenUpdating = False
@@ -71,7 +71,7 @@ Private Sub Workbook_Open()
 xt: mErH.BoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -99,7 +99,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
 xt: Application.EnableEvents = True
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

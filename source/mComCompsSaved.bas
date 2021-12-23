@@ -42,7 +42,7 @@ Public Property Let ExpFile( _
     Dim FileName As String
     
     With New FileSystemObject
-        FileName = .GetFileName(comp_exp_file.name)
+        FileName = .GetFileName(comp_exp_file.Name)
         .CopyFile comp_exp_file, ComCompsFolder & "\" & comp_name
     End With
 End Property
@@ -111,7 +111,7 @@ Private Property Get Value( _
                        )
 xt: Exit Property
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -135,7 +135,7 @@ Private Property Let Value( _
 
 xt: Exit Property
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -181,7 +181,7 @@ Public Function MaxRawLenght() As Long
     
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

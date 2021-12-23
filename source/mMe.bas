@@ -22,14 +22,14 @@ Option Private Module
 '                           "Add-Ins" popup menu or executed via the
 '                           VBE when the code of the Addin had been modified
 '                           in its Development instance Workbook.
-' - UpdateCommonCompsUsed         Exclusively performed fro within the Development
+' - UpdateComCompsUsed         Exclusively performed fro within the Development
 '                           instance Workbook to update its own used Clone
 '                           Components of which the Raw code has changed.
 '                           This service only runs provided the Addin
 '                           instance Workbook is open (see RenewAddIn
 '                           service).
 ' - ServicedRootFolder      When the AddIn is open and not  p a u s e d the
-'                           Workbook_Open service 'UpdateCommonCompsUsed' and the
+'                           Workbook_Open service 'UpdateComCompsUsed' and the
 '                           Workbook_BeforeSave service 'ExportChangedComponents'
 '                           will be executed for Workbooks calling them under
 '                           the two additional preconditions:
@@ -79,17 +79,17 @@ Private Property Get AddInPath() As String
     AddInPath = mMe.CompManAddinFolder
 End Property
 
-Public Property Get CompManAddinPaused() As Boolean
+Public Property Get CompManAddinIsPaused() As Boolean
     Dim s As String
     s = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED)
     If s = vbNullString Then
-        CompManAddinPaused = False
+        CompManAddinIsPaused = False
     Else
-        CompManAddinPaused = VBA.CBool(s)
+        CompManAddinIsPaused = VBA.CBool(s)
     End If
 End Property
 
-Public Property Let CompManAddinPaused(ByVal b As Boolean)
+Public Property Let CompManAddinIsPaused(ByVal b As Boolean)
     Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED) = b
     With New FileSystemObject
         .CopyFile CompManCfgFileName, CompManAddinFolder & COMPMAN_ADMIN_FOLDER_NAME & .GetFileName(CompManCfgFileName)
@@ -109,7 +109,7 @@ Private Property Get CompManCfgFileName() As String
 '       knowing the location it is finally copied to.
 ' ------------------------------------------------------------------------
     Dim fso As New FileSystemObject
-    Select Case fso.GetExtensionName(ThisWorkbook.name)
+    Select Case fso.GetExtensionName(ThisWorkbook.Name)
         Case "xlam"
             '~~ When the CompMan-Addin requests the CompMan.cfg file
             '~~ it is the one which resides in the 'CompManAdmin' sub-folder
@@ -146,7 +146,7 @@ Public Property Let CompManAddinFolder(ByVal s As String)
 xt: Set fso = Nothing
     Exit Property
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      End
     End Select
@@ -278,10 +278,10 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
             "(Renew or a Workbook opened which refers to it will open it)"
         Else ' AddIn is setup and open
             wsAddIn.CurrentStatus = "Setup/Renewed and  " & mBasic.Spaced("open!")
-            If mMe.CompManAddinPaused = True Then
+            If mMe.CompManAddinIsPaused = True Then
                 wsAddIn.CurrentStatus = mBasic.Spaced("paused!")
                 wsAddIn.CompManAddInPausedStatus = _
-                "The 'CompMan-Addin' is currently  p a u s e d ! The Workbook_Open service 'UpdateCommonCompsUsed' " & _
+                "The 'CompMan-Addin' is currently  p a u s e d ! The Workbook_Open service 'UpdateComCompsUsed' " & _
                 "and the Workbook_BeforeSave service 'ExportChangedComponents' will be bypassed " & _
                 "until the Addin is 'continued' again!"
             Else
@@ -294,7 +294,7 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
                 "needs to be opened before hand in order to have Common Components updated."
 
                 wsAddIn.CompManAddInPausedStatus = _
-                "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateCommonCompsUsed' and 'ExportChangedComponents'" & vbLf & _
+                "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateComCompsUsed' and 'ExportChangedComponents'" & vbLf & _
                 "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
                 "1. The Workbook is located in the configured 'Serviced-Development-Root-Folder' which currently is:" & vbLf & _
                 "   '" & mMe.ServicedRootFolder & "'" & vbLf & _
@@ -318,7 +318,7 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
 
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -341,7 +341,7 @@ Public Function CompManAddinIsOpen() As Boolean
     
     CompManAddinIsOpen = False
     For i = 1 To Application.AddIns2.Count
-        If Application.AddIns2(i).name = CompManAddinName Then
+        If Application.AddIns2(i).Name = CompManAddinName Then
             On Error Resume Next
             Set wbTarget = Application.Workbooks(CompManAddinName)
             CompManAddinIsOpen = Err.Number = 0
@@ -351,7 +351,7 @@ Public Function CompManAddinIsOpen() As Boolean
     
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -378,7 +378,7 @@ Private Sub DevInstncWorkbookClose()
     Else mMe.RenewLogResult() = "Passed"
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -409,7 +409,7 @@ Private Sub DevInstncWorkbookDelete()
 xt: Set fso = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -493,7 +493,7 @@ xt: RenewFinalResult
     
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -643,7 +643,7 @@ xt: If CompManAddinFolderIsValid Then
     Set fso = Nothing
     Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -691,9 +691,9 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         For Each v In dct
             Set Wb = dct.Item(v)
             For Each ref In Wb.VBProject.References
-                If InStr(ref.name, fso.GetBaseName(CompManAddinName)) <> 0 Then
+                If InStr(ref.Name, fso.GetBaseName(CompManAddinName)) <> 0 Then
                     dctAddInRefs.Add Wb, ref
-                    sWbs = Wb.name & ", " & sWbs
+                    sWbs = Wb.Name & ", " & sWbs
                 End If
             Next ref
         Next v
@@ -717,7 +717,7 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
     
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -736,7 +736,7 @@ Private Sub Renew_3_DevInstncWorkbookSave()
 
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -759,7 +759,7 @@ Private Sub Renew_4_Set_IsAddin_ToFalse(ByRef Wb As Workbook)
     
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -784,7 +784,7 @@ Private Function Renew_5_CloseAddinInstncWorkbook() As Boolean
 
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -817,7 +817,7 @@ Private Function Renew_6_DeleteAddInInstanceWorkbook() As Boolean
     
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -853,7 +853,7 @@ Private Function Renew_7_SaveDevInstncWorkbookAsAddin() As Boolean
     
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -878,9 +878,9 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
             Set Wb = Application.Workbooks.Open(CompManAddinFullName)
             If Err.Number = 0 Then
                 With New FileSystemObject
-                    sBaseAddinName = .GetBaseName(Wb.name)
-                    sBaseDevName = .GetBaseName(ThisWorkbook.name)
-                    Wb.VBProject.name = sBaseAddinName
+                    sBaseAddinName = .GetBaseName(Wb.Name)
+                    sBaseDevName = .GetBaseName(ThisWorkbook.Name)
+                    Wb.VBProject.Name = sBaseAddinName
                 End With
                 mMe.RenewLogResult() = "Passed"
                 Renew_8_OpenAddinInstncWorkbook = True
@@ -894,7 +894,7 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
 
 xt: Exit Function
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -914,7 +914,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     For Each v In dctAddInRefs
         Set Wb = v
         Wb.VBProject.References.AddFromFile CompManAddinFullName
-        sWbs = Wb.name & ", " & sWbs
+        sWbs = Wb.Name & ", " & sWbs
         bOneRestored = True
     Next v
     
@@ -928,7 +928,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     
 xt: Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -951,7 +951,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             
             If Not mCompMan.WbkIsOpen(io_name:=DevInstncName) _
             Then Stop _
-            Else wbDevlp.VBProject.name = fso.GetBaseName(DevInstncName)
+            Else wbDevlp.VBProject.Name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
                 mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ") failed!" _
@@ -968,7 +968,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
 
 xt: Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1074,7 +1074,7 @@ xt: Set fso = Nothing
     Set oRegistry = Nothing
     Exit Sub
 
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
