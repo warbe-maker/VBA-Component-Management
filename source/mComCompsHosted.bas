@@ -7,7 +7,7 @@ Option Explicit
 '
 ' [<component-name]
 ' ExpFileFullName=<export-file-full-name>
-' RevisionNumber=yyyy-mm-dd.n
+' RevisionNumber=yyyy-mm-dd.nnn
 '
 ' The entries (sections) are maintained along with the Workbook_BeforeSave
 ' event via the ExportChangedComponents service. The revision number is
@@ -39,8 +39,8 @@ End Property
 
 Public Property Let RevisionNumber( _
                           Optional ByVal comp_name As String, _
-                                   ByVal rev_no As String)
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = rev_no
+                                   ByVal comp_rev_no As String)
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = comp_rev_no
 End Property
 
 Private Property Get Value( _
@@ -143,7 +143,7 @@ Public Sub RevisionNumberIncrease(ByVal comp_name As String)
         Then RevNo = 1 _
         Else RevNo = RevNo + 1
     End If
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = Format(Now(), "YYYY-MM-DD") & "." & RevNo
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = Format(Now(), "YYYY-MM-DD") & "." & Format(RevNo, "000")
 
 End Sub
 

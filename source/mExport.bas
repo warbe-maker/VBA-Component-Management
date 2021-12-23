@@ -141,6 +141,8 @@ Public Sub ChangedComponents()
     For Each v In dctAll
         Set Comp = dctAll(v)
         With Comp
+            Debug.Print ".CompName: " & .CompName
+'            If .CompName = "mCompManClient" Then Stop
             Log.ServicedItem = .VBComp
             If Not .Changed Then
                 Select Case .KindOfComp
@@ -149,7 +151,7 @@ Public Sub ChangedComponents()
                     Case enCommCompHosted
                         If mComCompsHosted.RevisionNumber(.CompName) = vbNullString _
                         Then mComCompsHosted.RevisionNumberIncrease .CompName                               ' initial setting
-                        mComCompsSaved.Update .CompName, .ExpFile                                           ' update in case appropriate
+                        mComCompsSaved.Update comp_name:=.CompName, exp_file:=.ExpFile                                           ' update in case appropriate
                         Log.Entry = "Export file in folder '" & mComCompsSaved.ComCompsFile & "' updated"
                 End Select
             Else
@@ -222,7 +224,7 @@ xt: Set dctHostedRaws = Nothing
     mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
     
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

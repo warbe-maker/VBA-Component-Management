@@ -84,8 +84,19 @@ End Property
 
 Public Property Let RevisionNumber( _
                      Optional ByVal comp_name As String, _
-                              ByVal comp_revision_number As String)
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = comp_revision_number
+                              ByVal comp_rev_no As String)
+    Const PROC = "RevisionNumber Let"
+    On Error GoTo eh
+    Dim RevDate As String:  RevDate = Split(comp_rev_no, ".")(0)
+    Dim RevNo   As Long:    RevNo = Split(comp_rev_no, ".")(1)
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = RevDate & "." & Format(RevNo, "000")
+
+xt: Exit Property
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Property
 
 Private Property Get Value( _

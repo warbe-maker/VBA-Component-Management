@@ -214,6 +214,7 @@ Friend Property Get ExpFile() As File
         If flExpFile Is Nothing Then
             If fso.FileExists(.ExpFileFullName) Then
                 Set flExpFile = GetFile(.ExpFileFullName)
+            Else
                 '~~ The component apparently has yet no never been exported
                 If Not Me.VBComp Is Nothing Then
                     Me.VBComp.Export .ExpFileFullName
