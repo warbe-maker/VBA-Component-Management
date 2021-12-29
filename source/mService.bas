@@ -8,8 +8,8 @@ Public Property Get Serviced() As Workbook
     Set Serviced = wbServiced
 End Property
 
-Public Property Set Serviced(ByRef Wb As Workbook)
-    Set wbServiced = Wb
+Public Property Set Serviced(ByRef wb As Workbook)
+    Set wbServiced = wb
 End Property
 
 Public Function AppErr(ByVal app_err_no As Long) As Long
@@ -64,6 +64,7 @@ Public Sub RenewComp( _
     Dim wbActive    As Workbook
     Dim sBaseName   As String
     
+    mBasic.BoP ErrSrc(PROC)
     If rc_wb Is Nothing Then Set rc_wb = ActiveWorkbook
     If Log Is Nothing Then Set Log = New clsLog
     
@@ -166,6 +167,7 @@ xt: If Not wbTemp Is Nothing Then
     End If
     Set Comp = Nothing
     Set fso = Nothing
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -285,7 +287,7 @@ Public Sub ExportChangedComponents(ByVal hosted As String)
     Dim Comp        As clsComp
     Dim RawComp     As clsRaw
     
-    mErH.BoP ErrSrc(PROC)
+    mBasic.BoP ErrSrc(PROC)
     If mService.Serviced Is Nothing _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                                  "(it may have been called directly via the 'Immediate Window'"
@@ -299,7 +301,7 @@ xt: Set dctHostedRaws = Nothing
     Set RawComp = Nothing
     Set Log = Nothing
     Set fso = Nothing
-    mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
+    mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -351,7 +353,7 @@ Public Function SyncVBProjects( _
     Dim sStatus As String
     Dim wbRaw   As Workbook
     
-    mErH.BoP ErrSrc(PROC)
+    mBasic.BoP ErrSrc(PROC)
     '~~ Assure complete and correct provision of arguments or get correct ones selected via a dialog
     If Not SyncSourceAndTargetSelected(wb_target:=wb_target _
                                      , cr_raw_name:=wb_source_name _
@@ -371,7 +373,7 @@ Public Function SyncVBProjects( _
                                               , restricted_sheet_rename_asserted:=restricted_sheet_rename_asserted _
                                               , design_rows_cols_added_or_deleted:=design_rows_cols_added_or_deleted)
 
-xt: mErH.EoP ErrSrc(PROC)
+xt: mBasic.EoP ErrSrc(PROC)
     Set Log = Nothing
     Exit Function
 
@@ -395,12 +397,12 @@ Public Sub Install(Optional ByRef in_wb As Workbook = Nothing)
     
     On Error GoTo eh
     
-    mErH.BoP ErrSrc(PROC)
+    mBasic.BoP ErrSrc(PROC)
     If in_wb Is Nothing Then Set in_wb = SelectServicedWrkbk(PROC)
     If in_wb Is Nothing Then GoTo xt
     mInstall.CommonComponents in_wb
 
-xt: mErH.EoP ErrSrc(PROC)
+xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -578,7 +580,7 @@ Private Function Clones( _
     Dim Comp    As clsComp
     Dim RawComp As clsRaw
     
-    mErH.BoP ErrSrc(PROC)
+    mBasic.BoP ErrSrc(PROC)
         
     For Each vbc In cl_wb.VBProject.VBComponents
         Set Comp = New clsComp
@@ -609,7 +611,7 @@ Private Function Clones( _
         Set RawComp = Nothing
     Next vbc
 
-xt: mErH.EoP ErrSrc(PROC)
+xt: mBasic.EoP ErrSrc(PROC)
     Set Clones = dct
     Set fso = Nothing
     Exit Function

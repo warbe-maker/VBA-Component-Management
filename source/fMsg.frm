@@ -361,7 +361,7 @@ Public Property Get FrameContentHeight(ByRef frm As Msforms.Frame) As Single
     For Each ctl In frm.Controls
         If ctl.Parent Is frm Then
             If IsApplied(ctl) Then
-                FrameContentHeight = Max(FrameContentHeight, ctl.top + ctl.Height)
+                FrameContentHeight = Max(FrameContentHeight, ctl.Top + ctl.Height)
             End If
         End If
     Next ctl
@@ -812,7 +812,7 @@ Public Sub AutoSizeTextBox( _
         .Height = .Height + 7 ' redability space
         If as_width_min > 0 And .Width < as_width_min Then .Width = as_width_min
         If as_height_min > 0 And .Height < as_height_min Then .Height = as_height_min
-        .Parent.Height = .top + .Height + 2
+        .Parent.Height = .Top + .Height + 2
         .Parent.Width = .Left + .Width + 2
     End With
     
@@ -1373,10 +1373,10 @@ Public Sub PositionMessageOnScreen( _
         .StartupPosition = sup_Manual
         If pos_top_left Then
             .Left = 5
-            .top = 5
+            .Top = 5
         Else
             .Left = (VirtualScreenWidthPts - .Width) / 2
-            .top = (VirtualScreenHeightPts - .Height) / 4
+            .Top = (VirtualScreenHeightPts - .Height) / 4
         End If
     End With
     
@@ -1384,9 +1384,9 @@ Public Sub PositionMessageOnScreen( _
     '~~ then check if the top-left is still on the screen (which gets priority).
     With Me
         If ((.Left + .Width) > (VirtualScreenLeftPts + VirtualScreenWidthPts)) Then .Left = ((VirtualScreenLeftPts + VirtualScreenWidthPts) - .Width)
-        If ((.top + .Height) > (VirtualScreenTopPts + VirtualScreenHeightPts)) Then .top = ((VirtualScreenTopPts + VirtualScreenHeightPts) - .Height)
+        If ((.Top + .Height) > (VirtualScreenTopPts + VirtualScreenHeightPts)) Then .Top = ((VirtualScreenTopPts + VirtualScreenHeightPts) - .Height)
         If (.Left < VirtualScreenLeftPts) Then .Left = VirtualScreenLeftPts
-        If (.top < VirtualScreenTopPts) Then .top = VirtualScreenTopPts
+        If (.Top < VirtualScreenTopPts) Then .Top = VirtualScreenTopPts
     End With
     
 End Sub
@@ -1642,7 +1642,7 @@ Public Sub Setup()
     
 '    PositionMessageOnScreen pos_top_left:=True  ' in case of test best pos to start with
     DsgnMsgArea.Visible = False
-    DsgnBttnsArea.top = VSPACE_AREAS
+    DsgnBttnsArea.Top = VSPACE_AREAS
     
     '~~ ----------------------------------------------------------------------------------------
     '~~ The  p r i m a r y  setup of the title, the message sections and the reply buttons
@@ -1847,10 +1847,10 @@ Private Sub SetupBttnsFromCollection(ByVal cllButtons As Collection)
     Set Bttn = DsgnBttn(1, 1)
     
     Me.Height = 100 ' just to start with
-    BttnsArea.top = VSPACE_AREAS
-    BttnsFrame.top = BttnsArea.top
-    BttnRow.top = BttnsFrame.top
-    Bttn.top = BttnRow.top
+    BttnsArea.Top = VSPACE_AREAS
+    BttnsFrame.Top = BttnsArea.Top
+    BttnRow.Top = BttnsFrame.Top
+    Bttn.Top = BttnRow.Top
     Bttn.Width = DFLT_BTTN_MIN_WIDTH
     
     For Each v In cllButtons
@@ -2048,10 +2048,10 @@ Private Sub SetupMsgSect(ByVal msg_section As Long)
                 End With
                 If SectLabel.FontColor <> 0 Then .ForeColor = SectLabel.FontColor Else .ForeColor = rgbBlack
             End With
-            MsgSectTextFrame.top = la.top + la.Height
+            MsgSectTextFrame.Top = la.Top + la.Height
             AppliedControls(msg_section) = la
         Else
-            MsgSectTextFrame.top = 0
+            MsgSectTextFrame.Top = 0
         End If
         
         If SectMessage.MonoSpaced Then
@@ -2127,7 +2127,7 @@ Const PROC = "SetupMsgSectMonoSpaced"
         .SelStart = 0
         .Left = siHmarginFrames
         MsgSectTextFrame.Left = siHmarginFrames
-        MsgSectTextFrame.Height = .top + .Height
+        MsgSectTextFrame.Height = .Top + .Height
     End With ' MsgSectTextBox
         
     '~~ The width may expand or shrink depending on the change of the displayed text
@@ -2206,8 +2206,8 @@ Private Sub SetupMsgSectPropSpaced( _
         TimedDoEvents ErrSrc(PROC)    ' to properly h-align the text
     End With
     
-    MsgSectTextFrame.Height = MsgSectTextBox.top + MsgSectTextBox.Height
-    MsgSect.Height = MsgSectTextFrame.top + MsgSectTextFrame.Height
+    MsgSectTextFrame.Height = MsgSectTextBox.Top + MsgSectTextBox.Height
+    MsgSect.Height = MsgSectTextFrame.Top + MsgSectTextFrame.Height
     MsgArea.Height = FrameContentHeight(MsgArea)
 
 xt: Exit Sub
@@ -2250,17 +2250,17 @@ Private Sub SizeAndPosition1MsgSects()
             '~~ Note: The label's width cannot exceed the below txt-box's width
             If IsApplied(MsgSectLabel) Then
                 With MsgSectLabel
-                    .top = TopForNextControl
-                    TopForNextControl = VgridPos(.top + .Height)
+                    .Top = TopForNextControl
+                    TopForNextControl = VgridPos(.Top + .Height)
                     MsgSectLabel.Width = Me.Width - .Left - 5
                 End With
             End If
 
             If IsApplied(MsgSectTextBox) Then
-                MsgSectTextBox.top = siVmarginFrames
+                MsgSectTextBox.Top = siVmarginFrames
                 With MsgSectTextFrame
-                    .top = TopForNextControl
-                    TopForNextControl = .top + .Height + siVmarginFrames
+                    .Top = TopForNextControl
+                    TopForNextControl = .Top + .Height + siVmarginFrames
                 End With
                 
                 '~~ Adjust the dimensions of message-text-frame considering possibly applied scrollbars
@@ -2278,7 +2278,7 @@ Private Sub SizeAndPosition1MsgSects()
                 
                 End If
                 If Not ScrollVerticalApplied(MsgSect) Then
-                    MsgSect.Height = MsgSectTextFrame.top + MsgSectTextFrame.Height + ScrollHorizontalHeight(MsgSect)
+                    MsgSect.Height = MsgSectTextFrame.Top + MsgSectTextFrame.Height + ScrollHorizontalHeight(MsgSect)
                 End If
                
                 TimedDoEvents ErrSrc(PROC)    ' to properly h-align the text
@@ -2286,9 +2286,9 @@ Private Sub SizeAndPosition1MsgSects()
                         
             '~~ Adjust the section-frame's top position
             With MsgSect
-                .top = TopNextSect
+                .Top = TopNextSect
                 TimedDoEvents ErrSrc(PROC)    ' to properly h-align the text
-                TopNextSect = VgridPos(.top + .Height + siVmarginFrames + VSPACE_SECTIONS) ' the next section if any
+                TopNextSect = VgridPos(.Top + .Height + siVmarginFrames + VSPACE_SECTIONS) ' the next section if any
             End With
 
         End If ' IsApplied(MsgSect)
@@ -2333,7 +2333,7 @@ Private Sub SizeAndPosition2Bttns1()
                         .Left = siLeft
                         .Width = siMaxButtonWidth
                         .Height = siMaxButtonHeight
-                        .top = siVmarginFrames
+                        .Top = siVmarginFrames
                         siLeft = .Left + .Width + siHmarginButtons
                         If IsNumeric(vMsgButtonDefault) Then
                             If lButton = vMsgButtonDefault Then .Default = True
@@ -2382,14 +2382,14 @@ Private Sub SizeAndPosition2Bttns2Rows()
         lButtons = dct(v)
         If IsApplied(BttnRowFrame) Then
             With BttnRowFrame
-                .top = siTop
+                .Top = siTop
                 .Height = siHeight
                 '~~ Provide some extra space for the button's design
                 BttnsFrameWidth = CInt((siMaxButtonWidth * lButtons) _
                                + (siHmarginButtons * (lButtons - 1)) _
                                + (siHmarginFrames * 2)) - siHmarginButtons + 7
                 .Width = BttnsFrameWidth + (HSPACE_LEFTRIGHT_BUTTONS * 2)
-                siTop = .top + .Height + siVmarginButtons
+                siTop = .Top + .Height + siVmarginButtons
             End With
         End If
     Next v
@@ -2418,7 +2418,7 @@ Private Sub SizeAndPosition2Bttns3Frame()
         ContentWidth = FrameContentWidth(BttnsFrame)
         ContentHeight = FrameContentHeight(BttnsFrame)
         With BttnsFrame
-            .top = 0
+            .Top = 0
             BttnsFrame.Height = ContentHeight
             BttnsFrame.Width = ContentWidth
             '~~ Center all button rows within the buttons frame
@@ -2461,7 +2461,7 @@ Private Sub SizeAndPosition2Bttns4Area()
     
     If Not ScrollHorizontalApplied(BttnsArea) Then
         If Not ScrollVerticalApplied(BttnsArea) Then
-            BttnsArea.Height = BttnsFrame.top + BttnsFrame.Height + ScrollHorizontalHeight(BttnsArea)
+            BttnsArea.Height = BttnsFrame.Top + BttnsFrame.Height + ScrollHorizontalHeight(BttnsArea)
         End If
     End If
     
@@ -2492,8 +2492,8 @@ Private Sub SizeAndPosition3Areas()
     TopNextArea = siVmarginFrames
     If IsApplied(MsgArea) Then
         With MsgArea
-            .top = TopNextArea
-            TopNextArea = VgridPos(.top + .Height + VSPACE_AREAS)
+            .Top = TopNextArea
+            TopNextArea = VgridPos(.Top + .Height + VSPACE_AREAS)
         End With
         Set AreaFrame = MsgArea
     Else
@@ -2502,14 +2502,14 @@ Private Sub SizeAndPosition3Areas()
     
     If IsApplied(BttnsArea) Then
         With BttnsArea
-            .top = TopNextArea
-            TopNextArea = VgridPos(.top + .Height + VSPACE_AREAS)
+            .Top = TopNextArea
+            TopNextArea = VgridPos(.Top + .Height + VSPACE_AREAS)
         End With
         Set AreaFrame = BttnsArea
     End If
     
     '~~ Adjust the final height of the message form
-    Me.Height = VgridPos(AreaFrame.top + AreaFrame.Height + VSPACE_BOTTOM)
+    Me.Height = VgridPos(AreaFrame.Top + AreaFrame.Height + VSPACE_BOTTOM)
             
 xt: Exit Sub
     

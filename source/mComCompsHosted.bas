@@ -17,8 +17,8 @@ Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
 Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
 Private Property Get ComCompsHostedFile() As String
-    Dim Wb As Workbook: Set Wb = mService.Serviced
-    ComCompsHostedFile = Replace(Wb.FullName, Wb.Name, "ComCompsHosted.dat")
+    Dim wb As Workbook: Set wb = mService.Serviced
+    ComCompsHostedFile = Replace(wb.FullName, wb.Name, "ComCompsHosted.dat")
 End Property
 
 Public Property Get ExpFileFullName( _

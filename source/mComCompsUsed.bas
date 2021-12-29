@@ -16,8 +16,8 @@ Option Explicit
 Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
 
 Private Property Get UsedRawClonesFile() As String
-    Dim Wb As Workbook: Set Wb = mService.Serviced
-    UsedRawClonesFile = Replace(Wb.FullName, Wb.Name, "ComCompsUsed.dat")
+    Dim wb As Workbook: Set wb = mService.Serviced
+    UsedRawClonesFile = Replace(wb.FullName, wb.Name, "ComCompsUsed.dat")
 End Property
 
 Public Property Get RevisionNumber( _

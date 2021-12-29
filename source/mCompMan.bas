@@ -109,20 +109,10 @@ Public lMaxCompLength   As Long
 Public dctHostedRaws    As Dictionary
 Public Stats            As clsStats
 Public Log              As clsLog
-
+Public TraceLog         As clsLog
 Private lMaxLenComp     As Long
 Private lMaxLenTypeItem As Long
 
-Public Function AppErr(ByVal app_err_no As Long) As Long
-' ------------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
-End Function
     
 Private Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
 
@@ -148,6 +138,17 @@ Private Property Let HostedRaws(ByVal hr As Variant)
     
 End Property
 
+Public Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
+End Function
+
 Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
 ' -----------------------------------------------------------
 '
@@ -156,20 +157,20 @@ Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
     
     On Error GoTo eh
     Dim sExpFileRaw As String
-    Dim Wb          As Workbook
+    Dim wb          As Workbook
     Dim Comp        As New clsComp
     
-    Set Wb = ActiveWorkbook
+    Set wb = ActiveWorkbook
     With Comp
-        Set .Wrkbk = Wb
+        Set .Wrkbk = wb
         .CompName = cmp_comp_name
-        Set .VBComp = Wb.VBProject.VBComponents(.CompName)
+        Set .VBComp = wb.VBProject.VBComponents(.CompName)
         sExpFileRaw = mComCompsSaved.ExpFileFullName(cmp_comp_name)
     
-        mFile.Compare fc_file_left:=.ExpFileFullName _
-                    , fc_file_right:=sExpFileRaw _
-                    , fc_left_title:="The cloned raw's current code in Workbook/VBProject " & Comp.WrkbkBaseName & " (" & .ExpFileFullName & ")" _
-                    , fc_right_title:="The remote raw's current code in Workbook/VBProject " & mBasic.BaseName(mComCompsSaved.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
+        mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=.ExpFileFullName _
+                                      , fd_exp_file_right_full_name:=sExpFileRaw _
+                                      , fd_exp_file_left_title:="Clone (used) Common Component code in Workbook/VBProject " & Comp.WrkbkBaseName & " (" & .ExpFileFullName & ")" _
+                                      , fd_exp_file_right_title:="Raw (hosted) Common Component code in Workbook/VBProject " & mBasic.BaseName(mComCompsSaved.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
 
     End With
     Set Comp = Nothing
@@ -180,6 +181,16 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Sub
+
+Private Sub DetermineTraceLogFolder(ByVal dt_wb As Workbook)
+' --------------------------------------------------------------------------
+' Determines the location for the service execution trace log folder - which
+' by the way suspends the display of the trace result.
+' --------------------------------------------------------------------------
+    If mMe.IsDevInstnc _
+    Then mTrc.TraceLogFile = Replace(dt_wb.FullName, dt_wb.Name, "CompMan.Trace.log") _
+    Else mTrc.TraceLogFile = mMe.CompManAddinFolder & "\CompManAdmin\CompMan.Service.log"
 End Sub
 
 Public Sub DisplayChanges( _
@@ -205,10 +216,10 @@ Public Sub DisplayChanges( _
     fl_1 = fl_left.Path
     fl_2 = fl_right.Path
     
-    mFile.Compare fc_file_left:=fl_1 _
-                , fc_left_title:=fl_1 & " ( b e f o r e  the changes)" _
-                , fc_file_right:=fl_2 _
-                , fc_right_title:=fl_2 & " ( a f t e r  the changes)"
+    mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=fl_1 _
+                                  , fd_exp_file_left_title:=fl_1 & " ( b e f o r e  the changes)" _
+                                  , fd_exp_file_right_full_name:=fl_2 _
+                                  , fd_exp_file_right_title:=fl_2 & " ( a f t e r  the changes)"
 
 xt: Exit Sub
 
@@ -246,10 +257,10 @@ Public Sub DisplayCodeChange(ByVal cmp_comp_name As String)
     End With
 
     With Comp
-        mFile.Compare fc_file_left:=sTempExpFileFullName _
-                    , fc_file_right:=.ExpFileFullName _
-                    , fc_left_title:="The component's current code in Workbook/VBProject " & Comp.WrkbkBaseName & " ('" & sTempExpFileFullName & "')" _
-                    , fc_right_title:="The component's currently exported code in '" & .ExpFileFullName & "'"
+        mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=sTempExpFileFullName _
+                                      , fd_exp_file_right_full_name:=.ExpFileFullName _
+                                      , fd_exp_file_left_title:="The clone (used) Common Component's current code in '" & sTempExpFileFullName & "'" _
+                                      , fd_exp_file_right_title:="The raw (hosted) Common Component's current code in '" & .ExpFileFullName & "'"
 
     End With
     
@@ -289,7 +300,8 @@ End Function
 
 Public Function ExpFileFolderPath(ByVal v As Variant) As String
 ' --------------------------------------------------------------------------
-' ! This is the only source for the location of a Workbook's Export-Files !
+' Attention! This is the only source for the location of a Workbook's
+'            Export-Files.
 ' All Export-Files are placed in a '\source' sub-folder within the Workbook
 ' folder. This maitains a clear Workbook folder which matters (not only)
 ' when the Workbook-Folder is identical with a Github repo clone folder.
@@ -299,27 +311,29 @@ Public Function ExpFileFolderPath(ByVal v As Variant) As String
     Const EXP_FILES_SUB_FOLDER  As String = "\source"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
-    Dim Wb  As Workbook
-    Dim s   As String
+    Dim fso     As New FileSystemObject
+    Dim wb      As Workbook
+    Dim s       As String
+    Dim sPath   As String
     
     With fso
         Select Case TypeName(v)
             Case "Workbook"
-                Set Wb = v
-                ExpFileFolderPath = Wb.Path & EXP_FILES_SUB_FOLDER
+                Set wb = v
+                sPath = wb.Path & EXP_FILES_SUB_FOLDER
             Case "String"
                 s = v
                 If Not .FileExists(s) _
                 Then Err.Raise AppErr(1), ErrSrc(PROC), "'" & s & "' is not the FullName of an existing Workbook!"
-                ExpFileFolderPath = .GetParentFolderName(s) & EXP_FILES_SUB_FOLDER
+                sPath = .GetParentFolderName(s) & EXP_FILES_SUB_FOLDER
             Case Else
                 Err.Raise AppErr(1), ErrSrc(PROC), "The required information about the concerned Workbook is neither provided as a Workbook object nor as a string identifying an existing Workbooks FullName"
         End Select
-        If Not .FolderExists(ExpFileFolderPath) Then .CreateFolder ExpFileFolderPath
+        If Not .FolderExists(sPath) Then .CreateFolder sPath
     End With
     
-xt: Exit Function
+xt: ExpFileFolderPath = sPath
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -334,14 +348,15 @@ Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
     Const PROC = "ExportAll"
     
     On Error GoTo eh
-    mErH.BoP ErrSrc(PROC)
+    DetermineTraceLogFolder ea_wb
     
+    mBasic.BoP ErrSrc(PROC)
     If ea_wb Is Nothing _
     Then Set mService.Serviced = ActiveWorkbook _
     Else Set mService.Serviced = ea_wb
     mExport.All
     
-xt: mErH.EoP ErrSrc(PROC)
+xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -363,16 +378,16 @@ Public Function ExportChangedComponents( _
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
+    DetermineTraceLogFolder ec_wb
     
-    mErH.BoP ErrSrc(PROC)
+    mBasic.BoP ErrSrc(PROC)
     Set mService.Serviced = ec_wb
-    '
-    If mMe.CompManAddinIsPaused And mMe.IsAddinInstnc Then GoTo xt
+    If mMe.CompManAddinIsPaused Or mMe.IsAddinInstnc Then GoTo xt
     
     mService.ExportChangedComponents ec_hosted
     ExportChangedComponents = True
     
-xt: mErH.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
+xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Function
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -401,7 +416,7 @@ Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
     Dim sHosted         As String
     Dim sHostBaseName   As String
     
-    mErH.BoP ErrSrc(PROC)
+    mBasic.BoP ErrSrc(PROC)
     sHostBaseName = fso.GetBaseName(mService.Serviced.FullName)
     Set dctHostedRaws = New Dictionary
     HostedRaws = mh_hosted
@@ -443,7 +458,7 @@ Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
     End If
 
 xt: Set fso = Nothing
-    mErH.EoP ErrSrc(PROC)
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -451,7 +466,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
 
 Public Sub RemoveTempRenamed()
 
@@ -481,11 +495,11 @@ Public Sub SynchTargetWbWithSourceWb( _
     Const PROC = "SynchTargetWbWithSourceWb"
     
     On Error GoTo eh
-    mErH.BoP ErrSrc(PROC)
+    mBasic.BoP ErrSrc(PROC)
     Set mService.Serviced = wb_target
     mService.SyncVBProjects wb_target:=wb_target, wb_source_name:=wb_source
     
-xt: mErH.EoP ErrSrc(PROC)
+xt: mBasic.EoP ErrSrc(PROC)
     Set Log = Nothing
     Exit Sub
 
@@ -508,22 +522,16 @@ Public Function UpdateComCompsUsed( _
     On Error GoTo eh
     Dim Msg As TypeMsg
     
-    mErH.BoP ErrSrc(PROC)
+    If mMe.IsDevInstnc And uc_wb.Name = mMe.DevInstncName Then
+        UpdateComCompsUsed = False
+        GoTo xt
+    End If
     
+    DetermineTraceLogFolder uc_wb
+    
+    mBasic.BoP ErrSrc(PROC)
     Set Log = New clsLog
     Set mService.Serviced = uc_wb
-    If mMe.IsDevInstnc And uc_wb.Name = mMe.DevInstncName Then
-        With Msg.Section(1)
-            .Text.Text = "The only CompMan instance available is the Development Instance. " & _
-                         "This may be the case either when no Addin Instance had yet been established " & _
-                         "or the Addin Instance is currently paused. This is no problem for any " & _
-                         "VB-Project but for the Development Instance itself. To update used " & _
-                         "Common Components which had changed it requires the Addin Instance to " & _
-                         "get this done."
-        End With
-        mMsg.Dsply dsply_title:="The CompMan Development Instance Workbook cannot update itself!" _
-                 , dsply_msg:=Msg
-    End If
     If mService.Denied(PROC) Then GoTo xt
     
     mCompMan.ManageHostHostedProperty uc_hosted
@@ -531,7 +539,7 @@ Public Function UpdateComCompsUsed( _
     mUpdate.ComCompsUsed mService.Serviced
     
 xt: Set Log = Nothing
-    mErH.EoP ErrSrc(PROC)
+    mBasic.EoP ErrSrc(PROC)
     Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

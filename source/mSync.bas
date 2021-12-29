@@ -117,152 +117,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function ErrSrc(ByVal s As String) As String
-    ErrSrc = "mSync." & s
-End Function
-
-Public Function KeyControlName(ByVal s As String) As String
-    KeyControlName = Split(s, SHEET_CONTROL_CONCAT)(1)
-End Function
-
-Public Function KeySheetControl(ByVal sheet_name As String, _
-                                ByVal control_name As String) As String
-    KeySheetControl = sheet_name & SHEET_CONTROL_CONCAT & control_name
-End Function
-
-Public Function KeySheetName(ByVal s As String) As String
-    KeySheetName = Split(s, SHEET_CONTROL_CONCAT)(0)
-End Function
-
-Private Function NameExists( _
-                      ByRef ne_wb As Workbook, _
-                      ByVal ne_nm As Name) As Boolean
-    Dim nm As Name
-    For Each nm In ne_wb.Names
-        NameExists = nm.Name = ne_nm.Name
-        If NameExists Then Exit For
-    Next nm
-End Function
-
-Private Sub RemoveInvalidRangeNames()
-' -----------------------------------------------------------
-' Removes names which point to a range which not or no longer
-' exists.
-' -----------------------------------------------------------
-    Const PROC = "RemoveInvalidRangeNames"
-    
-    On Error GoTo eh
-    Dim nm As Name
-    For Each nm In Sync.Target.Names
-        Debug.Print nm.Value
-        If InStr(nm.Value, "#") <> 0 Or InStr(nm.RefersTo, "#") <> 0 Then
-            Log.ServicedItem = nm
-            On Error Resume Next
-            nm.Delete
-            Log.Entry = "Deleted! (invalid)"
-        End If
-    Next nm
-
-xt: Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub RenameSheet(ByRef rs_wb As Workbook, _
-                        ByVal rs_old_name As String, _
-                        ByVal rs_new_name As String)
-' ----------------------------------------------------
-'
-' ----------------------------------------------------
-    Const PROC = "RenameSheet"
-    
-    On Error GoTo eh
-    Dim sh  As Worksheet
-    For Each sh In rs_wb.Worksheets
-        If sh.Name = rs_old_name Then
-            sh.Name = rs_new_name
-            Log.Entry = "Sheet-Name changed to '" & rs_new_name & "'"
-            Exit For
-        End If
-    Next sh
-
-xt: Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub RenameWrkbkModule( _
-                        ByRef rdm_wb As Workbook, _
-                        ByVal rdm_new_name As String)
-' ---------------------------------------------------
-' Renames in Workbook (rdm_wb) the Workbook Module
-' to (rdm_new_name).
-' ---------------------------------------------------
-    Const PROC = "RenameWrkbkModule"
-    
-    On Error GoTo eh
-    Dim vbc     As VBComponent
-    
-    With rdm_wb.SyncTargetithSource
-        For Each vbc In .VBComponents
-            If vbc.Type = vbext_ct_Document Then
-                If mComp.IsWrkbkDocMod(vbc) Then
-                    Log.ServicedItem = vbc
-                    vbc.Name = rdm_new_name
-                    Log.Entry = "Renamed to '" & rdm_new_name & "'"
-                    DoEvents
-                    Exit For
-                End If
-            End If
-        Next vbc
-    End With
-    
-xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-'
-'Private Sub SheetsOrder()
-'' -------------------------------------------------------
-''
-'' -------------------------------------------------------
-'    Const PROC = "SheetsOrder"
-'
-'    On Error GoTo eh
-'    Dim i           As Long
-'    Dim wsSource    As Worksheet
-'    Dim wsTarget    As Worksheet
-'
-'    For i = 1 To Sync.Source.Worksheets.Count
-'        Set wsSource = Sync.Source.Worksheets(i)
-'        Set wsTarget = Sync.Target.Worksheets(i)
-'        If wsSource.Name <> wsTarget.Name Then
-'            '~~ Sheet position has changed
-'            If Sync.Mode = Confirm Then
-'                Stop ' pending confirmation info
-'            Else
-'                Stop ' pending implementation
-'            End If
-'        End If
-'    Next i
-'
-'xt: Exit Sub
-'
-'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-'        Case vbResume:  Stop: Resume
-'        Case Else:      GoTo xt
-'    End Select
-'End Sub
-
 Private Sub CollectSyncIssuesForConfirmation()
 ' --------------------------------------------
 ' Collect all synchronization issues for being
@@ -299,114 +153,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-Public Sub SyncRestore(ByVal sWrkbk As String)
-' ------------------------------------------------------------
-' Restores a synchronization target Workbook by deleting it
-' and renaming the ....Backup file
-' ------------------------------------------------------------
-    Const PROC = "SyncRestore"
-    
-    On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim fo          As Folder
-    Dim fl          As File
-    Dim sBckp       As String
-    Dim lFiles      As Long
-    Dim BckpFile    As File
-    
-    On Error Resume Next
-    mCompMan.WbkGetOpen(sWrkbk).Close SaveChanges:=False
-    With fso
-        If .FileExists(sWrkbk & ".Backup") Then
-            .CopyFile sWrkbk & ".Backup", sWrkbk
-            .DeleteFile sWrkbk & ".Backup"
-        End If
-    End With
-    
-xt: Set fso = Nothing
-    mCompMan.WbkGetOpen sWrkbk
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Sub SyncBackup(ByVal sWrkbk As String)
-' -----------------------------------------------------
-' Saves a copy of the synchronization target Workbook
-' (Sync.Target) under its name with a suffix .Backup
-' -----------------------------------------------------
-    Const PROC = "SyncBackup"
-    
-    On Error GoTo eh
-    
-    With New FileSystemObject
-        .CopyFile sWrkbk, sWrkbk & ".Backup"
-    End With
-
-xt: Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-         
-Public Function SyncTargetWithSource( _
-          ByRef wb_target As Workbook, _
-          ByRef wb_source As Workbook, _
- Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
- Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
-' --------------------------------------------------------------------
-' Synchronizes a target Workbook (Sync.Target) with a source Workbook
-' (Sync.Source). Returns TRUE when finished without error.
-' --------------------------------------------------------------------
-    Const PROC = "SyncTargetWithSource"
-    
-    On Error GoTo eh
-    Set Sync = New clsSync
-    Set Stats = New clsStats
-        
-    Log.Service = ErrSrc(PROC)
-    mCompMan.DsplyProgress
-    
-    '~~ Make sure both Workbook's Export-Files are up-to-date
-    wb_source.Save
-    wb_target.Save
-    
-    Sync.ChangedClear
-    Sync.RestrictRenameAsserted = restricted_sheet_rename_asserted
-    Set Sync.Source = wb_source
-    Set Sync.Target = wb_target
-    Sync.CollectAllSyncItems
-    
-    Sync.ManualSynchRequired = False
-    
-    '~~ Count new and obsolete sheets
-    Sync.Mode = Count
-    mSyncSheets.SyncNew
-    mSyncSheets.SyncObsolete
-    
-    Sync.Ambigous = True
-    bSyncDenied = True
-
-    If GetSyncIssuesConfirmed Then
-        mSync.SyncBackup wb_target.FullName
-        DoSynchronization design_rows_cols_added_or_deleted
-        SyncTargetWithSource = True
-    End If
-    
-xt: Set Sync = Nothing
-    Exit Function
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
 
 Private Function DoSynchronization( _
                     Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
@@ -472,6 +218,10 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Function
+
+Private Function ErrSrc(ByVal s As String) As String
+    ErrSrc = "mSync." & s
 End Function
 
 Private Function GetSyncIssuesConfirmed() As Boolean
@@ -569,7 +319,261 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
+Public Function KeyControlName(ByVal s As String) As String
+    KeyControlName = Split(s, SHEET_CONTROL_CONCAT)(1)
+End Function
 
+Public Function KeySheetControl(ByVal sheet_name As String, _
+                                ByVal control_name As String) As String
+    KeySheetControl = sheet_name & SHEET_CONTROL_CONCAT & control_name
+End Function
+
+Public Function KeySheetName(ByVal s As String) As String
+    KeySheetName = Split(s, SHEET_CONTROL_CONCAT)(0)
+End Function
+
+Private Function NameExists( _
+                      ByRef ne_wb As Workbook, _
+                      ByVal ne_nm As Name) As Boolean
+    Dim nm As Name
+    For Each nm In ne_wb.Names
+        NameExists = nm.Name = ne_nm.Name
+        If NameExists Then Exit For
+    Next nm
+End Function
+
+Private Sub RemoveInvalidRangeNames()
+' -----------------------------------------------------------
+' Removes names which point to a range which not or no longer
+' exists.
+' -----------------------------------------------------------
+    Const PROC = "RemoveInvalidRangeNames"
+    
+    On Error GoTo eh
+    Dim nm As Name
+    For Each nm In Sync.Target.Names
+        Debug.Print nm.Value
+        If InStr(nm.Value, "#") <> 0 Or InStr(nm.RefersTo, "#") <> 0 Then
+            Log.ServicedItem = nm
+            On Error Resume Next
+            nm.Delete
+            Log.Entry = "Deleted! (invalid)"
+        End If
+    Next nm
+
+xt: Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Sub RenameSheet(ByRef rs_wb As Workbook, _
+                        ByVal rs_old_name As String, _
+                        ByVal rs_new_name As String)
+' ----------------------------------------------------
+'
+' ----------------------------------------------------
+    Const PROC = "RenameSheet"
+    
+    On Error GoTo eh
+    Dim sh  As Worksheet
+    For Each sh In rs_wb.Worksheets
+        If sh.Name = rs_old_name Then
+            sh.Name = rs_new_name
+            Log.Entry = "Sheet-Name changed to '" & rs_new_name & "'"
+            Exit For
+        End If
+    Next sh
+
+xt: Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Sub RenameWrkbkModule( _
+                        ByRef rdm_wb As Workbook, _
+                        ByVal rdm_new_name As String)
+' ---------------------------------------------------
+' Renames in Workbook (rdm_wb) the Workbook Module
+' to (rdm_new_name).
+' ---------------------------------------------------
+    Const PROC = "RenameWrkbkModule"
+    
+    On Error GoTo eh
+    Dim vbc     As VBComponent
+    
+    With rdm_wb.SyncTargetithSource
+        For Each vbc In .VBComponents
+            If vbc.Type = vbext_ct_Document Then
+                If mComp.IsWrkbkDocMod(vbc) Then
+                    Log.ServicedItem = vbc
+                    vbc.Name = rdm_new_name
+                    Log.Entry = "Renamed to '" & rdm_new_name & "' (DoEvents delayed continuations for " & TimedDoEvents & " msec)"
+                    Exit For
+                End If
+            End If
+        Next vbc
+    End With
+    
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+'
+'Private Sub SheetsOrder()
+'' -------------------------------------------------------
+''
+'' -------------------------------------------------------
+'    Const PROC = "SheetsOrder"
+'
+'    On Error GoTo eh
+'    Dim i           As Long
+'    Dim wsSource    As Worksheet
+'    Dim wsTarget    As Worksheet
+'
+'    For i = 1 To Sync.Source.Worksheets.Count
+'        Set wsSource = Sync.Source.Worksheets(i)
+'        Set wsTarget = Sync.Target.Worksheets(i)
+'        If wsSource.Name <> wsTarget.Name Then
+'            '~~ Sheet position has changed
+'            If Sync.Mode = Confirm Then
+'                Stop ' pending confirmation info
+'            Else
+'                Stop ' pending implementation
+'            End If
+'        End If
+'    Next i
+'
+'xt: Exit Sub
+'
+'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+'        Case vbResume:  Stop: Resume
+'        Case Else:      GoTo xt
+'    End Select
+'End Sub
+
+Public Sub SyncBackup(ByVal sWrkbk As String)
+' -----------------------------------------------------
+' Saves a copy of the synchronization target Workbook
+' (Sync.Target) under its name with a suffix .Backup
+' -----------------------------------------------------
+    Const PROC = "SyncBackup"
+    
+    On Error GoTo eh
+    
+    With New FileSystemObject
+        .CopyFile sWrkbk, sWrkbk & ".Backup"
+    End With
+
+xt: Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Sub SyncRestore(ByVal sWrkbk As String)
+' ------------------------------------------------------------
+' Restores a synchronization target Workbook by deleting it
+' and renaming the ....Backup file
+' ------------------------------------------------------------
+    Const PROC = "SyncRestore"
+    
+    On Error GoTo eh
+    Dim fso         As New FileSystemObject
+    Dim fo          As Folder
+    Dim fl          As File
+    Dim sBckp       As String
+    Dim lFiles      As Long
+    Dim BckpFile    As File
+    
+    On Error Resume Next
+    mCompMan.WbkGetOpen(sWrkbk).Close SaveChanges:=False
+    With fso
+        If .FileExists(sWrkbk & ".Backup") Then
+            .CopyFile sWrkbk & ".Backup", sWrkbk
+            .DeleteFile sWrkbk & ".Backup"
+        End If
+    End With
+    
+xt: Set fso = Nothing
+    mCompMan.WbkGetOpen sWrkbk
+    Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+         
+Public Function SyncTargetWithSource( _
+          ByRef wb_target As Workbook, _
+          ByRef wb_source As Workbook, _
+ Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
+ Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
+' --------------------------------------------------------------------
+' Synchronizes a target Workbook (Sync.Target) with a source Workbook
+' (Sync.Source). Returns TRUE when finished without error.
+' --------------------------------------------------------------------
+    Const PROC = "SyncTargetWithSource"
+    
+    On Error GoTo eh
+    Set Sync = New clsSync
+    Set Stats = New clsStats
+        
+    Log.Service = ErrSrc(PROC)
+    mCompMan.DsplyProgress
+    
+    '~~ Make sure both Workbook's Export-Files are up-to-date
+    wb_source.Save
+    wb_target.Save
+    
+    Sync.ChangedClear
+    Sync.RestrictRenameAsserted = restricted_sheet_rename_asserted
+    Set Sync.Source = wb_source
+    Set Sync.Target = wb_target
+    Sync.CollectAllSyncItems
+    
+    Sync.ManualSynchRequired = False
+    
+    '~~ Count new and obsolete sheets
+    Sync.Mode = Count
+    mSyncSheets.SyncNew
+    mSyncSheets.SyncObsolete
+    
+    Sync.Ambigous = True
+    bSyncDenied = True
+
+    If GetSyncIssuesConfirmed Then
+        mSync.SyncBackup wb_target.FullName
+        DoSynchronization design_rows_cols_added_or_deleted
+        SyncTargetWithSource = True
+    End If
+    
+xt: Set Sync = Nothing
+    Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function TimedDoEvents() As String
+    mBasic.TimerBegin
+    DoEvents
+    TimedDoEvents = Format(mBasic.TimerEnd, "00000")
+End Function
 
 Private Function WbkGetOpen(ByVal go_wb_full_name As String) As Workbook
 ' ----------------------------------------------------------------------

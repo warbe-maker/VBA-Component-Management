@@ -60,7 +60,7 @@ Private sTmpExpFileFullName As String
 Private sWrkbkBaseName      As String       ' Common Component host Workbook's base name
 Private sWrkbkFullName      As String       ' Common Component host Workbook's full name
 Private vbc                 As VBComponent  ' VBComponent managed by this Class Module
-Private Wb                  As Workbook     ' The class' Workbook
+Private wb                  As Workbook     ' The class' Workbook
 Private sService            As String       ' Name of the 'Service' folder, i.e. the folder of the Workbook
 Private dctType             As Dictionary
 Private lMaxLenComp         As Long
@@ -69,6 +69,7 @@ Private sh                  As Worksheet
 Private sRawHostFullName    As String       ' -------------------------------------------------------------------
 Private sRawExpFileExt      As String       ' Corresponding Raw-Component facts when the Component is a Raw-Clone
 Private sRawExpFileFullName As String       ' -------------------------------------------------------------------
+Private fso                 As FileSystemObject
 
 Private Sub Class_Initialize()
     If dctType Is Nothing Then Set dctType = New Dictionary Else dctType.RemoveAll
@@ -77,16 +78,25 @@ Private Sub Class_Initialize()
     dctType.Add vbext_ct_Document, "Document Module"
     dctType.Add vbext_ct_MSForm, "UserForm"
     dctType.Add vbext_ct_StdModule, "Standard Module"
+    Set fso = New FileSystemObject
 End Sub
 
 Private Sub Class_Terminate()
     Set dctChanges = Nothing
-    Set Wb = Nothing
+    Set wb = Nothing
     Set vbc = Nothing
     With New FileSystemObject
         If .FolderExists(sTmpFolder) Then .DeleteFolder sTmpFolder
     End With
     Set flExpFile = Nothing
+    
+    If Me.ExpFileTempFullName <> vbNullString Then
+        If fso.FileExists(Me.ExpFileTempFullName) Then
+            fso.DeleteFile Me.ExpFileTempFullName
+        End If
+    End If
+    Set fso = Nothing
+    
 End Sub
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
@@ -108,39 +118,25 @@ Friend Property Get Changed() As Boolean
     Const PROC = "Changed"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
+    '~~ Any component is regarded changed when a temporary Export-File differs from the regular one
+    Me.VBComp.Export Me.ExpFileTempFullName
+    DoEvents
     
     '~~ Any component its Export-File not exists is regarded changed
     '~~ In fact it is either new or the Export-Folder location had changed
-    Changed = Not fso.FileExists(Me.ExpFileFullName)
-    If Changed Then GoTo xt
+    If Not fso.FileExists(Me.ExpFileFullName) Then
+        Changed = True
+        GoTo xt
+    End If
     
-    '~~ Else, any component is regarded changed when the collection of changed lines (dctChanges)
+    '~~ Any component is regarded changed when the collection of changed lines (dctChanges)
     '~~ not is nothing and the number of collected lines is <> 0
-    On Error Resume Next ' dctChanges may even not exist
-    Changed = dctChanges.Count <> 0
-    If Changed Then GoTo xt
-    
-    '~~ Else, any component is regarded changed when a temporary Export-File differs from the regular one
-    With fso
-        sTmpFolder = mCompMan.ExpFileFolderPath(Wb) & "\Temp"
-        If Not .FolderExists(sTmpFolder) Then
-            DoEvents
-            .CreateFolder sTmpFolder
-            DoEvents
-        End If
-        sTmpExpFileFullName = sTmpFolder & "\" & vbc.Name & sExpFileExt
-        vbc.Export sTmpExpFileFullName
-        DoEvents
-
-        Set dctChanges = _
-        mFile.Differs(fd_file1:=.GetFile(sTmpExpFileFullName) _
-                    , fd_file2:=.GetFile(Me.ExpFileFullName) _
-                    , fd_ignore_empty_records:=True _
-                    , fd_compare:=vbBinaryCompare _
-                    , fd_stop_after:=1 _
-                     )
-    End With
+    If dctChanges Is Nothing Then
+        '~~ The difference between the regular and the temporary export file
+        '~~ is only provided oncce
+        Set dctChanges = mExport.FilesDifference(fd_exp_file_1:=fso.GetFile(Me.ExpFileTempFullName) _
+                                               , fd_exp_file_2:=fso.GetFile(Me.ExpFileFullName))
+    End If
     Changed = dctChanges.Count <> 0
     
 xt: Exit Property
@@ -151,13 +147,28 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
+Friend Property Get ExpFileTempFullName() As String
+    Dim sTmpFolder  As String
+    
+    With fso
+        sTmpFolder = mCompMan.ExpFileFolderPath(Me.WrkbkFullName) & "\Temp"
+        If Not .FolderExists(sTmpFolder) Then
+            DoEvents
+            .CreateFolder sTmpFolder
+            DoEvents
+        End If
+        ExpFileTempFullName = sTmpFolder & "\" & Me.CompName & Me.ExpFileExt
+    End With
+    
+End Property
+
 Friend Property Get CodeName( _
               Optional ByVal scn_name As String) As String
 ' --------------------------------------------------------
 ' Returns the sheet's CodeName through its Name.
 ' --------------------------------------------------------
     Dim wsh As Worksheet
-    For Each wsh In Wb.Worksheets
+    For Each wsh In wb.Worksheets
         If sh.Name = scn_name Then
             CodeName = wsh.CodeName
             Exit For
@@ -175,10 +186,10 @@ Friend Property Let CompName(ByVal s As String)
 ' - VBComp          (vbc)
 ' ---------------------------------------------
     sCompName = s
-    If Not Wb Is Nothing Then
+    If Not wb Is Nothing Then
         If Me.Exists Then
-            Set vbc = Wb.VBProject.VBComponents(s)
-            sExpFileFullName = mCompMan.ExpFileFolderPath(Wb) & "\" & sCompName & Me.ExpFileExt
+            Set vbc = wb.VBProject.VBComponents(s)
+            sExpFileFullName = mCompMan.ExpFileFolderPath(wb) & "\" & sCompName & Me.ExpFileExt
         End If
     End If
 End Property
@@ -191,7 +202,7 @@ Friend Property Get Exists(Optional ByRef ex_wb As Workbook = Nothing) As Boolea
         Exists = Not v Is Nothing
     ElseIf vbc Is Nothing Then
         On Error Resume Next
-        Set vbc = Wb.VBProject.VBComponents(sCompName)
+        Set vbc = wb.VBProject.VBComponents(sCompName)
         Exists = Not vbc Is Nothing
     Else
         Exists = Not vbc Is Nothing
@@ -207,9 +218,7 @@ Friend Property Get ExistsBySheetName(Optional ByVal eb_name As String) As Boole
 End Property
 
 Friend Property Get ExpFile() As File
-    
-    Dim fso As New FileSystemObject
-    
+        
     With Me
         If flExpFile Is Nothing Then
             If fso.FileExists(.ExpFileFullName) Then
@@ -225,7 +234,6 @@ Friend Property Get ExpFile() As File
     End With
     
     Set ExpFile = flExpFile
-    Set fso = Nothing
     
 End Property
 
@@ -234,7 +242,7 @@ Friend Property Set ExpFile(ByVal fl As File):      Set flExpFile = fl:     End 
 Friend Property Get ExpFileExt() As String
     
     If sExpFileExt = vbNullString Then
-        If vbc Is Nothing Then Set vbc = Wb.VBProject.VBComponents(sCompName)
+        If vbc Is Nothing Then Set vbc = wb.VBProject.VBComponents(sCompName)
         With Me
             Select Case vbc.Type
                 Case vbext_ct_StdModule:    sExpFileExt = ".bas"
@@ -253,7 +261,7 @@ Friend Property Get ExpFileFullName() As String
 ' Will already have been prepared along with 'Property Let CompName'
 ' ------------------------------------------------------------------
     If sExpFileFullName = vbNullString Then
-        sExpFileFullName = mCompMan.ExpFileFolderPath(Wb) & "\" & Me.CompName & Me.ExpFileExt
+        sExpFileFullName = mCompMan.ExpFileFolderPath(Me.Wrkbk) & "\" & Me.CompName & Me.ExpFileExt
     End If
     ExpFileFullName = sExpFileFullName
 End Property
@@ -292,18 +300,104 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Get MaxLenComp() As Long:           MaxLenComp = lMaxLenComp:   End Property
+Friend Property Get MaxLenComp() As Long:                   MaxLenComp = lMaxLenComp:   End Property
 
 Public Property Let RawExpFileExt(ByVal s As String):       sRawExpFileExt = s:         End Property
 
+Public Property Get SavedExpFileFullName() As String
+    SavedExpFileFullName = mComCompsSaved.ExpFileFullName(Me.CompName)
+End Property
+
+Public Property Get SavedExpFile() As File
+    With New FileSystemObject
+        Set SavedExpFile = .GetFile(mComCompsSaved.ExpFileFullName(Me.CompName))
+    End With
+End Property
+
 Public Property Let RawExpFileFullName(ByVal s As String):  sRawExpFileFullName = s:    End Property
+
+Public Property Get RawMostRecentExpFile() As File
+' ------------------------------------------------------------------------------
+' Returns the most recent raw's export file. This may be the one saved in the
+' Common Components folder or - in case it exists the export folder of the
+' Workbook which hosts the Common Component. It has to be considered that even
+' when the hosting Workbook exists it may be outdated compared with the saved
+' one. The means to decide this is the Revision Number. When the hosted raw's
+' export file exists and its revision number is equal with the saved one any
+' may be returned. When the saved one's revision date is more up-to-date this
+' one is returned
+' ------------------------------------------------------------------------------
+    With New FileSystemObject
+        
+        If .FileExists(mComCompsSaved.ExpFileFullName(Me.CompName)) _
+        And .FileExists(mComCompsHosted.ExpFileFullName(Me.CompName)) Then
+            If mComCompsSaved.RevisionNumber(Me.CompName) = mComCompsHosted.RevisionNumber(Me.CompName) Then
+                Set RawMostRecentExpFile = .GetFile(mComCompsHosted.ExpFileFullName(Me.CompName))
+            ElseIf mComCompsSaved.RevisionNumber(Me.CompName) > mComCompsHosted.RevisionNumber(Me.CompName) Then
+                Set RawMostRecentExpFile = .GetFile(mComCompsSaved.ExpFileFullName(Me.CompName))
+            End If
+        
+        ElseIf Not .FileExists(mComCompsSaved.ExpFileFullName(Me.CompName)) _
+        And .FileExists(mComCompsHosted.ExpFileFullName(Me.CompName)) Then
+            Set RawMostRecentExpFile = .GetFile(mComCompsHosted.ExpFileFullName(Me.CompName))
+        
+        ElseIf .FileExists(mComCompsSaved.ExpFileFullName(Me.CompName)) _
+        And Not .FileExists(mComCompsHosted.ExpFileFullName(Me.CompName)) Then
+            Set RawMostRecentExpFile = .GetFile(mComCompsSaved.ExpFileFullName(Me.CompName))
+        End If
+        
+    End With
+End Property
+
+Public Property Get RawMostRecentRevisionNumber() As String
+' ------------------------------------------------------------------------------
+' Returns the most recent raw's Revision Number. When the most recent
+' modification had yet not been exported this will be a - yet still outdated -
+' Revision Number of the last saved Export File savede in the Common Components
+' folder.
+' ------------------------------------------------------------------------------
+    With New FileSystemObject
+        
+        If .FileExists(mComCompsSaved.ExpFileFullName(Me.CompName)) _
+        And .FileExists(mComCompsHosted.ExpFileFullName(Me.CompName)) Then
+            If mComCompsSaved.RevisionNumber(Me.CompName) = mComCompsHosted.RevisionNumber(Me.CompName) _
+            Or mComCompsSaved.RevisionNumber(Me.CompName) > mComCompsHosted.RevisionNumber(Me.CompName) Then
+                RawMostRecentRevisionNumber = mComCompsSaved.RevisionNumber(Me.CompName)
+            Else
+                '~~ May be the case when the Common Components folder(/repo) on this computer is outdated.
+                '~~ A pretty specific and thus propably rare case when a versioning system like Github is used:
+                '~~ The repo clone of the hosting Workbook is up-to-date but the repo clone of the
+                '~~ Common Components (represented via the same named folder) is yet not updated (fetched).
+                RawMostRecentRevisionNumber = mComCompsHosted.RevisionNumber(Me.CompName)
+            End If
+        
+        ElseIf Not .FileExists(mComCompsSaved.ExpFileFullName(Me.CompName)) _
+        And .FileExists(mComCompsHosted.ExpFileFullName(Me.CompName)) Then
+            '~~ May be the case when the Common Components folder(/repo) on this computer is outdated.
+            '~~ A pretty specific and thus propably rare case when a versioning system like Github is used:
+            '~~ The repo clone of the hosting Workbook is up-to-date but the repo clone of the
+            '~~ Common Components (represented via the same named folder) is yet not updated (fetched).
+            RawMostRecentRevisionNumber = mComCompsHosted.RevisionNumber(Me.CompName)
+        
+        ElseIf .FileExists(mComCompsSaved.ExpFileFullName(Me.CompName)) _
+        And Not .FileExists(mComCompsHosted.ExpFileFullName(Me.CompName)) Then
+            '~~ May be the case when the Common Components folder(/repo) on this computer is available
+            '~~ but the Common Component's hosting Workbook is not. When Github is used it is yet not
+            '~~ Forked/Cloned on this computer.
+            RawMostRecentRevisionNumber = mComCompsSaved.RevisionNumber(Me.CompName)
+        End If
+        
+    End With
+End Property
+
+
 
 Public Property Let RawHostFullName(ByVal s As String):     sRawHostFullName = s:       End Property
 
 Private Property Get ReplaceRawWithCloneConfirmed(ByRef raw As clsRaw) As Boolean
-' -------------------------------------------------------------
+' ------------------------------------------------------------------------------
 ' Returns TRUE when the "reverse" code update is confirmed.
-' --------------------------------------------------------------
+' ------------------------------------------------------------------------------
     Const PROC = "ReplaceRawWithCloneConfirmed"
     
     On Error GoTo eh
@@ -357,10 +451,10 @@ Private Property Get ReplaceRawWithCloneConfirmed(ByRef raw As clsRaw) As Boolea
                 ReplaceRawWithCloneConfirmed = True
                 Exit Do
             Case sReplyDsplyDiff
-                mFile.Compare fc_file_left:=Me.ExpFileFullName _
-                            , fc_file_right:=raw.ExpFileFullName _
-                            , fc_left_title:="The cloned raw's current code in Workbook/VBProject " & Me.WrkbkBaseName & " (" & Me.ExpFileFullName & ")" _
-                            , fc_right_title:="The remote raw's current code in Workbook/VBProject " & raw.WrkbkBaseName & " (" & raw.ExpFileFullName & ")"
+                mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=Me.ExpFileFullName _
+                                              , fd_exp_file_right_full_name:=raw.ExpFileFullName _
+                                              , fd_exp_file_left_title:="The used Common Component's current code in '" & Me.ExpFileFullName & "'" _
+                                              , fd_exp_file_right_title:="The raw Common Component's current code in '" & raw.ExpFileFullName & "'"
                 ' The question is re-displayed for a decison
             Case sReplyIgnore
                 ReplaceRawWithCloneConfirmed = False
@@ -377,7 +471,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Property
 
 Friend Property Get Service(Optional ByVal wb_full_name) As String
-    Dim fso As New FileSystemObject
     If sService = vbNullString Then
         sService = fso.GetFileName(Me.Wrkbk.Path)
     End If
@@ -407,18 +500,16 @@ Friend Property Get Wrkbk() As Workbook
     Const PROC = "Wrkbk_Get"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     
-    If Wb Is Nothing Then
+    If wb Is Nothing Then
         If Not fso.FileExists(sWrkbkFullName) _
         Then Err.Raise AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
-        Set Wb = mCompMan.WbkGetOpen(sWrkbkFullName)
+        Set wb = mCompMan.WbkGetOpen(sWrkbkFullName)
     Else
-        Set Wrkbk = Wb
+        Set Wrkbk = wb
     End If
     
-xt: Set fso = Nothing
-    Exit Property
+xt: Exit Property
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -436,18 +527,18 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
 '                          - MaxLenComp    (lMaxLenComp)
 ' ---------------------------------------------------------
     
-    Dim fso As New FileSystemObject
     Dim vbc As VBComponent
     
-    Set Wb = wbk
-    sWrkbkFullName = Wb.FullName
-    sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
-    sExpFilePath = fso.GetParentFolderName(sWrkbkFullName)
-    sService = fso.GetFileName(Wb.Path)
-    For Each vbc In Wb.VBProject.VBComponents
+    Set wb = wbk
+    sWrkbkFullName = wb.FullName
+    With fso
+        sWrkbkBaseName = .GetBaseName(sWrkbkFullName)
+        sExpFilePath = .GetParentFolderName(sWrkbkFullName)
+        sService = .GetFileName(wb.Path)
+    End With
+    For Each vbc In wb.VBProject.VBComponents
         lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
     Next vbc
-    Set fso = Nothing
     
 End Property
 
@@ -482,10 +573,10 @@ Public Sub DsplyAllChanges()
     Dim sMsg As TypeMsg
     
     If Me.Changed Then
-        mFile.Compare fc_file_left:=sTmpExpFileFullName _
-                    , fc_file_right:=Me.ExpFileFullName _
-                    , fc_left_title:="'Clone' component's export file '" & sTmpExpFileFullName & "'" _
-                    , fc_right_title:="'Raw' component's export file '" & Me.ExpFileFullName & "'"
+        mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=sTmpExpFileFullName _
+                                      , fd_exp_file_right_full_name:=Me.ExpFileFullName _
+                                      , fd_exp_file_left_title:="Clone (used) Common Component: '" & sTmpExpFileFullName & "'" _
+                                      , fd_exp_file_right_title:="Raw (hosted) Common Component: '" & Me.ExpFileFullName & "'"
     Else
         sMsg.Section(1).Text.Text = "The Export Files of the component '" & Me.CompName & "'"
         sMsg.Section(2).Text.Text = "Temp Export:    " & sTmpExpFileFullName & vbLf & _
@@ -493,7 +584,7 @@ Public Sub DsplyAllChanges()
         sMsg.Section(2).Text.MonoSpaced = True
         sMsg.Section(3).Text.Text = "are identical. The clone component has thus not changed."
         sMsg.Section(4).Label.Text = "Please note!"
-        sMsg.Section(4).Text.Text = "Differences in empty code lines or upper/lower case differences do not constitute a relevant code change."
+        sMsg.Section(4).Text.Text = "Empty code lines and case differences are ignored when they are the only difference."
         
         mMsg.Dsply dsply_title:="Display of code changes failed!" _
                  , dsply_msg:=sMsg
@@ -605,7 +696,6 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
     Const PROC = "ReplaceRawWithCloneWhenConfirmed"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     
     If ReplaceRawWithCloneConfirmed(raw) Then
             '~~ Get the origin host Workbook open
@@ -632,8 +722,7 @@ Public Sub ReplaceRawWithCloneWhenConfirmed( _
         End With ' RawComp
     End If
 
-xt: Set fso = Nothing
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

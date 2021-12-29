@@ -252,7 +252,7 @@ Private Sub CopyShape( _
         Set TargetShape = sc_target.Shapes(sc_target.Shapes.Count)
         With TargetShape
             .Name = sc_name
-            .top = SourceShape.top
+            .Top = SourceShape.Top
             .Left = SourceShape.Left
             .Width = SourceShape.Width
             .Height = SourceShape.Height
@@ -278,7 +278,7 @@ Private Sub CopyOOB( _
         Set TargetOOB = sc_target.OLEObjects(sc_target.OLEObjects.Count)
         With TargetOOB
             .Name = sc_oob_name
-            .top = SourceOOB.top
+            .Top = SourceOOB.Top
             .Left = SourceOOB.Left
             .Width = SourceOOB.Width
             .Height = SourceOOB.Height
@@ -768,7 +768,7 @@ Private Sub SyncCntrlProperties( _
         en = enTakeFocusOnClick:    SyncProperty en, .TakeFocusOnClick, cntrl_source.TakeFocusOnClick
         en = enTextAlign:           SyncProperty en, .TextAlign, cntrl_source.TextAlign
         en = enTitle:               SyncProperty en, .Title, cntrl_source.Title
-        en = enTop:                 SyncProperty en, .top, cntrl_source.top
+        en = enTop:                 SyncProperty en, .Top, cntrl_source.Top
         en = enVisible:             SyncProperty en, .Visible, cntrl_source.Visible
         en = enWidth:               SyncProperty en, .Width, cntrl_source.Width
         en = enWordWrap:            SyncProperty en, .WordWrap, cntrl_source.WordWrap
@@ -827,7 +827,7 @@ Private Sub SyncOOBProperties( _
         SyncProperty .PrintObject, oobSource.PrintObject, "OLEObject.PrintObject"
         SyncProperty .Shadow, oobSource.Shadow, "OLEObject.Shadow"
         SyncProperty .SourceName, oobSource.SourceName, "OLEObject.SourceName"
-        SyncProperty .top, oobSource.top, "OLEObject.Top"
+        SyncProperty .Top, oobSource.Top, "OLEObject.Top"
     End With
 
 xt: On Error GoTo -1

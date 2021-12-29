@@ -28,8 +28,9 @@ Friend Property Let Entry(ByVal s As String)
 ' ------------------------------------------
 ' Append an entry to the log file.
 ' ------------------------------------------
-Static sItem As String
-  
+    Static sItem    As String
+    Dim sCompName   As String
+    
     If ServicedItem = vbNullString Then
         sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & s
     Else
@@ -41,6 +42,8 @@ Static sItem As String
     End If
     mFile.Txt(ft_file:=sFile, ft_append:=True) = sEntry
     sItem = sServicedItem
+    sCompName = Split(ServicedItemName, "(")(0)
+    mTrc.TraceLogInfo = sCompName & ": " & s
     
 End Property
 

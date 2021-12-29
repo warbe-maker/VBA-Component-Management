@@ -43,9 +43,7 @@ Private Sub Workbook_Open()
     Const PROC = "Workbook_Open"
     
     On Error GoTo eh
-    
-    mErH.BoP ErrSrc(PROC)
-    
+       
     If mMe.IsDevInstnc Then
         '~~ ------------------------------------------------------------------
         '~~ CompMan Workbook_Open service 'UpdateComCompsUsed':
@@ -68,8 +66,7 @@ Private Sub Workbook_Open()
         wsAddIn.Range("celSelect").Select
     End If
     
-xt: mErH.BoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

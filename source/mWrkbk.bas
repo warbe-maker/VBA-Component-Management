@@ -398,7 +398,7 @@ Public Function IsObject(ByVal v As Variant) As Boolean
     End If
 End Function
 
-Public Function IsOpen(ByVal Wb As Variant, _
+Public Function IsOpen(ByVal wb As Variant, _
               Optional ByRef wb_result As Workbook) As Boolean
 ' ------------------------------------------------------------
 ' Returns TRUE when the Workbook (wb) - which may be a Work-
@@ -417,38 +417,38 @@ Public Function IsOpen(ByVal Wb As Variant, _
     Dim fso      As New FileSystemObject
     Dim BaseName As String
     
-    If Not mWrkbk.IsObject(Wb) And Not mWrkbk.IsFullName(Wb) And Not mWrkbk.IsName(Wb) And Not TypeName(Wb) = "String" _
+    If Not mWrkbk.IsObject(wb) And Not mWrkbk.IsFullName(wb) And Not mWrkbk.IsName(wb) And Not TypeName(wb) = "String" _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter wb) is neither a Workbook object nor a Workbook's name or fullname)!"
        
     Set OpenWbks = mWrkbk.Opened
-    If mWrkbk.IsName(Wb) Then
+    If mWrkbk.IsName(wb) Then
         '~~ wb is a Workbook's Name including its extension
-        BaseName = fso.GetBaseName(Wb)
+        BaseName = fso.GetBaseName(wb)
         If OpenWbks.Exists(BaseName) Then
             '~~ A Workbook with the same 'BaseName' is open
             Set OpenWbk = OpenWbks.Item(BaseName)
             '~~ When a Workbook's Name is provided the Workbook is only regarde open when the open
             '~~ Workbook has the same name (i.e. including its extension)
-            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(Wb) Then Set OpenWbk = Nothing
+            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
-    ElseIf mWrkbk.IsFullName(Wb) Then
-        BaseName = fso.GetBaseName(Wb)
+    ElseIf mWrkbk.IsFullName(wb) Then
+        BaseName = fso.GetBaseName(wb)
         If OpenWbks.Exists(BaseName) Then
             '~~ A Workbook with the same 'BaseName' is open
             Set OpenWbk = OpenWbks.Item(BaseName)
             '~~ The provided (wb) specifies an exist Workbook file. This Workbook is regarded open (and returned as opject)
             '~~ when a Workbook with its Name (including the extension!) is open regardless in which location
-            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(Wb) Then Set OpenWbk = Nothing
+            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
-    ElseIf mWrkbk.IsObject(Wb) Then
-        BaseName = fso.GetBaseName(Wb.Name)
+    ElseIf mWrkbk.IsObject(wb) Then
+        BaseName = fso.GetBaseName(wb.Name)
         If Opened.Exists(BaseName) Then
             Set OpenWbk = OpenWbks.Item(BaseName)
         End If
     Else
         '~~ If wb is a Workbook's BaseName it is regarded open when one with that BaseName is open
         '~~ regrdless its extension
-        If OpenWbks.Exists(Wb) Then Set OpenWbk = OpenWbks.Item(Wb)
+        If OpenWbks.Exists(wb) Then Set OpenWbk = OpenWbks.Item(wb)
     End If
     
 xt: If mWrkbk.IsObject(OpenWbk) Then
@@ -527,7 +527,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function TestSheet(ByVal Wb As Workbook, _
+Private Function TestSheet(ByVal wb As Workbook, _
                            ByVal vWs As Variant) As Worksheet
 ' -----------------------------------------------------------
 ' Returns the Worksheet object (vWs) - which may be a Work-
@@ -535,7 +535,7 @@ Private Function TestSheet(ByVal Wb As Workbook, _
 ' Precondition: The Worksheet exists.
 ' -----------------------------------------------------------
     If VarType(vWs) = vbString Then
-        Set TestSheet = Wb.Worksheets(vWs)
+        Set TestSheet = wb.Worksheets(vWs)
     ElseIf TypeOf vWs Is Worksheet Then
         Set TestSheet = vWs
     End If

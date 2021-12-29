@@ -572,7 +572,7 @@ Public Function Dsply(ByVal dsply_title As String, _
         If dsply_modeless Then
             DisplayDone = False
             .Show vbModeless
-            .top = 1
+            .Top = 1
             .Left = 1
         Else
             .Show vbModal

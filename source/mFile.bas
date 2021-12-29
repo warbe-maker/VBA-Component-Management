@@ -2,7 +2,7 @@ Attribute VB_Name = "mFile"
 Option Explicit
 Option Compare Text
 Option Private Module
-' ------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Standard  Module mFile
 '           Common methods and functions regarding file objects.
 '
@@ -54,7 +54,7 @@ Option Private Module
 ' Contribution in whichever form is welcome.
 '
 ' W. Rauschenberger, Berlin Nov 2020
-' ------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 Private Declare PtrSafe Function WritePrivateProfileString _
                 Lib "kernel32" Alias "WritePrivateProfileStringA" _
                (ByVal lpw_ApplicationName As String, _
@@ -276,13 +276,11 @@ Public Property Get Txt( _
          Optional ByVal ft_file As Variant, _
          Optional ByVal ft_append As Boolean = True, _
          Optional ByRef ft_split As String) As String
-' ----------------------------------------------------
-' Returns the text file's (ft_file) content as string
-' with VBA.Split() string in (ft_split). When the file
-' doesn't exist a vbNullString is returned.
-' Note: ft_append is not used but specified to comply
-'       with the Get Property declaration.
-' ----------------------------------------------------
+' ----------------------------------------------------------------------------
+' Returns the text file's (ft_file) content as string with VBA.Split() string
+' in (ft_split). When the file doesn't exist a vbNullString is returned.
+' Note: ft_append is not used but specified to comply with Property Let.
+' ----------------------------------------------------------------------------
     Const PROC = "Txt-Get"
     
     On Error GoTo eh
@@ -329,12 +327,11 @@ Public Property Let Txt( _
          Optional ByVal ft_append As Boolean = True, _
          Optional ByRef ft_split As String, _
                   ByVal ft_string As String)
-' -----------------------------------------------------
-' Writes the string (ft_string) into the file (ft_file)
-' which might be a file object of a file's full name.
-' Note: ft_split is not used but specified to comply
-'       with the Get Property declaration.
-' -----------------------------------------------------
+' ----------------------------------------------------------------------------
+' Writes the string (ft_string) into the file (ft_file) which might be a file
+' object or a file's full name.
+' Note: ft_split is not used but specified to comply with Property Get.
+' ----------------------------------------------------------------------------
     Const PROC = "Txt-Let"
     
     On Error GoTo eh

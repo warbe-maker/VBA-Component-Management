@@ -7,35 +7,36 @@ Private sUpdateStayVerbose      As String
 Private sBttnDsplyChanges       As String
 Private sBttnSkipStayVerbose    As String
 
-Private Property Let BttnUpdateStayVerbose(ByVal comp_name As String)
-    sUpdateStayVerbose = "Update" & vbLf & vbLf & Spaced(comp_name) & vbLf & vbLf & "(stay verbose)"
-End Property
-
-Private Property Get BttnUpdateStayVerbose() As String
-    BttnUpdateStayVerbose = sUpdateStayVerbose
-End Property
-
-Private Property Get BttnUpdateAll() As String
-    BttnUpdateAll = "Update" & vbLf & "all"
+Private Property Get BttnDsplyChanges() As String
+    BttnDsplyChanges = sBttnDsplyChanges
 End Property
 
 Private Property Let BttnDsplyChanges(ByVal comp_name As String)
     sBttnDsplyChanges = "Display code changes" & vbLf & vbLf & Spaced(comp_name)
 End Property
 
-Private Property Get BttnDsplyChanges() As String
-    BttnDsplyChanges = sBttnDsplyChanges
+Private Property Get BttnSkip() As String
+    BttnSkip = "Skip"
+End Property
+
+Private Property Get BttnSkipStayVerbose() As String
+    BttnSkipStayVerbose = sBttnSkipStayVerbose
 End Property
 
 Private Property Let BttnSkipStayVerbose(ByVal comp_name As String)
     sBttnSkipStayVerbose = "Skip this component" & vbLf & "(stay verbose)"
 End Property
-Private Property Get BttnSkipStayVerbose() As String
-    BttnSkipStayVerbose = sBttnSkipStayVerbose
+
+Private Property Get BttnUpdateAll() As String
+    BttnUpdateAll = "Update" & vbLf & "all"
 End Property
 
-Private Property Get BttnSkipAll() As String
-    BttnSkipAll = "Skip" & vbLf & "all"
+Private Property Get BttnUpdate() As String
+    BttnUpdate = sUpdateStayVerbose
+End Property
+
+Private Property Let BttnUpdate(ByVal comp_name As String)
+    sUpdateStayVerbose = "Update" & vbLf & vbLf & Spaced(comp_name)
 End Property
 
 Public Sub ComCompsUsed(ByRef urc_wb As Workbook)
@@ -58,6 +59,7 @@ Public Sub ComCompsUsed(ByRef urc_wb As Workbook)
     Dim RawComp                 As clsRaw
     Dim CloneComp               As clsComp
     
+    mBasic.BoP ErrSrc(PROC)
     Set Clones = New clsClones
     Set dctComCompsHostedChanged = Clones.RawChanged
     
@@ -78,8 +80,8 @@ Public Sub ComCompsUsed(ByRef urc_wb As Workbook)
                 UpdateCloneConfirmed ucc_comp_name:=.CompName _
                                    , ucc_stay_verbose:=bVerbose _
                                    , ucc_skip:=bSkip _
-                                   , ucc_clone:=CloneComp.ExpFileFullName _
-                                   , ucc_raw:=.ExpFileFullName
+                                   , ucc_clone_exp_file_full_name:=CloneComp.ExpFileFullName _
+                                   , ucc_raw_exp_file_full_name:=.ExpFileFullName
             End If
             If Not bSkip Then
                 mRenew.ByImport rn_wb:=urc_wb _
@@ -102,6 +104,7 @@ Public Sub ComCompsUsed(ByRef urc_wb As Workbook)
     Else Application.StatusBar = Log.Service & sUpdated & " (" & Stats.Total(sic_clones_comps_updated) & " of " & Stats.Total(sic_clone_comps) & ")"
 
 xt: Set fso = Nothing
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -109,84 +112,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-Public Function UpdateCloneConfirmed( _
-                               ByVal ucc_comp_name As String, _
-                               ByRef ucc_stay_verbose As Boolean, _
-                               ByRef ucc_skip As Boolean, _
-                               ByVal ucc_clone As String, _
-                               ByVal ucc_raw As String)
-' ---------------------------------------------------------------
-'
-' ---------------------------------------------------------------
-    Const PROC = "UpdateCloneConfirmed"
-    
-    On Error GoTo eh
-    Dim cllButtons      As Collection
-    Dim sMsg            As TypeMsg
-    Dim vReply          As Variant
-    
-    BttnDsplyChanges = ucc_comp_name
-    BttnUpdateStayVerbose = ucc_comp_name
-    mMsg.Buttons cllButtons, BttnDsplyChanges _
-                     , vbLf, BttnUpdateStayVerbose, BttnSkipStayVerbose _
-                     , vbLf, BttnUpdateAll, BttnSkipAll
-    
-    With sMsg
-        .Section(1).Label.Text = "About this update:"
-        .Section(1).Text.Text = "When the raw clone used in this Workbook is not updated the message will show up again " & _
-                                "the next time this Workbook is opened - provided it is located/opened in the  in the " & _
-                                "configured development root folder:"
-        .Section(2).Text.Text = mMe.ServicedRootFolder
-        .Section(2).Text.MonoSpaced = True
-        With .Section(3)
-            If mComCompsSaved.RevisionNumber(ucc_comp_name) = mComCompsUsed.RevisionNumber(ucc_comp_name) Then
-                .Label.Text = "Attention!"
-                .Label.FontColor = rgbRed
-                .Text.Text = "It appears that the code of the raw clone used in this Workbook has been modified. This modification will be " & _
-                             "reverted with this update. Displaying the difference will be the last chance to modify the raw component in its " & _
-                             "hosting Workbook (" & mComCompsSaved.HostFullName(ucc_comp_name) & ")."
-            Else
-                .Text.Text = vbNullString
-            End If
-        End With
-    End With
-    
-    Do
-        vReply = mMsg.Dsply(dsply_title:=Log.Service & "Update " & Spaced(ucc_comp_name) & "with changed raw" _
-                          , dsply_msg:=sMsg _
-                          , dsply_buttons:=cllButtons _
-                           )
-        Select Case vReply
-            Case BttnDsplyChanges
-                mFile.Compare fc_file_left:=ucc_clone _
-                            , fc_left_title:="Cloned raw: '" & ucc_clone & "'" _
-                            , fc_file_right:=ucc_raw _
-                            , fc_right_title:="Current raw: '" & ucc_raw & "'"
-            
-            Case BttnUpdateStayVerbose
-                ucc_skip = False
-                Exit Do
-            Case BttnSkipStayVerbose
-                ucc_stay_verbose = True
-                Exit Do
-            Case BttnUpdateAll
-                ucc_skip = False
-                ucc_stay_verbose = False
-                Exit Do
-            Case BttnSkipAll
-                ucc_skip = True
-                Exit Do
-        End Select
-    Loop
-    
-xt: Exit Function
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
 
 Private Sub DisplayStatus( _
                     ByVal sp_cloned_raws As Long, _
@@ -227,5 +152,77 @@ Private Function Spaced(ByVal s As String) As String
         sSpaced = sSpaced & Mid(s, i, 1) & " "
     Next i
     Spaced = sSpaced
+End Function
+
+Public Function UpdateCloneConfirmed( _
+                               ByVal ucc_comp_name As String, _
+                               ByRef ucc_stay_verbose As Boolean, _
+                               ByRef ucc_skip As Boolean, _
+                               ByVal ucc_clone_exp_file_full_name As String, _
+                               ByVal ucc_raw_exp_file_full_name As String)
+' ---------------------------------------------------------------
+'
+' ---------------------------------------------------------------
+    Const PROC = "UpdateCloneConfirmed"
+    
+    On Error GoTo eh
+    Dim cllButtons      As Collection
+    Dim sMsg            As TypeMsg
+    Dim vReply          As Variant
+    
+    mBasic.BoP ErrSrc(PROC)
+    BttnDsplyChanges = ucc_comp_name
+    BttnUpdate = ucc_comp_name
+    mMsg.Buttons cllButtons, BttnDsplyChanges _
+                     , vbLf, BttnUpdate _
+                     , vbLf, BttnSkip
+    
+    With sMsg
+        .Section(1).Label.Text = "About this update:"
+        .Section(1).Text.Text = "When the raw clone used in this Workbook is not updated the message will show up again " & _
+                                "the next time this Workbook is opened - provided it is located/opened in the  in the " & _
+                                "configured development root folder:"
+        .Section(2).Text.Text = mMe.ServicedRootFolder
+        .Section(2).Text.MonoSpaced = True
+        With .Section(3)
+            If mComCompsSaved.RevisionNumber(ucc_comp_name) = mComCompsUsed.RevisionNumber(ucc_comp_name) Then
+                .Label.Text = "Attention!"
+                .Label.FontColor = rgbRed
+                .Text.Text = "It appears that the code of the raw clone used in this Workbook has been modified. This modification will be " & _
+                             "reverted with this update. Displaying the difference will be the last chance to modify the raw component in its " & _
+                             "hosting Workbook (" & mComCompsSaved.HostFullName(ucc_comp_name) & ")."
+            Else
+                .Text.Text = vbNullString
+            End If
+        End With
+    End With
+    
+    Do
+        vReply = mMsg.Dsply(dsply_title:=Log.Service & "Update " & Spaced(ucc_comp_name) & "with changed raw" _
+                          , dsply_msg:=sMsg _
+                          , dsply_buttons:=cllButtons _
+                           )
+        Select Case vReply
+            Case BttnUpdate
+                ucc_skip = False
+                Exit Do
+            Case BttnSkip
+                ucc_skip = True
+                Exit Do
+            Case BttnDsplyChanges
+                mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=ucc_clone_exp_file_full_name _
+                                              , fd_exp_file_left_title:="Clone (used) Common Component: '" & ucc_clone_exp_file_full_name & "'" _
+                                              , fd_exp_file_right_full_name:=ucc_raw_exp_file_full_name _
+                                              , fd_exp_file_right_title:="Raw (hosted) Common Component: '" & ucc_raw_exp_file_full_name & "'"
+        End Select
+    Loop
+    
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 

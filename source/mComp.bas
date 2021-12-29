@@ -22,7 +22,7 @@ Option Explicit
 Public Const RENAMED_BY_COMPMAN = "_RenamedByCompMan"
 
 Public Function Exists( _
-                 ByRef Wb As Workbook, _
+                 ByRef wb As Workbook, _
                  ByVal comp_name As String) As Boolean
 ' ----------------------------------------------------
 ' Returns TRUE when the component (comp_name) exists
@@ -30,13 +30,13 @@ Public Function Exists( _
 ' -----------------------------------------------------
     Dim s As String
     On Error Resume Next
-    s = Wb.VBProject.VBComponents(comp_name).Name
+    s = wb.VBProject.VBComponents(comp_name).Name
     Exists = Err.Number = 0
 End Function
 
 Public Function IsSheetDocMod( _
                         ByRef vbc As VBComponent, _
-               Optional ByRef Wb As Workbook = Nothing, _
+               Optional ByRef wb As Workbook = Nothing, _
                Optional ByRef sh_name As String = vbNullString) As Boolean
 ' ------------------------------------------------------------------------
 ' Returns TRUE when the Component (vbc) is the Worksheet object. When the
@@ -46,8 +46,8 @@ Public Function IsSheetDocMod( _
     Dim ws As Worksheet
     
     IsSheetDocMod = vbc.Type = vbext_ct_Document And Not mComp.IsWrkbkDocMod(vbc)
-    If Not Wb Is Nothing Then
-        For Each ws In Wb.Worksheets
+    If Not wb Is Nothing Then
+        For Each ws In wb.Worksheets
             If ws.CodeName = vbc.Name Then
                 sh_name = ws.Name
                 Exit For

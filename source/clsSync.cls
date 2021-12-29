@@ -137,7 +137,7 @@ Friend Property Get SheetsObsolete() As Long:                   SheetsObsolete =
 
 Friend Property Get Source() As Workbook:                       Set Source = wbSyncSource:                              End Property
 
-Friend Property Set Source(ByRef Wb As Workbook):               Set wbSyncSource = Wb:                                  End Property
+Friend Property Set Source(ByRef wb As Workbook):               Set wbSyncSource = wb:                                  End Property
 
 Friend Property Get SourceNames() As Dictionary:                Set SourceNames = dctSourceNames:                       End Property
 
@@ -153,7 +153,7 @@ Friend Property Get TargetSheetOOBs() As Dictionary:            Set TargetSheetO
 
 Friend Property Get Target() As Workbook:                       Set Target = wbSyncTarget:                              End Property
 
-Friend Property Set Target(ByRef Wb As Workbook):               Set wbSyncTarget = Wb:                                  End Property
+Friend Property Set Target(ByRef wb As Workbook):               Set wbSyncTarget = wb:                                  End Property
 
 Friend Property Get TargetNames() As Dictionary:                Set TargetNames = dctTargetNames:                       End Property
 
@@ -396,7 +396,7 @@ End Function
 
 Public Function SheetProjectName( _
                   Optional ByRef ws As Worksheet = Nothing, _
-                  Optional ByRef Wb As Workbook = Nothing, _
+                  Optional ByRef wb As Workbook = Nothing, _
                   Optional ByRef vbc As VBComponent = Nothing) As String
 ' ----------------------------------------------------------------------
 ' Returns a Worksheet's full project name in the form 'codename(name)'.
@@ -405,9 +405,9 @@ Public Function SheetProjectName( _
 ' ----------------------------------------------------------------------
     If Not ws Is Nothing Then
         SheetProjectName = ws.CodeName & "(" & ws.Name & ")"
-    ElseIf Not Wb Is Nothing Then
+    ElseIf Not wb Is Nothing Then
         If Not vbc Is Nothing Then
-            For Each ws In Wb.Worksheets
+            For Each ws In wb.Worksheets
                 If ws.CodeName = vbc.Name Then
                     SheetProjectName = vbc.Name & "(" & ws.Name & ")"
                     Exit For

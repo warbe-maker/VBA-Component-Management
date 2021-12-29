@@ -461,15 +461,15 @@ Public Function CntrlName(ByVal shp As Shape) As String
     
     On Error GoTo eh
     Dim oob     As OLEObject
-    Dim Wb      As Workbook
+    Dim wb      As Workbook
     Dim ws      As Worksheet
     Dim sName   As String
     Dim i       As Long
     Dim j       As Long
     Dim shp1    As Shape
     
-    Set Wb = Application.Workbooks(shp.Parent.Parent.Name)
-    Set ws = Wb.Worksheets(shp.Parent.Name)
+    Set wb = Application.Workbooks(shp.Parent.Parent.Name)
+    Set ws = wb.Worksheets(shp.Parent.Name)
     With ws
         For Each shp1 In .Shapes
             If shp1.Type = msoOLEControlObject Then j = j + 1
@@ -503,15 +503,15 @@ Public Function CntrlType( _
     
     On Error GoTo eh
     Dim oob     As OLEObject
-    Dim Wb      As Workbook
+    Dim wb      As Workbook
     Dim ws      As Worksheet
     Dim sName   As String
     Dim i       As Long
     Dim j       As Long
     Dim shp1    As Shape
     
-    Set Wb = Application.Workbooks(shp.Parent.Parent.Name)
-    Set ws = Wb.Worksheets(shp.Parent.Name)
+    Set wb = Application.Workbooks(shp.Parent.Parent.Name)
+    Set ws = wb.Worksheets(shp.Parent.Name)
     With ws
         For Each shp1 In .Shapes
             If shp1.Type = msoOLEControlObject Then

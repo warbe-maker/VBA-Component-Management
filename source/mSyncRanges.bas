@@ -70,7 +70,7 @@ Public Sub SyncNamedColumnsWidth( _
     
     If ws_source Is Nothing And ws_target Is Nothing Then
         For Each ws In Sync.Source.Worksheets
-            If mSyncSheets.SheetExists(Wb:=Sync.Target _
+            If mSyncSheets.SheetExists(wb:=Sync.Target _
                                      , sh1_name:=ws.Name _
                                      , sh1_code_name:=ws.CodeName _
                                      , sh2_name:=sSheetName _
@@ -135,7 +135,7 @@ Public Sub SyncNamedRowsHeight( _
     
     If ws_source Is Nothing And ws_target Is Nothing Then
         For Each ws In Sync.Source.Worksheets
-            If mSyncSheets.SheetExists(Wb:=Sync.Target _
+            If mSyncSheets.SheetExists(wb:=Sync.Target _
                                      , sh1_name:=ws.Name _
                                      , sh1_code_name:=ws.CodeName _
                                      , sh2_name:=sSheetName _

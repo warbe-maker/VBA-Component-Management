@@ -49,7 +49,7 @@ Private Function NameChange( _
 End Function
 
 Public Function SheetExists( _
-                       ByRef Wb As Workbook, _
+                       ByRef wb As Workbook, _
               Optional ByRef sh1_name As String = vbNullString, _
               Optional ByRef sh1_code_name As String = vbNullString, _
               Optional ByRef sh2_name As String = vbNullString, _
@@ -69,7 +69,7 @@ Public Function SheetExists( _
     If sh1_name = vbNullString And sh1_code_name = vbNullString _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "Neither a Sheet's Name nor CodeName is provided!"
     
-    For Each ws In Wb.Worksheets
+    For Each ws In wb.Worksheets
         If sh1_name <> vbNullString Then
             If ws.Name = sh1_name Then
                 SheetExists = True
@@ -195,7 +195,7 @@ Public Sub SyncCodeName()
     For Each v In Sync.SourceSheets
         sSourceSheetName = Sync.SourceSheets(v)
         sSourceSheetCodeName = SheetCodeName(Sync.Source, sSourceSheetName)
-        If Not SheetExists(Wb:=Sync.Target _
+        If Not SheetExists(wb:=Sync.Target _
                          , sh1_name:=sSourceSheetName _
                          , sh1_code_name:=sSourceSheetCodeName _
                          , sh2_name:=sTargetSheetName _
@@ -250,7 +250,7 @@ Public Sub SyncName()
         For Each v In .SourceSheets
             sSourceSheetName = .SourceSheets(v)
             sSourceSheetCodeName = SheetCodeName(.Source, sSourceSheetName)
-            If Not SheetExists(Wb:=.Target _
+            If Not SheetExists(wb:=.Target _
                              , sh1_name:=sSourceSheetName _
                              , sh1_code_name:=sSourceSheetCodeName _
                              , sh2_name:=sTargetSheetName _
@@ -314,7 +314,7 @@ Public Sub SyncNew()
         For Each v In .SourceSheets
             sSourceName = .SourceSheets(v)
             sSourceCodeName = SheetCodeName(.Source, sSourceName)
-            If Not SheetExists(Wb:=.Target _
+            If Not SheetExists(wb:=.Target _
                              , sh1_name:=sSourceName _
                              , sh1_code_name:=sSourceCodeName _
                              , sh2_name:=sTargetName _
@@ -399,7 +399,7 @@ Public Sub SyncObsolete()
         For Each v In .TargetSheets
             sTargetSheetName = .TargetSheets(v)
             sTargetSheetCodeName = SheetCodeName(.Target, sTargetSheetName)
-            If Not SheetExists(Wb:=.Source _
+            If Not SheetExists(wb:=.Source _
                              , sh1_name:=sTargetSheetName _
                              , sh1_code_name:=sTargetSheetCodeName _
                              ) Then
@@ -495,7 +495,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Function SheetCodeName( _
-                        ByRef Wb As Workbook, _
+                        ByRef wb As Workbook, _
                         ByVal sheet_name As String) As String
 ' -----------------------------------------------------------
 ' Returns the sheet's (sheet_name) CodeName in Workbook (wb).
@@ -507,7 +507,7 @@ Public Function SheetCodeName( _
     On Error GoTo eh
     Dim ws  As Worksheet
     
-    For Each ws In Wb.Worksheets
+    For Each ws In wb.Worksheets
         If ws.Name = sheet_name Then
             SheetCodeName = ws.CodeName
             GoTo xt

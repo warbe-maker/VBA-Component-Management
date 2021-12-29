@@ -56,7 +56,7 @@ Private sExpFileFullName        As String
 Private wbRawHost               As Workbook
 Private sService                As String
 Private sTypeString             As String
-Private Wb                      As Workbook
+Private wb                      As Workbook
 Private sWrkbkBaseName          As String       ' Common Component host Workbook's base name
 Private sWrkbkFullName          As String       ' Common Component host Workbook's full name
 Private vbc                     As VBComponent  ' VBComponent managed by this Class Module
@@ -105,19 +105,17 @@ Friend Property Get Changed( _
     Dim fso As New FileSystemObject
     
     If dctChanges Is Nothing Or check_again Then
+        '~~ The difference between the raw's and the clone's
+        '~~ export file provided only oncce or when explicitely requested
         If Not fso.FileExists(clone.ExpFileFullName) Then
             '~~ The component never had been exported yet or the Export-File has been deleted
             clone.Export
         End If
         Set dctChanges = _
-        mFile.Differs(fd_file1:=fso.GetFile(clone.ExpFileFullName) _
-                    , fd_file2:=fso.GetFile(Me.ExpFileFullName) _
-                    , fd_ignore_empty_records:=True _
-                    , fd_compare:=vbBinaryCompare _
-                    , fd_stop_after:=1 _
-                     )
-        Changed = dctChanges.Count <> 0
+        mExport.FilesDifference(fd_exp_file_1:=fso.GetFile(clone.ExpFileFullName) _
+                              , fd_exp_file_2:=fso.GetFile(Me.ExpFileFullName))
     End If
+    Changed = dctChanges.Count <> 0
             
 xt: Set fso = Nothing
     Exit Property
@@ -188,9 +186,9 @@ Friend Property Let CompName(ByVal s As String)
 ' -------------------------------------------------------------
     Dim fso As New FileSystemObject
     sCompName = s
-    If Not Wb Is Nothing Then
+    If Not wb Is Nothing Then
         If Me.Exists Then
-            Set vbc = Wb.VBProject.VBComponents(s)
+            Set vbc = wb.VBProject.VBComponents(s)
             sExpFileFullName = mCompMan.ExpFileFolderPath(Me.HostWrkbkFullName) & "\" & sCompName & Me.ExpFileExt
             If Not fso.FileExists(sExpFileFullName) Then
                 MsgBox Title:="An obligatory Export-File is missing!" _
@@ -204,14 +202,14 @@ Friend Property Let CompName(ByVal s As String)
 End Property
 
 Public Sub DsplyAllChanges()
-' -------------------------------------------
-' Display of all differences between the
-' clone's and the raw's Export-File. Uses WinMerge!
-' -------------------------------------------
-    mFile.Compare fc_file_left:=sCloneExpFileFullName _
-                , fc_file_right:=sExpFileFullName _
-                , fc_left_title:="'Clone' component's export file '" & sCloneExpFileFullName & "'" _
-                , fc_right_title:="'Raw' component's export file '" & Me.ExpFileFullName & "'"
+' ----------------------------------------------------------------------------
+' Display of all differences between the clone's and the raw's Export-File.
+' Uses WinMerge!
+' ----------------------------------------------------------------------------
+    mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=sCloneExpFileFullName _
+                                  , fd_exp_file_right_full_name:=sExpFileFullName _
+                                  , fd_exp_file_left_title:="'Clone' component's export file '" & sCloneExpFileFullName & "'" _
+                                  , fd_exp_file_right_title:="'Raw' component's export file '" & Me.ExpFileFullName & "'"
 End Sub
 
 Friend Property Get Exists(Optional ByRef ex_wb As Workbook = Nothing) As Boolean
@@ -222,7 +220,7 @@ Friend Property Get Exists(Optional ByRef ex_wb As Workbook = Nothing) As Boolea
         Exists = Not v Is Nothing
     ElseIf vbc Is Nothing Then
         On Error Resume Next
-        Set vbc = Wb.VBProject.VBComponents(sCompName)
+        Set vbc = wb.VBProject.VBComponents(sCompName)
         Exists = Not vbc Is Nothing
     Else
         Exists = Not vbc Is Nothing
@@ -260,7 +258,7 @@ End Property
 Friend Property Get ExpFileExt() As String
     
     If sExpFileExt = vbNullString Then
-        If vbc Is Nothing Then Set vbc = Wb.VBProject.VBComponents(sCompName)
+        If vbc Is Nothing Then Set vbc = wb.VBProject.VBComponents(sCompName)
         With Me
             Select Case vbc.Type
                 Case vbext_ct_StdModule:    sExpFileExt = ".bas"
@@ -320,12 +318,12 @@ Friend Property Get Wrkbk() As Workbook
     On Error GoTo eh
     Dim fso As New FileSystemObject
     
-    If Wb Is Nothing Then
+    If wb Is Nothing Then
         If Not fso.FileExists(sWrkbkFullName) _
         Then Err.Raise AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
-        Set Wb = mCompMan.WbkGetOpen(sWrkbkFullName)
+        Set wb = mCompMan.WbkGetOpen(sWrkbkFullName)
     Else
-        Set Wrkbk = Wb
+        Set Wrkbk = wb
     End If
     
 xt: Set fso = Nothing
@@ -350,11 +348,11 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     Dim fso As New FileSystemObject
     Dim vbc As VBComponent
     
-    Set Wb = wbk
-    sWrkbkFullName = Wb.FullName
+    Set wb = wbk
+    sWrkbkFullName = wb.FullName
     sWrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
-    sService = Wb.Name
-    For Each vbc In Wb.VBProject.VBComponents
+    sService = wb.Name
+    For Each vbc In wb.VBProject.VBComponents
         lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
     Next vbc
     Set fso = Nothing

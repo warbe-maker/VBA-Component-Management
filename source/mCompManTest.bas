@@ -72,10 +72,10 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mTest" & "." & sProc
 End Function
 
-Private Function MaxCompLength(ByRef Wb As Workbook) As Long
+Private Function MaxCompLength(ByRef wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
-        For Each vbc In Wb.VBProject.VBComponents
+        For Each vbc In wb.VBProject.VBComponents
             MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.Name))
         Next vbc
     End If
@@ -90,7 +90,7 @@ Public Sub Regression()
     Set cTest = New clsTestService
     cTest.Regression = True
     
-    mErH.BoP ErrSrc(PROC)
+    mBasic.BoP ErrSrc(PROC)
     Test_01_KindOfComp
     mErH.EoP ErrSrc(PROC)
     
@@ -157,7 +157,7 @@ Public Sub Test_SyncColWidth()
     Set wbSource = mCompMan.WbkGetOpen(sSource)
     
     For Each ws In wbSource.Worksheets
-        If mSyncSheets.SheetExists(Wb:=wbTarget _
+        If mSyncSheets.SheetExists(wb:=wbTarget _
                                  , sh1_name:=ws.Name _
                                  , sh1_code_name:=ws.CodeName _
                                  , sh2_name:=sSheetName _
@@ -181,19 +181,19 @@ End Sub
 Public Sub Test_01_KindOfComp()
     Const PROC = "Test_01_KindOfComp"
 
-    Dim Wb      As Workbook
+    Dim wb      As Workbook
     Dim fso     As New FileSystemObject
     Dim Comp   As clsComp
     Dim sComp   As String
     
-    Set Wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsm")
+    Set wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsm")
 
     sComp = "mFile"
     Set Comp = Nothing
     Set Comp = New clsComp
     With Comp
-        Set .Wrkbk = Wb
-        Set .VBComp = Wb.VBProject.VBComponents(sComp)
+        Set .Wrkbk = wb
+        Set .VBComp = wb.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enKindOfComp.enCommCompUsed
     End With
 
@@ -201,8 +201,8 @@ Public Sub Test_01_KindOfComp()
     Set Comp = Nothing
     Set Comp = New clsComp
     With Comp
-        Set .Wrkbk = Wb
-        Set .VBComp = Wb.VBProject.VBComponents(sComp)
+        Set .Wrkbk = wb
+        Set .VBComp = wb.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enCommCompUsed
     End With
     
@@ -210,12 +210,12 @@ Public Sub Test_01_KindOfComp()
     Set Comp = Nothing
     Set Comp = New clsComp
     With Comp
-        Set .Wrkbk = Wb
-        Set .VBComp = Wb.VBProject.VBComponents(sComp)
+        Set .Wrkbk = wb
+        Set .VBComp = wb.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enInternal
     End With
     
-xt: Wb.Close SaveChanges:=False
+xt: wb.Close SaveChanges:=False
     Set Comp = Nothing
     Set fso = Nothing
     Exit Sub
@@ -229,9 +229,9 @@ End Sub
 Public Sub Test_10_ExportChangedComponents()
     Const PROC = "Test_ExportChangedComponents"
     
-    mErH.BoP ErrSrc(PROC)
+    mBasic.BoP ErrSrc(PROC)
     mCompMan.ExportChangedComponents ThisWorkbook
-    mErH.EoP ErrSrc(PROC)
+    mBasic.EoP ErrSrc(PROC)
     
 End Sub
 
@@ -351,14 +351,14 @@ Public Sub Test_RenewComp_0_Regression()
     On Error GoTo eh
     If mMe.IsAddinInstnc Then Exit Sub
     
-    mErH.EoP ErrSrc(PROC)
+    mBasic.EoP ErrSrc(PROC)
 '    Test_RenewComp_1a_Standard_Module_ExpFile_Remote "mFile", repeat:=1
 '    Test_RenewComp_1b_Standard_Module_ExpFile_Local "mFile", repeat:=1
 '    Test_RenewComp_2_Class_Module_ExpFile_Local "clsLog", repeat:=2
 '    Test_RenewComp_3a_UserForm_ExpFile_Local "fMsg", repeat:=1
     Test_RenewComp_3b_UserForm_ExpFile_Remote "fMsg", repeat:=1
 
-xt: mErH.EoP ErrSrc(PROC)
+xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -393,7 +393,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
             '~~ rc_comp_name As String
             '~~ rc_wb As Workbook
             '~~ -------------------------------
-            mErH.BoP ErrSrc(PROC)
+            mBasic.BoP ErrSrc(PROC)
             With Comp
                 Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
@@ -414,7 +414,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
                                   , sExpFile
                 Next i
             End With
-            mErH.EoP ErrSrc(PROC)
+            mBasic.EoP ErrSrc(PROC)
         End If
     End If
     
@@ -451,7 +451,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
             '~~ rc_comp_name As String
             '~~ rc_wb As Workbook
             '~~ -------------------------------
-            mErH.BoP ErrSrc(PROC)
+            mBasic.BoP ErrSrc(PROC)
             With Comp
                 Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
@@ -463,7 +463,7 @@ Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
                                   , .ExpFileFullName
                 Next i
             End With
-            mErH.EoP ErrSrc(PROC)
+            mBasic.EoP ErrSrc(PROC)
         End If
     End If
     
@@ -500,7 +500,7 @@ Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
             '~~ rc_comp_name As String
             '~~ rc_wb As Workbook
             '~~ -------------------------------
-            mErH.BoP ErrSrc(PROC)
+            mBasic.BoP ErrSrc(PROC)
             With Comp
                 Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
@@ -512,7 +512,7 @@ Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
                                   , .ExpFileFullName
                 Next i
             End With
-            mErH.EoP ErrSrc(PROC)
+            mBasic.EoP ErrSrc(PROC)
         End If
     End If
     
@@ -549,7 +549,7 @@ Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
             '~~ rc_comp_name As String
             '~~ rc_wb As Workbook
             '~~ -------------------------------
-            mErH.BoP ErrSrc(PROC)
+            mBasic.BoP ErrSrc(PROC)
             With Comp
                 Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
@@ -602,7 +602,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
             '~~ rc_comp_name As String
             '~~ rc_wb As Workbook
             '~~ -------------------------------
-            mErH.BoP ErrSrc(PROC)
+            mBasic.BoP ErrSrc(PROC)
             With Comp
                 Set .Wrkbk = ThisWorkbook
                 .CompName = test_comp_name
@@ -623,7 +623,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
                                   , sExpFile
                 Next i
             End With
-            mErH.EoP ErrSrc(PROC)
+            mBasic.EoP ErrSrc(PROC)
         End If
     End If
     
@@ -653,7 +653,7 @@ Public Sub Test_UpdateComCompsUsed()
     End If
     
     If mMe.IsDevInstnc Then
-        mErH.BoP ErrSrc(PROC)
+        mBasic.BoP ErrSrc(PROC)
         
         On Error Resume Next
         Application.Run AddinService _
@@ -664,7 +664,7 @@ Public Sub Test_UpdateComCompsUsed()
                  , Prompt:="Application.Run " & vbLf & vbLf & AddinService & vbLf & vbLf & "failed because the 'CompMan-Addin' is not open!" _
                  , Buttons:=vbExclamation
         End If
-        mErH.EoP ErrSrc(PROC)
+        mBasic.EoP ErrSrc(PROC)
     Else
         MsgBox Title:="Test " & PROC & " not executed!" _
              , Prompt:="Executions of this test must not be performed 'within' the 'CompMan-Addin' Workbook." & vbLf & vbLf & _

@@ -677,7 +677,7 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
     On Error GoTo eh
     Dim dct         As Dictionary
     Dim v           As Variant
-    Dim Wb          As Workbook
+    Dim wb          As Workbook
     Dim ref         As Reference
     Dim sWbs        As String
     Dim bOneRemoved As Boolean
@@ -689,19 +689,19 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         Set dct = mWrkbk.Opened ' Returns a Dictionary with all open Workbooks in any application instance
         Set dctAddInRefs = New Dictionary
         For Each v In dct
-            Set Wb = dct.Item(v)
-            For Each ref In Wb.VBProject.References
+            Set wb = dct.Item(v)
+            For Each ref In wb.VBProject.References
                 If InStr(ref.Name, fso.GetBaseName(CompManAddinName)) <> 0 Then
-                    dctAddInRefs.Add Wb, ref
-                    sWbs = Wb.Name & ", " & sWbs
+                    dctAddInRefs.Add wb, ref
+                    sWbs = wb.Name & ", " & sWbs
                 End If
             Next ref
         Next v
         
         For Each v In dctAddInRefs
-            Set Wb = v
+            Set wb = v
             Set ref = dctAddInRefs(v)
-            Wb.VBProject.References.Remove ref
+            wb.VBProject.References.Remove ref
             bOneRemoved = True
         Next v
         bAllRemoved = True
@@ -742,15 +742,15 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Renew_4_Set_IsAddin_ToFalse(ByRef Wb As Workbook)
+Private Sub Renew_4_Set_IsAddin_ToFalse(ByRef wb As Workbook)
     Const PROC = "Renew_4_Set_IsAddin_ToFalse"
     
     On Error GoTo eh
 
     mMe.RenewLogAction = "Set the 'IsAddin' property of the 'CompMan-Addin' to FALSE"
     
-    If Wb.IsAddin = True Then
-        Wb.IsAddin = False
+    If wb.IsAddin = True Then
+        wb.IsAddin = False
         mMe.RenewLogResult() = "Passed"
     Else
         mMe.RenewLogResult("The 'IsAddin' property of the 'ComMan-Addin' was already set to FALSE" _
@@ -867,7 +867,7 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
     Const PROC = "Renew_8_OpenAddinInstncWorkbook"
     
     On Error GoTo eh
-    Dim Wb              As Workbook
+    Dim wb              As Workbook
     Dim sBaseAddinName  As String
     Dim sBaseDevName    As String
     
@@ -875,12 +875,12 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
         If CompManAddinWrkbkExists Then
             mMe.RenewLogAction = "Re-open the 'CompMan-Addin' (" & CompManAddinName & ")"
             On Error Resume Next
-            Set Wb = Application.Workbooks.Open(CompManAddinFullName)
+            Set wb = Application.Workbooks.Open(CompManAddinFullName)
             If Err.Number = 0 Then
                 With New FileSystemObject
-                    sBaseAddinName = .GetBaseName(Wb.Name)
+                    sBaseAddinName = .GetBaseName(wb.Name)
                     sBaseDevName = .GetBaseName(ThisWorkbook.Name)
-                    Wb.VBProject.Name = sBaseAddinName
+                    wb.VBProject.Name = sBaseAddinName
                 End With
                 mMe.RenewLogResult() = "Passed"
                 Renew_8_OpenAddinInstncWorkbook = True
@@ -905,16 +905,16 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     
     On Error GoTo eh
     Dim v               As Variant
-    Dim Wb              As Workbook
+    Dim wb              As Workbook
     Dim sWbs            As String
     Dim bOneRestored    As Boolean
     
     mMe.RenewLogAction = "Restore all saved 'References' to the 'CompMan-Addin' in open Workbooks"
     
     For Each v In dctAddInRefs
-        Set Wb = v
-        Wb.VBProject.References.AddFromFile CompManAddinFullName
-        sWbs = Wb.Name & ", " & sWbs
+        Set wb = v
+        wb.VBProject.References.AddFromFile CompManAddinFullName
+        sWbs = wb.Name & ", " & sWbs
         bOneRestored = True
     Next v
     
