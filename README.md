@@ -93,14 +93,23 @@ Private Sub Workbook_Open()
 End Sub
 ```
 
-## Synchronization (_SyncVBProjects_) service 
-When either the _[CompMan.xlsb][1]_ Workbook or the corresponding _CompMan-Addin_ is open, in the _Immediate Window_ enter<br>
+## Services and other details
+### Availability
+### Synchronization (_SyncVBProjects_) service
+There is no user interface for this service. As it is a mere development task it is to be initiated from the _Imediate Window_ of the VB Editor.
+When either CompMan's development instance Workbook (_[CompMan.xlsb][1]_) or the corresponding Addin instance is loaded, in the _Immediate Window_ enter<br>
 `mService.SyncVBProjects`<br>
 A dialog will open for the selection of the source and the target Workbook through their file names regardless the are already open. To avoid a possible irritation, opening them beforehand may be appropriate. In case there are some not yet up-to-date used _Common-Components_ the update service will run and display a confirmation dialog. For more details using this service see th post [Programmatically-updating-Excel-VBA-code][2]. 
 
 ### Pausing/continuing the CompMan Add-in
 Use the corresponding command buttons when the Workbook [CompMan.xlsb][1] is open.
-  
+ 
+### The _Serviced Root Folder_
+CompMan serves Workbook only under the following preconditions
+- The Workbook, the dedicated Workbook folder respectively is located in/within the configured folder
+- The Workbook has the _Common Component_ _**CompManClient**_ installed and the Worbook_Open and the Workbook_BeforeSave event is prepared as described above
+- CompMan services are availble 
+
 ## Contribution
 Contribution of any kind is welcome raising issues or by commenting the corresponding post [Programmatically-updating-Excel-VBA-code][2].
 
