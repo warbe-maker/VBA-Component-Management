@@ -21,8 +21,8 @@ Private Property Get mRenew_ByImport() As String
     mRenew_ByImport = CompManAddinName & "!mRenew.ByImport"
 End Property
 
-Private Property Get mService_UpdateComCompsUsed() As String
-    mService_UpdateComCompsUsed = CompManAddinName & "!mCompManClient.UpdateComCompsUsed"
+Private Property Get mService_UpdateUsedCommonComponents() As String
+    mService_UpdateUsedCommonComponents = CompManAddinName & "!mCompManClient.UpdateUsedCommonComponents"
 End Property
 
 Public Sub RemoveTestCodeChange( _
@@ -636,8 +636,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_UpdateComCompsUsed()
-    Const PROC  As String = "Test_UpdateComCompsUsed"
+Public Sub Test_UpdateUsedCommonComponents()
+    Const PROC  As String = "Test_UpdateUsedCommonComponents"
     
     On Error GoTo eh
     Dim AddinService    As String
@@ -645,7 +645,7 @@ Public Sub Test_UpdateComCompsUsed()
     
     If mService.Denied(PROC) Then GoTo xt
 
-    AddinService = CompManAddinName & "!mCompMan.UpdateComCompsUsed"
+    AddinService = CompManAddinName & "!mCompMan.UpdateUsedCommonComponents"
     If mMe.CompManAddinIsOpen Then
         AddinStatus = " (currently the case) "
     Else
@@ -778,7 +778,7 @@ Public Sub Test_Synch_RangesFormating()
     mSync.SyncBackup sTarget
     mSyncRanges.SyncFormating
     mSync.SyncRestore sTarget
-    Application.EnableEvents = False ' The open service UpdateComCompsUsed would start with a new log-file otherwise
+    Application.EnableEvents = False ' The open service UpdateUsedCommonComponents would start with a new log-file otherwise
     mCompMan.WbkGetOpen sTarget
     Application.EnableEvents = True
 
@@ -838,7 +838,7 @@ Public Sub Test_Synch_CompsChanged()
     mSync.SyncBackup sTarget
     mSyncComps.SyncCodeChanges
     mSync.SyncRestore sTarget
-    Application.EnableEvents = False ' The open service UpdateComCompsUsed would start with a new log-file otherwise
+    Application.EnableEvents = False ' The open service UpdateUsedCommonComponents would start with a new log-file otherwise
     mCompMan.WbkGetOpen sTarget
     Application.EnableEvents = True
 

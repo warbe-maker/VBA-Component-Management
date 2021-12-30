@@ -10,7 +10,7 @@ Option Explicit
 ' RevisionNumber=yyyy-mm-dd.n
 '
 ' The entries (sections) are maintained along with the Workbook_Open
-' event via the UpdateComCompsUsed service. The revision number is the copy
+' event via the UpdateUsedCommonComponents service. The revision number is the copy
 ' of the revision number provided by mComCompsSaved.RevisionNumber.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"

@@ -238,7 +238,7 @@ Public Function Denied(ByVal den_service As String) As Boolean
     ElseIf FolderNotVbProjectExclusive Then
         sStatus = "Service denied! The Workbook is not the only one in its parent folder!"
         Log.Entry = sStatus
-    ElseIf Not WinMergeIsInstalled Then
+    ElseIf Not mCompMan.WinMergeIsInstalled Then
         sStatus = "Service denied! WinMerge is required but not installed!"
         Log.Entry = sStatus
     End If
@@ -275,7 +275,7 @@ Public Sub ExportChangedComponents(ByVal hosted As String)
 '       Export-File found within the Workbook-Folder outside
 '       the specified Export-Folder is removed.
 ' Attention: This procedure is called exclusively by
-'            mCompMan.UpdateComCompsUsed! When called directly
+'            mCompMan.UpdateUsedCommonComponents! When called directly
 '            by the user, e.g. via the 'Imediate Window' an
 '            error will be raised because an 'mService.Serviced'
 '            Workbook is not set.

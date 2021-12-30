@@ -665,7 +665,7 @@ Public Sub ReplaceRawWithClone(ByRef raw As clsRaw)
     On Error GoTo eh
     Dim wbRawHost   As Workbook
         
-    Application.EnableEvents = False ' prevent the 'UpdateComCompsUsed' service when the Workbook is opened
+    Application.EnableEvents = False ' prevent the 'UpdateUsedCommonComponents' service when the Workbook is opened
     Set wbRawHost = mCompMan.WbkGetOpen(raw.HostWrkbkFullName) ' Wrkbk is the Workbook hosting the raw Component
     Application.EnableEvents = True
     

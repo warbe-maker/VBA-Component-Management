@@ -509,7 +509,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function UpdateComCompsUsed( _
+Public Function UpdateUsedCommonComponents( _
                 ByRef uc_wb As Workbook, _
        Optional ByVal uc_hosted As String = vbNullString) As Boolean
 ' ------------------------------------------------------------------------------
@@ -517,13 +517,13 @@ Public Function UpdateComCompsUsed( _
 ' executed from within the Development instance and the serviced Workbook is the
 ' Development Instance.
 ' ------------------------------------------------------------------------------
-    Const PROC = "UpdateComCompsUsed"
+    Const PROC = "UpdateUsedCommonComponents"
     
     On Error GoTo eh
     Dim Msg As TypeMsg
     
     If mMe.IsDevInstnc And uc_wb.Name = mMe.DevInstncName Then
-        UpdateComCompsUsed = False
+        UpdateUsedCommonComponents = False
         GoTo xt
     End If
     
@@ -537,6 +537,7 @@ Public Function UpdateComCompsUsed( _
     mCompMan.ManageHostHostedProperty uc_hosted
     Set Stats = New clsStats
     mUpdate.ComCompsUsed mService.Serviced
+    UpdateUsedCommonComponents = True
     
 xt: Set Log = Nothing
     mBasic.EoP ErrSrc(PROC)
