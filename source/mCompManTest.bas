@@ -906,3 +906,22 @@ Public Sub ClearIW()
     End If
 End Sub
 
+Public Sub Test_WinMerge()
+
+    Dim sF1 As String
+    Dim sF2 As String
+    Dim f1  As File
+    Dim f2  As File
+    Dim fso As New FileSystemObject
+    
+    mFile.SelectFile sel_result:=f1
+    mFile.SelectFile sel_result:=f2
+    sF1 = f1.Path
+    sF2 = f2.Path
+    
+    mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=sF1 _
+                                  , fd_exp_file_right_full_name:=sF2 _
+                                  , fd_exp_file_left_title:=sF1 _
+                                  , fd_exp_file_right_title:=sF2
+
+End Sub

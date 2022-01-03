@@ -113,6 +113,7 @@ Public Function FilesDifferencesDisplay( _
     Dim sCommand        As String
     Dim fso             As New FileSystemObject
     Dim wshShell        As Object
+    Dim sIniFile        As String
     
     If Not AppIsInstalled("WinMerge") _
     Then Err.Raise Number:=AppErr(1) _
@@ -130,11 +131,16 @@ Public Function FilesDifferencesDisplay( _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & fd_exp_file_right_full_name & """ does not exist!"
     
+    If fso.FileExists(mConfig.CompManAddinFolder & "\CompManAdmin\CompManWinMerge.ini") Then
+        sIniFile = " /inifile " & mConfig.CompManAddinFolder & "\CompManAdmin\CompManWinMerge.ini"
+    End If
+        
     sCommand = "WinMergeU /e" & _
                " /dl " & DQUOTE & fd_exp_file_left_title & DQUOTE & _
                " /dr " & DQUOTE & fd_exp_file_right_title & DQUOTE & " " & _
                """" & fd_exp_file_left_full_name & """" & " " & _
-               """" & fd_exp_file_right_full_name & """"
+               """" & fd_exp_file_right_full_name & """" ' & sIniFile doesn't work
+
     
     Set wshShell = CreateObject("WScript.Shell")
     With wshShell
