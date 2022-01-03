@@ -24,7 +24,7 @@ Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
 Public Property Get ComCompsFile() As String:      ComCompsFile = ComCompsFolder & "\ComCompsSaved.dat":            End Property
 
-Public Property Get ComCompsFolder() As String:    ComCompsFolder = mMe.ServicedRootFolder & "\Common-Components":  End Property
+Public Property Get ComCompsFolder() As String:    ComCompsFolder = mConfig.CompManServicedRootFolder & "\Common-Components":  End Property
 
 Public Property Get ExpFile( _
                     Optional ByVal comp_name) As File

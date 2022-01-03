@@ -53,6 +53,7 @@ Private Const SECTION_BASE_CONFIG           As String = "BaseConfiguration"
 Private Const VNAME_SERVICED_ROOT           As String = "VBDevProjectsRoot"
 Private Const VNAME_COMPMAN_ADDIN_FOLDER    As String = "CompManAddInPath"
 Private Const VNAME_COMPMAN_ADDIN_PAUSED    As String = "CompManAddInPaused"
+Private Const VNAME_COMPMAN_EXPORT_FOLDER   As String = "CompManExportFolder"
 Private Const ADDIN_WORKBOOK_EXTENSION      As String = "xlam"      ' Extension may depend on Excel version
 Private Const DEVLP_WORKBOOK_EXTENSION      As String = "xlsb"      ' Extension may depend on Excel version
 
@@ -65,8 +66,72 @@ Private dctAddInRefs    As Dictionary
 Private lRenewStep      As Long
 Private sRenewAction    As String
 
+    
+Private Property Get AddInPath() As String
+    AddInPath = mConfig.CompManAddinFolder
+End Property
+
+Private Property Get ADDIN_FORMAT() As XlFileFormat ' = ... needs adjustment when the above is changed
+    ADDIN_FORMAT = xlOpenXMLAddIn
+End Property
+
+'Public Property Get CompManAddinFolder() As String
+'    CompManAddinFolder = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_FOLDER)
+'End Property
+'
+'Public Property Let CompManAddinFolder(ByVal s As String)
+'    Const PROC = "CompManAddinFolder-Let"
+'
+'    On Error GoTo eh
+'    Dim sCfgFile    As String
+'
+'    sCfgFile = CompManCfgFileName
+'
+'    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_FOLDER) = s
+'    With New FileSystemObject
+'        .CopyFile sCfgFile, s & COMPMAN_ADMIN_FOLDER_NAME & .GetFileName(sCfgFile)
+'    End With
+'    TrustThisFolder ttf_path:=s, ttf_description:="The alternate Excel open path"
+'
+'xt: Exit Property
+'
+'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+'        Case vbResume:  Stop: Resume
+'        Case Else:      End
+'    End Select
+'End Property
+
 Public Property Get CompManAddinFullName() As String
     CompManAddinFullName = AddInPath & DBSLASH & CompManAddinName
+End Property
+
+'Public Property Get CompManAddinIsPaused() As Boolean
+'    Dim s As String
+'    s = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED)
+'    If s = vbNullString Then
+'        CompManAddinIsPaused = False
+'    Else
+'        CompManAddinIsPaused = VBA.CBool(s)
+'    End If
+'End Property
+'
+'Public Property Let CompManAddinIsPaused(ByVal b As Boolean)
+'    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED) = b
+'    With New FileSystemObject
+'        .CopyFile CompManCfgFileName, CompManAddinFolder & COMPMAN_ADMIN_FOLDER_NAME & .GetFileName(CompManCfgFileName)
+'    End With
+'End Property
+
+Private Property Get CompManAddinIsSetup() As Boolean
+' ------------------------------------------------------------
+' Returns True when the CompMan-AddIn is configured and exists
+' in the configured folder.
+' ------------------------------------------------------------
+    With New FileSystemObject
+        If mConfig.CompManAddinFolder <> vbNullString _
+        Then CompManAddinIsSetup = .FileExists(mConfig.CompManAddinFolder & "\" & CompManAddinName)
+    End With
+
 End Property
 
 Public Property Get CompManAddinName() As String
@@ -74,30 +139,12 @@ Public Property Get CompManAddinName() As String
         CompManAddinName = .GetBaseName(ThisWorkbook.FullName) & "." & ADDIN_WORKBOOK_EXTENSION
     End With
 End Property
-    
-Private Property Get AddInPath() As String
-    AddInPath = mMe.CompManAddinFolder
-End Property
 
-Public Property Get CompManAddinIsPaused() As Boolean
-    Dim s As String
-    s = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED)
-    If s = vbNullString Then
-        CompManAddinIsPaused = False
-    Else
-        CompManAddinIsPaused = VBA.CBool(s)
-    End If
-End Property
-
-Public Property Let CompManAddinIsPaused(ByVal b As Boolean)
-    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED) = b
-    With New FileSystemObject
-        .CopyFile CompManCfgFileName, CompManAddinFolder & COMPMAN_ADMIN_FOLDER_NAME & .GetFileName(CompManCfgFileName)
-    End With
-End Property
-
-Private Property Get ADDIN_FORMAT() As XlFileFormat ' = ... needs adjustment when the above is changed
-    ADDIN_FORMAT = xlOpenXMLAddIn
+Public Property Get CompManAdminFolder(ByVal compman_addin_folder As String) As String
+' -------------------------------------------------------------------------------------
+' Attention: The CompManAdminFolder may change when the CompManAddinFolder is changed!
+' -------------------------------------------------------------------------------------
+    CompManAdminFolder = compman_addin_folder & COMPMAN_ADMIN_FOLDER_NAME
 End Property
 
 Private Property Get CompManCfgFileName() As String
@@ -122,39 +169,18 @@ Private Property Get CompManCfgFileName() As String
     Set fso = Nothing
 End Property
 
-Private Property Get CompManAdminFolder(ByVal compman_addin_folder As String) As String
-' -------------------------------------------------------------------------------------
-' Attention: The CompManAdminFolder may change when the CompManAddinFolder is changed!
-' -------------------------------------------------------------------------------------
-    CompManAdminFolder = compman_addin_folder & COMPMAN_ADMIN_FOLDER_NAME
+Public Property Get CompManExportFolder() As String
+    CompManExportFolder = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_EXPORT_FOLDER)
+    If CompManExportFolder = vbNullString Then CompManExportFolder = "source"
 End Property
 
-Public Property Get CompManAddinFolder() As String
-    CompManAddinFolder = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_FOLDER)
-End Property
-
-Public Property Let CompManAddinFolder(ByVal s As String)
-    Const PROC = "CompManAddinFolder-Let"
-    
-    On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim sCfgFile    As String: sCfgFile = CompManCfgFileName
-    
-    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_FOLDER) = s
-    fso.CopyFile sCfgFile, s & COMPMAN_ADMIN_FOLDER_NAME & fso.GetFileName(sCfgFile)
-    
-xt: Set fso = Nothing
-    Exit Property
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      End
-    End Select
+Public Property Let CompManExportFolder(ByVal s As String)
+    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_EXPORT_FOLDER) = s
 End Property
 
 Public Property Get DevInstncFullName() As String
-Dim fso As New FileSystemObject
-    DevInstncFullName = ServicedRootFolder & DBSLASH _
+    Dim fso As New FileSystemObject
+    DevInstncFullName = mConfig.CompManServicedRootFolder & DBSLASH _
                           & fso.GetBaseName(DevInstncName) & DBSLASH _
                           & DevInstncName
 End Property
@@ -181,16 +207,6 @@ Public Property Get IsDevInstnc() As Boolean
     End With
 End Property
 
-Private Sub RenewFinalResult()
-    If bSucceeded Then
-        mMe.RenewLogAction = "Successful!"
-        RenewLogResult(la_last:=True, la_result_text:="Successful! The Addin '" & CompManAddinName & "' has been renewed by the development instance '" & DevInstncName & "'") = "Passed"
-    Else
-        mMe.RenewLogAction = "Not Successful!"
-        mMe.RenewLogResult(la_last:=True, la_result_text:="Renewing the Addin '" & CompManAddinName & "' by the development instance '" & DevInstncName & "' failed!") = "Failed"
-    End If
-End Sub
-
 Public Property Let RenewLogAction(Optional ByVal la_last As Boolean = False, _
                                             ByVal la_action As String)
     lRenewStep = lRenewStep + 1
@@ -212,16 +228,52 @@ Public Property Let RenewStep(ByVal l As Long)
     lRenewStep = l
 End Property
 
-Public Property Get ServicedRootFolder() As String
-    ServicedRootFolder = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_SERVICED_ROOT)
-End Property
+'Public Property Get ServicedRootFolder() As String
+'    ServicedRootFolder = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_SERVICED_ROOT)
+'End Property
+'
+'Public Property Let ServicedRootFolder(ByVal s As String)
+'    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_SERVICED_ROOT) = s
+'    With New FileSystemObject
+'        .CopyFile CompManCfgFileName, mConfig.CompManAddinFolder & COMPMAN_ADMIN_FOLDER_NAME & .GetFileName(CompManCfgFileName)
+'    End With
+'End Property
 
-Public Property Let ServicedRootFolder(ByVal s As String)
-    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_SERVICED_ROOT) = s
+Public Function AddinFolderIsValid() As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the current configured Addin-Folder is valid.
+' ----------------------------------------------------------------------------
     With New FileSystemObject
-        .CopyFile CompManCfgFileName, mMe.CompManAddinFolder & COMPMAN_ADMIN_FOLDER_NAME & .GetFileName(CompManCfgFileName)
+        If mConfig.CompManAddinFolder <> vbNullString Then
+            If .FolderExists(mConfig.CompManAddinFolder) Then
+                If StrComp(Application.AltStartupPath, mConfig.CompManAddinFolder, vbTextCompare) = 0 Then
+                    AddinFolderIsValid = True
+                End If
+            End If
+        End If
     End With
-End Property
+End Function
+
+Public Function ServicedRootFolderIsValid() As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the current configured ServicedRoot-Folder is valid.
+' ----------------------------------------------------------------------------
+    With New FileSystemObject
+        If mConfig.CompManServicedRootFolder <> vbNullString Then
+            If .FolderExists(mConfig.CompManServicedRootFolder) Then
+                ServicedRootFolderIsValid = True
+            End If
+        End If
+    End With
+End Function
+
+
+
+
+
+
+
+
 
 Private Property Get Value( _
            Optional ByVal pp_section As String, _
@@ -247,91 +299,61 @@ Public Property Get xlAddInFormat() As Long:            xlAddInFormat = ADDIN_FO
 
 Public Property Get xlDevlpFormat() As Long:            xlDevlpFormat = DEVLP_FORMAT:                                       End Property
 
-Private Property Get CompManAddinIsSetup() As Boolean
-' ------------------------------------------------------------
-' Returns True when the CompMan-AddIn is configured and exists
-' in the configured folder.
-' ------------------------------------------------------------
-    With New FileSystemObject
-        If mMe.CompManAddinFolder <> vbNullString _
-        Then CompManAddinIsSetup = .FileExists(mMe.CompManAddinFolder & "\" & CompManAddinName)
-    End With
+Public Function BasicConfig(Optional ByVal bc_silent As Boolean = False) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the 'Basic Configuration', i.e. the Addin-Folder, the
+' Serviced-Root-Folder and the Export-Folder are confirmed correct.
+' ----------------------------------------------------------------------------
+    Const PROC = "BasicConfig"
 
-End Property
-
-Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = False)
-    Const PROC = "DisplayStatus"
-    
     On Error GoTo eh
-    wsAddIn.CurrentStatus = vbNullString
-    If mMe.CompManAddinIsSetup Then
-        If Not mMe.CompManAddinIsOpen Then
-            '~~ AddIn is setup but currently not open. It will be opened either when a Workbook
-            '~~ referring to it is openend or when it is renewed.
-            
-            '~~ Renew steps log
-            wsAddIn.CurrentStatus = mBasic.Spaced("not open!") & vbLf & _
-                                    "(will be opened with Setup/Renew or by a Workbook opened which refers to it)"
-            '~~ AddIn paused status
-            wsAddIn.CompManAddInPausedStatus = _
-            "The CompMan-AddIn is  s e t u p  but currently  n o t  o p e n !" & vbLf & _
-            "(Renew or a Workbook opened which refers to it will open it)"
-        Else ' AddIn is setup and open
-            wsAddIn.CurrentStatus = "Setup/Renewed and  " & mBasic.Spaced("open!")
-            If mMe.CompManAddinIsPaused = True Then
-                wsAddIn.CurrentStatus = mBasic.Spaced("paused!")
-                wsAddIn.CompManAddInPausedStatus = _
-                "The 'CompMan-Addin' is currently  p a u s e d ! The Workbook_Open service 'UpdateUsedCommonComponents' " & _
-                "and the Workbook_BeforeSave service 'ExportChangedComponents' will be bypassed " & _
-                "until the Addin is 'continued' again!"
-            Else
-                wsAddIn.CurrentStatus = mBasic.Spaced("active!")
-                wsAddIn.RenewInfo = _
-                "Please note:" & vbLf & vbLf & _
-                "O n l y  once a Workbook (a VBProject respectively) is opened which has a Reference to 'CompMan' " & _
-                "the Addin is automatically opened along with it - and available for others. " & vbLf & _
-                "When only Workbook without such a reference are opened the Development-Instance-Workbook " & _
-                "needs to be opened before hand in order to have Common Components updated."
-
-                wsAddIn.CompManAddInPausedStatus = _
-                "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateUsedCommonComponents' and 'ExportChangedComponents'" & vbLf & _
-                "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
-                "1. The Workbook is located in the configured 'Serviced-Development-Root-Folder' which currently is:" & vbLf & _
-                "   '" & mMe.ServicedRootFolder & "'" & vbLf & _
-                "2. The Workbook is the only one in its parent folder" & vbLf & _
-                "3. The Workbook is not a restored version" & vbLf
-            End If
+    Dim fso As New FileSystemObject
+    
+    
+    With fConfig
+        .Show
+        If Not .AddinFolderIsValid Or Not .ServicedRootFolderIsValid Or Not .ExportFolderIsValid Then GoTo xt
+        
+        If mConfig.CompManAddinFolder = vbNullString Then
+            mConfig.CompManAddinFolder = .AddinFolder
+        ElseIf StrComp(.AddinFolder, mConfig.CompManAddinFolder, vbTextCompare) <> 0 Then
+            '~~ When the configured CompMan-Addin-Folder has been changed to another location
+            '~~ the CompManAdminFolder has to be copied before the new configuration can be saved
+            fso.MoveFolder Source:=mMe.CompManAdminFolder(mConfig.CompManAddinFolder) _
+                         , Destination:=CompManAdminFolder(.AddinFolder)
+            mConfig.CompManAddinFolder = .AddinFolder
         End If
-    Else ' not or no longer (properly) setup
-        wsAddIn.CurrentStatus = mBasic.Spaced("not setup!") & vbLf & _
-                                "(Setup/Renew must be performed to configure and setup the 'CompMan-Addin'"
-        wsAddIn.CompManAddInPausedStatus = _
-        "The CompMan-Addin is currently  n o t  s e t u p !" & vbLf & vbLf & _
-        "Renew is required to establish the Addin. The Addin, once established, will subsequently be opened when:" & vbLf & _
-        "- a Workbook is opened which refers to it" & vbLf & _
-        "- this Addin-Development-Instance-Workbook is opened and Setup/Renew is performed"
-    End If
-
-    If Not mCompMan.WinMergeIsInstalled Then
-        wsAddIn.CurrentStatus = "'WinMerge' is  " & mBasic.Spaced("not installed!") & vbLf & "(services will be denied)"
-    End If
-
-xt: Exit Sub
+        
+        If mConfig.CompManServicedRootFolder = vbNullString Then
+            mConfig.CompManServicedRootFolder = .ServicedRootFolder
+        ElseIf mConfig.CompManServicedRootFolder <> .ServicedRootFolder Then
+            '~~ The configured Serviced-Root-Folder has been changed
+            '~~ All content is moved to the new folder
+'            fso.MoveFile Source:=mConfig.CompManServicedRootFolder & "\*" _
+'                         , Destination:=.ServicedRootFolder & "\"
+'            'Move all folders to destination folder
+'            fso.MoveFolder Source:=mConfig.CompManServicedRootFolder & "\*" _
+'                         , Destination:=.ServicedRootFolder & "\"
+            mConfig.CompManServicedRootFolder = .ServicedRootFolder
+        End If
+        
+        mConfig.CompManExportFolder = .ExportFolder
+    
+    End With
+    BasicConfig = True
+    
+xt: Unload fConfig
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
+End Function
 
 Public Sub CompManAddinContinue()
     mService.Continue
 End Sub
-
-Private Function CompManAddinWrkbkExists() As Boolean
-    Dim fso As New FileSystemObject
-    CompManAddinWrkbkExists = fso.FileExists(CompManAddinFullName)
-End Function
 
 Public Function CompManAddinIsOpen() As Boolean
     Const PROC = "CompManAddinIsOpen"
@@ -360,6 +382,11 @@ End Function
 Public Sub CompManAddinPause()
     mService.Pause
 End Sub
+
+Private Function CompManAddinWrkbkExists() As Boolean
+    Dim fso As New FileSystemObject
+    CompManAddinWrkbkExists = fso.FileExists(CompManAddinFullName)
+End Function
 
 Private Sub DevInstncWorkbookClose()
     Const PROC = "DevInstncWorkbookClose"
@@ -419,6 +446,71 @@ Private Function DevInstncWorkbookExists() As Boolean
 Dim fso As New FileSystemObject
     DevInstncWorkbookExists = fso.FileExists(DevInstncFullName)
 End Function
+
+Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = False)
+    Const PROC = "DisplayStatus"
+    
+    On Error GoTo eh
+    wsAddIn.CurrentStatus = vbNullString
+    If mMe.CompManAddinIsSetup Then
+        If Not mMe.CompManAddinIsOpen Then
+            '~~ AddIn is setup but currently not open. It will be opened either when a Workbook
+            '~~ referring to it is openend or when it is renewed.
+            
+            '~~ Renew steps log
+            wsAddIn.CurrentStatus = mBasic.Spaced("not open!") & vbLf & _
+                                    "(will be opened with Setup/Renew or by a Workbook opened which refers to it)"
+            '~~ AddIn paused status
+            wsAddIn.CompManAddInPausedStatus = _
+            "The CompMan-AddIn is  s e t u p  but currently  n o t  o p e n !" & vbLf & _
+            "(Renew or a Workbook opened which refers to it will open it)"
+        Else ' AddIn is setup and open
+            wsAddIn.CurrentStatus = "Setup/Renewed and  " & mBasic.Spaced("open!")
+            If mConfig.CompManAddinIsPaused = True Then
+                wsAddIn.CurrentStatus = mBasic.Spaced("paused!")
+                wsAddIn.CompManAddInPausedStatus = _
+                "The 'CompMan-Addin' is currently  p a u s e d ! The Workbook_Open service 'UpdateUsedCommonComponents' " & _
+                "and the Workbook_BeforeSave service 'ExportChangedComponents' will be bypassed " & _
+                "until the Addin is 'continued' again!"
+            Else
+                wsAddIn.CurrentStatus = mBasic.Spaced("active!")
+                wsAddIn.RenewInfo = _
+                "Please note:" & vbLf & vbLf & _
+                "O n l y  once a Workbook (a VBProject respectively) is opened which has a Reference to 'CompMan' " & _
+                "the Addin is automatically opened along with it - and available for others. " & vbLf & _
+                "When only Workbook without such a reference are opened the Development-Instance-Workbook " & _
+                "needs to be opened before hand in order to have Common Components updated."
+
+                wsAddIn.CompManAddInPausedStatus = _
+                "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateUsedCommonComponents' and 'ExportChangedComponents'" & vbLf & _
+                "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
+                "1. The Workbook is located in the configured 'Serviced-Development-Root-Folder' which currently is:" & vbLf & _
+                "   '" & mConfig.CompManServicedRootFolder & "'" & vbLf & _
+                "2. The Workbook is the only one in its parent folder" & vbLf & _
+                "3. The Workbook is not a restored version" & vbLf
+            End If
+        End If
+    Else ' not or no longer (properly) setup
+        wsAddIn.CurrentStatus = mBasic.Spaced("not setup!") & vbLf & _
+                                "(Setup/Renew must be performed to configure and setup the 'CompMan-Addin'"
+        wsAddIn.CompManAddInPausedStatus = _
+        "The CompMan-Addin is currently  n o t  s e t u p !" & vbLf & vbLf & _
+        "Renew is required to establish the Addin. The Addin, once established, will subsequently be opened when:" & vbLf & _
+        "- a Workbook is opened which refers to it" & vbLf & _
+        "- this Addin-Development-Instance-Workbook is opened and Setup/Renew is performed"
+    End If
+
+    If Not mCompMan.WinMergeIsInstalled Then
+        wsAddIn.CurrentStatus = "'WinMerge' is  " & mBasic.Spaced("not installed!") & vbLf & "(services will be denied)"
+    End If
+
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mMe" & "." & sProc
@@ -499,154 +591,22 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function BasicConfig( _
-             Optional ByVal bc_sync_confirm_info As Boolean = False) As Boolean
-' -------------------------------------------------------------------
-' Returns TRUE when the 'Basic Configuration', i.e. the Addin-Folder
-' and the Serviced-Root-Folder are configured, existing, and correct.
-' When bc_sync_confirm_info is True a configuration confirmation dialog is
-' displayed. The dialog is also displayed when the basic configu-
-' ration is invalid.
-' -----------------------------------------------------------------
-    Const PROC                  As String = "BasicConfig"
-    Const BTTN_CFG_CONFIRMED    As String = "Confirmed"
-    Const BTTN_TERMINATE_CFG    As String = "Terminate the configuration"
-    
-    On Error GoTo eh
-    Dim sBttnAddin      As String: sBttnAddin = "Configure/change" & vbLf & vbLf & FOLDER_ADDIN & vbLf & " "
-    Dim sBttnSrvcd      As String: sBttnSrvcd = "Configure/change" & vbLf & vbLf & FOLDER_SERVICED & vbLf & " "
-    
-    Dim fso                         As New FileSystemObject
-    Dim sMsg                        As TypeMsg
-    Dim sReply                      As String
-    Dim sCompManAddinFolder         As String
-    Dim sServicedRootFolder         As String
-    Dim CompManAddinFolderIsValid   As Boolean
-    Dim ServicedRootFolderIsValid   As Boolean
-    Dim cllButtons                  As Collection
-    
-    sServicedRootFolder = mMe.ServicedRootFolder
-    '~~ In case an AltStartupFolder is configured and not identical with the current configured CompMan-Addin-Folder
-    '~~ the current AltStartUpPath is displayed for being configured also as the CompMan-Addin-Folder because there
-    '~~ can be only one location for all Workbooks which should be opened when Excel starts.
-    If Application.AltStartupPath <> vbNullString And VBA.StrComp(mMe.CompManAddinFolder, Application.AltStartupPath, vbTextCompare) <> 0 _
-    Then sCompManAddinFolder = Application.AltStartupPath _
-    Else sCompManAddinFolder = mMe.CompManAddinFolder
-
-    While (Not ServicedRootFolderIsValid Or Not CompManAddinFolderIsValid) Or (bc_sync_confirm_info And sReply <> BTTN_CFG_CONFIRMED)
-        
-        '~~ Verification of the current Serviced-Root-Folder
-        If sServicedRootFolder = vbNullString Then
-            sServicedRootFolder = mBasic.Spaced("not yet configured!")
-        ElseIf Not fso.FolderExists(sServicedRootFolder) Then
-            sServicedRootFolder = sServicedRootFolder & mBasic.Spaced(":invalid!") & "  (not or no longer existing)"
-        Else
-            ServicedRootFolderIsValid = True
-        End If
-        
-        '~~ Verification of the current S of the CompMan-Addin-Location
-        If sCompManAddinFolder = vbNullString Then
-            sCompManAddinFolder = mBasic.Spaced("not yet configured!")
-        ElseIf Not fso.FolderExists(sCompManAddinFolder) Then
-            sCompManAddinFolder = sCompManAddinFolder & mBasic.Spaced(":invalid!") & "  (not or no longer existing)"
-        ElseIf InStr(sCompManAddinFolder, sServicedRootFolder) <> 0 Then
-            sCompManAddinFolder = sCompManAddinFolder & mBasic.Spaced(":invalid!") & "  (folder must not be a subfolder of the Serviced-Root-Folder)"
-        Else
-            CompManAddinFolderIsValid = True
-        End If
-    
-        If CompManAddinFolderIsValid And ServicedRootFolderIsValid And Not bc_sync_confirm_info Then GoTo xt
-        
-        With sMsg
-            With .Section(1)
-                .Label.Text = FOLDER_SERVICED & ":"
-                .Label.FontBold = True
-                With .Text
-                    .Text = sServicedRootFolder
-                    .FontColor = rgbBlue
-                    .FontBold = True
-                    .MonoSpaced = True
-                End With
-            End With
-            With .Section(2)
-                .Label.Text = FOLDER_ADDIN & ":"
-                .Label.FontBold = True
-                With .Text
-                    .Text = sCompManAddinFolder
-                    .FontColor = rgbBlue
-                    .FontBold = True
-                    .MonoSpaced = True
-                End With
-            End With
-            With .Section(3).Text
-                .FontSize = 8.5
-                .Text = "- Must not be identical with the " & FOLDER_SERVICED & vbLf & _
-                        "  or any of its subfolders." & vbLf & vbLf & _
-                        "- For Workbooks 'outside' this folder (i.e. productive) an 'export' or" & vbLf & _
-                        "  an 'update' service will not be applied."
-            End With
-            With .Section(4)
-                If bc_sync_confirm_info _
-                Then .Text.Text = "Please confirm the above 'Basic CompMan Configuration'." _
-                Else .Text.Text = "Please configure/complete the 'Basic CompMan Configuration'."
-            End With
-        End With
-        '~~ Buttons preparation
-        If Not ServicedRootFolderIsValid Or Not CompManAddinFolderIsValid _
-        Then mMsg.Buttons cllButtons, sBttnSrvcd, sBttnAddin, vbLf, BTTN_TERMINATE_CFG _
-        Else mMsg.Buttons cllButtons, BTTN_CFG_CONFIRMED, vbLf, sBttnSrvcd, sBttnAddin
-        
-        sReply = mMsg.Dsply(dsply_title:="Basic configuration of the Component Management (CompMan Addin)" _
-                          , dsply_msg:=sMsg _
-                          , dsply_buttons:=cllButtons _
-                           )
-        Select Case sReply
-            Case sBttnAddin
-                Do
-                    sCompManAddinFolder = mBasic.SelectFolder("Select the obligatory 'CompMan-Addin-Folder'")
-                    If sCompManAddinFolder <> vbNullString Then Exit Do
-                Loop
-                bc_sync_confirm_info = True
-            Case sBttnSrvcd
-                Do
-                    sServicedRootFolder = mBasic.SelectFolder("Select the obligatory 'CompMan-Serviced-Root-Folder'")
-                    If sServicedRootFolder <> vbNullString Then Exit Do
-                Loop
-                bc_sync_confirm_info = True
-                '~~ The change of the serviced root folder may have resulted in
-                '~~ a (formerly invalid) now valid again Add-in folder
-                sCompManAddinFolder = Split(sCompManAddinFolder, ": ")(0)
-            
-            Case BTTN_CFG_CONFIRMED: bc_sync_confirm_info = False
-            Case BTTN_TERMINATE_CFG: GoTo xt
-                
-        End Select
-        
-    Wend ' Loop until the confirmed or configured basic configuration is correct
-    
-xt: If CompManAddinFolderIsValid Then
-        If VBA.StrComp(mMe.CompManAddinFolder, sCompManAddinFolder, vbTextCompare) <> 0 Then
-            '~~ The configured CompMan-Addin-Folder has changed to another location.
-            '~~ The CompManAdminFolder has to be copied before the new configuration can be saved
-            fso.MoveFolder CompManAdminFolder(mMe.CompManAddinFolder), CompManAdminFolder(sCompManAddinFolder)
-        End If
-        '~~ The admin folder is now at its possibly new location and the information can be stored into the config file
-        mMe.CompManAddinFolder = sCompManAddinFolder
-        Application.AltStartupPath = sCompManAddinFolder
-        TrustThisFolder FolderPath:=Application.AltStartupPath
+Private Sub RenewFinalResult()
+    If bSucceeded Then
+        mMe.RenewLogAction = "Successful!"
+        RenewLogResult(la_last:=True, la_result_text:="Successful! The Addin '" & CompManAddinName & "' has been renewed by the development instance '" & DevInstncName & "'") = "Passed"
+    Else
+        mMe.RenewLogAction = "Not Successful!"
+        mMe.RenewLogResult(la_last:=True, la_result_text:="Renewing the Addin '" & CompManAddinName & "' by the development instance '" & DevInstncName & "' failed!") = "Failed"
     End If
-    If ServicedRootFolderIsValid Then mMe.ServicedRootFolder = sServicedRootFolder
-    BasicConfig = ServicedRootFolderIsValid And CompManAddinFolderIsValid
-    With fso
-        .CopyFile CompManCfgFileName, mMe.CompManAddinFolder & COMPMAN_ADMIN_FOLDER_NAME & .GetFileName(CompManCfgFileName)
-    End With
-    Set fso = Nothing
-    Exit Function
+End Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
+Private Function Renew_0_ConfirmConfig() As Boolean
+    mMe.RenewLogAction = "Assert 'CompMan's Basic Configuration'"
+    Renew_0_ConfirmConfig = BasicConfig()
+    If Renew_0_ConfirmConfig _
+    Then mMe.RenewLogResult = "Passed" _
+    Else mMe.RenewLogResult = "Failed"
 End Function
 
 Private Function Renew_1_DevInstnc() As Boolean
@@ -656,14 +616,6 @@ Private Function Renew_1_DevInstnc() As Boolean
     Then mMe.RenewLogResult("The 'RenewAddIn' service had not been executed from within the development instance Workbook (" & DevInstncName & ")!" _
                            ) = "Failed" _
     Else mMe.RenewLogResult = "Passed"
-End Function
-
-Private Function Renew_0_ConfirmConfig() As Boolean
-    mMe.RenewLogAction = "Assert 'CompMan's Basic Configuration'"
-    Renew_0_ConfirmConfig = BasicConfig(bc_sync_confirm_info:=True)
-    If Renew_0_ConfirmConfig _
-    Then mMe.RenewLogResult = "Passed" _
-    Else mMe.RenewLogResult = "Failed"
 End Function
 
 Private Sub Renew_2_SaveAndRemoveAddInReferences()
@@ -974,9 +926,16 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub TrustThisFolder(Optional ByVal FolderPath As String, _
-                            Optional ByVal TrustNetworkFolders As Boolean = False, _
-                            Optional ByVal sDescription As String)
+Private Sub StartupPath()
+    Debug.Print Application.StartupPath
+    Application.AltStartupPath = mConfig.CompManAddinFolder
+    Debug.Print Application.AltStartupPath
+    
+End Sub
+
+Public Sub TrustThisFolder(Optional ByVal ttf_path As String, _
+                           Optional ByVal ttf_trust_network_folder As Boolean = False, _
+                           Optional ByVal ttf_description As String)
 ' ---------------------------------------------------------------------------
 ' Add a folder to the 'Trusted Locations' list so that your project's VBA can
 ' open Excel files without raising errors like "Office has detected a problem
@@ -1019,19 +978,19 @@ Private Sub TrustThisFolder(Optional ByVal FolderPath As String, _
     bNetworkLocation = False
 
     With fso
-        If FolderPath = "" Then
-            FolderPath = .GetSpecialFolder(2).Path
-            If sDescription = "" Then
-                sDescription = "The user's local temp folder"
+        If ttf_path = "" Then
+            ttf_path = .GetSpecialFolder(2).Path
+            If ttf_description = vbNullString Then
+                ttf_description = "The user's local temp folder"
             End If
         End If
     End With
 
-    If Right(FolderPath, 1) <> "\" Then
-        FolderPath = FolderPath & "\"
+    If Right(ttf_path, 1) <> "\" Then
+        ttf_path = ttf_path & "\"
     End If
 
-    sKeyPath = ""
+    sKeyPath = vbNullString
     sKeyPath = sKeyPath & "SOFTWARE\Microsoft\Office\"
     sKeyPath = sKeyPath & Application.Version
     sKeyPath = sKeyPath & "\Excel\Security\Trusted Locations\"
@@ -1043,19 +1002,19 @@ Private Sub TrustThisFolder(Optional ByVal FolderPath As String, _
     For Each oSubKey In oSubKeys
         sSubKey = CStr(oSubKey)
         oRegistry.GetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Path", sPath
-        If sPath = FolderPath Then
+        If sPath = ttf_path Then
             Exit For
         End If
     Next oSubKey
     
-    If sPath <> FolderPath Then
+    If sPath <> ttf_path Then
         If IsNumeric(Replace(sSubKey, "Location", "")) _
         Then i = CLng(Replace(sSubKey, "Location", "")) + 1 _
         Else i = UBound(oSubKeys) + 1
         
         sSubKey = "Location" & CStr(i)
         
-        If TrustNetworkFolders Then
+        If ttf_trust_network_folder Then
             iTrustNetwork = 1
             oRegistry.GetDWORDValue HKEY_CURRENT_USER, sKeyPath, "AllowNetworkLocations", iTrustNetwork
             If iTrustNetwork = 0 Then
@@ -1064,8 +1023,8 @@ Private Sub TrustThisFolder(Optional ByVal FolderPath As String, _
         End If
         
         oRegistry.CreateKey HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey
-        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Path", FolderPath
-        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Description", sDescription
+        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Path", ttf_path
+        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Description", ttf_description
         oRegistry.SetDWORDValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "AllowSubFolders", 1
 
     End If
@@ -1080,9 +1039,3 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub StartupPath()
-    Debug.Print Application.StartupPath
-    Application.AltStartupPath = mMe.CompManAddinFolder
-    Debug.Print Application.AltStartupPath
-    
-End Sub

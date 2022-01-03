@@ -190,7 +190,7 @@ Private Sub DetermineTraceLogFolder(ByVal dt_wb As Workbook)
 ' --------------------------------------------------------------------------
     If mMe.IsDevInstnc _
     Then mTrc.TraceLogFile = Replace(dt_wb.FullName, dt_wb.Name, "CompMan.Trace.log") _
-    Else mTrc.TraceLogFile = mMe.CompManAddinFolder & "\CompManAdmin\CompMan.Service.log"
+    Else mTrc.TraceLogFile = mConfig.CompManAddinFolder & "\CompManAdmin\CompMan.Service.log"
 End Sub
 
 Public Sub DisplayChanges( _
@@ -382,7 +382,7 @@ Public Function ExportChangedComponents( _
     
     mBasic.BoP ErrSrc(PROC)
     Set mService.Serviced = ec_wb
-    If mMe.CompManAddinIsPaused Or mMe.IsAddinInstnc Then GoTo xt
+    If mConfig.CompManAddinIsPaused Or mMe.IsAddinInstnc Then GoTo xt
     
     mService.ExportChangedComponents ec_hosted
     ExportChangedComponents = True

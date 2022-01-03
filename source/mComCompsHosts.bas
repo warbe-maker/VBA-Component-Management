@@ -7,7 +7,7 @@ Option Explicit
 ' ---------------------------------------------------------------------------
 Private Const VNAME_HOST_FULL_NAME = "HostFullName"
 
-Public Property Get ComCompsFolder() As String:    ComCompsFolder = mMe.ServicedRootFolder & "\Common-Components":    End Property
+Public Property Get ComCompsFolder() As String:    ComCompsFolder = mConfig.CompManServicedRootFolder & "\Common-Components":    End Property
 Public Property Get ComCompsHostsFile() As String: ComCompsHostsFile = ComCompsFolder & "\ComCompsHosts.dat":       End Property
 
 Public Property Get FullName( _

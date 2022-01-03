@@ -182,7 +182,7 @@ Public Function UpdateCloneConfirmed( _
         .Section(1).Text.Text = "When the raw clone used in this Workbook is not updated the message will show up again " & _
                                 "the next time this Workbook is opened - provided it is located/opened in the  in the " & _
                                 "configured development root folder:"
-        .Section(2).Text.Text = mMe.ServicedRootFolder
+        .Section(2).Text.Text = mConfig.CompManServicedRootFolder
         .Section(2).Text.MonoSpaced = True
         With .Section(3)
             If mComCompsSaved.RevisionNumber(ucc_comp_name) = mComCompsUsed.RevisionNumber(ucc_comp_name) Then

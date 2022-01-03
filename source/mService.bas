@@ -181,7 +181,7 @@ Public Sub Continue()
 ' Continues the paused CompMan Addin Services
 ' -------------------------------------------
     If mMe.IsDevInstnc Then
-        mMe.CompManAddinIsPaused = False
+        mConfig.CompManAddinIsPaused = False
         mMe.DisplayStatus
     End If
 End Sub
@@ -191,7 +191,7 @@ Public Sub Pause()
 ' Pauses the CompMan Addin Services
 ' ---------------------------------
     If mMe.IsDevInstnc Then
-        mMe.CompManAddinIsPaused = True
+        mConfig.CompManAddinIsPaused = True
         mMe.DisplayStatus
     End If
 End Sub
@@ -222,7 +222,7 @@ Public Function Denied(ByVal den_service As String) As Boolean
     If Log Is Nothing Then Set Log = New clsLog
     Log.Service = den_service
 
-    If Not mMe.BasicConfig Then
+    If Not mMe.AddinFolderIsValid Or Not mMe.ServicedRootFolderIsValid Then
         sStatus = "Service denied! The Basic CompMan Configuration is invalid!"
         Log.Entry = sStatus
         Log.Entry = "The assertion of a valid basic configuration has been terminated though invalid!"
@@ -230,9 +230,9 @@ Public Function Denied(ByVal den_service As String) As Boolean
         sStatus = "Service denied! Workbook appears restored by the system!"
         Log.Entry = sStatus
     ElseIf Not WbkInServicedRoot Then
-        sStatus = "Service denied! Workbook is not within the configured 'serviced root': " & mMe.ServicedRootFolder & "!"
+        sStatus = "Service denied! Workbook is not within the configured 'serviced root': " & mConfig.CompManServicedRootFolder & "!"
         Log.Entry = sStatus
-    ElseIf mMe.CompManAddinIsPaused And mMe.IsAddinInstnc Then
+    ElseIf mConfig.CompManAddinIsPaused And mMe.IsAddinInstnc Then
         sStatus = "Service denied! The CompMan Addin is currently paused!"
         Log.Entry = sStatus
     ElseIf FolderNotVbProjectExclusive Then
@@ -384,7 +384,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function WbkInServicedRoot() As Boolean
-    WbkInServicedRoot = InStr(mService.Serviced.Path, mMe.ServicedRootFolder) <> 0
+    WbkInServicedRoot = InStr(mService.Serviced.Path, mConfig.CompManServicedRootFolder) <> 0
 End Function
 
 Private Function WbkIsRestoredBySystem() As Boolean

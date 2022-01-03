@@ -37,7 +37,7 @@ Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
     sMsg.Section(2).Text.Text = "The selection contains all known 'Raw-Components/Common-Components' which are not already installed " & _
                             "(i.e. imported). Any components missed may either not be indicated 'hosted' in any Workbook or the Workbook " & _
                             "does not reside within the configured 'Serviced-Root-Folder'" & vbLf & _
-                            "(currently  " & mBasic.Spaced(mMe.ServicedRootFolder) & "  )."
+                            "(currently  " & mBasic.Spaced(mConfig.CompManServicedRootFolder) & "  )."
     
     Do
         vReply = mMsg.Dsply(dsply_title:="Select one of the available 'Raw-Components/Common-Components') yet not installed in '" & ic_wb.Name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
