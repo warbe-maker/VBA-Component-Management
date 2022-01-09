@@ -161,7 +161,7 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
             Set wbActive = Nothing
         End If
     End If
@@ -206,7 +206,7 @@ End Function
 Public Function CompMaxLen(ByRef ml_wb As Workbook) As Long
     Dim vbc As VBComponent
     For Each vbc In ml_wb.VBProject.VBComponents
-        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.Name))
+        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.name))
     Next vbc
 End Function
 
@@ -222,7 +222,7 @@ Public Function Denied(ByVal den_service As String) As Boolean
     If Log Is Nothing Then Set Log = New clsLog
     Log.Service = den_service
 
-    If Not mMe.AddinFolderIsValid Or Not mMe.ServicedRootFolderIsValid Then
+    If Not mMe.FolderAddinIsValid Or Not mMe.FolderServicedIsValid Then
         sStatus = "Service denied! The Basic CompMan Configuration is invalid!"
         Log.Entry = sStatus
         Log.Entry = "The assertion of a valid basic configuration has been terminated though invalid!"
@@ -230,9 +230,10 @@ Public Function Denied(ByVal den_service As String) As Boolean
         sStatus = "Service denied! Workbook appears restored by the system!"
         Log.Entry = sStatus
     ElseIf Not WbkInServicedRoot Then
-        sStatus = "Service denied! Workbook is not within the configured 'serviced root': " & mConfig.CompManServicedRootFolder & "!"
+        sStatus = "Service denied! Workbook is not within the configured 'serviced root': " & mConfig.FolderServiced & "!"
         Log.Entry = sStatus
-    ElseIf mConfig.CompManAddinIsPaused And mMe.IsAddinInstnc Then
+    ElseIf mConfig.CompManAddinIsPaused And mMe.IsAddinInstnc And den_service <> "ExportChangedComponents" Then
+        '~~ Note: Export of code changes can be made by the development instance itself
         sStatus = "Service denied! The CompMan Addin is currently paused!"
         Log.Entry = sStatus
     ElseIf FolderNotVbProjectExclusive Then
@@ -384,7 +385,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function WbkInServicedRoot() As Boolean
-    WbkInServicedRoot = InStr(mService.Serviced.Path, mConfig.CompManServicedRootFolder) <> 0
+    WbkInServicedRoot = InStr(mService.Serviced.Path, mConfig.FolderServiced) <> 0
 End Function
 
 Private Function WbkIsRestoredBySystem() As Boolean
@@ -586,7 +587,7 @@ Private Function Clones( _
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = cl_wb
-            .CompName = vbc.Name
+            .CompName = vbc.name
             Log.ServicedItem = .VBComp
             If .KindOfComp = enCommCompUsed Then
                 Set RawComp = New clsRaw
@@ -596,12 +597,12 @@ Private Function Clones( _
                 RawComp.CloneExpFileFullName = .ExpFileFullName
                 RawComp.TypeString = .TypeString
                 If .Changed Then
-                    dct.Add vbc, vbc.Name
+                    dct.Add vbc, vbc.name
                 Else
                     Log.Entry = "Code un-changed."
                 End If
                 If RawComp.Changed(Comp) Then
-                    If Not dct.Exists(vbc) Then dct.Add vbc, vbc.Name
+                    If Not dct.Exists(vbc) Then dct.Add vbc, vbc.name
                 Else
                     Log.Entry = "Corresponding Raw's code un-changed."
                 End If

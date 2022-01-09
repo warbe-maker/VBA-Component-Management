@@ -4,47 +4,63 @@ Option Explicit
 ' Standard Module mConfig
 ' Read/Write CompMan configuration properties from /to the Registry
 ' ----------------------------------------------------------------------------
-Private Const VNAME_ADDIN_FOLDER            As String = "HKCU\CompMan\BasicConfig\AddinFolder"
-Private Const VNAME_SERVICED_ROOT_FOLDER    As String = "HKCU\CompMan\BasicConfig\ServicedRootFolder"
-Private Const VNAME_EXPORT_FOLDER           As String = "HKCU\CompMan\BasicConfig\ExportFolder"
-Private Const VNAME_ADDIN_IS_PAUSED         As String = "HKCU\CompMan\BasicConfig\AddinIsPaused"
+Public Const CONFIG_BASE_KEY                As String = "HKCU\SOFTWARE\CompManVBP\BasicConfig\"
+Private Const VNAME_ADDIN_IS_PAUSED         As String = "AddinIsPaused"
+Private Const VNAME_FOLDER_ADDIN            As String = "FolderAddin"
+Private Const VNAME_FOLDER_EXPORT           As String = "FolderExport"
+Private Const VNAME_FOLDER_SERVICED         As String = "FolderServiced"
 
-Public Property Get CompManAddinFolder() As String
-    If mReg.Exists(VNAME_ADDIN_FOLDER) _
-    Then CompManAddinFolder = mReg.Value(VNAME_ADDIN_FOLDER)
+Public Property Get FolderAddin() As String
+    If Exists(VNAME_FOLDER_ADDIN) _
+    Then FolderAddin = Value(VNAME_FOLDER_ADDIN)
 End Property
 
-Public Property Let CompManAddinFolder(ByVal s As String)
-    mReg.Value(VNAME_ADDIN_FOLDER) = s
+Public Property Let FolderAddin(ByVal s As String)
+    Value(VNAME_FOLDER_ADDIN) = s
 End Property
 
-Public Property Get CompManServicedRootFolder() As String
-    If mReg.Exists(VNAME_SERVICED_ROOT_FOLDER) _
-    Then CompManServicedRootFolder = mReg.Value(VNAME_SERVICED_ROOT_FOLDER)
+Public Property Get FolderServiced() As String
+    If Exists(reg_value_name:=VNAME_FOLDER_SERVICED) _
+    Then FolderServiced = Value(VNAME_FOLDER_SERVICED)
 End Property
 
-Public Property Let CompManServicedRootFolder(ByVal s As String)
-    mReg.Value(VNAME_SERVICED_ROOT_FOLDER) = s
+Public Property Let FolderServiced(ByVal s As String)
+    Value(VNAME_FOLDER_SERVICED) = s
 End Property
 
-Public Property Get CompManExportFolder() As String
-    If mReg.Exists(VNAME_EXPORT_FOLDER) _
-    Then CompManExportFolder = mReg.Value(VNAME_EXPORT_FOLDER) _
-    Else CompManExportFolder = "source" ' The default
+Public Property Get FolderExport() As String
+    If Exists(reg_value_name:=VNAME_FOLDER_EXPORT) _
+    Then FolderExport = Value(VNAME_FOLDER_EXPORT) _
+    Else FolderExport = "source" ' The default
 End Property
 
-Public Property Let CompManExportFolder(ByVal s As String)
-    mReg.Value(VNAME_EXPORT_FOLDER) = s
+Public Property Let FolderExport(ByVal s As String)
+    Value(VNAME_FOLDER_EXPORT) = s
 End Property
 
 Public Property Get CompManAddinIsPaused() As Boolean
-    If mReg.Exists(VNAME_ADDIN_IS_PAUSED) _
-    Then CompManAddinIsPaused = CBool(mReg.Value(VNAME_ADDIN_IS_PAUSED)) _
+    If Exists(reg_value_name:=VNAME_ADDIN_IS_PAUSED) _
+    Then CompManAddinIsPaused = CBool(Value(VNAME_ADDIN_IS_PAUSED)) _
     Else CompManAddinIsPaused = False ' The default
 End Property
 
 Public Property Let CompManAddinIsPaused(ByVal b As Boolean)
-    mReg.Value(VNAME_ADDIN_IS_PAUSED) = CInt(b)
+    Value(VNAME_ADDIN_IS_PAUSED) = b
 End Property
 
+' ---------------------------------------------------------------------------
+' Interfaces to mReg.Value Get/Let and NameExists
+' ---------------------------------------------------------------------------
+Private Property Get Value(Optional ByVal reg_value_name As String) As Variant
+    Value = mReg.Value(reg_key:=CONFIG_BASE_KEY, reg_value_name:=reg_value_name)
+End Property
+
+Private Property Let Value(Optional ByVal reg_value_name As String, _
+                                    ByVal reg_value As Variant)
+    mReg.Value(reg_key:=CONFIG_BASE_KEY, reg_value_name:=reg_value_name) = reg_value
+End Property
+
+Private Function Exists(ByVal reg_value_name As String) As Boolean
+    Exists = mReg.Exists(reg_key:=CONFIG_BASE_KEY, reg_value_name:=reg_value_name)
+End Function
 

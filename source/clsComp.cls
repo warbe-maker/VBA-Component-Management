@@ -169,7 +169,7 @@ Friend Property Get CodeName( _
 ' --------------------------------------------------------
     Dim wsh As Worksheet
     For Each wsh In wb.Worksheets
-        If sh.Name = scn_name Then
+        If sh.name = scn_name Then
             CodeName = wsh.CodeName
             Exit For
         End If
@@ -212,7 +212,7 @@ End Property
 Friend Property Get ExistsBySheetName(Optional ByVal eb_name As String) As Boolean
     Dim ws As Worksheet
     For Each ws In Me.Wrkbk.Worksheets
-        ExistsBySheetName = ws.Name = eb_name
+        ExistsBySheetName = ws.name = eb_name
         If ExistsBySheetName Then Exit For
     Next ws
 End Property
@@ -312,6 +312,10 @@ Public Property Get SavedExpFile() As File
     With New FileSystemObject
         Set SavedExpFile = .GetFile(mComCompsSaved.ExpFileFullName(Me.CompName))
     End With
+End Property
+
+Public Property Get RawExpFileFullName() As String
+    RawExpFileFullName = mComCompsSaved.ExpFileFullName(Me.CompName)
 End Property
 
 Public Property Let RawExpFileFullName(ByVal s As String):  sRawExpFileFullName = s:    End Property
@@ -537,7 +541,7 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
         sService = .GetFileName(wb.Path)
     End With
     For Each vbc In wb.VBProject.VBComponents
-        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
+        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.name))
     Next vbc
     
 End Property
@@ -636,18 +640,18 @@ Public Function RemoteSheetExists( _
     Dim vbc As VBComponent
     
     For Each ws In rs_wb.Worksheets
-        If rs_ws_name <> vbNullString And ws.Name = rs_ws_name Then
+        If rs_ws_name <> vbNullString And ws.name = rs_ws_name Then
             Set rs_ws = ws
             If rs_ws_codename = vbNullString Then rs_ws_codename = ws.CodeName
             Exit For
         ElseIf rs_ws_codename <> vbNullString And ws.CodeName = rs_ws_codename Then
             Set rs_ws = ws
-            If rs_ws_name = vbNullString Then rs_ws_name = ws.Name
+            If rs_ws_name = vbNullString Then rs_ws_name = ws.name
         End If
     Next ws
     
     For Each vbc In rs_wb.VBProject.VBComponents
-        If rs_ws_codename <> vbNullString And vbc.Name = rs_ws_codename Then
+        If rs_ws_codename <> vbNullString And vbc.name = rs_ws_codename Then
             Set rs_vbc = vbc
             Exit For
         End If
@@ -672,7 +676,7 @@ Public Sub ReplaceRawWithClone(ByRef raw As clsRaw)
     mRenew.ByImport rn_wb:=wbRawHost _
                   , rn_comp_name:=sCompName _
                   , rn_exp_file_full_name:=Me.ExpFileFullName
-    Log.Entry = "Raw-Component (hosted in '" & wbRawHost.Name & "' replaced by (re-)import of the clone's export file '" & Me.ExpFileFullName & "'"
+    Log.Entry = "Raw-Component (hosted in '" & wbRawHost.name & "' replaced by (re-)import of the clone's export file '" & Me.ExpFileFullName & "'"
 
 xt: Exit Sub
 

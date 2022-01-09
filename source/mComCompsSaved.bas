@@ -22,9 +22,13 @@ Private Const VNAME_REVISION_DATE       As String = "RevisionDate"
 Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
 Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
-Public Property Get ComCompsFile() As String:      ComCompsFile = ComCompsFolder & "\ComCompsSaved.dat":            End Property
+Public Property Get ComCompsFile() As String
+    ComCompsFile = ComCompsFolder & "\Revisions.dat"
+End Property
 
-Public Property Get ComCompsFolder() As String:    ComCompsFolder = mConfig.CompManServicedRootFolder & "\Common-Components":  End Property
+Public Property Get ComCompsFolder() As String
+    ComCompsFolder = mConfig.FolderServiced & "\Common-Components"
+End Property
 
 Public Property Get ExpFile( _
                     Optional ByVal comp_name) As File
@@ -42,7 +46,7 @@ Public Property Let ExpFile( _
     Dim FileName As String
     
     With New FileSystemObject
-        FileName = .GetFileName(comp_exp_file.Name)
+        FileName = .GetFileName(comp_exp_file.name)
         .CopyFile comp_exp_file, ComCompsFolder & "\" & comp_name
     End With
 End Property

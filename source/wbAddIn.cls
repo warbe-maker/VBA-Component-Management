@@ -45,6 +45,7 @@ Private Sub Workbook_Open()
     On Error GoTo eh
        
     If mMe.IsDevInstnc Then
+        mMe.BasicConfig bc_silent:=True
         '~~ ------------------------------------------------------------------
         '~~ CompMan Workbook_Open service 'UpdateUsedCommonComponents':
         '~~ Executed by the development instance when open or by the Addin
@@ -85,6 +86,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     '~~ *) automatically available only when a Workbook is open which has
     '~~    in the VBProject a Reference to the CompMan Addin.
     If mMe.IsDevInstnc Then
+        mMe.BasicConfig bc_silent:=True
         mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
         If Not ThisWorkbook.Saved Then
             Application.EnableEvents = False

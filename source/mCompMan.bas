@@ -4,7 +4,7 @@ Option Compare Text
 ' ----------------------------------------------------------------------------
 ' Standard Module mCompMan
 '          Services for the management of VBComponents in Workbooks provided:
-'          - stored within the 'ServicedRootFolder'
+'          - stored within the 'FolderServiced'
 '          - have the Conditional Compile Argument 'CompMan = 1'
 '          - have 'CompMan' referenced
 '          - the Workbook resides in its own dedicated folder
@@ -189,8 +189,8 @@ Private Sub DetermineTraceLogFolder(ByVal dt_wb As Workbook)
 ' by the way suspends the display of the trace result.
 ' --------------------------------------------------------------------------
     If mMe.IsDevInstnc _
-    Then mTrc.TraceLogFile = Replace(dt_wb.FullName, dt_wb.Name, "CompMan.Trace.log") _
-    Else mTrc.TraceLogFile = mConfig.CompManAddinFolder & "\CompManAdmin\CompMan.Service.log"
+    Then mTrc.TraceLogFile = Replace(dt_wb.FullName, dt_wb.name, "CompMan.Trace.log") _
+    Else mTrc.TraceLogFile = mConfig.FolderAddin & "\CompManAdmin\CompMan.Service.log"
 End Sub
 
 Public Sub DisplayChanges( _
@@ -342,9 +342,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
-' -----------------------------------------------------------
+' ----------------------------------------------------------------------------
 '
-' -----------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC = "ExportAll"
     
     On Error GoTo eh
@@ -368,13 +368,13 @@ End Sub
 Public Function ExportChangedComponents( _
                 ByRef ec_wb As Workbook, _
        Optional ByVal ec_hosted As String = vbNullString)
-' --------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Exclusively performed/trigered by the Before_Save event:
-' - Any code change (detected by the comparison of a temporary export
-'   file with the current export file) is backed-up/exported
+' - Any code change (detected by the comparison of a temporary export file
+'   with the current export file) is backed-up/exported
 ' - Outdated Export Files (components no longer existing) are removed
 ' - Returns FALSE when not executed
-' --------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
@@ -382,7 +382,7 @@ Public Function ExportChangedComponents( _
     
     mBasic.BoP ErrSrc(PROC)
     Set mService.Serviced = ec_wb
-    If mConfig.CompManAddinIsPaused Or mMe.IsAddinInstnc Then GoTo xt
+'    If mConfig.CompManAddinIsPaused Or mMe.IsAddinInstnc Then GoTo xt
     
     mService.ExportChangedComponents ec_hosted
     ExportChangedComponents = True
@@ -401,12 +401,11 @@ Public Sub Install()
 End Sub
 
 Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
-' ---------------------------------------------------------
-' - Registers a Workbook as 'Raw-Host' when it has at least
-'   one of the Workbook's (mh_wb) VBComponents indicated
-'   hosted.
+' ----------------------------------------------------------------------------
+' - Registers a Workbook as 'Raw-Host' when it has at least one of the
+'   Workbook's (mh_wb) VBComponents indicated hosted.
 ' - Registers each hosted 'Raw-Component' as such
-' ---------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC = "ManageHostHostedProperty"
     
     On Error GoTo eh
@@ -443,6 +442,13 @@ Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
             End With
             Set Comp = Nothing
         Next v
+        If Not mComCompsHosts.Exists(sHostBaseName) Then
+            Log.Entry = "'" & sHostBaseName & "' registered as host for at least one Common Component"
+            mComCompsHosts.FullName(sHostBaseName) = mService.Serviced.FullName
+        ElseIf StrComp(mComCompsHosts.FullName(sHostBaseName), mService.Serviced.FullName, vbTextCompare) <> 0 Then
+            mComCompsHosts.FullName(sHostBaseName) = mService.Serviced.FullName
+            Log.Entry = "FullName of '" & sHostBaseName & "' updated"
+        End If
     Else
         '~~ Remove any raws still existing and pointing to this Workbook as host
         For Each v In mComCompsSaved.Components
@@ -452,7 +458,7 @@ Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
             End If
         Next v
         If mComCompsHosts.Exists(fso.GetBaseName(mService.Serviced.FullName)) Then
-            mComCompsHosts.Remove (fso.GetBaseName(mService.Serviced.FullName))
+            mComCompsHosts.Remove fso.GetBaseName(mService.Serviced.FullName)
             Log.Entry = "Workbook no longer a host for at least one raw component removed from '" & mComCompsHosts.ComCompsHostsFile & "'"
         End If
     End If
@@ -473,7 +479,7 @@ Public Sub RemoveTempRenamed()
     
     With mService.Serviced.VBProject
         For Each cmp In .VBComponents
-            If InStr(cmp.Name, mComp.RENAMED_BY_COMPMAN) <> 0 Then
+            If InStr(cmp.name, mComp.RENAMED_BY_COMPMAN) <> 0 Then
                 .VBComponents.Remove cmp
             End If
         Next cmp
@@ -484,14 +490,13 @@ End Sub
 Public Sub SynchTargetWbWithSourceWb( _
                                ByRef wb_target As Workbook, _
                                ByVal wb_source As String)
-' -------------------------------------------------------------
-' Synchronizes the code of the open/ed Workbook (clone_project)
-' with the code of the source Workbook (raw_project).
-' The service is performed provided:
+' ----------------------------------------------------------------------------
+' Synchronizes the code of the open/ed Workbook (clone_project) with the code
+' of the source Workbook (raw_project). The service is performed provided:
 ' - the Workbook is open/ed in the configured "Serviced Root"
 ' - the CompMan Addin is not paused
 ' - the open/ed Workbook is not a restored version
-' -------------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC = "SynchTargetWbWithSourceWb"
     
     On Error GoTo eh
@@ -522,7 +527,7 @@ Public Function UpdateUsedCommonComponents( _
     On Error GoTo eh
     Dim Msg As TypeMsg
     
-    If mMe.IsDevInstnc And uc_wb.Name = mMe.DevInstncName Then
+    If mMe.IsDevInstnc And uc_wb.name = mMe.DevInstncName Then
         UpdateUsedCommonComponents = False
         GoTo xt
     End If
@@ -550,10 +555,10 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Function WbkGetOpen(ByVal go_wb_full_name As String) As Workbook
-' ---------------------------------------------------------------------
-' Returns an opened Workbook object named (go_wb_full_name) or Nothing
-' when a file named (go_wb_full_name) not exists.
-' ---------------------------------------------------------------------
+' ----------------------------------------------------------------------------
+' Returns an opened Workbook object named (go_wb_full_name) or Nothing when a
+' file named (go_wb_full_name) not exists.
+' ----------------------------------------------------------------------------
     Const PROC = "WbkGetOpen"
     
     On Error GoTo eh
@@ -577,10 +582,10 @@ End Function
 Public Function WbkIsOpen( _
            Optional ByVal io_name As String = vbNullString, _
            Optional ByVal io_full_name As String) As Boolean
-' ------------------------------------------------------------
-' When the full name is provided the check spans all Excel
-' instances else only the current one.
-' ------------------------------------------------------------
+' ----------------------------------------------------------------------------
+' When the full name is provided the check spans all Excel instances else only
+' the current one.
+' ----------------------------------------------------------------------------
     Const PROC = ""
     
     On Error GoTo eh
@@ -598,7 +603,7 @@ Public Function WbkIsOpen( _
         WbkIsOpen = Err.Number = 0
     Else
         On Error Resume Next
-        io_name = Application.Workbooks(io_name).Name
+        io_name = Application.Workbooks(io_name).name
         WbkIsOpen = Err.Number = 0
     End If
 

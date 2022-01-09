@@ -58,13 +58,13 @@ Public Sub ComCompsUsed(ByRef urc_wb As Workbook)
     Dim Clones                  As clsClones
     Dim RawComp                 As clsRaw
     Dim CloneComp               As clsComp
+    Dim lRemaining              As Long
     
     mBasic.BoP ErrSrc(PROC)
     Set Clones = New clsClones
     Set dctComCompsHostedChanged = Clones.RawChanged
     
     bVerbose = True
-            
     For Each v In dctComCompsHostedChanged
         mCompMan.DsplyProgress p_result:=sUpdated _
                              , p_total:=Stats.Total(sic_clone_comps) _
@@ -98,10 +98,8 @@ Public Sub ComCompsUsed(ByRef urc_wb As Workbook)
         Set CloneComp = Nothing
         Set RawComp = Nothing
         
+        Application.StatusBar = Log.Service & "(" & Stats.Total(sic_clones_comps_updated) & " of " & Stats.Total(sic_clone_comps) & " updated) " & sUpdated
     Next v
-    If sUpdated = vbNullString _
-    Then Application.StatusBar = Log.Service & "None updated (" & Stats.Total(sic_clones_comps_updated) & " of " & Stats.Total(sic_clone_comps) & ")" _
-    Else Application.StatusBar = Log.Service & sUpdated & " (" & Stats.Total(sic_clones_comps_updated) & " of " & Stats.Total(sic_clone_comps) & ")"
 
 xt: Set fso = Nothing
     mBasic.EoP ErrSrc(PROC)
@@ -182,7 +180,7 @@ Public Function UpdateCloneConfirmed( _
         .Section(1).Text.Text = "When the raw clone used in this Workbook is not updated the message will show up again " & _
                                 "the next time this Workbook is opened - provided it is located/opened in the  in the " & _
                                 "configured development root folder:"
-        .Section(2).Text.Text = mConfig.CompManServicedRootFolder
+        .Section(2).Text.Text = mConfig.FolderServiced
         .Section(2).Text.MonoSpaced = True
         With .Section(3)
             If mComCompsSaved.RevisionNumber(ucc_comp_name) = mComCompsUsed.RevisionNumber(ucc_comp_name) Then
