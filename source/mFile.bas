@@ -39,21 +39,15 @@ Option Private Module
 '                   of all sections are returned. Section names may be provided as a
 '                   comma delimited string of names, or a Collection or Dictionary of
 '                   section name (items).
-' Uses:
-' - mDct            Service DctAdd is used to provide Dictionaries in ascending
-'                   order by item or by key.
-'                   Note! The components mTrc, fMsg, mMsg, and mErH are only used for testing
-'                   by the module mTest. They are not part of the to-be-installed
-'                   components of mFile.
+' Uses:             No other components (mErH and mMsg/fMsg are optional)
 '
 ' Requires: Reference to "Microsoft Scripting Runtine"
 '
-' This 'Common VBA Component is developed, maintained and tested (regression test
-' available in mTest module and obligatory with each code modification) in the
-' public Github repo: https://github.com/warbe-maker/Common-VBA-File-Services.
+' This 'Common Component' is developed, maintained in the public Github repo:
+' https://github.com/warbe-maker/Common-VBA-File-Services.
 ' Contribution in whichever form is welcome.
 '
-' W. Rauschenberger, Berlin Nov 2020
+' W. Rauschenberger, Berlin Jan 2022
 ' ----------------------------------------------------------------------------
 Private Declare PtrSafe Function WritePrivateProfileString _
                 Lib "kernel32" Alias "WritePrivateProfileStringA" _
@@ -114,11 +108,11 @@ Public Property Let Arry( _
            Optional ByRef fa_split As String = vbCrLf, _
            Optional ByVal fa_append As Boolean = False, _
                     ByVal fa_ar As Variant)
-' -----------------------------------------------------------------
-' Writes array (fa_ar) to file (fa_file) whereby the array is
-' joined to a text string using the line break string (fa_split)
-' which defaults to vbCrLf and is optionally returned by Arry-Get.
-' -----------------------------------------------------------------
+' ----------------------------------------------------------------------------
+' Writes array (fa_ar) to file (fa_file) whereby the array is joined to a text
+' string using the line break string (fa_split) which defaults to vbCrLf and
+' is optionally returned by Arry-Get.
+' ----------------------------------------------------------------------------
                     
     mFile.Txt(ft_file:=fa_file _
             , ft_append:=fa_append _
@@ -127,15 +121,164 @@ Public Property Let Arry( _
              
 End Property
 
+Private Sub DctAddAscByKey(ByRef add_dct As Dictionary, _
+                           ByVal add_key As Variant, _
+                           ByVal add_item As Variant)
+' ----------------------------------------------------------------------------
+' Adds to the Dictionary (add_dct) an item (add_item) in ascending order by
+' the key (add_key). When the key is an object with no Name property an error
+' is raised.
+'
+' Note: This is a copy of the DctAdd procedure with fixed options which may be
+'       copied into any VBProject's module in order to have it independant
+'       from this Common Component.
+'
+' W. Rauschenberger, Berlin Jan 2022
+' ----------------------------------------------------------------------------
+    Const PROC = "DctAdd"
+    Dim bDone           As Boolean
+    Dim dctTemp         As Dictionary
+    Dim vItem           As Variant
+    Dim vItemExisting   As Variant
+    Dim vKeyExisting    As Variant
+    Dim vValueExisting  As Variant ' the entry's add_key/add_item value for the comparison with the vValueNew
+    Dim vValueNew       As Variant ' the argument add_key's/add_item's value
+    Dim vValueTarget    As Variant ' the add before/after add_key/add_item's value
+    Dim bStayWithFirst  As Boolean
+    Dim bOrderByItem    As Boolean
+    Dim bOrderByKey     As Boolean
+    Dim bSeqAscending   As Boolean
+    Dim bCaseIgnored    As Boolean
+    Dim bCaseSensitive  As Boolean
+    Dim bEntrySequence  As Boolean
+    
+    On Error GoTo eh
+    
+    If add_dct Is Nothing Then Set add_dct = New Dictionary
+    
+    '~~ Plausibility checks
+    bOrderByItem = False
+    bOrderByKey = True
+    bSeqAscending = True
+    bCaseIgnored = False
+    bCaseSensitive = True
+    bStayWithFirst = True
+    bEntrySequence = False
+    
+    With add_dct
+        '~~ When it is the very first add_item or the add_order option
+        '~~ is entry sequence the add_item will just be added
+        If .Count = 0 Or bEntrySequence Then
+            .Add add_key, add_item
+            GoTo xt
+        End If
+        
+        '~~ When the add_order is by add_key and not stay with first entry added
+        '~~ and the add_key already exists the add_item is updated
+        If bOrderByKey And Not bStayWithFirst Then
+            If .Exists(add_key) Then
+                If VarType(add_item) = vbObject Then Set .Item(add_key) = add_item Else .Item(add_key) = add_item
+                GoTo xt
+            End If
+        End If
+    End With
+        
+    '~~ When the add_order argument is an object but does not have a name property raise an error
+    If bOrderByKey Then
+        If VarType(add_key) = vbObject Then
+            On Error Resume Next
+            add_key.Name = add_key.Name
+            If Err.Number <> 0 _
+            Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
+        End If
+    ElseIf bOrderByItem Then
+        If VarType(add_item) = vbObject Then
+            On Error Resume Next
+            add_item.Name = add_item.Name
+            If Err.Number <> 0 _
+            Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
+        End If
+    End If
+    
+    vValueNew = DctAddOrderValue(add_key)
+    
+    With add_dct
+        '~~ Get the last entry's add_order value
+        vValueExisting = DctAddOrderValue(.Keys()(.Count - 1))
+        
+        '~~ When the add_order mode is ascending and the last entry's add_key or add_item
+        '~~ is less than the add_order argument just add it and exit
+        If bSeqAscending And vValueNew > vValueExisting Then
+            .Add add_key, add_item
+            GoTo xt
+        End If
+    End With
+        
+    '~~ Since the new add_key/add_item couldn't simply be added to the Dictionary it will
+    '~~ be inserted before or after the add_key/add_item as specified.
+    Set dctTemp = New Dictionary
+    bDone = False
+    
+    For Each vKeyExisting In add_dct
+        
+        If VarType(add_dct.Item(vKeyExisting)) = vbObject _
+        Then Set vItemExisting = add_dct.Item(vKeyExisting) _
+        Else vItemExisting = add_dct.Item(vKeyExisting)
+        
+        With dctTemp
+            If bDone Then
+                '~~ All remaining items just transfer
+                .Add vKeyExisting, vItemExisting
+            Else
+                vValueExisting = DctAddOrderValue(vKeyExisting)
+            
+                If vValueExisting = vValueNew And bOrderByItem And bSeqAscending And Not .Exists(add_key) Then
+                    If bStayWithFirst Then
+                        .Add vKeyExisting, vItemExisting:   bDone = True ' not added
+                    Else
+                        '~~ The add_item already exists. When the add_key doesn't exist and bStayWithFirst is False the add_item is added
+                        .Add vKeyExisting, vItemExisting:   .Add add_key, add_item:                     bDone = True
+                    End If
+                ElseIf bSeqAscending And vValueExisting > vValueNew Then
+                    .Add add_key, add_item:                     .Add vKeyExisting, vItemExisting:   bDone = True
+                Else
+                    .Add vKeyExisting, vItemExisting ' transfer existing add_item, wait for the one which fits within sequence
+                End If
+            End If
+        End With ' dctTemp
+    Next vKeyExisting
+    
+    '~~ Return the temporary dictionary with the new add_item added and all exiting items in add_dct transfered to it
+    Set add_dct = dctTemp
+    Set dctTemp = Nothing
+
+xt: Exit Sub
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Function DctAddOrderValue(ByVal dctkey As Variant) As Variant
+' ----------------------------------------------------------------------------
+' When key is an object its name becomes the order value else the key as is.
+' ----------------------------------------------------------------------------
+    If VarType(dctkey) = vbObject _
+    Then DctAddOrderValue = dctkey.Name _
+    Else DctAddOrderValue = dctkey
+End Function
+
+
 Public Property Get Arry( _
            Optional ByVal fa_file As String, _
            Optional ByVal fa_excl_empty_lines As Boolean = False, _
            Optional ByRef fa_split As String, _
            Optional ByVal fa_append As Boolean = False) As Variant
-' -----------------------------------------------------------------------
-' Returns the content of the file (fa_file) - a files full name - as
-' array, with the used line break string returned in (fa_split).
-' -----------------------------------------------------------------------
+' ----------------------------------------------------------------------------
+' Returns the content of the file (fa_file) - a files full name - as array,
+' with the used line break string returned in (fa_split).
+' ----------------------------------------------------------------------------
     Const PROC  As String = "Arry"
     
     On Error GoTo eh
@@ -189,12 +332,12 @@ Public Function ValueExists( _
                           ByVal pp_file As String, _
                           ByVal pp_value As Variant, _
                  Optional ByVal pp_sections As Variant = Nothing) As Boolean
-' --------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Returns True when the value (pp_value) exists in file (pp_file) - when no
 ' section name is provided in any section, else in the given sections.
-' Section names (pp_sections) may be provided as comma delimited string or
-' as Dictionary or Collection with name items.
-' --------------------------------------------------------------------------
+' Section names (pp_sections) may be provided as comma delimited string or as
+' Dictionary or Collection with name items.
+' ----------------------------------------------------------------------------
     ValueExists = mFile.Values(pp_file, pp_sections).Exists(pp_value)
 End Function
 
@@ -202,33 +345,30 @@ Public Function ValueNameExists( _
                           ByVal pp_file As String, _
                           ByVal pp_valuename As String, _
                  Optional ByVal pp_sections As Variant = Nothing) As Boolean
-' --------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Returns True when the value name (pp_valuename) exists in file (pp_file)
 ' - when no section name is provided in any section, else in the given
 ' sections. Section names (pp_sections) may be provided as comma delimited
 ' string or as Dictionary or Collection with name items.
-' -------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
     ValueNameExists = mFile.ValueNames(pp_file, pp_sections).Exists(pp_valuename)
 End Function
                  
 Public Function SectionExists( _
                         ByVal pp_file As String, _
                         ByVal pp_section As String) As Boolean
-' --------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Returns True when the section (pp_section) exists in file (pp_file).
-' --------------------------------------------------------------------
+' ----------------------------------------------------------------------------
     SectionExists = mFile.SectionNames(pp_file).Exists(pp_section)
 End Function
 
 Public Function SectionNames( _
               Optional ByVal pp_file As String) As Dictionary
-' -----------------------------------------------------------
-' Returns a Dictionary of all section names [.....] in file
-' (pp_file) in ascending sequence.
-'
-' Uses: mDct.DctAdd to order the sections in ascending
-' sequence.
-' -----------------------------------------------------------
+' ----------------------------------------------------------------------------
+' Returns a Dictionary of all section names [.....] in file (pp_file) in
+' ascending sequence.
+' ----------------------------------------------------------------------------
     Const PROC = "SectionNames"
     
     On Error GoTo eh
@@ -255,10 +395,9 @@ Public Function SectionNames( _
         asSections = Split(strBuffer, vbNullChar)
         For i = LBound(asSections) To UBound(asSections)
             If Len(asSections(i)) <> 0 _
-            Then mDct.DctAdd add_dct:=dct _
-                           , add_key:=asSections(i) _
-                           , add_item:=asSections(i) _
-                           , add_seq:=seq_ascending
+            Then DctAddAscByKey add_dct:=dct _
+                              , add_key:=asSections(i) _
+                              , add_item:=asSections(i)
         Next i
     End If
     
@@ -371,11 +510,11 @@ Public Property Get Value( _
            Optional ByVal pp_file As String, _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String) As Variant
-' -----------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Read a value with a specific name from a section
 ' [section]
 ' <value-name>=<value>
-' -----------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC  As String = "ValueGet"
     
     On Error GoTo eh
@@ -408,11 +547,11 @@ Public Property Let Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String, _
                     ByVal pp_value As Variant)
-' --------------------------------------------------
-' Write a value under a name into a section in a
-' file in the form: [section]
-'                   <value-name>=<value>
-' --------------------------------------------------
+' ----------------------------------------------------------------------------
+' Write a value under a name into a section in a file in the form:
+' [section]
+' <value-name>=<value>
+' ----------------------------------------------------------------------------
     Const PROC = "ValueLet"
         
     On Error GoTo eh
@@ -445,15 +584,14 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Property
 
 Private Function AppErr(ByVal err_no As Long) As Long
-' -----------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Used with Err.Raise AppErr(<l>).
-' When the error number <l> is > 0 it is considered an "Application
-' Error Number and vbObjectErrror is added to it into a negative
-' number in order not to confuse with a VB runtime error.
-' When the error number <l> is negative it is considered an
-' Application Error and vbObjectError is added to convert it back
-' into its origin positive number.
-' ------------------------------------------------------------------
+' When the error number <l> is > 0 it is considered an "Application Error
+' Number and vbObjectErrror is added to it into a negative number in order not
+' to confuse with a VB runtime error. When the error number <l> is negative it
+' is considered an Application Error and vbObjectError is added to convert it
+' back into its origin positive number.
+' ----------------------------------------------------------------------------
     If err_no < 0 Then
         AppErr = err_no - vbObjectError
     Else
@@ -476,10 +614,10 @@ Public Function Compare(ByVal fc_file_left As String, _
                         ByVal fc_left_title As String, _
                         ByVal fc_file_right As String, _
                         ByVal fc_right_title As String) As Long
-' ---------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Compares two text files by means of WinMerge. An error is raised when
 ' WinMerge is not installed of one of the two files doesn't exist.
-' ----------------------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC = "Compare"
     
     On Error GoTo eh
@@ -491,18 +629,18 @@ Public Function Compare(ByVal fc_file_left As String, _
     
     If Not AppIsInstalled("WinMerge") _
     Then Err.Raise Number:=AppErr(1) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
     If Not fso.FileExists(fc_file_left) _
     Then Err.Raise Number:=AppErr(2) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file_left & """ does not exist!"
     
     If Not fso.FileExists(fc_file_right) _
     Then Err.Raise Number:=AppErr(3) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file_right & """ does not exist!"
     
     sCommand = "WinMergeU /e" & _
@@ -622,7 +760,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -843,12 +981,12 @@ Private Function Fc(ByVal fc_file1 As String, fc_file2 As String)
     
     If Not fso.FileExists(fc_file1) _
     Then Err.Raise Number:=AppErr(2) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file1 & """ does not exist!"
     
     If Not fso.FileExists(fc_file2) _
     Then Err.Raise Number:=AppErr(3) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file2 & """ does not exist!"
     
     sCommand = "Fc /C /W " & _
@@ -1130,8 +1268,6 @@ Public Property Get Sections( _
 ' value as item.
 ' The section names (pp_section_names) may be a comma delimmited string of names a
 ' Dictionary or a Collection, both with the item as name.
-'
-' Requires: Service mDct.DctAdd to order the sections in ascending sequence.
 ' -------------------------------------------------------------------------------------
     Const PROC = "Sections-Get"
     
@@ -1152,11 +1288,9 @@ Public Property Get Sections( _
         Set dctV = mFile.ValueNames(pp_file:=pp_file _
                                   , pp_sections:=sName _
                                    )
-        mDct.DctAdd add_dct:=dctS _
-                  , add_key:=sName _
-                  , add_item:=dctV _
-                  , add_seq:=seq_ascending _
-                  , add_order:=order_bykey
+        DctAddAscByKey add_dct:=dctS _
+                     , add_key:=sName _
+                     , add_item:=dctV
     Next v
 
 xt: Set Sections = dctS
@@ -1435,8 +1569,6 @@ Public Function ValueNames( _
 ' items. When no section names (pp_sections) are provided all unique!
 ' value names of all sections in file (pp_file) are returned. Of duplicate
 ' names the value will be of the first one found.
-'
-' Uses: mDct.DctAdd to order the sections in ascending sequence.
 ' ------------------------------------------------------------------------
     Const PROC = "ValueNames"
     
@@ -1476,10 +1608,9 @@ Public Function ValueNames( _
                 sName = asNames(i)
                 If Len(sName) <> 0 Then
                     If Not dctNames.Exists(sName) _
-                    Then mDct.DctAdd add_dct:=dctNames _
-                                   , add_key:=sName _
-                                   , add_item:=mFile.Value(pp_file:=pp_file, pp_section:=sSection, pp_value_name:=sName) _
-                                   , add_seq:=seq_ascending
+                    Then DctAddAscByKey add_dct:=dctNames _
+                                      , add_key:=sName _
+                                      , add_item:=mFile.Value(pp_file:=pp_file, pp_section:=sSection, pp_value_name:=sName)
                 End If
             Next i
         End If
@@ -1507,8 +1638,6 @@ Public Function Values( _
 ' otherwise of the named sections which may be provided as a comma
 ' delimited string of names, or a Collection or Dictionary of section
 ' name items.
-'
-' Uses: mDct.DctAdd to order the sections in ascending sequence.
 ' --------------------------------------------------------------------
     Const PROC = "Values"
     
@@ -1535,18 +1664,16 @@ Public Function Values( _
             If Not dct.Exists(sValue) Then
                 Set cllNames = New Collection
                 cllNames.Add sValName
-                mDct.DctAdd add_dct:=dct _
-                          , add_key:=sValue _
-                          , add_item:=cllNames _
-                          , add_seq:=seq_ascending
+                DctAddAscByKey add_dct:=dct _
+                             , add_key:=sValue _
+                             , add_item:=cllNames
             Else
                 Set cllNames = dct.Item(sValue)
                 cllNames.Add sValName
                 dct.Remove sValue
-                mDct.DctAdd add_dct:=dct _
-                          , add_key:=sValue _
-                          , add_item:=cllNames _
-                          , add_seq:=seq_ascending
+                DctAddAscByKey add_dct:=dct _
+                             , add_key:=sValue _
+                             , add_item:=cllNames
             End If
         Next vName
     Next vSection

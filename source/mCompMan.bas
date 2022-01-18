@@ -67,7 +67,7 @@ End Enum
 
 Public Enum siCounter
     sic_clone_changed
-    sic_clone_comps
+    sic_used_comm_comps
     sic_cols_new
     sic_cols_obsolete
     sic_comps
@@ -85,8 +85,9 @@ Public Enum siCounter
     sic_oobs_new
     sic_oobs_obsolete
     sic_oobs_total
-    sic_raw_changed
-    sic_clones_comps_updated
+    sic_raw_comm_comp_changed
+    sic_used_comm_comp_Outdated
+    sic_used_comm_comp_updated
     sic_refs_new
     sic_refs_obsolete
     sic_refs_total
@@ -149,39 +150,45 @@ Public Function AppErr(ByVal app_err_no As Long) As Long
     If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
 End Function
 
-Public Sub CompareCloneWithRaw(ByVal cmp_comp_name As String)
-' -----------------------------------------------------------
+'Public Sub CompareUsedWithRaw(ByVal cmp_comp_name As String)
+'' -----------------------------------------------------------
+''
+'' -----------------------------------------------------------
+'    Const PROC = "CompareUsedWithRaw"
 '
-' -----------------------------------------------------------
-    Const PROC = "CompareCloneWithRaw"
-    
-    On Error GoTo eh
-    Dim sExpFileRaw As String
-    Dim wb          As Workbook
-    Dim Comp        As New clsComp
-    
-    Set wb = ActiveWorkbook
-    With Comp
-        Set .Wrkbk = wb
-        .CompName = cmp_comp_name
-        Set .VBComp = wb.VBProject.VBComponents(.CompName)
-        sExpFileRaw = mComCompsSaved.ExpFileFullName(cmp_comp_name)
-    
-        mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=.ExpFileFullName _
-                                      , fd_exp_file_right_full_name:=sExpFileRaw _
-                                      , fd_exp_file_left_title:="Clone (used) Common Component code in Workbook/VBProject " & Comp.WrkbkBaseName & " (" & .ExpFileFullName & ")" _
-                                      , fd_exp_file_right_title:="Raw (hosted) Common Component code in Workbook/VBProject " & mBasic.BaseName(mComCompsSaved.HostFullName(.CompName)) & " (" & sExpFileRaw & ")"
-
-    End With
-    Set Comp = Nothing
-
-xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
+'    On Error GoTo eh
+'    Dim sExpFileRaw As String
+'    Dim wb          As Workbook
+'    Dim Comp        As New clsComp
+'
+'    Set wb = ActiveWorkbook
+'    With Comp
+'        Set .Wrkbk = wb
+'        .CompName = cmp_comp_name
+'        Set .VBComp = wb.VBProject.VBComponents(.CompName)
+'        If .KindOfComp = enCommCompUsed Then
+'            sExpFileRaw = .Raw.ExpFileFullName
+'            mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=.ExpFileFullName _
+'                                       , fd_exp_file_right_full_name:=sExpFileRaw _
+'                                       , fd_exp_file_left_title:="Clone (used) Common Component code in Workbook/VBProject " & Comp.WrkbkBaseName & " (" & .ExpFileFullName & ")" _
+'                                       , fd_exp_file_right_title:="Raw (hosted) Common Component code in Workbook/VBProject " & mBasic.BaseName(mComCompsRawsSaved.HostWbFullName(.CompName)) & " (" & sExpFileRaw & ")"
+'
+'        Else
+'            mMsg.Box box_title:="Not a known 'Common Component'!" _
+'                   , box_msg:="The provided component name '" & cmp_comp_name & "' is not registered/known as a 'Common Component'. " & _
+'                              "To have this component been recognized by CompMan as a 'Common Component' one Workbook has to claim " & _
+'                              "hosting it as the 'Raw Used Common Component'."
+'        End If
+'    End With
+'    Set Comp = Nothing
+'
+'xt: Exit Sub
+'
+'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+'        Case vbResume:  Stop: Resume
+'        Case Else:      GoTo xt
+'    End Select
+'End Sub
 
 Private Sub DetermineTraceLogFolder(ByVal dt_wb As Workbook)
 ' --------------------------------------------------------------------------
@@ -216,10 +223,10 @@ Public Sub DisplayChanges( _
     fl_1 = fl_left.Path
     fl_2 = fl_right.Path
     
-    mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=fl_1 _
-                                  , fd_exp_file_left_title:=fl_1 & " ( b e f o r e  the changes)" _
-                                  , fd_exp_file_right_full_name:=fl_2 _
-                                  , fd_exp_file_right_title:=fl_2 & " ( a f t e r  the changes)"
+    mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=fl_1 _
+                                   , fd_exp_file_left_title:=fl_1 & " ( b e f o r e  the changes)" _
+                                   , fd_exp_file_right_full_name:=fl_2 _
+                                   , fd_exp_file_right_title:=fl_2 & " ( a f t e r  the changes)"
 
 xt: Exit Sub
 
@@ -229,117 +236,10 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub DisplayCodeChange(ByVal cmp_comp_name As String)
-' -----------------------------------------------------------
-'
-' -----------------------------------------------------------
-    Const PROC = "DisplayCodeChange"
-    
-    On Error GoTo eh
-    Dim sTempExpFileFullName    As String
-    Dim Comp                    As New clsComp
-    Dim fso                     As New FileSystemObject
-    Dim sTmpFolder              As String
-    Dim flExpTemp               As File
-    
-    With Comp
-        Set .Wrkbk = mService.Serviced
-        .CompName = cmp_comp_name
-        Set .VBComp = .Wrkbk.VBProject.VBComponents(.CompName)
-    End With
-    
-    With fso
-        sTmpFolder = mCompMan.ExpFileFolderPath(Comp.Wrkbk) & "\Temp"
-        If Not .FolderExists(sTmpFolder) Then .CreateFolder sTmpFolder
-        sTempExpFileFullName = sTmpFolder & "\" & Comp.CompName & Comp.ExpFileExt
-        Comp.VBComp.Export sTempExpFileFullName
-        Set flExpTemp = .GetFile(sTempExpFileFullName)
-    End With
-
-    With Comp
-        mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=sTempExpFileFullName _
-                                      , fd_exp_file_right_full_name:=.ExpFileFullName _
-                                      , fd_exp_file_left_title:="The clone (used) Common Component's current code in '" & sTempExpFileFullName & "'" _
-                                      , fd_exp_file_right_title:="The raw (hosted) Common Component's current code in '" & .ExpFileFullName & "'"
-
-    End With
-    
-xt: If fso.FolderExists(sTmpFolder) Then fso.DeleteFolder (sTmpFolder)
-    Set Comp = Nothing
-    Set fso = Nothing
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Sub DsplyProgress( _
-          Optional ByVal p_result As String = vbNullString, _
-          Optional ByVal p_total As Long = 0, _
-          Optional ByVal p_done As Long = 0)
-
-    Dim sService    As String
-    Dim sDots       As String
-    Dim sMsg        As String
-    
-    If p_total - p_done >= 0 Then sDots = VBA.String$(p_total - p_done, ".")
-    On Error Resume Next
-    sService = Log.Service
-    sMsg = sService & sDots & p_result
-    If Len(sMsg) > 250 Then sMsg = Left(sMsg, 246) & "...."
-    If Right(sMsg, 1) = " " Then sMsg = Left(sMsg, Len(sMsg) - 1) & " ."
-    Application.StatusBar = sMsg
-
-End Sub
-
 Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mCompMan" & "." & es_proc
 End Function
 
-Public Function ExpFileFolderPath(ByVal v As Variant) As String
-' --------------------------------------------------------------------------
-' Attention! This is the only source for the location of a Workbook's
-'            Export-Files.
-' All Export-Files are placed in a '\source' sub-folder within the Workbook
-' folder. This maitains a clear Workbook folder which matters (not only)
-' when the Workbook-Folder is identical with a Github repo clone folder.
-' (v) may be provided as a Workbook object or a Workbook's FullName string
-' ----------------------------------------------------------------------------
-    Const PROC                  As String = "ExpFileFolderPath"
-    Const EXP_FILES_SUB_FOLDER  As String = "\source"
-    
-    On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim wb      As Workbook
-    Dim s       As String
-    Dim sPath   As String
-    
-    With fso
-        Select Case TypeName(v)
-            Case "Workbook"
-                Set wb = v
-                sPath = wb.Path & EXP_FILES_SUB_FOLDER
-            Case "String"
-                s = v
-                If Not .FileExists(s) _
-                Then Err.Raise AppErr(1), ErrSrc(PROC), "'" & s & "' is not the FullName of an existing Workbook!"
-                sPath = .GetParentFolderName(s) & EXP_FILES_SUB_FOLDER
-            Case Else
-                Err.Raise AppErr(1), ErrSrc(PROC), "The required information about the concerned Workbook is neither provided as a Workbook object nor as a string identifying an existing Workbooks FullName"
-        End Select
-        If Not .FolderExists(sPath) Then .CreateFolder sPath
-    End With
-    
-xt: ExpFileFolderPath = sPath
-    Exit Function
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
 
 Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
 ' ----------------------------------------------------------------------------
@@ -367,28 +267,54 @@ End Sub
 
 Public Function ExportChangedComponents( _
                 ByRef ec_wb As Workbook, _
-       Optional ByVal ec_hosted As String = vbNullString)
+       Optional ByVal ec_hosted As String = vbNullString) As Variant
 ' ----------------------------------------------------------------------------
-' Exclusively performed/trigered by the Before_Save event:
-' - Any code change (detected by the comparison of a temporary export file
-'   with the current export file) is backed-up/exported
-' - Outdated Export Files (components no longer existing) are removed
-' - Returns FALSE when not executed
+' Exports any component the code had been modified (UserForm also when the
+' form has changed) to the configured export folder (defaults to 'source').
+'
+' The function is terminated (returns FALSE) without further notice when:
+' a) the serviced root folder is invalid (not configured or not existing)
+' b) the serviced Workbook is located outside the serviced folder
+'
+' The function is terminated (returns FALSE but loggs the reason) when:
+' a) the Workbook is one restored by Excel
+' b) the serviced Workbook does not reside in a folder exclusivelyx (i.e. the
+'    Workbook does not live in its own dedicated folder
+' c) WinMerge is not installed
+
 ' ----------------------------------------------------------------------------
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
-    DetermineTraceLogFolder ec_wb
     
-    mBasic.BoP ErrSrc(PROC)
-    Set mService.Serviced = ec_wb
-'    If mConfig.CompManAddinIsPaused Or mMe.IsAddinInstnc Then GoTo xt
+    '~~ Determine any reason the service basically cannot be provided
+    If Not mMe.FolderServicedIsValid Then
+        '~~ The serviced root folder is invalid (not configured or not existing)
+        ExportChangedComponents = AppErr(1)
+    ElseIf Not ec_wb.FullName Like mConfig.FolderServiced & "*" Then
+        '~~ The serviced Workbook is located outside the serviced folder
+        ExportChangedComponents = AppErr(2)
+    ElseIf mMe.IsAddinInstnc And mMe.CompManAddinIsPaused Then
+        '~~ When the service is about to be provided by the Addin but the Addin is currently paused
+        '~~ another try with the serviced provided by the open Development instance may do the job.
+        ExportChangedComponents = AppErr(4)
     
-    mService.ExportChangedComponents ec_hosted
-    ExportChangedComponents = True
-    
-xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
-    Exit Function
+    '~~ The very basic requirements are met
+    Else
+        mBasic.BoP ErrSrc(PROC)
+        DetermineTraceLogFolder ec_wb
+        Set Log = New clsLog
+        Set mService.Serviced = ec_wb
+        If mService.Denied(PROC) Then GoTo xt
+        mCompMan.ManageRawCommonComponentsProperties ec_hosted
+        
+        mService.ExportChangedComponents ec_hosted
+        ExportChangedComponents = True
+        mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
+        ExportChangedComponents = Application.StatusBar
+    End If
+
+xt: Exit Function
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -400,18 +326,28 @@ Public Sub Install()
     mService.Install ActiveWorkbook
 End Sub
 
-Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
+Public Sub ManageRawCommonComponentsProperties(ByVal mh_hosted As String)
 ' ----------------------------------------------------------------------------
-' - Registers a Workbook as 'Raw-Host' when it has at least one of the
-'   Workbook's (mh_wb) VBComponents indicated hosted.
-' - Registers each hosted 'Raw-Component' as such
+' - Registers a Workbook as 'Raw-Host' when it claims hosting at least one
+'   Common Component (mh_wb)
+' - Registers for each hosted 'Raw Common Component':
+'   - in the local ComCompsHosted.dat the properties:
+'     - Component Name
+'     - Revision Number
+'   - in the ComComps-RawsSaved.dat in the Common Components folder:
+'     - Component Name
+'     - Export File Full Name
+'     - Host Base Name
+'     - Host Full Name
+'     - Host Name
+'     - Revision Number
 ' ----------------------------------------------------------------------------
-    Const PROC = "ManageHostHostedProperty"
+    Const PROC = "ManageRawCommonComponentsProperties"
     
     On Error GoTo eh
     Dim v               As Variant
     Dim fso             As New FileSystemObject
-    Dim Comp           As clsComp
+    Dim Comp            As clsComp
     Dim sHosted         As String
     Dim sHostBaseName   As String
     
@@ -422,45 +358,59 @@ Public Sub ManageHostHostedProperty(ByVal mh_hosted As String)
                     
     If HostedRaws.Count <> 0 Then
         For Each v In HostedRaws
-            '~~ Keep a record for each of the VBComponents hosted by this Workbook
-            If Not mComCompsSaved.Exists(raw_comp_name:=v) _
-            Or mComCompsSaved.HostFullName(comp_name:=v) <> mService.Serviced.FullName Then
-                mComCompsSaved.HostFullName(comp_name:=v) = mService.Serviced.FullName
+            If Not mComCompsRawsHosted.Exists(raw_comp_name:=v) Then
+                '~~ Register the component as a 'Hosted Common Component'
+                mComCompsRawsHosted.RevisionNumberIncrease (v) ' this will initially set it
+            End If
+            If Not mComCompsRawsSaved.Exists(raw_comp_name:=v) Then
+                '~~ Keep a record in the ComComps-RawsSaved.dat file for each of the VBComponents hosted by this Workbook
+                '~~ Note: The RevisionNumber is updated whenever the modified raw is exported
+                mComCompsRawsSaved.HostWbFullName(comp_name:=v) = mService.Serviced.FullName
+                mComCompsRawsSaved.HostWbName(comp_name:=v) = mService.Serviced.name
+                mComCompsRawsSaved.HostWbBaseName(comp_name:=v) = fso.GetBaseName(mService.Serviced.FullName)
+                Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
+            ElseIf StrComp(mComCompsRawsSaved.HostWbFullName(comp_name:=v), mService.Serviced.FullName, vbTextCompare) <> 0 _
+                Or StrComp(mComCompsRawsSaved.HostWbName(comp_name:=v), mService.Serviced.name, vbTextCompare) <> 0 Then
+                '~~ Keep the hosted raw's properties in the ComComps-RawsSaved.dat up-to-date
+                '~~ Note: The RevisionNumber is updated whenever the modified raw is exported
+                mComCompsRawsSaved.HostWbFullName(comp_name:=v) = mService.Serviced.FullName
+                mComCompsRawsSaved.HostWbName(comp_name:=v) = mService.Serviced.name
+                mComCompsRawsSaved.HostWbBaseName(comp_name:=v) = fso.GetBaseName(mService.Serviced.FullName)
                 Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
             End If
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = mService.Serviced
                 .CompName = v
-                If mComCompsSaved.ExpFileFullName(v) = vbNullString _
-                Or mComCompsSaved.ExpFileFullName(v) <> .ExpFileFullName Then
+                If Not fso.FileExists(.ExpFileFullName) Then
+                    '~~ Just in case its a new VBComponent claimed by the host Workbook a Raw Common Component
+                    .VBComp.Export .ExpFileFullName
+                End If
+                If mComCompsRawsSaved.ExpFileFullName(v) = vbNullString Then
                     '~~ The component is yet not registered or registered under an outdated location
-                    mComCompsSaved.ExpFileFullName(v) = .ExpFileFullName
-                    '~~ Just in case its a new VBComponent - by the way
-                    If Not fso.FileExists(.ExpFileFullName) Then .VBComp.Export .ExpFileFullName
+                    mComCompsRawsSaved.ExpFileFullName(v) = .ExpFileFullName
+                ElseIf mService.FilesDiffer(fd_exp_file_1:=.ExpFile _
+                                          , fd_exp_file_2:=mComCompsRawsSaved.ExpFile(.CompName)) Then
+                    '~~ Make sure the most up-to-date Export File has been copied to the Common Components Folder
+                    .CopyExportFileToCommonComponentsFolder
                 End If
             End With
             Set Comp = Nothing
         Next v
-        If Not mComCompsHosts.Exists(sHostBaseName) Then
-            Log.Entry = "'" & sHostBaseName & "' registered as host for at least one Common Component"
-            mComCompsHosts.FullName(sHostBaseName) = mService.Serviced.FullName
-        ElseIf StrComp(mComCompsHosts.FullName(sHostBaseName), mService.Serviced.FullName, vbTextCompare) <> 0 Then
-            mComCompsHosts.FullName(sHostBaseName) = mService.Serviced.FullName
-            Log.Entry = "FullName of '" & sHostBaseName & "' updated"
-        End If
     Else
-        '~~ Remove any raws still existing and pointing to this Workbook as host
-        For Each v In mComCompsSaved.Components
-            If mComCompsSaved.HostFullName(comp_name:=v) = mService.Serviced.FullName Then
-                mComCompsSaved.Remove comp_name:=v
-                Log.Entry = "Component removed from '" & mComCompsSaved.ComCompsFile & "'"
+        '~~ When this Workbook not or no longer hosts any Common Component Raws the entries
+        '~~ the ComCompsHosted.dat is deleted
+        fso.DeleteFile mComCompsRawsHosted.ComCompsHostedFileFullName
+        '~~ The destiny of the corresponding data in the ComComps-Saved.dat is un-clear
+        '~~ The component may be now hosted in another Workbook (likely) or the life of the
+        '~~ Common Component has ended. The entry will be removed when it still points to this
+        '~~ Workbook. When it points to another one it appears to have been moved alrerady.
+        For Each v In mComCompsRawsSaved.Components
+            If StrComp(mComCompsRawsSaved.HostWbFullName(comp_name:=v), mService.Serviced.FullName, vbTextCompare) = 0 Then
+                mComCompsRawsSaved.Remove comp_name:=v
+                Log.Entry = "Component no longer hosted in '" & mService.Serviced.FullName & "' removed from '" & mComCompsRawsSaved.ComCompsSavedFileFullName & "'"
             End If
         Next v
-        If mComCompsHosts.Exists(fso.GetBaseName(mService.Serviced.FullName)) Then
-            mComCompsHosts.Remove fso.GetBaseName(mService.Serviced.FullName)
-            Log.Entry = "Workbook no longer a host for at least one raw component removed from '" & mComCompsHosts.ComCompsHostsFile & "'"
-        End If
     End If
 
 xt: Set fso = Nothing
@@ -471,20 +421,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
-
-Public Sub RemoveTempRenamed()
-
-    Dim cmp As VBComponent
-    
-    With mService.Serviced.VBProject
-        For Each cmp In .VBComponents
-            If InStr(cmp.name, mComp.RENAMED_BY_COMPMAN) <> 0 Then
-                .VBComponents.Remove cmp
-            End If
-        Next cmp
-    End With
-
 End Sub
 
 Public Sub SynchTargetWbWithSourceWb( _
@@ -514,39 +450,69 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function UpdateUsedCommonComponents( _
-                ByRef uc_wb As Workbook, _
-       Optional ByVal uc_hosted As String = vbNullString) As Boolean
+Public Function UpdateOutdatedCommonComponents( _
+                ByRef uo_wb As Workbook, _
+       Optional ByVal uo_hosted As String = vbNullString) As Variant
 ' ------------------------------------------------------------------------------
-' Updates all used Common Components. Returns with FALSE when the function is
-' executed from within the Development instance and the serviced Workbook is the
-' Development Instance.
+' Updates all outdated 'Used Common Components'.
+'
+' The function is terminated (returns FALSE) without further notice when:
+' a) the serviced root folder is invalid (not configured or not existing)
+' b) when the servicing and the serviced Workbook are both the 'CompMan
+'    Development Instance'
+'    Note: While the 'Development instance is able to export its modified
+'          components it cannot update its own outdated 'Used Common
+'          Components'. This is only possible by the 'Addin Instance'
+'          which must be open and not 'paused'
+' c) the serviced Workbook is located outside the serviced folder
+'
+' When the function returns vbNullString it is terminated "silent" which is
+' the case when the seftviced Workbook does not reside within the 'Serviced
+' Folder'. Any return string <> vbNullsString is displayed in the
+' Application.StatusBar which may be caused by:
+' a) the Workbook is one restored by Excel
+' b) the serviced Workbook does not reside in a folder exclusivelyx (i.e. the
+'    Workbook does not live in its own dedicated folder
+' c) WinMerge is not installed
 ' ------------------------------------------------------------------------------
-    Const PROC = "UpdateUsedCommonComponents"
+    Const PROC = "UpdateOutdatedCommonComponents"
     
     On Error GoTo eh
-    Dim Msg As TypeMsg
+    Dim msg As TypeMsg
     
-    If mMe.IsDevInstnc And uc_wb.name = mMe.DevInstncName Then
-        UpdateUsedCommonComponents = False
-        GoTo xt
+    If Not mMe.FolderServicedIsValid Then
+        '~~ The serviced root folder is invalid (not configured or not existing)
+        UpdateOutdatedCommonComponents = AppErr(1)
+    ElseIf Not uo_wb.FullName Like mConfig.FolderServiced & "*" Then
+        '~~ The serviced Workbook is located outside the serviced folder
+        UpdateOutdatedCommonComponents = AppErr(2)
+        
+    ElseIf mMe.IsDevInstnc And uo_wb.name = mMe.DevInstncName Then
+        '~~ The servicing and the serviced Workbook are both the 'CompMan Development Instance'
+        '~~ This is the case when either no CompMan-Addin-Instance is available or it is currently paused
+        UpdateOutdatedCommonComponents = AppErr(3)
+    ElseIf mMe.IsAddinInstnc And mMe.CompManAddinIsPaused Then
+        '~~ When the service is about to be provided by the Addin but the Addin is currently paused
+        '~~ another try with the serviced provided by the open Development instance may do the job.
+        UpdateOutdatedCommonComponents = AppErr(4)
+    Else
+        mBasic.BoP ErrSrc(PROC)
+        DetermineTraceLogFolder uo_wb
+        
+        Set Log = New clsLog
+        Set mService.Serviced = uo_wb
+        If mService.Denied(PROC) Then GoTo xt
+        
+        mCompMan.ManageRawCommonComponentsProperties uo_hosted
+        Set Stats = New clsStats
+        mUpdate.Outdated mService.Serviced
+        UpdateOutdatedCommonComponents = True
+        
+        Set Log = Nothing
+        mBasic.EoP ErrSrc(PROC)
     End If
     
-    DetermineTraceLogFolder uc_wb
-    
-    mBasic.BoP ErrSrc(PROC)
-    Set Log = New clsLog
-    Set mService.Serviced = uc_wb
-    If mService.Denied(PROC) Then GoTo xt
-    
-    mCompMan.ManageHostHostedProperty uc_hosted
-    Set Stats = New clsStats
-    mUpdate.ComCompsUsed mService.Serviced
-    UpdateUsedCommonComponents = True
-    
-xt: Set Log = Nothing
-    mBasic.EoP ErrSrc(PROC)
-    Exit Function
+xt: Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -617,5 +583,9 @@ End Function
 
 Public Function WinMergeIsInstalled() As Boolean
     WinMergeIsInstalled = AppIsInstalled("WinMerge")
+End Function
+
+Private Function WbkInServicedRoot() As Boolean
+    WbkInServicedRoot = InStr(mService.Serviced.Path, mConfig.FolderServiced) <> 0
 End Function
 

@@ -1152,7 +1152,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -1534,7 +1534,7 @@ Private Sub TraceLogBgn(ByVal tl_ticks As Currency, _
             LogText = String(Len(sFrmtScsElpsd) + 2, " ") & tl_dir & Format(Now(), " hh:mm:ss") & " Begin execution trace "
             TraceLogTxt(sTraceLogFile) = LogText
         End If
-        LogText = String(Len(sFrmtScsElpsd) + 2, " ") & RepeatStrng("|  ", TraceStack.Count) & tl_dir & " " & ThisWorkbook.Name & " " & tl_id
+        LogText = String(Len(sFrmtScsElpsd) + 2, " ") & RepeatStrng("|  ", TraceStack.Count) & tl_dir & " " & ThisWorkbook.name & " " & tl_id
         TraceLogTxt(sTraceLogFile) = LogText
     End If
 End Sub
@@ -1555,7 +1555,7 @@ Private Sub TraceLogEnd(ByVal tl_ticks_begin As Currency, _
     sFrmtScsElpsd = DsplyValueFormat(99.99999)
   
     If Not sTraceLogFile = vbNullString Then
-        LogText = " " & Format(SecsElapsed, sFrmtScsElpsd) & " " & RepeatStrng("|  ", TraceStack.Count + 1) & tl_dir & " " & ThisWorkbook.Name & " " & tl_id
+        LogText = " " & Format(SecsElapsed, sFrmtScsElpsd) & " " & RepeatStrng("|  ", TraceStack.Count + 1) & tl_dir & " " & ThisWorkbook.name & " " & tl_id
         TraceLogTxt(sTraceLogFile) = LogText
         If TraceStack.Count = 0 Then
             LogText = String(Len(sFrmtScsElpsd) + 2, " ") & tl_dir & Format(Now(), " hh:mm:ss") & " End execution trace "
@@ -1571,7 +1571,7 @@ Public Property Let TraceLogInfo(ByVal tl_inf As String)
 ' ----------------------------------------------------------------------------
 Dim LogText As String
     If Not sTraceLogFile = vbNullString And TraceStack.Count > 1 Then
-        LogText = String(Len(sFrmtScsElpsd) + 2, " ") & RepeatStrng("|  ", TraceStack.Count) & "|  " & ThisWorkbook.Name & " " & tl_inf
+        LogText = String(Len(sFrmtScsElpsd) + 2, " ") & RepeatStrng("|  ", TraceStack.Count) & "|  " & ThisWorkbook.name & " " & tl_inf
         TraceLogTxt(tl_file:=sTraceLogFile, tl_append:=True) = LogText
     End If
 End Property

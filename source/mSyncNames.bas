@@ -20,7 +20,7 @@ Public Sub SyncNew()
     Const PROC = "SyncNew"
     
     On Error GoTo eh
-    Dim nm              As Name
+    Dim nm              As name
     Dim v               As Variant
     Dim SheetReferred   As String
     
@@ -29,7 +29,7 @@ Public Sub SyncNew()
         Stats.Count sic_names_new
         '~~ The source name not yet exists in the target Workbook and thus is regarde new
         '~~ However, new names potentially in concert require a design change of the concerned sheet
-        Set nm = Sync.Source.Names.Item(v)
+        Set nm = Sync.source.Names.Item(v)
         SheetReferred = Replace(Split(nm.RefersTo, "!")(0), "=", vbNullString)
         If Sync.Mode = Confirm Then
             '~~ When the new name refers to a new sheet it is not syncronized
@@ -70,7 +70,7 @@ Public Sub SyncObsolete()
     Const PROC = "SyncObsolete"
     
     On Error GoTo eh
-    Dim nm  As Name
+    Dim nm  As name
     Dim v   As Variant
     
     For Each v In Sync.TargetNames

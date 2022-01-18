@@ -16,15 +16,21 @@ Public Sub All()
     Const PROC = "All"
     
     On Error GoTo eh
-    Dim vbc     As VBComponent
-    Dim sStatus As String
-    Dim Comp    As clsComp
+    Dim vbc         As VBComponent
+    Dim sStatus     As String
+    Dim Comp        As clsComp
+    Dim Comps       As New clsComps
+    Dim dctAll      As Dictionary
+    Dim v           As Variant
+    Dim wb          As Workbook
+    Dim lAll        As Long
+    Dim lExported   As Long
+    Dim lRemaining  As String
     
     mBasic.BoP ErrSrc(PROC)
     
     '~~ Prevent any action when the required preconditins are not met
     If mService.Denied(PROC) Then GoTo xt
-    
     sStatus = Log.Service
 
     '~~ Remove any obsolete Export-Files within the Workbook folder
@@ -34,22 +40,36 @@ Public Sub All()
     If mMe.IsAddinInstnc _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
     
-    For Each vbc In mService.Serviced.VBProject.VBComponents
-        Set Comp = New clsComp
-        With Comp
-            Set .Wrkbk = mService.Serviced
-            .CompName = vbc.name ' this assignment provides the name for the export file
-            '~~ Only export if it is not a component renamed by CompMan which is a left over
-            If InStr(.CompName, RENAMED_BY_COMPMAN) <> 0 Then
-                .Wrkbk.VBProject.VBComponents.Remove .VBComp
-            Else
-                .Export
+    Set wb = mService.Serviced
+    With wb.VBProject
+        lAll = .VBComponents.Count
+        lRemaining = lAll
+        
+        For Each vbc In .VBComponents
+            If Not mService.IsRenamedByCompMan(vbc.name) Then
+                Set Comp = New clsComp
+                With Comp
+                    .Wrkbk = mService.Serviced
+                    .CompName = vbc.name
+                    '~~ Only export if it is not a component renamed by CompMan which is a left over
+                    .Export
+                    lExported = lExported + 1
+                    lRemaining = lRemaining - 1
+                End With
+                Set Comp = Nothing
+                mService.Progress p_service:=sStatus _
+                                , p_result:=lExported _
+                                , p_of:=lAll _
+                                , p_op:="exported" _
+                                , p_dots:=String(lRemaining, ".")
             End If
-        End With
-        Set Comp = Nothing
-    Next vbc
+        Next vbc
+    End With
 
-xt: mBasic.EoP ErrSrc(PROC)
+    mService.RemoveTempRenamed
+    
+xt: Set Comps = Nothing
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -57,136 +77,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-Public Function FilesDiffer(ByVal fd_exp_file_1 As File, _
-                            ByVal fd_exp_file_2 As File) As Boolean
-' ----------------------------------------------------------------------------
-' Returns TRUE when file 1 fdiffers from file 2 whereby case differences and
-' empty lines are ignored. This function guarantees a uniform comparison of
-' export files throughout CompMan.
-' ----------------------------------------------------------------------------
-    FilesDiffer = mFile.Differs(fd_file1:=fd_exp_file_1 _
-                              , fd_file2:=fd_exp_file_2 _
-                              , fd_stop_after:=1 _
-                              , fd_ignore_empty_records:=True _
-                              , fd_compare:=vbTextCompare).Count <> 0
-                            
-End Function
-
-Public Function FilesDifference(ByVal fd_exp_file_1 As File, _
-                                ByVal fd_exp_file_2 As File) As Dictionary
-' --------------------------------------------------------------
-' Returns a Dictionary with either 0 items when file 1 equals
-' file 2 or with one item when the two files differ whereby
-' case differences and empty lines are ignored.
-' This function guarantees a uniform comparison of export files
-' throughout CompMan.
-' --------------------------------------------------------------
-    Set FilesDifference = mFile.Differs(fd_file1:=fd_exp_file_1 _
-                                      , fd_file2:=fd_exp_file_2 _
-                                      , fd_stop_after:=1 _
-                                      , fd_ignore_empty_records:=True _
-                                      , fd_compare:=vbTextCompare)
-                            
-End Function
-
-Public Function FilesDifferencesDisplay( _
-          ByVal fd_exp_file_left_full_name As String, _
-          ByVal fd_exp_file_right_full_name As String, _
-          ByVal fd_exp_file_left_title As String, _
-          ByVal fd_exp_file_right_title As String) As Boolean
-' ----------------------------------------------------------------------------
-' Displays the differences between export file 1 and 2 by means of WinMerge!
-' Note: CompMan ignores any differences caused by empty code lines or case.
-'       When a difference is displayed it is thus not because of this kind of
-'       differneces but of others. Unfortunately it depends on the installed
-'       WinMerge's set option wether or not these kind of differences are
-'       displayed.
-' ----------------------------------------------------------------------------
-    Const PROC                          As String = "FilesDifferencesDisplay"
-    Const WINMERGE_SETTINGS_BASE_KEY    As String = "HKEY_CURRENT_USER\SOFTWARE\Thingamahoochie\WinMerge\Settings\"
-    Const WINMERGE_BLANK_LINES          As String = "IgnoreBlankLines"
-    Const WINMERGE_IGNORE_CASE          As String = "IgnoreCase"
-    
-    On Error GoTo eh
-    Dim waitOnReturn        As Boolean: waitOnReturn = True
-    Dim windowStyle         As Integer: windowStyle = 1
-    Dim sCommand            As String
-    Dim fso                 As New FileSystemObject
-    Dim wshShell            As Object
-    Dim sIniFile            As String
-    Dim sIgnoreBlankLines   As String ' 1 = True, 0 = False
-    Dim sIgnoreCase         As String ' 1 = True, 0 = False
-    
-    If Not AppIsInstalled("WinMerge") _
-    Then Err.Raise Number:=AppErr(1) _
-                 , source:=ErrSrc(PROC) _
-                 , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
-                                "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
-        
-    If Not fso.FileExists(fd_exp_file_left_full_name) _
-    Then Err.Raise Number:=AppErr(2) _
-                 , source:=ErrSrc(PROC) _
-                 , Description:="The file """ & fd_exp_file_left_full_name & """ does not exist!"
-    
-    If Not fso.FileExists(fd_exp_file_right_full_name) _
-    Then Err.Raise Number:=AppErr(3) _
-                 , source:=ErrSrc(PROC) _
-                 , Description:="The file """ & fd_exp_file_right_full_name & """ does not exist!"
-    
-    '~~ Save WinMerge configuration items and set them for CompMan
-    sIgnoreBlankLines = mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_BLANK_LINES)
-    sIgnoreCase = mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_IGNORE_CASE)
-    mReg.Value(WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_BLANK_LINES) = "1"
-    mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_IGNORE_CASE) = "1"
-    
-    '~~ Prepare command line
-    sCommand = "WinMergeU /e" & _
-               " /dl " & DQUOTE & fd_exp_file_left_title & DQUOTE & _
-               " /dr " & DQUOTE & fd_exp_file_right_title & DQUOTE & " " & _
-               """" & fd_exp_file_left_full_name & """" & " " & _
-               """" & fd_exp_file_right_full_name & """" ' & sIniFile doesn't work
-
-    
-    '~~ Execute command line
-    Set wshShell = CreateObject("WScript.Shell")
-    With wshShell
-        FilesDifferencesDisplay = .Run(Command:=sCommand, windowStyle:=windowStyle, waitOnReturn:=waitOnReturn)
-    End With
-        
-    '~~ Restore WinMerge configuration items
-    mReg.Value(WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_BLANK_LINES) = sIgnoreBlankLines
-    mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_IGNORE_CASE) = sIgnoreCase
-
-xt: Exit Function
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Private Function AllComps() As Dictionary
-    Dim wb      As Workbook
-    Dim vbc     As VBComponent
-    Dim Comp    As clsComp
-    Dim dct     As Dictionary
-    
-    Set wb = mService.Serviced
-    With wb.VBProject
-        For Each vbc In .VBComponents
-            Set Comp = New clsComp
-            With Comp
-                Set .Wrkbk = wb
-                .CompName = vbc.name
-                Set .VBComp = vbc
-            End With
-            mDct.DctAdd add_dct:=dct, add_key:=vbc.name, add_item:=Comp, add_order:=order_bykey
-        Next vbc
-    End With
-    Set AllComps = dct
-    
-End Function
 
 Public Function AppErr(ByVal app_err_no As Long) As Long
 ' ----------------------------------------------------------------------------
@@ -215,167 +105,92 @@ Public Sub ChangedComponents()
     
     On Error GoTo eh
     Dim vbc         As VBComponent
-    Dim vbc1        As VBComponent
-    Dim lComponents As Long
-    Dim lRemaining  As Long
-    Dim lExported   As Long
-    Dim sExported   As String   ' comma separated exported component names
-    Dim bUpdated    As Boolean
-    Dim lUpdated    As Long
-    Dim sUpdated    As String
-    Dim sMsg        As String
-    Dim fso         As New FileSystemObject
-    Dim v           As Variant
-    Dim Comps       As clsComps
-    Dim dctChanged  As Dictionary
+    Dim sStatus     As String
     Dim Comp        As clsComp
-    Dim RawComp     As clsRaw
+    Dim Comps       As New clsComps
     Dim dctAll      As Dictionary
+    Dim v           As Variant
     Dim wb          As Workbook
-    Dim DiffMessage As String
+    Dim lAll        As Long
+    Dim lExported   As Long
+    Dim lRemaining  As String
+    Dim sExported   As String
+    Dim fso         As New FileSystemObject
     
     mBasic.BoP ErrSrc(PROC)
-    '~~ Prevent any action for a Workbook opened with any irregularity
-    '~~ indicated by an '(' in the active window or workbook fullname.
+    
+    '~~ Prevent any action when the required preconditins are not met
     If mService.Denied(PROC) Then GoTo xt
-    
-    Set Stats = New clsStats
-    Set Comps = New clsComps
-    
+    sStatus = Log.Service
+
     '~~ Remove any obsolete Export-Files within the Workbook folder
     '~~ I.e. of no longer existing VBComponents or at an outdated location
     CleanUpObsoleteExpFiles
-    
-    Set dctAll = AllComps
-    lComponents = dctAll.Count
-    Stats.Count sic_comps_total, lComponents
-    lRemaining = lComponents
-    If Log Is Nothing Then Set Log = New clsLog
-    Log.Service = ErrSrc(PROC)
-    
-    For Each v In dctAll
-        Set Comp = dctAll(v)
-        With Comp
-            '~~ Any 'left-over' component renamed by CompMan is removed
-            If InStr(.CompName, RENAMED_BY_COMPMAN) <> 0 Then
-                .Wrkbk.VBProject.VBComponents.Remove .VBComp
-                GoTo next_v
+        
+    Set wb = mService.Serviced
+    With wb.VBProject
+        lAll = .VBComponents.Count
+        lRemaining = lAll
+        
+        For Each vbc In .VBComponents
+            If Not mService.IsRenamedByCompMan(vbc.name) Then
+                Set Comp = New clsComp
+                With Comp
+                    Set .Wrkbk = mService.Serviced
+                    .CompName = vbc.name
+                    Set .VBComp = vbc
+                    Select Case .KindOfComp
+                        Case enCommCompHosted
+                            If .Changed Then
+                                .Export
+                                .RevisionNumberIncrease
+                                .CopyExportFileToCommonComponentsFolder
+                                sExported = sExported & vbc.name & ", "
+                                lExported = lExported + 1
+                            ElseIf Not mComCompsRawsSaved.ExpFileExists(.CompName) Then
+                                .CopyExportFileToCommonComponentsFolder ' ensure completenes
+                            End If
+                        Case enCommCompUsed
+                            If UsedCommonComponent(Comp) Then
+                                sExported = sExported & vbc.name & ", "
+                                lExported = lExported + 1
+                            End If
+                        Case Else
+                            If .Changed Then
+                                .Export
+                                sExported = sExported & vbc.name & ", "
+                                lExported = lExported + 1
+                            End If
+                    End Select
+                End With
+                Set Comp = Nothing
             End If
-            Log.ServicedItem = .VBComp
-            
-            Select Case .KindOfComp
-                Case enCommCompUsed
-                    '~~ --------------------------------------------------------------------------
-                    '~~ The code of a used Common Component is only regarded changed when it
-                    '~~ differs from the most recent ExportFile of the hoste raw's Export File.
-                    '~~ --------------------------------------------------------------------------
-                    If .Changed Then
-                        '~~ A temporary Export File differs from the last Export File of the last Workbook save
-                        '~~ This either may be because it had been updated antidated (i.e. directly transferred from the hosting
-                        '~~ Workbook/VB-Project within the VB-Editior
-                        '~~ reasons: either the code of this used Common Component had been modified
-                        '~~ or the new version of the component had already been imported manually.
-                        If FilesDiffer(fd_exp_file_1:=fso.GetFile(.ExpFileTempFullName) _
-                                     , fd_exp_file_2:=.RawMostRecentExpFile) Then
-                            '~~ The used Common Component's code differs from the most recent Export File of the corresponding raw.
-                            '~~ The difference may have two reasons:
-                            '~~ - The used Common Component had been updated antidated (i.e. directly transferred from the hosting
-                            '~~   Workbook/VB-Project within the VB-Editior but the code modifications of the raw had yet not been
-                            '~~   exported or
-                            '~~ - The used Common Component had instantly been modified and this modification is now in danger of
-                            '~~   being reverted with the next Workbook open)
-                            If mComCompsUsed.RevisionNumber(.CompName) = .RawMostRecentRevisionNumber Then
-                                DiffMessage = "As a result of the Update service along with the Workbook open " & _
-                                              "the code of the used Common Component '" & Comp.CompName & "' was " & _
-                                              "equal to the code of the raw component. Since the internal " & _
-                                              "revision numbers are equal the code must have been modified " & _
-                                              "within this Workbook - which will be reverted with the next Workbbok open!"
-                                Log.Entry = "Used code differs from most recent raw's Export File while the revision numbers are equal!"
-                            ElseIf mComCompsUsed.RevisionNumber(.CompName) < .RawMostRecentRevisionNumber Then
-                                DiffMessage = "The code of the raw which corresponds to the used Common Component '" & _
-                                              Comp.CompName & "' had been modified - and exported  - since the " & _
-                                              "Worbook has been opened. This modification of the raw will become " & _
-                                              "effective for this Workbook with the next open - when the used " & _
-                                              "Common Component is updated accordingly. Any modification of this " & _
-                                              "component in this Workbook will get lost."
-                                Log.Entry = "The used Common Component's code differs from the most recent raw's Export File!"
-                            End If
-                            DisplayRawCloneModificationWarning comp_name:=Comp.CompName _
-                                                             , comp_exp_file_full_name:=.ExpFileTempFullName _
-                                                             , raw_exp_file_full_name:=Comp.RawExpFileFullName _
-                                                             , comp_raw_diff_message:=DiffMessage
-                            
-                            .Export
-                            lExported = lExported + 1
-                            If lExported = 1 _
-                            Then sExported = .CompName _
-                            Else sExported = sExported & ", " & .CompName
-                        Else
-                            '~~ When there is no difference the revision numbers ought to be equal
-                            If mComCompsUsed.RevisionNumber(.CompName) <> .RawMostRecentRevisionNumber Then
-                                Stop ' This should never be the case
-                            End If
-                        End If
-                    End If
-                Case enCommCompHosted
-                    If .Changed Then
-                        Log.Entry = "The hosted raw's code has been modified! " & _
-                                    "(temporary Export-File differs from last changes Export-File)"
-                        .Export
-                        Log.Entry = "Exported to '" & .ExpFileFullName & "'"
-                        mComCompsHosted.RevisionNumberIncrease .CompName
-                        mComCompsHosted.ExpFileFullName(.CompName) = .ExpFileFullName
-                        mComCompsSaved.RevisionNumber(.CompName) = mComCompsHosted.RevisionNumber(.CompName)
-                        mComCompsSaved.ExpFile(.CompName) = .ExpFile ' maintain a copy as source for all using VB-Projects
-                        Log.Entry = "Export file updated in folder '" & mComCompsSaved.ComCompsFile & "'"
-
-                        lExported = lExported + 1
-                        If lExported = 1 _
-                        Then sExported = .CompName _
-                        Else sExported = sExported & ", " & .CompName
-                        mComCompsSaved.ExpFileFullName(.CompName) = .ExpFileFullName
-                    Else
-                        If mComCompsHosted.RevisionNumber(.CompName) = vbNullString Then
-                            mComCompsHosted.RevisionNumberIncrease .CompName                               ' initial setting
-                            mComCompsSaved.Update comp_name:=.CompName, exp_file:=.ExpFile                                           ' update in case appropriate
-                            mComCompsSaved.RevisionNumber(.CompName) = mComCompsHosted.RevisionNumber(.CompName)
-                            Log.Entry = "Export file in folder '" & mComCompsSaved.ComCompsFile & "' updated"
-                        End If
-                    End If
-                Case enInternal
-                    If .Changed Then
-                        .Export
-                        lExported = lExported + 1
-                        If lExported = 1 _
-                        Then sExported = .CompName _
-                        Else sExported = sExported & ", " & .CompName
-                    End If
-                Case Else: Stop
-            End Select
-
-next_v:
             lRemaining = lRemaining - 1
-            sMsg = Log.Service
-            sMsg = sMsg & lExported & " of " & lComponents & " changed"
-            If lExported > 0 _
-            Then sMsg = sMsg & " (" & sExported & ")"
-            sMsg = sMsg & " " & String(lRemaining, ".")
-            If Len(sMsg) > 255 Then
-                sMsg = Left(sMsg, 251) & " ..."
-            End If
-            Application.StatusBar = sMsg
-        End With
-        Set Comp = Nothing
-    Next v
-    Application.StatusBar = vbNullString: Application.StatusBar = sMsg
+            Application.StatusBar = _
+            mService.Progress(p_service:=sStatus _
+                            , p_result:=lExported _
+                            , p_of:=lAll _
+                            , p_op:="exported" _
+                            , p_comps:=sExported _
+                            , p_dots:=lRemaining _
+                             )
+            Set Comps = Nothing
+        Next vbc
+    End With
+
+    Application.StatusBar = vbNullString
+    Application.StatusBar = _
+    mService.Progress(p_service:=sStatus _
+                    , p_result:=lExported _
+                    , p_of:=lAll _
+                    , p_op:="exported" _
+                    , p_comps:=sExported _
+                     )
+            
+    mService.RemoveTempRenamed
     
-    
-xt: Set dctHostedRaws = Nothing
-    Set Comp = Nothing
-    Set RawComp = Nothing
-    Set Log = Nothing
+xt: mBasic.EoP ErrSrc(PROC)
     Set fso = Nothing
-    mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -383,6 +198,83 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Private Function UsedCommonComponent(ByRef cucc_comp As clsComp) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the Used Common Component (cucc_comp) had been exported.
+' Processes a changed Used Common Component. I.e. a Used Common Component of
+' which the current code differs from its last Export File.
+' ----------------------------------------------------------------------------
+    
+    With cucc_comp
+        If .Changed Then
+            If .RevisionNumber = .Raw.RevisionNumber Then
+                '~~ The Used Common Component compared with ist corresponding Raw
+                '~~ is up-to-date but the code has been modified in this Workbook.
+                '~~ This modification will be reverted with the next Workbook open.
+                If .Raw.HostIsOpen Then
+                    '~~ A code modification of the Raw, yet nbot saved/exported may have been
+                    '~~ dragged to the Workbook using it. In this case a change is indicated but
+                    '~~ the code may be 'already' identical
+                    If .ExpFileTempsDiffer Then
+                        CommCompModificationWarning _
+                            cmod_comp_name:=.CompName _
+                          , cmod_exp_file_full_name:=.ExpFileTempFullName _
+                          , cmod_raw_exp_file_full_name:=.Raw.ExpFileTempFullName _
+                          , cmod_diff_message:= _
+                          "The code of the Used Common Component '" & mBasic.Spaced(.CompName) & "' had " & _
+                          "been modified in this Workbook! This modification will be reverted with the next open!"
+                    Else
+                        '~~ Manually 'antidated' updated. When the open Raw is closed the Expost Files will become identical.
+                    End If
+                ElseIf .ExpFileTempAndRawExpFileDiffers Then
+                    CommCompModificationWarning _
+                        cmod_comp_name:=.CompName _
+                      , cmod_exp_file_full_name:=.ExpFileTempFullName _
+                      , cmod_raw_exp_file_full_name:=.Raw.ExpFileFullName _
+                      , cmod_diff_message:= _
+                      "The code of the Used Common Component '" & mBasic.Spaced(.CompName) & "' had " & _
+                      "been modified in this Workbook! This modification will be reverted with the next open!"
+                End If
+                
+                .Export
+                UsedCommonComponent = True
+            
+            ElseIf .RevisionNumber < .Raw.RevisionNumber Then
+                CommCompModificationWarning _
+                    cmod_comp_name:=.CompName _
+                  , cmod_exp_file_full_name:=.ExpFileTempFullName _
+                  , cmod_raw_exp_file_full_name:=.Raw.ExpFileFullName _
+                  , cmod_diff_message:= _
+                  "Attention! The code of the Raw Common Component '" & mBasic.Spaced(.CompName) & "' " & _
+                  "has been modified since the last open of this Workbook. Just in case the code " & _
+                  "of the Used Common Component had also bee3n modified in this Workbook this " & _
+                  "modification will be reverted with the next Workbook open."
+            
+            ElseIf .RevisionNumber > .Raw.RevisionNumber Then
+                '~~ The content of the saved 'Common Components' folder is outdated. Something which likely never happens.
+                '~~ However, when the Common Componernts folder represents a Github repo the clone apparently requres a fetch!
+                mMsg.Box box_title:="Content of Common Component' folder is outdated" _
+                       , box_msg:="The Used Common Component in this Workbook is more up-to-date than the available " & _
+                                  "Raw Common Component in the saved folder 'Common Components'. Precise: The RevisionNumber " & _
+                                  "of the Used Common Component is greater the the RevisionNumber of the Raw."
+            End If
+        
+        ElseIf .ExpFilesDiffer Then
+            '~~ Even when the Used Common Component not had been changed it may have been exported because of a previous detected change.
+            '~~ When the RevisionNumbers are equal and the Export Files differ the Used Common Component must have been changed and
+            '~~ this code modification will be reverted with the next Workbook open.
+            CommCompModificationWarning _
+                cmod_comp_name:="" _
+              , cmod_exp_file_full_name:=.ExpFileTempFullName _
+              , cmod_raw_exp_file_full_name:=.Raw.ExpFileFullName _
+              , cmod_diff_message:="Attention! The code of the Used Common Component '" & mBasic.Spaced(.CompName) & "' " & _
+                                   "has been modified!! This modification will be reverted with the next Workbook open."
+        End If
+    End With
+
+End Function
+
 
 Private Sub CleanUpObsoleteExpFiles()
 ' ------------------------------------------------------
@@ -403,7 +295,7 @@ Private Sub CleanUpObsoleteExpFiles()
     Dim fo      As Folder
     Dim fosub   As Folder
     
-    sExp = mCompMan.ExpFileFolderPath(mService.Serviced) ' the current specified Export-Folder
+    sExp = mExport.ExpFileFolderPath(mService.Serviced) ' the current specified Export-Folder
 
     '~~ Cleanup of any Export-Files residing outside the specified 'Export-Folder'
     Set cll = New Collection
@@ -458,44 +350,90 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub DisplayRawCloneModificationWarning(ByVal comp_name As String, _
-                                               ByVal comp_exp_file_full_name, _
-                                               ByVal raw_exp_file_full_name, _
-                                               ByVal comp_raw_diff_message)
+Private Sub CommCompModificationWarning(ByVal cmod_comp_name As String, _
+                                        ByVal cmod_exp_file_full_name, _
+                                        ByVal cmod_raw_exp_file_full_name, _
+                                        ByVal cmod_diff_message)
 ' ----------------------------------------------------------------------------
-' Displays an information about an irregular difference between the code of
-' a used Common Component and its corresponding rwa. The disaplay offers the
-' option to display the code difference and possibly take an action.
+' Displays an information about a modification of a Used Common Component.
+' The disaplay offers the option to display the code difference.
 ' ----------------------------------------------------------------------------
-    Dim Msg                 As mMsg.TypeMsg
-    Dim BttnDsplyChanges    As String
-    Dim cllBttns            As Collection
+    Const PROC = "CommCompModificationWarning"
     
-    BttnDsplyChanges = "Display changes"
-    mMsg.Buttons cllBttns, BttnDsplyChanges, vbLf, vbOKOnly
+    On Error GoTo eh
+    Dim msg         As mMsg.TypeMsg
+    Dim cllBttns    As Collection
+    Dim BttnDsply   As String
     
-    Do
-        Msg.Section(1).Text.Text = "The code of the Used Common Component '" & comp_name & "' differs from the most " & _
-                                   "recent Export File of the corresponding raw. This may have different reasons."
-        Msg.Section(2).Text.Text = comp_raw_diff_message
+    BttnDsply = "Display" & vbLf & "code difference"
+    mMsg.Buttons cllBttns, BttnDsply, vbLf, vbOKOnly
+    With msg.Section(1)
+        .Text.Text = cmod_diff_message
+        .Text.FontColor = rgbRed
+    End With
         
-        Select Case mMsg.Dsply(dsply_title:="Used Common Component '" & comp_name & "' indicated changed!" _
-                             , dsply_msg:=Msg _
+    Do
+        Select Case mMsg.Dsply(dsply_title:="Used Common Component code modified" _
+                             , dsply_msg:=msg _
                              , dsply_buttons:=cllBttns _
                               )
-                Case BttnDsplyChanges
-                    mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=comp_exp_file_full_name _
-                                                  , fd_exp_file_left_title:="Clone (used) Common Component: '" & comp_exp_file_full_name & "'" _
-                                                  , fd_exp_file_right_full_name:=raw_exp_file_full_name _
-                                                  , fd_exp_file_right_title:="Raw (hosted) Common Component: '" & raw_exp_file_full_name & "'"
-
+            Case BttnDsply
+                mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=cmod_exp_file_full_name _
+                                               , fd_exp_file_left_title:="Used Common Component: '" & cmod_exp_file_full_name & "'" _
+                                               , fd_exp_file_right_full_name:=cmod_raw_exp_file_full_name _
+                                               , fd_exp_file_right_title:="Raw Common Component: '" & cmod_raw_exp_file_full_name & "'"
+    
             Case vbOK: Exit Do
         End Select
     Loop
 
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mExport." & sProc
+End Function
+
+Public Function ExpFileFolderPath(ByVal v As Variant) As String
+' --------------------------------------------------------------------------
+' Returns a Workbook's path for all Export Files whereby the name of the
+' folder is the the configured one which defaults to 'source'.
+' ----------------------------------------------------------------------------
+    Const PROC = "ExpFileFolderPath"
+    
+    On Error GoTo eh
+    Dim fso     As New FileSystemObject
+    Dim wb      As Workbook
+    Dim s       As String
+    Dim sPath   As String
+    
+    With fso
+        Select Case TypeName(v)
+            Case "Workbook"
+                Set wb = v
+                sPath = wb.Path & "\" & mConfig.FolderExport
+            Case "String"
+                s = v
+                If Not .FileExists(s) _
+                Then Err.Raise AppErr(1), ErrSrc(PROC), "'" & s & "' is not the FullName of an existing Workbook!"
+                sPath = .GetParentFolderName(s) & "\" & mConfig.FolderExport
+            Case Else
+                Err.Raise AppErr(1), ErrSrc(PROC), "The required information about the concerned Workbook is neither provided as a Workbook object nor as a string identifying an existing Workbooks FullName"
+        End Select
+        If Not .FolderExists(sPath) Then .CreateFolder sPath
+    End With
+    
+xt: ExpFileFolderPath = sPath
+    Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 

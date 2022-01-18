@@ -21,8 +21,8 @@ Private Property Get mRenew_ByImport() As String
     mRenew_ByImport = CompManAddinName & "!mRenew.ByImport"
 End Property
 
-Private Property Get mService_UpdateUsedCommonComponents() As String
-    mService_UpdateUsedCommonComponents = CompManAddinName & "!mCompManClient.UpdateUsedCommonComponents"
+Private Property Get mService_UpdateOutdatedCommonComponents() As String
+    mService_UpdateOutdatedCommonComponents = CompManAddinName & "!mCompManClient.UpdateOutdatedCommonComponents"
 End Property
 
 Public Sub RemoveTestCodeChange( _
@@ -76,7 +76,7 @@ Private Function MaxCompLength(ByRef wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
         For Each vbc In wb.VBProject.VBComponents
-            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.Name))
+            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
         Next vbc
     End If
 End Function
@@ -158,7 +158,7 @@ Public Sub Test_SyncColWidth()
     
     For Each ws In wbSource.Worksheets
         If mSyncSheets.SheetExists(wb:=wbTarget _
-                                 , sh1_name:=ws.Name _
+                                 , sh1_name:=ws.name _
                                  , sh1_code_name:=ws.CodeName _
                                  , sh2_name:=sSheetName _
                                   ) _
@@ -320,7 +320,7 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
             
         mRenew.ByImport rn_wb:=.Wrkbk _
                       , rn_comp_name:=.CompName _
-                      , rn_exp_file_full_name:=rnc_exp_file_full_name
+                      , rn_raw_exp_file_full_name:=rnc_exp_file_full_name
     End With
     
 xt: If Not wbTemp Is Nothing Then
@@ -329,10 +329,10 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
             Set wbActive = Nothing
         Else
-            Log.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
+            Log.Entry = "Workbook '" & wbActive.name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set Comp = Nothing
@@ -401,7 +401,7 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
-                If mFile.SelectFile(sel_init_path:=mCompMan.ExpFileFolderPath(.Wrkbk) _
+                If mFile.SelectFile(sel_init_path:=mExport.ExpFileFolderPath(.Wrkbk) _
                                   , sel_filters:="*" & Comp.ExpFileExt _
                                   , sel_filter_name:="bas-Export-Files" _
                                   , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
@@ -610,7 +610,7 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
-                If mFile.SelectFile(sel_init_path:=mCompMan.ExpFileFolderPath(.Wrkbk) _
+                If mFile.SelectFile(sel_init_path:=mExport.ExpFileFolderPath(.Wrkbk) _
                                   , sel_filters:="*" & Comp.ExpFileExt _
                                   , sel_filter_name:="UserForm" _
                                   , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
@@ -636,8 +636,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_UpdateUsedCommonComponents()
-    Const PROC  As String = "Test_UpdateUsedCommonComponents"
+Public Sub Test_UpdateOutdatedCommonComponents()
+    Const PROC  As String = "Test_UpdateOutdatedCommonComponents"
     
     On Error GoTo eh
     Dim AddinService    As String
@@ -645,7 +645,7 @@ Public Sub Test_UpdateUsedCommonComponents()
     
     If mService.Denied(PROC) Then GoTo xt
 
-    AddinService = CompManAddinName & "!mCompMan.UpdateUsedCommonComponents"
+    AddinService = CompManAddinName & "!mCompMan.UpdateOutdatedCommonComponents"
     If mMe.CompManAddinIsOpen Then
         AddinStatus = " (currently the case) "
     Else
@@ -689,51 +689,64 @@ Public Sub Test_BasicConfig()
     
 End Sub
 
-Public Sub Test_Changed_Clones()
-    
-    Dim Clones      As New clsClones
-    
-    Set mService.Serviced = ThisWorkbook
-    Set Stats = New clsStats
-    Log.File = mFile.Temp(, ".log")
-    Clones.CollectAllChanged
-    
-    Debug.Print Stats.Total(sic_comps_total) & " Components"
-    Debug.Print Stats.Total(sic_clone_comps) & " Clones"
-    Debug.Print Stats.Total(sic_clone_changed) & " Changed"
-    Debug.Print mFile.Txt(Log.LogFile)
-    
-    Set Clones = Nothing
-    Set Stats = Nothing
-    With New FileSystemObject
-        If .FileExists(Log.File) Then .DeleteFile (Log.File)
-    End With
-    Set Log = Nothing
-End Sub
-
-Public Sub Test_Changed_Comps()
+Public Sub Test_Comps_Changed()
     
     Dim Comps   As New clsComps
     Dim Comp    As New clsComp
     Dim v       As Variant
     Dim dct     As Dictionary
+    Dim Log     As New clsLog
+    Dim s       As String
+    
+    Set mService.Serviced = ThisWorkbook
+    Set Stats = New clsStats
+    
+    Set dct = Comps.Changed(Stats)
+    For Each v In dct
+        Stats.Count sic_used_comm_comps
+        Set Comp = dct(v)
+        s = s & Comp.CompName & ", "
+        Set Comp = Nothing
+    Next v
+    
+    With Stats
+        Debug.Print .Total(sic_comps_total) & " Components"
+        Debug.Print .Total(sic_comps_changed) & " Changed (" & Left(s, Len(s) - 2) & ")"
+    End With
+    Set Comps = Nothing
+    Set Stats = Nothing
+    Set Log = Nothing
+
+End Sub
+
+
+Public Sub Test_Comps_Outdated()
+    
+    Dim Comps   As New clsComps
+    Dim Comp    As New clsComp
+    Dim v       As Variant
+    Dim dct     As Dictionary
+    Dim Log     As New clsLog
     
     Set mService.Serviced = ThisWorkbook
     Set Stats = New clsStats
     Log.File = mFile.Temp(, ".log")
-    Comps.CollectAllChanged
     
-    Set dct = Comps.AllChanged
+    Set dct = Comps.Outdated
     For Each v In dct
+        Stats.Count sic_used_comm_comps
         Set Comp = dct(v)
         Log.ServicedItem = Comp.VBComp
-        Log.Entry = "Code changed (export due)"
+        If Comp.RawChanged Then
+            Stats.Count sic_comps_changed
+            Debug.Print Comp.CompName & " is regarded outdated"
+        End If
         Set Comp = Nothing
     Next v
     
     Debug.Print mFile.Txt(Log.LogFile)
     Debug.Print Stats.Total(sic_comps_total) & " Components"
-    Debug.Print Stats.Total(sic_comps_changed) & " Changed"
+    Debug.Print Stats.Total(sic_comps_changed) & " Outdated"
         
     Set Comps = Nothing
     Set Stats = Nothing
@@ -769,7 +782,7 @@ Public Sub Test_Synch_RangesFormating()
     
     Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
     Set Sync.Target = mService.Serviced
-    Set Sync.Source = mCompMan.WbkGetOpen(sSource)
+    Set Sync.source = mCompMan.WbkGetOpen(sSource)
     
     Sync.CollectAllSyncItems
     
@@ -778,7 +791,7 @@ Public Sub Test_Synch_RangesFormating()
     mSync.SyncBackup sTarget
     mSyncRanges.SyncFormating
     mSync.SyncRestore sTarget
-    Application.EnableEvents = False ' The open service UpdateUsedCommonComponents would start with a new log-file otherwise
+    Application.EnableEvents = False ' The open service UpdateOutdatedCommonComponents would start with a new log-file otherwise
     mCompMan.WbkGetOpen sTarget
     Application.EnableEvents = True
 
@@ -828,7 +841,7 @@ Public Sub Test_Synch_CompsChanged()
     
     Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
     Set Sync.Target = mService.Serviced
-    Set Sync.Source = mCompMan.WbkGetOpen(sSource)
+    Set Sync.source = mCompMan.WbkGetOpen(sSource)
     Log.File = mFile.Temp(mService.Serviced.Path, ".log")
     
     Sync.CollectAllSyncItems
@@ -838,7 +851,7 @@ Public Sub Test_Synch_CompsChanged()
     mSync.SyncBackup sTarget
     mSyncComps.SyncCodeChanges
     mSync.SyncRestore sTarget
-    Application.EnableEvents = False ' The open service UpdateUsedCommonComponents would start with a new log-file otherwise
+    Application.EnableEvents = False ' The open service UpdateOutdatedCommonComponents would start with a new log-file otherwise
     mCompMan.WbkGetOpen sTarget
     Application.EnableEvents = True
 
@@ -884,7 +897,7 @@ Public Sub Test_SheetControls_Name_and_Type()
     
     Set ws = mCompMan.WbkGetOpen(sWb).Worksheets(sWs)
     For Each shp In ws.Shapes
-        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.Name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
+        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
     Next shp
     For Each v In dct
         Debug.Print dct(v), Tab(45), v
@@ -919,9 +932,16 @@ Public Sub Test_WinMerge()
     sF1 = f1.Path
     sF2 = f2.Path
     
-    mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=sF1 _
-                                  , fd_exp_file_right_full_name:=sF2 _
-                                  , fd_exp_file_left_title:=sF1 _
-                                  , fd_exp_file_right_title:=sF2
+    mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=sF1 _
+                                   , fd_exp_file_right_full_name:=sF2 _
+                                   , fd_exp_file_left_title:=sF1 _
+                                   , fd_exp_file_right_title:=sF2
 
+End Sub
+
+Public Sub Test_Path()
+
+    With New FileSystemObject
+        Debug.Print .GetFile(mFile.Temp()).Path
+    End With
 End Sub

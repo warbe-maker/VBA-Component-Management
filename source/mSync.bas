@@ -13,7 +13,8 @@ Private Const BKP_FOLDER_PREFIX = "SyncBckp-"
 
 Public Sync         As clsSync
 Private bSyncDenied As Boolean      ' when True the synchronization is not performed
-Private cSource     As clsRaw
+Private cSource     As clsComp
+Private cTarget     As clsComp
 
 Public Enum SyncMode
     Count = 1
@@ -39,13 +40,17 @@ Public Sub ByCodeLines( _
     Dim v       As Variant
     Dim ws      As Worksheet
     Dim wbRaw   As Workbook
+    Dim cSource As clsComp
     
     If sync_source_codelines Is Nothing Then
         '~~ Obtain non provided code lines for the line by line syncronization
         Set wbRaw = WbkGetOpen(wb_source_full_name)
-        Set cSource.Wrkbk = wbRaw
-        cSource.CompName = sync_target_comp_name
-        Set sync_source_codelines = cSource.CodeLines
+        Set cSource = New clsComp
+        With cSource
+            Set .Wrkbk = wbRaw
+            .CompName = sync_target_comp_name
+            Set sync_source_codelines = .CodeLines
+        End With
     End If
     
     With Sync.Target.VBProject.VBComponents(sync_target_comp_name).CodeModule
@@ -81,7 +86,7 @@ Private Sub ClearLinksToSource()
     Dim v           As Variant
     Dim ws          As Worksheet
     Dim shp         As Shape
-    Dim nm          As Name
+    Dim nm          As name
     Dim sName       As String
     Dim sOnAction   As String
     Dim SheetName   As String
@@ -105,7 +110,7 @@ Private Sub ClearLinksToSource()
         Set shp = Sync.Target.Worksheets(SheetName).Shapes(ControlName)
         On Error Resume Next
         sOnAction = shp.OnAction
-        sOnAction = Replace(sOnAction, Sync.Source.Name, Sync.Target.Name)
+        sOnAction = Replace(sOnAction, Sync.source.name, Sync.Target.name)
         shp.OnAction = sOnAction
     Next v
     
@@ -334,10 +339,10 @@ End Function
 
 Private Function NameExists( _
                       ByRef ne_wb As Workbook, _
-                      ByVal ne_nm As Name) As Boolean
-    Dim nm As Name
+                      ByVal ne_nm As name) As Boolean
+    Dim nm As name
     For Each nm In ne_wb.Names
-        NameExists = nm.Name = ne_nm.Name
+        NameExists = nm.name = ne_nm.name
         If NameExists Then Exit For
     Next nm
 End Function
@@ -350,7 +355,7 @@ Private Sub RemoveInvalidRangeNames()
     Const PROC = "RemoveInvalidRangeNames"
     
     On Error GoTo eh
-    Dim nm As Name
+    Dim nm As name
     For Each nm In Sync.Target.Names
         Debug.Print nm.Value
         If InStr(nm.Value, "#") <> 0 Or InStr(nm.RefersTo, "#") <> 0 Then
@@ -380,8 +385,8 @@ Private Sub RenameSheet(ByRef rs_wb As Workbook, _
     On Error GoTo eh
     Dim sh  As Worksheet
     For Each sh In rs_wb.Worksheets
-        If sh.Name = rs_old_name Then
-            sh.Name = rs_new_name
+        If sh.name = rs_old_name Then
+            sh.name = rs_new_name
             Log.Entry = "Sheet-Name changed to '" & rs_new_name & "'"
             Exit For
         End If
@@ -412,7 +417,7 @@ Private Sub RenameWrkbkModule( _
             If vbc.Type = vbext_ct_Document Then
                 If mComp.IsWrkbkDocMod(vbc) Then
                     Log.ServicedItem = vbc
-                    vbc.Name = rdm_new_name
+                    vbc.name = rdm_new_name
                     Log.Entry = "Renamed to '" & rdm_new_name & "' (DoEvents delayed continuations for " & TimedDoEvents & " msec)"
                     Exit For
                 End If
@@ -532,7 +537,7 @@ Public Function SyncTargetWithSource( _
     Set Stats = New clsStats
         
     Log.Service = ErrSrc(PROC)
-    mCompMan.DsplyProgress
+    mService.Progress Log.Service
     
     '~~ Make sure both Workbook's Export-Files are up-to-date
     wb_source.Save
@@ -540,7 +545,7 @@ Public Function SyncTargetWithSource( _
     
     Sync.ChangedClear
     Sync.RestrictRenameAsserted = restricted_sheet_rename_asserted
-    Set Sync.Source = wb_source
+    Set Sync.source = wb_source
     Set Sync.Target = wb_target
     Sync.CollectAllSyncItems
     
@@ -625,7 +630,7 @@ Private Function WbkIsOpen( _
             WbkIsOpen = Err.Number = 0
         Else
             On Error Resume Next
-            wb_base_name = Application.Workbooks(wb_base_name).Name
+            wb_base_name = Application.Workbooks(wb_base_name).name
             WbkIsOpen = Err.Number = 0
         End If
     End With

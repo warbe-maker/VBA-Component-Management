@@ -47,11 +47,11 @@ Private Sub Workbook_Open()
     If mMe.IsDevInstnc Then
         mMe.BasicConfig bc_silent:=True
         '~~ ------------------------------------------------------------------
-        '~~ CompMan Workbook_Open service 'UpdateUsedCommonComponents':
+        '~~ CompMan Workbook_Open service 'UpdateOutdatedCommonComponents':
         '~~ Executed by the development instance when open or by the Addin
         '~~ when established and automatically available when referenced by
         '~~ the VB-Project
-        mCompManClient.CompManService "UpdateUsedCommonComponents", HOSTED_RAWS
+        mCompManClient.CompManService "UpdateOutdatedCommonComponents", HOSTED_RAWS
         '~~ ------------------------------------------------------------------
         mMe.DisplayStatus
         Application.ScreenUpdating = False
@@ -87,7 +87,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     '~~    in the VBProject a Reference to the CompMan Addin.
     If mMe.IsDevInstnc Then
         mMe.BasicConfig bc_silent:=True
-        mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
+           mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
         If Not ThisWorkbook.Saved Then
             Application.EnableEvents = False
             ThisWorkbook.Save

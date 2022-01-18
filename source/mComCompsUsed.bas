@@ -10,14 +10,14 @@ Option Explicit
 ' RevisionNumber=yyyy-mm-dd.n
 '
 ' The entries (sections) are maintained along with the Workbook_Open
-' event via the UpdateUsedCommonComponents service. The revision number is the copy
-' of the revision number provided by mComCompsSaved.RevisionNumber.
+' event via the UpdateOutdatedCommonComponents service. The revision number is the copy
+' of the revision number provided by mComCompsRawsSaved.RevisionNumber.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
 
 Private Property Get UsedRawClonesFile() As String
     Dim wb As Workbook: Set wb = mService.Serviced
-    UsedRawClonesFile = Replace(wb.FullName, wb.Name, "ComCompsUsed.dat")
+    UsedRawClonesFile = Replace(wb.FullName, wb.name, "ComCompsUsed.dat")
 End Property
 
 Public Property Get RevisionNumber( _
@@ -111,11 +111,11 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Function Components() As Dictionary
-    Set Components = mFile.SectionNames(ComCompsFile)
+    Set Components = mFile.SectionNames(ComCompsSavedFileFullName)
 End Function
 
 Public Sub Remove(ByVal comp_name As String)
-    mFile.SectionsRemove pp_file:=ComCompsFile _
+    mFile.SectionsRemove pp_file:=ComCompsSavedFileFullName _
                        , pp_sections:=comp_name
 End Sub
 

@@ -278,7 +278,7 @@ Private Type FUNCDESC
     wFuncFlags As Integer
 End Type
 
-Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
+Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, source As Any, ByVal Length As LongPtr)
 Private Declare PtrSafe Function DispCallFunc Lib "oleAut32.dll" (ByVal pvInstance As LongPtr, ByVal offsetinVft As LongPtr, ByVal CallConv As Long, ByVal retTYP As Integer, ByVal paCNT As Long, ByRef paTypes As Integer, ByRef paValues As LongPtr, ByRef retVAR As Variant) As Long
 Private Declare PtrSafe Sub SetLastError Lib "kernel32.dll" (ByVal dwErrCode As Long)
 
@@ -468,17 +468,17 @@ Public Function CntrlName(ByVal shp As Shape) As String
     Dim j       As Long
     Dim shp1    As Shape
     
-    Set wb = Application.Workbooks(shp.Parent.Parent.Name)
-    Set ws = wb.Worksheets(shp.Parent.Name)
+    Set wb = Application.Workbooks(shp.Parent.Parent.name)
+    Set ws = wb.Worksheets(shp.Parent.name)
     With ws
         For Each shp1 In .Shapes
             If shp1.Type = msoOLEControlObject Then j = j + 1
             If Not shp1 Is shp Then GoTo next_shp
             Select Case shp1.Type
                 Case msoOLEControlObject
-                    CntrlName = ws.OLEObjects(j).Name
+                    CntrlName = ws.OLEObjects(j).name
                 Case msoFormControl
-                    CntrlName = shp1.Name
+                    CntrlName = shp1.name
                 Case Else
                     Debug.Print "Shape-Type: '" & shp1.Type & "' Not implemented"
             End Select
@@ -510,8 +510,8 @@ Public Function CntrlType( _
     Dim j       As Long
     Dim shp1    As Shape
     
-    Set wb = Application.Workbooks(shp.Parent.Parent.Name)
-    Set ws = wb.Worksheets(shp.Parent.Name)
+    Set wb = Application.Workbooks(shp.Parent.Parent.name)
+    Set ws = wb.Worksheets(shp.Parent.name)
     With ws
         For Each shp1 In .Shapes
             If shp1.Type = msoOLEControlObject Then
@@ -598,7 +598,7 @@ Public Sub ListAscendingByName(ByVal wsh As Worksheet)
     
     With wsh
         For Each shp In .Shapes
-            Debug.Print .Name & "(" & CntrlType(shp) & ")", Tab(45), CntrlName(shp)
+            Debug.Print .name & "(" & CntrlType(shp) & ")", Tab(45), CntrlName(shp)
         Next shp
     End With
     
@@ -624,7 +624,7 @@ Public Function ControlExists( _
     Dim shp As Shape
     
     For Each ws In sync_wb.Worksheets
-        If ws.Name <> sync_sheet_name And ws.CodeName <> sync_sheet_code_name _
+        If ws.name <> sync_sheet_name And ws.CodeName <> sync_sheet_code_name _
         Then GoTo next_sheet
         For Each shp In ws.Shapes
             ControlExists = CntrlName(shp) = sync_sheet_control_name

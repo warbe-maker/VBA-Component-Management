@@ -95,7 +95,7 @@ Public Sub RenewComp( _
         '~~ Select the Export-File for the re-new service
         '~~ of which the base name will be regared as the component to be renewed.
         '~~ --------------------------------------------------------
-        If mFile.SelectFile(sel_init_path:=mCompMan.ExpFileFolderPath(rc_wb) _
+        If mFile.SelectFile(sel_init_path:=mExport.ExpFileFolderPath(rc_wb) _
                           , sel_filters:="*.bas,*.cls,*.frm" _
                           , sel_filter_name:="File" _
                           , sel_title:="Select the Export-File for the re-new service" _
@@ -111,7 +111,7 @@ Public Sub RenewComp( _
         '~~ ------------------------------------------------
         sBaseName = fso.GetBaseName(rc_exp_file_full_name)
         '~~ Select the Export-File for the re-new service
-        If mFile.SelectFile(sel_init_path:=mCompMan.ExpFileFolderPath(rc_wb) _
+        If mFile.SelectFile(sel_init_path:=mExport.ExpFileFolderPath(rc_wb) _
                           , sel_filters:="*" & Comp.ExpFileExt _
                           , sel_filter_name:="File" _
                           , sel_title:="Select the Export-File for the provided component '" & rc_comp_name & "'!" _
@@ -151,7 +151,7 @@ Public Sub RenewComp( _
             
         mRenew.ByImport rn_wb:=.Wrkbk _
              , rn_comp_name:=.CompName _
-             , rn_exp_file_full_name:=rc_exp_file_full_name
+             , rn_raw_exp_file_full_name:=rc_exp_file_full_name
         Log.Entry = "Component renewed/updated by (re-)import of '" & rc_exp_file_full_name & "'"
     End With
     
@@ -186,15 +186,6 @@ Public Sub Continue()
     End If
 End Sub
 
-Public Sub Pause()
-' ----------------------------------
-' Pauses the CompMan Addin Services
-' ---------------------------------
-    If mMe.IsDevInstnc Then
-        mConfig.CompManAddinIsPaused = True
-        mMe.DisplayStatus
-    End If
-End Sub
 
 Private Function CodeModuleIsEmpty(ByRef vbc As VBComponent) As Boolean
     With vbc.CodeModule
@@ -221,34 +212,28 @@ Public Function Denied(ByVal den_service As String) As Boolean
     
     If Log Is Nothing Then Set Log = New clsLog
     Log.Service = den_service
-
-    If Not mMe.FolderAddinIsValid Or Not mMe.FolderServicedIsValid Then
-        sStatus = "Service denied! The Basic CompMan Configuration is invalid!"
-        Log.Entry = sStatus
-        Log.Entry = "The assertion of a valid basic configuration has been terminated though invalid!"
+    
+    If mMe.IsAddinInstnc And mMe.CompManAddinIsPaused Then
+        '~~ When the service is about to be provided by the Addin but the Addin is currently paused
+        '~~ another try with the serviced provided by the open Development instance may do the job.
+        sStatus = "The CompMan Addin is currently paused. Open the development instance and retry."
     ElseIf WbkIsRestoredBySystem Then
         sStatus = "Service denied! Workbook appears restored by the system!"
-        Log.Entry = sStatus
-    ElseIf Not WbkInServicedRoot Then
-        sStatus = "Service denied! Workbook is not within the configured 'serviced root': " & mConfig.FolderServiced & "!"
-        Log.Entry = sStatus
-    ElseIf mConfig.CompManAddinIsPaused And mMe.IsAddinInstnc And den_service <> "ExportChangedComponents" Then
+    ElseIf mConfig.CompManAddinIsPaused And mMe.IsAddinInstnc And den_service = "ExportChangedComponents" Then
         '~~ Note: Export of code changes can be made by the development instance itself
         sStatus = "Service denied! The CompMan Addin is currently paused!"
-        Log.Entry = sStatus
     ElseIf FolderNotVbProjectExclusive Then
         sStatus = "Service denied! The Workbook is not the only one in its parent folder!"
-        Log.Entry = sStatus
     ElseIf Not mCompMan.WinMergeIsInstalled Then
         sStatus = "Service denied! WinMerge is required but not installed!"
-        Log.Entry = sStatus
     End If
-    If sStatus <> vbNullString Then
+    
+xt: If sStatus <> vbNullString Then
+        Log.Entry = sStatus
         Application.StatusBar = Log.Service & sStatus
         Denied = True
     End If
-
-xt: Exit Function
+    Exit Function
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -276,7 +261,7 @@ Public Sub ExportChangedComponents(ByVal hosted As String)
 '       Export-File found within the Workbook-Folder outside
 '       the specified Export-Folder is removed.
 ' Attention: This procedure is called exclusively by
-'            mCompMan.UpdateUsedCommonComponents! When called directly
+'            mCompMan.UpdateOutdatedCommonComponents! When called directly
 '            by the user, e.g. via the 'Imediate Window' an
 '            error will be raised because an 'mService.Serviced'
 '            Workbook is not set.
@@ -284,24 +269,24 @@ Public Sub ExportChangedComponents(ByVal hosted As String)
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim Comp        As clsComp
-    Dim RawComp     As clsRaw
+'    Dim fso         As New FileSystemObject
+'    Dim Comp        As clsComp
+'    Dim RawComp     As clsRaw
     
     mBasic.BoP ErrSrc(PROC)
     If mService.Serviced Is Nothing _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                                  "(it may have been called directly via the 'Immediate Window'"
     If mService.Denied(PROC) Then GoTo xt
-    mCompMan.ManageHostHostedProperty hosted
+    mCompMan.ManageRawCommonComponentsProperties hosted
     
     mExport.ChangedComponents
         
 xt: Set dctHostedRaws = Nothing
-    Set Comp = Nothing
-    Set RawComp = Nothing
+'    Set Comp = Nothing
+'    Set RawComp = Nothing
     Set Log = Nothing
-    Set fso = Nothing
+'    Set fso = Nothing
     mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
     
@@ -384,10 +369,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function WbkInServicedRoot() As Boolean
-    WbkInServicedRoot = InStr(mService.Serviced.Path, mConfig.FolderServiced) <> 0
-End Function
-
 Private Function WbkIsRestoredBySystem() As Boolean
     WbkIsRestoredBySystem = InStr(ActiveWindow.Caption, "(") <> 0 _
                          Or InStr(mService.Serviced.FullName, "(") <> 0
@@ -431,9 +412,10 @@ Private Function SyncSourceAndTargetSelected( _
                      Optional ByRef wb_source As Workbook = Nothing, _
                      Optional ByVal cr_sync_confirm_info As Boolean = False) As Boolean
 ' ---------------------------------------------------------------------------
-' Returns True when the Sync-Target_VB-Project and the Sync-Source-VB-Project are valid.
-' When bc_sync_confirm_info is True a confirmation dialog is displayed. The dialog is
-' also displayed when function is called with invalid arguments.
+' Returns True when the Sync-Target_VB-Project and the Sync-Source-VB-Project
+' are valid. When bc_sync_confirm_info is True a confirmation dialog is
+' displayed. The dialog is also displayed when function is called with
+' invalid arguments.
 ' ---------------------------------------------------------------------------
     Const PROC                  As String = "SyncSourceAndTargetSelected"
     Const TARGET_PROJECT        As String = "Target-Workbook/VBProject"
@@ -566,13 +548,12 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function Clones( _
-                  ByRef cl_wb As Workbook) As Dictionary
-' ------------------------------------------------------
-' Returns a Dictionary with clone component's object as
-' the key and their kind of code change as item.
-' ------------------------------------------------------
-    Const PROC = "Clones"
+Private Function UsedCommonComponents(ByRef cl_wb As Workbook) As Dictionary
+' ---------------------------------------------------------------------------
+' Returns a Dictionary of all Used Common Components with its VBComponent
+' object as key and its name as item.
+' ---------------------------------------------------------------------------
+    Const PROC = "UsedCommonComponents"
     
     On Error GoTo eh
     Dim vbc     As VBComponent
@@ -590,21 +571,10 @@ Private Function Clones( _
             .CompName = vbc.name
             Log.ServicedItem = .VBComp
             If .KindOfComp = enCommCompUsed Then
-                Set RawComp = New clsRaw
-                RawComp.HostWrkbkFullName = mComCompsSaved.HostFullName(comp_name:=.CompName)
-                RawComp.CompName = .CompName
-                RawComp.ExpFileExt = .ExpFileExt
-                RawComp.CloneExpFileFullName = .ExpFileFullName
-                RawComp.TypeString = .TypeString
                 If .Changed Then
                     dct.Add vbc, vbc.name
                 Else
                     Log.Entry = "Code un-changed."
-                End If
-                If RawComp.Changed(Comp) Then
-                    If Not dct.Exists(vbc) Then dct.Add vbc, vbc.name
-                Else
-                    Log.Entry = "Corresponding Raw's code un-changed."
                 End If
             End If
         End With
@@ -613,7 +583,7 @@ Private Function Clones( _
     Next vbc
 
 xt: mBasic.EoP ErrSrc(PROC)
-    Set Clones = dct
+    Set UsedCommonComponents = dct
     Set fso = Nothing
     Exit Function
     
@@ -622,3 +592,181 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Function
+
+Public Function FilesDiffer(ByVal fd_exp_file_1 As File, _
+                            ByVal fd_exp_file_2 As File) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when file 1 and file 2 are different whereby case differences
+' and empty lines are ignored. This function guarantees a uniform comparison of
+' export files throughout CompMan.
+' ----------------------------------------------------------------------------
+    FilesDiffer = mFile.Differs(fd_file1:=fd_exp_file_1 _
+                              , fd_file2:=fd_exp_file_2 _
+                              , fd_stop_after:=1 _
+                              , fd_ignore_empty_records:=True _
+                              , fd_compare:=vbTextCompare).Count <> 0
+                            
+End Function
+
+Public Function FilesDifference(ByVal fd_exp_file_1 As File, _
+                                ByVal fd_exp_file_2 As File) As Dictionary
+' ----------------------------------------------------------------------------
+' Returns a Dictionary with either 0 items when file 1 and file 2 are
+' identical or with one item when the two files differ. Empty lines and case
+' differences are ignored because the do not constitute a relevant code change
+' ----------------------------------------------------------------------------
+    Set FilesDifference = mFile.Differs(fd_file1:=fd_exp_file_1 _
+                                      , fd_file2:=fd_exp_file_2 _
+                                      , fd_stop_after:=1 _
+                                      , fd_ignore_empty_records:=True _
+                                      , fd_compare:=vbTextCompare)
+                            
+End Function
+
+Public Sub RemoveTempRenamed()
+' ------------------------------------------------------------------------------
+' ------------------------------------------------------------------------------
+    Const PROC = "RemoveTempRenamed"
+    
+    On Error GoTo eh
+    Dim v   As Variant
+    Dim vbc As VBComponent
+    
+    With mService.Serviced.VBProject
+        For Each v In .VBComponents
+            Set vbc = v
+            If mService.IsRenamedByCompMan(vbc.name) Then
+                .VBComponents.Remove vbc
+            End If
+        Next v
+    End With
+
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Function IsRenamedByCompMan(ByVal comp_name As String) As Boolean
+' ------------------------------------------------------------------------------
+' Returns True when the component's name indicates that it is one which had been
+' renamed by CompMan for an update (rename/import) service.
+' ------------------------------------------------------------------------------
+    IsRenamedByCompMan = InStr(comp_name, RENAMED_BY_COMPMAN) <> 0
+End Function
+
+Public Function Progress(ByVal p_service As String, _
+                Optional ByVal p_result As Long = 0, _
+                Optional ByVal p_of As Long = 0, _
+                Optional ByVal p_op As String = vbNullString, _
+                Optional ByVal p_comps As String = vbNullString, _
+                Optional ByVal p_dots As Long = 0) As String
+' --------------------------------------------------------------------------
+' Displays a services progress in the Application.StatusBar in the form:
+' service for serviced: n of m op [(component [, component] ..]
+' --------------------------------------------------------------------------
+    Const MSG_SCHEEME = "<s><n> of <m> <op> <comps> <dots>"
+    
+    Dim sMsg        As String
+    
+    sMsg = Replace(MSG_SCHEEME, "<s>", p_service)
+    sMsg = Replace(sMsg, "<n>", p_result)
+    sMsg = Replace(sMsg, "<m>", p_of)
+    sMsg = Replace(sMsg, "<op>", p_op)
+    If p_comps <> vbNullString Then
+        If Right(p_comps, 2) = ", " Then p_comps = Left(p_comps, Len(p_comps) - 2)
+        If Right(p_comps, 1) = "," Then p_comps = Left(p_comps, Len(p_comps) - 1)
+        sMsg = Replace(sMsg, "<comps>", "(" & p_comps & ")")
+    Else
+        sMsg = Replace(sMsg, "<comps>", vbNullString)
+    End If
+    If p_dots > 0 Then
+        sMsg = Replace(sMsg, "<dots>", VBA.String(p_dots, "."))
+    Else
+        sMsg = Replace(sMsg, "<dots>", vbNullString)
+    End If
+    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 250) & " ..."
+        
+    Progress = sMsg
+    
+End Function
+
+Public Function ExpFilesDiffDisplay( _
+          ByVal fd_exp_file_left_full_name As String, _
+          ByVal fd_exp_file_right_full_name As String, _
+          ByVal fd_exp_file_left_title As String, _
+          ByVal fd_exp_file_right_title As String) As Boolean
+' ----------------------------------------------------------------------------
+' Displays the differences between export file 1 and 2 by means of WinMerge!
+' Note: CompMan ignores any differences caused by empty code lines or case.
+'       When a difference is displayed it is thus not because of this kind of
+'       differneces but of others. Unfortunately it depends on the installed
+'       WinMerge's set option wether or not these kind of differences are
+'       displayed.
+' ----------------------------------------------------------------------------
+    Const PROC                          As String = "ExpFilesDiffDisplay"
+    Const WINMERGE_SETTINGS_BASE_KEY    As String = "HKEY_CURRENT_USER\SOFTWARE\Thingamahoochie\WinMerge\Settings\"
+    Const WINMERGE_BLANK_LINES          As String = "IgnoreBlankLines"
+    Const WINMERGE_IGNORE_CASE          As String = "IgnoreCase"
+    
+    On Error GoTo eh
+    Dim waitOnReturn        As Boolean: waitOnReturn = True
+    Dim windowStyle         As Integer: windowStyle = 1
+    Dim sCommand            As String
+    Dim fso                 As New FileSystemObject
+    Dim wshShell            As Object
+    Dim sIniFile            As String
+    Dim sIgnoreBlankLines   As String ' 1 = True, 0 = False
+    Dim sIgnoreCase         As String ' 1 = True, 0 = False
+    
+    If Not AppIsInstalled("WinMerge") _
+    Then Err.Raise Number:=AppErr(1) _
+                 , source:=ErrSrc(PROC) _
+                 , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
+                                "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
+        
+    If Not fso.FileExists(fd_exp_file_left_full_name) _
+    Then Err.Raise Number:=AppErr(2) _
+                 , source:=ErrSrc(PROC) _
+                 , Description:="The file """ & fd_exp_file_left_full_name & """ does not exist!"
+    
+    If Not fso.FileExists(fd_exp_file_right_full_name) _
+    Then Err.Raise Number:=AppErr(3) _
+                 , source:=ErrSrc(PROC) _
+                 , Description:="The file """ & fd_exp_file_right_full_name & """ does not exist!"
+    
+    '~~ Save WinMerge configuration items and set them for CompMan
+    sIgnoreBlankLines = mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_BLANK_LINES)
+    sIgnoreCase = mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_IGNORE_CASE)
+    mReg.Value(WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_BLANK_LINES) = "1"
+    mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_IGNORE_CASE) = "1"
+    
+    '~~ Prepare command line
+    sCommand = "WinMergeU /e" & _
+               " /dl " & DQUOTE & fd_exp_file_left_title & DQUOTE & _
+               " /dr " & DQUOTE & fd_exp_file_right_title & DQUOTE & " " & _
+               """" & fd_exp_file_left_full_name & """" & " " & _
+               """" & fd_exp_file_right_full_name & """" ' & sIniFile doesn't work
+
+    
+    '~~ Execute command line
+    Set wshShell = CreateObject("WScript.Shell")
+    With wshShell
+        ExpFilesDiffDisplay = .Run(Command:=sCommand, windowStyle:=windowStyle, waitOnReturn:=waitOnReturn)
+    End With
+        
+    '~~ Restore WinMerge configuration items
+    mReg.Value(WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_BLANK_LINES) = sIgnoreBlankLines
+    mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_IGNORE_CASE) = sIgnoreCase
+
+xt: Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+

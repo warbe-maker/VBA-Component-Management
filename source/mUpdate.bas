@@ -1,105 +1,84 @@
 Attribute VB_Name = "mUpdate"
 Option Explicit
-' -----------------
-'
-' -----------------
-Private sUpdateStayVerbose      As String
-Private sBttnDsplyChanges       As String
-Private sBttnSkipStayVerbose    As String
 
-Private Property Get BttnDsplyChanges() As String
-    BttnDsplyChanges = sBttnDsplyChanges
-End Property
-
-Private Property Let BttnDsplyChanges(ByVal comp_name As String)
-    sBttnDsplyChanges = "Display code changes" & vbLf & vbLf & Spaced(comp_name)
-End Property
-
-Private Property Get BttnSkip() As String
-    BttnSkip = "Skip"
-End Property
-
-Private Property Get BttnSkipStayVerbose() As String
-    BttnSkipStayVerbose = sBttnSkipStayVerbose
-End Property
-
-Private Property Let BttnSkipStayVerbose(ByVal comp_name As String)
-    sBttnSkipStayVerbose = "Skip this component" & vbLf & "(stay verbose)"
-End Property
-
-Private Property Get BttnUpdateAll() As String
-    BttnUpdateAll = "Update" & vbLf & "all"
-End Property
-
-Private Property Get BttnUpdate() As String
-    BttnUpdate = sUpdateStayVerbose
-End Property
-
-Private Property Let BttnUpdate(ByVal comp_name As String)
-    sUpdateStayVerbose = "Update" & vbLf & vbLf & Spaced(comp_name)
-End Property
-
-Public Sub ComCompsUsed(ByRef urc_wb As Workbook)
+Public Sub Outdated(ByRef urc_wb As Workbook)
 ' ----------------------------------------------------------------------------
 ' Updates any Common Component used in Workbook (urc_wb). Note that Common
 ' Components are identifiied by equally named components in another workbook
 ' which is indicated the 'host' Workbook.
 ' ----------------------------------------------------------------------------
-    Const PROC = "ComCompsUsed"
+    Const PROC = "Outdated"
     
     On Error GoTo eh
-    Dim dctComCompsHostedChanged  As Dictionary
-    Dim vbc                     As VBComponent
-    Dim fso                     As New FileSystemObject
-    Dim sUpdated                As String
-    Dim v                       As Variant
-    Dim bVerbose                As Boolean
-    Dim bSkip                   As Boolean
-    Dim Clones                  As clsClones
-    Dim RawComp                 As clsRaw
-    Dim CloneComp               As clsComp
-    Dim lRemaining              As Long
+    Dim dctUpdateDue    As Dictionary
+    Dim vbc             As VBComponent
+    Dim fso             As New FileSystemObject
+    Dim sUpdated        As String
+    Dim v               As Variant
+    Dim bVerbose        As Boolean
+    Dim bSkip           As Boolean
+    Dim Comp            As clsComp
+    Dim Comps           As New clsComps
+    Dim lAll            As Long
+    Dim lRemaining      As Long
+    Dim wb              As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    Set Clones = New clsClones
-    Set dctComCompsHostedChanged = Clones.RawChanged
+    Set wb = mService.Serviced
     
-    bVerbose = True
-    For Each v In dctComCompsHostedChanged
-        mCompMan.DsplyProgress p_result:=sUpdated _
-                             , p_total:=Stats.Total(sic_clone_comps) _
-                             , p_done:=Stats.Total(sic_clones_comps_updated)
-        Set RawComp = dctComCompsHostedChanged(v)
-        Set CloneComp = New clsComp
-        Set CloneComp.Wrkbk = urc_wb
-        CloneComp.CompName = RawComp.CompName
-        Log.ServicedItem = CloneComp.VBComp
-        Log.Entry = "Corresponding Raw-Component's code changed! (its Export-File differs from the Clone's Export-File)"
-        With RawComp
-            If bVerbose Then
-                UpdateCloneConfirmed ucc_comp_name:=.CompName _
-                                   , ucc_stay_verbose:=bVerbose _
-                                   , ucc_skip:=bSkip _
-                                   , ucc_clone_exp_file_full_name:=CloneComp.ExpFileFullName _
-                                   , ucc_raw_exp_file_full_name:=.ExpFileFullName
-            End If
-            If Not bSkip Then
-                mRenew.ByImport rn_wb:=urc_wb _
-                     , rn_comp_name:=.CompName _
-                     , rn_exp_file_full_name:=.ExpFileFullName
-                Log.Entry = "Clone-Component renewed/updated by (re-)import of '" & .ExpFileFullName & "'"
-                mComCompsUsed.RevisionNumber(.CompName) = mComCompsSaved.RevisionNumber(.CompName)
-                Stats.Count sic_clones_comps_updated
-                If sUpdated = vbNullString _
-                Then sUpdated = .CompName _
-                Else sUpdated = .CompName & ", " & sUpdated
-            End If
-        End With
-        Set CloneComp = Nothing
-        Set RawComp = Nothing
+    Set dctUpdateDue = Comps.Outdated
+    With wb.VBProject
+        lAll = .VBComponents.Count
+        lRemaining = lAll
+        bVerbose = True
         
-        Application.StatusBar = Log.Service & "(" & Stats.Total(sic_clones_comps_updated) & " of " & Stats.Total(sic_clone_comps) & " updated) " & sUpdated
-    Next v
+        For Each vbc In .VBComponents
+    
+            Set Comp = New clsComp
+            With Comp
+                Set .Wrkbk = wb
+                .CompName = vbc.name
+                Set .VBComp = vbc
+                Log.ServicedItem = vbc
+                If .KindOfComp = enCommCompUsed Then
+                    If .Outdated Then
+                        Log.Entry = "Outdated Used Common Component! (Export-Files '" & .ExpFileFullName & "' differs from '" & .Raw.ExpFileFullName & "')"
+                        If OutdatedUsedCommonComponentConfirmed(Comp) Then
+                            mRenew.ByImport rn_wb:=urc_wb _
+                                 , rn_comp_name:=.CompName _
+                                 , rn_raw_exp_file_full_name:=.Raw.ExpFileFullName
+                            Log.Entry = "Used Common Component renewed/updated by (re-)import of the Raw's Export File (" & .Raw.ExpFileFullName & ")"
+                            .RevisionNumber = .Raw.RevisionNumber
+                            Stats.Count sic_used_comm_comp_updated
+                            If sUpdated = vbNullString _
+                            Then sUpdated = .CompName _
+                            Else sUpdated = .CompName & ", " & sUpdated
+                        End If
+                    End If ' .Outdated
+                End If ' Used Common Component
+            End With
+            Set Comp = Nothing
+            lRemaining = lRemaining - 1
+            Application.StatusBar = _
+            mService.Progress(p_service:=Log.Service _
+                            , p_result:=Stats.Total(sic_used_comm_comp_updated) _
+                            , p_of:=lAll _
+                            , p_op:="updated" _
+                            , p_comps:=sUpdated _
+                            , p_dots:=lRemaining _
+                             )
+        Next vbc
+    End With
+
+    Application.StatusBar = vbNullString
+    Application.StatusBar = _
+    mService.Progress(p_service:=Log.Service _
+                    , p_result:=Stats.Total(sic_used_comm_comp_updated) _
+                    , p_of:=lAll _
+                    , p_op:="updated" _
+                    , p_comps:=sUpdated _
+                     )
+
 
 xt: Set fso = Nothing
     mBasic.EoP ErrSrc(PROC)
@@ -109,33 +88,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
-
-Private Sub DisplayStatus( _
-                    ByVal sp_cloned_raws As Long, _
-                    ByVal sp_no_replaced As Long, _
-                    ByRef sp_replaced As String)
-' -------------------------------------------------
-' Display the services final result.
-' -------------------------------------------------
-    Dim sMsg        As String
-    
-    Select Case sp_cloned_raws
-        Case 0: sMsg = "No 'Cloned Raw Component' in Workbook"
-        Case 1
-            Select Case sp_no_replaced
-                Case 0:     sMsg = "1 Clone-Component identified but its corresponding Raw-Component had not changed."
-                Case 1:     sMsg = "1 of 1 Clone-Component updated because its corresponding Raw-Component had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
-            End Select
-        Case Else
-            Select Case sp_no_replaced
-                Case 0:     sMsg = "No Clone-Component updated (0 of " & sp_cloned_raws & ")"
-                Case 1:     sMsg = "1 of " & sp_cloned_raws & " Clone-Components has been updated because the corresponding Raw-Component has changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
-                Case Else:  sMsg = sp_no_replaced & " of " & sp_cloned_raws & " Clone-Components have been updated because their corresponding Raw-Component had changed (" & Left(sp_replaced, Len(sp_replaced) - 2) & ")."
-            End Select
-    End Select
-    DsplyProgress sMsg
-
 End Sub
 
 Private Function ErrSrc(ByVal es_proc As String) As String
@@ -152,43 +104,43 @@ Private Function Spaced(ByVal s As String) As String
     Spaced = sSpaced
 End Function
 
-Public Function UpdateCloneConfirmed( _
-                               ByVal ucc_comp_name As String, _
-                               ByRef ucc_stay_verbose As Boolean, _
-                               ByRef ucc_skip As Boolean, _
-                               ByVal ucc_clone_exp_file_full_name As String, _
-                               ByVal ucc_raw_exp_file_full_name As String)
-' ---------------------------------------------------------------
-'
-' ---------------------------------------------------------------
-    Const PROC = "UpdateCloneConfirmed"
+Public Function OutdatedUsedCommonComponentConfirmed(ByRef uo_comp As clsComp) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the update of the outdated Used Common Component (uo_comp)
+' has been confirmed
+' ----------------------------------------------------------------------------
+    Const PROC = "OutdatedUsedCommonComponentConfirmed"
     
     On Error GoTo eh
-    Dim cllButtons      As Collection
-    Dim sMsg            As TypeMsg
-    Dim vReply          As Variant
+    Dim cllButtons          As Collection
+    Dim sMsg                As TypeMsg
+    Dim vReply              As Variant
+    Dim sBttnDsplyChanges   As String
+    Dim sBttnUpdate         As String
+    Dim sBttnSkip           As String
     
     mBasic.BoP ErrSrc(PROC)
-    BttnDsplyChanges = ucc_comp_name
-    BttnUpdate = ucc_comp_name
-    mMsg.Buttons cllButtons, BttnDsplyChanges _
-                     , vbLf, BttnUpdate _
-                     , vbLf, BttnSkip
+    sBttnDsplyChanges = "Display code changes" & vbLf & vbLf & mBasic.Spaced(uo_comp.CompName)
+    sBttnUpdate = "Update" & vbLf & vbLf & mBasic.Spaced(uo_comp.CompName)
+    sBttnSkip = "Skip this update"
+    mMsg.Buttons cllButtons, sBttnDsplyChanges _
+                     , vbLf, sBttnUpdate _
+                     , vbLf, sBttnSkip
     
     With sMsg
         .Section(1).Label.Text = "About this update:"
-        .Section(1).Text.Text = "When the raw clone used in this Workbook is not updated the message will show up again " & _
-                                "the next time this Workbook is opened - provided it is located/opened in the  in the " & _
-                                "configured development root folder:"
+        .Section(1).Text.Text = "When the outdated 'Used Common Component'  " & mBasic.Spaced(uo_comp.CompName) & "  in " & _
+                                "this Workbook is not updated the message will show up again the next time this " & _
+                                "Workbook is opened - from within the configured 'Serviced Folder'."
         .Section(2).Text.Text = mConfig.FolderServiced
         .Section(2).Text.MonoSpaced = True
         With .Section(3)
-            If mComCompsSaved.RevisionNumber(ucc_comp_name) = mComCompsUsed.RevisionNumber(ucc_comp_name) Then
+            If Not uo_comp.RevisionNumbersDiffer Then
                 .Label.Text = "Attention!"
                 .Label.FontColor = rgbRed
                 .Text.Text = "It appears that the code of the raw clone used in this Workbook has been modified. This modification will be " & _
                              "reverted with this update. Displaying the difference will be the last chance to modify the raw component in its " & _
-                             "hosting Workbook (" & mComCompsSaved.HostFullName(ucc_comp_name) & ")."
+                             "hosting Workbook (" & mComCompsRawsSaved.HostWbFullName(uo_comp.CompName) & ")."
             Else
                 .Text.Text = vbNullString
             End If
@@ -196,23 +148,21 @@ Public Function UpdateCloneConfirmed( _
     End With
     
     Do
-        vReply = mMsg.Dsply(dsply_title:=Log.Service & "Update " & Spaced(ucc_comp_name) & "with changed raw" _
-                          , dsply_msg:=sMsg _
-                          , dsply_buttons:=cllButtons _
-                           )
-        Select Case vReply
-            Case BttnUpdate
-                ucc_skip = False
-                Exit Do
-            Case BttnSkip
-                ucc_skip = True
-                Exit Do
-            Case BttnDsplyChanges
-                mExport.FilesDifferencesDisplay fd_exp_file_left_full_name:=ucc_clone_exp_file_full_name _
-                                              , fd_exp_file_left_title:="Clone (used) Common Component: '" & ucc_clone_exp_file_full_name & "'" _
-                                              , fd_exp_file_right_full_name:=ucc_raw_exp_file_full_name _
-                                              , fd_exp_file_right_title:="Raw (hosted) Common Component: '" & ucc_raw_exp_file_full_name & "'"
-        End Select
+        With uo_comp
+            vReply = mMsg.Dsply(dsply_title:=Log.Service & "Update " & Spaced(.CompName) & "with changed raw" _
+                              , dsply_msg:=sMsg _
+                              , dsply_buttons:=cllButtons _
+                               )
+            Select Case vReply
+                Case sBttnUpdate:       OutdatedUsedCommonComponentConfirmed = True:  Exit Do
+                Case sBttnSkip:         OutdatedUsedCommonComponentConfirmed = False: Exit Do
+                Case sBttnDsplyChanges: mService.ExpFilesDiffDisplay _
+                                            fd_exp_file_left_full_name:=.ExpFileFullName _
+                                          , fd_exp_file_left_title:="Used Common Component: '" & .ExpFileFullName & "'" _
+                                          , fd_exp_file_right_full_name:=.Raw.ExpFileFullName _
+                                          , fd_exp_file_right_title:="Raw Common Component: '" & .Raw.ExpFileFullName & "'"
+            End Select
+        End With
     Loop
     
 xt: mBasic.EoP ErrSrc(PROC)

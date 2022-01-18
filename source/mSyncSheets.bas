@@ -71,7 +71,7 @@ Public Function SheetExists( _
     
     For Each ws In wb.Worksheets
         If sh1_name <> vbNullString Then
-            If ws.Name = sh1_name Then
+            If ws.name = sh1_name Then
                 SheetExists = True
                 Exit For
             End If
@@ -85,7 +85,7 @@ Public Function SheetExists( _
     Next ws
     
 xt: If SheetExists Then
-        sh2_name = ws.Name
+        sh2_name = ws.name
         sh2_code_name = ws.CodeName
         If sh2_name <> sh1_name Then FinalName(sh1_name) = sh2_name
         If sh2_code_name <> sh1_code_name Then FinalName(sh1_code_name) = sh2_code_name
@@ -194,7 +194,7 @@ Public Sub SyncCodeName()
     
     For Each v In Sync.SourceSheets
         sSourceSheetName = Sync.SourceSheets(v)
-        sSourceSheetCodeName = SheetCodeName(Sync.Source, sSourceSheetName)
+        sSourceSheetCodeName = SheetCodeName(Sync.source, sSourceSheetName)
         If Not SheetExists(wb:=Sync.Target _
                          , sh1_name:=sSourceSheetName _
                          , sh1_code_name:=sSourceSheetCodeName _
@@ -211,8 +211,8 @@ Public Sub SyncCodeName()
                 Sync.ConfInfo = "CodeName change to '" & sSourceSheetCodeName & "'"
             Else
                 For Each vbc In Sync.Target.VBProject.VBComponents
-                    If vbc.Name = sTargetSheetCodeName Then
-                        vbc.Name = sSourceSheetCodeName
+                    If vbc.name = sTargetSheetCodeName Then
+                        vbc.name = sSourceSheetCodeName
                         '~~ When the sheet's CodeName has changed the sheet's code will only also be
                         '~~ synchronized when the CodeName is used - which should be the case because
                         '~~ there's no motivation to change it otherwise
@@ -249,7 +249,7 @@ Public Sub SyncName()
     With Sync
         For Each v In .SourceSheets
             sSourceSheetName = .SourceSheets(v)
-            sSourceSheetCodeName = SheetCodeName(.Source, sSourceSheetName)
+            sSourceSheetCodeName = SheetCodeName(.source, sSourceSheetName)
             If Not SheetExists(wb:=.Target _
                              , sh1_name:=sSourceSheetName _
                              , sh1_code_name:=sSourceSheetCodeName _
@@ -258,7 +258,7 @@ Public Sub SyncName()
                               ) _
             Then GoTo next_comp
             If sTargetSheetCodeName = sSourceSheetCodeName And sTargetSheetName <> sSourceSheetName Then
-                Log.ServicedItem = .Source.Worksheets(sSourceSheetName)
+                Log.ServicedItem = .source.Worksheets(sSourceSheetName)
                 Stats.Count sic_sheets_name
                 
                 '~~ The sheet's Name has changed while the sheets CodeName remained unchanged
@@ -266,7 +266,7 @@ Public Sub SyncName()
                     .ConfInfo = "Name change to '" & sSourceSheetName & "'."
                     SourceSheetNameChange sSourceSheetName, sSourceSheetCodeName, sTargetSheetName, sTargetSheetCodeName
                 Else
-                    .Target.Worksheets(sTargetSheetName).Name = sSourceSheetName
+                    .Target.Worksheets(sTargetSheetName).name = sSourceSheetName
                     Log.Entry = "Name changed to '" & sSourceSheetName & "'."
                 End If
             End If
@@ -313,7 +313,7 @@ Public Sub SyncNew()
     With Sync
         For Each v In .SourceSheets
             sSourceName = .SourceSheets(v)
-            sSourceCodeName = SheetCodeName(.Source, sSourceName)
+            sSourceCodeName = SheetCodeName(.source, sSourceName)
             If Not SheetExists(wb:=.Target _
                              , sh1_name:=sSourceName _
                              , sh1_code_name:=sSourceCodeName _
@@ -323,7 +323,7 @@ Public Sub SyncNew()
                 If NameChange(sSourceName, sSourceCodeName) Then GoTo next_v
         
                 '~~ The sheet not exist in the target Workbook under the Name nor under the CodeName.
-                Set ws = .Source.Worksheets(sSourceName)
+                Set ws = .source.Worksheets(sSourceName)
                 Log.ServicedItem = ws
                 Stats.Count sic_sheets_new
                 
@@ -349,7 +349,7 @@ Public Sub SyncNew()
                 Else
                     '~~ This is the third call for getting the syncronizations done
                     '~~ The new sheet is copied to the corresponding position in the target Workbook
-                    .Source.Worksheets(sSourceName).Copy _
+                    .source.Worksheets(sSourceName).Copy _
                     After:=.Target.Sheets(.Target.Worksheets.Count)
                     Log.Entry = "Copied from source Workbook."
                 End If
@@ -399,7 +399,7 @@ Public Sub SyncObsolete()
         For Each v In .TargetSheets
             sTargetSheetName = .TargetSheets(v)
             sTargetSheetCodeName = SheetCodeName(.Target, sTargetSheetName)
-            If Not SheetExists(wb:=.Source _
+            If Not SheetExists(wb:=.source _
                              , sh1_name:=sTargetSheetName _
                              , sh1_code_name:=sTargetSheetCodeName _
                              ) Then
@@ -470,12 +470,12 @@ Public Sub SyncOrder()
     Dim wsTarget    As Worksheet
     Dim i           As Long
     
-    While i > Sync.Source.Worksheets.Count
-        For i = 1 To Sync.Source.Worksheets.Count
-            If Sync.TargetSheets.Exists(Sync.Source.Worksheets(i).Name) Then
-                Set wsSource = Sync.Source.Worksheets(i)
+    While i > Sync.source.Worksheets.Count
+        For i = 1 To Sync.source.Worksheets.Count
+            If Sync.TargetSheets.Exists(Sync.source.Worksheets(i).name) Then
+                Set wsSource = Sync.source.Worksheets(i)
                 Set wsTarget = Sync.Target.Worksheets(i)
-                If wsTarget.Name <> wsSource.Name Then
+                If wsTarget.name <> wsSource.name Then
                     Log.ServicedItem = wsTarget
                     wsTarget.Move After:=Sheets(Sync.Target.Worksheets.Count)
                     Log.Entry = "Order synced!"
@@ -508,7 +508,7 @@ Public Function SheetCodeName( _
     Dim ws  As Worksheet
     
     For Each ws In wb.Worksheets
-        If ws.Name = sheet_name Then
+        If ws.name = sheet_name Then
             SheetCodeName = ws.CodeName
             GoTo xt
         End If

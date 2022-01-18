@@ -16,7 +16,7 @@ Public Sub SyncNew()
     On Error GoTo eh
     Dim ref As Reference
     
-    For Each ref In Sync.Source.VBProject.References
+    For Each ref In Sync.source.VBProject.References
         If Not RefExists(Sync.Target, ref) Then
             Log.ServicedItem = ref
             Stats.Count sic_refs_new
@@ -50,10 +50,10 @@ Public Sub SyncObsolete()
     Dim sRef    As String
     
     For Each ref In Sync.Target.VBProject.References
-        If Not RefExists(Sync.Source, ref) Then
+        If Not RefExists(Sync.source, ref) Then
             Log.ServicedItem = ref
             Stats.Count sic_refs_new
-            sRef = ref.Name
+            sRef = ref.name
             If Sync.Mode = Confirm Then
                 Sync.ConfInfo = "Obsolete!"
             Else
@@ -80,7 +80,7 @@ Private Function RefExists( _
     Dim ref As Reference
     
     For Each ref In re_wb.VBProject.References
-        RefExists = ref.Name = re_ref.Name
+        RefExists = ref.name = re_ref.name
         If RefExists Then Exit Function
     Next ref
 
@@ -94,7 +94,7 @@ Private Sub RefRemove(ByVal rr_ref As Reference)
     
     With Sync.Target.VBProject
         For Each ref In .References
-            If ref.Name = rr_ref.Name Then
+            If ref.name = rr_ref.name Then
                 .References.Remove ref
                 Exit Sub
             End If

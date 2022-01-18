@@ -14,13 +14,9 @@ Option Compare Text
 ' - IsObject    Returns TRUE when the provided variant is a Workbook (not
 '               necessarily also open!)
 ' - IsOpen      Returns TRUE when the provided Workbook is open
-' - Opened      Returns a Distionary of all open Workbooks in any application
-'               instance with the Workbook's BaseName as the key and the Workbook
-'               object a item.
-'               Attention these (current) constraints:
-'               - Does not include any open Addin-Workbook
-'               - Does not include all Workbooks with the same BaseName but
-'                 different extensions
+' - Opened      Returns a Dictionary of all open Workbooks in any application
+'               instance with the Workbook's Name as the key and the Workbook
+'               object as the item.
 '
 ' Uses:
 ' - Common Components mErH (in mTest only!)
@@ -28,7 +24,7 @@ Option Compare Text
 ' Requires: Reference to "Microsoft Scripting Runtine"
 '           Reference to "Microsoft Visual Basic for Applications Extensibility ..."
 '
-' W. Rauschenberger, Berlin August 2019
+' W. Rauschenberger, Berlin Jan 2022
 ' -----------------------------------------------------------------------------------
 #Const VBE = 1              ' Requires a Reference to "Microsoft Visual Basis Extensibility ..."
 ' --- Begin of declarations to get all Workbooks of all running Excel instances
@@ -177,7 +173,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -400,22 +396,22 @@ End Function
 
 Public Function IsOpen(ByVal wb As Variant, _
               Optional ByRef wb_result As Workbook) As Boolean
-' ------------------------------------------------------------
-' Returns TRUE when the Workbook (wb) - which may be a Work-
-' book object, a Workbook's name or fullname - is open in
-' any Excel Application instance. If a fullname is provided
-' and the file does not exist under this full name but a
-' Workbook with the given name is open (but from another fol-
-' der) the Workbook is regarded moved and thus is returned as
-' open object(wb_result).
-' ------------------------------------------------------------
+' -----------------------------------------------------------------------------------
+' Returns TRUE when the Workbook (wb) - which may be a Workbook object, a Workbook's
+' name or fullname - is open in any Excel Application instance. If a fullname is
+' provided and the file does not exist under this full name but a Workbook with the
+' given name is open (but from another folder) the Workbook is regarded moved and
+' thus is returned as open object(wb_result).
+' Because Workbooks with the same WbName may be open when they have different
+' extensions a Workbook's Name including its extension is checked.
+' -----------------------------------------------------------------------------------
     Const PROC = "IsOpen"
     
     On Error GoTo eh
     Dim OpenWbks As Dictionary
     Dim OpenWbk  As Workbook
     Dim fso      As New FileSystemObject
-    Dim BaseName As String
+    Dim WbName As String
     
     If Not mWrkbk.IsObject(wb) And Not mWrkbk.IsFullName(wb) And Not mWrkbk.IsName(wb) And Not TypeName(wb) = "String" _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter wb) is neither a Workbook object nor a Workbook's name or fullname)!"
@@ -423,30 +419,30 @@ Public Function IsOpen(ByVal wb As Variant, _
     Set OpenWbks = mWrkbk.Opened
     If mWrkbk.IsName(wb) Then
         '~~ wb is a Workbook's Name including its extension
-        BaseName = fso.GetBaseName(wb)
-        If OpenWbks.Exists(BaseName) Then
-            '~~ A Workbook with the same 'BaseName' is open
-            Set OpenWbk = OpenWbks.Item(BaseName)
+        WbName = fso.GetFileName(wb)
+        If OpenWbks.Exists(WbName) Then
+            '~~ A Workbook with the same 'WbName' is open
+            Set OpenWbk = OpenWbks.Item(WbName)
             '~~ When a Workbook's Name is provided the Workbook is only regarde open when the open
             '~~ Workbook has the same name (i.e. including its extension)
-            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
+            If fso.GetFile(OpenWbk.FullName).name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
     ElseIf mWrkbk.IsFullName(wb) Then
-        BaseName = fso.GetBaseName(wb)
-        If OpenWbks.Exists(BaseName) Then
-            '~~ A Workbook with the same 'BaseName' is open
-            Set OpenWbk = OpenWbks.Item(BaseName)
+        WbName = fso.GetBaseName(wb)
+        If OpenWbks.Exists(WbName) Then
+            '~~ A Workbook with the same 'WbName' is open
+            Set OpenWbk = OpenWbks.Item(WbName)
             '~~ The provided (wb) specifies an exist Workbook file. This Workbook is regarded open (and returned as opject)
             '~~ when a Workbook with its Name (including the extension!) is open regardless in which location
-            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
+            If fso.GetFile(OpenWbk.FullName).name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
     ElseIf mWrkbk.IsObject(wb) Then
-        BaseName = fso.GetBaseName(wb.Name)
-        If Opened.Exists(BaseName) Then
-            Set OpenWbk = OpenWbks.Item(BaseName)
+        WbName = fso.GetBaseName(wb.name)
+        If Opened.Exists(WbName) Then
+            Set OpenWbk = OpenWbks.Item(WbName)
         End If
     Else
-        '~~ If wb is a Workbook's BaseName it is regarded open when one with that BaseName is open
+        '~~ If wb is a Workbook's WbName it is regarded open when one with that WbName is open
         '~~ regrdless its extension
         If OpenWbks.Exists(wb) Then Set OpenWbk = OpenWbks.Item(wb)
     End If
@@ -465,14 +461,12 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Function Opened() As Dictionary
-' -------------------------------------
-' Returns a Dictionary of all currently
-' open Workbooks in any running excel
-' application instance with the
-' Workbook's name (without extension!)
+' ----------------------------------------------------------------------------
+' Returns a Dictionary of all currently open Workbooks in any running excel
+' application instance with the Workbook's name (including its extension!)
 ' as the key and the Workbook as item.
-' -------------------------------------
-    Const PROC  As String = "Opened"               ' This procedure's name for the error handling and execution tracking
+' ----------------------------------------------------------------------------
+    Const PROC  As String = "Opened"
     
     On Error GoTo eh
 #If Win64 Then
@@ -513,7 +507,7 @@ Public Function Opened() As Dictionary
         .CompareMode = TextCompare
         For Each app In aApps
             For Each wbk In app.Workbooks
-                If Not .Exists(fso.GetBaseName(wbk.Name)) Then .Add fso.GetBaseName(wbk.Name), wbk
+                If Not .Exists(wbk.name) Then .Add wbk.name, wbk
             Next wbk
         Next app
     End With

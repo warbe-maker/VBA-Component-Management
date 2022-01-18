@@ -22,6 +22,10 @@ Option Explicit
 ' Design:       Since the implementation is merely design driven its setup is
 '               essential. Design changes must adhere to the concept.
 '
+' Public Properties:
+' DsplyFrmsWthBrdrsTestOnly
+' DsplyFrmsWthCptnTestOnly
+'
 ' Uses:         Module mMsg to pass on the clicked reply button to the caller.
 '               Note: The UserForm cannot be used directly unless the implemen-
 '               tation is mimicked.
@@ -31,7 +35,7 @@ Option Explicit
 ' See details at:
 ' https://warbe-maker.github.io/warbe-maker.github.io/vba/common/2020/11/17/Common-VBA-Message-Services.html
 '
-' W. Rauschenberger Berlin, April 2021 (last revision)
+' W. Rauschenberger Berlin, Jan 2022 (last revision)
 ' --------------------------------------------------------------------------
 Const DFLT_BTTN_MIN_WIDTH           As Single = 70              ' Default minimum reply button width
 Const DFLT_LBL_MONOSPACED_FONT_NAME As String = "Courier New"   ' Default monospaced font name
@@ -76,11 +80,11 @@ Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByV
 ' -------------------------------------------------------------------------------
 
 ' For a much faster DoEvents alternative
-Private Declare PtrSafe Function GetQueueStatus Lib "user32" (ByVal qsFlags As Long) As Long
-Private Const QS_HOTKEY As Long = &H80
-Private Const QS_KEY As Long = &H1
-Private Const QS_MOUSEBUTTON As Long = &H4
-Private Const QS_PAINT As Long = &H20
+'Private Declare PtrSafe Function GetQueueStatus Lib "user32" (ByVal qsFlags As Long) As Long
+'Private Const QS_HOTKEY As Long = &H80
+'Private Const QS_KEY As Long = &H1
+'Private Const QS_MOUSEBUTTON As Long = &H4
+'Private Const QS_PAINT As Long = &H20
 ' -------------------------------------------------------------------------------
 
 ' Timer means
@@ -140,7 +144,6 @@ Private siMsgHeightMax                  As Single       ' Maximum message height
 Private siMsgHeightMin                  As Single       ' Minimum message height in pt
 Private siMsgWidthMax                   As Single       ' Maximum message width in pt
 Private siMsgWidthMin                   As Single       ' Minimum message width in pt
-Private siTitleWidth                    As Single
 Private siVmarginButtons                As Single
 Private siVmarginFrames                 As Single       ' Test property, value defaults to 0
 Private sMonoSpacedLabelDefaultFontName As String
@@ -148,8 +151,6 @@ Private sMonoSpacedLabelDefaultFontSize As Single
 Private sMonoSpacedTextDefaultFontName  As String
 Private sMonoSpacedTextDefaultFontSize  As Single
 Private sMsgTitle                       As String
-Private sTitleFontName                  As String
-Private sTitleFontSize                  As String       ' Ignored when sTitleFontName is not provided
 Private TitleWidth                      As Single
 Private UsageType                       As enMsgFormUsage
 Private vButtons                        As Variant
@@ -315,7 +316,6 @@ Public Property Get FormContentWidth(Optional ByRef with_vertical_scrollbars As 
     
     Dim ctl As Msforms.Control
     Dim frm As Msforms.Frame
-    Dim frm_ctl As Msforms.Control
     
     For Each ctl In Me.Controls
         With ctl
@@ -375,8 +375,7 @@ Public Property Get FrameContentWidth( _
 ' applied/visible controls.
 ' ------------------------------------------------------------------------------
     
-    Dim ctl As Msforms.Control
-    Dim frm As Msforms.Frame
+    Dim ctl     As Msforms.Control
     Dim frm_ctl As Msforms.Control
     
     If TypeName(v) = "Frame" Then Set frm_ctl = v Else Stop
@@ -479,9 +478,9 @@ End Property
 
 Private Property Get MaxRowsHeight() As Single:                                             MaxRowsHeight = siMaxButtonHeight + (siVmarginFrames * 2):          End Property
 
-Private Property Get MaxWidthBttnsArea() As Single
-    MaxWidthBttnsArea = FormWidthMaxUsable - (HSPACE_BTTN_AREA * 2)
-End Property
+'Private Property Get MaxWidthBttnsArea() As Single
+'    MaxWidthBttnsArea = FormWidthMaxUsable - (HSPACE_BTTN_AREA * 2)
+'End Property
 
 Private Property Get MaxWidthMsgArea() As Single
 ' ------------------------------------------------------------------------------
@@ -501,7 +500,7 @@ Private Property Let MonoSpaced( _
                  Optional ByVal var_ctl As Variant, _
                           ByVal b As Boolean)
     If b Then
-        If Not dctMonoSpaced.Exists(var_ctl) Then dctMonoSpaced.Add var_ctl, var_ctl.Name
+        If Not dctMonoSpaced.Exists(var_ctl) Then dctMonoSpaced.Add var_ctl, var_ctl.name
     Else
         If dctMonoSpaced.Exists(var_ctl) Then dctMonoSpaced.Remove var_ctl
     End If
@@ -515,7 +514,7 @@ Private Property Let MonoSpacedTbx( _
                  Optional ByVal tbx As Msforms.TextBox, _
                           ByVal b As Boolean)
     If b Then
-        If Not dctMonoSpacedTbx.Exists(tbx) Then dctMonoSpacedTbx.Add tbx, tbx.Name
+        If Not dctMonoSpacedTbx.Exists(tbx) Then dctMonoSpacedTbx.Add tbx, tbx.name
     Else
         If dctMonoSpacedTbx.Exists(tbx) Then dctMonoSpacedTbx.Remove tbx
     End If
@@ -1169,7 +1168,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -1628,7 +1627,6 @@ Public Sub Setup()
     
     On Error GoTo eh
     Dim BttnsArea       As Msforms.Frame
-    Dim ContentWidth    As Single
     
     CollectDesignControls
     Set BttnsArea = DsgnBttnsArea
@@ -1732,7 +1730,7 @@ Public Sub Setup1_Title( _
         With .laMsgTitle
             With .Font
                 .Bold = False
-                .Name = Me.Font.Name
+                .name = Me.Font.name
                 .Size = 8    ' Value which comes to a length close to the length required
             End With
             .Caption = vbNullString
@@ -1826,9 +1824,9 @@ eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
 Private Sub SetupBttnsFromCollection(ByVal cllButtons As Collection)
-' ---------------------------------------------------------------------
-' Setup the reply buttons based on the comma delimited string of button
-' captions and row breaks indicated by a vbLf, vbCr, or vbCrLf.
+' -------------------------------------------------------------------------------
+' Setup the reply buttons based on the comma delimited string of button captions
+' and row breaks indicated by a vbLf, vbCr, or vbCrLf.
 ' ---------------------------------------------------------------------
     Const PROC = "SetupBttnsFromCollection"
     
@@ -1902,9 +1900,9 @@ Private Sub SetupBttnsFromString(ByVal buttons_string As String)
 End Sub
 
 Private Sub SetupBttnsFromValue(ByVal lButtons As Long)
-' -------------------------------------------------------
+' -------------------------------------------------------------------------------
 ' Setup a row of standard VB MsgBox reply command buttons
-' -------------------------------------------------------
+' -------------------------------------------------------------------------------
     Const PROC = "SetupBttnsFromValue"
     
     On Error GoTo eh
@@ -1970,11 +1968,11 @@ Private Sub SetupButton(ByVal ButtonRow As Long, _
                         ByVal buttonindex As Long, _
                         ByVal buttoncaption As String, _
                         ByVal buttonreturnvalue As Variant)
-' -----------------------------------------------------------------
-' Setup an applied reply buttonindex's (buttonindex) visibility and
-' caption, calculate the maximum buttonindex width and height,
-' keep a record of the setup reply buttonindex's return value.
-' -----------------------------------------------------------------
+' -------------------------------------------------------------------------------
+' Setup an applied reply buttonindex's (buttonindex) visibility and caption,
+' calculate the maximum buttonindex width and height, keep a record of the setup
+' reply buttonindex's return value.
+' -------------------------------------------------------------------------------
     Const PROC = "SetupButton"
     
     On Error GoTo eh
@@ -2000,12 +1998,12 @@ eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
 Private Sub SetupMsgSect(ByVal msg_section As Long)
-' -------------------------------------------------------------
-' Setup a message section with its label when one is specified
-' and return the message's width when greater than any other.
-' Note: All height adjustments except the one for the text box
-'       are done by the SizeAndPosition
-' -------------------------------------------------------------
+' -------------------------------------------------------------------------------
+' Setup a message section with its label when one is specified and return the
+' Message's width when greater than any other.
+' Note: All height adjustments except the one for the text box are done by the
+'       SizeAndPosition
+' -------------------------------------------------------------------------------
     Const PROC = "SetupMsgSect"
     
     On Error GoTo eh
@@ -2036,10 +2034,10 @@ Private Sub SetupMsgSect(ByVal msg_section As Long)
                 .Caption = SectLabel.Text
                 With .Font
                     If SectLabel.MonoSpaced Then
-                        If SectLabel.FontName <> vbNullString Then .Name = SectLabel.FontName Else .Name = DFLT_LBL_MONOSPACED_FONT_NAME
+                        If SectLabel.FontName <> vbNullString Then .name = SectLabel.FontName Else .name = DFLT_LBL_MONOSPACED_FONT_NAME
                         If SectLabel.FontSize <> 0 Then .Size = SectLabel.FontSize Else .Size = DFLT_LBL_MONOSPACED_FONT_SIZE
                     Else
-                        If SectLabel.FontName <> vbNullString Then .Name = SectLabel.FontName Else .Name = DFLT_LBL_PROPSPACED_FONT_NAME
+                        If SectLabel.FontName <> vbNullString Then .name = SectLabel.FontName Else .name = DFLT_LBL_PROPSPACED_FONT_NAME
                         If SectLabel.FontSize <> 0 Then .Size = SectLabel.FontSize Else .Size = DFLT_LBL_PROPSPACED_FONT_SIZE
                     End If
                     If SectLabel.FontItalic Then .Italic = True
@@ -2096,7 +2094,6 @@ Const PROC = "SetupMsgSectMonoSpaced"
     Dim MaxWidthAreaFrame   As Single:          MaxWidthAreaFrame = FormWidthMaxUsable - 4
     Dim MaxWidthSectFrame   As Single:          MaxWidthSectFrame = MaxWidthAreaFrame
     Dim MaxWidthTextFrame   As Single:          MaxWidthTextFrame = MaxWidthSectFrame
-    Dim TextBoxValue        As String
     
     '~~ Keep record of the controls which had been applied
     AppliedControls(msg_section) = AreaFrame
@@ -2108,7 +2105,7 @@ Const PROC = "SetupMsgSectMonoSpaced"
 
     With MsgSectTextBox
         With .Font
-            If MsgSectText.FontName <> vbNullString Then .Name = MsgSectText.FontName Else .Name = DFLT_LBL_MONOSPACED_FONT_NAME
+            If MsgSectText.FontName <> vbNullString Then .name = MsgSectText.FontName Else .name = DFLT_LBL_MONOSPACED_FONT_NAME
             If MsgSectText.FontSize <> 0 Then .Size = MsgSectText.FontSize Else .Size = DFLT_LBL_MONOSPACED_FONT_SIZE
             If .Bold <> MsgSectText.FontBold Then .Bold = MsgSectText.FontBold
             If .Italic <> MsgSectText.FontItalic Then .Italic = MsgSectText.FontItalic
@@ -2185,7 +2182,7 @@ Private Sub SetupMsgSectPropSpaced( _
     
     With MsgSectTextBox
         With .Font
-            If MsgSectText.FontName <> vbNullString Then .Name = MsgSectText.FontName Else .Name = DFLT_LBL_PROPSPACED_FONT_NAME
+            If MsgSectText.FontName <> vbNullString Then .name = MsgSectText.FontName Else .name = DFLT_LBL_PROPSPACED_FONT_NAME
             If MsgSectText.FontSize <> 0 Then .Size = MsgSectText.FontSize Else .Size = DFLT_LBL_PROPSPACED_FONT_SIZE
             If .Bold <> MsgSectText.FontBold Then .Bold = MsgSectText.FontBold
             If .Italic <> MsgSectText.FontItalic Then .Italic = MsgSectText.FontItalic
@@ -2203,7 +2200,7 @@ Private Sub SetupMsgSectPropSpaced( _
     With MsgSectTextBox
         .SelStart = 0
         .Left = HSPACE_LEFT
-        TimedDoEvents ErrSrc(PROC)    ' to properly h-align the text
+        TimedDoEvents    ' to properly h-align the text
     End With
     
     MsgSectTextFrame.Height = MsgSectTextBox.Top + MsgSectTextBox.Height
@@ -2234,8 +2231,6 @@ Private Sub SizeAndPosition1MsgSects()
     Dim MsgSectTextFrame    As Msforms.Frame
     Dim TopForNextControl   As Single
     Dim TopNextSect         As Single
-    Dim ContentHeight       As Single
-    Dim ContentWidth        As Single
     
     TopNextSect = 6
     For i = 1 To cllDsgnMsgSects.Count
@@ -2281,13 +2276,13 @@ Private Sub SizeAndPosition1MsgSects()
                     MsgSect.Height = MsgSectTextFrame.Top + MsgSectTextFrame.Height + ScrollHorizontalHeight(MsgSect)
                 End If
                
-                TimedDoEvents ErrSrc(PROC)    ' to properly h-align the text
+                TimedDoEvents    ' to properly h-align the text
             End If
                         
             '~~ Adjust the section-frame's top position
             With MsgSect
                 .Top = TopNextSect
-                TimedDoEvents ErrSrc(PROC)    ' to properly h-align the text
+                TimedDoEvents    ' to properly h-align the text
                 TopNextSect = VgridPos(.Top + .Height + siVmarginFrames + VSPACE_SECTIONS) ' the next section if any
             End With
 
@@ -2371,8 +2366,6 @@ Private Sub SizeAndPosition2Bttns2Rows()
     Dim siHeight        As Single
     Dim BttnsFrameWidth As Single
     Dim dct             As Dictionary:      Set dct = AppliedBttnRows
-    Dim ContentWidth    As Single
-    Dim ContentHeight   As Single
     
     '~~ Adjust button row's width and height
     siHeight = AppliedButtonRowHeight
@@ -2517,20 +2510,19 @@ eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
 Private Sub UserForm_Activate()
-' ------------------------------------------------------------
-' To avoid screen flicker the setup may has been done already.
-' However for test purpose the Setup may run with the Activate
-' event i.e. the .Show
-' ------------------------------------------------------------
+' -------------------------------------------------------------------------------
+' To avoid screen flicker the setup may has been done already. However for test
+' purpose the Setup may run with the Activate event i.e. the .Show
+' -------------------------------------------------------------------------------
     If Not SetUpDone Then Setup
 End Sub
 
 Public Function VgridPos(ByVal si As Single) As Single
-' --------------------------------------------------------------
+' -------------------------------------------------------------------------------
 ' Returns an integer of which the remainder (Int(si) / 6) is 0.
-' Background: A controls content is only properly displayed
-' when the top position of it is aligned to such a position.
-' --------------------------------------------------------------
+' Background: A controls content is only properly displayed when the top position
+' of it is aligned to such a position.
+' -------------------------------------------------------------------------------
     Dim i As Long
     
     For i = 0 To 6
@@ -2547,7 +2539,7 @@ Public Function VgridPos(ByVal si As Single) As Single
 
 End Function
 
-Public Sub TimedDoEvents(ByVal tde_source As String)
+Public Sub TimedDoEvents()
 
     TimerBegin
     ' Unfortunately the 'way faster DoEvents' method below does not have the desired effect in this module

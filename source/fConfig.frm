@@ -13,7 +13,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 Option Explicit
 
 Private fso                         As New FileSystemObject
@@ -291,7 +290,7 @@ Private Sub tbxFolderExport_AfterUpdate()
     End With
 End Sub
 
-Private Sub TextBoxSingleLine(ByRef tbx As MsForms.TextBox)
+Private Sub TextBoxSingleLine(ByRef tbx As Msforms.TextBox)
     With tbx
          If Len(.Text) = 0 Then Exit Sub
          .Text = Split(.Text, vbLf)(0)

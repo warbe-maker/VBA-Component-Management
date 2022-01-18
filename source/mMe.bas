@@ -22,14 +22,14 @@ Option Private Module
 '                           "Add-Ins" popup menu or executed via the
 '                           VBE when the code of the Addin had been modified
 '                           in its Development instance Workbook.
-' - UpdateUsedCommonComponents         Exclusively performed fro within the Development
+' - UpdateOutdatedCommonComponents         Exclusively performed fro within the Development
 '                           instance Workbook to update its own used Clone
 '                           Components of which the Raw code has changed.
 '                           This service only runs provided the Addin
 '                           instance Workbook is open (see RenewAddIn
 '                           service).
 ' - FolderServiced      When the AddIn is open and not  p a u s e d the
-'                           Workbook_Open service 'UpdateUsedCommonComponents' and the
+'                           Workbook_Open service 'UpdateOutdatedCommonComponents' and the
 '                           Workbook_BeforeSave service 'ExportChangedComponents'
 '                           will be executed for Workbooks calling them under
 '                           the two additional preconditions:
@@ -357,7 +357,13 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub CompManAddinPause()
-    mService.Pause
+' ----------------------------------
+' Pauses the CompMan Addin Services
+' ---------------------------------
+    If mMe.IsDevInstnc Then
+        mConfig.CompManAddinIsPaused = True
+        mMe.DisplayStatus
+    End If
 End Sub
 
 Private Function CompManAddinWrkbkExists() As Boolean
@@ -424,6 +430,10 @@ Dim fso As New FileSystemObject
     DevInstncWorkbookExists = fso.FileExists(DevInstncFullName)
 End Function
 
+Public Property Get CompManAddinIsPaused() As Boolean
+    CompManAddinIsPaused = mConfig.CompManAddinIsPaused
+End Property
+
 Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = False)
     Const PROC = "DisplayStatus"
     
@@ -443,10 +453,10 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
             "(Renew or a Workbook opened which refers to it will open it)"
         Else ' AddIn is setup and open
             wsAddIn.CurrentStatus = "Setup/Renewed and  " & mBasic.Spaced("open!")
-            If mConfig.CompManAddinIsPaused = True Then
+            If CompManAddinIsPaused Then
                 wsAddIn.CurrentStatus = mBasic.Spaced("paused!")
                 wsAddIn.CompManAddInPausedStatus = _
-                "The 'CompMan-Addin' is currently  p a u s e d ! The Workbook_Open service 'UpdateUsedCommonComponents' " & _
+                "The 'CompMan-Addin' is currently  p a u s e d ! The Workbook_Open service 'UpdateOutdatedCommonComponents' " & _
                 "and the Workbook_BeforeSave service 'ExportChangedComponents' will be bypassed " & _
                 "until the Addin is 'continued' again!"
             Else
@@ -459,7 +469,7 @@ Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = Fal
                 "needs to be opened before hand in order to have Common Components updated."
 
                 wsAddIn.CompManAddInPausedStatus = _
-                "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateUsedCommonComponents' and 'ExportChangedComponents'" & vbLf & _
+                "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateOutdatedCommonComponents' and 'ExportChangedComponents'" & vbLf & _
                 "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
                 "1. The Workbook is located in the configured 'Serviced-Development-Root-Folder' which currently is:" & vbLf & _
                 "   '" & mConfig.FolderServiced & "'" & vbLf & _

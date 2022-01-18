@@ -1,9 +1,9 @@
-Attribute VB_Name = "mComCompsHosted"
+Attribute VB_Name = "mComCompsRawsHosted"
 Option Explicit
 ' ---------------------------------------------------------------------------
-' Standard Module mComCompsHosted
+' Standard Module mComCompsRawsHosted
 ' Maintains in a file named ComCompsHosted.dat for each Workbook which hosts
-' at least one Common Component with the following structure:
+' at least one Raw Common Component with the following structure:
 '
 ' [<component-name]
 ' ExpFileFullName=<export-file-full-name>
@@ -16,9 +16,9 @@ Option Explicit
 Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
 Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
 
-Private Property Get ComCompsHostedFile() As String
+Public Property Get ComCompsHostedFileFullName() As String
     Dim wb As Workbook: Set wb = mService.Serviced
-    ComCompsHostedFile = Replace(wb.FullName, wb.Name, "ComCompsHosted.dat")
+    ComCompsHostedFileFullName = Replace(wb.FullName, wb.name, "ComCompsHosted.dat")
 End Property
 
 Public Property Get ExpFileFullName( _
@@ -48,12 +48,12 @@ Private Property Get Value( _
            Optional ByVal pp_value_name As String) As Variant
 ' ----------------------------------------------------------------------------
 ' Returns the value named (pp_value_name) from the section (pp_section) in the
-' file ComCompsHostedFile.
+' file ComCompsHostedFileFullName.
 ' ----------------------------------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    Value = mFile.Value(pp_file:=ComCompsHostedFile _
+    Value = mFile.Value(pp_file:=ComCompsHostedFileFullName _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -71,12 +71,12 @@ Private Property Let Value( _
                     ByVal pp_value As Variant)
 ' ----------------------------------------------------------------------------
 ' Writes the value (pp_value) under the name (pp_value_name) into the
-' ComCompsHostedFile.
+' ComCompsHostedFileFullName.
 ' ----------------------------------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    mFile.Value(pp_file:=ComCompsHostedFile _
+    mFile.Value(pp_file:=ComCompsHostedFileFullName _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -90,7 +90,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Property
 
 Public Function Components() As Dictionary
-    Set Components = mFile.SectionNames(ComCompsFile)
+    Set Components = mFile.SectionNames(ComCompsHostedFileFullName)
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
@@ -123,7 +123,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub Remove(ByVal comp_name As String)
-    mFile.SectionsRemove pp_file:=ComCompsFile _
+    mFile.SectionsRemove pp_file:=ComCompsHostedFileFullName _
                        , pp_sections:=comp_name
 End Sub
 

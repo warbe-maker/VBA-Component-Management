@@ -31,42 +31,47 @@ Public Sub SyncCodeChanges()
     Dim fso         As New FileSystemObject
     Dim vbc         As VBComponent
     Dim sCaption    As String
-    Dim SourceComp  As clsRaw
+    Dim SourceComp  As clsComp
     Dim TargetComp  As clsComp
     
-    For Each vbc In Sync.Source.VBProject.VBComponents
+    For Each vbc In Sync.source.VBProject.VBComponents
 '        If mComp.IsSheetDocMod(vbc) Then GoTo next_vbc
 
-        Set SourceComp = New clsRaw
-        Set SourceComp.Wrkbk = Sync.Source
-        SourceComp.CompName = vbc.Name
-        If Not SourceComp.Exists(Sync.Target) Then GoTo next_vbc
+        Set SourceComp = New clsComp
+        With SourceComp
+            Set .Wrkbk = Sync.source
+            .CompName = vbc.name
+            If Not .Exists(Sync.Target) Then GoTo next_vbc
+        End With
         
         Set TargetComp = New clsComp
-        Set TargetComp.Wrkbk = Sync.Target
-        TargetComp.CompName = vbc.Name
-        SourceComp.CloneExpFileFullName = TargetComp.ExpFileFullName
-        If Not SourceComp.Changed(TargetComp) Then GoTo next_vbc
+        With TargetComp
+            Set .Wrkbk = Sync.Target
+            .CompName = vbc.name
+        End With
+        
+        If Not mService.FilesDiffer(fd_exp_file_1:=SourceComp.ExpFile _
+                                  , fd_exp_file_2:=TargetComp.ExpFile) Then GoTo next_vbc
         
         Stats.Count sic_non_doc_mods_code
         Log.ServicedItem = vbc
         
         If Sync.Mode = Confirm Then
             Sync.ConfInfo = "Changed"
-            sCaption = "Display code changes" & vbLf & vbLf & vbc.Name & vbLf
+            sCaption = "Display code changes" & vbLf & vbLf & vbc.name & vbLf
             If Not Sync.Changed.Exists(sCaption) _
             Then Sync.Changed.Add sCaption, SourceComp
         Else
             Log.ServicedItem = vbc
             If mComp.IsWrkbkDocMod(vbc) Or mComp.IsSheetDocMod(vbc) Then
-                mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
+                mSync.ByCodeLines sync_target_comp_name:=vbc.name _
                                 , wb_source_full_name:=SourceComp.Wrkbk.FullName _
                                 , sync_source_codelines:=SourceComp.CodeLines
                 Log.Entry = "Code updated line-by-line with code from Export-File '" & SourceComp.ExpFileFullName & "'"
             Else
                 mRenew.ByImport rn_wb:=Sync.Target _
-                              , rn_comp_name:=vbc.Name _
-                              , rn_exp_file_full_name:=SourceComp.ExpFileFullName
+                              , rn_comp_name:=vbc.name _
+                              , rn_raw_exp_file_full_name:=SourceComp.ExpFileFullName
                 Log.Entry = "Renewed/updated by import of '" & SourceComp.ExpFileFullName & "'"
             End If
         End If
@@ -97,17 +102,19 @@ Public Sub SyncNew()
     On Error GoTo eh
     Dim fso         As New FileSystemObject
     Dim vbc         As VBComponent
-    Dim SourceComp  As clsRaw
+    Dim SourceComp  As clsComp
     
     With Sync
-        For Each vbc In Sync.Source.VBProject.VBComponents
+        For Each vbc In Sync.source.VBProject.VBComponents
             If vbc.Type = vbext_ct_Document Then GoTo next_vbc
             If vbc.Type = vbext_ct_ActiveXDesigner Then GoTo next_vbc
             
-            Set SourceComp = New clsRaw
-            Set SourceComp.Wrkbk = .Source
-            SourceComp.CompName = vbc.Name
-            If mComp.Exists(.Target, vbc.Name) Then GoTo next_vbc
+            Set SourceComp = New clsComp
+            With SourceComp
+                Set .Wrkbk = Sync.source
+                .CompName = vbc.name
+                If .Exists(Sync.Target) Then GoTo next_vbc
+            End With
             
             '~~ No component exists under the source component's name
             Log.ServicedItem = vbc
@@ -155,8 +162,8 @@ Public Sub SyncObsolete()
             If vbc.Type = vbext_ct_Document Then GoTo next_vbc
             Set TargetComp = New clsComp
             Set TargetComp.Wrkbk = .Target
-            TargetComp.CompName = vbc.Name
-            If TargetComp.Exists(.Source) Then GoTo next_vbc
+            TargetComp.CompName = vbc.name
+            If TargetComp.Exists(.source) Then GoTo next_vbc
             
             Log.ServicedItem = vbc
             Stats.Count sic_non_doc_mod_obsolete

@@ -2,23 +2,41 @@ Attribute VB_Name = "mReg"
 Option Explicit
 ' ----------------------------------------------------------------------------
 ' Standard Module mReg
-' Simplified services for working with the Registry for configuration,
-' initiation or other application values. All services only use the
-' named arguments: reg_key, reg_value_name, reg_value whereby re_key is
-' allways a string which includes the HKEY. The services provided are
-' pretty much the same as for the same purpose when written to a file as
-' section, name=value entries with the great difference that the registry
-' allows any number of "sub-sections".
-' Note: Not as universal as http://www.cpearson.com/excel/registry.htm but
-' by far more simple to be used.
+' Simplified services for working with the Registry within a VB-Project.
+' Typically this will be configuration-, initiation-, or application data
+' stored as values of a certain value name under a key. All services use
+' the named arguments:
+' reg_key           always starts with "HKEY_CURRENT_USER" or
+'                   "HKEY_LOCAL_MACHINE" followed by sub-keys. The reg_key
+'                   may function as the base-key for an application
+' reg_value_name    may be prefixed by sub-keys
+' reg_value         any format and any length. values unable to be stored in
+'                   the registry raise an error
+' The provided services are pretty much the same as for the same purpose
+' when values written by name into a file organized in
+' [section]
+' <value-name>=<value>.
+' The big difference is, that the registry can store any number of sub-key
+' levels ("sub-sections" in File terminology respectively).
+'
+' Note: The services are not as elaborated and universal as provided via
+'       http://www.cpearson.com/excel/registry.htm but by far more simple
+'       and best adapted for the intended purpose.
 '
 ' Public services:
-' Delete        Deletes a key or only a name/value
-' Value-Get     Returns the value of a named entry
-' Value-Let     Writes a provided value under the provided key/name
-' Exists        Returns TRUE when the provided key or name exists
-' Keys
-' Names
+' Delete        Deletes a reg_key with all its sub-keys or only an
+'               optional reg_value_name
+' Value (Get)   Returns the value of an entry idetified by reg_key and
+'               reg_value_namey
+' Value (Let)   Writes a reg_value under the provided reg_value_name under
+'               the provided reg_key
+' Exists        Returns TRUE when the provided reg_key or reg_value_name
+'               exists
+' Keys          Returns a Dictionary with a Dictionary of values as item
+'               and the sub-key as the key (ordered ascending by key)
+' Values        Returns a Dictionary of under a provided key with the
+'               values as item and the valuue-name as the key (ordered
+'               ascending by key)
 '
 ' Requires: Reference to "Microsoft Scripting Runtime"
 '
@@ -65,6 +83,7 @@ Private Const KEY_READ                  As Long = &H20019  ' ((READ_CONTROL Or K
                                                            ' KEY_ENUMERATE_SUB_KEYS Or KEY_NOTIFY) And (Not
                                                            ' SYNCHRONIZE))
 Dim oReg                                As Object
+
                         
 Public Property Get Value( _
                  Optional ByVal reg_key As String, _
@@ -146,6 +165,154 @@ Private Function ArrayIsAllocated(arr As Variant) As Boolean
     
 End Function
 
+Private Sub DctAddAscByKey(ByRef add_dct As Dictionary, _
+                           ByVal add_key As Variant, _
+                           ByVal add_item As Variant)
+' ----------------------------------------------------------------------------
+' Adds to the Dictionary (add_dct) an item (add_item) in ascending order by
+' the key (add_key). When the key is an object with no Name property an error
+' is raised.
+'
+' Note: This is a copy of the DctAdd procedure with fixed options which may be
+'       copied into any VBProject's module in order to have it independant
+'       from this Common Component.
+'
+' W. Rauschenberger, Berlin Jan 2022
+' ----------------------------------------------------------------------------
+    Const PROC = "DctAdd"
+    Dim bDone           As Boolean
+    Dim dctTemp         As Dictionary
+    Dim vItem           As Variant
+    Dim vItemExisting   As Variant
+    Dim vKeyExisting    As Variant
+    Dim vValueExisting  As Variant ' the entry's add_key/add_item value for the comparison with the vValueNew
+    Dim vValueNew       As Variant ' the argument add_key's/add_item's value
+    Dim vValueTarget    As Variant ' the add before/after add_key/add_item's value
+    Dim bStayWithFirst  As Boolean
+    Dim bOrderByItem    As Boolean
+    Dim bOrderByKey     As Boolean
+    Dim bSeqAscending   As Boolean
+    Dim bCaseIgnored    As Boolean
+    Dim bCaseSensitive  As Boolean
+    Dim bEntrySequence  As Boolean
+    
+    On Error GoTo eh
+    
+    If add_dct Is Nothing Then Set add_dct = New Dictionary
+    
+    '~~ Plausibility checks
+    bOrderByItem = False
+    bOrderByKey = True
+    bSeqAscending = True
+    bCaseIgnored = False
+    bCaseSensitive = True
+    bStayWithFirst = True
+    bEntrySequence = False
+    
+    With add_dct
+        '~~ When it is the very first add_item or the add_order option
+        '~~ is entry sequence the add_item will just be added
+        If .Count = 0 Or bEntrySequence Then
+            .Add add_key, add_item
+            GoTo xt
+        End If
+        
+        '~~ When the add_order is by add_key and not stay with first entry added
+        '~~ and the add_key already exists the add_item is updated
+        If bOrderByKey And Not bStayWithFirst Then
+            If .Exists(add_key) Then
+                If VarType(add_item) = vbObject Then Set .Item(add_key) = add_item Else .Item(add_key) = add_item
+                GoTo xt
+            End If
+        End If
+    End With
+        
+    '~~ When the add_order argument is an object but does not have a name property raise an error
+    If bOrderByKey Then
+        If VarType(add_key) = vbObject Then
+            On Error Resume Next
+            add_key.name = add_key.name
+            If Err.Number <> 0 _
+            Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
+        End If
+    ElseIf bOrderByItem Then
+        If VarType(add_item) = vbObject Then
+            On Error Resume Next
+            add_item.name = add_item.name
+            If Err.Number <> 0 _
+            Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
+        End If
+    End If
+    
+    vValueNew = DctAddOrderValue(add_key)
+    
+    With add_dct
+        '~~ Get the last entry's add_order value
+        vValueExisting = DctAddOrderValue(.Keys()(.Count - 1))
+        
+        '~~ When the add_order mode is ascending and the last entry's add_key or add_item
+        '~~ is less than the add_order argument just add it and exit
+        If bSeqAscending And vValueNew > vValueExisting Then
+            .Add add_key, add_item
+            GoTo xt
+        End If
+    End With
+        
+    '~~ Since the new add_key/add_item couldn't simply be added to the Dictionary it will
+    '~~ be inserted before or after the add_key/add_item as specified.
+    Set dctTemp = New Dictionary
+    bDone = False
+    
+    For Each vKeyExisting In add_dct
+        
+        If VarType(add_dct.Item(vKeyExisting)) = vbObject _
+        Then Set vItemExisting = add_dct.Item(vKeyExisting) _
+        Else vItemExisting = add_dct.Item(vKeyExisting)
+        
+        With dctTemp
+            If bDone Then
+                '~~ All remaining items just transfer
+                .Add vKeyExisting, vItemExisting
+            Else
+                vValueExisting = DctAddOrderValue(vKeyExisting)
+            
+                If vValueExisting = vValueNew And bOrderByItem And bSeqAscending And Not .Exists(add_key) Then
+                    If bStayWithFirst Then
+                        .Add vKeyExisting, vItemExisting:   bDone = True ' not added
+                    Else
+                        '~~ The add_item already exists. When the add_key doesn't exist and bStayWithFirst is False the add_item is added
+                        .Add vKeyExisting, vItemExisting:   .Add add_key, add_item:                     bDone = True
+                    End If
+                ElseIf bSeqAscending And vValueExisting > vValueNew Then
+                    .Add add_key, add_item:                     .Add vKeyExisting, vItemExisting:   bDone = True
+                Else
+                    .Add vKeyExisting, vItemExisting ' transfer existing add_item, wait for the one which fits within sequence
+                End If
+            End If
+        End With ' dctTemp
+    Next vKeyExisting
+    
+    '~~ Return the temporary dictionary with the new add_item added and all exiting items in add_dct transfered to it
+    Set add_dct = dctTemp
+    Set dctTemp = Nothing
+
+xt: Exit Sub
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Function DctAddOrderValue(ByVal dctkey As Variant) As Variant
+' ----------------------------------------------------------------------------
+' When key is an object its name becomes the order value else the key as is.
+' ----------------------------------------------------------------------------
+    If VarType(dctkey) = vbObject _
+    Then DctAddOrderValue = dctkey.name _
+    Else DctAddOrderValue = dctkey
+End Function
+
 Public Function Delete(ByVal reg_key As String, _
               Optional ByVal reg_value_name As String = vbNullString) As Boolean
 ' ----------------------------------------------------------------------------
@@ -157,23 +324,19 @@ Public Function Delete(ByVal reg_key As String, _
     On Error GoTo eh
     Dim s       As String
     Dim rString As String
-    Dim wsh     As New wshShell
     Dim sCmd    As String
     
     If reg_value_name <> vbNullString Then
         rString = RegString(reg_key, reg_value_name)
-        If Right(rString, 1) = "\" Then
-            rString = Left(rString, Len(rString) - 1)
-        End If
-        On Error GoTo eh
+        If Right(rString, 1) = "\" _
+        Then rString = Left(rString, Len(rString) - 1)
         CreateObject("WScript.Shell").RegDelete rString ' reg_key & reg_value_name
         Delete = True
     Else
         mReg.DeleteSubKeys reg_key:=reg_key
     End If
     
-xt: Set wsh = Nothing
-    Exit Function
+xt: Exit Function
 
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -496,10 +659,11 @@ Private Function IsValidValue(Optional ByVal reg_value As Variant) As Boolean
     End If
 End Function
 
-Public Function Keys(ByVal reg_key As String) As Collection
+Public Function Keys(ByVal reg_key As String) As Dictionary
 ' ----------------------------------------------------------------------------
-' Returns a collection of all sub-keys under the key (reg_key). When the key
-' does not have sub-keys the returned Collection is empty
+' Returns a Dictionary with all sub-keys under the key (reg_key). The returned
+' Dictionary contains an item for each sub-key under the key with the sub-key
+' as the key and a Dictionary of all values with the Value-Name as the key.
 ' ----------------------------------------------------------------------------
     Dim Computer    As String
     Dim SubKeys()   As Variant
@@ -507,7 +671,6 @@ Public Function Keys(ByVal reg_key As String) As Collection
     Dim HKey        As Long
     Dim oReg        As Object
     
-    Set Keys = New Collection
     If Not mReg.Exists(reg_key) Then GoTo xt
     RegHKey reg_key, HKey ' extract/transform HKey and unstrip it from re_key
     If Right(reg_key, 1) = "\" Then reg_key = Left(reg_key, Len(reg_key) - 1)
@@ -517,7 +680,7 @@ Public Function Keys(ByVal reg_key As String) As Collection
     oReg.EnumKey HKey, reg_key, SubKeys
     If ArrayIsAllocated(SubKeys) Then
         For Each SubKey In SubKeys
-            Keys.Add SubKey
+            DctAddAscByKey add_dct:=Keys, add_key:=SubKey, add_item:=mReg.Values(SubKey)
         Next
     End If
 xt:
@@ -598,13 +761,14 @@ End Function
 Public Function Values(ByVal reg_key As String) As Dictionary
 ' ----------------------------------------------------------------------------
 ' Returns a Dictionary of all values under a given registry key (reg_key)
-' where each entry's key is the value name and the item is the value.
+' where each entry's key is the value name and the item is the value. All
+' value-names are sorted in ascending order.
 ' ----------------------------------------------------------------------------
     Dim dataLen         As Long
     Dim handle          As Long
     Dim Index           As Long
     Dim name            As String
-    Dim ValueNameLength         As Long
+    Dim ValueNameLength As Long
     Dim resLong         As Long
     Dim resString       As String
     Dim RetVal          As Long
@@ -615,32 +779,30 @@ Public Function Values(ByVal reg_key As String) As Dictionary
     
     Set Values = New Dictionary
        
-    ' Open the key, exit if not found.
+    '~~ Open the key, exit if not found.
     RegHKey reg_key, HKey
     If Len(reg_key) Then
         If RegOpenKeyEx(HKey, reg_key, 0, KEY_READ, handle) Then Exit Function
-        ' in all cases, subsequent functions use reg_hkey
-        HKey = handle
+        HKey = handle   ' subsequent functions use reg_hkey
     End If
     
     Do
         ValueNameLength = 260           ' this is the max length for a key name
         name = Space$(ValueNameLength)
-        ' prepare the receiving buffer for the value
+        '~~ prepare the receiving buffer for the value
         dataLen = 4096
         ReDim resBinary(0 To dataLen - 1) As Byte
         
-        ' read the value's name and data
-        ' exit the loop if not found
+        '~~ Read the value's name and data
         RetVal = RegEnumValue(HKey, Index, name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
         
-        ' enlarge the buffer if you need more space
+        '~~ Enlarge the buffer if more space is required
         If RetVal = ERROR_MORE_DATA Then
             ReDim resBinary(0 To dataLen - 1) As Byte
             RetVal = RegEnumValue(HKey, Index, name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
         End If
         
-        If RetVal Then Exit Do              ' exit the loop if any other error (typically, no more values)
+        If RetVal Then Exit Do                      ' exit the loop if any other error (typically, no more values)
         ValueName = Left$(name, ValueNameLength)    ' retrieve the value's name
         
         '~~ Return a value corresponding to the value type
@@ -667,7 +829,7 @@ Public Function Values(ByVal reg_key As String) As Dictionary
             Case Else
                 ' Unsupported value type - do nothing
         End Select
-        Values.Add ValueName, Value
+        DctAddAscByKey add_dct:=Values, add_key:=ValueName, add_item:=Value
         Index = Index + 1
     Loop
    

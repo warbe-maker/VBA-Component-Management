@@ -338,42 +338,6 @@ xt: Set Buttons = cllAdd
 
 End Function
 
-'Public Function ButtonsArray(ByVal msg_buttons As Variant) As Variant
-'' ------------------------------------------------------------------------------
-'' Returns the button captions (msg_buttons) which may be provided as komma
-'' delimited string, array, collection, or Dictionary, as komma delimited string.
-'' ------------------------------------------------------------------------------
-'
-'    Dim va()    As Variant
-'    Dim i       As Long
-'    Dim dct     As Dictionary
-'    Dim cll     As Collection
-'
-'    Debug.Print TypeName(msg_buttons)
-'    Select Case VarType(msg_buttons)
-'        Case vbArray:   ButtonsArray = msg_buttons
-'        Case vbString: ButtonsArray = Split(msg_buttons, ",")
-'        Case Else
-'            Select Case TypeName(msg_buttons)
-'                Case "Dictionary"
-'                    Set dct = msg_buttons
-'                    ReDim va(dct.Count - 1)
-'                    For i = 0 To dct.Count - 1
-'                        va(i) = dct.Items()(i)
-'                    Next i
-'                    ButtonsArray = va
-'                Case "Collection"
-'                    Set cll = msg_buttons
-'                    ReDim va(cll.Count - 1)
-'                    For i = 0 To cll.Count - 1
-'                        va(i) = cll.Item(i + 1)
-'                    Next i
-'                    ButtonsArray = va
-'            End Select
-'    End Select
-'
-'End Function
-
 Public Function ButtonsNumeric(ByVal bn_num_buttons As Long) As Long
 ' -------------------------------------------------------------------------------------
 ' Returns the Buttons argument (bn_num_buttons) with additional options removed.
@@ -432,42 +396,6 @@ xt: Exit Function
 
 eh:
 End Function
-
-'Public Function ButtonsString(ByVal msg_buttons As Variant) As String
-'' ------------------------------------------------------------------------------
-'' Returns the button captions (msg_buttons) which may be provided as komma
-'' delimited string, array, collection, or Dictionary, as komma delimited string.
-'' ------------------------------------------------------------------------------
-'    Const PROC = "ButtonsString"
-'
-'    On Error GoTo eh
-'    Dim v As Variant
-'
-'    Debug.Print TypeName(msg_buttons)
-'
-'    If IsArray(msg_buttons) Then
-'        ButtonsString = Join(msg_buttons, ",")
-'    Else
-'        Select Case VarType(msg_buttons)
-'            Case vbArray
-'                ButtonsString = Split(msg_buttons, ",")
-'            Case vbString
-'            Case Else
-'                Select Case TypeName(msg_buttons)
-'                    Case "Dictionary"
-'                    Case "Collection"
-'                        For Each v In msg_buttons
-'                            ButtonsString = v & ","
-'                        Next v
-'                        ButtonsString = Left(ButtonsString, Len(ButtonsString) - 1)
-'                End Select
-'        End Select
-'    End If
-'
-'xt: Exit Function
-'
-'eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-'End Function
 
 Private Sub ConvertPixelsToPoints(Optional ByVal x_dpi As Single, _
                                   Optional ByVal y_dpi As Single, _
@@ -572,7 +500,7 @@ Public Function Dsply(ByVal dsply_title As String, _
         If dsply_modeless Then
             DisplayDone = False
             .Show vbModeless
-            .Top = 1
+            .top = 1
             .Left = 1
         Else
             .Show vbModal
@@ -610,7 +538,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_number = 0 Then err_number = Err.Number
     If err_line = 0 Then err_line = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
         
@@ -748,7 +676,7 @@ Public Function Monitor( _
     Const PROC = "Monitor"
    
     On Error GoTo eh
-    Dim Msg     As TypeMsg
+    Dim msg     As TypeMsg
     Dim MsgForm As fMsg
 
     AssertWidthAndHeight mntr_width_min _
@@ -757,24 +685,24 @@ Public Function Monitor( _
                        , mntr_height_max
     
     Set MsgForm = MsgInstance(mntr_title)
-    Msg.Section(1).Label.Text = mntr_header
-    Msg.Section(1).Label.MonoSpaced = mntr_msg_monospaced
-    Msg.Section(1).Label.FontBold = True
-    Msg.Section(1).Text.Text = mntr_msg
-    Msg.Section(1).Text.MonoSpaced = mntr_msg_monospaced
+    msg.Section(1).Label.Text = mntr_header
+    msg.Section(1).Label.MonoSpaced = mntr_msg_monospaced
+    msg.Section(1).Label.FontBold = True
+    msg.Section(1).Text.Text = mntr_msg
+    msg.Section(1).Text.MonoSpaced = mntr_msg_monospaced
     
-    Msg.Section(2).Text.Text = mntr_footer
-    Msg.Section(2).Text.FontColor = rgbBlue
-    Msg.Section(2).Text.FontSize = 8
-    Msg.Section(2).Text.FontBold = True
+    msg.Section(2).Text.Text = mntr_footer
+    msg.Section(2).Text.FontColor = rgbBlue
+    msg.Section(2).Text.FontSize = 8
+    msg.Section(2).Text.FontBold = True
     
     If Trim(MsgForm.MsgTitle) <> Trim(mntr_title) Then
         With MsgForm
             '~~ A new title starts a new progress message
             .MsgTitle = mntr_title
-            .MsgLabel(1) = Msg.Section(1).Label
-            .MsgText(1) = Msg.Section(1).Text
-            .MsgText(2) = Msg.Section(2).Text
+            .MsgLabel(1) = msg.Section(1).Label
+            .MsgText(1) = msg.Section(1).Text
+            .MsgText(2) = msg.Section(2).Text
             .MsgButtons = mntr_buttons
             .MsgWidthMin = mntr_width_min   ' pt min width
             .MsgWidthMax = mntr_width_max   ' pt max width
@@ -797,7 +725,7 @@ Public Function Monitor( _
         Application.ScreenUpdating = False
         MsgForm.Monitor mntr_text:=mntr_msg _
                       , mntr_append:=mntr_msg_append _
-                      , mntr_footer:=Msg.Section(2).Text.Text
+                      , mntr_footer:=msg.Section(2).Text.Text
     End If
       
 xt: Exit Function

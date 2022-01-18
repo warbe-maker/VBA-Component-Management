@@ -8,11 +8,11 @@ End Property
 Public Sub ByImport( _
               ByRef rn_wb As Workbook, _
               ByVal rn_comp_name As String, _
-              ByVal rn_exp_file_full_name As String)
+              ByVal rn_raw_exp_file_full_name As String)
 ' -----------------------------------------------------
 ' Renews/replaces the component (rn_comp_name) in
 ' Workbook (rn_wb) by importing the Export-File
-' (rn_exp_file_full_name).
+' (rn_raw_exp_file_full_name).
 ' Note: Because a module cannot be deleted it is
 '       renamed and deleted. The rename puts it out of
 '       the way, deletion is done by the system when
@@ -33,18 +33,20 @@ Public Sub ByImport( _
             '~~ Find a free/unused temporary name
             sTempName = mComp.TempName(tn_wb:=rn_wb, tn_comp_name:=rn_comp_name)
             '~~ Rename the component when it already exists
-            .VBComponents(rn_comp_name).Name = sTempName
+            .VBComponents(rn_comp_name).name = sTempName
             Log.Entry = NowMsec & " '" & rn_comp_name & "' renamed to '" & sTempName & "'"
             .VBComponents.Remove .VBComponents(sTempName) ' will not take place until process has ended!
             Log.Entry = NowMsec & " '" & sTempName & "' removed (may be postponed by the system however)"
         End If
     
         '~~ (Re-)import the component
-        .VBComponents.Import rn_exp_file_full_name
-        Log.Entry = NowMsec & " '" & rn_comp_name & "' (re-)imported from '" & rn_exp_file_full_name & "'"
+        .VBComponents.Import rn_raw_exp_file_full_name
+        Log.Entry = NowMsec & " '" & rn_comp_name & "' (re-)imported from '" & rn_raw_exp_file_full_name & "'"
         Set Comp = New clsComp
-        Set Comp.Wrkbk = rn_wb
-        Comp.CompName = rn_comp_name
+        With Comp
+            Set Comp.Wrkbk = rn_wb
+            .CompName = rn_comp_name
+        End With
         .VBComponents(rn_comp_name).Export Comp.ExpFileFullName
         Log.Entry = NowMsec & " '" & rn_comp_name & "' exported to '" & Comp.ExpFileFullName & "'"
         SaveWbk rn_wb
