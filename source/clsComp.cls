@@ -94,7 +94,7 @@ Private Sub Class_Terminate()
 End Sub
 
 Public Sub RevisionNumberIncrease()
-    mComCompsRawsHosted.RevisionNumberIncrease (sCompName)
+    mComCompsRawsHosted.RawRevisionNumberIncrease (sCompName)
 End Sub
 
 Friend Property Get Changed() As Boolean
@@ -189,7 +189,7 @@ Friend Property Get CodeName( _
 ' ------------------------------------------------------------------------------
     Dim wsh As Worksheet
     For Each wsh In wb.Worksheets
-        If sh.name = scn_name Then
+        If sh.Name = scn_name Then
             CodeName = wsh.CodeName
             Exit For
         End If
@@ -220,7 +220,7 @@ Friend Property Let CompName(ByVal s As String)
                 Case vbext_ct_MSForm:       sExpFileExt = ".frm"
                 Case vbext_ct_Document:     sExpFileExt = ".cls"
             End Select
-            sExpFileFullName = mExport.ExpFileFolderPath(wb) & "\" & vbc.name & sExpFileExt
+            sExpFileFullName = mExport.ExpFileFolderPath(wb) & "\" & vbc.Name & sExpFileExt
         End If
     Else
         Err.Raise AppErr(1), ErrSrc(PROC), "Component Name assigned for a yet unknown Workbook!"
@@ -252,7 +252,7 @@ End Property
 Friend Property Get ExistsBySheetName(Optional ByVal eb_name As String) As Boolean
     Dim ws As Worksheet
     For Each ws In Me.Wrkbk.Worksheets
-        ExistsBySheetName = ws.name = eb_name
+        ExistsBySheetName = ws.Name = eb_name
         If ExistsBySheetName Then Exit For
     Next ws
 End Property
@@ -262,12 +262,12 @@ Friend Property Get ExpFile() As File
     With Me
         If flExpFile Is Nothing Then
             If fso.FileExists(.ExpFileFullName) Then
-                Set flExpFile = GetFile(.ExpFileFullName)
+                Set flExpFile = fso.GetFile(.ExpFileFullName)
             Else
                 '~~ The component apparently has yet no never been exported
                 If Not Me.VBComp Is Nothing Then
                     Me.VBComp.Export .ExpFileFullName
-                    Set flExpFile = GetFile(.ExpFileFullName)
+                    Set flExpFile = fso.GetFile(.ExpFileFullName)
                 End If
             End If
         End If
@@ -313,7 +313,7 @@ Friend Property Get ExpFilesDiffer() As Boolean
 ' Returns TRUE when the Export File of this Used Common Component differs from
 ' the Export File of the corresponding Raw Common Component.
 ' ------------------------------------------------------------------------------
-    ExpFilesDiffer = mService.FilesDiffer(fd_exp_file_1:=Raw.ExpFile _
+    ExpFilesDiffer = mService.FilesDiffer(fd_exp_file_1:=Raw.SavedExpFile _
                                         , fd_exp_file_2:=Me.ExpFile)
 End Property
 
@@ -322,7 +322,7 @@ Friend Property Get ExpFileTempAndRawExpFileDiffers() As Boolean
 ' Returns TRUE when the temporary Export File of this Used Common Component
 ' differs from the Export File of the corresponding Raw Common Component.
 ' ------------------------------------------------------------------------------
-    ExpFileTempAndRawExpFileDiffers = mService.FilesDiffer(fd_exp_file_1:=Raw.ExpFile _
+    ExpFileTempAndRawExpFileDiffers = mService.FilesDiffer(fd_exp_file_1:=Raw.SavedExpFile _
                                                          , fd_exp_file_2:=Me.ExpFileTemp)
 End Property
 
@@ -341,7 +341,7 @@ Friend Property Get RevisionNumbersDiffer() As Boolean
 ' Returns TRUE when the RevisionNumber of the Raw Common Component differs from
 ' the current RevisionNumber of this Used Common Component.
 ' ------------------------------------------------------------------------------
-    RevisionNumbersDiffer = mComCompsRawsSaved.RevisionNumber(sCompName) <> mComCompsUsed.RevisionNumber(sCompName)
+    RevisionNumbersDiffer = mComCompsRawsSaved.RawSavedRevisionNumber(sCompName) <> mComCompsUsed.RevisionNumber(sCompName)
 End Property
 
 
@@ -361,18 +361,31 @@ Friend Property Get ExpFileTempFullName() As String
 ' Returns the name for a temporary Export File with the corresponding temporary
 ' folder already created thereby.
 ' ------------------------------------------------------------------------------
-    With fso
-        If sTmpFolder = vbNullString Then
-            sTmpFolder = mExport.ExpFileFolderPath(wb) & "\Temp"
-        End If
-        If Not .FolderExists(sTmpFolder) Then
-            DoEvents
-            .CreateFolder sTmpFolder
-            DoEvents
-        End If
-        ExpFileTempFullName = sTmpFolder & "\" & Me.CompName & sExpFileExt
-    End With
+    Const PROC = "ExpFileTempFullName-Get"
     
+    On Error GoTo eh
+    If Not wb Is Nothing Then
+        With fso
+            If sTmpFolder = vbNullString Then
+                sTmpFolder = mExport.ExpFileFolderPath(wb) & "\Temp"
+            End If
+            If Not .FolderExists(sTmpFolder) Then
+                DoEvents
+                .CreateFolder sTmpFolder
+                DoEvents
+            End If
+            ExpFileTempFullName = sTmpFolder & "\" & sCompName & sExpFileExt
+        End With
+    Else
+        Err.Raise AppErr(1), ErrSrc(PROC), "Workbook object yet not available for component '" & sCompName & "'!"
+    End If
+    
+xt: Exit Property
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Property
 
 Friend Property Get IsWrkbk() As Boolean
@@ -398,7 +411,7 @@ Friend Property Get KindOfComp() As enKindOfComp
     If lKindOfComp = enKindOfComp.enUnknown Then
         If mComCompsRawsSaved.Exists(sCompName) Then
             '~~ The component is registered in the ComComps-Saved.dat as a known Common Component
-            If mComCompsRawsSaved.HostWbName(comp_name:=sCompName) = Me.Wrkbk.name Then
+            If mComCompsRawsSaved.RawHostWbName(comp_name:=sCompName) = Me.Wrkbk.Name Then
                 '~~ When the registered host is this Component's Workbook the component is regarded
                 '~~ the hosted one else it is a Used Common Component
                 lKindOfComp = enCommCompHosted
@@ -451,18 +464,18 @@ Public Property Get RawChanged() As Boolean
     Const PROC = "RawChanged"
     
     On Error GoTo eh
-    If Me.RevisionNumber < mComCompsRawsSaved.RevisionNumber(sCompName) Then
+    If Me.RevisionNumber < mComCompsRawsSaved.RawSavedRevisionNumber(sCompName) Then
         If Not mService.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
-                              , fd_exp_file_2:=Raw.ExpFile) Then
+                              , fd_exp_file_2:=Raw.SavedExpFile) Then
             '~~ Propably updated already manually 'antidated'
-            mComCompsUsed.RevisionNumber(sCompName) = mComCompsRawsSaved.RevisionNumber(sCompName)
+            mComCompsUsed.RevisionNumber(sCompName) = mComCompsRawsSaved.RawSavedRevisionNumber(sCompName)
         Else
             
             RawChanged = True
         End If
-    ElseIf Me.RevisionNumber = mComCompsRawsSaved.RevisionNumber(sCompName) Then
+    ElseIf Me.RevisionNumber = mComCompsRawsSaved.RawSavedRevisionNumber(sCompName) Then
         If mService.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
-                              , fd_exp_file_2:=Raw.ExpFile) Then
+                              , fd_exp_file_2:=Raw.SavedExpFile) Then
             '~~ it is not the Raw which had changed but the Used Common Component in its Workbook.
             '~~ In order to prevent Used Common Components differ between Workbooks using them
             '~~ and remainin different unrecognized the Raw is indicated changed to enforce
@@ -550,7 +563,7 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
         sService = .GetFileName(wb.Path)
     End With
     For Each vbc In wb.VBProject.VBComponents
-        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.name))
+        lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
     Next vbc
     
 End Property
@@ -597,15 +610,15 @@ Public Sub CopyExportFileToCommonComponentsFolder()
     Dim frxFile         As File
     
     With Me
-        mComCompsRawsSaved.ExpFileFullName(sCompName) = .ExpFileFullName
-        mComCompsRawsSaved.RevisionNumber(sCompName) = mComCompsRawsHosted.RevisionNumber(sCompName)
-        mComCompsRawsSaved.ExpFile(sCompName) = .ExpFile
+        mComCompsRawsSaved.RawExpFileFullName(sCompName) = .ExpFileFullName
+        mComCompsRawsSaved.RawSavedRevisionNumber(sCompName) = mComCompsRawsHosted.RawRevisionNumber(sCompName)
+        mComCompsRawsSaved.SavedExpFile(sCompName) = .ExpFile
     
         '~~ When the Export file has a .frm extension the .frx file neds to be copied too
         If fso.GetExtensionName(.ExpFileFullName) = "frm" Then
             frxFileFullName = Replace(.ExpFileFullName, "frm", "frx")
             Set frxFile = fso.GetFile(frxFileFullName)
-            mComCompsRawsSaved.ExpFile(sCompName) = frxFile
+            mComCompsRawsSaved.SavedExpFile(sCompName) = frxFile
         End If
     End With
 End Sub
@@ -664,7 +677,7 @@ Public Sub IncreaseRevisionNumber()
 ' Increase of the revision number when the hosted Raw Common Component had
 ' been exported because it had changed.
 ' ------------------------------------------------------------------------------
-    mComCompsRawsHosted.RevisionNumberIncrease Me.CompName
+    mComCompsRawsHosted.RawRevisionNumberIncrease Me.CompName
 End Sub
 
 Public Function KoCStrng(ByVal koc As enKindOfComp) As String
@@ -697,18 +710,18 @@ Public Function RemoteSheetExists( _
     Dim vbc As VBComponent
     
     For Each ws In rs_wb.Worksheets
-        If rs_ws_name <> vbNullString And ws.name = rs_ws_name Then
+        If rs_ws_name <> vbNullString And ws.Name = rs_ws_name Then
             Set rs_ws = ws
             If rs_ws_codename = vbNullString Then rs_ws_codename = ws.CodeName
             Exit For
         ElseIf rs_ws_codename <> vbNullString And ws.CodeName = rs_ws_codename Then
             Set rs_ws = ws
-            If rs_ws_name = vbNullString Then rs_ws_name = ws.name
+            If rs_ws_name = vbNullString Then rs_ws_name = ws.Name
         End If
     Next ws
     
     For Each vbc In rs_wb.VBProject.VBComponents
-        If rs_ws_codename <> vbNullString And vbc.name = rs_ws_codename Then
+        If rs_ws_codename <> vbNullString And vbc.Name = rs_ws_codename Then
             Set rs_vbc = vbc
             Exit For
         End If

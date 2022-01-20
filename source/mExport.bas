@@ -46,11 +46,11 @@ Public Sub All()
         lRemaining = lAll
         
         For Each vbc In .VBComponents
-            If Not mService.IsRenamedByCompMan(vbc.name) Then
+            If Not mService.IsRenamedByCompMan(vbc.Name) Then
                 Set Comp = New clsComp
                 With Comp
                     .Wrkbk = mService.Serviced
-                    .CompName = vbc.name
+                    .CompName = vbc.Name
                     '~~ Only export if it is not a component renamed by CompMan which is a left over
                     .Export
                     lExported = lExported + 1
@@ -133,11 +133,11 @@ Public Sub ChangedComponents()
         lRemaining = lAll
         
         For Each vbc In .VBComponents
-            If Not mService.IsRenamedByCompMan(vbc.name) Then
+            If Not mService.IsRenamedByCompMan(vbc.Name) Then
                 Set Comp = New clsComp
                 With Comp
                     Set .Wrkbk = mService.Serviced
-                    .CompName = vbc.name
+                    .CompName = vbc.Name
                     Set .VBComp = vbc
                     Select Case .KindOfComp
                         Case enCommCompHosted
@@ -145,20 +145,20 @@ Public Sub ChangedComponents()
                                 .Export
                                 .RevisionNumberIncrease
                                 .CopyExportFileToCommonComponentsFolder
-                                sExported = sExported & vbc.name & ", "
+                                sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
-                            ElseIf Not mComCompsRawsSaved.ExpFileExists(.CompName) Then
+                            ElseIf Not mComCompsRawsSaved.SavedExpFileExists(.CompName) Then
                                 .CopyExportFileToCommonComponentsFolder ' ensure completenes
                             End If
                         Case enCommCompUsed
                             If UsedCommonComponent(Comp) Then
-                                sExported = sExported & vbc.name & ", "
+                                sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
                             End If
                         Case Else
                             If .Changed Then
                                 .Export
-                                sExported = sExported & vbc.name & ", "
+                                sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
                             End If
                     End Select
@@ -205,7 +205,9 @@ Private Function UsedCommonComponent(ByRef cucc_comp As clsComp) As Boolean
 ' Processes a changed Used Common Component. I.e. a Used Common Component of
 ' which the current code differs from its last Export File.
 ' ----------------------------------------------------------------------------
+    Const PROC = "UsedCommonComponent"
     
+    On Error GoTo eh
     With cucc_comp
         If .Changed Then
             If .RevisionNumber = .Raw.RevisionNumber Then
@@ -219,10 +221,10 @@ Private Function UsedCommonComponent(ByRef cucc_comp As clsComp) As Boolean
                     If .ExpFileTempsDiffer Then
                         CommCompModificationWarning _
                             cmod_comp_name:=.CompName _
-                          , cmod_exp_file_full_name:=.ExpFileTempFullName _
-                          , cmod_raw_exp_file_full_name:=.Raw.ExpFileTempFullName _
+                          , cmod_exp_file_full_name:=.ExpFileTemp.Path _
+                          , cmod_raw_exp_file_full_name:=.Raw.ExpFileTemp.Path _
                           , cmod_diff_message:= _
-                          "The code of the Used Common Component '" & mBasic.Spaced(.CompName) & "' had " & _
+                          "The code of the Used Common Component  " & mBasic.Spaced(.CompName) & "  had " & _
                           "been modified in this Workbook! This modification will be reverted with the next open!"
                     Else
                         '~~ Manually 'antidated' updated. When the open Raw is closed the Expost Files will become identical.
@@ -230,10 +232,10 @@ Private Function UsedCommonComponent(ByRef cucc_comp As clsComp) As Boolean
                 ElseIf .ExpFileTempAndRawExpFileDiffers Then
                     CommCompModificationWarning _
                         cmod_comp_name:=.CompName _
-                      , cmod_exp_file_full_name:=.ExpFileTempFullName _
-                      , cmod_raw_exp_file_full_name:=.Raw.ExpFileFullName _
+                      , cmod_exp_file_full_name:=.ExpFileTemp.Path _
+                      , cmod_raw_exp_file_full_name:=.Raw.SavedExpFile.Path _
                       , cmod_diff_message:= _
-                      "The code of the Used Common Component '" & mBasic.Spaced(.CompName) & "' had " & _
+                      "The code of the Used Common Component  " & mBasic.Spaced(.CompName) & "  had " & _
                       "been modified in this Workbook! This modification will be reverted with the next open!"
                 End If
                 
@@ -244,11 +246,11 @@ Private Function UsedCommonComponent(ByRef cucc_comp As clsComp) As Boolean
                 CommCompModificationWarning _
                     cmod_comp_name:=.CompName _
                   , cmod_exp_file_full_name:=.ExpFileTempFullName _
-                  , cmod_raw_exp_file_full_name:=.Raw.ExpFileFullName _
+                  , cmod_raw_exp_file_full_name:=.Raw.SavedExpFileFullName _
                   , cmod_diff_message:= _
-                  "Attention! The code of the Raw Common Component '" & mBasic.Spaced(.CompName) & "' " & _
+                  "The code of the Raw Common Component  " & mBasic.Spaced(.CompName) & "  " & _
                   "has been modified since the last open of this Workbook. Just in case the code " & _
-                  "of the Used Common Component had also bee3n modified in this Workbook this " & _
+                  "of the Used Common Component had also been modified in this Workbook this " & _
                   "modification will be reverted with the next Workbook open."
             
             ElseIf .RevisionNumber > .Raw.RevisionNumber Then
@@ -264,15 +266,36 @@ Private Function UsedCommonComponent(ByRef cucc_comp As clsComp) As Boolean
             '~~ Even when the Used Common Component not had been changed it may have been exported because of a previous detected change.
             '~~ When the RevisionNumbers are equal and the Export Files differ the Used Common Component must have been changed and
             '~~ this code modification will be reverted with the next Workbook open.
-            CommCompModificationWarning _
-                cmod_comp_name:="" _
-              , cmod_exp_file_full_name:=.ExpFileTempFullName _
-              , cmod_raw_exp_file_full_name:=.Raw.ExpFileFullName _
-              , cmod_diff_message:="Attention! The code of the Used Common Component '" & mBasic.Spaced(.CompName) & "' " & _
-                                   "has been modified!! This modification will be reverted with the next Workbook open."
+            If .RevisionNumber > .Raw.RevisionNumber Then
+                CommCompModificationWarning _
+                    cmod_comp_name:=.CompName _
+                  , cmod_exp_file_full_name:=.ExpFileTempFullName _
+                  , cmod_raw_exp_file_full_name:=.Raw.SavedExpFileFullName _
+                  , cmod_diff_message:= _
+                  "The code of the Raw Common Component  " & mBasic.Spaced(.CompName) & "  " & _
+                  "has been modified since the last open of this Workbook. Just in case the code " & _
+                  "of the Used Common Component had also been modified in this Workbook this " & _
+                  "modification will be reverted with the next Workbook open."
+            ElseIf .RevisionNumber = .Raw.RevisionNumber Then
+                CommCompModificationWarning _
+                    cmod_comp_name:=.CompName _
+                  , cmod_exp_file_full_name:=.ExpFileTempFullName _
+                  , cmod_raw_exp_file_full_name:=.Raw.SavedExpFileFullName _
+                  , cmod_diff_message:= _
+                  "The code of the Used Common Component  " & mBasic.Spaced(.CompName) & "  had " & _
+                  "apparently been modified in this Workbook! This modification will be reverted " & _
+                  "with the next open!" & vbLf & _
+                  "Note: This message is repaeted with each Workbook_BeforeSave."
+            End If
         End If
     End With
 
+xt: Exit Function
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 
@@ -368,6 +391,8 @@ Private Sub CommCompModificationWarning(ByVal cmod_comp_name As String, _
     BttnDsply = "Display" & vbLf & "code difference"
     mMsg.Buttons cllBttns, BttnDsply, vbLf, vbOKOnly
     With msg.Section(1)
+        .Label.Text = "Attention!"
+        .Label.FontColor = rgbRed
         .Text.Text = cmod_diff_message
         .Text.FontColor = rgbRed
     End With
@@ -379,9 +404,9 @@ Private Sub CommCompModificationWarning(ByVal cmod_comp_name As String, _
                               )
             Case BttnDsply
                 mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=cmod_exp_file_full_name _
-                                               , fd_exp_file_left_title:="Used Common Component: '" & cmod_exp_file_full_name & "'" _
-                                               , fd_exp_file_right_full_name:=cmod_raw_exp_file_full_name _
-                                               , fd_exp_file_right_title:="Raw Common Component: '" & cmod_raw_exp_file_full_name & "'"
+                                           , fd_exp_file_left_title:="Used Common Component (" & cmod_exp_file_full_name & ")" _
+                                           , fd_exp_file_right_full_name:=cmod_raw_exp_file_full_name _
+                                           , fd_exp_file_right_title:="Raw Common Component (" & cmod_raw_exp_file_full_name & ")"
     
             Case vbOK: Exit Do
         End Select

@@ -42,12 +42,12 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
                 Log.ServicedItem = vbc
                 If .KindOfComp = enCommCompUsed Then
                     If .Outdated Then
-                        Log.Entry = "Outdated Used Common Component! (Export-Files '" & .ExpFileFullName & "' differs from '" & .Raw.ExpFileFullName & "')"
+                        Log.Entry = "Outdated Used Common Component! (Export-Files '" & .ExpFileFullName & "' differs from '" & .Raw.SavedExpFileFullName & "')"
                         If OutdatedUsedCommonComponentConfirmed(Comp) Then
                             mRenew.ByImport rn_wb:=urc_wb _
                                  , rn_comp_name:=.CompName _
-                                 , rn_raw_exp_file_full_name:=.Raw.ExpFileFullName
-                            Log.Entry = "Used Common Component renewed/updated by (re-)import of the Raw's Export File (" & .Raw.ExpFileFullName & ")"
+                                 , rn_raw_exp_file_full_name:=.Raw.SavedExpFileFullName
+                            Log.Entry = "Used Common Component renewed/updated by (re-)import of the Raw's Export File (" & .Raw.SavedExpFileFullName & ")"
                             .RevisionNumber = .Raw.RevisionNumber
                             Stats.Count sic_used_comm_comp_updated
                             If sUpdated = vbNullString _
@@ -140,7 +140,7 @@ Public Function OutdatedUsedCommonComponentConfirmed(ByRef uo_comp As clsComp) A
                 .Label.FontColor = rgbRed
                 .Text.Text = "It appears that the code of the raw clone used in this Workbook has been modified. This modification will be " & _
                              "reverted with this update. Displaying the difference will be the last chance to modify the raw component in its " & _
-                             "hosting Workbook (" & mComCompsRawsSaved.HostWbFullName(uo_comp.CompName) & ")."
+                             "hosting Workbook (" & mComCompsRawsSaved.RawHostWbFullName(uo_comp.CompName) & ")."
             Else
                 .Text.Text = vbNullString
             End If
@@ -159,8 +159,8 @@ Public Function OutdatedUsedCommonComponentConfirmed(ByRef uo_comp As clsComp) A
                 Case sBttnDsplyChanges: mService.ExpFilesDiffDisplay _
                                             fd_exp_file_left_full_name:=.ExpFileFullName _
                                           , fd_exp_file_left_title:="Used Common Component: '" & .ExpFileFullName & "'" _
-                                          , fd_exp_file_right_full_name:=.Raw.ExpFileFullName _
-                                          , fd_exp_file_right_title:="Raw Common Component: '" & .Raw.ExpFileFullName & "'"
+                                          , fd_exp_file_right_full_name:=.Raw.SavedExpFileFullName _
+                                          , fd_exp_file_right_title:="Raw Common Component: '" & .Raw.SavedExpFileFullName & "'"
             End Select
         End With
     Loop

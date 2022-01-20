@@ -171,7 +171,7 @@ End Function
 '            mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=.ExpFileFullName _
 '                                       , fd_exp_file_right_full_name:=sExpFileRaw _
 '                                       , fd_exp_file_left_title:="Clone (used) Common Component code in Workbook/VBProject " & Comp.WrkbkBaseName & " (" & .ExpFileFullName & ")" _
-'                                       , fd_exp_file_right_title:="Raw (hosted) Common Component code in Workbook/VBProject " & mBasic.BaseName(mComCompsRawsSaved.HostWbFullName(.CompName)) & " (" & sExpFileRaw & ")"
+'                                       , fd_exp_file_right_title:="Raw (hosted) Common Component code in Workbook/VBProject " & mBasic.BaseName(mComCompsRawsSaved.RawHostWbFullName(.CompName)) & " (" & sExpFileRaw & ")"
 '
 '        Else
 '            mMsg.Box box_title:="Not a known 'Common Component'!" _
@@ -196,7 +196,7 @@ Private Sub DetermineTraceLogFolder(ByVal dt_wb As Workbook)
 ' by the way suspends the display of the trace result.
 ' --------------------------------------------------------------------------
     If mMe.IsDevInstnc _
-    Then mTrc.TraceLogFile = Replace(dt_wb.FullName, dt_wb.name, "CompMan.Trace.log") _
+    Then mTrc.TraceLogFile = Replace(dt_wb.FullName, dt_wb.Name, "CompMan.Trace.log") _
     Else mTrc.TraceLogFile = mConfig.FolderAddin & "\CompManAdmin\CompMan.Service.log"
 End Sub
 
@@ -306,7 +306,7 @@ Public Function ExportChangedComponents( _
         Set Log = New clsLog
         Set mService.Serviced = ec_wb
         If mService.Denied(PROC) Then GoTo xt
-        mCompMan.ManageRawCommonComponentsProperties ec_hosted
+'        mCompMan.ManageRawCommonComponentsProperties ec_hosted
         
         mService.ExportChangedComponents ec_hosted
         ExportChangedComponents = True
@@ -328,6 +328,8 @@ End Sub
 
 Public Sub ManageRawCommonComponentsProperties(ByVal mh_hosted As String)
 ' ----------------------------------------------------------------------------
+' Manages all aspects of Raw/Hosted Common Components which includes the
+' copies of the Export File in the Common Components Folder.
 ' - Registers a Workbook as 'Raw-Host' when it claims hosting at least one
 '   Common Component (mh_wb)
 ' - Registers for each hosted 'Raw Common Component':
@@ -350,6 +352,8 @@ Public Sub ManageRawCommonComponentsProperties(ByVal mh_hosted As String)
     Dim Comp            As clsComp
     Dim sHosted         As String
     Dim sHostBaseName   As String
+    Dim UsedExpFile     As File
+    Dim RawExpFile      As File
     
     mBasic.BoP ErrSrc(PROC)
     sHostBaseName = fso.GetBaseName(mService.Serviced.FullName)
@@ -358,41 +362,74 @@ Public Sub ManageRawCommonComponentsProperties(ByVal mh_hosted As String)
                     
     If HostedRaws.Count <> 0 Then
         For Each v In HostedRaws
-            If Not mComCompsRawsHosted.Exists(raw_comp_name:=v) Then
-                '~~ Register the component as a 'Hosted Common Component'
-                mComCompsRawsHosted.RevisionNumberIncrease (v) ' this will initially set it
+            If Not mComCompsRawsHosted.Exists(v) Then
+                '~~ Initially register the component as a 'Hosted Raw Common Component'
+                mComCompsRawsHosted.RawRevisionNumberIncrease v     ' this will initially set it
             End If
-            If Not mComCompsRawsSaved.Exists(raw_comp_name:=v) Then
-                '~~ Keep a record in the ComComps-RawsSaved.dat file for each of the VBComponents hosted by this Workbook
-                '~~ Note: The RevisionNumber is updated whenever the modified raw is exported
-                mComCompsRawsSaved.HostWbFullName(comp_name:=v) = mService.Serviced.FullName
-                mComCompsRawsSaved.HostWbName(comp_name:=v) = mService.Serviced.name
-                mComCompsRawsSaved.HostWbBaseName(comp_name:=v) = fso.GetBaseName(mService.Serviced.FullName)
+            If Not mComCompsRawsSaved.Exists(v) Then
+                '~~ Initially registers the Common Component in the ComComps-RawsSaved.dat file
+                '~~ Note: The Raw's Revision Number is updated whenever the raw is exported because it had been modified
+                mComCompsRawsSaved.RawHostWbFullName(v) = mService.Serviced.FullName
+                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.Name
+                mComCompsRawsSaved.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
                 Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
-            ElseIf StrComp(mComCompsRawsSaved.HostWbFullName(comp_name:=v), mService.Serviced.FullName, vbTextCompare) <> 0 _
-                Or StrComp(mComCompsRawsSaved.HostWbName(comp_name:=v), mService.Serviced.name, vbTextCompare) <> 0 Then
-                '~~ Keep the hosted raw's properties in the ComComps-RawsSaved.dat up-to-date
+            ElseIf StrComp(mComCompsRawsSaved.RawHostWbFullName(v), mService.Serviced.FullName, vbTextCompare) <> 0 _
+                Or StrComp(mComCompsRawsSaved.RawHostWbName(v), mService.Serviced.Name, vbTextCompare) <> 0 Then
+                '~~ Update the properties when they had changed - which may happen when the Raw Common Component's
+                '~~ host has changed
                 '~~ Note: The RevisionNumber is updated whenever the modified raw is exported
-                mComCompsRawsSaved.HostWbFullName(comp_name:=v) = mService.Serviced.FullName
-                mComCompsRawsSaved.HostWbName(comp_name:=v) = mService.Serviced.name
-                mComCompsRawsSaved.HostWbBaseName(comp_name:=v) = fso.GetBaseName(mService.Serviced.FullName)
-                Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
+                mComCompsRawsSaved.RawHostWbFullName(v) = mService.Serviced.FullName
+                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.Name
+                mComCompsRawsSaved.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
+                Log.Entry = "Raw Common Component '" & v & "' hosted changed properties updated"
             End If
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = mService.Serviced
                 .CompName = v
                 If Not fso.FileExists(.ExpFileFullName) Then
-                    '~~ Just in case its a new VBComponent claimed by the host Workbook a Raw Common Component
+                    '~~ Initially export the new Common Component claimed being hosted in this Workbook
                     .VBComp.Export .ExpFileFullName
                 End If
-                If mComCompsRawsSaved.ExpFileFullName(v) = vbNullString Then
-                    '~~ The component is yet not registered or registered under an outdated location
-                    mComCompsRawsSaved.ExpFileFullName(v) = .ExpFileFullName
-                ElseIf mService.FilesDiffer(fd_exp_file_1:=.ExpFile _
-                                          , fd_exp_file_2:=mComCompsRawsSaved.ExpFile(.CompName)) Then
-                    '~~ Make sure the most up-to-date Export File has been copied to the Common Components Folder
-                    .CopyExportFileToCommonComponentsFolder
+                mComCompsRawsHosted.RawExpFileFullName(v) = .ExpFileFullName ' in any case update the Export File name
+                If mService.FilesDiffer(fd_exp_file_1:=.ExpFile _
+                                          , fd_exp_file_2:=mComCompsRawsSaved.SavedExpFile(v)) Then
+                    '~~ Attention! This is a cruical issue which shold never be the case. However, when different
+                    '~~ computers/users are involved in the development process ...
+                    '~~ Instead of simply updating the saved raw Export File better have carefully checked the case
+                    If mComCompsRawsSaved.RawSavedRevisionNumber(v) = mComCompsRawsHosted.RawRevisionNumber(v) Then
+                        If SavedRawInconsitencyWarning _
+                           (sri_comp_name:=v _
+                          , sri_raw_exp_file_full_name:=.ExpFile.Path _
+                          , sri_saved_exp_file_full_name:=mComCompsRawsSaved.SavedExpFile(v).Path _
+                          , sri_diff_message:="While the Revision Number of the 'Hosted Raw'  " & mBasic.Spaced(v) & "  is identical with the " & _
+                                              "'Saved Raw' their Export Files are different. Compared were:" & vbLf & _
+                                              "Hosted Raw Export File = " & .ExpFile.Path & vbLf & _
+                                              "Saved Raw Export File  = " & mComCompsRawsSaved.SavedExpFile(v).Path & vbLf & _
+                                              "whereby any empty code lines and case differences had been ignored. " & _
+                                              "The difference thus really matters!" _
+                           ) Then
+                            .CopyExportFileToCommonComponentsFolder
+                        End If
+                    ElseIf mComCompsRawsSaved.RawSavedRevisionNumber(v) <> mComCompsRawsHosted.RawRevisionNumber(v) Then
+                        If SavedRawInconsitencyWarning _
+                           (sri_comp_name:=v _
+                          , sri_raw_exp_file_full_name:=.ExpFile.Path _
+                          , sri_saved_exp_file_full_name:=mComCompsRawsSaved.SavedExpFile(v).Path _
+                          , sri_diff_message:="The 'Revision Number' of the 'Hosted Raw Common Component's Export File' and the " & _
+                                              "the 'Saved Raw's Export File' differ:" & vbLf & _
+                                              "Hosted Raw = " & mComCompsRawsHosted.RawRevisionNumber(v) & vbLf & _
+                                              "Saved Raw  = " & mComCompsRawsSaved.RawSavedRevisionNumber(v) & vbLf & _
+                                              "and also the Export Files differ. Compared were:" & vbLf & _
+                                              "Hosted Raw = " & .ExpFile.Path & vbLf & _
+                                              "Saved Raw  = " & mComCompsRawsSaved.SavedExpFile(v).Path & vbLf & _
+                                              "whereby any empty code lines and case differences had been ignored. " & _
+                                              "The difference thus really matters! Updating is not at all " & _
+                                              "recommendable before the issue had been clarified." _
+                           ) Then
+                            .CopyExportFileToCommonComponentsFolder
+                        End If
+                    End If
                 End If
             End With
             Set Comp = Nothing
@@ -406,7 +443,7 @@ Public Sub ManageRawCommonComponentsProperties(ByVal mh_hosted As String)
         '~~ Common Component has ended. The entry will be removed when it still points to this
         '~~ Workbook. When it points to another one it appears to have been moved alrerady.
         For Each v In mComCompsRawsSaved.Components
-            If StrComp(mComCompsRawsSaved.HostWbFullName(comp_name:=v), mService.Serviced.FullName, vbTextCompare) = 0 Then
+            If StrComp(mComCompsRawsSaved.RawHostWbFullName(comp_name:=v), mService.Serviced.FullName, vbTextCompare) = 0 Then
                 mComCompsRawsSaved.Remove comp_name:=v
                 Log.Entry = "Component no longer hosted in '" & mService.Serviced.FullName & "' removed from '" & mComCompsRawsSaved.ComCompsSavedFileFullName & "'"
             End If
@@ -422,6 +459,71 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Private Function SavedRawInconsitencyWarning(ByVal sri_comp_name As String, _
+                                        ByVal sri_raw_exp_file_full_name, _
+                                        ByVal sri_saved_exp_file_full_name, _
+                                        ByVal sri_diff_message) As Boolean
+' ----------------------------------------------------------------------------
+' Displays an information about a modification of a Used Common Component.
+' The disaplay offers the option to display the code difference.
+' Returns TRUE only when the reply is "go ahead, update anyway"
+' ----------------------------------------------------------------------------
+    Const PROC = "SavedRawInconsitencyWarning"
+    
+    On Error GoTo eh
+    Dim msg         As mMsg.TypeMsg
+    Dim cllBttns    As Collection
+    Dim BttnDsply   As String
+    Dim BttnSkip    As String
+    Dim BttnAnyway  As String
+    
+    BttnDsply = "Display code difference" & vbLf & "between hosted and saved" & vbLf & "Export Files"
+    BttnSkip = "Do not update!" & vbLf & "further investigation" & vbLf & "is required"
+    BttnAnyway = "I know the reason!" & vbLf & "go ahead updating" & vbLf & "(not recommended!)"
+    
+    mMsg.Buttons cllBttns, BttnDsply, vbLf, BttnAnyway, vbLf, BttnSkip
+    With msg.Section(1)
+        With .Label
+            .Text = "Attention!"
+            .FontColor = rgbRed
+        End With
+        With .Text
+            .Text = sri_diff_message
+            .FontColor = rgbRed
+        End With
+    End With
+    With msg.Section(2)
+        .Label.Text = "Background:"
+        .Text.Text = "When a Raw Common Component is modified within its hosting Workbook it is not only exported. " & _
+                     "Its 'Revision Number' is increased and the 'Export File' is copied into the 'Common Components' " & _
+                     "folder while the 'Revision Number' is updated in the 'ComComps-RawsSaved.dat' file in the " & _
+                     "'Common Components' folder. Thus, the Raw's Export File and the copy of it as the 'Revision Number' " & _
+                     "are always identical. In case not, something is seriously corrupted."
+    End With
+        
+    Do
+        Select Case mMsg.Dsply(dsply_title:="Serious inconsistency warning!" _
+                             , dsply_msg:=msg _
+                             , dsply_buttons:=cllBttns _
+                              )
+            Case BttnDsply
+                mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=sri_raw_exp_file_full_name _
+                                               , fd_exp_file_left_title:="Raw Common Component's Export File: (" & sri_raw_exp_file_full_name & ")" _
+                                               , fd_exp_file_right_full_name:=sri_saved_exp_file_full_name _
+                                               , fd_exp_file_right_title:="Saved Raw's Export File (" & sri_saved_exp_file_full_name & ")"
+            Case BttnSkip:      SavedRawInconsitencyWarning = False:    Exit Do
+            Case BttnAnyway:    SavedRawInconsitencyWarning = True:     Exit Do
+        End Select
+    Loop
+
+xt: Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
 
 Public Sub SynchTargetWbWithSourceWb( _
                                ByRef wb_target As Workbook, _
@@ -487,7 +589,7 @@ Public Function UpdateOutdatedCommonComponents( _
         '~~ The serviced Workbook is located outside the serviced folder
         UpdateOutdatedCommonComponents = AppErr(2)
         
-    ElseIf mMe.IsDevInstnc And uo_wb.name = mMe.DevInstncName Then
+    ElseIf mMe.IsDevInstnc And uo_wb.Name = mMe.DevInstncName Then
         '~~ The servicing and the serviced Workbook are both the 'CompMan Development Instance'
         '~~ This is the case when either no CompMan-Addin-Instance is available or it is currently paused
         UpdateOutdatedCommonComponents = AppErr(3)
@@ -569,7 +671,7 @@ Public Function WbkIsOpen( _
         WbkIsOpen = Err.Number = 0
     Else
         On Error Resume Next
-        io_name = Application.Workbooks(io_name).name
+        io_name = Application.Workbooks(io_name).Name
         WbkIsOpen = Err.Number = 0
     End If
 

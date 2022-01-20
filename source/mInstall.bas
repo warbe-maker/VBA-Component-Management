@@ -49,7 +49,7 @@ Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
             Case Else
                 mRenew.ByImport rn_wb:=ic_wb _
                               , rn_comp_name:=vReply _
-                              , rn_raw_exp_file_full_name:=mComCompsRawsSaved.ExpFileFullName(vReply)
+                              , rn_raw_exp_file_full_name:=mComCompsRawsSaved.SavedExpFileFullName(vReply)
         End Select
     Loop
 xt: Exit Sub

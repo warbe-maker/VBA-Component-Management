@@ -74,7 +74,7 @@ Option Explicit
 '            Stats.Count sic_used_comm_comps
 '            '~~ This is a Raw-Component's Clone-Component
 '            Set RawComp = New clsRaw
-'            RawComp.HostWrkbkFullName = mComCompsRawsSaved.HostWbFullName(comp_name:=.CompName)
+'            RawComp.HostWrkbkFullName = mComCompsRawsSaved.RawHostWbFullName(comp_name:=.CompName)
 '            RawComp.CompName = .CompName
 '            RawComp.ExpFileExt = .ExpFileExt
 '            RawComp.CloneExpFileFullName = .ExpFileFullName

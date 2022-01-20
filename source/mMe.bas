@@ -7,35 +7,39 @@ Option Private Module
 '                       and the development instance.
 '
 ' Public services:
-' - CompManAddinIsOpen      Returns True when the AddIn instance Workbook is
-'                           open
-' - FolderAddin      Get/Let the configured path for the AddIn
-'                           instance of this Workbook
-' - CfgAsserted             Returns True when the required properties
-'                           (the paths) are configured and exist
-' - ControlItemRenewAdd     Used when the development and test instance
-'                           Workbook is opened to add a RenewAddIn control
-'                           item to the "Add-Ins" poupup menu.
-' - ControlItemRenewRemove  Used when the development and test instance
-'                           Workbook is closed.
-' - RenewAddIn              Called via the RenewAddIn control item in the
-'                           "Add-Ins" popup menu or executed via the
-'                           VBE when the code of the Addin had been modified
-'                           in its Development instance Workbook.
-' - UpdateOutdatedCommonComponents         Exclusively performed fro within the Development
-'                           instance Workbook to update its own used Clone
-'                           Components of which the Raw code has changed.
-'                           This service only runs provided the Addin
-'                           instance Workbook is open (see RenewAddIn
-'                           service).
-' - FolderServiced      When the AddIn is open and not  p a u s e d the
-'                           Workbook_Open service 'UpdateOutdatedCommonComponents' and the
-'                           Workbook_BeforeSave service 'ExportChangedComponents'
-'                           will be executed for Workbooks calling them under
-'                           the two additional preconditions:
-'                           1. The Conditional Compile Argument CompMan = 1"
-'                           2. The Workbook is located in the configured
-'                              'Serviced Development Root'
+' - CompManAddinIsOpen             Returns True when the 'AddIn Instance'
+'                                  Workbook is open
+' - FolderAddin                    Get/Let the configured path for the 'AddIn
+'                                  Instance' of this Workbook
+' - CfgAsserted                    Returns True when the required properties
+'                                  (the paths) are configured and exist
+' - ControlItemRenewAdd            Adds a 'RenewAddIn' control item to the
+'                                  'Add-Ins' poupup menu.
+' - ControlItemRenewRemove         Removes the 'RenewAddIn' control item
+'                                  from the 'Add-Ins' poupup menu when the
+'                                  Workbook is closed.
+' - RenewAddIn                     Called via the 'RenewAddIn' control item
+'                                  in the 'Add-Ins' popup menu or executed
+'                                  via the corresponding Command Button at
+'                                  the 'Manage CompMan Addin' Worksheet.
+' - UpdateOutdatedCommonComponents Updates any outdated Used Common Component
+'                                  by means of the Raw's Export File which
+'                                  had been saved to the Common Components
+'                                  folder. Because a Workbook cannot update
+'                                  its own components the Development
+'                                  instance Workbook requires an active
+'                                  'Addin Instance' to get its outdated Used
+'                                  Common Components updated. For any other
+'                                  Workbook the service can be provided by
+'                                  the open 'Development Instance'.
+' - FolderServiced                 When the AddIn is open and not  p a u s e d the
+'                                  Workbook_Open service 'UpdateOutdatedCommonComponents' and the
+'                                  Workbook_BeforeSave service 'ExportChangedComponents'
+'                                  will be executed for Workbooks calling them under
+'                                  the two additional preconditions:
+'                                  1. The Conditional Compile Argument CompMan = 1"
+'                                  2. The Workbook is located in the configured
+'                                 'Serviced Development Root'
 ' Uses Common Components:
 ' - mFile                   Get/Let PrivateProperty value service
 ' - mWrkbk                  GetOpen and Opened service
@@ -156,7 +160,7 @@ Private Property Get CompManCfgFileName() As String
 '       knowing the location it is finally copied to.
 ' ------------------------------------------------------------------------
     Dim fso As New FileSystemObject
-    Select Case fso.GetExtensionName(ThisWorkbook.name)
+    Select Case fso.GetExtensionName(ThisWorkbook.Name)
         Case "xlam"
             '~~ When the CompMan-Addin requests the CompMan.cfg file
             '~~ it is the one which resides in the 'CompManAdmin' sub-folder
@@ -340,7 +344,7 @@ Public Function CompManAddinIsOpen() As Boolean
     
     CompManAddinIsOpen = False
     For i = 1 To Application.AddIns2.Count
-        If Application.AddIns2(i).name = CompManAddinName Then
+        If Application.AddIns2(i).Name = CompManAddinName Then
             On Error Resume Next
             Set wbTarget = Application.Workbooks(CompManAddinName)
             CompManAddinIsOpen = Err.Number = 0
@@ -658,9 +662,9 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         For Each v In dct
             Set wb = dct.Item(v)
             For Each ref In wb.VBProject.References
-                If InStr(ref.name, fso.GetBaseName(CompManAddinName)) <> 0 Then
+                If InStr(ref.Name, fso.GetBaseName(CompManAddinName)) <> 0 Then
                     dctAddInRefs.Add wb, ref
-                    sWbs = wb.name & ", " & sWbs
+                    sWbs = wb.Name & ", " & sWbs
                 End If
             Next ref
         Next v
@@ -845,9 +849,9 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
             Set wb = Application.Workbooks.Open(CompManAddinFullName)
             If Err.Number = 0 Then
                 With New FileSystemObject
-                    sBaseAddinName = .GetBaseName(wb.name)
-                    sBaseDevName = .GetBaseName(ThisWorkbook.name)
-                    wb.VBProject.name = sBaseAddinName
+                    sBaseAddinName = .GetBaseName(wb.Name)
+                    sBaseDevName = .GetBaseName(ThisWorkbook.Name)
+                    wb.VBProject.Name = sBaseAddinName
                 End With
                 mMe.RenewLogResult() = "Passed"
                 Renew_8_OpenAddinInstncWorkbook = True
@@ -881,7 +885,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     For Each v In dctAddInRefs
         Set wb = v
         wb.VBProject.References.AddFromFile CompManAddinFullName
-        sWbs = wb.name & ", " & sWbs
+        sWbs = wb.Name & ", " & sWbs
         bOneRestored = True
     Next v
     
@@ -918,7 +922,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             
             If Not mCompMan.WbkIsOpen(io_name:=DevInstncName) _
             Then Stop _
-            Else wbDevlp.VBProject.name = fso.GetBaseName(DevInstncName)
+            Else wbDevlp.VBProject.Name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
                 mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ") failed!" _

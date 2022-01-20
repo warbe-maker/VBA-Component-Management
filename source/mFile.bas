@@ -15,30 +15,35 @@ Option Private Module
 ' - Delete          Deletes a file provided either as object or as full name
 ' - Extension       Returns the extension of a file's name
 ' - GetFile         Returns a file object for a given name
-' - Arry            From/to file. Get the content of a text file as an arry
+' - Arry        Get Returns the content of a text file as an array
+'               Let Writes a text file from the content of an array
 '                   of records(lines, Write an array of text to a file.
 ' - SectionNames    Returns a Dictionary of all section names
 '                   [.....] in a file.
-' - Sections        Returns named - or if no names are provideds all - sections
-'                   as Dictionary. The Dictionary contains for each section a
-'                   Dictionary with the name as key and the value as item
-'                   (see ValueNames)
-' - SectionsRemove  Removes the sections provided via their name. When no section
-'                   names are provided (pp_sections) none are removed.
-' - Txt             Get th content of a text file as string or write
-'                   a string to a file - optionally appended
-' - Value           Reads a named value from or writes a named value to a file
-' - ValueNames      Returns a Dictionary of all named sections in a file with the value
-'                   name as key and the value as item, in ascending order by the names.
-'                   Section names may be provided as a comma delimited string of names,
-'                   as a Dictionary or Collection of names. When no section names
-'                   are provided all unique! value names of all sections are returned.
-'                   Of duplicate names the value will be of the first one found.
-' - Values          Returns a Dictionary with value as key and value name(s) in a
-'                   Collection as item. When no section names are provided the values
-'                   of all sections are returned. Section names may be provided as a
-'                   comma delimited string of names, or a Collection or Dictionary of
-'                   section name (items).
+' - Sections    Get Returns named - or if no names are provideds all -
+'                   sections as Dictionary with the section name as the key
+'                   and the Values Dictionary as item
+'               Let Writes all sections provided as a Dictionary (as above)
+' - SectionsRemove  Removes the sections provided via their name. When no
+'                   section names are provided (pp_sections) none are
+'                   removed.
+' - Txt         Get Returns the content of a text file as text string
+'               Let Writes a string to a file - optionally appended
+' - Value       Get Reads a named value from a file
+'               Let Writes a named value to a file
+' - ValueNames      Returns a Dictionary of all named sections in a file with
+'                   the value name as key and the value as item, in ascending
+'                   order by the names. Section names may be provided as a
+'                   comma delimited string of names, as a Dictionary or
+'                   Collection of names. When no section names are provided
+'                   all unique! value names of all sections are returned. For
+'                   duplicate names the value of the first one is returned.
+' - Values          Returns a Dictionary with Value-Name as the key and the
+'                   Value as the item When no section name(s) are provided
+'                   the values of all sections are returned. Section names
+'                   may be provided as a comma delimited string of names, or
+'                   a Collection or Dictionary of section names (items).
+'
 ' Uses:             No other components (mErH and mMsg/fMsg are optional)
 '
 ' Requires: Reference to "Microsoft Scripting Runtine"
@@ -574,6 +579,8 @@ Public Property Let Value( _
                "Value      = '" & CStr(pp_value) & "'" & vbLf & _
                "Value file = '" & pp_file & "'"
     End If
+    
+'    If bNewSection Or bNewName Then mFile.SectionsReorg sr_file:=pp_file
 
 xt: Exit Property
 
@@ -819,6 +826,67 @@ End Function
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mFile." & sProc
 End Function
+
+Public Sub SectionsReorg(Optional ByVal sr_file As Variant = Nothing, _
+                         Optional ByVal sr_section As String = vbNullString)
+' ----------------------------------------------------------------------------
+' Reorganizes all sections in file (sr_file) - when not provided selectied)
+' by rewriting them all including the value names in ascending order.
+' Constraint: The file must not contain any comment lines othe than at the top
+'             of all sections.
+' ----------------------------------------------------------------------------
+    Const PROC = "SectionsReorg"
+    
+    On Error GoTo eh
+    Dim vSection    As Variant
+    Dim Section     As String
+    Dim dctSections As Dictionary
+    Dim fl          As File
+    Dim dctValues   As Dictionary
+    Dim vValue      As Variant
+    Dim fso         As New FileSystemObject
+    
+    If sr_file Is Nothing Then
+        mFile.SelectFile sel_result:=fl
+        If fl Is Nothing Then GoTo xt
+    ElseIf TypeName(sr_file) = "File" Then
+        If sr_file Is Nothing Then
+            mFile.SelectFile sel_result:=fl
+            If fl Is Nothing Then GoTo xt
+        Else
+            Set fl = sr_file
+        End If
+    ElseIf TypeName(sr_file) = "String" Then
+        If sr_file = vbNullString Then
+            mFile.SelectFile sel_result:=fl
+        Else
+            If fso.FileExists(sr_file) Then
+                Set fl = fso.GetFile(sr_file)
+            Else
+                mFile.SelectFile sel_result:=fl
+                If fl Is Nothing Then GoTo xt
+            End If
+        End If
+    End If
+        
+    Set dctSections = Sections(pp_file:=fl.Path)
+    For Each vSection In dctSections
+        Section = vSection
+        Set dctValues = dctSections(vSection)
+        
+        mFile.SectionsRemove fl.Path, Section
+        For Each vValue In dctValues
+            mFile.Value(pp_file:=fl.Path, pp_section:=Section, pp_value_name:=vValue) = dctValues(vValue)
+        Next vValue
+    Next vSection
+
+xt: Exit Sub
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
 
 Public Function Search(ByVal fs_root As String, _
               Optional ByVal fs_mask As String = "*", _
@@ -1294,8 +1362,6 @@ Public Property Get Sections( _
     Next v
 
 xt: Set Sections = dctS
-    Set dctS = Nothing
-    Set dctV = Nothing
     Exit Property
 
 eh: Select Case ErrMsg(ErrSrc(PROC))

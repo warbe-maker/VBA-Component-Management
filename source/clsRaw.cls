@@ -23,7 +23,7 @@ Private sExpFileTempFullName        As String
 Private sMostRecentExpFileFullName  As String
 Private sTempFolder                 As String
 Private wbRawHost                   As Workbook
-Private sHostWbFullName             As String
+Private sRawHostWbFullName          As String
 Private sHostWbPath                 As String
 Private sExpFileExt                 As String
 Private vbcRaw                      As VBComponent
@@ -33,39 +33,7 @@ Private Sub Class_Terminate()
     Set fso = Nothing
 End Sub
 
-Public Property Let CompName(ByVal s As String):    sCompName = s:                                                  End Property
-
-Public Property Get ExpFileFullName() As String:    ExpFileFullName = mComCompsRawsSaved.ExpFileFullName(sCompName):    End Property
-
-Public Property Get HostWbBaseName() As String:     HostWbBaseName = mComCompsRawsSaved.HostWbBaseName(sCompName):   End Property
-
-Public Property Get HostWbFullName() As String
-' ------------------------------------------------------------------------------
-' Returns the full name of the Raw's host which has been saved along with the
-' last open of the Workbook. When this Workbook is open (property HostIsOpen)
-' this is identical with its FullName
-' ------------------------------------------------------------------------------
-    sHostWbFullName = mComCompsRawsSaved.HostWbFullName(sCompName)
-    HostWbFullName = sHostWbFullName
-End Property
-
-Public Property Get HostWbName() As String:         HostWbName = mComCompsRawsSaved.HostWbName(sCompName):           End Property
-
-Public Property Get ExpFile() As File
-' ------------------------------------------------------------------------------
-' Returns the Raws's Export File which had been saved to the Common Components
-' folder
-' ------------------------------------------------------------------------------
-    Set ExpFile = fso.GetFile(mComCompsRawsSaved.ExpFileFullName(sCompName))
-End Property
-
-Public Property Get ExpFileTemp() As File
-' ------------------------------------------------------------------------------
-' Returns a temporary Export File which represents an open Raw's current code -
-' which may yet not have been exported because the host has yet not been saved.
-' ------------------------------------------------------------------------------
-    Set ExpFileTemp = fso.GetFile(Me.ExpFileTempFullName)
-End Property
+Public Property Let CompName(ByVal s As String):        sCompName = s:                                                              End Property
 
 Friend Property Get ExpFileExt() As String
     
@@ -84,15 +52,25 @@ Friend Property Get ExpFileExt() As String
 
 End Property
 
+Public Property Get ExpFileTemp() As File
+' ------------------------------------------------------------------------------
+' Returns a temporary Export File which represents an open Raw's current code -
+' which may yet not have been exported because the host has yet not been saved.
+' ------------------------------------------------------------------------------
+    Set ExpFileTemp = fso.GetFile(Me.ExpFileTempFullName)
+End Property
+
 Public Property Get ExpFileTempFullName() As String
 ' ------------------------------------------------------------------------------
 ' Returns the full name for a temporary Export File for an open Raw Host
 ' Workbook. This property is only available for an open Raw Host. It is provided
 ' along with the HostIsOpen property.
 ' ------------------------------------------------------------------------------
+    Const PROC = "ExpFileTempFullName-Get"
     
+    On Error GoTo eh
     With fso
-        sTempFolder = mExport.ExpFileFolderPath(sHostWbFullName) & "\Temp"
+        sTempFolder = mExport.ExpFileFolderPath(Me.RawHostWbFullName) & "\Temp"
         If Not .FolderExists(sTempFolder) Then
             DoEvents
             .CreateFolder sTempFolder
@@ -104,6 +82,12 @@ Public Property Get ExpFileTempFullName() As String
         End If
     End With
     
+xt: Exit Property
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Property
 
 Public Property Get HostIsOpen() As Boolean
@@ -114,16 +98,56 @@ Public Property Get HostIsOpen() As Boolean
 ' - VBComp     (vbcRaw
 ' - RawHost    (wbRawHost)
 ' ------------------------------------------------------------------------------
-    HostIsOpen = mWrkbk.IsOpen(Me.HostWbName)
+    HostIsOpen = mWrkbk.IsOpen(Me.RawHostWbName)
     If HostIsOpen Then
-        Set wbRawHost = mWrkbk.GetOpen(Me.HostWbName)
+        Set wbRawHost = mWrkbk.GetOpen(Me.RawHostWbName)
         Set vbcRaw = wbRawHost.VBProject.VBComponents(sCompName)
         sHostWbPath = wbRawHost.Path
     End If
 End Property
-Public Property Get HostWbPath() As String:         HostWbPath = sHostWbPath:                                       End Property
-Public Property Get VBComp() As VBComponent:        Set VBComp = vbcRaw:                                            End Property
-Public Property Get RevisionNumber() As String:     RevisionNumber = mComCompsRawsSaved.RevisionNumber(sCompName):   End Property
+
+Public Property Get HostWbPath() As String:         HostWbPath = sHostWbPath:                                               End Property
+
+Public Property Get RawHostWbBaseName() As String:      RawHostWbBaseName = mComCompsRawsSaved.RawHostWbBaseName(sCompName):        End Property
+
+Public Property Get RawHostWbFullName() As String
+' ------------------------------------------------------------------------------
+' Returns the full name of the Raw's host which has been saved along with the
+' last open of the Workbook. When this Workbook is open (property HostIsOpen)
+' this is identical with its FullName
+' ------------------------------------------------------------------------------
+    If sRawHostWbFullName = vbNullString Then
+        sRawHostWbFullName = mComCompsRawsSaved.RawHostWbFullName(sCompName)
+    End If
+    RawHostWbFullName = sRawHostWbFullName
+End Property
+
+Public Property Get RawHostWbName() As String:          RawHostWbName = mComCompsRawsSaved.RawHostWbName(sCompName):                End Property
+
+Public Property Get RevisionNumber() As String:     RevisionNumber = mComCompsRawsSaved.RawSavedRevisionNumber(sCompName):  End Property
+
+Public Property Get SavedExpFile() As File
+' ------------------------------------------------------------------------------
+' Returns the Raws's Export File which had been saved to the Common Components
+' folder
+' ------------------------------------------------------------------------------
+    Set SavedExpFile = fso.GetFile(mComCompsRawsSaved.SavedExpFileFullName(sCompName))
+End Property
+
+Public Property Get SavedExpFileFullName() As String:   SavedExpFileFullName = mComCompsRawsSaved.SavedExpFileFullName(sCompName):  End Property
+
+Public Property Get VBComp() As VBComponent:        Set VBComp = vbcRaw:                                                    End Property
+
+Private Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
+End Function
 
 Private Sub CleanUpTemps()
     With fso
@@ -136,43 +160,3 @@ End Sub
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsRaw" & "." & sProc
 End Function
-
-'Friend Property Get Changed( _
-'                      ByRef clone As clsComp, _
-'             Optional ByVal check_again As Boolean = False) As Boolean
-'' --------------------------------------------------------------------
-'' Returns TRUE when the raw's regular Export-File differs from the
-'' clone's regular Export-File which indicates that the code of the raw
-'' had changed.
-'' Expception: When the clone's coresponding Export-File does not exist
-''             a change is regarded in the sense that the raw's Export-
-''             File indicates a new component
-'' --------------------------------------------------------------------
-'    Const PROC = "Changed-Get"
-'
-'    On Error GoTo eh
-'    Dim fso As New FileSystemObject
-'
-'    If dctChanges Is Nothing Or check_again Then
-'        '~~ The difference between the raw's and the clone's
-'        '~~ export file provided only oncce or when explicitely requested
-'        If Not fso.FileExists(clone.ExpFileFullName) Then
-'            '~~ The component never had been exported yet or the Export-File has been deleted
-'            clone.Export
-'        End If
-'        Set dctChanges = _
-'        mService.FilesDifference(fd_exp_file_1:=fso.GetFile(clone.ExpFileFullName) _
-'                               , fd_exp_file_2:=fso.GetFile(Me.ExpFileFullName))
-'    End If
-'    Changed = dctChanges.Count <> 0
-'
-'xt: Set fso = Nothing
-'    Exit Property
-'
-'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-'        Case vbResume:  Stop: Resume
-'        Case Else:      GoTo xt
-'    End Select
-'End Property
-
-

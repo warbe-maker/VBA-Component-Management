@@ -13,34 +13,34 @@ Option Explicit
 ' event via the ExportChangedComponents service. The revision number is
 ' increased whith each saved modification.
 ' ---------------------------------------------------------------------------
-Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
-Private Const VNAME_EXP_FILE_FULL_NAME  As String = "ExpFileFullName"
+Private Const VNAME_RAW_REVISION_NUMBER     As String = "RawRevisionNumber"
+Private Const VNAME_RAW_EXP_FILE_FULL_NAME  As String = "RawExpFileFullName"
 
 Public Property Get ComCompsHostedFileFullName() As String
     Dim wb As Workbook: Set wb = mService.Serviced
     ComCompsHostedFileFullName = Replace(wb.FullName, wb.name, "ComCompsHosted.dat")
 End Property
 
-Public Property Get ExpFileFullName( _
+Public Property Get RawExpFileFullName( _
                      Optional ByVal comp_name As String) As String
-    ExpFileFullName = Value(pp_section:=comp_name, pp_value_name:=VNAME_EXP_FILE_FULL_NAME)
+    RawExpFileFullName = Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_EXP_FILE_FULL_NAME)
 End Property
 
-Public Property Let ExpFileFullName( _
-                     Optional ByVal comp_name As String, _
-                              ByVal exp_file_full_name As String)
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_EXP_FILE_FULL_NAME) = exp_file_full_name
+Public Property Let RawExpFileFullName( _
+                              Optional ByVal comp_name As String, _
+                                       ByVal exp_file_full_name As String)
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_EXP_FILE_FULL_NAME) = exp_file_full_name
 End Property
 
-Public Property Get RevisionNumber( _
+Public Property Get RawRevisionNumber( _
                           Optional ByVal comp_name As String) As String
-    RevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER)
+    RawRevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_REVISION_NUMBER)
 End Property
 
-Public Property Let RevisionNumber( _
+Public Property Let RawRevisionNumber( _
                           Optional ByVal comp_name As String, _
                                    ByVal comp_rev_no As String)
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = comp_rev_no
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_REVISION_NUMBER) = comp_rev_no
 End Property
 
 Private Property Get Value( _
@@ -127,23 +127,23 @@ Public Sub Remove(ByVal comp_name As String)
                        , pp_sections:=comp_name
 End Sub
 
-Public Sub RevisionNumberIncrease(ByVal comp_name As String)
+Public Sub RawRevisionNumberIncrease(ByVal comp_name As String)
 ' ----------------------------------------------------------------------------
 ' Increases the revision number by one starting with 1 for a new day.
 ' ----------------------------------------------------------------------------
     Dim RevNo   As Long
     Dim RevDate As String
     
-    If RevisionNumber(comp_name) = vbNullString Then
+    If RawRevisionNumber(comp_name) = vbNullString Then
         RevNo = 1
     Else
-        RevNo = Split(RevisionNumber(comp_name), ".")(1)
-        RevDate = Split(RevisionNumber(comp_name), ".")(0)
+        RevNo = Split(RawRevisionNumber(comp_name), ".")(1)
+        RevDate = Split(RawRevisionNumber(comp_name), ".")(0)
         If RevDate <> Format(Now(), "YYYY-MM-DD") _
         Then RevNo = 1 _
         Else RevNo = RevNo + 1
     End If
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = Format(Now(), "YYYY-MM-DD") & "." & Format(RevNo, "000")
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_REVISION_NUMBER) = Format(Now(), "YYYY-MM-DD") & "." & Format(RevNo, "000")
 
 End Sub
 

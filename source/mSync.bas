@@ -86,7 +86,7 @@ Private Sub ClearLinksToSource()
     Dim v           As Variant
     Dim ws          As Worksheet
     Dim shp         As Shape
-    Dim nm          As name
+    Dim nm          As Name
     Dim sName       As String
     Dim sOnAction   As String
     Dim SheetName   As String
@@ -110,7 +110,7 @@ Private Sub ClearLinksToSource()
         Set shp = Sync.Target.Worksheets(SheetName).Shapes(ControlName)
         On Error Resume Next
         sOnAction = shp.OnAction
-        sOnAction = Replace(sOnAction, Sync.source.name, Sync.Target.name)
+        sOnAction = Replace(sOnAction, Sync.source.Name, Sync.Target.Name)
         shp.OnAction = sOnAction
     Next v
     
@@ -339,10 +339,10 @@ End Function
 
 Private Function NameExists( _
                       ByRef ne_wb As Workbook, _
-                      ByVal ne_nm As name) As Boolean
-    Dim nm As name
+                      ByVal ne_nm As Name) As Boolean
+    Dim nm As Name
     For Each nm In ne_wb.Names
-        NameExists = nm.name = ne_nm.name
+        NameExists = nm.Name = ne_nm.Name
         If NameExists Then Exit For
     Next nm
 End Function
@@ -355,7 +355,7 @@ Private Sub RemoveInvalidRangeNames()
     Const PROC = "RemoveInvalidRangeNames"
     
     On Error GoTo eh
-    Dim nm As name
+    Dim nm As Name
     For Each nm In Sync.Target.Names
         Debug.Print nm.Value
         If InStr(nm.Value, "#") <> 0 Or InStr(nm.RefersTo, "#") <> 0 Then
@@ -385,8 +385,8 @@ Private Sub RenameSheet(ByRef rs_wb As Workbook, _
     On Error GoTo eh
     Dim sh  As Worksheet
     For Each sh In rs_wb.Worksheets
-        If sh.name = rs_old_name Then
-            sh.name = rs_new_name
+        If sh.Name = rs_old_name Then
+            sh.Name = rs_new_name
             Log.Entry = "Sheet-Name changed to '" & rs_new_name & "'"
             Exit For
         End If
@@ -417,7 +417,7 @@ Private Sub RenameWrkbkModule( _
             If vbc.Type = vbext_ct_Document Then
                 If mComp.IsWrkbkDocMod(vbc) Then
                     Log.ServicedItem = vbc
-                    vbc.name = rdm_new_name
+                    vbc.Name = rdm_new_name
                     Log.Entry = "Renamed to '" & rdm_new_name & "' (DoEvents delayed continuations for " & TimedDoEvents & " msec)"
                     Exit For
                 End If
@@ -606,7 +606,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function WbkIsOpen( _
-            Optional ByVal wb_base_name As String = vbNullString, _
+            Optional ByVal wb_name As String = vbNullString, _
             Optional ByVal wb_full_name As String = vbNullString) As Boolean
 ' -------------------------------------------------------------------------
 ' Returns TRUE when a Workbook either identified by its BaseName (wb_base_name)
@@ -618,19 +618,19 @@ Private Function WbkIsOpen( _
     On Error GoTo eh
     Dim xlApp As Excel.Application
     
-    If wb_base_name = vbNullString And wb_full_name = vbNullString Then GoTo xt
+    If wb_name = vbNullString And wb_full_name = vbNullString Then GoTo xt
     
     With New FileSystemObject
         If wb_full_name <> vbNullString Then
             '~~ With the full name the open test spans all application instances
             If Not .FileExists(wb_full_name) Then GoTo xt
-            If wb_base_name = vbNullString Then wb_base_name = .GetFileName(wb_full_name)
+            If wb_name = vbNullString Then wb_name = .GetFileName(wb_full_name)
             On Error Resume Next
             Set xlApp = VBA.GetObject(wb_full_name).Application
             WbkIsOpen = Err.Number = 0
         Else
             On Error Resume Next
-            wb_base_name = Application.Workbooks(wb_base_name).name
+            wb_name = Application.Workbooks(wb_name).Name
             WbkIsOpen = Err.Number = 0
         End If
     End With

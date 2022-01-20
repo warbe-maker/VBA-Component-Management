@@ -11,9 +11,9 @@ Option Explicit
 '
 ' The entries (sections) are maintained along with the Workbook_Open
 ' event via the UpdateOutdatedCommonComponents service. The revision number is the copy
-' of the revision number provided by mComCompsRawsSaved.RevisionNumber.
+' of the revision number provided by mComCompsRawsSaved.RawSavedRevisionNumber.
 ' ---------------------------------------------------------------------------
-Private Const VNAME_REVISION_NUMBER     As String = "RevisionNumber"
+Private Const VNAME_RAW_REVISION_NUMBER As String = "RawRevisionNumber"
 
 Private Property Get UsedRawClonesFile() As String
     Dim wb As Workbook: Set wb = mService.Serviced
@@ -25,7 +25,7 @@ Public Property Get RevisionNumber( _
 ' ----------------------------------------------------------------------------
 ' Returns the revision number in the format YYYY-MM-DD.n
 ' ----------------------------------------------------------------------------
-    RevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER)
+    RevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_REVISION_NUMBER)
 End Property
 
 Public Property Let RevisionNumber( _
@@ -33,7 +33,7 @@ Public Property Let RevisionNumber( _
                                    ByVal comp_rev_no As String)
     Dim RevDate As String:  RevDate = Split(comp_rev_no, ".")(0)
     Dim RevNo   As Long:    RevNo = Split(comp_rev_no, ".")(1)
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_REVISION_NUMBER) = RevDate & "." & Format(RevNo, "000")
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_REVISION_NUMBER) = RevDate & "." & Format(RevNo, "000")
 End Property
 
 Private Property Get Value( _

@@ -425,19 +425,19 @@ Public Function IsOpen(ByVal wb As Variant, _
             Set OpenWbk = OpenWbks.Item(WbName)
             '~~ When a Workbook's Name is provided the Workbook is only regarde open when the open
             '~~ Workbook has the same name (i.e. including its extension)
-            If fso.GetFile(OpenWbk.FullName).name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
+            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
     ElseIf mWrkbk.IsFullName(wb) Then
-        WbName = fso.GetBaseName(wb)
+        WbName = fso.GetFileName(wb)
         If OpenWbks.Exists(WbName) Then
             '~~ A Workbook with the same 'WbName' is open
             Set OpenWbk = OpenWbks.Item(WbName)
             '~~ The provided (wb) specifies an exist Workbook file. This Workbook is regarded open (and returned as opject)
             '~~ when a Workbook with its Name (including the extension!) is open regardless in which location
-            If fso.GetFile(OpenWbk.FullName).name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
+            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
     ElseIf mWrkbk.IsObject(wb) Then
-        WbName = fso.GetBaseName(wb.name)
+        WbName = wb.Name
         If Opened.Exists(WbName) Then
             Set OpenWbk = OpenWbks.Item(WbName)
         End If
@@ -507,7 +507,7 @@ Public Function Opened() As Dictionary
         .CompareMode = TextCompare
         For Each app In aApps
             For Each wbk In app.Workbooks
-                If Not .Exists(wbk.name) Then .Add wbk.name, wbk
+                If Not .Exists(wbk.Name) Then .Add wbk.Name, wbk
             Next wbk
         Next app
     End With
