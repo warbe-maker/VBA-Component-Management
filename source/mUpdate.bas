@@ -37,18 +37,19 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = wb
-                .CompName = vbc.name
+                .CompName = vbc.Name
                 Set .VBComp = vbc
                 Log.ServicedItem = vbc
                 If .KindOfComp = enCommCompUsed Then
                     If .Outdated Then
                         Log.Entry = "Outdated Used Common Component! (Export-Files '" & .ExpFileFullName & "' differs from '" & .Raw.SavedExpFileFullName & "')"
-                        If OutdatedUsedCommonComponentConfirmed(Comp) Then
+                        If UpdateConfirmed(Comp) Then
                             mRenew.ByImport rn_wb:=urc_wb _
                                  , rn_comp_name:=.CompName _
                                  , rn_raw_exp_file_full_name:=.Raw.SavedExpFileFullName
                             Log.Entry = "Used Common Component renewed/updated by (re-)import of the Raw's Export File (" & .Raw.SavedExpFileFullName & ")"
                             .RevisionNumber = .Raw.RevisionNumber
+                            .DueModificationWarning = False
                             Stats.Count sic_used_comm_comp_updated
                             If sUpdated = vbNullString _
                             Then sUpdated = .CompName _
@@ -104,12 +105,12 @@ Private Function Spaced(ByVal s As String) As String
     Spaced = sSpaced
 End Function
 
-Public Function OutdatedUsedCommonComponentConfirmed(ByRef uo_comp As clsComp) As Boolean
+Public Function UpdateConfirmed(ByRef uo_comp As clsComp) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the update of the outdated Used Common Component (uo_comp)
-' has been confirmed
+' has been confirmed.
 ' ----------------------------------------------------------------------------
-    Const PROC = "OutdatedUsedCommonComponentConfirmed"
+    Const PROC = "UpdateConfirmed"
     
     On Error GoTo eh
     Dim cllButtons          As Collection
@@ -118,32 +119,35 @@ Public Function OutdatedUsedCommonComponentConfirmed(ByRef uo_comp As clsComp) A
     Dim sBttnDsplyChanges   As String
     Dim sBttnUpdate         As String
     Dim sBttnSkip           As String
+    Dim sCompName           As String
     
     mBasic.BoP ErrSrc(PROC)
-    sBttnDsplyChanges = "Display code changes" & vbLf & vbLf & mBasic.Spaced(uo_comp.CompName)
-    sBttnUpdate = "Update" & vbLf & vbLf & mBasic.Spaced(uo_comp.CompName)
+    sCompName = uo_comp.CompName
+    
+    sBttnDsplyChanges = "Display code changes" & vbLf & vbLf & mBasic.Spaced(sCompName)
+    sBttnUpdate = "Update" & vbLf & vbLf & mBasic.Spaced(sCompName)
     sBttnSkip = "Skip this update"
     mMsg.Buttons cllButtons, sBttnDsplyChanges _
                      , vbLf, sBttnUpdate _
                      , vbLf, sBttnSkip
-    
     With sMsg
-        .Section(1).Label.Text = "About this update:"
-        .Section(1).Text.Text = "When the outdated 'Used Common Component'  " & mBasic.Spaced(uo_comp.CompName) & "  in " & _
-                                "this Workbook is not updated the message will show up again the next time this " & _
-                                "Workbook is opened - from within the configured 'Serviced Folder'."
-        .Section(2).Text.Text = mConfig.FolderServiced
-        .Section(2).Text.MonoSpaced = True
-        With .Section(3)
-            If Not uo_comp.RevisionNumbersDiffer Then
+        If uo_comp.DueModificationWarning Then
+            With .Section(1)
                 .Label.Text = "Attention!"
                 .Label.FontColor = rgbRed
-                .Text.Text = "It appears that the code of the raw clone used in this Workbook has been modified. This modification will be " & _
-                             "reverted with this update. Displaying the difference will be the last chance to modify the raw component in its " & _
-                             "hosting Workbook (" & mComCompsRawsSaved.RawHostWbFullName(uo_comp.CompName) & ")."
-            Else
-                .Text.Text = vbNullString
-            End If
+                .Text.Text = "The code of this 'Used Common Component'   " & mBasic.Spaced(sCompName) & _
+                             "    had been modified within this Workbook/VBProject. This modification will be " & _
+                             "reverted with this update. Displaying the difference will be the last chance to " & _
+                             "modify the 'Raw Common Component' in its hosting Workbook (" & mComCompsRawsSaved.RawHostWbFullName(sCompName) & ")."
+                .Text.FontColor = rgbRed
+            End With
+        End If
+        With .Section(2)
+            .Label.Text = "About this update:"
+            .Text.Text = "The update of this outdated 'Used Common Component'  " & mBasic.Spaced(sCompName) & "  in " & _
+                         "this Workbook/VBProject may be skipped. In that case the update request will be " & _
+                         "displayed again the next time this Workbook is opened (from within the configured " & _
+                         "'Serviced Folder' " & mConfig.FolderServiced & "."
         End With
     End With
     
@@ -154,13 +158,13 @@ Public Function OutdatedUsedCommonComponentConfirmed(ByRef uo_comp As clsComp) A
                               , dsply_buttons:=cllButtons _
                                )
             Select Case vReply
-                Case sBttnUpdate:       OutdatedUsedCommonComponentConfirmed = True:  Exit Do
-                Case sBttnSkip:         OutdatedUsedCommonComponentConfirmed = False: Exit Do
+                Case sBttnUpdate:       UpdateConfirmed = True:  Exit Do
+                Case sBttnSkip:         UpdateConfirmed = False: Exit Do
                 Case sBttnDsplyChanges: mService.ExpFilesDiffDisplay _
                                             fd_exp_file_left_full_name:=.ExpFileFullName _
-                                          , fd_exp_file_left_title:="Used Common Component: '" & .ExpFileFullName & "'" _
+                                          , fd_exp_file_left_title:="Outdated Used Common Component: '" & .ExpFileFullName & "'" _
                                           , fd_exp_file_right_full_name:=.Raw.SavedExpFileFullName _
-                                          , fd_exp_file_right_title:="Raw Common Component: '" & .Raw.SavedExpFileFullName & "'"
+                                          , fd_exp_file_right_title:="Up-to-date Raw Common Component: '" & .Raw.SavedExpFileFullName & "'"
             End Select
         End With
     Loop

@@ -3,51 +3,48 @@ Option Explicit
 Option Private Module
 Option Compare Text
 ' -----------------------------------------------------------------------------------
-' Standard Module mWrkbk: Provides basic common Workbook services.
+' Standard Module mWrkbk: Provides basic Workbook services.
 '
 ' Public services:
-' - GetOpen     Opens a provided Workbook if possible, returns the Workbook
-'               object of the openend or an already open Workbook
-' - IsFullName  Returns TRUE when a provided string is the full name of a
-'               Workbook
+' - GetOpen     Opens a provided Workbook if possible, returns the Workbook object of
+'               the openend or an already open Workbook
+' - IsFullName  Returns TRUE when a provided string is the full name of a Workbook
 ' - IsName      Returns TRUE when a provided string is the name of a Workbook
-' - IsObject    Returns TRUE when the provided variant is a Workbook (not
-'               necessarily also open!)
+' - IsObject    Returns TRUE when the provided variant is a Workbook (not necessarily
+'               also open!)
 ' - IsOpen      Returns TRUE when the provided Workbook is open
 ' - Opened      Returns a Dictionary of all open Workbooks in any application
-'               instance with the Workbook's Name as the key and the Workbook
-'               object as the item.
+'               instance with the Workbook's Name as the key and the Workbook object
+'               as the item.
 '
 ' Uses:
-' - Common Components mErH (in mTest only!)
+' - Common Components mErH, fMsg, mMsg (in mWrkbkTest only!)
 '
 ' Requires: Reference to "Microsoft Scripting Runtine"
 '           Reference to "Microsoft Visual Basic for Applications Extensibility ..."
 '
 ' W. Rauschenberger, Berlin Jan 2022
 ' -----------------------------------------------------------------------------------
-#Const VBE = 1              ' Requires a Reference to "Microsoft Visual Basis Extensibility ..."
 ' --- Begin of declarations to get all Workbooks of all running Excel instances
 Private Declare PtrSafe Function FindWindowEx Lib "user32" Alias "FindWindowExA" (ByVal hWnd1 As LongPtr, ByVal hWnd2 As LongPtr, ByVal lpsz1 As String, ByVal lpsz2 As String) As LongPtr
 Private Declare PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameA" (ByVal hWnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As LongPtr) As LongPtr
 Private Declare PtrSafe Function IIDFromString Lib "ole32" (ByVal lpsz As LongPtr, ByRef lpiid As UUID) As LongPtr
 Private Declare PtrSafe Function AccessibleObjectFromWindow Lib "oleacc" (ByVal hWnd As LongPtr, ByVal dwId As LongPtr, ByRef riid As UUID, ByRef ppvObject As Object) As LongPtr
-
 Type UUID 'GUID
     Data1 As Long
     Data2 As Integer
     Data3 As Integer
     Data4(7) As Byte
 End Type
-
-Const IID_IDispatch As String = "{00020400-0000-0000-C000-000000000046}"
-Const OBJID_NATIVEOM As LongPtr = &HFFFFFFF0
+Private Const IID_IDispatch As String = "{00020400-0000-0000-C000-000000000046}"
+Private Const OBJID_NATIVEOM As LongPtr = &HFFFFFFF0
 ' --- End of declarations to get all Workbooks of all running Excel instances
+
 ' --- Error declarations
-Const ERR_OWB01 = "A Workbook named '<>' is not open in any application instance!"
-Const ERR_GOW01 = "A Workbook with the provided name (parameter vWb) is open. However it's location is '<>1' and not '<>2'!"
-Const ERR_GOW02 = "A Workbook named '<>' (parameter vWb) is not open. A full name must be provided to get it opened!"
-Const ERR_GOW03 = "A Workbook file named '<>' (parameter vWb) does not exist!"
+Private Const ERR_OWB01 = "A Workbook named '<>' is not open in any Excel application instance!"
+Private Const ERR_GOW01 = "A Workbook with the provided name (named argument vWb) is open but it's not from requested location ('<>1' instead of '<>2')!"
+Private Const ERR_GOW02 = "A Workbook named '<>' (named argument vWb) is not open. The Workbook's full name must be provided to get it opened!"
+Private Const ERR_GOW03 = "A Workbook file named '<>' (named argument vWb) does not exist!"
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -314,7 +311,7 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
                 If wbOpen.FullName <> vWb Then
                     '~~ The open Workook with the same name is from a different location
                     If fso.FileExists(vWb) Then
-                        '~~ The file still exists on the provided location
+                        '~~ When the Workbook file still exists at the provided location the one which is open is the wromg one
                         Err.Raise AppErr(3), ErrSrc(PROC), Replace(Replace$(ERR_GOW01, "<>1", wbOpen.Path), "<>2", sPath)
                     Else
                         '~~ The Workbook file does not or no longer exist at the provivded location.

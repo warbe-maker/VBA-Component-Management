@@ -14,10 +14,20 @@ Option Explicit
 ' of the revision number provided by mComCompsRawsSaved.RawSavedRevisionNumber.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_RAW_REVISION_NUMBER As String = "RawRevisionNumber"
+Private Const VNAME_DUE_MODIF_WARNING   As String = "DueModificationWarning"
 
-Private Property Get UsedRawClonesFile() As String
-    Dim wb As Workbook: Set wb = mService.Serviced
-    UsedRawClonesFile = Replace(wb.FullName, wb.name, "ComCompsUsed.dat")
+Public Property Get DueModificationWarning( _
+                          Optional ByVal comp_name As String) As Boolean
+' ----------------------------------------------------------------------------
+' Returns the revision number in the format YYYY-MM-DD.n
+' ----------------------------------------------------------------------------
+    DueModificationWarning = CBool(Value(pp_section:=comp_name, pp_value_name:=VNAME_DUE_MODIF_WARNING))
+End Property
+
+Public Property Let DueModificationWarning( _
+                          Optional ByVal comp_name As String, _
+                                   ByVal comp_due_warning As Boolean)
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_DUE_MODIF_WARNING) = Abs(CInt(comp_due_warning))
 End Property
 
 Public Property Get RevisionNumber( _
@@ -34,6 +44,11 @@ Public Property Let RevisionNumber( _
     Dim RevDate As String:  RevDate = Split(comp_rev_no, ".")(0)
     Dim RevNo   As Long:    RevNo = Split(comp_rev_no, ".")(1)
     Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_REVISION_NUMBER) = RevDate & "." & Format(RevNo, "000")
+End Property
+
+Private Property Get UsedRawClonesFile() As String
+    Dim wb As Workbook: Set wb = mService.Serviced
+    UsedRawClonesFile = Replace(wb.FullName, wb.Name, "ComCompsUsed.dat")
 End Property
 
 Private Property Get Value( _
@@ -81,6 +96,10 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
+Public Function Components() As Dictionary
+    Set Components = mFile.SectionNames(ComCompsSavedFileFullName)
+End Function
+
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mRaw" & "." & sProc
 End Function
@@ -110,13 +129,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function Components() As Dictionary
-    Set Components = mFile.SectionNames(ComCompsSavedFileFullName)
-End Function
-
 Public Sub Remove(ByVal comp_name As String)
     mFile.SectionsRemove pp_file:=ComCompsSavedFileFullName _
                        , pp_sections:=comp_name
 End Sub
-
 

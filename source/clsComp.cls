@@ -93,6 +93,14 @@ Private Sub Class_Terminate()
     
 End Sub
 
+Public Property Get DueModificationWarning() As Boolean
+    DueModificationWarning = mComCompsUsed.DueModificationWarning(sCompName)
+End Property
+
+Public Property Let DueModificationWarning(ByVal b As Boolean)
+    mComCompsUsed.DueModificationWarning(sCompName) = b
+End Property
+
 Public Sub RevisionNumberIncrease()
     mComCompsRawsHosted.RawRevisionNumberIncrease (sCompName)
 End Sub

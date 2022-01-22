@@ -141,25 +141,36 @@ Public Sub ChangedComponents()
                     Set .VBComp = vbc
                     Select Case .KindOfComp
                         Case enCommCompHosted
+                            Log.Entry = "Hosted Raw Common Component"
                             If .Changed Then
                                 .Export
                                 .RevisionNumberIncrease
                                 .CopyExportFileToCommonComponentsFolder
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
+                                Log.Entry = "Modification exported and Export file copied to Common Components Folder"
                             ElseIf Not mComCompsRawsSaved.SavedExpFileExists(.CompName) Then
                                 .CopyExportFileToCommonComponentsFolder ' ensure completenes
                             End If
                         Case enCommCompUsed
-                            If UsedCommonComponent(Comp) Then
+                            Log.Entry = "Used Common Component"
+                            If .Changed Then
+                                '~~ A warning will be displayed when the modification is about to be reverted
+                                '~~ when the component is updated at Workbook open
+                                .DueModificationWarning = True
+                                .Export
+'                            If UsedCommonComponent(Comp) Then
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
+                                Log.Entry = "Modified component exported (due modification warning set for update)"
                             End If
                         Case Else
+                            Log.Entry = "Other type of component"
                             If .Changed Then
                                 .Export
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
+                                Log.Entry = "Modification exported"
                             End If
                     End Select
                 End With
@@ -210,6 +221,7 @@ Private Function UsedCommonComponent(ByRef cucc_comp As clsComp) As Boolean
     On Error GoTo eh
     With cucc_comp
         If .Changed Then
+            .DueModificationWarning = True
             If .RevisionNumber = .Raw.RevisionNumber Then
                 '~~ The Used Common Component compared with ist corresponding Raw
                 '~~ is up-to-date but the code has been modified in this Workbook.
