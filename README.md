@@ -1,9 +1,8 @@
 ## Management of Excel VB-Project Components
-- **Export** any _Components_ of which the code has changed - when the Workbook save
-- **Manage** used _Common Components_
-  - **Maintain** a _Revision Number_ when the code is modified in it's hosting Workbook
-  - **Update** _Common Components_ used in Workbooks when opened
+- **Export** any _Component_ of which the code has changed (with the Workbook_BeforeSave_ event)
+- **Update** outdated _Used Common Components_
 - **Synchronize** a maximum of differences between _VB-Projects_ (excluding the data in Worksheets)
+- **Manage** _Hosted Common Components_
  
 Also see the [Programmatically updating Excel VBA code][2] post for more details.
 
@@ -13,9 +12,9 @@ Also see the [Programmatically updating Excel VBA code][2] post for more details
 |------------------|------------------------- |
 |_Component_       | Generic term for any kind of _VB-Project-Component_ (_Class Module_,  _Data Module_, _Standard Module_, or _UserForm_  |
 |_Common&#8209;Component_ | A _Component_ which is hosted in one (possibly dedicated) Workbook in which it is developed, maintained and tested and used by other  _Workbooks/VB-Projects_. I.e. a _Common-Component_ exists as one raw and many clones (following GitHub terminology)  |
-|_Clone&#8209;Component_<br>_Raw&#8209;Clone_ | The copy of a _Raw&#8209;Component_ in a _Workbook/VP&#8209;Project_ using it. _Clone-Components_ may be automatically kept up-to-date by the _UpdateUsedCommonComponents_ service.<br>The term _clone_ is borrowed from GitHub but has a slightly different meaning because the clone is usually not maintained but the _raw_ |
+|_Used&nbsp;Common&nbsp;Component_ | The copy of a _Raw&#8209;Component_ in a _Workbook/VP&#8209;Project_ using it. _Clone-Components_ may be automatically kept up-to-date by the _UpdateUsedCommonComponents_ service.<br>The term _clone_ is borrowed from GitHub but has a slightly different meaning because the clone is usually not maintained but the _raw_ |
 |_Procedure_           | Any public or private _Property_, _Sub_, or _Function_ of a _Component_|
-|_Raw&#8209;Component_ | The instance of a _Common Component_ which is regarded the developed, maintained and tested 'original', hosted in a dedicated _Raw&#8209;Host_ Workbook. The term _raw_ is borrowed from GitHub and indicates the original version of something |
+|_Raw&nbsp;Common&nbsp;Component_ | The instance of a _Common Component_ which is regarded the developed, maintained and tested 'original', hosted in a dedicated _Raw&#8209;Host_ Workbook. The term _raw_ is borrowed from GitHub and indicates the original version of something |
 |_Raw&#8209;Host_      | The Workbook/_VB-Project_ which hosts the _Raw-Component_ |
 |_Service_             | Generic term for any _Public Property_, _Public Sub_, or _Public Function_ of a _Component_ |
 |_VB&#8209;Project_    | Used synonymous with Workbook |
@@ -58,40 +57,32 @@ Once the _CompMan-Addin_ is established it will automatically be opened when Exc
 
 ## Usage
 
-### Preconditions for export and update service
-The services will be denied when any of the following preconditions is not met:
-1. The basic configuration - confirmed with each Setup/Renew is complete and valid
-2. The serviced Workbook resides in a sub-folder of the configured _ServicedRootFolder_
-3. The serviced Workbook is the only Workbook in its parent folder
-4. The CompMan services are not _Paused_
-5. WinMerge is installed
+### Preconditions
+First of all: Even when a Workbook is prepared for being serviced by _CompMan_ nothing at all happens when the the Workbook resides outside the _Serviced Folder_ .
 
-### Common requirements
-1. In any Workbook (specifically in those which host a _Common-Component_) copy the module _[mCompManClient][3]_ from the open _[CompMan.xlsb][1]_ Workbook into the Workbook (drag and drop in the VBE)
-2. For the **Export** service (_ExportChangedComponents_)<br>Crucial for all Workbooks which either **host** a _Common-Component_ or may be copied for synchronization one time (which will rely on up-to-date Export-Files).<br>In the concerned Workbook's Workbook-Component copy:
+For a Workbook the [Common requirements](#common-requirements) are met the services will still be denied under one of the following conditions:
+1. The basic configuration is incomplete or invalid
+2. The Workbook not resides exclusively in its dedicated folder, in other words it is not the only Workbook in its parent folder
+4. The CompMan-Addin is not setup or _Paused_ and the _CompMan.xlsb_ Workbook which alternatively can provide the services is not open
+5. WinMerge is not installed
+
+### Preparing a Workbook for being serviced
+1. Download and import _[mCompManClient.bas][3]_ from the open _[CompMan.xlsb][1]_ Workbook into the Workbook (drag and drop in the VBE)
+2. Copy the below code into the Workbook module:
 ```vb
+Private Const HOSTED_RAWS = "mFile" ' The hosted 'Raw Common Component' (if any)
 
-Private Const HOSTED_RAWS = ""      ' Comma delimited names of Common Components hosted, developed,
-                                    ' tested, and provided by this Workbook - if any
+Private Sub Workbook_Open()
+    mCompManClient.CompManService "UpdateOutdatedCommonComponents", HOSTED_RAWS
+End Sub
 
-```
-
-```vb
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
 End Sub
 ```
 
-3. For the **Update** service (_UpdateUsedCommonComponents_)<br>
-Essential for the update of any _Clone-Component_ of which the _Raw-Component_ had changed, copy the following into the _Workbook\_Open_ event procedure:
-```vb
-Private Sub Workbook_Open()
-    mCompManClient.CompManService "UpdateUsedCommonComponents", HOSTED_RAWS
-End Sub
-```
+### Using the Export and Update service
 
-## Services and other details
-### Availability
 ### Synchronization (_SyncVBProjects_) service
 There is no user interface for this service. As it is a mere development task it is to be initiated from the _Imediate Window_ of the VB Editor.
 When either CompMan's development instance Workbook (_[CompMan.xlsb][1]_) or the corresponding Addin instance is loaded, in the _Immediate Window_ enter<br>
