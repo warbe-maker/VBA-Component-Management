@@ -21,7 +21,8 @@ Public Property Get DueModificationWarning( _
 ' ----------------------------------------------------------------------------
 ' Returns the revision number in the format YYYY-MM-DD.n
 ' ----------------------------------------------------------------------------
-    DueModificationWarning = CBool(Value(pp_section:=comp_name, pp_value_name:=VNAME_DUE_MODIF_WARNING))
+    If NameExists(pp_section:=comp_name, pp_value_name:=VNAME_DUE_MODIF_WARNING) _
+    Then DueModificationWarning = CBool(Value(pp_section:=comp_name, pp_value_name:=VNAME_DUE_MODIF_WARNING))
 End Property
 
 Public Property Let DueModificationWarning( _
@@ -46,9 +47,11 @@ Public Property Let RevisionNumber( _
     Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_REVISION_NUMBER) = RevDate & "." & Format(RevNo, "000")
 End Property
 
-Private Property Get UsedRawClonesFile() As String
-    Dim wb As Workbook: Set wb = mService.Serviced
-    UsedRawClonesFile = Replace(wb.FullName, wb.Name, "ComCompsUsed.dat")
+Private Property Get ComCompsUsedFile() As String
+' ----------------------------------------------------------------------------
+' Returns the name of the ComCompdUsed.dat file for the serviced Workbook.
+' ----------------------------------------------------------------------------
+    ComCompsUsedFile = Replace(mService.Serviced.FullName, mService.Serviced.Name, "ComCompsUsed.dat")
 End Property
 
 Private Property Get Value( _
@@ -57,10 +60,10 @@ Private Property Get Value( _
     Const PROC = "Value_Let"
 ' ----------------------------------------------------------------------------
 ' Returns the value named (pp_value_name) from the section (pp_section) in the
-' file UsedRawClonesFile.
+' file ComCompsUsedFile.
 ' ----------------------------------------------------------------------------
     On Error GoTo eh
-    Value = mFile.Value(pp_file:=UsedRawClonesFile _
+    Value = mFile.Value(pp_file:=ComCompsUsedFile _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -78,12 +81,12 @@ Private Property Let Value( _
                     ByVal pp_value As Variant)
 ' ----------------------------------------------------------------------------
 ' Writes the value (pp_value) under the name (pp_value_name) into the
-' UsedRawClonesFile.
+' ComCompsUsedFile.
 ' ----------------------------------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    mFile.Value(pp_file:=UsedRawClonesFile _
+    mFile.Value(pp_file:=ComCompsUsedFile _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -127,6 +130,13 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Function
+
+Private Function NameExists(ByVal pp_section As String, _
+                            ByVal pp_value_name As String) As Boolean
+    NameExists = mFile.ValueNameExists(pp_file:=ComCompsUsedFile _
+                                     , pp_sections:=pp_section _
+                                     , pp_valuename:=pp_value_name)
 End Function
 
 Public Sub Remove(ByVal comp_name As String)

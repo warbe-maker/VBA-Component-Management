@@ -24,6 +24,18 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "wbAddIn" & "." & sProc
 End Function
 
+Private Sub Workbook_BeforeClose(Cancel As Boolean)
+' ------------------------------------------------------------------------------
+' Ensure the CompMan Addin is not (no longer) paused when the Development
+' Instance Workbook is closed.
+' ------------------------------------------------------------------------------
+    If mMe.IsDevInstnc Then
+        If mMe.CompManAddinIsOpen Then
+            mConfig.CompManAddinIsPaused = False
+        End If
+    End If
+End Sub
+
 Private Sub Workbook_Open()
 ' ------------------------------------------------------------------------------
 ' Attention: ThisWorkbook's raw clones (i.e. the used common components)

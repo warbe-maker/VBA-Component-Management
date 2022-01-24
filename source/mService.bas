@@ -161,7 +161,7 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         End If
     End If
@@ -197,7 +197,7 @@ End Function
 Public Function CompMaxLen(ByRef ml_wb As Workbook) As Long
     Dim vbc As VBComponent
     For Each vbc In ml_wb.VBProject.VBComponents
-        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.name))
+        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.Name))
     Next vbc
 End Function
 
@@ -568,11 +568,11 @@ Private Function UsedCommonComponents(ByRef cl_wb As Workbook) As Dictionary
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = cl_wb
-            .CompName = vbc.name
+            .CompName = vbc.Name
             Log.ServicedItem = .VBComp
             If .KindOfComp = enCommCompUsed Then
                 If .Changed Then
-                    dct.Add vbc, vbc.name
+                    dct.Add vbc, vbc.Name
                 Else
                     Log.Entry = "Code un-changed."
                 End If
@@ -635,7 +635,7 @@ Public Sub RemoveTempRenamed()
     With mService.Serviced.VBProject
         For Each v In .VBComponents
             Set vbc = v
-            If mService.IsRenamedByCompMan(vbc.name) Then
+            If mService.IsRenamedByCompMan(vbc.Name) Then
                 .VBComponents.Remove vbc
             End If
         Next v
@@ -767,6 +767,316 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Function
+
+
+Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
+                        ByVal add_key As Variant, _
+                        ByVal add_item As Variant)
+' ------------------------------------------------------------------------------------
+' Adds to the Dictionary (add_dct) an item (add_item) in ascending order by the key
+' (add_key). When the key is an object with no Name property an error is raisede.
+'
+' Note: This is a copy of the DctAdd procedure with fixed options which may be copied
+'       into any VBProject's module in order to have it independant from this
+'       Common Component.
+'
+' W. Rauschenberger, Berlin Jan 2022
+' ------------------------------------------------------------------------------------
+    Const PROC = "DAddAscByKey"
+    
+    On Error GoTo eh
+    Dim bDone           As Boolean
+    Dim dctTemp         As Dictionary
+    Dim vItem           As Variant
+    Dim vItemExisting   As Variant
+    Dim vKeyExisting    As Variant
+    Dim vValueExisting  As Variant ' the entry's add_key/add_item value for the comparison with the vValueNew
+    Dim vValueNew       As Variant ' the argument add_key's/add_item's value
+    Dim vValueTarget    As Variant ' the add before/after add_key/add_item's value
+    Dim bStayWithFirst  As Boolean
+    Dim bOrderByItem    As Boolean
+    Dim bOrderByKey     As Boolean
+    Dim bSeqAscending   As Boolean
+    Dim bCaseIgnored    As Boolean
+    Dim bCaseSensitive  As Boolean
+    Dim bEntrySequence  As Boolean
+    
+    If add_dct Is Nothing Then Set add_dct = New Dictionary
+    
+    '~~ Plausibility checks
+    bOrderByItem = False
+    bOrderByKey = True
+    bSeqAscending = True
+    bCaseIgnored = False
+    bCaseSensitive = True
+    bStayWithFirst = True
+    bEntrySequence = False
+    
+    With add_dct
+        '~~ When it is the very first add_item or the add_order option
+        '~~ is entry sequence the add_item will just be added
+        If .Count = 0 Or bEntrySequence Then
+            .Add add_key, add_item
+            GoTo xt
+        End If
+        
+        '~~ When the add_order is by add_key and not stay with first entry added
+        '~~ and the add_key already exists the add_item is updated
+        If bOrderByKey And Not bStayWithFirst Then
+            If .Exists(add_key) Then
+                If VarType(add_item) = vbObject Then Set .Item(add_key) = add_item Else .Item(add_key) = add_item
+                GoTo xt
+            End If
+        End If
+    End With
+        
+    '~~ When the add_order argument is an object but does not have a name property raise an error
+    If bOrderByKey Then
+        If VarType(add_key) = vbObject Then
+            On Error Resume Next
+            add_key.Name = add_key.Name
+            If Err.Number <> 0 _
+            Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
+        End If
+    ElseIf bOrderByItem Then
+        If VarType(add_item) = vbObject Then
+            On Error Resume Next
+            add_item.Name = add_item.Name
+            If Err.Number <> 0 _
+            Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
+        End If
+    End If
+    
+    vValueNew = AddAscByKeyValue(add_key)
+    
+    With add_dct
+        '~~ Get the last entry's add_order value
+        vValueExisting = AddAscByKeyValue(.Keys()(.Count - 1))
+        
+        '~~ When the add_order mode is ascending and the last entry's add_key or add_item
+        '~~ is less than the add_order argument just add it and exit
+        If bSeqAscending And vValueNew > vValueExisting Then
+            .Add add_key, add_item
+            GoTo xt
+        End If
+    End With
+        
+    '~~ Since the new add_key/add_item couldn't simply be added to the Dictionary it will
+    '~~ be inserted before or after the add_key/add_item as specified.
+    Set dctTemp = New Dictionary
+    bDone = False
+    
+    For Each vKeyExisting In add_dct
+        
+        If VarType(add_dct.Item(vKeyExisting)) = vbObject _
+        Then Set vItemExisting = add_dct.Item(vKeyExisting) _
+        Else vItemExisting = add_dct.Item(vKeyExisting)
+        
+        With dctTemp
+            If bDone Then
+                '~~ All remaining items just transfer
+                .Add vKeyExisting, vItemExisting
+            Else
+                vValueExisting = AddAscByKeyValue(vKeyExisting)
+            
+                If vValueExisting = vValueNew And bOrderByItem And bSeqAscending And Not .Exists(add_key) Then
+                    If bStayWithFirst Then
+                        .Add vKeyExisting, vItemExisting:   bDone = True ' not added
+                    Else
+                        '~~ The add_item already exists. When the add_key doesn't exist and bStayWithFirst is False the add_item is added
+                        .Add vKeyExisting, vItemExisting:   .Add add_key, add_item:                     bDone = True
+                    End If
+                ElseIf bSeqAscending And vValueExisting > vValueNew Then
+                    .Add add_key, add_item:                     .Add vKeyExisting, vItemExisting:   bDone = True
+                Else
+                    .Add vKeyExisting, vItemExisting ' transfer existing add_item, wait for the one which fits within sequence
+                End If
+            End If
+        End With ' dctTemp
+    Next vKeyExisting
+    
+    '~~ Return the temporary dictionary with the new add_item added and all exiting items in add_dct transfered to it
+    Set add_dct = dctTemp
+    Set dctTemp = Nothing
+
+xt: Exit Sub
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Function ErrMsg(ByVal err_source As String, _
+               Optional ByVal err_no As Long = 0, _
+               Optional ByVal err_dscrptn As String = vbNullString, _
+               Optional ByVal err_line As Long = 0) As Variant
+' ------------------------------------------------------------------------------
+' Universal error message display service including a debugging option active
+' when the Conditional Compile Argument 'Debugging = 1' and an optional
+' additional "About the error:" section displaying text connected to an error
+' message by two vertical bars (||).
+'
+' A copy of this function is used in each procedure with an error handling
+' (On error Goto eh).
+'
+' The function considers the Common VBA Error Handling Component (ErH) which
+' may be installed (Conditional Compile Argument 'ErHComp = 1') and/or the
+' Common VBA Message Display Component (mMsg) installed (Conditional Compile
+' Argument 'MsgComp = 1'). Only when none of the two is installed the error
+' message is displayed by means of the VBA.MsgBox.
+'
+' Usage: Example with the Conditional Compile Argument 'Debugging = 1'
+'
+'        Private/Public <procedure-name>
+'            Const PROC = "<procedure-name>"
+'
+'            On Error Goto eh
+'            ....
+'        xt: Exit Sub/Function/Property
+'
+'        eh: Select Case ErrMsg(ErrSrc(PROC))
+'               Case vbResume:  Stop: Resume
+'               Case Else:      GoTo xt
+'            End Select
+'        End Sub/Function/Property
+'
+'        The above may appear a lot of code lines but will be a godsend in case
+'        of an error!
+'
+' Uses:  - For programmed application errors (Err.Raise AppErr(n), ....) the
+'          function AppErr will be used which turns the positive number into a
+'          negative one. The error message will regard a negative error number
+'          as an 'Application Error' and will use AppErr to turn it back for
+'          the message into its original positive number. Together with the
+'          ErrSrc there will be no need to maintain numerous different error
+'          numbers for a VB-Project.
+'        - The caller provides the source of the error through the module
+'          specific function ErrSrc(PROC) which adds the module name to the
+'          procedure name.
+'
+' W. Rauschenberger Berlin, Nov 2021
+' ------------------------------------------------------------------------------
+#If ErHComp = 1 Then
+    '~~ ------------------------------------------------------------------------
+    '~~ When the Common VBA Error Handling Component (mErH) is installed in the
+    '~~ VB-Project (which includes the mMsg component) the mErh.ErrMsg service
+    '~~ is preferred since it provides some enhanced features like a path to the
+    '~~ error.
+    '~~ ------------------------------------------------------------------------
+    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line)
+    GoTo xt
+#ElseIf MsgComp = 1 Then
+    '~~ ------------------------------------------------------------------------
+    '~~ When only the Common Message Services Component (mMsg) is installed but
+    '~~ not the mErH component the mMsg.ErrMsg service is preferred since it
+    '~~ provides an enhanced layout and other features.
+    '~~ ------------------------------------------------------------------------
+    ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line)
+    GoTo xt
+#End If
+    '~~ -------------------------------------------------------------------
+    '~~ When neither the mMsg nor the mErH component is installed the error
+    '~~ message is displayed by means of the VBA.MsgBox
+    '~~ -------------------------------------------------------------------
+    Dim ErrBttns    As Variant
+    Dim ErrAtLine   As String
+    Dim ErrDesc     As String
+    Dim ErrLine     As Long
+    Dim ErrNo       As Long
+    Dim ErrSrc      As String
+    Dim ErrText     As String
+    Dim ErrTitle    As String
+    Dim ErrType     As String
+    Dim ErrAbout    As String
+        
+    '~~ Obtain error information from the Err object for any argument not provided
+    If err_no = 0 Then err_no = Err.Number
+    If err_line = 0 Then ErrLine = Erl
+    If err_source = vbNullString Then err_source = Err.source
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
+    
+    If InStr(err_dscrptn, "||") <> 0 Then
+        ErrDesc = Split(err_dscrptn, "||")(0)
+        ErrAbout = Split(err_dscrptn, "||")(1)
+    Else
+        ErrDesc = err_dscrptn
+    End If
+    
+    '~~ Determine the type of error
+    Select Case err_no
+        Case Is < 0
+            ErrNo = AppErr(err_no)
+            ErrType = "Application Error "
+        Case Else
+            ErrNo = err_no
+            If (InStr(1, err_dscrptn, "DAO") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC Teradata Driver") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC") <> 0 _
+            Or InStr(1, err_dscrptn, "Oracle") <> 0) _
+            Then ErrType = "Database Error " _
+            Else ErrType = "VB Runtime Error "
+    End Select
+    
+    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
+    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
+    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
+       
+    ErrText = "Error: " & vbLf & _
+              ErrDesc & vbLf & vbLf & _
+              "Source: " & vbLf & _
+              err_source & ErrAtLine
+    If ErrAbout <> vbNullString _
+    Then ErrText = ErrText & vbLf & vbLf & _
+                  "About: " & vbLf & _
+                  ErrAbout
+    
+#If Debugging Then
+    ErrBttns = vbYesNo
+    ErrText = ErrText & vbLf & vbLf & _
+              "Debugging:" & vbLf & _
+              "Yes    = Resume Error Line" & vbLf & _
+              "No     = Terminate"
+#Else
+    ErrBttns = vbCritical
+#End If
+    
+    ErrMsg = MsgBox(Title:=ErrTitle _
+                  , Prompt:=ErrText _
+                  , Buttons:=ErrBttns)
+xt: Exit Function
+
+End Function
+
+Private Function AddAscByKeyValue(ByVal add_key As Variant) As Variant
+' ----------------------------------------------------------------------------
+' When add_key is an object its name becomes the sort order value else the
+' the value is returned as is.
+' ----------------------------------------------------------------------------
+    If VarType(add_key) = vbObject Then
+        On Error Resume Next ' the object may not have a Name property
+        AddAscByKeyValue = add_key.Name
+        If Err.Number <> 0 Then Set AddAscByKeyValue = add_key
+    Else
+        AddAscByKeyValue = add_key
+    End If
+End Function
+
+Public Function AllComps(ByVal wb As Workbook) As Dictionary
+' ---------------------------------------------------------------------------
+' Returns a Dictionary with all VBComponents in ascending order thereby
+' calculating the max lengths for vthe log entries.
+' ---------------------------------------------------------------------------
+    Dim vbc As VBComponent
+    
+    Set AllComps = New Dictionary
+    For Each vbc In wb.VBProject.VBComponents
+        Log.ServicedItem = vbc
+        AddAscByKey AllComps, vbc.Name, vbc
+    Next vbc
+
 End Function
 
 

@@ -104,18 +104,18 @@ Public Sub ChangedComponents()
     Const PROC = "ChangedComponents"
     
     On Error GoTo eh
-    Dim vbc         As VBComponent
-    Dim sStatus     As String
     Dim Comp        As clsComp
     Dim Comps       As New clsComps
     Dim dctAll      As Dictionary
-    Dim v           As Variant
-    Dim wb          As Workbook
+    Dim fso         As New FileSystemObject
     Dim lAll        As Long
     Dim lExported   As Long
     Dim lRemaining  As String
     Dim sExported   As String
-    Dim fso         As New FileSystemObject
+    Dim sStatus     As String
+    Dim v           As Variant
+    Dim vbc         As VBComponent
+    Dim wb          As Workbook
     
     mBasic.BoP ErrSrc(PROC)
     
@@ -128,16 +128,20 @@ Public Sub ChangedComponents()
     CleanUpObsoleteExpFiles
         
     Set wb = mService.Serviced
+    Set dctAll = AllComps(wb)
+    
     With wb.VBProject
         lAll = .VBComponents.Count
         lRemaining = lAll
         
-        For Each vbc In .VBComponents
+        For Each v In dctAll
+            Set vbc = dctAll(v)
             If Not mService.IsRenamedByCompMan(vbc.Name) Then
                 Set Comp = New clsComp
                 With Comp
                     Set .Wrkbk = mService.Serviced
                     .CompName = vbc.Name
+                    Log.ServicedItem = vbc
                     Set .VBComp = vbc
                     Select Case .KindOfComp
                         Case enCommCompHosted
@@ -159,7 +163,6 @@ Public Sub ChangedComponents()
                                 '~~ when the component is updated at Workbook open
                                 .DueModificationWarning = True
                                 .Export
-'                            If UsedCommonComponent(Comp) Then
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
                                 Log.Entry = "Modified component exported (due modification warning set for update)"
@@ -186,7 +189,7 @@ Public Sub ChangedComponents()
                             , p_dots:=lRemaining _
                              )
             Set Comps = Nothing
-        Next vbc
+        Next v
     End With
 
     Application.StatusBar = vbNullString
@@ -210,114 +213,12 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function UsedCommonComponent(ByRef cucc_comp As clsComp) As Boolean
-' ----------------------------------------------------------------------------
-' Returns TRUE when the Used Common Component (cucc_comp) had been exported.
-' Processes a changed Used Common Component. I.e. a Used Common Component of
-' which the current code differs from its last Export File.
-' ----------------------------------------------------------------------------
-    Const PROC = "UsedCommonComponent"
-    
-    On Error GoTo eh
-    With cucc_comp
-        If .Changed Then
-            .DueModificationWarning = True
-            If .RevisionNumber = .Raw.RevisionNumber Then
-                '~~ The Used Common Component compared with ist corresponding Raw
-                '~~ is up-to-date but the code has been modified in this Workbook.
-                '~~ This modification will be reverted with the next Workbook open.
-                If .Raw.HostIsOpen Then
-                    '~~ A code modification of the Raw, yet nbot saved/exported may have been
-                    '~~ dragged to the Workbook using it. In this case a change is indicated but
-                    '~~ the code may be 'already' identical
-                    If .ExpFileTempsDiffer Then
-                        CommCompModificationWarning _
-                            cmod_comp_name:=.CompName _
-                          , cmod_exp_file_full_name:=.ExpFileTemp.Path _
-                          , cmod_raw_exp_file_full_name:=.Raw.ExpFileTemp.Path _
-                          , cmod_diff_message:= _
-                          "The code of the Used Common Component  " & mBasic.Spaced(.CompName) & "  had " & _
-                          "been modified in this Workbook! This modification will be reverted with the next open!"
-                    Else
-                        '~~ Manually 'antidated' updated. When the open Raw is closed the Expost Files will become identical.
-                    End If
-                ElseIf .ExpFileTempAndRawExpFileDiffers Then
-                    CommCompModificationWarning _
-                        cmod_comp_name:=.CompName _
-                      , cmod_exp_file_full_name:=.ExpFileTemp.Path _
-                      , cmod_raw_exp_file_full_name:=.Raw.SavedExpFile.Path _
-                      , cmod_diff_message:= _
-                      "The code of the Used Common Component  " & mBasic.Spaced(.CompName) & "  had " & _
-                      "been modified in this Workbook! This modification will be reverted with the next open!"
-                End If
-                
-                .Export
-                UsedCommonComponent = True
-            
-            ElseIf .RevisionNumber < .Raw.RevisionNumber Then
-                CommCompModificationWarning _
-                    cmod_comp_name:=.CompName _
-                  , cmod_exp_file_full_name:=.ExpFileTempFullName _
-                  , cmod_raw_exp_file_full_name:=.Raw.SavedExpFileFullName _
-                  , cmod_diff_message:= _
-                  "The code of the Raw Common Component  " & mBasic.Spaced(.CompName) & "  " & _
-                  "has been modified since the last open of this Workbook. Just in case the code " & _
-                  "of the Used Common Component had also been modified in this Workbook this " & _
-                  "modification will be reverted with the next Workbook open."
-            
-            ElseIf .RevisionNumber > .Raw.RevisionNumber Then
-                '~~ The content of the saved 'Common Components' folder is outdated. Something which likely never happens.
-                '~~ However, when the Common Componernts folder represents a Github repo the clone apparently requres a fetch!
-                mMsg.Box box_title:="Content of Common Component' folder is outdated" _
-                       , box_msg:="The Used Common Component in this Workbook is more up-to-date than the available " & _
-                                  "Raw Common Component in the saved folder 'Common Components'. Precise: The RevisionNumber " & _
-                                  "of the Used Common Component is greater the the RevisionNumber of the Raw."
-            End If
-        
-        ElseIf .ExpFilesDiffer Then
-            '~~ Even when the Used Common Component not had been changed it may have been exported because of a previous detected change.
-            '~~ When the RevisionNumbers are equal and the Export Files differ the Used Common Component must have been changed and
-            '~~ this code modification will be reverted with the next Workbook open.
-            If .RevisionNumber > .Raw.RevisionNumber Then
-                CommCompModificationWarning _
-                    cmod_comp_name:=.CompName _
-                  , cmod_exp_file_full_name:=.ExpFileTempFullName _
-                  , cmod_raw_exp_file_full_name:=.Raw.SavedExpFileFullName _
-                  , cmod_diff_message:= _
-                  "The code of the Raw Common Component  " & mBasic.Spaced(.CompName) & "  " & _
-                  "has been modified since the last open of this Workbook. Just in case the code " & _
-                  "of the Used Common Component had also been modified in this Workbook this " & _
-                  "modification will be reverted with the next Workbook open."
-            ElseIf .RevisionNumber = .Raw.RevisionNumber Then
-                CommCompModificationWarning _
-                    cmod_comp_name:=.CompName _
-                  , cmod_exp_file_full_name:=.ExpFileTempFullName _
-                  , cmod_raw_exp_file_full_name:=.Raw.SavedExpFileFullName _
-                  , cmod_diff_message:= _
-                  "The code of the Used Common Component  " & mBasic.Spaced(.CompName) & "  had " & _
-                  "apparently been modified in this Workbook! This modification will be reverted " & _
-                  "with the next open!" & vbLf & _
-                  "Note: This message is repaeted with each Workbook_BeforeSave."
-            End If
-        End If
-    End With
-
-xt: Exit Function
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-
 Private Sub CleanUpObsoleteExpFiles()
-' ------------------------------------------------------
-' - Deletes all Export-Files for which the corresponding
-'   component not or no longer exists.
-' - Delete all Export-Files in another but the current
-'   Export-Folder
-' -------------------------------------------------------
+' ---------------------------------------------------------------------------
+' - Deletes all Export-Files for which the corresponding component not or no
+'   longer exists.
+' - Delete all Export-Files in another but the current Export-Folder
+' ---------------------------------------------------------------------------
     Const PROC = "CleanUpObsoleteExpFiles"
     
     On Error GoTo eh
@@ -372,59 +273,14 @@ Private Sub CleanUpObsoleteExpFiles()
         Next v
     End With
     
+    RemoveEmptyFolders ref_folder:=mService.Serviced.Path, ref_sub_folders:=False
+    
 xt: Set cll = Nothing
     Set fso = Nothing
     Set fo = Nothing
     Set fosub = Nothing
     Set fl = Nothing
     Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub CommCompModificationWarning(ByVal cmod_comp_name As String, _
-                                        ByVal cmod_exp_file_full_name, _
-                                        ByVal cmod_raw_exp_file_full_name, _
-                                        ByVal cmod_diff_message)
-' ----------------------------------------------------------------------------
-' Displays an information about a modification of a Used Common Component.
-' The disaplay offers the option to display the code difference.
-' ----------------------------------------------------------------------------
-    Const PROC = "CommCompModificationWarning"
-    
-    On Error GoTo eh
-    Dim msg         As mMsg.TypeMsg
-    Dim cllBttns    As Collection
-    Dim BttnDsply   As String
-    
-    BttnDsply = "Display" & vbLf & "code difference"
-    mMsg.Buttons cllBttns, BttnDsply, vbLf, vbOKOnly
-    With msg.Section(1)
-        .Label.Text = "Attention!"
-        .Label.FontColor = rgbRed
-        .Text.Text = cmod_diff_message
-        .Text.FontColor = rgbRed
-    End With
-        
-    Do
-        Select Case mMsg.Dsply(dsply_title:="Used Common Component code modified" _
-                             , dsply_msg:=msg _
-                             , dsply_buttons:=cllBttns _
-                              )
-            Case BttnDsply
-                mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=cmod_exp_file_full_name _
-                                           , fd_exp_file_left_title:="Used Common Component (" & cmod_exp_file_full_name & ")" _
-                                           , fd_exp_file_right_full_name:=cmod_raw_exp_file_full_name _
-                                           , fd_exp_file_right_title:="Raw Common Component (" & cmod_raw_exp_file_full_name & ")"
-    
-            Case vbOK: Exit Do
-        End Select
-    Loop
-
-xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -473,4 +329,44 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Function
+
+Private Sub RemoveEmptyFolders(ByVal ref_folder As String, _
+                      Optional ByVal ref_sub_folders As Boolean = False)
+' --------------------------------------------------------------------------
+' Removes any empty folder in the folder (ref_folder)
+' --------------------------------------------------------------------------
+    Const PROC = "RemoveEmptyFolders"
+    
+    On Error GoTo eh
+    Dim fso         As New FileSystemObject
+    Dim iFolders    As Long
+    Dim oFile       As File
+    Dim oFolder     As Folder
+    Dim oSubFolder  As Folder
+    
+    ref_folder = Replace(ref_folder & "\", "\\", "\") ' add a possibly missing trailing \
+    Set oFolder = fso.GetFolder(ref_folder)
+    If Not fso.FolderExists(ref_folder) Then GoTo xt
+    
+    For Each oSubFolder In oFolder.SubFolders
+        '~~ Loop through all subfolders
+        iFolders = oSubFolder.SubFolders.Count
+        If oSubFolder.Files.Count = 0 And iFolders = 0 Then
+            '~~ Remove the folder when it has no files and no sub-folders
+            RmDir oSubFolder.Path
+        End If
+        '~~ Recursively repeat if there are any subfolders within the subfolder
+        If ref_sub_folders Then
+            If iFolders <> 0 Then RemoveEmptyFolders (ref_folder & oSubFolder.Name)
+        End If
+    Next
+
+xt: Set fso = Nothing
+    Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
 
