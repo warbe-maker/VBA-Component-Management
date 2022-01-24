@@ -520,7 +520,7 @@ xt: Exit Function
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = ThisWorkbook.name & " mReg." & sProc
+    ErrSrc = "mReg." & sProc
 End Function
 
 Public Function Exists(ByVal reg_key As String, _

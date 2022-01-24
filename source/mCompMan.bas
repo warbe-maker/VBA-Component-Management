@@ -301,8 +301,8 @@ Public Function ExportChangedComponents( _
     
     '~~ The very basic requirements are met
     Else
-        mBasic.BoP ErrSrc(PROC)
         DetermineTraceLogFolder ec_wb
+        mBasic.BoP ErrSrc(PROC)
         Set Log = New clsLog
         Set mService.Serviced = ec_wb
         If mService.Denied(PROC) Then GoTo xt
@@ -598,8 +598,8 @@ Public Function UpdateOutdatedCommonComponents( _
         '~~ another try with the serviced provided by the open Development instance may do the job.
         UpdateOutdatedCommonComponents = AppErr(4)
     Else
-        mBasic.BoP ErrSrc(PROC)
         DetermineTraceLogFolder uo_wb
+        mBasic.BoP ErrSrc(PROC)
         
         Set Log = New clsLog
         Set mService.Serviced = uo_wb

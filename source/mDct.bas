@@ -158,14 +158,14 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
     If bOrderByKey Then
         If VarType(add_key) = vbObject Then
             On Error Resume Next
-            add_key.name = add_key.name
+            add_key.Name = add_key.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
         End If
     ElseIf bOrderByItem Then
         If VarType(add_item) = vbObject Then
             On Error Resume Next
-            add_item.name = add_item.name
+            add_item.Name = add_item.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
         End If
@@ -263,7 +263,7 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
 '
 ' W. Rauschenberger, Berlin Jan 2022
 ' ------------------------------------------------------------------------------------
-    Const PROC = "DAddAscByKey"
+    Const PROC = "AddAscByKey"
     
     On Error GoTo eh
     Dim bDone           As Boolean
@@ -315,14 +315,14 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
     If bOrderByKey Then
         If VarType(add_key) = vbObject Then
             On Error Resume Next
-            add_key.name = add_key.name
+            add_key.Name = add_key.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
         End If
     ElseIf bOrderByItem Then
         If VarType(add_item) = vbObject Then
             On Error Resume Next
-            add_item.name = add_item.name
+            add_item.Name = add_item.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
         End If
@@ -534,34 +534,6 @@ xt: Exit Function
 
 End Function
 
-Private Function ErrMsgErrLine(ByVal ErrLine As Long) As String
-    If ErrLine <> 0 _
-    Then ErrMsgErrLine = " (at line " & ErrLine & ")" _
-    Else ErrMsgErrLine = vbNullString
-End Function
-
-Private Function ErrMsgErrDscrptn(ByVal s As String) As String
-' -------------------------------------------------------------------
-' Return the string before a "||" in the error description. May only
-' be the case when the error has been raised by means of err.Raise
-' which means when it is an "Application Error".
-' -------------------------------------------------------------------
-    If InStr(s, DCONCAT) <> 0 _
-    Then ErrMsgErrDscrptn = Split(s, DCONCAT)(0) _
-    Else ErrMsgErrDscrptn = s
-End Function
-
-Private Function ErrMsgInfo(ByVal s As String) As String
-' -------------------------------------------------------------------
-' Return the string after a "||" in the error description. May only
-' be the case when the error has been raised by means of err.Raise
-' which means when it is an "Application Error".
-' -------------------------------------------------------------------
-    If InStr(s, DCONCAT) <> 0 _
-    Then ErrMsgInfo = Split(s, DCONCAT)(1) _
-    Else ErrMsgInfo = vbNullString
-End Function
-
 Private Function DctAddOrderValue(ByVal dctkey As Variant, _
                          Optional ByVal dctitem As Variant = Nothing) As Variant
 ' --------------------------------------------------------------------
@@ -571,13 +543,13 @@ Private Function DctAddOrderValue(ByVal dctkey As Variant, _
     If bOrderByKey Then
     
         If VarType(dctkey) = vbObject _
-        Then DctAddOrderValue = dctkey.name _
+        Then DctAddOrderValue = dctkey.Name _
         Else DctAddOrderValue = dctkey
         
     ElseIf bOrderByItem Then
     
         If VarType(dctitem) = vbObject _
-        Then DctAddOrderValue = dctitem.name _
+        Then DctAddOrderValue = dctitem.Name _
         Else DctAddOrderValue = dctitem
     
     End If
@@ -674,7 +646,7 @@ Private Function DctAddItemExists( _
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = ThisWorkbook.name & " mDct." & sProc
+    ErrSrc = "mDct." & sProc
 End Function
 
 
