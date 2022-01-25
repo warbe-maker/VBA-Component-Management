@@ -991,67 +991,58 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function Exists(ByVal fe_file As Variant, _
-              Optional ByRef fe_fso As File = Nothing, _
-              Optional ByRef fe_cll As Collection = Nothing) As Boolean
+Public Function Exists(ByVal ex_folder As String, _
+              Optional ByVal ex_file As String = vbNullString, _
+              Optional ByVal ex_section As String = vbNullString, _
+              Optional ByVal ex_value_name As String = vbNullString, _
+              Optional ByRef ex_result_folders As Collection = Nothing, _
+              Optional ByRef ex_result_files As Collection = Nothing) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns TRUE when the file (fe_file) - which may be a file object or a
+' Returns TRUE when the folder (ex_folder) exists the file (ex_file) - which may be a file object or a
 ' file's full name - exists and furthermore:
 ' - when the file's full name ends with a wildcard * all subfolders are
 '   scanned and any file which meets the criteria is returned as File object
 '   in a collection (fe_cll),
 ' - when the files's full name does not end with a wildcard * the existing
-'   file is returned as a File object (fe_fso).
+'   file is returned as a File object (ex_file).
 ' ----------------------------------------------------------------------------
     Const PROC  As String = "Exists"
     
     On Error GoTo eh
-    Dim sTest   As String
-    Dim sFile   As String
-    Dim fldr    As Folder
-    Dim sfldr   As Folder   ' Sub-Folder
-    Dim fl      As File
-    Dim sPath   As String
-    Dim queue   As Collection
+    Dim sTest           As String
+    Dim sFile           As String
+    Dim fldr            As Folder
+    Dim sfldr           As Folder   ' Sub-Folder
+    Dim fl              As File
+    Dim queue           As Collection
+    Dim fso             As New FileSystemObject
+    Dim FolderExists    As Boolean
+    Dim FileExists      As Boolean
+    Dim SectionExists   As Boolean
+    Dim ValueNameExists As Boolean
+    
+    Set ex_result_folders = New Collection
+    Set ex_result_files = New Collection
 
-    Exists = False
-    Set fe_cll = New Collection
-
-    If TypeName(fe_file) <> "File" And TypeName(fe_file) <> "String" _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The File (parameter fe_file) for the File's existence check is neither a full path/file name nor a file object!"
-    If Not TypeName(fe_fso) = "Nothing" And Not TypeName(fe_fso) = "File" _
-    Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided return parameter (fe_fso) is not a File type!"
-    If Not TypeName(fe_cll) = "Nothing" And Not TypeName(fe_cll) = "Collection" _
-    Then Err.Raise AppErr(3), ErrSrc(PROC), "The provided return parameter (fe_cll) is not a Collection type!"
-
-    If TypeOf fe_file Is File Then
-        With New FileSystemObject
-            On Error Resume Next
-            sTest = fe_file.Name
-            Exists = Err.Number = 0
-            If Exists Then
-                '~~ Return the existing file as File object
-                Set fe_fso = .GetFile(fe_file.Path)
-                GoTo xt
-            End If
-        End With
-    ElseIf VarType(fe_file) = vbString Then
-        With New FileSystemObject
-            sFile = Split(fe_file, "\")(UBound(Split(fe_file, "\")))
-            If Not Right(sFile, 1) = "*" Then
-                Exists = .FileExists(fe_file)
-                If Exists Then
-                    '~~ Return the existing file as File object
-                    Set fe_fso = .GetFile(fe_file)
-                    GoTo xt
-                End If
+    With fso
+        '~~ Folder existence check
+        If Not .FolderExists(ex_folder) Then GoTo xt
+        ex_result_folders.Add .GetFolder(ex_folder)
+        FolderExists = True
+        
+        '~~ File existence check
+        If Not ex_file = vbNullString Then
+            If Not Right(ex_file, 1) = "*" Then
+                If Not .FileExists(ex_folder & "\" & ex_file) Then GoTo xt
+                ex_result_files.Add .GetFile(ex_folder & "\" & ex_file)
+                FileExists = True
             Else
-                sPath = Replace(fe_file, "\" & sFile, vbNullString)
-                sFile = Replace(sFile, "*", vbNullString)
+                '~~ Wildcard files
+                sFile = Replace(ex_file, "*", vbNullString)
                 '~~ Wildcard file existence check is due
-                Set fldr = .GetFolder(sPath)
+                Set fldr = .GetFolder(ex_folder)
                 Set queue = New Collection
-                queue.Add .GetFolder(sPath)
+                queue.Add fldr
 
                 Do While queue.Count > 0
                     Set fldr = queue(queue.Count)
@@ -1063,16 +1054,39 @@ Public Function Exists(ByVal fe_file As Variant, _
                         If InStr(fl.Name, sFile) <> 0 And VBA.Left$(fl.Name, 1) <> "~" Then
                             '~~ Return the existing file which meets the search criteria
                             '~~ as File object in a collection
-                            fe_cll.Add fl
+                            ex_result_files.Add fl
                          End If
                     Next fl
                 Loop
-                If fe_cll.Count > 0 Then Exists = True
+                FileExists = ex_result_files.Count > 0
             End If
-        End With
+        End If
+        
+        '~~ PrivateProfile file: Section existence check
+        If Not ex_section = vbNullString Then
+            If Not Sections(ex_folder & "\" & ex_file).Exists(ex_section) Then GoTo xt
+            SectionExists = True
+        End If
+        
+        '~~ PrivateProfile file: Value-Name existence check
+        If Not ex_value_name = vbNullString Then
+            If Not Values(pp_file:=ex_folder & "\" & ex_file, pp_section:=ex_section).Exists(ex_value_name) Then GoTo xt
+            ValueNameExists = True
+        End If
+    End With
+    
+    If ValueNameExists Then
+        Exists = True
+    ElseIf SectionExists Then
+        Exists = True
+    ElseIf FileExists Then
+        Exists = True
+    ElseIf FolderExists Then
+        Exists = True
     End If
-
-xt: Exit Function
+    
+xt: Set fso = Nothing
+    Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
