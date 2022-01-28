@@ -76,7 +76,7 @@ Private Function MaxCompLength(ByRef wb As Workbook) As Long
     Dim vbc As VBComponent
     If lMaxCompLength = 0 Then
         For Each vbc In wb.VBProject.VBComponents
-            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.name))
+            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.Name))
         Next vbc
     End If
 End Function
@@ -158,7 +158,7 @@ Public Sub Test_SyncColWidth()
     
     For Each ws In wbSource.Worksheets
         If mSyncSheets.SheetExists(wb:=wbTarget _
-                                 , sh1_name:=ws.name _
+                                 , sh1_name:=ws.Name _
                                  , sh1_code_name:=ws.CodeName _
                                  , sh2_name:=sSheetName _
                                   ) _
@@ -329,10 +329,10 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         Else
-            Log.Entry = "Workbook '" & wbActive.name & "' re-activated by closing the temporary created Workbook"
+            Log.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set Comp = Nothing
@@ -643,7 +643,7 @@ Public Sub Test_UpdateOutdatedCommonComponents()
     Dim AddinService    As String
     Dim AddinStatus     As String
     
-    If mService.Denied(PROC) Then GoTo xt
+    If mService.Denied Then GoTo xt
 
     AddinService = CompManAddinName & "!mCompMan.UpdateOutdatedCommonComponents"
     If mMe.CompManAddinIsOpen Then
@@ -897,7 +897,7 @@ Public Sub Test_SheetControls_Name_and_Type()
     
     Set ws = mCompMan.WbkGetOpen(sWb).Worksheets(sWs)
     For Each shp In ws.Shapes
-        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
+        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.Name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
     Next shp
     For Each v In dct
         Debug.Print dct(v), Tab(45), v

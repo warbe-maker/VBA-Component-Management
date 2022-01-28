@@ -473,12 +473,17 @@ Public Property Get RawChanged() As Boolean
     
     On Error GoTo eh
     If Me.RevisionNumber < mComCompsRawsSaved.RawSavedRevisionNumber(sCompName) Then
+        '~~ The Revision Number of the Raw Common Component is greater which means that
+        '~~ a modification had been exported - and the Revision Number thereby increased
         If Not mService.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
                               , fd_exp_file_2:=Raw.SavedExpFile) Then
-            '~~ Propably updated already manually 'antidated'
+            '~~ Because the Export File of the Used Common Component is identical
+            '~~ with the Export File of the Raw Common Component the Used Common
+            '~~ Component must have been updated manually already - e.g. by dragging
+            '~~ the component from the hosting Workbook. So just the Revision Number
+            '~~ needs to be set equal.
             mComCompsUsed.RevisionNumber(sCompName) = mComCompsRawsSaved.RawSavedRevisionNumber(sCompName)
         Else
-            
             RawChanged = True
         End If
     ElseIf Me.RevisionNumber = mComCompsRawsSaved.RawSavedRevisionNumber(sCompName) Then
@@ -486,8 +491,8 @@ Public Property Get RawChanged() As Boolean
                               , fd_exp_file_2:=Raw.SavedExpFile) Then
             '~~ it is not the Raw which had changed but the Used Common Component in its Workbook.
             '~~ In order to prevent Used Common Components differ between Workbooks using them
-            '~~ and remainin different unrecognized the Raw is indicated changed to enforce
-            '~~ an update - and a revert of the modification! - with the next Workbook open
+            '~~ and remaining different unrecognized the Raw is indicated changed to enforce
+            '~~ an update - and by the way revert the modification in the Used Common Component.
             RawChanged = True
         End If
     End If

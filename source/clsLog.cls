@@ -43,7 +43,6 @@ Friend Property Let Entry(ByVal s As String)
     mFile.Txt(ft_file:=sFile, ft_append:=True) = sEntry
     sItem = sServicedItem
     sCompName = Split(ServicedItemName, "(")(0)
-    mTrc.TraceLogInfo = sCompName & ": " & s
     
 End Property
 

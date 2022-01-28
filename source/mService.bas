@@ -201,7 +201,7 @@ Public Function CompMaxLen(ByRef ml_wb As Workbook) As Long
     Next vbc
 End Function
 
-Public Function Denied(ByVal den_service As String) As Boolean
+Public Function Denied() As Boolean
 ' --------------------------------------------------------------------------
 ' Returns TRUE when all preconditions for a service execution are fulfilled.
 ' --------------------------------------------------------------------------
@@ -209,18 +209,16 @@ Public Function Denied(ByVal den_service As String) As Boolean
     
     On Error GoTo eh
     Dim sStatus As String
-    
-    If Log Is Nothing Then Set Log = New clsLog
-    Log.Service = den_service
-    
+        
     If mMe.IsAddinInstnc And mMe.CompManAddinIsPaused Then
         '~~ When the service is about to be provided by the Addin but the Addin is currently paused
         '~~ another try with the serviced provided by the open Development instance may do the job.
         sStatus = "The CompMan Addin is currently paused. Open the development instance and retry."
     ElseIf WbkIsRestoredBySystem Then
         sStatus = "Service denied! Workbook appears restored by the system!"
-    ElseIf mConfig.CompManAddinIsPaused And mMe.IsAddinInstnc And den_service = "ExportChangedComponents" Then
-        '~~ Note: Export of code changes can be made by the development instance itself
+    ElseIf mConfig.CompManAddinIsPaused And mMe.IsAddinInstnc And InStr(Log.Service, "UpdateOutdatedCommonComponents") <> 0 Then
+        '~~ Note: The CompMan development instance is able to export its modified components but requires the
+        '~~       Addin to upodate its outdated Used Common Components
         sStatus = "Service denied! The CompMan Addin is currently paused!"
     ElseIf FolderNotVbProjectExclusive Then
         sStatus = "Service denied! The Workbook is not the only one in its parent folder!"
@@ -269,24 +267,18 @@ Public Sub ExportChangedComponents(ByVal hosted As String)
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
-'    Dim fso         As New FileSystemObject
-'    Dim Comp        As clsComp
-'    Dim RawComp     As clsRaw
     
     mBasic.BoP ErrSrc(PROC)
     If mService.Serviced Is Nothing _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                                  "(it may have been called directly via the 'Immediate Window'"
-    If mService.Denied(PROC) Then GoTo xt
-    mCompMan.ManageRawCommonComponentsProperties hosted
+    If mService.Denied Then GoTo xt
+    mCompMan.MaintainPropertiesOfHostedRawCommonComponents hosted
     
     mExport.ChangedComponents
         
 xt: Set dctHostedRaws = Nothing
-'    Set Comp = Nothing
-'    Set RawComp = Nothing
     Set Log = Nothing
-'    Set fso = Nothing
     mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
     
@@ -348,9 +340,7 @@ Public Function SyncVBProjects( _
     
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
-    Set mService.Serviced = wb_target
-    
-    If mService.Denied(PROC) Then GoTo xt
+    If mService.Denied Then GoTo xt
     
     sStatus = Log.Service
         
@@ -360,7 +350,6 @@ Public Function SyncVBProjects( _
                                               , design_rows_cols_added_or_deleted:=design_rows_cols_added_or_deleted)
 
 xt: mBasic.EoP ErrSrc(PROC)
-    Set Log = Nothing
     Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -1064,17 +1053,25 @@ Private Function AddAscByKeyValue(ByVal add_key As Variant) As Variant
     End If
 End Function
 
-Public Function AllComps(ByVal wb As Workbook) As Dictionary
+Public Function AllComps(ByVal ac_wb As Workbook, _
+                Optional ByVal ac_service As String = vbNullString) As Dictionary
 ' ---------------------------------------------------------------------------
 ' Returns a Dictionary with all VBComponents in ascending order thereby
 ' calculating the max lengths for vthe log entries.
 ' ---------------------------------------------------------------------------
-    Dim vbc As VBComponent
+    Dim vbc     As VBComponent
+    Dim lDone   As Long
     
     Set AllComps = New Dictionary
-    For Each vbc In wb.VBProject.VBComponents
+    For Each vbc In ac_wb.VBProject.VBComponents
         Log.ServicedItem = vbc
         AddAscByKey AllComps, vbc.Name, vbc
+        lDone = lDone + 1
+        Application.StatusBar = _
+        mService.Progress(p_service:=ac_service _
+                        , p_of:=lDone _
+                        , p_dots:=lDone _
+                         )
     Next vbc
 
 End Function

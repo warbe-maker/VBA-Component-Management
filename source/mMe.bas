@@ -9,8 +9,8 @@ Option Private Module
 ' Public services:
 ' - CompManAddinIsOpen             Returns True when the 'AddIn Instance'
 '                                  Workbook is open
-' - FolderAddin                    Get/Let the configured path for the 'AddIn
-'                                  Instance' of this Workbook
+' - FolderAddin                    Get/Let the configured path for the
+'                                  'AddIn Instance' of this Workbook
 ' - CfgAsserted                    Returns True when the required properties
 '                                  (the paths) are configured and exist
 ' - ControlItemRenewAdd            Adds a 'RenewAddIn' control item to the
@@ -22,24 +22,21 @@ Option Private Module
 '                                  in the 'Add-Ins' popup menu or executed
 '                                  via the corresponding Command Button at
 '                                  the 'Manage CompMan Addin' Worksheet.
-' - UpdateOutdatedCommonComponents Updates any outdated Used Common Component
-'                                  by means of the Raw's Export File which
-'                                  had been saved to the Common Components
-'                                  folder. Because a Workbook cannot update
-'                                  its own components the Development
-'                                  instance Workbook requires an active
-'                                  'Addin Instance' to get its outdated Used
+' - UpdateOutdatedCommonComponents Updates any outdated Used Common
+'                                  Component by means of the Raw's Export
+'                                  File which had been saved to the Common
+'                                  Components folder with the last export.
+'                                  Because a Workbook cannot update its own
+'                                  components the Development instance
+'                                  Workbook requires an active 'Addin
+'                                  Instance' to get its outdated Used
 '                                  Common Components updated. For any other
 '                                  Workbook the service can be provided by
 '                                  the open 'Development Instance'.
-' - FolderServiced                 When the AddIn is open and not  p a u s e d the
-'                                  Workbook_Open service 'UpdateOutdatedCommonComponents' and the
-'                                  Workbook_BeforeSave service 'ExportChangedComponents'
-'                                  will be executed for Workbooks calling them under
-'                                  the two additional preconditions:
-'                                  1. The Conditional Compile Argument CompMan = 1"
-'                                  2. The Workbook is located in the configured
-'                                 'Serviced Development Root'
+' - FolderServicedIsValid          CompMan services are only applied for
+'                                  Workbooks which are located in the
+'                                  configured 'Serviced Folder' - which
+'                                  prevents productive Workbooks are bothered
 ' Uses Common Components:
 ' - mFile                   Get/Let PrivateProperty value service
 ' - mWrkbk                  GetOpen and Opened service
@@ -613,16 +610,16 @@ End Sub
 Private Sub RenewFinalResult()
     If bSucceeded Then
         mMe.RenewLogAction = "Successful!"
-        RenewLogResult(la_last:=True, la_result_text:="Successful! The Addin '" & CompManAddinName & "' has been renewed by the development instance '" & DevInstncName & "'") = "Passed"
+        RenewLogResult(la_last:=True, la_result_text:=mBasic.Spaced("Successful!") & "   The Addin '" & CompManAddinName & "' has been renewed by the development instance '" & DevInstncName & "'") = "Passed"
     Else
         mMe.RenewLogAction = "Not Successful!"
-        mMe.RenewLogResult(la_last:=True, la_result_text:="Renewing the Addin '" & CompManAddinName & "' by the development instance '" & DevInstncName & "' failed!") = "Failed"
+        mMe.RenewLogResult(la_last:=True, la_result_text:="Renewing the Addin '" & CompManAddinName & "' by the development instance '" & DevInstncName & "'  " & mBasic.Spaced("failed!")) = "Failed"
     End If
 End Sub
 
 Private Function Renew_0_ConfirmConfig() As Boolean
     mMe.RenewLogAction = "Assert 'CompMan's Basic Configuration'"
-    Renew_0_ConfirmConfig = BasicConfig()
+    Renew_0_ConfirmConfig = mMe.BasicConfig(addin_folder_obligatory:=True)
     If Renew_0_ConfirmConfig _
     Then mMe.RenewLogResult = "Passed" _
     Else mMe.RenewLogResult = "Failed"
@@ -812,12 +809,12 @@ Private Function Renew_7_SaveDevInstncWorkbookAsAddin() As Boolean
             wbSource.SaveAs CompManAddinFullName, FileFormat:=xlAddInFormat
             Renew_7_SaveDevInstncWorkbookAsAddin = Err.Number = 0
             If Not Renew_7_SaveDevInstncWorkbookAsAddin _
-            Then mMe.RenewLogResult("Save Development instance as Addin instance failed!" _
+            Then mMe.RenewLogResult("Save Development instance as Addin instance  " & mBasic.Spaced("failed!") _
                                    ) = "Failed" _
             Else mMe.RenewLogResult() = "Passed"
             .EnableEvents = True
         Else ' file still exists
-            mMe.RenewLogResult("Setup/Renew of the 'CompMan-Addin' as copy of the 'Development-Instance-Workbook' failed" _
+            mMe.RenewLogResult("Setup/Renew of the 'CompMan-Addin' as copy of the 'Development-Instance-Workbook'  " & mBasic.Spaced("failed!") _
                               ) = "Failed"
         End If
     End With
@@ -925,14 +922,14 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             Else wbDevlp.VBProject.Name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
-                mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ") failed!" _
+                mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")   " & mBasic.Spaced("failed!") _
                                   ) = "Failed"
             Else
                 mMe.RenewLogResult() = "Passed"
             End If
             .EnableEvents = True
         Else ' file still exists
-            mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ") failed!" _
+            mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")  " & mBasic.Spaced("failed!") _
                               ) = "Failed"
         End If
     End With

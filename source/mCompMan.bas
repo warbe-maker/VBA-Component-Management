@@ -190,14 +190,24 @@ End Function
 '    End Select
 'End Sub
 
-Private Sub DetermineTraceLogFolder(ByVal dt_wb As Workbook)
+Private Sub EstablishTraceLogFile(ByVal dt_wb As Workbook, _
+                         Optional ByVal dt_append As Boolean = False)
 ' --------------------------------------------------------------------------
-' Determines the location for the service execution trace log folder - which
-' by the way suspends the display of the trace result.
+' Establishes a trace log file in the serviced Workbook's parent folder.
 ' --------------------------------------------------------------------------
-    If mMe.IsDevInstnc _
-    Then mTrc.TraceLogFile = Replace(dt_wb.FullName, dt_wb.Name, "CompMan.Trace.log") _
-    Else mTrc.TraceLogFile = mConfig.FolderAddin & "\CompManAdmin\CompMan.Service.log"
+    Dim sFile As String
+    sFile = Replace(dt_wb.FullName, dt_wb.Name, "CompMan.Service.trc")
+
+    '~~ Even when dt_append = False: When the filke had been createde today dt_append will be set to True
+    With New FileSystemObject
+        If .FileExists(sFile) Then
+            If Format(.GetFile(sFile).DateCreated, "YYYY-MM-DD") = Format(Now(), "YYYY-MM-DD") Then
+                dt_append = True
+            End If
+        End If
+    End With
+    mTrc.TraceLogFile(tl_append:=dt_append, tl_title:=Log.Service) = sFile
+
 End Sub
 
 Public Sub DisplayChanges( _
@@ -248,7 +258,10 @@ Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
     Const PROC = "ExportAll"
     
     On Error GoTo eh
-    DetermineTraceLogFolder ea_wb
+    
+    If Log Is Nothing Then Set Log = New clsLog
+    Log.Service = PROC
+    EstablishTraceLogFile ea_wb
     
     mBasic.BoP ErrSrc(PROC)
     If ea_wb Is Nothing _
@@ -286,6 +299,9 @@ Public Function ExportChangedComponents( _
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
+    Set mService.Serviced = ec_wb
+    Set Log = New clsLog
+    Log.Service = PROC
     
     '~~ Determine any reason the service basically cannot be provided
     If Not mMe.FolderServicedIsValid Then
@@ -301,17 +317,16 @@ Public Function ExportChangedComponents( _
     
     '~~ The very basic requirements are met
     Else
-        DetermineTraceLogFolder ec_wb
+        EstablishTraceLogFile ec_wb
         mBasic.BoP ErrSrc(PROC)
-        Set Log = New clsLog
-        Set mService.Serviced = ec_wb
-        If mService.Denied(PROC) Then GoTo xt
-'        mCompMan.ManageRawCommonComponentsProperties ec_hosted
+        
+        If mService.Denied Then GoTo xt
         
         mService.ExportChangedComponents ec_hosted
         ExportChangedComponents = True
-        mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
         ExportChangedComponents = Application.StatusBar
+        
+        mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     End If
 
 xt: Exit Function
@@ -326,7 +341,7 @@ Public Sub Install()
     mService.Install ActiveWorkbook
 End Sub
 
-Public Sub ManageRawCommonComponentsProperties(ByVal mh_hosted As String)
+Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As String)
 ' ----------------------------------------------------------------------------
 ' Manages all aspects of Raw/Hosted Common Components which includes the
 ' copies of the Export File in the Common Components Folder.
@@ -344,7 +359,7 @@ Public Sub ManageRawCommonComponentsProperties(ByVal mh_hosted As String)
 '     - Host Name
 '     - Revision Number
 ' ----------------------------------------------------------------------------
-    Const PROC = "ManageRawCommonComponentsProperties"
+    Const PROC = "MaintainPropertiesOfHostedRawCommonComponents"
     
     On Error GoTo eh
     Dim v               As Variant
@@ -538,8 +553,13 @@ Public Sub SynchTargetWbWithSourceWb( _
     Const PROC = "SynchTargetWbWithSourceWb"
     
     On Error GoTo eh
-    mBasic.BoP ErrSrc(PROC)
+    
     Set mService.Serviced = wb_target
+    If Log Is Nothing Then Set Log = New clsLog
+    Log.Service = PROC
+    EstablishTraceLogFile wb_target
+    
+    mBasic.BoP ErrSrc(PROC)
     mService.SyncVBProjects wb_target:=wb_target, wb_source_name:=wb_source
     
 xt: mBasic.EoP ErrSrc(PROC)
@@ -582,13 +602,17 @@ Public Function UpdateOutdatedCommonComponents( _
     On Error GoTo eh
     Dim msg As TypeMsg
     
+    Set mService.Serviced = uo_wb
+    Set Log = New clsLog
+    Log.Service(new_log:=True) = PROC
+    
+    '~~ Prevent any service is performed when not possible, applicable or any other reason
     If Not mMe.FolderServicedIsValid Then
         '~~ The serviced root folder is invalid (not configured or not existing)
         UpdateOutdatedCommonComponents = AppErr(1)
     ElseIf Not uo_wb.FullName Like mConfig.FolderServiced & "*" Then
         '~~ The serviced Workbook is located outside the serviced folder
         UpdateOutdatedCommonComponents = AppErr(2)
-        
     ElseIf mMe.IsDevInstnc And uo_wb.Name = mMe.DevInstncName Then
         '~~ The servicing and the serviced Workbook are both the 'CompMan Development Instance'
         '~~ This is the case when either no CompMan-Addin-Instance is available or it is currently paused
@@ -597,24 +621,23 @@ Public Function UpdateOutdatedCommonComponents( _
         '~~ When the service is about to be provided by the Addin but the Addin is currently paused
         '~~ another try with the serviced provided by the open Development instance may do the job.
         UpdateOutdatedCommonComponents = AppErr(4)
+    
     Else
-        DetermineTraceLogFolder uo_wb
+        EstablishTraceLogFile uo_wb
         mBasic.BoP ErrSrc(PROC)
         
-        Set Log = New clsLog
-        Set mService.Serviced = uo_wb
-        If mService.Denied(PROC) Then GoTo xt
+        If mService.Denied Then GoTo xt
         
-        mCompMan.ManageRawCommonComponentsProperties uo_hosted
+        mCompMan.MaintainPropertiesOfHostedRawCommonComponents uo_hosted
         Set Stats = New clsStats
         mUpdate.Outdated mService.Serviced
         UpdateOutdatedCommonComponents = True
         
-        Set Log = Nothing
         mBasic.EoP ErrSrc(PROC)
     End If
     
-xt: Exit Function
+xt: Set Log = Nothing
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

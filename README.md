@@ -47,28 +47,28 @@ The service is meant for a productive Workbook which is temporarily copied for t
 While the code of a sheet is fully synchronized, design changes such like insertion of new columns/rows and formatting changes remain a manual task.\ A Worksheet's _Name_ may be changed as well as its _CodeName_. However, when both are changed this would be interpreted as new and the old sheet as an obsolete one - which is definitely not what was intended. In order to avoid a disastrous synchronization error such a change demands the explicit assertion that only one of the two but never both are changed at a time.
 
 ## Installation
-1. Download and open [CompMan.xlsb][1]
+1. Download and open [CompMan.xlsb][1]<br>When the Workbook is opened for the first time it will show a dialog for the reqired _Basic Configuration_. That's all unless one prefers to have the services available as Addin which requires the second step. 
 
 2. Optionally use the _Setup/Renew_ button to establish the [_Component Management_ as Addin](#component-management-as-addin). The service requires to re-confirm the [Component Management configuration](#component-management-configuration)
-   - a folder for the Addin which will become the _Application.AltStartupPath_ and therefore defaults to it when already used
-   - a _Serviced-Root-Folder_ which is used to serve only Workbooks under this root but not when they are located elsewhere outside
+   - a folder for the Addin which will become the _Application.AltStartupPath_ and therefore defaults to it when already in use
+   - a _Serviced-Folder_ in which a Workbook must be located (in its dedicated folder by the way) in order to get serviced by _CompMan_
  
-Once the _CompMan-Addin_ is established it will automatically be opened when Excel starts.
+Once the _CompMan-Addin_ is established it will automatically be opened and available when Excel starts - unless it is not removed from the Addin-Folder.
 
 ## Usage
 
-### Preconditions
-First of all: Even when a Workbook is prepared for being serviced by _CompMan_ nothing at all happens when the the Workbook resides outside the _Serviced Folder_ .
+> #### Serviced or not serviced
+> Even when a Workbook is prepared for being serviced by _CompMan_ **nothing at all will happen** when the Workbook resides outside the _Serviced Folder_. In other words, when the Workbook becomes productive it should be copied to another location in order not to be bothered by CompMan services. 
 
-For a Workbook the [Common requirements](#common-requirements) are met the services will still be denied under one of the following conditions:
-1. The basic configuration is incomplete or invalid
-2. The Workbook not resides exclusively in its dedicated folder, in other words it is not the only Workbook in its parent folder
-4. The CompMan-Addin is not setup or _Paused_ and the _CompMan.xlsb_ Workbook which alternatively can provide the services is not open
-5. WinMerge is not installed
+### Preconditions for any Workbook for being serviced by _CompMan_
 
-### Preparing a Workbook for being serviced
-1. Download and import _[mCompManClient.bas][3]_ from the open _[CompMan.xlsb][1]_ Workbook into the Workbook (drag and drop in the VBE)
-2. Copy the below code into the Workbook module:
+For a Workbook the following preconditions must be met in order to get is serviced by CompMan:
+1. The Workbook must be located in the configured [Serviced Folder](#basic configuration) 
+2. The Workbook must resides exclusively in its dedicated folder, in other words it is not the only Workbook in its parent folder
+4. Either the  _[CompMan.xlsb][1]_ Workbook is open or the CompMan-Addin is setup
+5. WinMerge is installed
+6. The _[mCompManClient.bas][3]_ had been downloaded and imported. This component is the link to the services either provided by the _CompMan-Addin_ or directly by the _[CompMan.xlsb][1]_ Workbook
+7. The Workbook component is prepared as follows
 ```vb
 Private Const HOSTED_RAWS = "mFile" ' The hosted 'Raw Common Component' (if any)
 
@@ -81,37 +81,40 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
 End Sub
 ```
 
-### Using the Export and Update service
+### Other
 
-### Synchronization (_SyncVBProjects_) service
-There is no user interface for this service. As it is a mere development task it is to be initiated from the _Imediate Window_ of the VB Editor.
-When either CompMan's development instance Workbook (_[CompMan.xlsb][1]_) or the corresponding Addin instance is loaded, in the _Immediate Window_ enter<br>
-`mService.SyncVBProjects`<br>
-A dialog will open for the selection of the source and the target Workbook through their file names regardless the are already open. To avoid a possible irritation, opening them beforehand may be appropriate. In case there are some not yet up-to-date used _Common-Components_ the update service will run and display a confirmation dialog. For more details using this service see th post [Programmatically-updating-Excel-VBA-code][2].
+#### Synchronization (_SyncVBProjects_) service
+> There is no user interface for this service. As it is a mere development task it is to be initiated from the _Immediate Window_ of the VB Editor when the _[CompMan.xlsb][1]_ Workbook is open.
 
-### Multiple computers involved in VB-Projectsd development/maintenance
-I do use two computers at two locations and prefer not to be bound to one. Some may prefer a network drive others a cloud based storage. I prefer Github which provides a versioning control and development spread over several computer is just a matter of maintained clone/fork repositories. In any case there is a certain need to prevent updates of used Common Components with outdated hosted/raw versions.
+A dialog will open for the selection of the _Source-Workbook_ and the _Target Workbook_ - which may be already open however. To avoid a possible irritation, opening them beforehand may be appropriate. In case there are some _Outdated Used Common-Components_ the update service will run and display a confirmation dialog.
 
 #### _Common Components_ folder
-Whenever a hosted Common Component had been modified it is copied to the _Common Components_ folder located in the _Serviced Root Folder_. Thereby, Common Components are available for being imported into other VB-Projects even when the Workbook it is hosted is not available. This is specifically to support when more than one computer (of the same or different users) is in charge of the development of VB-Projects. 
+_CompMan_ maintains for each _Raw Common Component_ a copy of the _Export File_ in a _Common Components_ folder. These _Export Files_ are the source for a service Workbook's _Outdated Used Common Components_. When a _Hosted Raw Common Component_ is modified it is not only exported like any other component but also copied to the _Common Components_ folder thereby increasing a _Revision Number_. 
 
 #### _Revision Number_
 CompMan is pretty much focused on _Common Components_. In order to prevent updates of _Used Common Components_ with outdated raw versions CompMan maintains a _Revision Number_ for them which is increased whenever a new modified version is exported. The _Revision Number_ is maintained in a file _ComCompsHosted.dat_ located in the Workbook folder and kept in sync with the Revision Number_ in a file _ComCompsSaved.dat_ located in the [_Common Compüonents_ folder](#common-components-folder).
 
+#### Pausing/continuing the CompMan Add-in
+Use the corresponding command buttons when the Workbook [CompMan.xlsb][1] is open. Pausing the Addin is only a CompMan development feature. When the Addin is paused while the [CompMan.xlsb][1] is open CompMan works as if the Addin were not setup which means the services are directly provided by the open [CompMan.xlsb][1]. When the [CompMan.xlsb][1] Workbook is closed and an Addin had been setup the Addin will be _continued_ automatically. This ensures that the Addin is available for the [CompMan.xlsb][1] Workbook when it is opened again.
+> The _CompMan Addin_ is the only means which allows to update _Outdated Used Common Components_ in the [CompMan.xlsb][1].
 
+#### Basic configuration 
+| Item | Description |
+|------|-------------|
+| _Serviced&nbsp;Folder_ | The folder in which a Workbook (in its dedicated folder) must be located in order to get serviced by _CompMan_ |
+| _Addin&nbsp;Folder_ | Obligatory only when CompMan is Setup/Renewed. This folder defaults to the _Application.AltStartupPath_ when one is already specified/in use. The specified or confirmed folder is (or becomes) the _Application.AltStartupPath_. |
+| _Export&nbsp;Folder_ | Name of the folder (defaults to _source_) for the _Export Files_ of new or modified components.<br>Note: CompMan only exports new or modified components. |
 
-### Pausing/continuing the CompMan Add-in
-Use the corresponding command buttons when the Workbook [CompMan.xlsb][1] is open.
+#### CompMan specific PrivateProfile files
 
-### Component Management configuration 
-#### _Serviced Root Folder_
-CompMan only serves Workbooks in dedicated folders and when these folders arer located in/under the configured _Serviced Root Folder_.
+| File                     | Location             | Purpose               |
+|--------------------------|----------------------|-----------------------|
+| _ComCompsHosted.dat_     | Dedicated folder of a Workbook which hosts a _Raw&nbsp;Common&nbsp;Component_ | Properties of the Raw component |
+| _ComCompsUsed.dat_       | Dedicated folder of a Workbook which uses a _Common&nbsp;Component_  | Properties of all _Used&nbsp;Common&nbsp;Components_ specifically the current _Revision&nbsp;Number_ |
+| _ComComps-RawsSaved.dat_ | _Common&nbsp;Components_ folder | Properties of all known Raw_Common Components_, source for the _UpdateOutdatedCommonComponents_ service. |
 
-- The Workbook has the _Common Component_ _**CompManClient**_ installed and the Workbook_Open and the Workbook_BeforeSave event is prepared as described above
-- CompMan services are available
-
-#### _Addin Folder_
-When the Component Management is established as Addin this requires a dedicated folder. This folder defaults to the _Application.AltStartupPath_ when one is already specified/in use. The specified or confirmed folder is (or becomes) the _Application.AltStartupPath_.
+#### Multiple computers involved in VB-Project's development/maintenance
+I do use two computers at two locations and prefer not to be bound to one. Some may prefer a network drive others a cloud based service. I prefer GitHub which makes using several computers very comfortable. In any case there is a certain need to prevent updates of used Common Components with outdated hosted/raw versions.
 
 ## Contribution
 Contribution of any kind is welcome raising issues or by commenting the corresponding post [Programmatically-updating-Excel-VBA-code][2].

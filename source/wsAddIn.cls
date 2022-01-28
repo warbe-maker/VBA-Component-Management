@@ -50,7 +50,8 @@ End Property
 Public Sub LogRenewStep( _
                Optional ByVal rn_action As String = vbNullString, _
                Optional ByVal rn_result As String = vbNullString, _
-               Optional ByVal rn_last_step As Boolean = False)
+               Optional ByVal rn_last_step As Boolean = False, _
+               Optional ByVal rn_renew_failed As Boolean = False)
 ' ---------------------------------------------------------------
 '
 ' ---------------------------------------------------------------
@@ -77,11 +78,23 @@ Public Sub LogRenewStep( _
                            , mntr_footer:="Renew process terminated by user! Close window." _
                            , mntr_width_min:=600
             Else
-                mMsg.Monitor mntr_title:="Establish or renew CompMan as Addin" _
-                           , mntr_msg:=msg _
-                           , mntr_msg_monospaced:=True _
-                           , mntr_footer:="Renew process finished! Close window." _
-                           , mntr_width_min:=600
+                If Not rn_renew_failed Then
+                    mMsg.Monitor mntr_title:="Establish or renew CompMan as Addin" _
+                               , mntr_msg:=msg _
+                               , mntr_msg_monospaced:=True _
+                               , mntr_footer:="Renew process  " & mBasic.Spaced("successfully") & "  finished! Close window." _
+                               , mntr_width_min:=600
+                Else
+                    mMsg.Monitor mntr_title:="Establish or renew CompMan as Addin" _
+                               , mntr_msg:=msg _
+                               , mntr_msg_monospaced:=True _
+                               , mntr_footer:="Renew process  " & mBasic.Spaced("failed") & "  Close window and " & vbLf & _
+                                              "the only way to solve this problem:" & vbLf & _
+                                              "1. Close all application and restart the computer" & vbLf & _
+                                              "2. Remove the CompMan.xlma from its folder" & vbLf & _
+                                              "3. Reopen CompMan.xlsb and repeat this Renew (then a setup in fact)." _
+                               , mntr_width_min:=600
+                End If
             End If
         End If
         sProgressMsg = vbNullString

@@ -30,8 +30,7 @@ Public Sub All()
     mBasic.BoP ErrSrc(PROC)
     
     '~~ Prevent any action when the required preconditins are not met
-    If mService.Denied(PROC) Then GoTo xt
-    sStatus = Log.Service
+    If mService.Denied Then GoTo xt
 
     '~~ Remove any obsolete Export-Files within the Workbook folder
     '~~ I.e. of no longer existing VBComponents or at an outdated location
@@ -91,15 +90,14 @@ End Function
 
 Public Sub ChangedComponents()
 ' ----------------------------------------------------------------------------
-' Exclusively performed/trigered by the Workbook_BeforeSave event. Exports
-' all changed components. I.e. any code change (detected by the comparison of
-' a temporary export file with the current export file) is exported. Outdated
-' Export Files (of components which do not longer exist or exist in another
-' but the currently used export folder) are removed. Because any code
-' modification in a raw clone (a used common conponent managed by CompMan
-' services) is reverted along with the next open
-' - Clone code modifications update the raw code when confirmed by the
-'   user
+' Exports all components the code had been modified, detected by the
+' comparison of a temporary export file with last modification's export file.
+' Removes all Export Files of components which do not longer exist or exist in
+' another but the current configured export folder. When a Used Common
+' Component had been modified a due warning message is registered, displayed
+' when the modification is reverted along with the next Workbook open.
+' This se4rvice is exclusively performed/triggered by the Workbook_BeforeSave
+' event.
 ' ----------------------------------------------------------------------------
     Const PROC = "ChangedComponents"
     
@@ -120,7 +118,7 @@ Public Sub ChangedComponents()
     mBasic.BoP ErrSrc(PROC)
     
     '~~ Prevent any action when the required preconditins are not met
-    If mService.Denied(PROC) Then GoTo xt
+    If mService.Denied Then GoTo xt
     sStatus = Log.Service
 
     '~~ Remove any obsolete Export-Files within the Workbook folder
@@ -128,7 +126,7 @@ Public Sub ChangedComponents()
     CleanUpObsoleteExpFiles
         
     Set wb = mService.Serviced
-    Set dctAll = AllComps(wb)
+    Set dctAll = mService.AllComps(wb, sStatus)
     
     With wb.VBProject
         lAll = .VBComponents.Count
@@ -145,35 +143,41 @@ Public Sub ChangedComponents()
                     Set .VBComp = vbc
                     Select Case .KindOfComp
                         Case enCommCompHosted
-                            Log.Entry = "Hosted Raw Common Component"
                             If .Changed Then
+                                Log.Entry = "Hosted Raw Common Component code modified"
                                 .Export
                                 .RevisionNumberIncrease
                                 .CopyExportFileToCommonComponentsFolder
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
-                                Log.Entry = "Modification exported and Export file copied to Common Components Folder"
+                                Log.Entry = "Hosted Raw Common Component code modified"
+                                Log.Entry = "Exported, Revision Number increased, Export File copied to 'Common Components Folder'"
                             ElseIf Not mComCompsRawsSaved.SavedExpFileExists(.CompName) Then
                                 .CopyExportFileToCommonComponentsFolder ' ensure completenes
+                                Log.Entry = "Hosted Raw Common Component unchanged"
                             End If
                         Case enCommCompUsed
-                            Log.Entry = "Used Common Component"
                             If .Changed Then
                                 '~~ A warning will be displayed when the modification is about to be reverted
                                 '~~ when the component is updated at Workbook open
                                 .DueModificationWarning = True
+                                Log.Entry = "Used Common Component code modified (due revert allert registered)!"
                                 .Export
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
                                 Log.Entry = "Modified component exported (due modification warning set for update)"
+                            Else
+                                Log.Entry = "Used Common Component code unchanged"
                             End If
                         Case Else
-                            Log.Entry = "Other type of component"
                             If .Changed Then
+                                Log.Entry = "Other component code modification exported"
                                 .Export
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
                                 Log.Entry = "Modification exported"
+                            Else
+                               Log.Entry = "Other component unchanged"
                             End If
                     End Select
                 End With

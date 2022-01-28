@@ -10,6 +10,7 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
     Const PROC = "Outdated"
     
     On Error GoTo eh
+    Dim dctAll          As Dictionary
     Dim dctUpdateDue    As Dictionary
     Dim vbc             As VBComponent
     Dim fso             As New FileSystemObject
@@ -25,14 +26,16 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
     
     mBasic.BoP ErrSrc(PROC)
     Set wb = mService.Serviced
-    
+    Set dctAll = mService.AllComps(wb, Log.Service)
+
     Set dctUpdateDue = Comps.Outdated
     With wb.VBProject
         lAll = .VBComponents.Count
         lRemaining = lAll
         bVerbose = True
         
-        For Each vbc In .VBComponents
+        For Each v In dctAll
+            Set vbc = dctAll(v)
     
             Set Comp = New clsComp
             With Comp
@@ -55,6 +58,8 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
                             Then sUpdated = .CompName _
                             Else sUpdated = .CompName & ", " & sUpdated
                         End If
+                    Else
+                        Log.Entry = "Used Common Component up-to-date"
                     End If ' .Outdated
                 End If ' Used Common Component
             End With
@@ -68,7 +73,7 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
                             , p_comps:=sUpdated _
                             , p_dots:=lRemaining _
                              )
-        Next vbc
+        Next v
     End With
 
     Application.StatusBar = vbNullString
