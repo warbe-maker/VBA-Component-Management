@@ -126,7 +126,6 @@ Private Sub SaveWbk(ByRef rs_wb As Workbook)
     Application.EnableEvents = False
     '~~ This is the action where the update process may lead to the effect that Excel closes the Workbook
     '~~ without having deleted the renamed components!
-    Log.Entry = "Workbook about to be saved - with the outdate Used Common Component already updated"
     Log.Entry = "DoEvents delayed continuation for " & TimedDoEvents & " msec)"
     rs_wb.Save
     Log.Entry = "Workbook saved (DoEvents delayed continuation for " & TimedDoEvents & " msec)"
