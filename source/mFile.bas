@@ -32,10 +32,10 @@ Option Private Module
 '                   sections as Dictionary with the section name as the key
 '                   and the Values Dictionary as item
 '               Let Writes all sections provided as a Dictionary (as above)
-' - SectionsRemove  Removes the sections provided via their name. When no
+' - RemoveSections  Removes the sections provided via their name. When no
 '                   section names are provided (pp_sections) none are
 '                   removed.
-' - SectionsReorg   Reorganizes all sections and their value-names in a
+' - ReArrange   Reorganizes all sections and their value-names in a
 '                   PrivateProfile file by ordering everything in ascending
 '                   sequence.
 ' - Value       Get Reads a named value from a PrivateProfile file
@@ -349,41 +349,31 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Function ValueExists( _
-                          ByVal pp_file As Variant, _
-                          ByVal pp_value As Variant, _
-                 Optional ByVal pp_sections As Variant = Nothing) As Boolean
-' ----------------------------------------------------------------------------
-' Returns True when the value (pp_value) exists in file (pp_file) - when no
-' section name is provided in any section, else in the given sections.
-' Section names (pp_sections) may be provided as comma delimited string or as
-' Dictionary or Collection with name items.
-' ----------------------------------------------------------------------------
-    Dim fl As String
-    If PPFile(pp_file, fl) <> vbNullString _
-    Then ValueExists = mFile.Values(fl, pp_sections).Exists(pp_value)
-End Function
 
-Public Function ValueNameExists( _
-                          ByVal pp_file As Variant, _
-                          ByVal pp_valuename As String, _
-                 Optional ByVal pp_sections As Variant = Nothing) As Boolean
+Public Function ValueExists(ByVal pp_file As Variant, _
+                            ByVal pp_value_name As String, _
+                            ByVal pp_section As String) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns True when the value name (pp_valuename) exists in file (pp_file)
-' - when no section name is provided in any section, else in the given
-' sections. Section names (pp_sections) may be provided as comma delimited
-' string or as Dictionary or Collection with name items.
+' PrivateProfile file service. Returns TRUE when the named value
+' (pp_value_name) exists in the provided section (pp_section) in the file
+' (pp_file) - provided as full name string or file object. When no file is
+' provided a file selection dialog is displayed. When finally there's still no
+' file provided the function returns FALSE without notice.
 ' ----------------------------------------------------------------------------
     Dim fl As String
-    If PPFile(pp_file, fl) <> vbNullString _
-    Then ValueNameExists = mFile.ValueNames(fl, pp_sections).Exists(pp_valuename)
+    If PPFile(pp_file, fl) <> vbNullString Then
+        If mFile.SectionExists(pp_file:=fl, pp_section:=pp_section) Then
+            ValueExists = mFile.ValueNames(fl, pp_section).Exists(pp_value_name)
+        End If
+    End If
 End Function
                  
-Public Function SectionExists( _
-                        ByVal pp_file As Variant, _
-                        ByVal pp_section As String) As Boolean
+Public Function SectionExists(ByVal pp_file As Variant, _
+                              ByVal pp_section As String) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns True when the section (pp_section) exists in file (pp_file).
+' PrivateProfile file service.
+' Returns TRUE when the section (pp_section) exists in file (pp_file) -
+' provided as full name string or as file object.
 ' ----------------------------------------------------------------------------
     Dim fl As String
     If PPFile(pp_file, fl) <> vbNullString _
@@ -393,8 +383,9 @@ End Function
 Public Function SectionNames( _
               Optional ByVal pp_file As Variant) As Dictionary
 ' ----------------------------------------------------------------------------
-' Returns a Dictionary of all section names [.....] in file (pp_file) in
-' ascending sequence.
+' PrivateProfile file service.
+' Returns a Dictionary of all section names in file (pp_file) - provided as
+' full name string or as file object - in ascending order.
 ' ----------------------------------------------------------------------------
     Const PROC = "SectionNames"
     
@@ -409,6 +400,7 @@ Public Function SectionNames( _
     
     If PPFile(pp_file, fl) = vbNullString Then GoTo xt
     If Len(mFile.Txt(fl)) = 0 Then GoTo xt
+    Set SectionNames = New Dictionary
     
     Do While (iLen = Len(strBuffer) - 2) Or (iLen = 0)
         If strBuffer = vbNullString _
@@ -423,14 +415,13 @@ Public Function SectionNames( _
         asSections = Split(strBuffer, vbNullChar)
         For i = LBound(asSections) To UBound(asSections)
             If Len(asSections(i)) <> 0 _
-            Then AddAscByKey add_dct:=dct _
-                              , add_key:=asSections(i) _
-                              , add_item:=asSections(i)
+            Then AddAscByKey add_dct:=SectionNames _
+                           , add_key:=asSections(i) _
+                           , add_item:=asSections(i)
         Next i
     End If
     
-xt: Set SectionNames = dct
-    Set dct = Nothing
+xt: Set dct = Nothing
     Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
@@ -539,9 +530,9 @@ Public Property Get Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String) As Variant
 ' ----------------------------------------------------------------------------
-' Read a value with a specific name from a section
-' [section]
-' <value-name>=<value>
+' PrivateProfile file service. Reads a value with a specific name from a
+' section from a file organized: [section]
+'                                <value-name>=<value>
 ' ----------------------------------------------------------------------------
     Const PROC  As String = "ValueGet"
     
@@ -579,7 +570,8 @@ Public Property Let Value( _
            Optional ByVal pp_value_name As String, _
                     ByVal pp_value As Variant)
 ' ----------------------------------------------------------------------------
-' Write a value under a name into a section in a file in the form:
+' PrivateProfile file service. Writes a value under a given name
+' (pp_value_name) into a section (pp_section) in a file (pp_file) organized:
 ' [section]
 ' <value-name>=<value>
 ' ----------------------------------------------------------------------------
@@ -854,15 +846,17 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mFile." & sProc
 End Function
 
-Public Sub SectionsReorg(Optional ByVal pp_file As Variant = Nothing, _
-                         Optional ByVal pp_section As String = vbNullString)
+Public Sub ReArrange(Optional ByVal pp_file As Variant = Nothing)
 ' ----------------------------------------------------------------------------
-' Reorganizes all sections in file (pp_file) - when not provided selectied)
-' by rewriting them all including the value names in ascending order.
-' Constraint: The file must not contain any comment lines othe than at the top
-'             of all sections.
+' PrivateProfile file service.
+' Rearranges all sections and all value-names therein in ascending order.
+' When no file (pp_file) is provided - either as full name or as file object
+' a file selection dialog is displayed. When finally there's still no file
+' provided the service ends without notic.
+' Restriction: The file must not contain any comment lines othe than at the
+'              top of the very first sections.
 ' ----------------------------------------------------------------------------
-    Const PROC = "SectionsReorg"
+    Const PROC = "ReArrange"
     
     On Error GoTo eh
     Dim vSection    As Variant
@@ -879,7 +873,7 @@ Public Sub SectionsReorg(Optional ByVal pp_file As Variant = Nothing, _
         Section = vSection
         Set dctValues = dctSections(vSection)
         
-        mFile.SectionsRemove pp_file:=fl, pp_sections:=Section
+        mFile.RemoveSections pp_file:=fl, pp_sections:=Section
         For Each vValue In dctValues
             mFile.Value(pp_file:=fl, pp_section:=Section, pp_value_name:=vValue) = dctValues(vValue)
         Next vValue
@@ -896,25 +890,22 @@ End Sub
 Private Function PPFile(ByVal pp_file As Variant, _
                         ByRef pp_file_name As String) As String
 ' ----------------------------------------------------------------------------
-' Returns the PrivateProfile file (pp_file) as full file name string. When no
-' pp_file is provided (is a vbNullString) a file selection dialog is evoked to
-' select one and when none is selected a vbNullString is returned.
+' PrivateProfile file function. Returns the PrivateProfile file (pp_file) as
+' full file name string (pp_file_name). When no file (pp_file) is provided,
+' i.e. is a vbNullString, a file selection dialog is evoked to select one.
+' When finally there's still no file provided a vbNullString is returned.
 ' ----------------------------------------------------------------------------
     Const PROC = "PPFile"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     Dim fl  As File
     
     If VarType(pp_file) = vbObject Then
         If pp_file Is Nothing Then
             mFile.SelectFile sel_result:=fl
-            If fl Is Nothing Then
-                GoTo xt
-            Else
-                pp_file_name = fl.Path
-                PPFile = fl.Path
-            End If
+            If fl Is Nothing Then GoTo xt
+            pp_file_name = fl.Path
+            PPFile = fl.Path
         ElseIf TypeName(pp_file) = "File" Then
             pp_file_name = pp_file.Path
             PPFile = pp_file.Path
@@ -923,20 +914,16 @@ Private Function PPFile(ByVal pp_file As Variant, _
     ElseIf VarType(pp_file) = vbString Then
         If pp_file = vbNullString Then
             mFile.SelectFile sel_result:=fl
-            If fl Is Nothing Then
-                GoTo xt
-            Else
-                pp_file_name = fl.Path
-                PPFile = fl.Path
-            End If
+            If fl Is Nothing Then GoTo xt
+            pp_file_name = fl.Path
+            PPFile = fl.Path
         Else
             pp_file_name = pp_file
             PPFile = pp_file
         End If
     End If
 
-xt: Set fso = Nothing
-    Exit Function
+xt: Exit Function
 
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -1169,20 +1156,38 @@ Public Function GetFile(ByVal fg_path As String) As File
     End With
 End Function
 
-Public Sub NameRemove(ByVal pp_file As Variant, _
-                      ByVal pp_section As String, _
-                      ByVal pp_value_name As String)
+Public Sub RemoveNames(ByVal pp_file As Variant, _
+                       ByVal pp_section As String, _
+                       ByVal pp_value_names As Variant)
 ' -----------------------------------------------------------------------------
-' Removes from the section (pp_section) in the PrivateProfile file (pp_file) -
-' which may be a file's full name or a file object - the value with the name
-' (pp_value_name).
+' PrivateProfile file service.
+' Removes from the section (pp_section) in the PrivateProfile file (pp_file)
+' a names (pp_value_names) provided either as: comma delimited string,
+' Dictionary with name items, or Collection of names.
+' When no file (pp_file) is provided - either as full name or as file object
+' a file selection dialog is displayed. When finally there's still no file
+' provided the service ends without notice.
 ' -----------------------------------------------------------------------------
-    Dim fl As String
-    If PPFile(pp_file, fl) <> vbNullString _
-    Then DeletePrivateProfileKey Section:=pp_section _
-                               , Key:=pp_value_name _
+    Const PROC = "RemoveNames"
+    
+    On Error GoTo eh
+    Dim fl  As String
+    Dim v   As Variant
+    
+    If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    For Each v In NamesInArg(pp_value_names)
+        DeletePrivateProfileKey Section:=pp_section _
+                               , Key:=v _
                                , Setting:=0 _
                                , Name:=fl
+    Next v
+
+xt: Exit Sub
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub
 
 Public Function Differs( _
@@ -1347,48 +1352,40 @@ Private Function DiffItem( _
 
 End Function
 
-'Public Sub SectionMove()
-'
-'End Sub
-'
-'Public Sub SectionReplace()
-'
-'End Sub
-
 Public Sub SectionsCopy(ByVal pp_source As String, _
                         ByVal pp_target As String, _
                Optional ByVal pp_sections As Variant = Nothing, _
-               Optional ByVal pp_replace As Boolean = False)
-' ---------------------------------------------------------------
-' Copies sections from file (pp_source) to file (pp_target), when
-' no section names (pp_section_names) are provided all, by
-' default (pp_replace) the sections are merged.
-' ---------------------------------------------------------------
+               Optional ByVal pp_merge As Boolean = False)
+' ----------------------------------------------------------------------------
+' PrivateProfile file service.
+' Copies sections from file (pp_source) to file (pp_target), when no section
+' names (pp_sections) are provided all. By default (pp_merge) all sections
+' are replaced.
+' ----------------------------------------------------------------------------
     Const PROC = "SectionCopy"
     
     On Error GoTo eh
     Dim fso         As New FileSystemObject
     Dim dct         As Dictionary
-    Dim vNames      As Variant
+    Dim vName       As Variant
+    Dim vSection    As Variant
     
-    '~~ Provide all section names when no section named are provided via pp_sections
-    Set vNames = NamesInArg(pp_sections)
-    If vNames.Count = 0 Then Set vNames = mFile.SectionNames(pp_source)
-    
-    '~~ Get the named or all sections as Dictionary
-    Set dct = mFile.Sections(pp_file:=pp_source _
-                           , pp_sections:=vNames _
-                            )
-     
-     If fso.FileExists(pp_target) And pp_replace _
-     Then mFile.SectionsRemove pp_file:=pp_target _
-                             , pp_sections:=vNames
-     
-     '~~ Write all sections from the source file to the target file
-     mFile.Sections(pp_target) = dct
+    For Each vSection In NamesInArg(pp_sections)
+        If Not pp_merge Then
+            '~~ Section will be replaced
+            mFile.RemoveSections pp_file:=pp_target _
+                               , pp_sections:=vSection
+        End If
+        Set dct = mFile.Values(pp_file:=pp_source _
+                            , pp_section:=vSection)
+        For Each vName In dct
+            mFile.Value(pp_file:=pp_target _
+                      , pp_section:=vSection _
+                      , pp_value_name:=vName) = dct(vName)
+        Next vName
+     Next vSection
 
-xt: Set vNames = Nothing
-    Set dct = Nothing
+xt: Set dct = Nothing
     Exit Sub
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
@@ -1396,48 +1393,45 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-Public Property Get Sections( _
-                   Optional ByVal pp_file As Variant, _
-                   Optional ByVal pp_sections As Variant = Nothing) As Dictionary
+                            
+Public Property Get Sections(Optional ByVal pp_file As Variant, _
+                             Optional ByVal pp_sections As Variant = vbNullString) As Dictionary
 ' ----------------------------------------------------------------------------
-' Returns the named sections (pp_section_names) - if not provided all sections
-' - in
-' file (pp_file) as Dictionary with the section name as the key - in ascending order! -
-' and a Dictionary of the sections values as item with the value name as key and the
-' value as item.
-' The section names (pp_section_names) may be a comma delimmited string of names a
-' Dictionary or a Collection, both with the item as name.
-' -------------------------------------------------------------------------------------
+' PrivateProfile file service.
+' Returns a Dictionary with named sections (pp_sections) in file (pp_file) -
+' provided as full name string or as file object - whereby each section is a
+' Dictionary with the section name as the key - in ascending
+' order - and a Dictionary of the section's values as item with the value name
+' as key and the value as item.
+' ----------------------------------------------------------------------------
     Const PROC = "Sections-Get"
     
     On Error GoTo eh
-    Dim dctS    As New Dictionary   ' Result Sections
-    Dim dctV    As Dictionary       ' Section values
-    Dim v       As Variant
-    Dim sName   As String           ' A section's name
-    Dim vNames  As Variant
-    Dim sFile   As String
+    Dim vName   As Variant
     Dim fl      As String
     
     If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    Set Sections = New Dictionary
     
-    '~~ Provide all section names when no section named are provided via pp_sections
-    Set vNames = NamesInArg(pp_sections)
-    If vNames.Count = 0 Then Set vNames = mFile.SectionNames(fl)
-    
-    For Each v In vNames
-        sName = v
-        Set dctV = mFile.ValueNames(pp_file:=fl _
-                                  , pp_sections:=sName _
-                                   )
-        AddAscByKey add_dct:=dctS _
-                  , add_key:=sName _
-                  , add_item:=dctV
-    Next v
+    If pp_sections = vbNullString Then
+        '~~ Return all sections
+        For Each vName In mFile.SectionNames(fl)
+            AddAscByKey add_dct:=Sections _
+                      , add_key:=vName _
+                      , add_item:=mFile.Values(pp_file:=fl, pp_section:=vName)
+        Next vName
+    Else
+        '~~ Return named sections
+        For Each vName In NamesInArg(pp_sections)
+            If mFile.SectionExists(pp_file, vName) Then
+                AddAscByKey add_dct:=Sections _
+                          , add_key:=vName _
+                          , add_item:=mFile.Values(pp_file, vName)
+            End If
+        Next vName
+    End If
 
-xt: Set Sections = dctS
-    Exit Property
+xt: Exit Property
 
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -1446,13 +1440,14 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Property
 
 Public Property Let Sections( _
-              Optional ByVal pp_file As Variant, _
-              Optional ByVal pp_sections As Variant = Nothing, _
-                       ByVal pp_dct As Dictionary)
+                    Optional ByVal pp_file As Variant, _
+                    Optional ByVal pp_sections As Variant, _
+                             ByVal pp_dct As Dictionary)
 ' ------------------------------------------------------------------------
-' Writes the sections provided as Dictionary (pp_dct) to the
-' PrivateProfile file (pp_file). Existing sections/values are overwritten
-' new sections/values are added.
+' PrivateProfile file service.
+' Writes the sections provided as Dictionary (pp_dct) to file (pp_file) -
+' provided as full name string or as file object. Existing sections/values
+' are overwritten new sections/values are added.
 ' ------------------------------------------------------------------------
     Const PROC = "Sections-Get"
     
@@ -1465,8 +1460,6 @@ Public Property Let Sections( _
     Dim fl          As String
     
     If PPFile(pp_file, fl) = vbNullString Then GoTo xt
-
-    Set pp_sections = Nothing   ' not used! declared for Property Get/Let conformity only
     
     For Each vS In pp_dct
         sSection = vS
@@ -1490,11 +1483,10 @@ End Property
 
 Private Function NamesInArg( _
             Optional ByVal v As Variant = Nothing) As Collection
-' --------------------------------------------------------------
-' Returns (v) as Collection of string items whereby (v) may not
-' be provided, a comma delimited string, or a Dictionary or
-' Collection of string items.
-' --------------------------------------------------------------
+' ----------------------------------------------------------------------------
+' Returns (v) as Collection of string items whereby (v) may be: not provided,
+' a comma delimited string, a Dictionary, or a Collection of string items.
+' ----------------------------------------------------------------------------
     Const PROC = "NamesInArg"
     
     On Error GoTo eh
@@ -1534,35 +1526,29 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub SectionsRemove( _
-                    ByVal pp_file As Variant, _
-           Optional ByVal pp_sections As Variant = Nothing)
-' ----------------------------------------------------------
-' Removes the sections provided via their name. When no
-' section names are provided (pp_sections) none are removed.
-' ----------------------------------------------------------
-    Const PROC = "SectionsRemove"
+Public Sub RemoveSections(ByVal pp_file As Variant, _
+                 Optional ByVal pp_sections As String = vbNullString)
+' ----------------------------------------------------------------------------
+' PrivateProfile file service.
+' Removes the sections (pp_sections) - provided as: comma delimited string,
+' Dictionary with name items, or Collection of names, in file (pp_file) -
+' provided as full name string or as file object.
+' ----------------------------------------------------------------------------
+    Const PROC = "RemoveSections"
     
     On Error GoTo eh
-    Dim v       As Variant
-    Dim vNames  As Variant
-    Dim fl      As String
+    Dim fl  As String
+    Dim v   As Variant
     
     If PPFile(pp_file, fl) = vbNullString Then GoTo xt
-
-    '~~ Provide all section names when no section named are provided via pp_sections
-    Set vNames = NamesInArg(pp_sections)
-    If vNames.Count = 0 Then GoTo xt
-    
-    For Each v In vNames
+    For Each v In NamesInArg(pp_sections)
         DeletePrivateProfileSection Section:=v _
                                   , NoKey:=0 _
                                   , NoSetting:=0 _
                                   , Name:=fl
     Next v
     
-xt: Set vNames = Nothing
-    Exit Sub
+xt: Exit Sub
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -1696,17 +1682,13 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Function ValueNames( _
-                     ByVal pp_file As Variant, _
-            Optional ByVal pp_sections As Variant = Nothing) As Dictionary
+Public Function ValueNames(ByVal pp_file As Variant, _
+                           ByVal pp_section As String) As Dictionary
 ' ------------------------------------------------------------------------
-' Returns a Dictionary of all value names (with the value name as key and
-' the value as item) in file (pp_file) of the sections (pp_sections) in
-' asscending order. Sections names (pp_sections) may be provided as a
-' comma delimited string of names, or a Dictionary or Collection of name
-' items. When no section names (pp_sections) are provided all unique!
-' value names of all sections in file (pp_file) are returned. Of duplicate
-' names the value will be of the first one found.
+' PrivateProfile file service. Returns a Dictionary of all value names,
+' with the value name as key and the value as item, in ascending order by
+' value name, in the provided section (pp_section) in file (pp_file) -
+' provided either a full name string or as file object.
 ' ------------------------------------------------------------------------
     Const PROC = "ValueNames"
     
@@ -1725,9 +1707,7 @@ Public Function ValueNames( _
     
     If PPFile(pp_file, fl) = vbNullString Then GoTo xt
     
-    '~~ When no section names are provided the name of all values in all
-    '~~ sections are collected in ascending order ignoring duplicates
-    Set vNames = NamesInArg(pp_sections)
+    Set vNames = NamesInArg(pp_section)
     If vNames.Count = 0 Then Set vNames = mFile.SectionNames(fl)
     
     For Each v In vNames
@@ -1770,14 +1750,13 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-
 Public Function Values(ByVal pp_file As Variant, _
                        ByVal pp_section As String) As Dictionary
 ' ------------------------------------------------------------------------
-' Returns a Dictionary of all values (with the value name as key and
-' the value as item) in file (pp_file) of the section (pp_section) in a
-' Dictionary in asscending order by the names. When the provoded section
-' does not exist the returned Dictionary is empty.
+' PrivateProfile file service. Returns all values in section (pp_section)
+' in file (pp_file) as Dictionary, with the value name as key and the
+' value as item, with the value names in asscending order. When the
+' provided section does not exist the returned Dictionary is empty.
 ' ------------------------------------------------------------------------
     Const PROC = "Values"
     
@@ -1788,47 +1767,38 @@ Public Function Values(ByVal pp_file As Variant, _
     Dim lResult     As Long
     Dim sNames      As String
     Dim strBuffer   As String
-    Dim v           As Variant
-    Dim sSection    As String
     Dim sName       As String
-    Dim vNames      As Variant
     Dim fl          As String
     
     Set Values = New Dictionary ' may remain empty though
     If PPFile(pp_file, fl) = vbNullString Then GoTo xt
     If Not SectionExists(pp_file, pp_section) Then GoTo xt
-    Set Values = mFile.Sections(pp_file, pp_section).Items()(0)
     
-'    For Each v In vNames
-'        sSection = v
-'        '~~> Retrieve the names for the provided section
-'        strBuffer = Space$(32767)
-'        lResult = GetPrivateProfileString(lpg_ApplicationName:=sSection _
-'                                        , lpg_KeyName:=vbNullString _
-'                                        , lpg_Default:=vbNullString _
-'                                        , lpg_ReturnedString:=strBuffer _
-'                                        , nSize:=Len(strBuffer) _
-'                                        , lpg_FileName:=fl _
-'                                         )
-'        sNames = Left$(strBuffer, lResult)
-'
-'        If sNames <> vbNullString Then                                         ' If there were any names
-'            asNames = Split(sNames, vbNullChar)                      ' have them split into an array
-'            For i = LBound(asNames) To UBound(asNames)
-'                sName = asNames(i)
-'                If Len(sName) <> 0 Then
-'                    If Not dctNames.Exists(sName) _
-'                    Then AddAscByKey add_dct:=dctNames _
-'                                   , add_key:=sName _
-'                                   , add_item:=mFile.Value(pp_file:=fl _
-'                                                         , pp_section:=sSection _
-'                                                         , pp_value_name:=sName)
-'                End If
-'            Next i
-'        End If
-'    Next v
-'
-'    Set ValueNames = dctNames
+    '~~> Retrieve the names in the provided section
+    strBuffer = Space$(32767)
+    lResult = GetPrivateProfileString(lpg_ApplicationName:=pp_section _
+                                    , lpg_KeyName:=vbNullString _
+                                    , lpg_Default:=vbNullString _
+                                    , lpg_ReturnedString:=strBuffer _
+                                    , nSize:=Len(strBuffer) _
+                                    , lpg_FileName:=fl _
+                                     )
+    sNames = Left$(strBuffer, lResult)
+
+    If sNames <> vbNullString Then                                         ' If there were any names
+        asNames = Split(sNames, vbNullChar)                      ' have them split into an array
+        For i = LBound(asNames) To UBound(asNames)
+            sName = asNames(i)
+            If Len(sName) <> 0 Then
+                If Not dctNames.Exists(sName) _
+                Then AddAscByKey add_dct:=Values _
+                               , add_key:=sName _
+                               , add_item:=mFile.Value(pp_file:=fl _
+                                                     , pp_section:=pp_section _
+                                                     , pp_value_name:=sName)
+            End If
+        Next i
+    End If
 
 xt: Exit Function
     

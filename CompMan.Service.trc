@@ -1,11 +1,11 @@
 
-        >> 22-01-29 18:24:14 'ExportChangedComponents(CompMan.xlam)' for 'CompMan.xlsb': 
+        >> 22-01-31 19:05:36 'ExportChangedComponents(CompMan.xlam)' for 'CompMan.xlsb': 
         |  >> mCompMan.ExportChangedComponents
         |  |  >> mService.ExportChangedComponents
         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
- 00,145 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+ 00,099 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
         |  |  |  >> mExport.ChangedComponents
- 06,439 |  |  |  << mExport.ChangedComponents
- 06,658 |  |  << mService.ExportChangedComponents
- 06,725 |  << mCompMan.ExportChangedComponents
-        << 22-01-29 18:24:21 'ExportChangedComponents(CompMan.xlam)' for 'CompMan.xlsb': 
+ 04,237 |  |  |  << mExport.ChangedComponents
+ 04,404 |  |  << mService.ExportChangedComponents
+ 04,445 |  << mCompMan.ExportChangedComponents
+        << 22-01-31 19:05:40 'ExportChangedComponents(CompMan.xlam)' for 'CompMan.xlsb': 

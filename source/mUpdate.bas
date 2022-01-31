@@ -140,7 +140,7 @@ Public Function UpdateConfirmed(ByRef uo_comp As clsComp) As Boolean
             With .Section(1)
                 .Label.Text = "Attention!"
                 .Label.FontColor = rgbRed
-                .Text.Text = "The code of this 'Used Common Component'   " & mBasic.Spaced(sCompName) & _
+                .Text.Text = "The code of the 'Used Common Component'   " & mBasic.Spaced(sCompName) & _
                              "    had been modified within this Workbook/VBProject. This modification will be " & _
                              "reverted with this update. Displaying the difference will be the last chance to " & _
                              "modify the 'Raw Common Component' in its hosting Workbook (" & mComCompsRawsSaved.RawHostWbFullName(sCompName) & ")."
@@ -149,10 +149,9 @@ Public Function UpdateConfirmed(ByRef uo_comp As clsComp) As Boolean
         End If
         With .Section(2)
             .Label.Text = "About this update:"
-            .Text.Text = "The update of this outdated 'Used Common Component'  " & mBasic.Spaced(sCompName) & "  in " & _
-                         "this Workbook/VBProject may be skipped. In that case the update request will be " & _
-                         "displayed again the next time this Workbook is opened (from within the configured " & _
-                         "'Serviced Folder' " & mConfig.FolderServiced & "."
+            .Text.Text = "When the update of the outdated 'Used Common Component'  " & mBasic.Spaced(sCompName) & "  in " & _
+                         "is skipped the request will be displayed again the next time this Workbook is opened " & _
+                         "(from within the configured 'Serviced Folder' " & mConfig.FolderServiced & "."
         End With
     End With
     
