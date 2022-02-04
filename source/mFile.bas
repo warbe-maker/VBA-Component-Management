@@ -360,8 +360,10 @@ Public Function ValueExists(ByVal pp_file As Variant, _
 ' provided a file selection dialog is displayed. When finally there's still no
 ' file provided the function returns FALSE without notice.
 ' ----------------------------------------------------------------------------
+    Const PROC = "ValueExists"
+    
     Dim fl As String
-    If PPFile(pp_file, fl) <> vbNullString Then
+    If PPFile(pp_file, ErrSrc(PROC), fl) <> vbNullString Then
         If mFile.SectionExists(pp_file:=fl, pp_section:=pp_section) Then
             ValueExists = mFile.ValueNames(fl, pp_section).Exists(pp_value_name)
         End If
@@ -375,8 +377,10 @@ Public Function SectionExists(ByVal pp_file As Variant, _
 ' Returns TRUE when the section (pp_section) exists in file (pp_file) -
 ' provided as full name string or as file object.
 ' ----------------------------------------------------------------------------
+    Const PROC = "SectionExists"
+    
     Dim fl As String
-    If PPFile(pp_file, fl) <> vbNullString _
+    If PPFile(pp_file, ErrSrc(PROC), fl) <> vbNullString _
     Then SectionExists = mFile.SectionNames(fl).Exists(pp_section)
 End Function
 
@@ -398,7 +402,7 @@ Public Function SectionNames( _
     Dim strBuffer       As String
     Dim fl              As String
     
-    If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     If Len(mFile.Txt(fl)) = 0 Then GoTo xt
     Set SectionNames = New Dictionary
     
@@ -542,7 +546,7 @@ Public Property Get Value( _
     Dim vValue  As Variant
     Dim fl      As String
     
-    If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     
     sRetVal = String(32767, 0)
     lResult = GetPrivateProfileString( _
@@ -582,7 +586,7 @@ Public Property Let Value( _
     Dim sValue  As String
     Dim fl      As String
     
-    If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     
     Select Case VarType(pp_value)
         Case vbBoolean: sValue = VBA.CStr(VBA.CLng(pp_value))
@@ -866,7 +870,7 @@ Public Sub ReArrange(Optional ByVal pp_file As Variant = Nothing)
     Dim vValue      As Variant
     Dim fl          As String
     
-    If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     
     Set dctSections = Sections(fl)
     For Each vSection In dctSections
@@ -888,6 +892,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Sub
 
 Private Function PPFile(ByVal pp_file As Variant, _
+                        ByVal pp_service As String, _
                         ByRef pp_file_name As String) As String
 ' ----------------------------------------------------------------------------
 ' PrivateProfile file function. Returns the PrivateProfile file (pp_file) as
@@ -902,8 +907,12 @@ Private Function PPFile(ByVal pp_file As Variant, _
     
     If VarType(pp_file) = vbObject Then
         If pp_file Is Nothing Then
-            mFile.SelectFile sel_result:=fl
-            If fl Is Nothing Then GoTo xt
+            If Not mFile.Picked(p_title:="Select a PrivateProfile file not provided for the service '" & pp_service & "'" _
+                              , p_init_path:=ThisWorkbook.Path _
+                              , p_filters:="Config files, *.cfg; Init files, *.ini; Application data files, *.dat; All files, *.*" _
+                              , p_file:=fl _
+                               ) _
+            Then GoTo xt
             pp_file_name = fl.Path
             PPFile = fl.Path
         ElseIf TypeName(pp_file) = "File" Then
@@ -913,8 +922,12 @@ Private Function PPFile(ByVal pp_file As Variant, _
         End If
     ElseIf VarType(pp_file) = vbString Then
         If pp_file = vbNullString Then
-            mFile.SelectFile sel_result:=fl
-            If fl Is Nothing Then GoTo xt
+            If Not mFile.Picked(p_title:="Select a PrivateProfile file" _
+                              , p_init_path:=ThisWorkbook.Path _
+                              , p_filters:="Config files, *.cfg; Init files, *.ini; Application data files, *.dat; All files, *.*" _
+                              , p_file:=fl _
+                               ) _
+            Then GoTo xt
             pp_file_name = fl.Path
             PPFile = fl.Path
         Else
@@ -947,29 +960,27 @@ Public Function Search(ByVal fs_root As String, _
     Dim fo      As Folder
     Dim sfo     As Folder
     Dim fl      As File
-    Dim cll     As New Collection
-    Dim cllRet  As New Collection
+    Dim queue   As New Collection
 
-    cll.Add fso.GetFolder(fs_root)
+    Set Search = New Collection
+    If Right(fs_root, 1) = "\" Then fs_root = Left(fs_root, Len(fs_root) - 1)
+    If Not fso.FolderExists(fs_root) Then GoTo xt
+    queue.Add fso.GetFolder(fs_root)
 
-    Do While cll.Count > 0
-        Set fo = cll(1)
-        cll.Remove 1 'dequeue
-        If fs_in_subfolders Then
-            For Each sfo In fo.SubFolders
-                cll.Add sfo 'enqueue
-            Next sfo
-        End If
+    Do While queue.Count > 0
+        Set fo = queue(queue.Count)
+        queue.Remove queue.Count ' dequeue the processed subfolder
+        For Each sfo In fo.SubFolders
+            queue.Add sfo ' enqueue (collect) all subfolders
+        Next sfo
         For Each fl In fo.Files
-            If fl.Path Like fs_mask Then
-                DoEvents
-                cllRet.Add fl
-                If cllRet.Count >= fs_stop_after Then GoTo xt
-            End If
+            If VBA.Left$(fl.Name, 1) <> "~" _
+            And fl.Name Like fs_mask _
+            Then Search.Add fl
         Next fl
     Loop
 
-xt: Set Search = cllRet
+xt: Set fso = Nothing
     Exit Function
 
 eh: Select Case ErrMsg(ErrSrc(PROC))
@@ -978,28 +989,35 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function Exists(ByVal ex_folder As String, _
-              Optional ByVal ex_file As String = vbNullString, _
-              Optional ByVal ex_section As String = vbNullString, _
-              Optional ByVal ex_value_name As String = vbNullString, _
-              Optional ByRef ex_result_folders As Collection = Nothing, _
-              Optional ByRef ex_result_files As Collection = Nothing) As Boolean
+Public Function Exists(Optional ByVal ex_folder As String = vbNullString, _
+                       Optional ByVal ex_file As String = vbNullString, _
+                       Optional ByVal ex_section As String = vbNullString, _
+                       Optional ByVal ex_value_name As String = vbNullString, _
+                       Optional ByRef ex_result_folder As Folder = Nothing, _
+                       Optional ByRef ex_result_files As Collection = Nothing) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns TRUE when the folder (ex_folder) exists the file (ex_file) - which may be a file object or a
-' file's full name - exists and furthermore:
-' - when the file's full name ends with a wildcard * all subfolders are
-'   scanned and any file which meets the criteria is returned as File object
-'   in a collection (fe_cll),
-' - when the files's full name does not end with a wildcard * the existing
-'   file is returned as a File object (ex_file).
+' Universal File existence check whereby the existence checks depend on the
+' provided arguments. The function returns TRUE when:
+'
+' Argument      | TRUE condition (despite the fact not vbNullString)
+' --------------| ------------------------------------------------------------
+' ex_folder     | The folder exists, no ex_file provided
+' ex_file       | When no ex_folder had been provided the provided ex_file
+'               | exists. When an ex_folder had been provided at least one
+'               | or more ex_file meet the LIKE criteria and ex_section is
+'               | not provided
+' ex_section    | Exactly one file had been passed the existenc check, the
+'               | provided section exists and no ex_value_name is provided.
+' ex_value_name | The provided value-name exists - in the existing section
+'               | in the one and only existing file.
 ' ----------------------------------------------------------------------------
     Const PROC  As String = "Exists"
     
     On Error GoTo eh
     Dim sTest           As String
     Dim sFile           As String
-    Dim fldr            As Folder
-    Dim sfldr           As Folder   ' Sub-Folder
+    Dim fo              As Folder   ' Folder
+    Dim sfo             As Folder   ' Sub-Folder
     Dim fl              As File
     Dim queue           As Collection
     Dim fso             As New FileSystemObject
@@ -1007,71 +1025,76 @@ Public Function Exists(ByVal ex_folder As String, _
     Dim FileExists      As Boolean
     Dim SectionExists   As Boolean
     Dim ValueNameExists As Boolean
+    Dim sFolder         As String
     
-    Set ex_result_folders = New Collection
     Set ex_result_files = New Collection
 
     With fso
-        '~~ Folder existence check
-        If Not .FolderExists(ex_folder) Then GoTo xt
-        ex_result_folders.Add .GetFolder(ex_folder)
-        FolderExists = True
-        
-        '~~ File existence check
-        If Not ex_file = vbNullString Then
-            If Not Right(ex_file, 1) = "*" Then
-                If Not .FileExists(ex_folder & "\" & ex_file) Then GoTo xt
-                ex_result_files.Add .GetFile(ex_folder & "\" & ex_file)
-                FileExists = True
-            Else
-                '~~ Wildcard files
-                sFile = Replace(ex_file, "*", vbNullString)
-                '~~ Wildcard file existence check is due
-                Set fldr = .GetFolder(ex_folder)
-                Set queue = New Collection
-                queue.Add fldr
-
-                Do While queue.Count > 0
-                    Set fldr = queue(queue.Count)
-                    queue.Remove queue.Count ' dequeue the processed subfolder
-                    For Each sfldr In fldr.SubFolders
-                        queue.Add sfldr ' enqueue (collect) all subfolders
-                    Next sfldr
-                    For Each fl In fldr.Files
-                        If InStr(fl.Name, sFile) <> 0 And VBA.Left$(fl.Name, 1) <> "~" Then
-                            '~~ Return the existing file which meets the search criteria
-                            '~~ as File object in a collection
-                            ex_result_files.Add fl
-                         End If
-                    Next fl
-                Loop
-                FileExists = ex_result_files.Count > 0
+        If Not ex_folder = vbNullString Then
+            '~~ Folder existence check
+            If Not .FolderExists(ex_folder) Then GoTo xt
+            Set ex_result_folder = .GetFolder(ex_folder)
+            If ex_file = vbNullString Then
+                '~~ When no ex_file is provided, that's it
+                Exists = True
+                GoTo xt
             End If
         End If
         
-        '~~ PrivateProfile file: Section existence check
-        If Not ex_section = vbNullString Then
-            If Not Sections(ex_folder & "\" & ex_file).Exists(ex_section) Then GoTo xt
-            SectionExists = True
+        If ex_file <> vbNullString And ex_folder <> vbNullString Then
+            '~~ For the existing folder an ex_file argument had been provided
+            '~~ This is interpreted as a "Like" existence check is due which
+            '~~ by default includes all subfolders
+            sFile = ex_file
+            Set fo = .GetFolder(ex_folder)
+            Set queue = New Collection
+            queue.Add fo
+
+            Do While queue.Count > 0
+                Set fo = queue(queue.Count)
+                queue.Remove queue.Count ' dequeue the processed subfolder
+                For Each sfo In fo.SubFolders
+                    queue.Add sfo ' enqueue (collect) all subfolders
+                Next sfo
+                For Each fl In fo.Files
+                    If VBA.Left$(fl.Name, 1) <> "~" _
+                    And fl.Name Like ex_file Then
+                        '~~ The file in the (sub-)folder meets the search criteria
+                        '~~ In case the ex_file does not contain any "LIKE"-wise characters
+                        '~~ only one file may meet the criteria
+                        ex_result_files.Add fl
+                        Exists = True
+                     End If
+                Next fl
+            Loop
+            If ex_result_files.Count <> 1 Then
+                '~~ None of the files in any (sub-)folder matched with ex_file
+                '~~ or more than one file matched
+                GoTo xt
+            End If
+        ElseIf ex_file <> vbNullString And ex_folder = vbNullString Then
+            If Not .FileExists(ex_file) Then GoTo xt
+            ex_result_files.Add .GetFile(ex_file)
+            If ex_section = vbNullString Then
+                '~~ When no section is provided, that's it
+                Exists = True
+                GoTo xt
+            End If
         End If
         
-        '~~ PrivateProfile file: Value-Name existence check
-        If Not ex_value_name = vbNullString Then
-            If Not Values(pp_file:=ex_folder & "\" & ex_file, pp_section:=ex_section).Exists(ex_value_name) Then GoTo xt
-            ValueNameExists = True
+        '~~ At this point either a provided folder together with a provided file matched exactly one existing file
+        '~~ or a specified file's existence had been proved
+        If ex_section <> vbNullString Then
+            If Not mFile.SectionExists(pp_file:=ex_file, pp_section:=ex_section) Then GoTo xt
+            If ex_value_name = vbNullString Then
+                '~~ When no ex_value_name is provided, that's it
+                Exists = True
+            Else
+                Exists = mFile.ValueExists(pp_file:=ex_file, pp_section:=ex_section, pp_value_name:=ex_value_name)
+            End If
         End If
     End With
-    
-    If ValueNameExists Then
-        Exists = True
-    ElseIf SectionExists Then
-        Exists = True
-    ElseIf FileExists Then
-        Exists = True
-    ElseIf FolderExists Then
-        Exists = True
-    End If
-    
+        
 xt: Set fso = Nothing
     Exit Function
     
@@ -1174,7 +1197,7 @@ Public Sub RemoveNames(ByVal pp_file As Variant, _
     Dim fl  As String
     Dim v   As Variant
     
-    If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     For Each v In NamesInArg(pp_value_names)
         DeletePrivateProfileKey Section:=pp_section _
                                , Key:=v _
@@ -1410,7 +1433,7 @@ Public Property Get Sections(Optional ByVal pp_file As Variant, _
     Dim vName   As Variant
     Dim fl      As String
     
-    If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     Set Sections = New Dictionary
     
     If pp_sections = vbNullString Then
@@ -1459,7 +1482,7 @@ Public Property Let Sections( _
     Dim sName       As String
     Dim fl          As String
     
-    If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     
     For Each vS In pp_dct
         sSection = vS
@@ -1480,6 +1503,143 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Property
+
+Public Function IsValidFolderName(ivf_name As String) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the provided argument is a vaslid folder name.
+' ----------------------------------------------------------------------------
+    Const PROC = "IsValidFileOrFolderName"
+    
+    On Error GoTo eh
+    Dim a() As String
+    Dim i   As Long
+    Dim v   As Variant
+    Dim fo  As String
+    Dim fso As New FileSystemObject
+    
+    With CreateObject("VBScript.RegExp")
+        .PATTERN = "^(?!(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.[^.]*)?$)[^<>:""/\\|?*\x00-\x1F]*[^<>:""/\\|?*\x00-\x1F\ .]$"
+        IsValidFolderName = Not .Test(ivf_name)
+    End With
+    
+    If IsValidFolderName Then
+        '~~ Let's prove the above by a 'brute force method':
+        '~~ Checking each element of the argument whether it can be created as folder
+        '~~ is the final assertion.
+        a = Split(ivf_name, "\")
+        With fso
+            For Each v In a
+                '~~ Check each element of the path (except the drive spec) whether it can be created as a file
+                If InStr(v, ":") = 0 Then ' exclude the drive spec
+                    fo = .GetSpecialFolder(2) & "\" & v
+                    On Error Resume Next
+                    .CreateFolder fo
+                    IsValidFolderName = Err.Number = 0
+                    If Not IsValidFolderName Then GoTo xt
+                    On Error GoTo eh
+                    If .FolderExists(fo) Then
+                        .DeleteFolder fo
+                    End If
+                End If
+            Next v
+        End With
+    End If
+    
+xt: Set fso = Nothing
+    Exit Function
+ 
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Public Function IsValidFileName(ivf_name As String) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the provided argument is a vaslid file name.
+' ----------------------------------------------------------------------------
+    Const PROC = "IsValidFileOrFolderName"
+    
+    On Error GoTo eh
+    Dim sFile   As String
+    Dim fso     As New FileSystemObject
+    Dim a()     As String
+    Dim i       As Long
+    Dim v       As Variant
+    Dim IsValidFolderName   As Boolean
+    
+    '~~ Check each element of the argument whether it can be created as file
+    '~~ !!! this is the brute force method to check valid file names
+    a = Split(ivf_name, "\")
+    i = UBound(a)
+    With fso
+        For Each v In a
+            '~~ Check each element of the path (except the drive spec) whether it can be created as a file
+            If InStr(v, ":") = 0 Then ' exclude the drive spec
+                On Error Resume Next
+                sFile = .GetSpecialFolder(2) & "\" & v
+                .CreateTextFile sFile
+                IsValidFileName = Err.Number = 0
+                If Not IsValidFileName Then GoTo xt
+                On Error GoTo eh
+                If .FileExists(sFile) Then
+                    .DeleteFile sFile
+                End If
+            End If
+        Next v
+    End With
+    
+xt: Set fso = Nothing
+    Exit Function
+ 
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Public Sub PathFileSplit(ByRef spf_path As String, _
+                Optional ByRef spf_file As String = vbNullString)
+' ----------------------------------------------------------------------------
+' Returns the provided string (spf_path) split in path and file name provided
+' the argument is either an existing folder's path or an existing file's path.
+' - When sp_path is a folder only string sp_file = vbNullString,
+' - When sp_path only contains a file name sp_folder = vbNullString and
+'   sp_file = the file's name
+' When the provided path is either an existing folder's path nor an existing
+' file's path both arguments are returned a vbNullString
+' ----------------------------------------------------------------------------
+    
+    Dim aPath() As String
+    Dim fso     As New FileSystemObject
+    Dim i       As Long
+    Dim sFolder As String
+    Dim sFile   As String
+    
+    aPath() = Split(spf_path, "\")  'Put the Parts of our path into an array
+    i = UBound(aPath)
+    sFile = aPath(i)                ' A valid name only when the argument named an existing of a nonn existing but valid file's name
+    aPath(i) = ""                   ' Remove the "maybe-a-file" from the array
+    sFolder = Join(aPath, "\")      ' Rebuild the path from the remaing array
+        
+    With fso
+        If .FileExists(spf_path) Then
+            '~~ The provided argument ends with a valid file name and thus is a full file name
+            spf_path = sFolder
+            spf_file = sFile
+        ElseIf .FolderExists(spf_file) Then
+            '~~ The provided argument ends with a valid folder name and thus is a folder's path
+            spf_file = vbNullString
+        ElseIf InStr(spf_path, ".") <> 0 Then
+            spf_file = spf_path
+            spf_path = vbNullString
+        Else
+            spf_file = vbNullString
+        End If
+    End With
+            
+xt: Set fso = Nothing
+End Sub
 
 Private Function NamesInArg( _
             Optional ByVal v As Variant = Nothing) As Collection
@@ -1540,7 +1700,7 @@ Public Sub RemoveSections(ByVal pp_file As Variant, _
     Dim fl  As String
     Dim v   As Variant
     
-    If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     For Each v In NamesInArg(pp_sections)
         DeletePrivateProfileSection Section:=v _
                                   , NoKey:=0 _
@@ -1556,45 +1716,100 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function SelectFile( _
-            Optional ByVal sel_init_path As String = vbNullString, _
-            Optional ByVal sel_filters As String = "*.*", _
-            Optional ByVal sel_filter_name As String = "File", _
-            Optional ByVal sel_title As String = vbNullString, _
-            Optional ByRef sel_result As File) As Boolean
-' --------------------------------------------------------------
-' When a file had been selected TRUE is returned and the
-' selected file is returned as File object (sel_result).
-' --------------------------------------------------------------
-    Const PROC = "SelectFile"
-    
+'Public Function SelectFile( _
+'            Optional ByVal sel_init_path As String = vbNullString, _
+'            Optional ByVal sel_filters As String = "*.*", _
+'            Optional ByVal sel_filter_name As String = "File", _
+'            Optional ByVal sel_title As String = vbNullString, _
+'            Optional ByRef sel_result As File) As Boolean
+'' --------------------------------------------------------------
+'' When a file had been selected TRUE is returned and the
+'' selected file is returned as File object (sel_result).
+'' --------------------------------------------------------------
+'    Const PROC = "SelectFile"
+'
+'    On Error GoTo eh
+'    Dim fDialog As FileDialog
+'    Dim v       As Variant
+'
+'    Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
+'    With fDialog
+'        .AllowMultiSelect = False
+'        If sel_title = vbNullString _
+'        Then .Title = "Select a(n) " & sel_filter_name _
+'        Else .Title = sel_title
+'        .InitialFileName = sel_init_path
+'        .Filters.Clear
+'        For Each v In Split(sel_filters, ",")
+'            .Filters.Add sel_filter_name, v
+'         Next v
+'
+'        If .Show = -1 Then
+'            '~~ A fie had been selected
+'           With New FileSystemObject
+'            Set sel_result = .GetFile(fDialog.SelectedItems(1))
+'            SelectFile = True
+'           End With
+'        End If
+'        '~~ When no file had been selected the sel_result will be Nothing
+'    End With
+'
+'xt: Exit Function
+'
+'eh: Select Case ErrMsg(ErrSrc(PROC))
+'        Case vbResume:  Stop: Resume
+'        Case Else:      GoTo xt
+'    End Select
+'End Function
+
+Public Function Picked( _
+              Optional ByVal p_title As String = "Select a file", _
+              Optional ByVal p_multi As Boolean = False, _
+              Optional ByVal p_init_path As String = "C:\", _
+              Optional ByVal p_filters As String = "All files,*.*", _
+              Optional ByRef p_file As File = Nothing) As Boolean
+' ----------------------------------------------------------------------------
+' Displays an msoFileDialogFilePicker dialog.
+' - When a file has been selected the function returns TRUE with the selected
+'   file as object (p_file).
+' - When no file is selected the function returns FALSE and a file object
+'   (p_file) = None.
+' - All arguments have a reasonable default
+' - The filters argument (p_filters) defaults to "All files", "*.*" with the
+'   foillowing syntax:
+'   <title>,<filter>[<title>,<filter>]...
+' ----------------------------------------------------------------------------
+    Const PROC = "Picked"
+   
     On Error GoTo eh
-    Dim fDialog As FileDialog
-    Dim v       As Variant
-
-    Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
-    With fDialog
-        .AllowMultiSelect = False
-        If sel_title = vbNullString _
-        Then .Title = "Select a(n) " & sel_filter_name _
-        Else .Title = sel_title
-        .InitialFileName = sel_init_path
+    Dim fd  As FileDialog
+    Dim v   As Variant
+    Dim fso As New FileSystemObject
+    
+    With Application.FileDialog(msoFileDialogFilePicker)
+        .AllowMultiSelect = p_multi
+        .Title = p_title
+        .InitialFileName = p_init_path
         .Filters.Clear
-        For Each v In Split(sel_filters, ",")
-            .Filters.Add sel_filter_name, v
-         Next v
-         
+        For Each v In Split(p_filters, ";")
+            .Filters.Add Description:=Trim(Split(v, ",")(0)), Extensions:=Trim(Split(v, ",")(1))
+        Next v
+#If ExecTrace = 1 Then  ' exclude the time spent for the selection dialog execution
+        mTrc.Pause      ' from the trace
+#End If                 ' when the execution trace is active
         If .Show = -1 Then
-            '~~ A fie had been selected
-           With New FileSystemObject
-            Set sel_result = .GetFile(fDialog.SelectedItems(1))
-            SelectFile = True
-           End With
+            Picked = True
+            Set p_file = fso.GetFile(.SelectedItems(1))
+        Else
+            Set p_file = Nothing
         End If
-        '~~ When no file had been selected the sel_result will be Nothing
-    End With
-
-xt: Exit Function
+#If ExecTrace = 1 Then
+        mTrc.Continue
+#End If
+     End With
+     
+xt: Set fso = Nothing
+    Exit Function
 
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -1603,9 +1818,9 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function ShellRun(sCmd As String) As String
-' ------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Run a shell command, returning the output as a string.
-' ------------------------------------------------------
+' ----------------------------------------------------------------------------
     Dim oShell As Object
     Set oShell = CreateObject("WScript.Shell")
 
@@ -1705,7 +1920,7 @@ Public Function ValueNames(ByVal pp_file As Variant, _
     Dim vNames      As Variant
     Dim fl          As String
     
-    If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     
     Set vNames = NamesInArg(pp_section)
     If vNames.Count = 0 Then Set vNames = mFile.SectionNames(fl)
@@ -1771,7 +1986,7 @@ Public Function Values(ByVal pp_file As Variant, _
     Dim fl          As String
     
     Set Values = New Dictionary ' may remain empty though
-    If PPFile(pp_file, fl) = vbNullString Then GoTo xt
+    If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     If Not SectionExists(pp_file, pp_section) Then GoTo xt
     
     '~~> Retrieve the names in the provided section

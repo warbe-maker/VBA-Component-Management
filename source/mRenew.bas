@@ -78,45 +78,6 @@ Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mRenew." & s
 End Function
 
-Private Sub EliminateCodeInRenamedComponent(ByVal temp_comp_name As String, _
-                                            ByVal temp_un_comment_only As Boolean)
-' ----------------------------------------------------------------------------
-' Removes all code lines in the renamed component named (temp_comp_name).
-' Background:
-' When Excel closes the Workbook with the subsequent Workbook save it may be
-' re-opened and the update process will continue with the next outdated Used
-' Common Component. The (irregular) Workbook close however may leave the
-' renamed components un-removed. When the Workbook is opened again these
-' renamed components may cause duplicate declarations. To prevent this the
-' code in the renamed component is deleted.
-' ----------------------------------------------------------------------------
-    Const PROC = "EliminateCodeInRenamedComponent"
-    
-    On Error GoTo eh
-    Dim i As Long
-    
-    mBasic.BoP ErrSrc(PROC)
-    With mService.Serviced.VBProject.VBComponents(temp_comp_name)
-        With .CodeModule
-            If Not temp_un_comment_only Then
-                .DeleteLines 1, .CountOfLines
-            Else
-                For Each v In .Lines
-                    v
-                Next v
-            End If
-        End With
-    End With
-    
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
 Private Sub SaveWbk(ByRef rs_wb As Workbook)
     Const PROC = "SaveWbk"
     

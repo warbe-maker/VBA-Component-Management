@@ -401,11 +401,10 @@ Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
-                If mFile.SelectFile(sel_init_path:=mExport.ExpFileFolderPath(.Wrkbk) _
-                                  , sel_filters:="*" & Comp.ExpFileExt _
-                                  , sel_filter_name:="bas-Export-Files" _
-                                  , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
-                                  , sel_result:=flExport) _
+                If mFile.Picked(p_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
+                              , p_init_path:=mExport.ExpFileFolderPath(.Wrkbk) _
+                              , p_filters:="Export File,*." & Comp.ExpFileExt _
+                              , p_file:=flExport) _
                 Then sExpFile = flExport.Path
                 For i = 1 To repeat
                     Application.Run mRenew_ByImport _
@@ -610,11 +609,10 @@ Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
-                If mFile.SelectFile(sel_init_path:=mExport.ExpFileFolderPath(.Wrkbk) _
-                                  , sel_filters:="*" & Comp.ExpFileExt _
-                                  , sel_filter_name:="UserForm" _
-                                  , sel_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
-                                  , sel_result:=flExport) _
+                If mFile.Picked(p_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
+                              , p_init_path:=mExport.ExpFileFolderPath(.Wrkbk) _
+                              , p_filters:="UserForm, *." & Comp.ExpFileExt _
+                              , p_file:=flExport) _
                 Then sExpFile = flExport.Path
                 For i = 1 To repeat
                     Application.Run mRenew_ByImport _
@@ -927,8 +925,8 @@ Public Sub Test_WinMerge()
     Dim f2  As File
     Dim fso As New FileSystemObject
     
-    mFile.SelectFile sel_result:=f1
-    mFile.SelectFile sel_result:=f2
+    mFile.Picked p_file:=f1
+    mFile.Picked p_file:=f2
     sF1 = f1.Path
     sF2 = f2.Path
     

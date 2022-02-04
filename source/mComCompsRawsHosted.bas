@@ -18,7 +18,7 @@ Private Const VNAME_RAW_EXP_FILE_FULL_NAME  As String = "RawExpFileFullName"
 
 Public Property Get ComCompsHostedFileFullName() As String
     Dim wb As Workbook: Set wb = mService.Serviced
-    ComCompsHostedFileFullName = Replace(wb.FullName, wb.name, "ComCompsHosted.dat")
+    ComCompsHostedFileFullName = Replace(wb.FullName, wb.Name, "ComCompsHosted.dat")
 End Property
 
 Public Property Get RawExpFileFullName( _
@@ -123,7 +123,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub Remove(ByVal comp_name As String)
-    mFile.SectionsRemove pp_file:=ComCompsHostedFileFullName _
+    mFile.RemoveSections pp_file:=ComCompsHostedFileFullName _
                        , pp_sections:=comp_name
 End Sub
 

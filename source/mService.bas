@@ -95,11 +95,9 @@ Public Sub RenewComp( _
         '~~ Select the Export-File for the re-new service
         '~~ of which the base name will be regared as the component to be renewed.
         '~~ --------------------------------------------------------
-        If mFile.SelectFile(sel_init_path:=mExport.ExpFileFolderPath(rc_wb) _
-                          , sel_filters:="*.bas,*.cls,*.frm" _
-                          , sel_filter_name:="File" _
-                          , sel_title:="Select the Export-File for the re-new service" _
-                          , sel_result:=flFile) _
+        If mFile.Picked(p_title:="Select the Export-File for the re-new service" _
+                      , p_filters:="Standard Modules,*.bas;Class Modules,*.cls;UserForms,*.frm" _
+                      , p_file:=flFile) _
         Then rc_exp_file_full_name = flFile.Path
     End If
     
@@ -111,11 +109,10 @@ Public Sub RenewComp( _
         '~~ ------------------------------------------------
         sBaseName = fso.GetBaseName(rc_exp_file_full_name)
         '~~ Select the Export-File for the re-new service
-        If mFile.SelectFile(sel_init_path:=mExport.ExpFileFolderPath(rc_wb) _
-                          , sel_filters:="*" & Comp.ExpFileExt _
-                          , sel_filter_name:="File" _
-                          , sel_title:="Select the Export-File for the provided component '" & rc_comp_name & "'!" _
-                          , sel_result:=flFile) _
+        If mFile.Picked(p_title:="Select the Export-File for the provided component '" & rc_comp_name & "'!" _
+                      , p_init_path:=mExport.ExpFileFolderPath(rc_wb) _
+                      , p_filters:="Component,*." & Comp.ExpFileExt _
+                      , p_file:=flFile) _
         Then rc_exp_file_full_name = flFile.Path
     End If
     
@@ -385,11 +382,9 @@ End Sub
 Private Function SelectServicedWrkbk(ByVal gs_service As String) As Workbook
     Dim fl As File
     
-    If mFile.SelectFile(sel_filters:="*.xl*" _
-                      , sel_filter_name:="VB-Projects/Workbook" _
-                      , sel_title:="Select the Workbook (may already be open, will be opened if not) to be served by the " & gs_service & " service" _
-                      , sel_result:=fl _
-                       ) _
+    If mFile.Picked(p_title:="Select the Workbook (may already be open, will be opened if not) to be served by the " & gs_service & " service" _
+                  , p_filters:="Excel Workbook,*.xl*" _
+                  , p_file:=fl) _
     Then Set SelectServicedWrkbk = mCompMan.WbkGetOpen(fl.Path) _
     Else Set SelectServicedWrkbk = Nothing
 
@@ -485,11 +480,10 @@ Private Function SyncSourceAndTargetSelected( _
         Select Case sReply
             Case sBttnTargetProject
                 Do
-                    If mFile.SelectFile(sel_filters:="*.xl*" _
-                                      , sel_filter_name:="Workbook/VB-Project" _
-                                      , sel_title:="Select the '" & TARGET_PROJECT & " to be synchronized with the '" & SOURCE_PROJECT & "'" _
-                                      , sel_result:=fl _
-                                       ) Then
+                    If mFile.Picked(p_title:="Select the '" & TARGET_PROJECT & " to be synchronized with the '" & SOURCE_PROJECT & "'" _
+                                  , p_filters:="Excel Workbook,*.xl*" _
+                                  , p_file:=fl) _
+                    Then
                         sWbClone = fl.Path
                         Exit Do
                     End If
@@ -499,11 +493,10 @@ Private Function SyncSourceAndTargetSelected( _
                 sWbRaw = Split(sWbRaw, ": ")(0)
             Case sBttnSourceProject
                 Do
-                    If mFile.SelectFile(sel_filters:="*.xl*" _
-                                      , sel_filter_name:="Workbook/VB-Project" _
-                                      , sel_title:="Select the '" & SOURCE_PROJECT & " as the synchronization source for the '" & TARGET_PROJECT & "'" _
-                                      , sel_result:=fl _
-                                       ) Then
+                    If mFile.Picked(p_title:="Select the '" & SOURCE_PROJECT & " as the synchronization source for the '" & TARGET_PROJECT & "'" _
+                                  , p_filters:="Excel Workbook,*.xl*" _
+                                  , p_file:=fl) _
+                    Then
                         sWbRaw = fl.Path
                         Exit Do
                     End If

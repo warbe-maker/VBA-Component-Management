@@ -66,7 +66,7 @@ Public Property Let SavedExpFile(Optional ByVal comp_name, _
 ' Components Folder from where it is used as the source for the update of
 ' outdated Used Common Components.
 ' ---------------------------------------------------------------------------
-    comp_exp_file.Copy Destination:=ComCompsFolder & "\" & comp_exp_file.name, OverWriteFiles:=True
+    comp_exp_file.Copy Destination:=ComCompsFolder & "\" & comp_exp_file.Name, OverWriteFiles:=True
 End Property
 
 Public Property Get SavedExpFileFullName(Optional ByVal comp_name As String) As String
@@ -253,7 +253,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub Remove(ByVal comp_name As String)
-    mFile.SectionsRemove pp_file:=ComCompsSavedFileFullName _
+    mFile.RemoveSections pp_file:=ComCompsSavedFileFullName _
                        , pp_sections:=comp_name
 End Sub
 

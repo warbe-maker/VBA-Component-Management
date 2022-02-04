@@ -219,20 +219,26 @@ Public Sub DisplayChanges( _
     Const PROC = "DisplayChanges"
     
     On Error GoTo eh
-    Dim fl_left         As File
-    Dim fl_right        As File
+    Dim fl  As File
+    Dim fso As New FileSystemObject
     
-    If fl_1 = vbNullString _
-    Then mFile.SelectFile sel_result:=fl_left, _
-                          sel_title:="Select the file regarded 'before the change' (displayed at the left)!"
+    If fl_1 = vbNullString Then
+        mFile.Picked p_title:="Select the file regarded 'before the change' (displayed at the left)!" _
+                   , p_file:=fl
+        If Not fl Is Nothing Then fl_1 = fl.Path
+    End If
     
-    If fl_2 = vbNullString _
-    Then mFile.SelectFile sel_result:=fl_right, _
-                          sel_title:="Select the file regarded 'the changed one' (displayed at the right)!"
+    If fl_2 = vbNullString Then
+        mFile.Picked p_title:="Select the file regarded 'the changed one' (displayed at the right)!" _
+                   , p_file:=fl
+        If Not fl Is Nothing Then fl_2 = fl.Path
+    End If
     
-    fl_1 = fl_left.Path
-    fl_2 = fl_right.Path
-    
+    If Not fso.FileExists(fl_1) _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "No valid file specification provided with argument fl_1 or no fiie selected for fl_1!"
+    If Not fso.FileExists(fl_2) _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "No valid file specification provided with argument fl_2 or no fiie selected for fl_2!"
+                            
     mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=fl_1 _
                                    , fd_exp_file_left_title:=fl_1 & " ( b e f o r e  the changes)" _
                                    , fd_exp_file_right_full_name:=fl_2 _

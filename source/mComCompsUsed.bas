@@ -134,13 +134,13 @@ End Function
 
 Private Function NameExists(ByVal pp_section As String, _
                             ByVal pp_value_name As String) As Boolean
-    NameExists = mFile.ValueNameExists(pp_file:=ComCompsUsedFile _
-                                     , pp_sections:=pp_section _
-                                     , pp_valuename:=pp_value_name)
+    NameExists = mFile.Exists(ex_file:=ComCompsUsedFile _
+                            , ex_section:=pp_section _
+                            , ex_value_name:=pp_value_name)
 End Function
 
 Public Sub Remove(ByVal comp_name As String)
-    mFile.SectionsRemove pp_file:=ComCompsSavedFileFullName _
+    mFile.RemoveSections pp_file:=ComCompsSavedFileFullName _
                        , pp_sections:=comp_name
 End Sub
 
