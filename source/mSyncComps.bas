@@ -40,14 +40,14 @@ Public Sub SyncCodeChanges()
         Set SourceComp = New clsComp
         With SourceComp
             Set .Wrkbk = Sync.source
-            .CompName = vbc.name
+            .CompName = vbc.Name
             If Not .Exists(Sync.Target) Then GoTo next_vbc
         End With
         
         Set TargetComp = New clsComp
         With TargetComp
             Set .Wrkbk = Sync.Target
-            .CompName = vbc.name
+            .CompName = vbc.Name
         End With
         
         If Not mService.FilesDiffer(fd_exp_file_1:=SourceComp.ExpFile _
@@ -58,19 +58,19 @@ Public Sub SyncCodeChanges()
         
         If Sync.Mode = Confirm Then
             Sync.ConfInfo = "Changed"
-            sCaption = "Display code changes" & vbLf & vbLf & vbc.name & vbLf
+            sCaption = "Display code changes" & vbLf & vbLf & vbc.Name & vbLf
             If Not Sync.Changed.Exists(sCaption) _
             Then Sync.Changed.Add sCaption, SourceComp
         Else
             Log.ServicedItem = vbc
             If mComp.IsWrkbkDocMod(vbc) Or mComp.IsSheetDocMod(vbc) Then
-                mSync.ByCodeLines sync_target_comp_name:=vbc.name _
+                mSync.ByCodeLines sync_target_comp_name:=vbc.Name _
                                 , wb_source_full_name:=SourceComp.Wrkbk.FullName _
                                 , sync_source_codelines:=SourceComp.CodeLines
                 Log.Entry = "Code updated line-by-line with code from Export-File '" & SourceComp.ExpFileFullName & "'"
             Else
                 mRenew.ByImport rn_wb:=Sync.Target _
-                              , rn_comp_name:=vbc.name _
+                              , rn_comp_name:=vbc.Name _
                               , rn_raw_exp_file_full_name:=SourceComp.ExpFileFullName
                 Log.Entry = "Renewed/updated by import of '" & SourceComp.ExpFileFullName & "'"
             End If
@@ -112,7 +112,7 @@ Public Sub SyncNew()
             Set SourceComp = New clsComp
             With SourceComp
                 Set .Wrkbk = Sync.source
-                .CompName = vbc.name
+                .CompName = vbc.Name
                 If .Exists(Sync.Target) Then GoTo next_vbc
             End With
             
@@ -162,7 +162,7 @@ Public Sub SyncObsolete()
             If vbc.Type = vbext_ct_Document Then GoTo next_vbc
             Set TargetComp = New clsComp
             Set TargetComp.Wrkbk = .Target
-            TargetComp.CompName = vbc.name
+            TargetComp.CompName = vbc.Name
             If TargetComp.Exists(.source) Then GoTo next_vbc
             
             Log.ServicedItem = vbc

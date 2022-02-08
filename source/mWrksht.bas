@@ -1,105 +1,31 @@
-Attribute VB_Name = "mConfig"
+Attribute VB_Name = "mWrksht"
 Option Explicit
-' ----------------------------------------------------------------------------
-' Standard Module mConfig
-' Read/Write CompMan configuration properties from /to the Registry
-' ----------------------------------------------------------------------------
-Public Const CONFIG_BASE_KEY                As String = "HKCU\SOFTWARE\CompManVBP\BasicConfig\"
-Private Const VNAME_ADDIN_IS_PAUSED         As String = "AddinIsPaused"
-Private Const VNAME_FOLDER_ADDIN            As String = "FolderAddin"
-Private Const VNAME_FOLDER_EXPORT           As String = "FolderExport"
-Private Const VNAME_FOLDER_SERVICED         As String = "FolderServiced"
+Option Private Module
+' -----------------------------------------------------------------------------------
+' Standard  Module mWrksht Checks the existence of a Worksheet.
+'
+' Methods:
+' - Exists  Returns TRUE when the object exists
+'
+' Uses:     Standard Module mErrHndlr
+'
+' Requires: Reference to "Microsoft Scripting Runtine"
+'
+' W. Rauschenberger, Berlin August 2019
+' -----------------------------------------------------------------------------------
 
-Private FolderServicedIsValid               As Boolean
-Private FolderAddinIsValid                  As Boolean
-Private FolderExportIsValid                 As Boolean
-
-Public Property Get CompManAddinIsPaused() As Boolean
-    If WsExists(value_name:=VNAME_ADDIN_IS_PAUSED) _
-    Then CompManAddinIsPaused = CBool(WsValue(VNAME_ADDIN_IS_PAUSED)) _
-    Else CompManAddinIsPaused = False ' The default
+Public Property Get Value(Optional ByVal v_ws As Worksheet, _
+                          Optional ByVal v_name As String) As String
+    Value = v_ws.Range(v_name).Value
 End Property
 
-Public Property Let CompManAddinIsPaused(ByVal b As Boolean):   WsValue(VNAME_ADDIN_IS_PAUSED) = Abs(CInt(b)):  End Property
-
-Public Property Get FolderAddin() As String:                    FolderAddin = WsValue(VNAME_FOLDER_ADDIN):      End Property
-
-Public Property Let FolderAddin(ByVal s As String):             WsValue(VNAME_FOLDER_ADDIN) = s:                End Property
-
-Public Property Get FolderExport() As String
-' ----------------------------------------------------------------------------
-' When no Export Folder name is available 'source' is returned as the default.
-' Any changes of the default name appear as names ammended comma separeated.
-' The prefix \ indicates that the names are names of a sub-folder of the
-' serviced Workbook's parent folder. When there is a change history any still
-' existing old folder is renamed to the last (most current) specified name.
-' ----------------------------------------------------------------------------
-    Dim sHistory    As String
-    Dim Names()     As String
-    Dim iUBound     As Long
-    
-    sHistory = WsValue(VNAME_FOLDER_EXPORT)
-    If sHistory = vbNullString Then
-        FolderExport = "source" ' The default
-    Else
-        Names = Split(sHistory, ",")
-        iUBound = UBound(Names)
-        FolderExport = Names(iUBound)
-        
-        If Not mService.Serviced Is Nothing Then
-            If iUBound > 0 Then
-                '~~ When the Export folder name is obtained for a certain serviced Workbook
-                '~~ and not just for the configuration of its name - and there is a history
-                '~~ of names - any outdated old Export Folder name is renamed along with
-                '~~ this provision of the most current name
-                ForwardFolderName sHistory, mService.Serviced.Path
-            End If
-        End If
-    End If
-    
+Public Property Let Value(Optional ByVal v_ws As Worksheet, _
+                          Optional ByVal v_name As String, _
+                                   ByVal v_value As String)
+    v_ws.Range(v_name).Value = v_value
 End Property
 
-Public Property Let FolderExport(ByVal s As String)
-' ----------------------------------------------------------------------------
-' When the most current folder name is not = s the new name is added comma
-' separated in order to have the history of names maintained.
-' Note: It may take an unknown time until all Workbooks serviced by CompMan
-'       had been switched to a new Export Folder name. The history allows
-'       forwarding outdated folder names to the most current configured name.
-' ----------------------------------------------------------------------------
-    Dim sHistory    As String
-    Dim Names()     As String
-    Dim iUBound     As Long
-    
-    sHistory = WsValue(VNAME_FOLDER_EXPORT)
-    If sHistory = vbNullString Then
-        WsValue(VNAME_FOLDER_EXPORT) = s
-    Else
-        Names = Split(sHistory, ",")
-        iUBound = UBound(Names)
-        If Names(iUBound) <> s Then
-            WsValue(VNAME_FOLDER_EXPORT) = sHistory & "," & s
-        End If
-    End If
-End Property
-
-Public Property Get FolderServiced() As String:             FolderServiced = WsValue(VNAME_FOLDER_SERVICED):        End Property
-
-Public Property Let FolderServiced(ByVal s As String):      WsValue(VNAME_FOLDER_SERVICED) = s:                     End Property
-
-' ---------------------------------------------------------------------------
-' Interfaces to the wsBasicConfig Worksheet
-' ---------------------------------------------------------------------------
-Private Property Get WsValue(Optional ByVal v_value_name As String) As Variant
-    WsValue = mWrksht.Value(v_ws:=wsBasicConfig, v_name:=v_value_name)
-End Property
-
-Private Property Let WsValue(Optional ByVal v_value_name As String, _
-                                    ByVal v_value As Variant)
-    mWrksht.Value(v_ws:=wsBasicConfig, v_name:=v_value_name) = v_value
-End Property
-
-Public Function AppErr(ByVal app_err_no As Long) As Long
+Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
 ' Ensures that a programmed (i.e. an application) error numbers never conflicts
 ' with the number of a VB runtime error. Thr function returns a given positive
@@ -109,6 +35,48 @@ Public Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
     If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function
+
+Private Sub BoP(ByVal b_proc As String, _
+                ParamArray b_arguments() As Variant)
+' ------------------------------------------------------------------------------
+' Common 'Begin of Procedure' service. When neither the Common Execution Trace
+' Component (mTrc) nor the Common Error Handling Component (mErH) is installed
+' (indicated by the Conditional Compile Arguments 'ExecTrace = 1' and/or the
+' Conditional Compile Argument 'ErHComp = 1') this procedure does nothing.
+' Else the service is handed over to the corresponding procedures.
+' May be copied as Private Sub into any module or directly used when mBasic is
+' installed.
+' ------------------------------------------------------------------------------
+    Dim s As String
+    If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
+#If ErHComp = 1 Then
+    '~~ The error handling also hands over to the mTrc component when 'ExecTrace = 1'
+    '~~ so the Else is only for the case only the mTrc is installed but not the merH.
+    mErH.BoP b_proc, s
+#ElseIf ExecTrace = 1 Then
+    mTrc.BoP b_proc, s
+#End If
+End Sub
+
+Private Sub EoP(ByVal e_proc As String, _
+       Optional ByVal e_inf As String = vbNullString)
+' ------------------------------------------------------------------------------
+' Common 'End of Procedure' service. When neither the Common Execution Trace
+' Component (mTrc) nor the Common Error Handling Component (mErH) is installed
+' (indicated by the Conditional Compile Arguments 'ExecTrace = 1' and/or the
+' Conditional Compile Argument 'ErHComp = 1') this procedure does nothing.
+' Else the service is handed over to the corresponding procedures.
+' May be copied as Private Sub into any module or directly used when mBasic is
+' installed.
+' ------------------------------------------------------------------------------
+#If ErHComp = 1 Then
+    '~~ The error handling also hands over to the mTrc component when 'ExecTrace = 1'
+    '~~ so the Else is only for the case the mTrc is installed but the merH is not.
+    mErH.EoP e_proc
+#ElseIf ExecTrace = 1 Then
+    mTrc.EoP e_proc, e_inf
+#End If
+End Sub
 
 Private Function ErrMsg(ByVal err_source As String, _
                Optional ByVal err_no As Long = 0, _
@@ -253,51 +221,78 @@ xt: Exit Function
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mConfig." & sProc
+    ErrSrc = "mWrksht" & "." & sProc
 End Function
 
-Private Function WsExists(ByVal value_name As String) As Boolean
-    WsExists = mWrksht.NameExists(ne_wb:=ThisWorkbook, ne_name:=value_name)
-End Function
-
-
-Public Sub ForwardFolderName(ByRef ff_history As String, _
-                             ByVal ff_wb_parent_folder As String)
-' ----------------------------------------------------------------------------
-' Forwards (renames) any outdatede Export Folder name in a Workbook's parent
-' folder (ff-wb_parent_folder) to the current name.
-' ----------------------------------------------------------------------------
-    Const PROC = "ForwardFolderName"
+Public Function Exists(ByVal vWb As Variant, _
+                       ByVal vWs As Variant, _
+              Optional ByRef wsResult As Worksheet) As Boolean
+' ------------------------------------------------------------
+' Returns TRUE when the Worksheet (vWs) - which may be a
+' Worksheet object or a Worksheet's name - exists in the
+' Workbook (vWb).
+' ------------------------------------------------------------
+    Const PROC = "Exists"
     
     On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim Names() As String
-    Dim iUBound As Long
-    Dim i       As Long
-    Dim NameNow As String
-    Dim sFolder As String
-    
-    Names = Split(ff_history, ",")
-    iUBound = UBound(Names)
-    If iUBound = 0 Then GoTo xt
-    NameNow = Trim(Names(iUBound))
-    
-    With fso
-        For i = iUBound - 1 To 0 Step -1
-            sFolder = ff_wb_parent_folder & "\" & Names(i)
-            sFolder = Replace(sFolder, "\\", "\")
-            If .FolderExists(sFolder) Then
-                .GetFolder(sFolder).Name = NameNow
-            End If
-        Next i
-    End With
-    
-xt: Set fso = Nothing
-    Exit Sub
+    Dim sTest   As String
+    Dim wsTest  As Worksheet
+    Dim wb      As Workbook
+    Dim ws      As Worksheet
 
-eh: Select Case ErrMsg(ErrSrc(PROC))
+    Exists = False
+    
+    If TypeName(vWb) = "Nothing" _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is ""Nothing""!"
+    
+    If Not mWrkbk.IsOpen(vWb, wb) _
+    Then Err.Raise AppErr(2), ErrSrc(PROC), "The Workbook (parameter vWb) is not open!"
+
+    If TypeName(vWs) = "Nothing" _
+    Then Err.Raise AppErr(3), ErrSrc(PROC), "The Worksheet (parameter vWs) for the Worksheet's existence check is ""Nothing""!"
+    
+    If Not TypeOf vWs Is Worksheet And VarType(vWs) <> vbString _
+    Then Err.Raise AppErr(4), ErrSrc(PROC), "The Worksheet (parameter vWs) for the Worksheet's existence check is neither a Worksheet object nor a Worksheet's name or modulename!"
+    
+    If TypeOf vWs Is Worksheet Then
+        Set ws = vWs
+        For Each wsTest In wb.Worksheets
+            If wsTest Is ws Then
+                Exists = True
+                Set wsResult = wsTest
+                GoTo xt
+            End If
+        Next wsTest
+        GoTo xt
+    ElseIf VarType(vWs) = vbString Then
+        For Each wsTest In wb.Worksheets
+            If wsTest.Name = vWs Then
+                Exists = True
+                Set wsResult = wsTest
+                GoTo xt
+            End If
+        Next wsTest
+    End If
+        
+xt: Exit Function
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
+End Function
+
+Public Function NameExists(ByVal ne_wb As Workbook, _
+                           ByVal ne_name As String) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the namne (ne_name) exists as a named range in sheet (ne_ws).
+' ----------------------------------------------------------------------------
+    Dim nm As Name
+    For Each nm In ne_wb.Names
+        If nm.Name = ne_name Then
+            NameExists = True
+            Exit For
+        End If
+    Next nm
+End Function
 

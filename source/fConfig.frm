@@ -16,7 +16,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private fso                         As New FileSystemObject
-Private bFolderServicedIsValid  As Boolean
+Private bFolderServicedIsValid      As Boolean
 Private bFolderAddinIsValid         As Boolean
 Private bFolderExportIsValid        As Boolean
 Private bAddinConfigObligatory      As Boolean
@@ -26,7 +26,7 @@ Private Sub UserForm_Initialize()
     With Me
         .FolderAddin = mConfig.FolderAddin
         .FolderServiced = mConfig.FolderServiced
-        .FolderExport = mConfig.FolderExport
+        .FolderExport = Replace(Split(mConfig.FolderExport, ",")(UBound(Split(mConfig.FolderExport, ","))), "\", vbNullString)
         .Caption = "CompMan's basic configuration (user specific in Registry " & mConfig.CONFIG_BASE_KEY & ")"
     End With
     VerifyConfig
@@ -232,26 +232,6 @@ Private Sub FolderExportVerify()
     End With
 End Sub
 
-Private Sub MoveFiles(ByVal mf_source_folder As String, _
-                      ByVal mf_destination_folder As String)
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Dim fl As File
- 
-    For Each fl In fso.GetFolder(mf_source_folder).Files
-        fl.Move Destination:=mf_destination_folder
-    Next fl
- 
-End Sub
-
-Private Sub MoveFolders(ByVal mf_source_folder As String, _
-                        ByVal mf_destination_folder As String)
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-End Sub
-
 Private Sub FolderServicedVerify()
 ' ----------------------------------------------------------------------------
 ' Verification of the current Serviced-Root-Folder
@@ -287,13 +267,6 @@ Private Sub tbxFolderExport_AfterUpdate()
         If Len(.Text) = 0 _
         Then .Text = "source" _
         Else .Text = Split(.Text, vbLf)(0) ' ensure single line entry
-    End With
-End Sub
-
-Private Sub TextBoxSingleLine(ByRef tbx As Msforms.TextBox)
-    With tbx
-         If Len(.Text) = 0 Then Exit Sub
-         .Text = Split(.Text, vbLf)(0)
     End With
 End Sub
 

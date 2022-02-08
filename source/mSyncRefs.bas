@@ -53,7 +53,7 @@ Public Sub SyncObsolete()
         If Not RefExists(Sync.source, ref) Then
             Log.ServicedItem = ref
             Stats.Count sic_refs_new
-            sRef = ref.name
+            sRef = ref.Name
             If Sync.Mode = Confirm Then
                 Sync.ConfInfo = "Obsolete!"
             Else
@@ -80,7 +80,7 @@ Private Function RefExists( _
     Dim ref As Reference
     
     For Each ref In re_wb.VBProject.References
-        RefExists = ref.name = re_ref.name
+        RefExists = ref.Name = re_ref.Name
         If RefExists Then Exit Function
     Next ref
 
@@ -94,7 +94,7 @@ Private Sub RefRemove(ByVal rr_ref As Reference)
     
     With Sync.Target.VBProject
         For Each ref In .References
-            If ref.name = rr_ref.name Then
+            If ref.Name = rr_ref.Name Then
                 .References.Remove ref
                 Exit Sub
             End If

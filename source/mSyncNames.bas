@@ -20,7 +20,7 @@ Public Sub SyncNew()
     Const PROC = "SyncNew"
     
     On Error GoTo eh
-    Dim nm              As name
+    Dim nm              As Name
     Dim v               As Variant
     Dim SheetReferred   As String
     
@@ -70,7 +70,7 @@ Public Sub SyncObsolete()
     Const PROC = "SyncObsolete"
     
     On Error GoTo eh
-    Dim nm  As name
+    Dim nm  As Name
     Dim v   As Variant
     
     For Each v In Sync.TargetNames

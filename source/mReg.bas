@@ -57,14 +57,6 @@ Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (des
 
 Private Const HKEY_CURRENT_USER      As Long = &H80000001
 Private Const HKEY_LOCAL_MACHINE     As Long = &H80000002
-Private Const HKEY_CLASSES_ROOT      As Long = &H80000000
-Private Const HKEY_CURRENT_CONFIG    As Long = &H80000005
-Private Const HKEY_DYN_DATA          As Long = &H80000006
-Private Const HKEY_PERFORMANCE_DATA  As Long = &H80000004
-Private Const HKEY_USERS             As Long = &H80000003
-
-Private Const HKCU                   As Long = HKEY_CURRENT_USER
-Private Const HKLM                   As Long = HKEY_LOCAL_MACHINE
 
 Private Const REG_SZ = 1
 Private Const REG_EXPAND_SZ = 2
@@ -78,7 +70,6 @@ Private Const REG_VALUE_MAX_VALUE       As Long = 2147483647
 Private Const REG_VALUE_MAX_LENGTH      As Long = &H2048
 Private Const REG_KEY_MAX_LENGTH        As Long = &H255
 
-Private Const KEY_WRITE                 As Long = 131078
 Private Const KEY_READ                  As Long = &H20019  ' ((READ_CONTROL Or KEY_QUERY_VALUE Or
                                                            ' KEY_ENUMERATE_SUB_KEYS Or KEY_NOTIFY) And (Not
                                                            ' SYNCHRONIZE))
@@ -231,14 +222,14 @@ Private Sub DctAddAscByKey(ByRef add_dct As Dictionary, _
     If bOrderByKey Then
         If VarType(add_key) = vbObject Then
             On Error Resume Next
-            add_key.name = add_key.name
+            add_key.Name = add_key.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
         End If
     ElseIf bOrderByItem Then
         If VarType(add_item) = vbObject Then
             On Error Resume Next
-            add_item.name = add_item.name
+            add_item.Name = add_item.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
         End If
@@ -309,7 +300,7 @@ Private Function DctAddOrderValue(ByVal dctkey As Variant) As Variant
 ' When key is an object its name becomes the order value else the key as is.
 ' ----------------------------------------------------------------------------
     If VarType(dctkey) = vbObject _
-    Then DctAddOrderValue = dctkey.name _
+    Then DctAddOrderValue = dctkey.Name _
     Else DctAddOrderValue = dctkey
 End Function
 
@@ -767,7 +758,7 @@ Public Function Values(ByVal reg_key As String) As Dictionary
     Dim dataLen         As Long
     Dim handle          As Long
     Dim Index           As Long
-    Dim name            As String
+    Dim Name            As String
     Dim ValueNameLength As Long
     Dim resLong         As Long
     Dim resString       As String
@@ -788,22 +779,22 @@ Public Function Values(ByVal reg_key As String) As Dictionary
     
     Do
         ValueNameLength = 260           ' this is the max length for a key name
-        name = Space$(ValueNameLength)
+        Name = Space$(ValueNameLength)
         '~~ prepare the receiving buffer for the value
         dataLen = 4096
         ReDim resBinary(0 To dataLen - 1) As Byte
         
         '~~ Read the value's name and data
-        RetVal = RegEnumValue(HKey, Index, name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
+        RetVal = RegEnumValue(HKey, Index, Name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
         
         '~~ Enlarge the buffer if more space is required
         If RetVal = ERROR_MORE_DATA Then
             ReDim resBinary(0 To dataLen - 1) As Byte
-            RetVal = RegEnumValue(HKey, Index, name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
+            RetVal = RegEnumValue(HKey, Index, Name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
         End If
         
         If RetVal Then Exit Do                      ' exit the loop if any other error (typically, no more values)
-        ValueName = Left$(name, ValueNameLength)    ' retrieve the value's name
+        ValueName = Left$(Name, ValueNameLength)    ' retrieve the value's name
         
         '~~ Return a value corresponding to the value type
         Select Case valueType

@@ -21,9 +21,31 @@ Private Property Get mRenew_ByImport() As String
     mRenew_ByImport = CompManAddinName & "!mRenew.ByImport"
 End Property
 
-Private Property Get mService_UpdateOutdatedCommonComponents() As String
-    mService_UpdateOutdatedCommonComponents = CompManAddinName & "!mCompManClient.UpdateOutdatedCommonComponents"
-End Property
+Public Sub ClearIW()
+    Application.VBE.Windows("Direktbereich").SetFocus
+        If Application.VBE.ActiveWindow.Caption = "Direktbereich" And Application.VBE.ActiveWindow.Visible Then
+        Application.SendKeys "^a {DEL} {HOME}"
+    End If
+End Sub
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "mTest" & "." & sProc
+End Function
+
+Public Sub Regression()
+' -----------------------------------------------------------------
+'
+' -----------------------------------------------------------------
+    Const PROC = "Regression"
+    
+    Set cTest = New clsTestService
+    cTest.Regression = True
+    
+    mBasic.BoP ErrSrc(PROC)
+    Test_01_KindOfComp
+    mErH.EoP ErrSrc(PROC)
+    
+End Sub
 
 Public Sub RemoveTestCodeChange( _
                  Optional ByVal exp_file As String = vbNullString, _
@@ -67,116 +89,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mTest" & "." & sProc
-End Function
-
-Private Function MaxCompLength(ByRef wb As Workbook) As Long
-    Dim vbc As VBComponent
-    If lMaxCompLength = 0 Then
-        For Each vbc In wb.VBProject.VBComponents
-            MaxCompLength = mBasic.Max(MaxCompLength, Len(vbc.Name))
-        Next vbc
-    End If
-End Function
-
-Public Sub Regression()
-' -----------------------------------------------------------------
-'
-' -----------------------------------------------------------------
-    Const PROC = "Regression"
-    
-    Set cTest = New clsTestService
-    cTest.Regression = True
-    
-    mBasic.BoP ErrSrc(PROC)
-    Test_01_KindOfComp
-    mErH.EoP ErrSrc(PROC)
-    
-End Sub
-  
-Public Sub Test_SyncVBProjects()
-' ---------------------------------------------------------------------
-' Attention: This test preserves the target Workbook by a backup before
-' and a restore after the synch test. The target Workbook thus will not
-' show the synch result unless the terst procedire is stopped.
-' ---------------------------------------------------------------------
-    Const PROC = "Test_SyncVBProjects"
-    
-    On Error GoTo eh
-    Dim sSource     As String
-    Dim sTarget     As String
-    Dim BkpFolder   As String
-        
-    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncTarget\SyncTarget.xlsb"
-    sSource = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
-           
-    Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
-    mSync.SyncRestore sTarget
-    
-    mService.SyncVBProjects wb_target:=mCompMan.WbkGetOpen(sTarget) _
-                          , wb_source_name:=sSource _
-                          , restricted_sheet_rename_asserted:=True _
-                          , design_rows_cols_added_or_deleted:=False
-    
-xt: Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Sub Test_SyncColWidth()
-' ---------------------------------------------------------------------
-' Attention: This test preserves the target Workbook by a backup before
-' and a restore after the synch test. The target Workbook thus will not
-' show the synch result unless the terst procedire is stopped.
-' ---------------------------------------------------------------------
-    Const PROC = "Test_SyncColWidth"
-    
-    On Error GoTo eh
-    Dim sSource     As String
-    Dim sTarget     As String
-    Dim BkpFolder   As String
-    Dim wbSource    As Workbook
-    Dim wbTarget    As Workbook
-    Dim wsSource    As Worksheet
-    Dim wsTarget    As Worksheet
-    Dim ws          As Worksheet
-    Dim sSheetName  As String
-    
-    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncTarget\SyncTarget.xlsb"
-    sSource = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
-    
-    mSync.SyncRestore sTarget
-    mSync.SyncBackup sTarget
-    
-    Set wbTarget = mCompMan.WbkGetOpen(sTarget)
-    Set wbSource = mCompMan.WbkGetOpen(sSource)
-    
-    For Each ws In wbSource.Worksheets
-        If mSyncSheets.SheetExists(wb:=wbTarget _
-                                 , sh1_name:=ws.Name _
-                                 , sh1_code_name:=ws.CodeName _
-                                 , sh2_name:=sSheetName _
-                                  ) _
-        Then
-            mSyncRanges.SyncNamedColumnsWidth ws_source:=ws _
-                                            , ws_target:=wbTarget.Worksheets(sSheetName)
-        
-        End If
-    Next ws
-    
-xt: Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
 
 Public Sub Test_01_KindOfComp()
     Const PROC = "Test_01_KindOfComp"
@@ -235,6 +147,81 @@ Public Sub Test_10_ExportChangedComponents()
     
 End Sub
 
+Public Sub Test_BasicConfig()
+
+    If Not mMe.BasicConfig Then
+        Debug.Print "Basic configuration invalid!"
+    End If
+    
+End Sub
+
+Public Sub Test_Comps_Changed()
+    
+    Dim Comps   As New clsComps
+    Dim Comp    As New clsComp
+    Dim v       As Variant
+    Dim dct     As Dictionary
+    Dim Log     As New clsLog
+    Dim s       As String
+    
+    Set mService.Serviced = ThisWorkbook
+    Set Stats = New clsStats
+    
+    Set dct = Comps.Changed(Stats)
+    For Each v In dct
+        Stats.Count sic_used_comm_comps
+        Set Comp = dct(v)
+        s = s & Comp.CompName & ", "
+        Set Comp = Nothing
+    Next v
+    
+    With Stats
+        Debug.Print .Total(sic_comps_total) & " Components"
+        Debug.Print .Total(sic_comps_changed) & " Changed (" & Left(s, Len(s) - 2) & ")"
+    End With
+    Set Comps = Nothing
+    Set Stats = Nothing
+    Set Log = Nothing
+
+End Sub
+
+Public Sub Test_Comps_Outdated()
+    
+    Dim Comps   As New clsComps
+    Dim Comp    As New clsComp
+    Dim v       As Variant
+    Dim dct     As Dictionary
+    Dim Log     As New clsLog
+    
+    Set mService.Serviced = ThisWorkbook
+    Set Stats = New clsStats
+    Log.File = mFile.Temp(, ".log")
+    
+    Set dct = Comps.Outdated
+    For Each v In dct
+        Stats.Count sic_used_comm_comps
+        Set Comp = dct(v)
+        Log.ServicedItem = Comp.VBComp
+        If Comp.RawChanged Then
+            Stats.Count sic_comps_changed
+            Debug.Print Comp.CompName & " is regarded outdated"
+        End If
+        Set Comp = Nothing
+    Next v
+    
+    Debug.Print mFile.Txt(Log.LogFile)
+    Debug.Print Stats.Total(sic_comps_total) & " Components"
+    Debug.Print Stats.Total(sic_comps_changed) & " Outdated"
+        
+    Set Comps = Nothing
+    Set Stats = Nothing
+    With New FileSystemObject
+        If .FileExists(Log.File) Then .DeleteFile (Log.File)
+    End With
+    Set Log = Nothing
+
+End Sub
+
 Public Sub Test_Log()
     Const PROC = "Test_Log"
     
@@ -260,6 +247,13 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Sub
+
+Public Sub Test_Path()
+
+    With New FileSystemObject
+        Debug.Print .GetFile(mFile.Temp()).Path
+    End With
 End Sub
 
 Public Sub Test_Refs()
@@ -297,7 +291,6 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
 ' --------------------------------------------------------
     Const PROC = "Test_RenewComp"
     
-    Dim cLog        As New clsLog
     Dim Comp        As New clsComp
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
@@ -634,6 +627,40 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Public Sub Test_SheetControls_Name_and_Type()
+' --------------------------------------------------
+' List all sheet controls ordered ascending by name.
+' --------------------------------------------------
+    Const PROC = "Test_SheetControls_Name_and_Type"
+    
+    On Error GoTo eh
+    Dim ws  As Worksheet
+    Dim shp As Shape
+    Dim dct As New Dictionary
+    Dim v   As Variant
+    Dim sWb As String
+    Dim sWs As String
+    
+    sWb = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
+    sWs = "Test_B1"
+    
+    Set ws = mCompMan.WbkGetOpen(sWb).Worksheets(sWs)
+    For Each shp In ws.Shapes
+        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.Name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
+    Next shp
+    For Each v In dct
+        Debug.Print dct(v), Tab(45), v
+    Next v
+
+xt: Set dct = Nothing
+    Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
 Public Sub Test_UpdateOutdatedCommonComponents()
     Const PROC  As String = "Test_UpdateOutdatedCommonComponents"
     
@@ -679,251 +706,12 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_BasicConfig()
-
-    If Not mMe.BasicConfig Then
-        Debug.Print "Basic configuration invalid!"
-    End If
-    
-End Sub
-
-Public Sub Test_Comps_Changed()
-    
-    Dim Comps   As New clsComps
-    Dim Comp    As New clsComp
-    Dim v       As Variant
-    Dim dct     As Dictionary
-    Dim Log     As New clsLog
-    Dim s       As String
-    
-    Set mService.Serviced = ThisWorkbook
-    Set Stats = New clsStats
-    
-    Set dct = Comps.Changed(Stats)
-    For Each v In dct
-        Stats.Count sic_used_comm_comps
-        Set Comp = dct(v)
-        s = s & Comp.CompName & ", "
-        Set Comp = Nothing
-    Next v
-    
-    With Stats
-        Debug.Print .Total(sic_comps_total) & " Components"
-        Debug.Print .Total(sic_comps_changed) & " Changed (" & Left(s, Len(s) - 2) & ")"
-    End With
-    Set Comps = Nothing
-    Set Stats = Nothing
-    Set Log = Nothing
-
-End Sub
-
-
-Public Sub Test_Comps_Outdated()
-    
-    Dim Comps   As New clsComps
-    Dim Comp    As New clsComp
-    Dim v       As Variant
-    Dim dct     As Dictionary
-    Dim Log     As New clsLog
-    
-    Set mService.Serviced = ThisWorkbook
-    Set Stats = New clsStats
-    Log.File = mFile.Temp(, ".log")
-    
-    Set dct = Comps.Outdated
-    For Each v In dct
-        Stats.Count sic_used_comm_comps
-        Set Comp = dct(v)
-        Log.ServicedItem = Comp.VBComp
-        If Comp.RawChanged Then
-            Stats.Count sic_comps_changed
-            Debug.Print Comp.CompName & " is regarded outdated"
-        End If
-        Set Comp = Nothing
-    Next v
-    
-    Debug.Print mFile.Txt(Log.LogFile)
-    Debug.Print Stats.Total(sic_comps_total) & " Components"
-    Debug.Print Stats.Total(sic_comps_changed) & " Outdated"
-        
-    Set Comps = Nothing
-    Set Stats = Nothing
-    With New FileSystemObject
-        If .FileExists(Log.File) Then .DeleteFile (Log.File)
-    End With
-    Set Log = Nothing
-
-End Sub
-
-Public Sub Test_Synch_RangesFormating()
-    Const PROC = "Test_Synch_RangesFormating"
-    
-    On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim BkpFolder   As String
-    Dim sTarget     As String
-    Dim sSource     As String
-    Dim BttnDelete  As String
-    Dim BttnKeep    As String
-    Dim flLog       As File
-    Dim LastModif   As Date
-    Dim bttns       As Collection
-    
-    Set Log = New clsLog
-    Log.File = mFile.Temp(ThisWorkbook.Path, ".log")
-    
-    Set Stats = New clsStats
-    Set Sync = New clsSync
-    
-    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Target-Project\Test_Sync_Target.xlsb"
-    sSource = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Source-Project\Test_Sync_Source.xlsb"
-    
-    Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
-    Set Sync.Target = mService.Serviced
-    Set Sync.source = mCompMan.WbkGetOpen(sSource)
-    
-    Sync.CollectAllSyncItems
-    
-    LastModif = fso.GetFile(sTarget).DateLastModified
-    
-    mSync.SyncBackup sTarget
-    mSyncRanges.SyncFormating
-    mSync.SyncRestore sTarget
-    Application.EnableEvents = False ' The open service UpdateOutdatedCommonComponents would start with a new log-file otherwise
-    mCompMan.WbkGetOpen sTarget
-    Application.EnableEvents = True
-
-xt: With New FileSystemObject
-        If .FileExists(Log.File) Then
-            Set flLog = .GetFile(Log.File)
-            BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
-            BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
-            mMsg.Buttons bttns, BttnDelete, BttnKeep
-            If mMsg.Box(box_title:=PROC & " Log-File" _
-                      , box_msg:=mFile.Txt(.GetFile(Log.File)) _
-                      , box_monospaced:=True _
-                      , box_buttons:=bttns) = BttnDelete _
-            Then .DeleteFile flLog
-        End If
-    End With
-    Set Log = Nothing
-
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Sub Test_Synch_CompsChanged()
-    Const PROC = "Test_Synch_CompsChanged"
-    
-    On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim BkpFolder   As String
-    Dim sTarget     As String
-    Dim sSource     As String
-    Dim BttnDelete  As String
-    Dim BttnKeep    As String
-    Dim flLog       As File
-    Dim LastModif   As Date
-    Dim bttns       As Collection
-    
-    Set Stats = New clsStats
-    Set Sync = New clsSync
-    Set Log = New clsLog
-
-    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncTarget\SyncTarget.xlsb"
-    sSource = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
-    
-    Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
-    Set Sync.Target = mService.Serviced
-    Set Sync.source = mCompMan.WbkGetOpen(sSource)
-    Log.File = mFile.Temp(mService.Serviced.Path, ".log")
-    
-    Sync.CollectAllSyncItems
-    
-    LastModif = fso.GetFile(sTarget).DateLastModified
-    
-    mSync.SyncBackup sTarget
-    mSyncComps.SyncCodeChanges
-    mSync.SyncRestore sTarget
-    Application.EnableEvents = False ' The open service UpdateOutdatedCommonComponents would start with a new log-file otherwise
-    mCompMan.WbkGetOpen sTarget
-    Application.EnableEvents = True
-
-xt: With New FileSystemObject
-        If .FileExists(Log.File) Then
-            Set flLog = .GetFile(Log.File)
-            BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
-            BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
-            mMsg.Buttons bttns, BttnDelete, BttnKeep
-            If mMsg.Box(box_title:=PROC & " Log-File" _
-                      , box_msg:=mFile.Txt(.GetFile(Log.File)) _
-                      , box_monospaced:=True _
-                      , box_buttons:=bttns) = BttnDelete _
-            Then .DeleteFile flLog
-        End If
-    End With
-    Set Log = Nothing
-
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Sub Test_SheetControls_Name_and_Type()
-' --------------------------------------------------
-' List all sheet controls ordered ascending by name.
-' --------------------------------------------------
-    Const PROC = "Test_SheetControls_Name_and_Type"
-    
-    On Error GoTo eh
-    Dim ws  As Worksheet
-    Dim shp As Shape
-    Dim dct As New Dictionary
-    Dim v   As Variant
-    Dim sWb As String
-    Dim sWs As String
-    
-    sWb = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
-    sWs = "Test_B1"
-    
-    Set ws = mCompMan.WbkGetOpen(sWb).Worksheets(sWs)
-    For Each shp In ws.Shapes
-        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.Name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
-    Next shp
-    For Each v In dct
-        Debug.Print dct(v), Tab(45), v
-    Next v
-
-xt: Set dct = Nothing
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Sub ClearIW()
-    Application.VBE.Windows("Direktbereich").SetFocus
-        If Application.VBE.ActiveWindow.Caption = "Direktbereich" And Application.VBE.ActiveWindow.Visible Then
-        Application.SendKeys "^a {DEL} {HOME}"
-    End If
-End Sub
-
 Public Sub Test_WinMerge()
 
     Dim sF1 As String
     Dim sF2 As String
     Dim f1  As File
     Dim f2  As File
-    Dim fso As New FileSystemObject
     
     mFile.Picked p_file:=f1
     mFile.Picked p_file:=f2
@@ -937,9 +725,3 @@ Public Sub Test_WinMerge()
 
 End Sub
 
-Public Sub Test_Path()
-
-    With New FileSystemObject
-        Debug.Print .GetFile(mFile.Temp()).Path
-    End With
-End Sub

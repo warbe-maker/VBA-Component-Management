@@ -15,25 +15,9 @@ Private RenewAction     As String
 Private RenewResult     As String
 Private sProgressMsg    As String
 
-Private Sub ProgressMsg(ByVal prgrs_step As Long, ByVal prgrs_result As String, ByVal prgrs_action As String)
-    If sProgressMsg = vbNullString Then
-        sProgressMsg = mBasic.Align(RenewStep, 2, AlignRight) & " " & RenewResult & " " & Split(RenewAction, vbLf)(0)
-        If UBound(Split(RenewAction, vbLf)) > 0 Then
-            sProgressMsg = sProgressMsg & vbLf & "          " & Split(RenewAction, vbLf)(1)
-        End If
-    Else
-        sProgressMsg = sProgressMsg & vbLf & mBasic.Align(RenewStep, 2, AlignRight) & " " & RenewResult & " " & Split(RenewAction, vbLf)(0)
-        If UBound(Split(RenewAction, vbLf)) > 0 Then
-            sProgressMsg = sProgressMsg & vbLf & "   " & Split(RenewAction, vbLf)(1)
-        End If
-    End If
-End Sub
+Public Property Let CompManAddInPausedStatus(ByVal s As String):        Me.Range("rngCompManPauseStatus").Value = s:            End Property
 
-Public Property Let RenewInfo(ByVal s As String):                       Me.Range("rngRenewInfo").Value = s:                 End Property
-
-Public Property Let CompManAddInPausedStatus(ByVal s As String):        Me.Range("rngCompManPauseStatus").Value = s:        End Property
-
-Public Property Get CurrentStatus() As String:                          CurrentStatus = Me.Range("rngCurrentStatus").Value: End Property
+Public Property Get CurrentStatus() As String:                          CurrentStatus = Me.Range("rngCurrentStatus").Value:     End Property
 
 Public Property Let CurrentStatus(ByVal s As String)
     With Me
@@ -46,6 +30,8 @@ Public Property Let CurrentStatus(ByVal s As String)
         End If
     End With
 End Property
+
+Public Property Let RenewInfo(ByVal s As String):                       Me.Range("rngRenewInfo").Value = s:                 End Property
 
 Public Sub LogRenewStep( _
                Optional ByVal rn_action As String = vbNullString, _
@@ -61,7 +47,7 @@ Public Sub LogRenewStep( _
     RenewStep = l
     If rn_result <> vbNullString Then RenewResult = rn_result
     If rn_action <> vbNullString Then RenewAction = rn_action
-    If RenewResult <> vbNullString Then ProgressMsg RenewStep, RenewResult, RenewAction
+    If RenewResult <> vbNullString Then ProgressMsg ' RenewStep, RenewResult, RenewAction
     
     If RenewStep > 1 And RenewResult <> vbNullString Then
         msg = sProgressMsg
@@ -103,5 +89,17 @@ Public Sub LogRenewStep( _
     
 End Sub
 
-Private Sub Worksheet_Activate()
+Private Sub ProgressMsg()
+    If sProgressMsg = vbNullString Then
+        sProgressMsg = mBasic.Align(RenewStep, 2, AlignRight) & " " & RenewResult & " " & Split(RenewAction, vbLf)(0)
+        If UBound(Split(RenewAction, vbLf)) > 0 Then
+            sProgressMsg = sProgressMsg & vbLf & "          " & Split(RenewAction, vbLf)(1)
+        End If
+    Else
+        sProgressMsg = sProgressMsg & vbLf & mBasic.Align(RenewStep, 2, AlignRight) & " " & RenewResult & " " & Split(RenewAction, vbLf)(0)
+        If UBound(Split(RenewAction, vbLf)) > 0 Then
+            sProgressMsg = sProgressMsg & vbLf & "   " & Split(RenewAction, vbLf)(1)
+        End If
+    End If
 End Sub
+

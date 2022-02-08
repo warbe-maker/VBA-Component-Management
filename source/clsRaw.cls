@@ -19,8 +19,6 @@ Option Explicit
 ' ----------------------------------------------------------------------------------------
 Private fso                         As New FileSystemObject
 Private sCompName                   As String
-Private sExpFileTempFullName        As String
-Private sMostRecentExpFileFullName  As String
 Private sTempFolder                 As String
 Private wbRawHost                   As Workbook
 Private sRawHostWbFullName          As String
@@ -137,17 +135,6 @@ End Property
 Public Property Get SavedExpFileFullName() As String:   SavedExpFileFullName = mComCompsRawsSaved.SavedExpFileFullName(sCompName):  End Property
 
 Public Property Get VBComp() As VBComponent:        Set VBComp = vbcRaw:                                                    End Property
-
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ------------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
-End Function
 
 Private Sub CleanUpTemps()
     With fso

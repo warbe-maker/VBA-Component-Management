@@ -699,7 +699,6 @@ Public Function ExpFilesDiffDisplay( _
     Dim sCommand            As String
     Dim fso                 As New FileSystemObject
     Dim wshShell            As Object
-    Dim sIniFile            As String
     Dim sIgnoreBlankLines   As String ' 1 = True, 0 = False
     Dim sIgnoreCase         As String ' 1 = True, 0 = False
     
@@ -770,12 +769,10 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
     On Error GoTo eh
     Dim bDone           As Boolean
     Dim dctTemp         As Dictionary
-    Dim vItem           As Variant
     Dim vItemExisting   As Variant
     Dim vKeyExisting    As Variant
     Dim vValueExisting  As Variant ' the entry's add_key/add_item value for the comparison with the vValueNew
     Dim vValueNew       As Variant ' the argument add_key's/add_item's value
-    Dim vValueTarget    As Variant ' the add before/after add_key/add_item's value
     Dim bStayWithFirst  As Boolean
     Dim bOrderByItem    As Boolean
     Dim bOrderByKey     As Boolean

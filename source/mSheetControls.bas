@@ -154,7 +154,6 @@ Public Enum enCntrlProperties
 End Enum
 
 Private Enum VarEnum
-    VT_EMPTY = 0&                   '
     VT_NULL = 1&                    ' 0
     VT_I2 = 2&                      ' signed 2 bytes integer
     VT_I4 = 3&                      ' signed 4 bytes integer
@@ -179,28 +178,8 @@ Private Enum VarEnum
     VT_UINT = 23&                   ' unsigned integer
     VT_VOID = 24&                   ' 0
     VT_HRESULT = 25&                ' HRESULT
-    VT_PTR = 26&                    ' pointer
-    VT_SAFEARRAY = 27&              ' safearray
-    VT_CARRAY = 28&                 ' carray
-    VT_USERDEFINED = 29&            ' userdefined
     VT_LPSTR = 30&                  ' LPStr
     VT_LPWSTR = 31&                 ' LPWStr
-    VT_RECORD = 36&                 ' Record
-    VT_FILETIME = 64&               ' File Time
-    VT_BLOB = 65&                   ' Blob
-    VT_STREAM = 66&                 ' Stream
-    VT_STORAGE = 67&                ' Storage
-    VT_STREAMED_OBJECT = 68&        ' Streamed Obj
-    VT_STORED_OBJECT = 69&          ' Stored Obj
-    VT_BLOB_OBJECT = 70&            ' Blob Obj
-    VT_CF = 71&                     ' CF
-    VT_CLSID = 72&                  ' Class ID
-    VT_BSTR_BLOB = &HFFF&           ' BStr Blob
-    VT_VECTOR = &H1000&             ' Vector
-    VT_ARRAY = &H2000&              ' Array
-    VT_BYREF = &H4000&              ' ByRef
-    VT_RESERVED = &H8000&           ' Reserved
-    VT_ILLEGAL = &HFFFF&            ' illegal
 End Enum
 
 Private Type GUID
@@ -460,25 +439,22 @@ Public Function CntrlName(ByVal shp As Shape) As String
     Const PROC = "CntrlName"
     
     On Error GoTo eh
-    Dim oob     As OLEObject
     Dim wb      As Workbook
     Dim ws      As Worksheet
-    Dim sName   As String
-    Dim i       As Long
     Dim j       As Long
     Dim shp1    As Shape
     
-    Set wb = Application.Workbooks(shp.Parent.Parent.name)
-    Set ws = wb.Worksheets(shp.Parent.name)
+    Set wb = Application.Workbooks(shp.Parent.Parent.Name)
+    Set ws = wb.Worksheets(shp.Parent.Name)
     With ws
         For Each shp1 In .Shapes
             If shp1.Type = msoOLEControlObject Then j = j + 1
             If Not shp1 Is shp Then GoTo next_shp
             Select Case shp1.Type
                 Case msoOLEControlObject
-                    CntrlName = ws.OLEObjects(j).name
+                    CntrlName = ws.OLEObjects(j).Name
                 Case msoFormControl
-                    CntrlName = shp1.name
+                    CntrlName = shp1.Name
                 Case Else
                     Debug.Print "Shape-Type: '" & shp1.Type & "' Not implemented"
             End Select
@@ -502,16 +478,13 @@ Public Function CntrlType( _
     Const PROC = "CntrlType"
     
     On Error GoTo eh
-    Dim oob     As OLEObject
     Dim wb      As Workbook
     Dim ws      As Worksheet
-    Dim sName   As String
-    Dim i       As Long
     Dim j       As Long
     Dim shp1    As Shape
     
-    Set wb = Application.Workbooks(shp.Parent.Parent.name)
-    Set ws = wb.Worksheets(shp.Parent.name)
+    Set wb = Application.Workbooks(shp.Parent.Parent.Name)
+    Set ws = wb.Worksheets(shp.Parent.Name)
     With ws
         For Each shp1 In .Shapes
             If shp1.Type = msoOLEControlObject Then
@@ -598,7 +571,7 @@ Public Sub ListAscendingByName(ByVal wsh As Worksheet)
     
     With wsh
         For Each shp In .Shapes
-            Debug.Print .name & "(" & CntrlType(shp) & ")", Tab(45), CntrlName(shp)
+            Debug.Print .Name & "(" & CntrlType(shp) & ")", Tab(45), CntrlName(shp)
         Next shp
     End With
     
@@ -624,7 +597,7 @@ Public Function ControlExists( _
     Dim shp As Shape
     
     For Each ws In sync_wb.Worksheets
-        If ws.name <> sync_sheet_name And ws.CodeName <> sync_sheet_code_name _
+        If ws.Name <> sync_sheet_name And ws.CodeName <> sync_sheet_code_name _
         Then GoTo next_sheet
         For Each shp In ws.Shapes
             ControlExists = CntrlName(shp) = sync_sheet_control_name

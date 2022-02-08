@@ -12,7 +12,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 Option Explicit
 ' -------------------------------------------------------------------------------
 ' UserForm fMsg Provides all means for a message with up to 5 separated text
@@ -500,7 +499,7 @@ Private Property Let MonoSpaced( _
                  Optional ByVal var_ctl As Variant, _
                           ByVal b As Boolean)
     If b Then
-        If Not dctMonoSpaced.Exists(var_ctl) Then dctMonoSpaced.Add var_ctl, var_ctl.name
+        If Not dctMonoSpaced.Exists(var_ctl) Then dctMonoSpaced.Add var_ctl, var_ctl.Name
     Else
         If dctMonoSpaced.Exists(var_ctl) Then dctMonoSpaced.Remove var_ctl
     End If
@@ -514,7 +513,7 @@ Private Property Let MonoSpacedTbx( _
                  Optional ByVal tbx As Msforms.TextBox, _
                           ByVal b As Boolean)
     If b Then
-        If Not dctMonoSpacedTbx.Exists(tbx) Then dctMonoSpacedTbx.Add tbx, tbx.name
+        If Not dctMonoSpacedTbx.Exists(tbx) Then dctMonoSpacedTbx.Add tbx, tbx.Name
     Else
         If dctMonoSpacedTbx.Exists(tbx) Then dctMonoSpacedTbx.Remove tbx
     End If
@@ -1730,7 +1729,7 @@ Public Sub Setup1_Title( _
         With .laMsgTitle
             With .Font
                 .Bold = False
-                .name = Me.Font.name
+                .Name = Me.Font.Name
                 .Size = 8    ' Value which comes to a length close to the length required
             End With
             .Caption = vbNullString
@@ -2034,10 +2033,10 @@ Private Sub SetupMsgSect(ByVal msg_section As Long)
                 .Caption = SectLabel.Text
                 With .Font
                     If SectLabel.MonoSpaced Then
-                        If SectLabel.FontName <> vbNullString Then .name = SectLabel.FontName Else .name = DFLT_LBL_MONOSPACED_FONT_NAME
+                        If SectLabel.FontName <> vbNullString Then .Name = SectLabel.FontName Else .Name = DFLT_LBL_MONOSPACED_FONT_NAME
                         If SectLabel.FontSize <> 0 Then .Size = SectLabel.FontSize Else .Size = DFLT_LBL_MONOSPACED_FONT_SIZE
                     Else
-                        If SectLabel.FontName <> vbNullString Then .name = SectLabel.FontName Else .name = DFLT_LBL_PROPSPACED_FONT_NAME
+                        If SectLabel.FontName <> vbNullString Then .Name = SectLabel.FontName Else .Name = DFLT_LBL_PROPSPACED_FONT_NAME
                         If SectLabel.FontSize <> 0 Then .Size = SectLabel.FontSize Else .Size = DFLT_LBL_PROPSPACED_FONT_SIZE
                     End If
                     If SectLabel.FontItalic Then .Italic = True
@@ -2105,7 +2104,7 @@ Const PROC = "SetupMsgSectMonoSpaced"
 
     With MsgSectTextBox
         With .Font
-            If MsgSectText.FontName <> vbNullString Then .name = MsgSectText.FontName Else .name = DFLT_LBL_MONOSPACED_FONT_NAME
+            If MsgSectText.FontName <> vbNullString Then .Name = MsgSectText.FontName Else .Name = DFLT_LBL_MONOSPACED_FONT_NAME
             If MsgSectText.FontSize <> 0 Then .Size = MsgSectText.FontSize Else .Size = DFLT_LBL_MONOSPACED_FONT_SIZE
             If .Bold <> MsgSectText.FontBold Then .Bold = MsgSectText.FontBold
             If .Italic <> MsgSectText.FontItalic Then .Italic = MsgSectText.FontItalic
@@ -2182,7 +2181,7 @@ Private Sub SetupMsgSectPropSpaced( _
     
     With MsgSectTextBox
         With .Font
-            If MsgSectText.FontName <> vbNullString Then .name = MsgSectText.FontName Else .name = DFLT_LBL_PROPSPACED_FONT_NAME
+            If MsgSectText.FontName <> vbNullString Then .Name = MsgSectText.FontName Else .Name = DFLT_LBL_PROPSPACED_FONT_NAME
             If MsgSectText.FontSize <> 0 Then .Size = MsgSectText.FontSize Else .Size = DFLT_LBL_PROPSPACED_FONT_SIZE
             If .Bold <> MsgSectText.FontBold Then .Bold = MsgSectText.FontBold
             If .Italic <> MsgSectText.FontItalic Then .Italic = MsgSectText.FontItalic

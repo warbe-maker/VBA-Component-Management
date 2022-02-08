@@ -355,7 +355,6 @@ End Property
 
 
 Friend Property Get ExpFileTemp() As File
-    Dim fl  As File
     With fso
         If Not .FileExists(Me.ExpFileTempFullName) Then
             Me.VBComp.Export Me.ExpFileTempFullName
@@ -509,7 +508,7 @@ Friend Property Get RevisionNumber() As String:         RevisionNumber = mComCom
 
 Friend Property Let RevisionNumber(ByVal s As String):  mComCompsUsed.RevisionNumber(sCompName) = s:              End Property
 
-Friend Property Get Service(Optional ByVal wb_full_name) As String
+Friend Property Get Service() As String
     If sService = vbNullString Then
         sService = fso.GetFileName(Me.Wrkbk.Path)
     End If

@@ -20,8 +20,6 @@ Public Sub All()
     Dim sStatus     As String
     Dim Comp        As clsComp
     Dim Comps       As New clsComps
-    Dim dctAll      As Dictionary
-    Dim v           As Variant
     Dim wb          As Workbook
     Dim lAll        As Long
     Dim lExported   As Long
@@ -230,7 +228,6 @@ Private Sub CleanUpObsoleteExpFiles()
     Dim fso     As New FileSystemObject
     Dim fl      As File
     Dim v       As Variant
-    Dim Comp    As New clsComp
     Dim sExp    As String
     Dim fo      As Folder
     Dim fosub   As Folder
@@ -344,7 +341,6 @@ Private Sub RemoveEmptyFolders(ByVal ref_folder As String, _
     On Error GoTo eh
     Dim fso         As New FileSystemObject
     Dim iFolders    As Long
-    Dim oFile       As File
     Dim oFolder     As Folder
     Dim oSubFolder  As Folder
     

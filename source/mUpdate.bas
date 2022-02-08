@@ -17,7 +17,6 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
     Dim sUpdated        As String
     Dim v               As Variant
     Dim bVerbose        As Boolean
-    Dim bSkip           As Boolean
     Dim Comp            As clsComp
     Dim Comps           As New clsComps
     Dim lAll            As Long

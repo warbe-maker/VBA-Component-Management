@@ -48,13 +48,6 @@ Option Private Module
 ' ---------------------------------------------------------------------------
 Public Const COMPMAN_ADMIN_FOLDER_NAME      As String = "\CompManAdmin\"
 Public Const FOLDER_SERVICED                As String = "Serviced-By-CompMan folder"
-
-Private Const FOLDER_ADDIN                  As String = "CompMan-Addin folder"
-Private Const SECTION_BASE_CONFIG           As String = "BaseConfiguration"
-Private Const VNAME_SERVICED_ROOT           As String = "VBDevProjectsRoot"
-Private Const VNAME_COMPMAN_ADDIN_FOLDER    As String = "CompManAddInPath"
-Private Const VNAME_COMPMAN_ADDIN_PAUSED    As String = "CompManAddInPaused"
-Private Const VNAME_COMPMAN_EXPORT_FOLDER   As String = "FolderExport"
 Private Const ADDIN_WORKBOOK_EXTENSION      As String = "xlam"  ' Extension may depend on Excel version
 Private Const DEVLP_WORKBOOK_EXTENSION      As String = "xlsb"  ' Extension may depend on Excel version
 
@@ -261,6 +254,10 @@ Public Property Get xlAddInFormat() As Long:            xlAddInFormat = ADDIN_FO
 
 Public Property Get xlDevlpFormat() As Long:            xlDevlpFormat = DEVLP_FORMAT:                                       End Property
 
+Public Sub CompManConfig()
+    mMe.BasicConfig bc_silent:=False, addin_folder_obligatory:=False
+End Sub
+
 Public Function BasicConfig( _
        Optional ByVal bc_silent As Boolean = False, _
        Optional ByVal addin_folder_obligatory = False) As Boolean
@@ -435,7 +432,7 @@ Public Property Get CompManAddinIsPaused() As Boolean
     CompManAddinIsPaused = mConfig.CompManAddinIsPaused
 End Property
 
-Public Sub DisplayStatus(Optional ByVal keep_renew_steps_result As Boolean = False)
+Public Sub DisplayStatus()
     Const PROC = "DisplayStatus"
     
     On Error GoTo eh
@@ -591,7 +588,7 @@ Public Sub RenewAddIn()
 xt: RenewFinalResult
     
     Application.ScreenUpdating = False
-    mMe.DisplayStatus True
+    mMe.DisplayStatus
     Application.ScreenUpdating = True
     
     Application.EnableEvents = False

@@ -111,9 +111,6 @@ Public dctHostedRaws    As Dictionary
 Public Stats            As clsStats
 Public Log              As clsLog
 Public TraceLog         As clsLog
-Private lMaxLenComp     As Long
-Private lMaxLenTypeItem As Long
-
     
 Private Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
 
@@ -371,10 +368,7 @@ Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As Stri
     Dim v               As Variant
     Dim fso             As New FileSystemObject
     Dim Comp            As clsComp
-    Dim sHosted         As String
     Dim sHostBaseName   As String
-    Dim UsedExpFile     As File
-    Dim RawExpFile      As File
     
     mBasic.BoP ErrSrc(PROC)
     sHostBaseName = fso.GetBaseName(mService.Serviced.FullName)
@@ -420,8 +414,7 @@ Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As Stri
                     '~~ Instead of simply updating the saved raw Export File better have carefully checked the case
                     If mComCompsRawsSaved.RawSavedRevisionNumber(v) = mComCompsRawsHosted.RawRevisionNumber(v) Then
                         If SavedRawInconsitencyWarning _
-                           (sri_comp_name:=v _
-                          , sri_raw_exp_file_full_name:=.ExpFile.Path _
+                           (sri_raw_exp_file_full_name:=.ExpFile.Path _
                           , sri_saved_exp_file_full_name:=mComCompsRawsSaved.SavedExpFile(v).Path _
                           , sri_diff_message:="While the Revision Number of the 'Hosted Raw'  " & mBasic.Spaced(v) & "  is identical with the " & _
                                               "'Saved Raw' their Export Files are different. Compared were:" & vbLf & _
@@ -434,8 +427,7 @@ Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As Stri
                         End If
                     ElseIf mComCompsRawsSaved.RawSavedRevisionNumber(v) <> mComCompsRawsHosted.RawRevisionNumber(v) Then
                         If SavedRawInconsitencyWarning _
-                           (sri_comp_name:=v _
-                          , sri_raw_exp_file_full_name:=.ExpFile.Path _
+                           (sri_raw_exp_file_full_name:=.ExpFile.Path _
                           , sri_saved_exp_file_full_name:=mComCompsRawsSaved.SavedExpFile(v).Path _
                           , sri_diff_message:="The 'Revision Number' of the 'Hosted Raw Common Component's Export File' and the " & _
                                               "the 'Saved Raw's Export File' differ:" & vbLf & _
@@ -481,10 +473,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function SavedRawInconsitencyWarning(ByVal sri_comp_name As String, _
-                                        ByVal sri_raw_exp_file_full_name, _
-                                        ByVal sri_saved_exp_file_full_name, _
-                                        ByVal sri_diff_message) As Boolean
+Private Function SavedRawInconsitencyWarning(ByVal sri_raw_exp_file_full_name, _
+                                             ByVal sri_saved_exp_file_full_name, _
+                                             ByVal sri_diff_message) As Boolean
 ' ----------------------------------------------------------------------------
 ' Displays an information about a modification of a Used Common Component.
 ' The disaplay offers the option to display the code difference.
@@ -606,7 +597,6 @@ Public Function UpdateOutdatedCommonComponents( _
     Const PROC = "UpdateOutdatedCommonComponents"
     
     On Error GoTo eh
-    Dim msg As TypeMsg
     
     Set mService.Serviced = uo_wb
     Set Log = New clsLog
@@ -714,9 +704,5 @@ End Function
 
 Public Function WinMergeIsInstalled() As Boolean
     WinMergeIsInstalled = AppIsInstalled("WinMerge")
-End Function
-
-Private Function WbkInServicedRoot() As Boolean
-    WbkInServicedRoot = InStr(mService.Serviced.Path, mConfig.FolderServiced) <> 0
 End Function
 

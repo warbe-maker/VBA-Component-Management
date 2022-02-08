@@ -246,12 +246,12 @@ Private Sub CopyShape( _
     Dim TargetShape As Shape
     
     For Each SourceShape In sc_source.Shapes
-        If SourceShape.name <> sc_name Then GoTo next_shape
+        If SourceShape.Name <> sc_name Then GoTo next_shape
         SourceShape.Copy
         sc_target.Paste
         Set TargetShape = sc_target.Shapes(sc_target.Shapes.Count)
         With TargetShape
-            .name = sc_name
+            .Name = sc_name
             .Top = SourceShape.Top
             .Left = SourceShape.Left
             .Width = SourceShape.Width
@@ -272,12 +272,12 @@ Private Sub CopyOOB( _
     Dim TargetOOB As OLEObject
     
     For Each SourceOOB In sc_source.OLEObjects
-        If SourceOOB.name <> sc_oob_name Then GoTo next_shape
+        If SourceOOB.Name <> sc_oob_name Then GoTo next_shape
         SourceOOB.Copy
         sc_target.Paste
         Set TargetOOB = sc_target.OLEObjects(sc_target.OLEObjects.Count)
         With TargetOOB
-            .name = sc_oob_name
+            .Name = sc_oob_name
             .Top = SourceOOB.Top
             .Left = SourceOOB.Left
             .Width = SourceOOB.Width
@@ -754,7 +754,7 @@ Private Sub SyncCntrlProperties( _
         en = enMouseIcon:           SyncProperty en, .MouseIcon, cntrl_source.MouseIcon
         en = enMousePointer:        SyncProperty en, .MousePointer, cntrl_source.MousePointer
         en = enMultiSelect:         SyncProperty en, .MultiSelect, cntrl_source.MultiSelect
-        en = enName:                SyncProperty en, .name, cntrl_source.name
+        en = enName:                SyncProperty en, .Name, cntrl_source.Name
         en = enOnAction:            SyncProperty en, .OnAction, cntrl_source.OnAction
         en = enPicture:             SyncProperty en, .Picture, cntrl_source.Picture
         en = enPicturePosition:     SyncProperty en, .PicturePosition, cntrl_source.PicturePosition
@@ -821,7 +821,7 @@ Private Sub SyncOOBProperties( _
         SyncProperty .Height, oobSource.Height, "OLEObject.Height"
         SyncProperty .Left, oobSource.Left, "OLEObject.Left"
         SyncProperty .LinkedCell, oobSource.LinkedCell, "OLEObject.LinkedCell"
-        SyncProperty .name, oobSource.name, "OLEObject.Name"
+        SyncProperty .Name, oobSource.Name, "OLEObject.Name"
         SyncProperty .OLEType, oobSource.OLEType, "OLEObject.OLEType"
         SyncProperty .Placement, oobSource.Placement, "OLEObject.Placement"
         SyncProperty .PrintObject, oobSource.PrintObject, "OLEObject.PrintObject"

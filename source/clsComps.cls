@@ -10,7 +10,6 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private dctChanged  As Dictionary
-Private RawComp     As clsRaw
 
 Private Sub Class_Initialize()
     Set dctChanged = New Dictionary
@@ -38,7 +37,7 @@ Public Function All(Optional ByRef a_stats As clsStats = Nothing) As Dictionary
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = wb
-                .CompName = vbc.name
+                .CompName = vbc.Name
                 Set .VBComp = vbc
             End With
             mDct.DctAdd add_dct:=All, add_key:=vbc, add_item:=Comp, add_order:=order_bykey
@@ -83,7 +82,6 @@ Public Function Outdated(Optional ByRef o_stats As clsStats = Nothing) As Dictio
     Const PROC = "Outdated"
     
     On Error GoTo eh
-    Dim vbc     As VBComponent
     Dim Comp    As clsComp
     Dim dct     As Dictionary
     Dim v       As Variant
@@ -126,7 +124,6 @@ Public Function CommonUsed(Optional ByRef c_stats As clsStats = Nothing) As Dict
     Dim Comp        As clsComp
     Dim lUsed       As Long
     Dim lComps      As Long
-    Dim Comps       As New clsComps
     
     Log.Service() = PROC
     Set dctComps = Me.All(c_stats)
@@ -158,80 +155,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Function
-
-Private Property Get Sorted() As Dictionary
-' ----------------------------------------------------
-' Return all components in ascendig order by type.name
-' ----------------------------------------------------
-    Dim dct As Dictionary
-    Dim vbc As VBComponent
-    
-    For Each vbc In mService.Serviced.VBProject.VBComponents
-        Log.ServicedItem = vbc
-        mDct.DctAdd dct, vbc.Type & vbc.name, vbc, order_bykey, seq_ascending, , , True
-    Next vbc
-    Set Sorted = dct
-    Set dct = Nothing
-End Property
-
-'Public Sub CollectAllChanged()
-'' --------------------------------------------------------------
-'' Collect all changed VBComponents.
-'' I.e. all VBComponents of which a temporary Export-File differs
-'' from the regular (last) Export-File or which do not have such
-'' a regular Export-File because they never have been exported
-'' or the export folder has changed its name and/or location.
-'' ---------------------------------------------------------------
-'    Const PROC = "CollectAllChanged"
-'
-'    On Error GoTo eh
-'    Dim vbc         As VBComponent
-'    Dim Comp        As clsComp
-'    Dim v           As Variant
-'    Dim dct         As Dictionary
-'    Dim sChanged    As String
-'    Dim CompChanged As clsComp
-'
-'    Stats.Count sic_comps_total, mService.Serviced.VBProject.VBComponents.Count
-'
-'    Set dct = Sorted
-'    For Each v In dct
-'        Set vbc = dct(v)
-'        mCompMan.DsplyProgress p_result:=sChanged & " " & vbc.name _
-'                    , p_total:=Stats.Total(sic_comps_total) _
-'                    , p_done:=Stats.Total(sic_comps)
-'
-'        Set Comp = New clsComp
-'        With Comp
-'            Set .Wrkbk = mService.Serviced
-'            .CompName = vbc.name
-'            Log.ServicedItem = vbc
-'            Stats.Count sic_comps
-'            If .Changed Then
-'                Stats.Count sic_comps_changed
-'                Set CompChanged = New clsComp
-'                Set CompChanged = Comp
-'                mDct.DctAdd dctChanged, vbc.name, CompChanged, order_bykey, seq_ascending, , , True
-'                If Stats.Total(sic_comps_changed) = 1 _
-'                Then sChanged = vbc.name _
-'                Else sChanged = sChanged & ", " & vbc.name
-'            Else
-'                Log.Entry = "Code un-changed"
-'            End If
-'        End With
-'next_v:
-'        Set Comp = Nothing
-'        Set RawComp = Nothing
-'    Next v
-'
-'xt: Set dct = Nothing
-'    Exit Sub
-'
-'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-'        Case vbResume:  Stop: Resume
-'        Case Else:      GoTo xt
-'    End Select
-'End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsComps" & "." & sProc

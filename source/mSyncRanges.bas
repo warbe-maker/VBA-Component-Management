@@ -21,7 +21,6 @@ Public Function SyncFormating() As Boolean
     Dim v           As Variant
     Dim rngSource   As Range
     Dim rngTarget   As Range
-    Dim nm          As name
     Dim sSheet      As String
     Dim sName       As String
     Dim ws          As Worksheet
@@ -41,8 +40,8 @@ Public Function SyncFormating() As Boolean
         Set rngTarget = Sync.Target.Worksheets(sSheet).Range(sName)
         Set rngSource = Sync.source.Worksheets(sSheet).Range(sName)
         Log.ServicedItem = rngTarget
-        Debug.Print "Source range: " & rngSource.name.name, Tab(45), Sync.source.name & dct(v) & vbLf & _
-                    "Target range: " & rngTarget.name.name, Tab(45), Sync.Target.name & dct(v)
+        Debug.Print "Source range: " & rngSource.Name.Name, Tab(45), Sync.source.Name & dct(v) & vbLf & _
+                    "Target range: " & rngTarget.Name.Name, Tab(45), Sync.Target.Name & dct(v)
         SyncProperties rngSource, rngTarget
 next_v:
     Next v
@@ -71,7 +70,7 @@ Public Sub SyncNamedColumnsWidth( _
     If ws_source Is Nothing And ws_target Is Nothing Then
         For Each ws In Sync.source.Worksheets
             If mSyncSheets.SheetExists(wb:=Sync.Target _
-                                     , sh1_name:=ws.name _
+                                     , sh1_name:=ws.Name _
                                      , sh1_code_name:=ws.CodeName _
                                      , sh2_name:=sSheetName _
                                       ) _
@@ -83,7 +82,7 @@ Public Sub SyncNamedColumnsWidth( _
                         Set rngSource = ws_source.Columns.Item(i)
                         Set rngTarget = ws_target.Columns.Item(i)
                         On Error Resume Next
-                        RangeName = rngSource.name.name
+                        RangeName = rngSource.Name.Name
                         If Err.Number = 0 Then
                             '~~ This is a named column
                             On Error GoTo eh
@@ -99,7 +98,7 @@ Public Sub SyncNamedColumnsWidth( _
                 Set rngSource = ws_source.Columns.Item(i)
                 Set rngTarget = ws_target.Columns.Item(i)
                 On Error Resume Next
-                RangeName = rngSource.name.name
+                RangeName = rngSource.Name.Name
                 If Err.Number = 0 Then
                     '~~ This is a named range (row)
                     On Error GoTo eh
@@ -136,7 +135,7 @@ Public Sub SyncNamedRowsHeight( _
     If ws_source Is Nothing And ws_target Is Nothing Then
         For Each ws In Sync.source.Worksheets
             If mSyncSheets.SheetExists(wb:=Sync.Target _
-                                     , sh1_name:=ws.name _
+                                     , sh1_name:=ws.Name _
                                      , sh1_code_name:=ws.CodeName _
                                      , sh2_name:=sSheetName _
                                       ) _
@@ -148,7 +147,7 @@ Public Sub SyncNamedRowsHeight( _
                         Set rngSource = ws_source.Rows.Item(i)
                         Set rngTarget = ws_target.Rows.Item(i)
                         On Error Resume Next
-                        RangeName = rngSource.name.name
+                        RangeName = rngSource.Name.Name
                         If Err.Number = 0 Then
                             '~~ This is a named row
                             On Error GoTo eh
@@ -164,7 +163,7 @@ Public Sub SyncNamedRowsHeight( _
                 Set rngSource = ws_source.Rows.Item(i)
                 Set rngTarget = ws_target.Rows.Item(i)
                 On Error Resume Next
-                RangeName = rngSource.name.name
+                RangeName = rngSource.Name.Name
                 If Err.Number = 0 Then
                     '~~ This is a named range (row)
                     On Error GoTo eh

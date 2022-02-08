@@ -66,6 +66,7 @@ Public Property Let SavedExpFile(Optional ByVal comp_name, _
 ' Components Folder from where it is used as the source for the update of
 ' outdated Used Common Components.
 ' ---------------------------------------------------------------------------
+    comp_name = comp_name ' not used
     comp_exp_file.Copy Destination:=ComCompsFolder & "\" & comp_exp_file.Name, OverWriteFiles:=True
 End Property
 
@@ -122,30 +123,7 @@ Public Property Let RawHostWbBaseName(Optional ByVal comp_name As String, _
     Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_HOST_BASE_NAME) = host_wb_base_name
 End Property
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Private Property Get RevisionDate( _
-                     Optional ByVal comp_name As String) As String
-    RevisionDate = Split(Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_SAVED_REVISION_NUMBER), ".")(0)
-End Property
-
-Public Property Get RawSavedRevisionNumber( _
-                     Optional ByVal comp_name As String) As String
+Public Property Get RawSavedRevisionNumber(Optional ByVal comp_name As String) As String
 ' ----------------------------------------------------------------------------
 ' Returns the revision number in the format YYYY-MM-DD.n
 ' ----------------------------------------------------------------------------

@@ -75,14 +75,13 @@ Friend Property Get MaxLenServicedItemType() As Long
     MaxLenServicedItemType = lMaxLenServicedItemType
 End Property
 
-Friend Property Get Service( _
-             Optional ByVal new_log As Boolean = False) As String
+Friend Property Get Service(Optional ByVal new_log As Boolean = False) As String
+    new_log = new_log ' not used
     Service = sService
 End Property
 
-Friend Property Let Service( _
-             Optional ByVal new_log As Boolean = False, _
-                      ByVal sv_name As String)
+Friend Property Let Service(Optional ByVal new_log As Boolean = False, _
+                                     ByVal sv_name As String)
 ' -------------------------------------------------------
 '
 ' -------------------------------------------------------

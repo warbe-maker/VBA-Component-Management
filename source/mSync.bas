@@ -9,12 +9,10 @@ Option Explicit
 '
 ' ----------------------------------------------------------------------------
 Private Const SHEET_CONTROL_CONCAT = ": "        ' Sheet-Shape concatenator
-Private Const BKP_FOLDER_PREFIX = "SyncBckp-"
 
 Public Sync         As clsSync
 Private bSyncDenied As Boolean      ' when True the synchronization is not performed
 Private cSource     As clsComp
-Private cTarget     As clsComp
 
 Public Enum SyncMode
     Count = 1
@@ -84,7 +82,6 @@ Private Sub ClearLinksToSource()
     
     On Error GoTo eh
     Dim v           As Variant
-    Dim ws          As Worksheet
     Dim shp         As Shape
     Dim nm          As Name
     Dim sName       As String
@@ -495,11 +492,6 @@ Public Sub SyncRestore(ByVal sWrkbk As String)
     
     On Error GoTo eh
     Dim fso         As New FileSystemObject
-    Dim fo          As Folder
-    Dim fl          As File
-    Dim sBckp       As String
-    Dim lFiles      As Long
-    Dim BckpFile    As File
     
     On Error Resume Next
     mCompMan.WbkGetOpen(sWrkbk).Close SaveChanges:=False
@@ -519,8 +511,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-         
+        
 Public Function SyncTargetWithSource( _
           ByRef wb_target As Workbook, _
           ByRef wb_source As Workbook, _
