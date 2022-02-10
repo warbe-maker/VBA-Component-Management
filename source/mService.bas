@@ -158,7 +158,7 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
             Set wbActive = Nothing
         End If
     End If
@@ -173,16 +173,25 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Continue()
+Public Sub CompManAddinContinue()
 ' -------------------------------------------
 ' Continues the paused CompMan Addin Services
 ' -------------------------------------------
     If mMe.IsDevInstnc Then
-        mConfig.CompManAddinIsPaused = False
+        mConfig.AddinPaused = False
         mMe.DisplayStatus
     End If
 End Sub
 
+Public Sub CompManAddinPause()
+' -------------------------------------------
+' Continues the paused CompMan Addin Services
+' -------------------------------------------
+    If mMe.IsDevInstnc Then
+        mConfig.AddinPaused = True
+        mMe.DisplayStatus
+    End If
+End Sub
 
 Private Function CodeModuleIsEmpty(ByRef vbc As VBComponent) As Boolean
     With vbc.CodeModule
@@ -194,7 +203,7 @@ End Function
 Public Function CompMaxLen(ByRef ml_wb As Workbook) As Long
     Dim vbc As VBComponent
     For Each vbc In ml_wb.VBProject.VBComponents
-        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.Name))
+        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.name))
     Next vbc
 End Function
 
@@ -213,7 +222,7 @@ Public Function Denied() As Boolean
         sStatus = "The CompMan Addin is currently paused. Open the development instance and retry."
     ElseIf WbkIsRestoredBySystem Then
         sStatus = "Service denied! Workbook appears restored by the system!"
-    ElseIf mConfig.CompManAddinIsPaused And mMe.IsAddinInstnc And InStr(Log.Service, "UpdateOutdatedCommonComponents") <> 0 Then
+    ElseIf mConfig.AddinPaused And mMe.IsAddinInstnc And InStr(Log.Service, "UpdateOutdatedCommonComponents") <> 0 Then
         '~~ Note: The CompMan development instance is able to export its modified components but requires the
         '~~       Addin to upodate its outdated Used Common Components
         sStatus = "Service denied! The CompMan Addin is currently paused!"
@@ -550,11 +559,11 @@ Private Function UsedCommonComponents(ByRef cl_wb As Workbook) As Dictionary
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = cl_wb
-            .CompName = vbc.Name
+            .CompName = vbc.name
             Log.ServicedItem = .VBComp
             If .KindOfComp = enCommCompUsed Then
                 If .Changed Then
-                    dct.Add vbc, vbc.Name
+                    dct.Add vbc, vbc.name
                 Else
                     Log.Entry = "Code un-changed."
                 End If
@@ -582,12 +591,43 @@ Public Function FilesDiffer(ByVal fd_exp_file_1 As File, _
 ' and empty lines are ignored. This function guarantees a uniform comparison of
 ' export files throughout CompMan.
 ' ----------------------------------------------------------------------------
-    FilesDiffer = mFile.Differs(fd_file1:=fd_exp_file_1 _
-                              , fd_file2:=fd_exp_file_2 _
+    Const PROC = "FilesDiffer"
+    
+    On Error GoTo eh
+    Dim fso As New FileSystemObject
+    Dim fl1 As File
+    Dim fl2 As File
+    
+    With fso
+        If VarType(fd_exp_file_1) = vbString Then
+            If Not .FileExists(fd_exp_file_1) _
+            Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided 'fd_exp_file_1' is a string not identifying an existing file!"
+            Set fl1 = fso.GetFile(fd_exp_file_1)
+        Else
+            Set fl1 = fd_exp_file_1
+        End If
+        
+        If VarType(fd_exp_file_2) = vbString Then
+            If Not .FileExists(fd_exp_file_2) _
+            Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided 'fd_exp_file_2' is a string not identifying an existing file!"
+            Set fl2 = fso.GetFile(fd_exp_file_2)
+        Else
+            Set fl2 = fd_exp_file_2
+        End If
+    End With
+    
+    FilesDiffer = mFile.Differs(fd_file1:=fl1 _
+                              , fd_file2:=fl2 _
                               , fd_stop_after:=1 _
                               , fd_ignore_empty_records:=True _
                               , fd_compare:=vbTextCompare).Count <> 0
+xt: Set fso = Nothing
+    Exit Function
                             
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Public Function FilesDifference(ByVal fd_exp_file_1 As File, _
@@ -597,12 +637,44 @@ Public Function FilesDifference(ByVal fd_exp_file_1 As File, _
 ' identical or with one item when the two files differ. Empty lines and case
 ' differences are ignored because the do not constitute a relevant code change
 ' ----------------------------------------------------------------------------
-    Set FilesDifference = mFile.Differs(fd_file1:=fd_exp_file_1 _
-                                      , fd_file2:=fd_exp_file_2 _
+    Const PROC = "FilesDifference"
+    
+    On Error GoTo eh
+    Dim fso As New FileSystemObject
+    Dim fl1 As File
+    Dim fl2 As File
+    
+    With fso
+        If VarType(fd_exp_file_1) = vbString Then
+            If Not .FileExists(fd_exp_file_1) _
+            Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided 'fd_exp_file_1' is a string not identifying an existing file!"
+            Set fl1 = fso.GetFile(fd_exp_file_1)
+        Else
+            Set fl1 = fd_exp_file_1
+        End If
+        
+        If VarType(fd_exp_file_2) = vbString Then
+            If Not .FileExists(fd_exp_file_2) _
+            Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided 'fd_exp_file_2' is a string not identifying an existing file!"
+            Set fl2 = fso.GetFile(fd_exp_file_2)
+        Else
+            Set fl2 = fd_exp_file_2
+        End If
+    End With
+    
+    Set FilesDifference = mFile.Differs(fd_file1:=fl1 _
+                                      , fd_file2:=fl2 _
                                       , fd_stop_after:=1 _
                                       , fd_ignore_empty_records:=True _
                                       , fd_compare:=vbTextCompare)
                             
+xt: Set fso = Nothing
+    Exit Function
+                            
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Public Sub RemoveTempRenamed()
@@ -617,7 +689,7 @@ Public Sub RemoveTempRenamed()
     With mService.Serviced.VBProject
         For Each v In .VBComponents
             Set vbc = v
-            If mService.IsRenamedByCompMan(vbc.Name) Then
+            If mService.IsRenamedByCompMan(vbc.name) Then
                 .VBComponents.Remove vbc
             End If
         Next v
@@ -814,14 +886,14 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
     If bOrderByKey Then
         If VarType(add_key) = vbObject Then
             On Error Resume Next
-            add_key.Name = add_key.Name
+            add_key.name = add_key.name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
         End If
     ElseIf bOrderByItem Then
         If VarType(add_item) = vbObject Then
             On Error Resume Next
-            add_item.Name = add_item.Name
+            add_item.name = add_item.name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
         End If
@@ -1036,7 +1108,7 @@ Private Function AddAscByKeyValue(ByVal add_key As Variant) As Variant
 ' ----------------------------------------------------------------------------
     If VarType(add_key) = vbObject Then
         On Error Resume Next ' the object may not have a Name property
-        AddAscByKeyValue = add_key.Name
+        AddAscByKeyValue = add_key.name
         If Err.Number <> 0 Then Set AddAscByKeyValue = add_key
     Else
         AddAscByKeyValue = add_key
@@ -1055,7 +1127,7 @@ Public Function AllComps(ByVal ac_wb As Workbook, _
     Set AllComps = New Dictionary
     For Each vbc In ac_wb.VBProject.VBComponents
         Log.ServicedItem = vbc
-        AddAscByKey AllComps, vbc.Name, vbc
+        AddAscByKey AllComps, vbc.name, vbc
         lDone = lDone + 1
         Application.StatusBar = _
         mService.Progress(p_service:=ac_service _

@@ -96,9 +96,9 @@ Public Property Get HostIsOpen() As Boolean
 ' - VBComp     (vbcRaw
 ' - RawHost    (wbRawHost)
 ' ------------------------------------------------------------------------------
-    HostIsOpen = mWrkbk.IsOpen(Me.RawHostWbName)
+    HostIsOpen = mWbk.IsOpen(Me.RawHostWbName)
     If HostIsOpen Then
-        Set wbRawHost = mWrkbk.GetOpen(Me.RawHostWbName)
+        Set wbRawHost = mWbk.GetOpen(Me.RawHostWbName)
         Set vbcRaw = wbRawHost.VBProject.VBComponents(sCompName)
         sHostWbPath = wbRawHost.Path
     End If

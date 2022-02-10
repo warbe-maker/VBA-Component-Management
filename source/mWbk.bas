@@ -1,16 +1,16 @@
-Attribute VB_Name = "mWrkbk"
+Attribute VB_Name = "mWbk"
 Option Explicit
 Option Private Module
 Option Compare Text
 ' -----------------------------------------------------------------------------------
-' Standard Module mWrkbk: Provides basic Workbook services.
+' Standard Module mWbk: Provides basic Workbook services.
 '
 ' Public services:
 ' - GetOpen     Opens a provided Workbook if possible, returns the Workbook object of
 '               the openend or an already open Workbook
 ' - IsFullName  Returns TRUE when a provided string is the full name of a Workbook
 ' - IsName      Returns TRUE when a provided string is the name of a Workbook
-' - IsObject    Returns TRUE when the provided variant is a Workbook (not necessarily
+' - IsWbObject    Returns TRUE when the provided variant is a Workbook (not necessarily
 '               also open!)
 ' - IsOpen      Returns TRUE when the provided Workbook is open
 ' - Opened      Returns a Dictionary of all open Workbooks in any application
@@ -18,7 +18,7 @@ Option Compare Text
 '               as the item.
 '
 ' Uses:
-' - Common Components mErH, fMsg, mMsg (in mWrkbkTest only!)
+' - Common Components mErH, fMsg, mMsg (in mWbkTest only!)
 '
 ' Requires: Reference to "Microsoft Scripting Runtine"
 '           Reference to "Microsoft Visual Basic for Applications Extensibility ..."
@@ -45,6 +45,60 @@ Private Const ERR_OWB01 = "A Workbook named '<>' is not open in any Excel applic
 Private Const ERR_GOW01 = "A Workbook with the provided name (named argument vWb) is open but it's not from requested location ('<>1' instead of '<>2')!"
 Private Const ERR_GOW02 = "A Workbook named '<>' (named argument vWb) is not open. The Workbook's full name must be provided to get it opened!"
 Private Const ERR_GOW03 = "A Workbook file named '<>' (named argument vWb) does not exist!"
+
+Public Property Get Value(Optional ByVal v_ws As Worksheet, _
+                          Optional ByVal v_name As String) As String
+    Const PROC = "Value-Get"
+    
+    On Error Resume Next
+    Value = v_ws.Range(v_name).Value
+    If Err.Number <> 0 _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Worksheet '" & v_ws.Name & "' has no range with a name '" & v_name & "'!"
+    
+xt: Exit Property
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Property
+
+Public Sub WbClose(ByVal c_wb As Variant, _
+               Optional ByVal c_save_changes As Boolean = True, _
+               Optional ByVal c_save_as_file As String = vbNullString, _
+               Optional ByVal c_route_workbook As String = vbNullString)
+' ----------------------------------------------------------------------------
+' Closes the Workbook (c_wb) - provided either as Workbook object, as Namne
+' or FullName provided it is open, i.e. without using On Error Resume Next!
+' ----------------------------------------------------------------------------
+    Dim wb As Workbook
+    If mWbk.IsWbObject(c_wb) Then
+        c_wb.Close
+    ElseIf mWbk.IsName(c_wb) Or mWbk.IsFullName(c_wb) Then
+        If mWbk.IsOpen(c_wb, wb) Then
+            wb.Close c_save_changes, c_save_as_file, c_route_workbook
+        End If
+    End If
+End Sub
+
+Public Property Let Value(Optional ByVal v_ws As Worksheet, _
+                          Optional ByVal v_name As String, _
+                                   ByVal v_value As String)
+    Const PROC = "Value-Let"
+    
+    On Error Resume Next
+    v_ws.Range(v_name).Value = v_value
+
+    If Err.Number <> 0 _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Worksheet '" & v_ws.Name & "' has no range with a name '" & v_name & "'!"
+    
+xt: Exit Property
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Property
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -227,7 +281,104 @@ xt: Exit Function
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mWrkbk" & "." & sProc
+    ErrSrc = "mWbk" & "." & sProc
+End Function
+
+Public Function Exists(ByVal ex_wb As Variant, _
+              Optional ByVal ex_ws As Variant = Nothing, _
+              Optional ByVal ex_range_name As String = vbNullString, _
+              Optional ByRef ex_result_wbk As Workbook, _
+              Optional ByRef ex_result_wsh As Worksheet, _
+              Optional ByRef ex_result_rng As Range) As Boolean
+' ----------------------------------------------------------------------------
+' Universal existence check for Workbook, Worksheet, and Range Name.
+' Returns TRUE when the Workbook - which may be a Workbook's name or FullName
+' exists and:
+' - the Worksheet (ex_ws) and the range name (ex_range_name) = vbNullString
+' - the Worksheet (ex_ws) is provided - either by its name or its code name
+'   and exists in the Workbook (ex_wb) which is open! and the range name
+'   (ex_range_name) = vbNullString
+' - the Worksheet = vbNullString and the range name (ex_range_name) exists
+'   in the Workbook - regardless of the sheet
+' - the Worksheet (ex_ws) exists and the range name (ex_range_name) refers
+'   to a range in it.
+' Error conditions:
+' - AppErr(1) when the Workbook is provided as Name '....,xl*' and is not open
+' - AppErr(2) when the Workbook is not open and a Worksheet or range name is
+'   provided
+' ----------------------------------------------------------------------------
+    Const PROC = "Exists"
+    
+    On Error GoTo eh
+    Dim sTest       As String
+    Dim wsTest      As Worksheet
+    Dim wb          As Workbook
+    Dim ws          As Worksheet
+    Dim fso         As New FileSystemObject
+    Dim nm          As Name
+    Dim sWsName     As String
+    Dim sWsCodeName As String
+    
+    If IsFullName(ex_wb) Then
+        Exists = fso.FileExists(ex_wb)
+    ElseIf IsName(ex_wb) Then
+        If Not mWbk.IsOpen(ex_wb, wb) Then
+            Err.Raise AppErr(1), ErrSrc(PROC), "The existence of a Workbook provided just by its file name (" & ex_wb & ") " & _
+                                               "cannot be checked when the Workbook is closed. " & _
+                                               "To check a not open Workbook's existence requires its full name!"
+        End If
+        Exists = True
+    ElseIf mWbk.IsWbObject(ex_wb) Then
+        Set wb = ex_wb
+        Exists = True
+    End If
+    If Not Exists Then GoTo xt
+    
+    If Not TypeName(ex_ws) = "Nothing" Then
+        If wb Is Nothing Then
+            Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook '" & ex_wb & "' exists but is not open. " & _
+                                               "The existence of a Worksheet cannot be checked for a Workbook which not open."
+        End If
+        If IsWsObject(ex_ws) _
+        Then sTest = ex_ws.Name _
+        Else sTest = ex_ws
+
+        For Each ws In wb.Worksheets
+            Exists = ws.Name = sTest
+            If Not Exists Then Exists = ws.CodeName = sTest
+            If Exists Then
+                sWsName = ws.Name
+                sWsCodeName = ws.CodeName
+                Exit For
+            End If
+        Next ws
+        If Not Exists Then GoTo xt
+    End If
+        
+    If ex_range_name <> vbNullString Then
+        If ws Is Nothing Then
+            '~~ Check if the range name is one in the Workbook
+            For Each nm In wb.Names
+                Exists = nm.Name = ex_range_name
+                If Exists Then Exit For
+            Next nm
+        Else
+            '~~ Check if the name refers to a range in the provided Worksheet
+            For Each nm In wb.Names
+                Exists = nm.Name = ex_range_name
+                If Exists Then Exists = nm.RefersTo Like "*" & sWsName & "*"
+                If Exists Then Exit For
+            Next nm
+        End If
+    End If
+            
+xt: Set fso = Nothing
+    Exit Function
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Private Function GetExcelObjectFromHwnd( _
@@ -297,13 +448,15 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
         
     Set wbOpen = Nothing
     
-    If Not mWrkbk.IsName(vWb) And Not mWrkbk.IsFullName(vWb) And Not mWrkbk.IsObject(vWb) _
+    If Not mWbk.IsName(vWb) And Not mWbk.IsFullName(vWb) And Not mWbk.IsWbObject(vWb) _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is neither a Workbook object nor a string (name or fullname)!"
-    sWbBaseName = fso.GetBaseName(vWb)
+    If mWbk.IsWbObject(vWb) _
+    Then sWbBaseName = fso.GetBaseName(vWb.FullName) _
+    Else sWbBaseName = fso.GetBaseName(vWb)
 
-    If mWrkbk.IsObject(vWb) Then
+    If mWbk.IsWbObject(vWb) Then
         Set wbOpen = vWb
-    ElseIf mWrkbk.IsFullName(vWb) Then
+    ElseIf mWbk.IsFullName(vWb) Then
         With Opened
             If fso.FileExists(sWbBaseName) Then
                 '~~ A Workbook with the same name is open
@@ -331,7 +484,7 @@ Public Function GetOpen(ByVal vWb As Variant) As Workbook
                 End If
             End If
         End With
-    ElseIf mWrkbk.IsName(vWb) Then
+    ElseIf mWbk.IsName(vWb) Then
         With Opened
             If .Exists(sWbBaseName) Then
                 Set wbOpen = .Item(sWbBaseName)
@@ -351,43 +504,40 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Function IsFullName(ByVal v As Variant) As Boolean
-' -------------------------------------------------------
-' Returns TRUE when v is an existing Workbook's FullName.
-' -------------------------------------------------------
-    Dim fso As New FileSystemObject
-    
-    If VarType(v) = vbString Then
-        If fso.FileExists(v) Then
-            Select Case fso.GetExtensionName(v)
-                Case "xls", "xlm", "xlsm", "xlsb", "xlst", "xlam": IsFullName = True
-            End Select
+' ----------------------------------------------------------------------------
+' Returns TRUE when v is a Workbook's FullName - not necessarily existing.
+' ----------------------------------------------------------------------------
+    With New FileSystemObject
+        If VarType(v) = vbString Then
+            IsFullName = mWbk.IsName(.GetFileName(v)) And (InStr(v, "\") <> 0 Or InStr(v, "/") <> 0)
         End If
-    End If
-    
+    End With
 End Function
 
 Public Function IsName(ByVal v As Variant) As Boolean
-' ---------------------------------------------------
-' Returns TRUE when (v) is a valid Workbook's file
-' name due to its extension.
-' ---------------------------------------------------
-    Dim fso As New FileSystemObject
-    
+' ----------------------------------------------------------------------------
+' Returns TRUE when (v) is a Workbook's Name (without path!) .
+' ----------------------------------------------------------------------------
     If VarType(v) = vbString Then
-        If v = vbNullString Then Exit Function
-        Select Case fso.GetExtensionName(v)
-                Case "xls", "xlm", "xlsm", "xlsb", "xlst", "xlam": IsName = True
-        End Select
+        IsName = InStr(v, "\") = 0 And InStr(v, "/") = 0 And v Like "*.xl*"
     End If
-    Set fso = Nothing
 End Function
 
-Public Function IsObject(ByVal v As Variant) As Boolean
-' -----------------------------------------------------
+Public Function IsWbObject(ByVal v As Variant) As Boolean
+' ----------------------------------------------------------------------------
 ' Returns TRUE when v is a valid Workbook object.
-' -----------------------------------------------------
+' ----------------------------------------------------------------------------
     If VarType(v) = vbObject Then
-        IsObject = TypeName(v) = "Workbook"
+        IsWbObject = TypeName(v) = "Workbook"
+    End If
+End Function
+
+Public Function IsWsObject(ByVal v As Variant) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when v is a valid Workbook object.
+' ----------------------------------------------------------------------------
+    If VarType(v) = vbObject Then
+        IsWsObject = TypeName(v) = "Worksheet"
     End If
 End Function
 
@@ -410,11 +560,11 @@ Public Function IsOpen(ByVal wb As Variant, _
     Dim fso      As New FileSystemObject
     Dim WbName As String
     
-    If Not mWrkbk.IsObject(wb) And Not mWrkbk.IsFullName(wb) And Not mWrkbk.IsName(wb) And Not TypeName(wb) = "String" _
+    If Not mWbk.IsWbObject(wb) And Not mWbk.IsFullName(wb) And Not mWbk.IsName(wb) And Not TypeName(wb) = "String" _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter wb) is neither a Workbook object nor a Workbook's name or fullname)!"
        
-    Set OpenWbks = mWrkbk.Opened
-    If mWrkbk.IsName(wb) Then
+    Set OpenWbks = mWbk.Opened
+    If mWbk.IsName(wb) Then
         '~~ wb is a Workbook's Name including its extension
         WbName = fso.GetFileName(wb)
         If OpenWbks.Exists(WbName) Then
@@ -424,7 +574,7 @@ Public Function IsOpen(ByVal wb As Variant, _
             '~~ Workbook has the same name (i.e. including its extension)
             If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
-    ElseIf mWrkbk.IsFullName(wb) Then
+    ElseIf mWbk.IsFullName(wb) Then
         WbName = fso.GetFileName(wb)
         If OpenWbks.Exists(WbName) Then
             '~~ A Workbook with the same 'WbName' is open
@@ -433,7 +583,7 @@ Public Function IsOpen(ByVal wb As Variant, _
             '~~ when a Workbook with its Name (including the extension!) is open regardless in which location
             If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
-    ElseIf mWrkbk.IsObject(wb) Then
+    ElseIf mWbk.IsWbObject(wb) Then
         WbName = wb.Name
         If Opened.Exists(WbName) Then
             Set OpenWbk = OpenWbks.Item(WbName)
@@ -444,7 +594,7 @@ Public Function IsOpen(ByVal wb As Variant, _
         If OpenWbks.Exists(wb) Then Set OpenWbk = OpenWbks.Item(wb)
     End If
     
-xt: If mWrkbk.IsObject(OpenWbk) Then
+xt: If mWbk.IsWbObject(OpenWbk) Then
         IsOpen = True
         Set wb_result = OpenWbk
     End If

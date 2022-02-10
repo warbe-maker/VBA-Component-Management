@@ -27,7 +27,7 @@ Private Sub UserForm_Initialize()
         .FolderAddin = mConfig.FolderAddin
         .FolderServiced = mConfig.FolderServiced
         .FolderExport = Replace(Split(mConfig.FolderExport, ",")(UBound(Split(mConfig.FolderExport, ","))), "\", vbNullString)
-        .Caption = "CompMan's basic configuration (user specific in Registry " & mConfig.CONFIG_BASE_KEY & ")"
+        .Caption = "CompMan's basic configuration"
     End With
     VerifyConfig
 End Sub

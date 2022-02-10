@@ -1606,10 +1606,16 @@ Public Sub PathFileSplit(ByRef spf_path As String, _
 ' - When sp_path is a folder only string sp_file = vbNullString,
 ' - When sp_path only contains a file name sp_folder = vbNullString and
 '   sp_file = the file's name
-' When the provided path is either an existing folder's path nor an existing
-' file's path both arguments are returned a vbNullString
+' When the provided path is neither an existing folder's path nor an existing
+' file's full name both arguments are returned a vbNullString.
+' Note: For a non existing folder or file it is impossible to decide whether
+'       the string ends with the name of a folder or the name of a file
+'       both have exactly the the same restrictions regardin the name. I.e.
+'       a file name xxxx.dat may as well be the name of a folder.
 ' ----------------------------------------------------------------------------
+    Const PROC = "PathFileSplit"
     
+    On Error GoTo eh
     Dim aPath() As String
     Dim fso     As New FileSystemObject
     Dim i       As Long
@@ -1630,15 +1636,20 @@ Public Sub PathFileSplit(ByRef spf_path As String, _
         ElseIf .FolderExists(spf_file) Then
             '~~ The provided argument ends with a valid folder name and thus is a folder's path
             spf_file = vbNullString
-        ElseIf InStr(spf_path, ".") <> 0 Then
-            spf_file = spf_path
-            spf_path = vbNullString
         Else
+            Debug.Print ErrSrc(PROC) & ": Neither a folder nor a file exists with the provided string '" & spf_path & "'!"
+            spf_path = vbNullString
             spf_file = vbNullString
         End If
     End With
             
 xt: Set fso = Nothing
+    Exit Sub
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub
 
 Private Function NamesInArg( _

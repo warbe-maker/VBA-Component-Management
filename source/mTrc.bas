@@ -289,13 +289,26 @@ Public Property Let TraceLogFile( _
                         Optional ByVal tl_append As Boolean = False, _
                         Optional ByVal tl_title As String = vbNullString, _
                                  ByVal tl_file As String)
+' ----------------------------------------------------------------------------
+' Determines the file to which the execution trace is written to.
+' When the Conditional Compile Argument 'ExecTrace = 0' an existing file with
+' the provided name is deleted.
+' ----------------------------------------------------------------------------
+    Dim fso As New FileSystemObject
+    
+#If ExecTrace = 1 Then
     sTraceLogFile = tl_file
-    With New FileSystemObject
+    With fso
         If Not tl_append Then
             If .FileExists(tl_file) Then .DeleteFile tl_file, True
         End If
     End With
     TraceTitle = tl_title
+#Else
+    With fso
+        If .FileExists(tl_file) Then .DeleteFile tl_file, True
+    End With
+#End If
 End Property
 
 Public Property Let TraceLogInfo(ByVal tl_inf As String)

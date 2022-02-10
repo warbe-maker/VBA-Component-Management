@@ -4,7 +4,7 @@ Option Explicit
 ' Standard Module mConfig
 ' Read/Write CompMan configuration properties from /to the Registry
 ' ----------------------------------------------------------------------------
-Public Const CONFIG_BASE_KEY                As String = "HKCU\SOFTWARE\CompManVBP\BasicConfig\"
+Private Const CONFIG_BASE_KEY               As String = "HKCU\SOFTWARE\CompManVBP\BasicConfig\"
 Private Const VNAME_ADDIN_IS_PAUSED         As String = "AddinIsPaused"
 Private Const VNAME_FOLDER_ADDIN            As String = "FolderAddin"
 Private Const VNAME_FOLDER_EXPORT           As String = "FolderExport"
@@ -14,13 +14,11 @@ Private FolderServicedIsValid               As Boolean
 Private FolderAddinIsValid                  As Boolean
 Private FolderExportIsValid                 As Boolean
 
-Public Property Get CompManAddinIsPaused() As Boolean
-    If WsExists(value_name:=VNAME_ADDIN_IS_PAUSED) _
-    Then CompManAddinIsPaused = CBool(WsValue(VNAME_ADDIN_IS_PAUSED)) _
-    Else CompManAddinIsPaused = False ' The default
+Public Property Get AddinPaused() As Boolean
+    AddinPaused = CBool(RegValue(VNAME_ADDIN_IS_PAUSED))
 End Property
 
-Public Property Let CompManAddinIsPaused(ByVal b As Boolean):   WsValue(VNAME_ADDIN_IS_PAUSED) = Abs(CInt(b)):  End Property
+Public Property Let AddinPaused(ByVal b As Boolean):   RegValue(VNAME_ADDIN_IS_PAUSED) = Abs(CInt(b)): End Property
 
 Public Property Get FolderAddin() As String:                    FolderAddin = WsValue(VNAME_FOLDER_ADDIN):      End Property
 
@@ -91,12 +89,24 @@ Public Property Let FolderServiced(ByVal s As String):      WsValue(VNAME_FOLDER
 ' Interfaces to the wsBasicConfig Worksheet
 ' ---------------------------------------------------------------------------
 Private Property Get WsValue(Optional ByVal v_value_name As String) As Variant
-    WsValue = mWrksht.Value(v_ws:=wsBasicConfig, v_name:=v_value_name)
+    WsValue = mWbk.Value(v_ws:=wsBasicConfig, v_name:=v_value_name)
 End Property
 
 Private Property Let WsValue(Optional ByVal v_value_name As String, _
                                     ByVal v_value As Variant)
-    mWrksht.Value(v_ws:=wsBasicConfig, v_name:=v_value_name) = v_value
+    mWbk.Value(v_ws:=wsBasicConfig, v_name:=v_value_name) = v_value
+End Property
+
+' ---------------------------------------------------------------------------
+' Interfaces to the Registry
+' ---------------------------------------------------------------------------
+Private Property Get RegValue(Optional ByVal v_value_name As String) As Variant
+    RegValue = mReg.Value(reg_key:=CONFIG_BASE_KEY, reg_value_name:=v_value_name)
+End Property
+
+Private Property Let RegValue(Optional ByVal v_value_name As String, _
+                                    ByVal v_value As Variant)
+    mReg.Value(reg_key:=CONFIG_BASE_KEY, reg_value_name:=v_value_name) = v_value
 End Property
 
 Public Function AppErr(ByVal app_err_no As Long) As Long
@@ -257,9 +267,8 @@ Private Function ErrSrc(ByVal sProc As String) As String
 End Function
 
 Private Function WsExists(ByVal value_name As String) As Boolean
-    WsExists = mWrksht.NameExists(ne_wb:=ThisWorkbook, ne_name:=value_name)
+    WsExists = mWbk.Exists(ex_wb:=ThisWorkbook, ex_range_name:=value_name)
 End Function
-
 
 Public Sub ForwardFolderName(ByRef ff_history As String, _
                              ByVal ff_wb_parent_folder As String)
@@ -287,7 +296,7 @@ Public Sub ForwardFolderName(ByRef ff_history As String, _
             sFolder = ff_wb_parent_folder & "\" & Names(i)
             sFolder = Replace(sFolder, "\\", "\")
             If .FolderExists(sFolder) Then
-                .GetFolder(sFolder).Name = NameNow
+                .GetFolder(sFolder).name = NameNow
             End If
         Next i
     End With

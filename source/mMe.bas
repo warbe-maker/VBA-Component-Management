@@ -150,7 +150,7 @@ Private Property Get CompManCfgFileName() As String
 '       knowing the location it is finally copied to.
 ' ------------------------------------------------------------------------
     Dim fso As New FileSystemObject
-    Select Case fso.GetExtensionName(ThisWorkbook.Name)
+    Select Case fso.GetExtensionName(ThisWorkbook.name)
         Case "xlam"
             '~~ When the CompMan-Addin requests the CompMan.cfg file
             '~~ it is the one which resides in the 'CompManAdmin' sub-folder
@@ -326,10 +326,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub CompManAddinContinue()
-    mService.Continue
-End Sub
-
 Public Function CompManAddinIsOpen() As Boolean
     Const PROC = "CompManAddinIsOpen"
     
@@ -338,7 +334,7 @@ Public Function CompManAddinIsOpen() As Boolean
     
     CompManAddinIsOpen = False
     For i = 1 To Application.AddIns2.Count
-        If Application.AddIns2(i).Name = CompManAddinName Then
+        If Application.AddIns2(i).name = CompManAddinName Then
             On Error Resume Next
             Set wbTarget = Application.Workbooks(CompManAddinName)
             CompManAddinIsOpen = Err.Number = 0
@@ -359,7 +355,7 @@ Public Sub CompManAddinPause()
 ' Pauses the CompMan Addin Services
 ' ---------------------------------
     If mMe.IsDevInstnc Then
-        mConfig.CompManAddinIsPaused = True
+        mConfig.AddinPaused = True
         mMe.DisplayStatus
     End If
 End Sub
@@ -429,7 +425,7 @@ Dim fso As New FileSystemObject
 End Function
 
 Public Property Get CompManAddinIsPaused() As Boolean
-    CompManAddinIsPaused = mConfig.CompManAddinIsPaused
+    CompManAddinIsPaused = mConfig.AddinPaused
 End Property
 
 Public Sub DisplayStatus()
@@ -451,7 +447,7 @@ Public Sub DisplayStatus()
             "(Renew or a Workbook opened which refers to it will open it)"
         Else ' AddIn is setup and open
             wsAddIn.CurrentStatus = "Setup/Renewed and  " & mBasic.Spaced("open!")
-            If CompManAddinIsPaused Then
+            If mConfig.AddinPaused Then
                 wsAddIn.CurrentStatus = mBasic.Spaced("paused!")
                 wsAddIn.CompManAddInPausedStatus = _
                 "The 'CompMan-Addin' is currently  p a u s e d ! The Workbook_Open service 'UpdateOutdatedCommonComponents' " & _
@@ -651,14 +647,14 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
     mMe.RenewLogAction = "Save and remove references to the Addin from open Workbooks"
     
     With Application
-        Set dct = mWrkbk.Opened ' Returns a Dictionary with all open Workbooks in any application instance
+        Set dct = mWbk.Opened ' Returns a Dictionary with all open Workbooks in any application instance
         Set dctAddInRefs = New Dictionary
         For Each v In dct
             Set wb = dct.Item(v)
             For Each ref In wb.VBProject.References
-                If InStr(ref.Name, fso.GetBaseName(CompManAddinName)) <> 0 Then
+                If InStr(ref.name, fso.GetBaseName(CompManAddinName)) <> 0 Then
                     dctAddInRefs.Add wb, ref
-                    sWbs = wb.Name & ", " & sWbs
+                    sWbs = wb.name & ", " & sWbs
                 End If
             Next ref
         Next v
@@ -843,9 +839,9 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
             Set wb = Application.Workbooks.Open(CompManAddinFullName)
             If Err.Number = 0 Then
                 With New FileSystemObject
-                    sBaseAddinName = .GetBaseName(wb.Name)
-                    sBaseDevName = .GetBaseName(ThisWorkbook.Name)
-                    wb.VBProject.Name = sBaseAddinName
+                    sBaseAddinName = .GetBaseName(wb.name)
+                    sBaseDevName = .GetBaseName(ThisWorkbook.name)
+                    wb.VBProject.name = sBaseAddinName
                 End With
                 mMe.RenewLogResult() = "Passed"
                 Renew_8_OpenAddinInstncWorkbook = True
@@ -879,7 +875,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     For Each v In dctAddInRefs
         Set wb = v
         wb.VBProject.References.AddFromFile CompManAddinFullName
-        sWbs = wb.Name & ", " & sWbs
+        sWbs = wb.name & ", " & sWbs
         bOneRestored = True
     Next v
     
@@ -916,7 +912,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             
             If Not mCompMan.WbkIsOpen(io_name:=DevInstncName) _
             Then Stop _
-            Else wbDevlp.VBProject.Name = fso.GetBaseName(DevInstncName)
+            Else wbDevlp.VBProject.name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
                 mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")   " & mBasic.Spaced("failed!") _
