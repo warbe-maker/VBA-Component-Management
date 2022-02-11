@@ -225,4 +225,21 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCompManClient." & sProc
 End Function
 
+Private Function IsString(ByVal v As Variant, _
+                 Optional ByVal vbnullstring_is_a_string = False) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when v is neither an object nor numeric.
+' ----------------------------------------------------------------------------
+    Dim s As String
+    On Error Resume Next
+    s = v
+    If Err.Number = 0 Then
+        If Not IsNumeric(v) Then
+            If (s = vbNullString And vbnullstring_is_a_string) _
+            Or s <> vbNullString _
+            Then IsString = True
+        End If
+    End If
+End Function
+
 
