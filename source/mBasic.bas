@@ -1,5 +1,4 @@
 Attribute VB_Name = "mBasic"
-Option Private Module
 Option Explicit
 ' ----------------------------------------------------------------------------
 ' Standard Module mBasic
@@ -12,23 +11,29 @@ Option Explicit
 '       passed on to their corresponding procedure which provides a much
 '       better service.
 '
-' Public Procedures/Functions:
+' Procedures, Functions, Services:
 ' - AppErr              Converts a positive error number into a negative to
-'                       ensures an error number not conflicting with runt time
-'                       or other system error numbers. In return a negative
-'                       error number is turned back into its original positive
-'                       'Application Error' number.
-' - AppIsInstalled      Returns TRUE when a named exec is found in the system path
-' - ArrayCompare        Compares two one-dimensional arrays. Returns an array with
-'                       al different items
-' - ArrayIsAllocated    Returns TRUE when the provided array has at least one item
+'                       ensures an error number not conflicting with a VB
+'                       runt time error or any other system error number.
+'                       Returns the origin positive error number when called
+'                       with the negative Application Error number. 3)
+' - AppIsInstalled      Returns TRUE when a named exec is found in the system
+'                       path.
+' - ArrayCompare        Compares two one-dimensional arrays. Returns an array
+'                       with all different items.
+' - ArrayIsAllocated    Returns TRUE when the provided array has at least one
+'                       item.
 ' - ArrayNoOfDims       Returns the number of dimensions of an array.
 ' - ArrayRemoveItem     Removes an array's item by its index or element number
-' - ArrayToRange        Transferres the content of a one- or two-dimensional array
-'                       to a range
+' - ArrayToRange        Transferres the content of a one- or two-dimensional
+'                       array to a range
 ' - ArrayTrim           Removes any leading or trailing empty items.
+' - BoP/EoP             1), 2)
 ' - CleanTrim           Clears a string from any unprinable characters.
-' - ErrMsg              Displays a common error message by means of the VB MsgBox.
+' - ErrMsg              Displays a common error message by means of the
+'                       VB MsgBox. 1), 2)
+'                       component where the code has BoP/EoP statements.
+' - ErrSrc              3)
 ' - TimedDoEvents       Performs a DoEvent by taking the elapsed time printed
 '                       in VBE's immediate window
 ' - TimerBegin          Starts a timer (counting system ticks)
@@ -40,9 +45,21 @@ Option Explicit
 ' Optional:             fMsg, mMsg, mErH
 '
 '
-' See: Public Github repositiory https://Github.com/warbe-maker/VBA-Basic-Procedures
+' See: https://github.com/warbe-maker/VBA-Basic-Procedures
+'      (public Github repositiory)
 '
-' W. Rauschenberger, Berlin Nov. 2021
+' W. Rauschenberger, Berlin Feb. 2022
+'
+' 1) Serves for a comprehensive display of an error message when the Common
+'    VBA Error Services Component mErH is installed and the Conditional
+'    Compile Argument 'ErHComp = 1' and serves for the execution trace (when
+'    the Common VBA Execution Trace Service Component mTrc is installed and
+'    the Conditional Compile Argument 'ExecTrace = 1'.
+' 2) May alternatively be copied as a Private procedure into any component
+'    when this mBasic component is not installed but the mErH and or mTrc
+'    services are.
+' 3) To be copied as Private procedure into any component which raises
+'    Application Errors by means of Err.Raise.
 ' ----------------------------------------------------------------------------
 ' Basic declarations potentially uesefull in any project
 Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
@@ -161,36 +178,35 @@ Public Function Align( _
 
 End Function
 
-Public Function AppErr(ByVal app_err_no As Long) As Long
+Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
+' Ensures that a programmed 'Application' error number not conflicts with the
+' number of a 'VB Runtime Error' or any other system error.
+' - Returns a given positive 'Application Error' number (app_err_no) into a
+'   negative by adding the system constant vbObjectError
+' - Returns the original 'Application Error' number when called with a negative
+'   error number.
 ' ------------------------------------------------------------------------------
     If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function
 
-Public Function AppIsInstalled(ByVal sApp As String) As Boolean
-    
+Public Function AppIsInstalled(ByVal exe As String) As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when an application (exe) is installed, i.e. the provided name
+' is found in the VBA.Environ$ Path.
+' ------------------------------------------------------------------------------
     Dim i As Long: i = 1
-    
-    Do Until Left$(Environ$(i), 5) = "Path="
-        i = i + 1
-    Loop
-    AppIsInstalled = InStr(Environ$(i), sApp) <> 0
-
+    Do Until VBA.Environ$(i) Like "Path=*": i = i + 1: Loop
+    AppIsInstalled = Environ$(i) Like "*" & exe & "*"
 End Function
 
-Public Function ArrayCompare( _
-                       ByVal ac_a1 As Variant, _
-                       ByVal ac_a2 As Variant, _
-              Optional ByVal ac_stop_after As Long = 0, _
-              Optional ByVal ac_id1 As String = vbNullString, _
-              Optional ByVal ac_id2 As String = vbNullString, _
-              Optional ByVal ac_ignore_case As Boolean = True, _
-              Optional ByVal ac_ignore_empty As Boolean = True) As Dictionary
+Public Function ArrayCompare(ByVal ac_a1 As Variant, _
+                             ByVal ac_a2 As Variant, _
+                    Optional ByVal ac_stop_after As Long = 0, _
+                    Optional ByVal ac_id1 As String = vbNullString, _
+                    Optional ByVal ac_id2 As String = vbNullString, _
+                    Optional ByVal ac_ignore_case As Boolean = True, _
+                    Optional ByVal ac_ignore_empty As Boolean = True) As Dictionary
 ' --------------------------------------------------------------------------
 ' Returns a Dictionary with n (ac_stop_after) lines which are different
 ' between array 1 (ac_a1) and array 2 (ac_a2) with the line number as the
@@ -259,7 +275,10 @@ Public Function ArrayCompare( _
 xt: Set ArrayCompare = dct
     Exit Function
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Function ArrayDiffers(ByVal a1 As Variant, _
@@ -296,7 +315,10 @@ Public Function ArrayDiffers(ByVal a1 As Variant, _
     
 xt: Exit Function
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Function ArrayIsAllocated(arr As Variant) As Boolean
@@ -332,21 +354,19 @@ Public Function ArrayNoOfDims(arr As Variant) As Integer
 
 End Function
 
-Public Sub ArrayRemoveItems(ByRef va As Variant, _
-                   Optional ByVal Element As Variant, _
-                   Optional ByVal Index As Variant, _
-                   Optional ByVal NoOfElements = 1)
+Public Sub ArrayRemoveItems(ByRef ri_va As Variant, _
+                   Optional ByVal ri_element As Variant, _
+                   Optional ByVal ri_index As Variant, _
+                   Optional ByVal ri_no_of_elements = 1)
 ' ------------------------------------------------------------------------------
-' Returns the array (va) with the number of elements (NoOfElements) removed
-' whereby the start element may be indicated by the element number 1,2,...
-' (vElement) or the index (Index) which must be within the array's LBound to
-' Ubound. Any inapropriate provision of arguments results in a clear error
-' message. When the last item in an array is removed the returned array is
-' erased (no longer allocated).
+' Returns the 'one dimensional'! array (ri_va) with the number of elements
+' (ri_no_of_elements) removed whereby the start element may be indicated by the
+' element number 1,2,... (ri_element) or the index (ri_index) which must be
+' within the array's LBound to Ubound. Any inappropriate provision of arguments
+' raises a clear error message. When the last item in an array is removed the
+' returned array is erased (no longer allocated).
 '
-' Restriction: Works only with one dimensional arrays.
-'
-' W. Rauschenberger, Berlin Jan 2020
+' W. Rauschenberger, Berlin Feb 2022
 ' ------------------------------------------------------------------------------
     Const PROC = "ArrayRemoveItems"
 
@@ -358,20 +378,21 @@ Public Sub ArrayRemoveItems(ByRef va As Variant, _
     Dim i                   As Long
     Dim iNewUBound          As Long
     
-    If Not IsArray(va) Then
+    BoP ErrSrc(PROC)
+    If Not mBasic.ArrayIsAllocated(ri_va) Then
         Err.Raise AppErr(1), ErrSrc(PROC), "Array not provided!"
     Else
-        a = va
+        a = ri_va
         NoOfElementsInArray = UBound(a) - LBound(a) + 1
     End If
     If Not ArrayNoOfDims(a) = 1 Then
         Err.Raise AppErr(2), ErrSrc(PROC), "Array must not be multidimensional!"
     End If
-    If Not IsNumeric(Element) And Not IsNumeric(Index) Then
+    If Not IsNumeric(ri_element) And Not IsNumeric(ri_index) Then
         Err.Raise AppErr(3), ErrSrc(PROC), "Neither FromElement nor FromIndex is a numeric value!"
     End If
-    If IsNumeric(Element) Then
-        iElement = Element
+    If IsNumeric(ri_element) Then
+        iElement = ri_element
         If iElement < 1 _
         Or iElement > NoOfElementsInArray Then
             Err.Raise AppErr(4), ErrSrc(PROC), "vFromElement is not between 1 and " & NoOfElementsInArray & " !"
@@ -379,8 +400,8 @@ Public Sub ArrayRemoveItems(ByRef va As Variant, _
             iIndex = LBound(a) + iElement - 1
         End If
     End If
-    If IsNumeric(Index) Then
-        iIndex = Index
+    If IsNumeric(ri_index) Then
+        iIndex = ri_index
         If iIndex < LBound(a) _
         Or iIndex > UBound(a) Then
             Err.Raise AppErr(5), ErrSrc(PROC), "FromIndex is not between " & LBound(a) & " and " & UBound(a) & " !"
@@ -388,23 +409,23 @@ Public Sub ArrayRemoveItems(ByRef va As Variant, _
             iElement = ElementOfIndex(a, iIndex)
         End If
     End If
-    If iElement + NoOfElements - 1 > NoOfElementsInArray Then
-        Err.Raise AppErr(6), ErrSrc(PROC), "FromElement (" & iElement & ") plus the number of elements to remove (" & NoOfElements & ") is beyond the number of elelemnts in the array (" & NoOfElementsInArray & ")!"
+    If iElement + ri_no_of_elements - 1 > NoOfElementsInArray Then
+        Err.Raise AppErr(6), ErrSrc(PROC), "FromElement (" & iElement & ") plus the number of elements to remove (" & ri_no_of_elements & ") is beyond the number of elelemnts in the array (" & NoOfElementsInArray & ")!"
     End If
     
-    For i = iIndex + NoOfElements To UBound(a)
-        a(i - NoOfElements) = a(i)
+    For i = iIndex + ri_no_of_elements To UBound(a)
+        a(i - ri_no_of_elements) = a(i)
     Next i
     
-    iNewUBound = UBound(a) - NoOfElements
+    iNewUBound = UBound(a) - ri_no_of_elements
     If iNewUBound < 0 Then Erase a Else ReDim Preserve a(LBound(a) To iNewUBound)
-    va = a
+    ri_va = a
     
-xt: Exit Sub
+xt: EoP ErrSrc(PROC)
+    Exit Sub
 
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbYes: Stop: Resume
-        Case vbNo:  Stop: Resume Next
         Case Else:  GoTo xt
     End Select
 End Sub
@@ -432,7 +453,10 @@ Public Sub ArrayToRange(ByVal vArr As Variant, _
     
 xt: Exit Sub
 
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
 Public Sub ArrayTrimm(ByRef a As Variant)
@@ -450,7 +474,7 @@ Public Sub ArrayTrimm(ByRef a As Variant)
     If Not mBasic.ArrayIsAllocated(a) Then Exit Sub
     
     Do While (Len(Trim$(a(LBound(a)))) = 0 Or Trim$(a(LBound(a))) = " ") And UBound(a) >= 0
-        mBasic.ArrayRemoveItems a, Index:=i
+        mBasic.ArrayRemoveItems ri_va:=a, ri_index:=i
         If Not mBasic.ArrayIsAllocated(a) Then Exit Do
     Loop
     
@@ -467,7 +491,10 @@ Public Sub ArrayTrimm(ByRef a As Variant)
 
 xt: Exit Sub
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
 Public Function BaseName(ByVal v As Variant) As String
@@ -492,25 +519,31 @@ Public Function BaseName(ByVal v As Variant) As String
 
 xt: Exit Function
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Function
 
-Public Sub BoP(ByVal b_proc As String, _
-          ParamArray b_arguments() As Variant)
+Public Sub BoP(ByVal b_proc As String, ParamArray b_arguments() As Variant)
 ' ------------------------------------------------------------------------------
-' Common 'Begin of Procedure' service. When neither the Common Execution Trace
-' Component (mTrc) nor the Common Error Handling Component (mErH) is installed
-' (indicated by the Conditional Compile Arguments 'ExecTrace = 1' and/or the
-' Conditional Compile Argument 'ErHComp = 1') this procedure does nothing.
-' Else the service is handed over to the corresponding procedures.
-' May be copied as Private Sub into any module or directly used when mBasic is
-' installed.
+' Common 'Begin of Procedure' indication.
+' - Serves for a comprehensive display of an error message when the Common VBA
+'   Error Services Component mErH is installed and the Conditional Compile
+'   Argument 'ErHComp = 1'
+' - Serves for the execution trace when the Common VBA Execution Trace Service
+'   Component mTrc is installed and the Conditional Compile Argument
+'   'ExecTrace = 1'.
+' - May alternatively be copied as a Private procedure into any component when
+'   this mBasic component is not installed but the mErH and or mTrc services
+'   are
+' Note: Because the error handling also hands over an 'End of Procedure' to the
+'       mTrc component (when installed and 'ExecTrace = 1') an explicit call of
+'       mTrc.EoP is only performed when mErH is not installed/in use.
 ' ------------------------------------------------------------------------------
     Dim s As String
     If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
 #If ErHComp = 1 Then
-    '~~ The error handling also hands over to the mTrc component when 'ExecTrace = 1'
-    '~~ so the Else is only for the case only the mTrc is installed but not the merH.
     mErH.BoP b_proc, s
 #ElseIf ExecTrace = 1 Then
     mTrc.BoP b_proc, s
@@ -550,7 +583,10 @@ Public Function CleanTrim(ByVal s As String, _
 xt: CleanTrim = s
     Exit Function
     
-eh: ErrMsg ErrSrc(PROC)
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Function ElementOfIndex(ByVal a As Variant, _
@@ -570,17 +606,21 @@ End Function
 Public Sub EoP(ByVal e_proc As String, _
       Optional ByVal e_inf As String = vbNullString)
 ' ------------------------------------------------------------------------------
-' Common 'End of Procedure' service. When neither the Common Execution Trace
-' Component (mTrc) nor the Common Error Handling Component (mErH) is installed
-' (indicated by the Conditional Compile Arguments 'ExecTrace = 1' and/or the
-' Conditional Compile Argument 'ErHComp = 1') this procedure does nothing.
-' Else the service is handed over to the corresponding procedures.
-' May be copied as Private Sub into any module or directly used when mBasic is
-' installed.
+' Common 'End of Procedure' indication.
+' - Serves for a comprehensive display of an error message when the Common VBA
+'   Error Services Component mErH is installed and the Conditional Compile
+'   Argument 'ErHComp = 1'
+' - Serves for the execution trace when the Common VBA Execution Trace Service
+'   Component mTrc is installed and the Conditional Compile Argument
+'   'ExecTrace = 1'.
+' - May alternatively be copied as a Private procedure into any component when
+'   this mBasic component is not installed but the mErH and or mTrc services
+'   are
+' Note: Because the error handling also hands over an 'End of Procedure' to the
+'       mTrc component (when installed and 'ExecTrace = 1') an explicit call of
+'       mTrc.EoP is only performed when mErH is not installed/in use.
 ' ------------------------------------------------------------------------------
 #If ErHComp = 1 Then
-    '~~ The error handling also hands over to the mTrc component when 'ExecTrace = 1'
-    '~~ so the Else is only for the case the mTrc is installed but the merH is not.
     mErH.EoP e_proc
 #ElseIf ExecTrace = 1 Then
     mTrc.EoP e_proc, e_inf
@@ -952,7 +992,10 @@ Public Function StackEd(ByVal stck As Collection, _
     
 xt: Exit Function
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Function StackIsEmpty(ByVal stck As Collection) As Boolean
@@ -983,7 +1026,10 @@ Public Function StackPop(ByVal stck As Collection) As Variant
 
 xt: Exit Function
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Sub StackPush(ByRef stck As Collection, _
@@ -1000,7 +1046,10 @@ Public Sub StackPush(ByRef stck As Collection, _
 
 xt: Exit Sub
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
 Public Function StackTop(ByVal stck As Collection) As Variant
@@ -1018,7 +1067,10 @@ Public Function StackTop(ByVal stck As Collection) As Variant
 
 xt: Exit Function
 
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Sub TimedDoEvents(ByVal tde_source As String)

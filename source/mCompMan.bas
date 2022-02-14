@@ -41,7 +41,10 @@ Option Compare Text
 '
 ' W. Rauschenberger Berlin August 2019
 ' -------------------------------------------------------------------------------
-Public Const MAX_LEN_TYPE As Long = 17
+Public Const MAX_LEN_TYPE           As Long = 17
+Public Const SRVC_UPDATE_OUTDATED   As String = "Update Outdated"
+Public Const SRVC_SYNC_WORKBOOKS    As String = "Sync Target with Source Workbook"
+Public Const SRVC_EXPORT_CHANGED    As String = "Export Changed"
 
 Public Enum enKindOfComp       ' The kind of VBComponent in the sense of CompMan
     enUnknown = 0
@@ -203,7 +206,8 @@ Private Sub EstablishTraceLogFile(ByVal dt_wb As Workbook, _
             End If
         End If
     End With
-    mTrc.TraceLogFile(tl_append:=dt_append, tl_title:=Log.Service) = sFile
+    mTrc.LogFile(tl_append:=dt_append) = sFile
+    mTrc.LogTitle = Log.Service
 
 End Sub
 
@@ -263,7 +267,7 @@ Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
     On Error GoTo eh
     
     If Log Is Nothing Then Set Log = New clsLog
-    Log.Service = PROC
+    Log.Service = "Export All"
     EstablishTraceLogFile ea_wb
     
     mBasic.BoP ErrSrc(PROC)
@@ -304,7 +308,7 @@ Public Function ExportChangedComponents( _
     On Error GoTo eh
     Set mService.Serviced = ec_wb
     Set Log = New clsLog
-    Log.Service = PROC
+    Log.Service = SRVC_EXPORT_CHANGED
     
     '~~ Determine any reason the service basically cannot be provided
     If Not mMe.FolderServicedIsValid Then
@@ -553,7 +557,7 @@ Public Sub SynchTargetWbWithSourceWb( _
     
     Set mService.Serviced = wb_target
     If Log Is Nothing Then Set Log = New clsLog
-    Log.Service = PROC
+    Log.Service = SRVC_SYNC_WORKBOOKS
     EstablishTraceLogFile wb_target
     
     mBasic.BoP ErrSrc(PROC)
@@ -600,7 +604,7 @@ Public Function UpdateOutdatedCommonComponents( _
     
     Set mService.Serviced = uo_wb
     Set Log = New clsLog
-    Log.Service(new_log:=True) = PROC
+    Log.Service(new_log:=True) = SRVC_UPDATE_OUTDATED
     
     '~~ Prevent any service is performed when not possible, applicable or any other reason
     If Not mMe.FolderServicedIsValid Then

@@ -9,6 +9,8 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
+Private Const SERVICES_LOG_FILE  As String = "CompMan.Services.log"
+
 Private sService                As String
 Private sFile                   As String
 Private sFolder                 As String
@@ -82,36 +84,43 @@ End Property
 
 Friend Property Let Service(Optional ByVal new_log As Boolean = False, _
                                      ByVal sv_name As String)
-' -------------------------------------------------------
-'
-' -------------------------------------------------------
+' ----------------------------------------------------------------------------
+' - Assembles the service's Application.StatusBar message
+' - Creates a new log file when none yet exists or when a new log is requested
+'   (new_log = True)
+' - Add a services split line when there are already logs in the file
+' - Wirite a log header for the service
+' ----------------------------------------------------------------------------
     Const PROC = "Service-Let"
     
     On Error GoTo eh
     
-    sService = "'" & sv_name & "(" & ThisWorkbook.Name & ")' for '" & mService.Serviced.Name & "': "
+    sService = sv_name & " (by "
+    If ThisWorkbook.name = mMe.CompManAddinName _
+    Then sService = sService & "Addin" _
+    Else sService = sService & ThisWorkbook.name
+    sService = sService & ") for " & mService.Serviced.name & ": "
     
     bNewLog = new_log
     Me.Folder = mService.Serviced.Path
     
-    If sFile = vbNullString Then
-        '~~ In case not a specific file had explicitely assigned before
-        sFile = Me.Folder & "\" & mService.SERVICES_LOG_FILE
-        If InStr(sFile, "\Addin") <> 0 Then Stop
-    End If
+    '~~ In case no specific log-file had been decided a default log-file is determined
+    If Me.File = vbNullString Then sFile = Me.Folder & "\" & SERVICES_LOG_FILE
+
     With New FileSystemObject
-        If bNewLog Then
-            If .FileExists(sFile) Then .DeleteFile sFile
-            .CreateTextFile (sFile)
-            bNewLog = False
-        End If
+        If bNewLog And .FileExists(sFile) Then .DeleteFile sFile
+        If Not .FileExists(sFile) Then .CreateTextFile (sFile)
+        bNewLog = False
     End With
     
-    If mFile.Txt(ft_file:=sFile) <> vbNullString _
-    Then mFile.Txt(ft_file:=sFile _
+    If mFile.Txt(ft_file:=sFile) <> vbNullString Then
+        '~~ Insert a new log section line when hte file already has written logs
+        mFile.Txt(ft_file:=sFile _
                  , ft_append:=True _
                   ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "=")
+    End If
     
+    '~~ Write a service header
     mFile.Txt(ft_file:=sFile _
             , ft_append:=True _
              ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sService & vbCrLf & _
@@ -141,7 +150,7 @@ Friend Property Let ServicedItem(ByRef v As Variant)
 ' ----------------------------------------------------
     
     Dim vbc As VBComponent
-    Dim nm  As Name
+    Dim nm  As name
     Dim ws  As Worksheet
     Dim ref As Reference
     Dim shp As Shape
@@ -161,41 +170,41 @@ Friend Property Let ServicedItem(ByRef v As Variant)
         Case "VBComponent"
             Set vbc = v
             Select Case vbc.Type
-                Case vbext_ct_ActiveXDesigner:  ServicedItemType = "ActiveX-Designer":      ServicedItemName = vbc.Name
-                Case vbext_ct_ClassModule:      ServicedItemType = "Class-Module":          ServicedItemName = vbc.Name
-                Case vbext_ct_MSForm:           ServicedItemType = "UserForm":              ServicedItemName = vbc.Name
-                Case vbext_ct_StdModule:        ServicedItemType = "Standard-Module":       ServicedItemName = vbc.Name
+                Case vbext_ct_ActiveXDesigner:  ServicedItemType = "ActiveX-Designer":      ServicedItemName = vbc.name
+                Case vbext_ct_ClassModule:      ServicedItemType = "Class-Module":          ServicedItemName = vbc.name
+                Case vbext_ct_MSForm:           ServicedItemType = "UserForm":              ServicedItemName = vbc.name
+                Case vbext_ct_StdModule:        ServicedItemType = "Standard-Module":       ServicedItemName = vbc.name
                 Case vbext_ct_Document
                     If mComp.IsSheetDocMod(vbc) Then
-                                                ServicedItemType = "Worksheet CodeName":    ServicedItemName = vbc.Name
+                                                ServicedItemType = "Worksheet CodeName":    ServicedItemName = vbc.name
                     Else
-                                                ServicedItemType = "Workbook":              ServicedItemName = vbc.Name
+                                                ServicedItemType = "Workbook":              ServicedItemName = vbc.name
                     End If
             End Select
         Case "Name"
             Set nm = v
             ServicedItemType = "Name"
-            ServicedItemName = Replace(nm.Name, nm.Parent.Name & "!", vbNullString) & "(" & nm.RefersTo & ")"
+            ServicedItemName = Replace(nm.name, nm.Parent.name & "!", vbNullString) & "(" & nm.RefersTo & ")"
             If MaxLenServicedItemName = 60 Then Stop
 
-        Case "OLEObject":       Set oob = v:    ServicedItemType = "(Sheet)ActiveX":    ServicedItemName = "(" & oob.Parent.Name & ")" & oob.Name
-        Case "Reference":       Set ref = v:    ServicedItemType = TypeName(ref):                                               ServicedItemName = ref.Name
-        Case "Shape":           Set shp = v:    ServicedItemType = shp.Parent.Name & "(" & mSheetControls.CntrlType(shp) & ")": ServicedItemName = mSheetControls.CntrlName(shp)
-        Case "Worksheet":       Set ws = v:     ServicedItemType = "Worksheet Name(CodeName)":                                  ServicedItemName = FinalName(ws.Name) & "(" & FinalName(ws.CodeName) & ")"
+        Case "OLEObject":       Set oob = v:    ServicedItemType = "(Sheet)ActiveX":    ServicedItemName = "(" & oob.Parent.name & ")" & oob.name
+        Case "Reference":       Set ref = v:    ServicedItemType = TypeName(ref):                                               ServicedItemName = ref.name
+        Case "Shape":           Set shp = v:    ServicedItemType = shp.Parent.name & "(" & mSheetControls.CntrlType(shp) & ")": ServicedItemName = mSheetControls.CntrlName(shp)
+        Case "Worksheet":       Set ws = v:     ServicedItemType = "Worksheet Name(CodeName)":                                  ServicedItemName = FinalName(ws.name) & "(" & FinalName(ws.CodeName) & ")"
         Case "String"
             sServicedItemType = vbNullString
             sServicedItemName = vbNullString
             sServicedItem = mBasic.Align(v, lMaxLenServicedItemType + lMaxLenServicedItemName + 1, , " ", ".") & ": "
-        Case "CommandButton":   Set cbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "Image":           Set img = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "Label":           Set lbl = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "ListBox":         Set lbx = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "OptionButton":    Set obt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "ScrollBar":       Set scb = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "SpinButton":      Set sbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "TextBox":         Set tbx = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "ToggleButton":    Set tbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "Range":           Set rng = v:    ServicedItemType = "Named Range":       ServicedItemName = rng.Name.Name
+        Case "CommandButton":   Set cbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.name
+        Case "Image":           Set img = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.name
+        Case "Label":           Set lbl = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.name
+        Case "ListBox":         Set lbx = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.name
+        Case "OptionButton":    Set obt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.name
+        Case "ScrollBar":       Set scb = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.name
+        Case "SpinButton":      Set sbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.name
+        Case "TextBox":         Set tbx = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.name
+        Case "ToggleButton":    Set tbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.name
+        Case "Range":           Set rng = v:    ServicedItemType = "Named Range":       ServicedItemName = rng.name.name
         Case Else
             Debug.Print "TypeName '" & TypeName(v) & "' not yet considered"
     End Select

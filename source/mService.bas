@@ -1,16 +1,7 @@
 Attribute VB_Name = "mService"
 Option Explicit
 
-Public Const SERVICES_LOG_FILE = "CompMan.Services.log"
-Private wbServiced  As Workbook     ' The service Workbook throughout all services
-
-Public Property Get Serviced() As Workbook
-    Set Serviced = wbServiced
-End Property
-
-Public Property Set Serviced(ByRef wb As Workbook)
-    Set wbServiced = wb
-End Property
+Public Serviced                 As Workbook     ' The  s e r v i c e d  Workbook throughout all services
 
 Public Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -222,7 +213,7 @@ Public Function Denied() As Boolean
         sStatus = "The CompMan Addin is currently paused. Open the development instance and retry."
     ElseIf WbkIsRestoredBySystem Then
         sStatus = "Service denied! Workbook appears restored by the system!"
-    ElseIf mConfig.AddinPaused And mMe.IsAddinInstnc And InStr(Log.Service, "UpdateOutdatedCommonComponents") <> 0 Then
+    ElseIf mConfig.AddinPaused And mMe.IsAddinInstnc And Log.Service Like SRVC_UPDATE_OUTDATED & "*" Then
         '~~ Note: The CompMan development instance is able to export its modified components but requires the
         '~~       Addin to upodate its outdated Used Common Components
         sStatus = "Service denied! The CompMan Addin is currently paused!"
@@ -334,22 +325,19 @@ Public Function SyncVBProjects( _
     Const PROC = "SynchTargetWithSource"
     
     On Error GoTo eh
-    Dim sStatus As String
     Dim wbRaw   As Workbook
     
     mBasic.BoP ErrSrc(PROC)
     '~~ Assure complete and correct provision of arguments or get correct ones selected via a dialog
-    If Not SyncSourceAndTargetSelected(wb_target:=wb_target _
-                                     , cr_raw_name:=wb_source_name _
-                                     , wb_source:=wbRaw _
+    If Not SyncSourceAndTargetSelected(sync_target_wb:=wb_target _
+                                     , sync_source_wb_name:=wb_source_name _
+                                     , sync_source_wb:=wbRaw _
                                       ) Then GoTo xt
     
     '~~ Prevent any action for a Workbook opened with any irregularity
     '~~ indicated by an '(' in the active window or workbook fullname.
     If mService.Denied Then GoTo xt
-    
-    sStatus = Log.Service
-        
+            
     SyncVBProjects = mSync.SyncTargetWithSource(wb_target:=wb_target _
                                               , wb_source:=wbRaw _
                                               , restricted_sheet_rename_asserted:=restricted_sheet_rename_asserted _
@@ -400,10 +388,10 @@ Private Function SelectServicedWrkbk(ByVal gs_service As String) As Workbook
 End Function
 
 Private Function SyncSourceAndTargetSelected( _
-                     Optional ByRef wb_target As Workbook = Nothing, _
-                     Optional ByVal cr_raw_name As String = vbNullString, _
-                     Optional ByRef wb_source As Workbook = Nothing, _
-                     Optional ByVal cr_sync_confirm_info As Boolean = False) As Boolean
+                     Optional ByRef sync_target_wb As Workbook = Nothing, _
+                     Optional ByVal sync_source_wb_name As String = vbNullString, _
+                     Optional ByRef sync_source_wb As Workbook = Nothing, _
+                     Optional ByVal sync_confirm_info As Boolean = False) As Boolean
 ' ---------------------------------------------------------------------------
 ' Returns True when the Sync-Target_VB-Project and the Sync-Source-VB-Project
 ' are valid. When bc_sync_confirm_info is True a confirmation dialog is
@@ -415,57 +403,61 @@ Private Function SyncSourceAndTargetSelected( _
     Const SOURCE_PROJECT        As String = "Source-Workbook/VBProject"
     
     On Error GoTo eh
-    Dim sBttCloneRawConfirmed   As String: sBttCloneRawConfirmed = "Selected Source- and" & vbLf & _
-                                                                   "Target-Workbook/VBProject" & vbLf & _
-                                                                   "Confirmed"
-    Dim sBttnTargetProject      As String: sBttnTargetProject = "Select/change the" & vbLf & vbLf & TARGET_PROJECT & vbLf & " "
-    Dim sBttnSourceProject      As String: sBttnSourceProject = "Configure/change the" & vbLf & vbLf & SOURCE_PROJECT & vbLf & " "
-    Dim sBttnTerminate          As String: sBttnTerminate = "Terminate providing a " & vbLf & _
-                                                            "Source- and Target-Workbook/VBProject"
+    Dim bWbSource               As Boolean
+    Dim bWbTarget               As Boolean
+    Dim Buttons                 As Collection
+    Dim fl                      As File
+    Dim fso                     As New FileSystemObject
+    Dim sBttnSourceTargetCnfrmd As String
+    Dim sBttnSourceProject      As String
+    Dim sBttnTargetProject      As String
+    Dim sBttnTerminate          As String
+    Dim sMsg                    As TypeMsg
+    Dim sReply                  As String
+    Dim sWbSource               As String ' either a full name or a registered raw project's basename
+    Dim sWbTarget               As String
     
-    Dim fso         As New FileSystemObject
-    Dim sMsg        As TypeMsg
-    Dim sReply      As String
-    Dim bWbClone    As Boolean
-    Dim bWbRaw      As Boolean
-    Dim sWbClone    As String
-    Dim sWbRaw      As String ' either a full name or a registered raw project's basename
-    Dim cllButtons  As Collection
-    Dim fl          As File
+    sBttnSourceTargetCnfrmd = "Selected Source- and" & vbLf & _
+                            "Target-Workbook/VBProject" & vbLf & _
+                            "Confirmed"
+    sBttnTargetProject = "Select/change the" & vbLf & vbLf & TARGET_PROJECT & vbLf & " "
+    sBttnSourceProject = "Configure/change the" & vbLf & vbLf & SOURCE_PROJECT & vbLf & " "
+    sBttnTerminate = "Terminate providing a " & vbLf & _
+                     "Source- and Target-Workbook/VBProject"
     
-    If Not wb_target Is Nothing Then sWbClone = wb_target.FullName
-    sWbRaw = cr_raw_name
+    If Not sync_target_wb Is Nothing Then sWbTarget = sync_target_wb.FullName
+    sWbSource = sync_source_wb_name
     
-    While (Not bWbClone Or Not bWbRaw) Or (cr_sync_confirm_info And sReply <> sBttCloneRawConfirmed)
-        If sWbClone = vbNullString Then
-            sWbClone = "n o t  p r o v i d e d !"
-        ElseIf Not fso.FileExists(sWbClone) Then
-            sWbRaw = sWbRaw & ": i n v a l i d ! (does not exist)"
+    While (Not bWbTarget Or Not bWbSource) Or (sync_confirm_info And sReply <> sBttnSourceTargetCnfrmd)
+        If sWbTarget = vbNullString Then
+            sWbTarget = "n o t  p r o v i d e d !"
+        ElseIf Not fso.FileExists(sWbTarget) Then
+            sWbSource = sWbSource & ": i n v a l i d ! (does not exist)"
         Else
-            sWbClone = Split(sWbClone, ": ")(0)
-            bWbClone = True
+            sWbTarget = Split(sWbTarget, ": ")(0)
+            bWbTarget = True
         End If
         
-        If sWbRaw = vbNullString Then
-            sWbRaw = "n o t  p r o v i d e d !"
-        ElseIf Not fso.FileExists(sWbRaw) Then
-            sWbRaw = sWbRaw & ": i n v a l i d ! (does not exist)"
+        If sWbSource = vbNullString Then
+            sWbSource = "n o t  p r o v i d e d !"
+        ElseIf Not fso.FileExists(sWbSource) Then
+            sWbSource = sWbSource & ": i n v a l i d ! (does not exist)"
         Else
-            sWbRaw = Split(sWbRaw, ": ")(0)
-            bWbRaw = True
+            sWbSource = Split(sWbSource, ": ")(0)
+            bWbSource = True
         End If
     
-        If bWbRaw And bWbClone And Not cr_sync_confirm_info Then GoTo xt
+        If bWbSource And bWbTarget And Not sync_confirm_info Then GoTo xt
         
         With sMsg
             .Section(1).Label.Text = TARGET_PROJECT & ":"
-            .Section(1).Text.Text = sWbClone
+            .Section(1).Text.Text = sWbTarget
             .Section(1).Text.MonoSpaced = True
             .Section(2).Label.Text = SOURCE_PROJECT & ":"
-            .Section(2).Text.Text = sWbRaw
+            .Section(2).Text.Text = sWbSource
             .Section(2).Text.MonoSpaced = True
             
-            If cr_sync_confirm_info _
+            If sync_confirm_info _
             Then .Section(3).Text.Text = "Please confirm the above current 'Basic CompMan Configuration'." _
             Else .Section(3).Text.Text = "Please provide/complete the 'Basic CompMan Configuration'."
             
@@ -478,13 +470,13 @@ Private Function SyncSourceAndTargetSelected( _
         End With
         
         '~~ Buttons preparation
-        If Not bWbClone Or Not bWbRaw _
-        Then mMsg.Buttons cllButtons, sBttnSourceProject, sBttnTargetProject, vbLf, sBttnTerminate _
-        Else mMsg.Buttons cllButtons, sBttCloneRawConfirmed, vbLf, sBttnSourceProject, sBttnTargetProject
+        If Not bWbTarget Or Not bWbSource _
+        Then mMsg.Buttons Buttons, sBttnSourceProject, sBttnTargetProject, vbLf, sBttnTerminate _
+        Else mMsg.Buttons Buttons, sBttnSourceTargetCnfrmd, vbLf, sBttnSourceProject, sBttnTargetProject
         
         sReply = mMsg.Dsply(dsply_title:="Basic configuration of the Component Management (CompMan Addin)" _
                           , dsply_msg:=sMsg _
-                          , dsply_buttons:=cllButtons _
+                          , dsply_buttons:=Buttons _
                            )
         Select Case sReply
             Case sBttnTargetProject
@@ -493,44 +485,44 @@ Private Function SyncSourceAndTargetSelected( _
                                   , p_filters:="Excel Workbook,*.xl*" _
                                   , p_file:=fl) _
                     Then
-                        sWbClone = fl.Path
+                        sWbTarget = fl.Path
                         Exit Do
                     End If
                 Loop
-                cr_sync_confirm_info = True
+                sync_confirm_info = True
                 '~~ The change of the VB-Clone-Project may have made the VB-Raw-Project valid when formerly invalid
-                sWbRaw = Split(sWbRaw, ": ")(0)
+                sWbSource = Split(sWbSource, ": ")(0)
             Case sBttnSourceProject
                 Do
                     If mFile.Picked(p_title:="Select the '" & SOURCE_PROJECT & " as the synchronization source for the '" & TARGET_PROJECT & "'" _
                                   , p_filters:="Excel Workbook,*.xl*" _
                                   , p_file:=fl) _
                     Then
-                        sWbRaw = fl.Path
+                        sWbSource = fl.Path
                         Exit Do
                     End If
                 Loop
-                cr_sync_confirm_info = True
+                sync_confirm_info = True
                 '~~ The change of the VB-Raw-Project may have become valid when formerly invalid
-                sWbClone = Split(sWbClone, ": ")(0)
+                sWbTarget = Split(sWbTarget, ": ")(0)
             
-            Case sBttCloneRawConfirmed: cr_sync_confirm_info = False
+            Case sBttnSourceTargetCnfrmd: sync_confirm_info = False
             Case sBttnTerminate: GoTo xt
                 
         End Select
         
     Wend ' Loop until the confirmed or configured basic configuration is correct
     
-xt: If bWbClone Then
-       Set wb_target = mCompMan.WbkGetOpen(sWbClone)
+xt: If bWbTarget Then
+       Set sync_target_wb = mCompMan.WbkGetOpen(sWbTarget)
     End If
-    If bWbRaw Then
+    If bWbSource Then
         Application.EnableEvents = False
-        Set wb_source = mCompMan.WbkGetOpen(sWbRaw)
+        Set sync_source_wb = mCompMan.WbkGetOpen(sWbSource)
         Application.EnableEvents = True
-        cr_raw_name = fso.GetBaseName(sWbRaw)
+        sync_source_wb_name = fso.GetBaseName(sWbSource)
     End If
-    SyncSourceAndTargetSelected = bWbClone And bWbRaw
+    SyncSourceAndTargetSelected = bWbTarget And bWbSource
     Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

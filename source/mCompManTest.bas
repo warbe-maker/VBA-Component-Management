@@ -299,7 +299,7 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
     
     Set mService.Serviced = ThisWorkbook
     Log.File = mFile.Temp(, ".log")
-    Log.Service = ErrSrc(PROC)
+    Log.Service = "Renew Component Test"
     
     With Comp
         .CompName = rnc_comp_name
@@ -322,10 +322,10 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
             Set wbActive = Nothing
         Else
-            Log.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
+            Log.Entry = "Workbook '" & wbActive.name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set Comp = Nothing
@@ -646,7 +646,7 @@ Public Sub Test_SheetControls_Name_and_Type()
     
     Set ws = mCompMan.WbkGetOpen(sWb).Worksheets(sWs)
     For Each shp In ws.Shapes
-        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.Name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
+        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
     Next shp
     For Each v In dct
         Debug.Print dct(v), Tab(45), v

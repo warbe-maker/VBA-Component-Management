@@ -465,10 +465,9 @@ Public Sub DisplayStatus()
                 wsAddIn.CompManAddInPausedStatus = _
                 "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateOutdatedCommonComponents' and 'ExportChangedComponents'" & vbLf & _
                 "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
-                "1. The Workbook is located in the configured 'Serviced-Development-Root-Folder' which currently is:" & vbLf & _
-                "   '" & mConfig.FolderServiced & "'" & vbLf & _
+                "1. The Workbook is located in the configured 'Serviced-Folder' " & mConfig.FolderServiced & "'" & vbLf & _
                 "2. The Workbook is the only one in its parent folder" & vbLf & _
-                "3. The Workbook is not a restored version" & vbLf
+                "3. The Workbook is not a version restored by Excel (in case it has to be saved first)" & vbLf
             End If
         End If
     Else ' not or no longer (properly) setup

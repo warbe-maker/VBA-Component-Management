@@ -25,7 +25,7 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
     
     mBasic.BoP ErrSrc(PROC)
     Set wb = mService.Serviced
-    Set dctAll = mService.AllComps(wb, Log.Service)
+    Set dctAll = mService.AllComps(wb)
 
     Set dctUpdateDue = Comps.Outdated
     With wb.VBProject
@@ -39,7 +39,7 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = wb
-                .CompName = vbc.Name
+                .CompName = vbc.name
                 Set .VBComp = vbc
                 Log.ServicedItem = vbc
                 If .KindOfComp = enCommCompUsed Then
