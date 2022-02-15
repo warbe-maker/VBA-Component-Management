@@ -12,7 +12,7 @@ Option Explicit
 '       better service.
 '
 ' Procedures, Functions, Services:
-' - AppErr              Converts a positive error number into a negative to
+' - AppErr 3)           Converts a positive error number into a negative to
 '                       ensures an error number not conflicting with a VB
 '                       runt time error or any other system error number.
 '                       Returns the origin positive error number when called
@@ -28,12 +28,14 @@ Option Explicit
 ' - ArrayToRange        Transferres the content of a one- or two-dimensional
 '                       array to a range
 ' - ArrayTrim           Removes any leading or trailing empty items.
-' - BoP/EoP             1), 2)
+' - BoP/EoP 1), 2)
+' - BoC/EoC 1), 2)
 ' - CleanTrim           Clears a string from any unprinable characters.
 ' - ErrMsg              Displays a common error message by means of the
 '                       VB MsgBox. 1), 2)
 '                       component where the code has BoP/EoP statements.
-' - ErrSrc              3)
+' - ErrSrc 3)           Unambigous identification of a procedure. Used with
+'                       error message for example
 ' - TimedDoEvents       Performs a DoEvent by taking the elapsed time printed
 '                       in VBE's immediate window
 ' - TimerBegin          Starts a timer (counting system ticks)
@@ -44,24 +46,25 @@ Option Explicit
 '                       "Microsoft Visual Basic Application Extensibility .."
 ' Optional:             fMsg, mMsg, mErH
 '
-'
-' See: https://github.com/warbe-maker/VBA-Basic-Procedures
-'      (public Github repositiory)
-'
-' W. Rauschenberger, Berlin Feb. 2022
-'
 ' 1) Serves for a comprehensive display of an error message when the Common
 '    VBA Error Services Component mErH is installed and the Conditional
 '    Compile Argument 'ErHComp = 1' and serves for the execution trace (when
 '    the Common VBA Execution Trace Service Component mTrc is installed and
 '    the Conditional Compile Argument 'ExecTrace = 1'.
-' 2) May alternatively be copied as a Private procedure into any component
-'    when this mBasic component is not installed but the mErH and or mTrc
-'    services are.
+' 2) When this mBasic module is not used in a VB-Project the procedures may
+'    be copied as Private Sub into any component. The procedure(s) ensure
+'    that the Common VBA Error Services 4) and/or the Common VBA Execution
+'    Trace Service 5) are optional components.
 ' 3) To be copied as Private procedure into any component which raises
 '    Application Errors by means of Err.Raise.
+' 4) https://github.com/warbe-maker/Common-VBA-Error-Services
+' 5) https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service
+'
+' W. Rauschenberger, Berlin Feb. 2022
+'
+' See https://github.com/warbe-maker/VBA-Basic-Procedures
 ' ----------------------------------------------------------------------------
-' Basic declarations potentially uesefull in any project
+' Basic declarations potentially uesefull in any VB-Project
 Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Public Declare PtrSafe Function GetSystemMetrics32 Lib "user32" Alias "GetSystemMetrics" (ByVal nIndex As Long) As Long
 
@@ -525,24 +528,27 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
+Public Sub BoC(ByVal boc_id As String, ParamArray b_arguments() As Variant)
+' ------------------------------------------------------------------------------
+' (B)egin-(o)f-(C)ode with id (boc_id) trace. Procedure to be copied as Private
+' into any module potentially using the Common VBA Execution Trace Service. Has
+' no effect when Conditional Compile Argument is 0 or not set at all.
+' Note: The begin id (boc_id) has to be identical with the paired EoC statement.
+' ------------------------------------------------------------------------------
+    Dim s As String: If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
+#If ExecTrace = 1 Then
+    mTrc.BoC boc_id, s
+#End If
+End Sub
+
 Public Sub BoP(ByVal b_proc As String, ParamArray b_arguments() As Variant)
 ' ------------------------------------------------------------------------------
-' Common 'Begin of Procedure' indication.
-' - Serves for a comprehensive display of an error message when the Common VBA
-'   Error Services Component mErH is installed and the Conditional Compile
-'   Argument 'ErHComp = 1'
-' - Serves for the execution trace when the Common VBA Execution Trace Service
-'   Component mTrc is installed and the Conditional Compile Argument
-'   'ExecTrace = 1'.
-' - May alternatively be copied as a Private procedure into any component when
-'   this mBasic component is not installed but the mErH and or mTrc services
-'   are
-' Note: Because the error handling also hands over an 'End of Procedure' to the
-'       mTrc component (when installed and 'ExecTrace = 1') an explicit call of
-'       mTrc.EoP is only performed when mErH is not installed/in use.
+' (B)egin-(o)f-(P)rocedure named (b_proc). Procedure to be copied as Private
+' into any module potentially either using the Common VBA Error Service and/or
+' the Common VBA Execution Trace Service. Has no effect when Conditional Compile
+' Arguments are 0 or not set at all.
 ' ------------------------------------------------------------------------------
-    Dim s As String
-    If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
+    Dim s As String: If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
 #If ErHComp = 1 Then
     mErH.BoP b_proc, s
 #ElseIf ExecTrace = 1 Then
@@ -603,22 +609,26 @@ Public Function ElementOfIndex(ByVal a As Variant, _
     
 End Function
 
+Public Sub EoC(ByVal eoc_id As String, ParamArray b_arguments() As Variant)
+' ------------------------------------------------------------------------------
+' (E)nd-(o)f-(C)ode id (eoc_id) trace. Procedure to be copied as Private into
+' any module potentially using the Common VBA Execution Trace Service. Has no
+' effect when the Conditional Compile Argument is 0 or not set at all.
+' Note: The end id (eoc_id) has to be identical with the paired BoC statement.
+' ------------------------------------------------------------------------------
+    Dim s As String: If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
+#If ExecTrace = 1 Then
+    mTrc.BoC eoc_id, s
+#End If
+End Sub
+
 Public Sub EoP(ByVal e_proc As String, _
       Optional ByVal e_inf As String = vbNullString)
 ' ------------------------------------------------------------------------------
-' Common 'End of Procedure' indication.
-' - Serves for a comprehensive display of an error message when the Common VBA
-'   Error Services Component mErH is installed and the Conditional Compile
-'   Argument 'ErHComp = 1'
-' - Serves for the execution trace when the Common VBA Execution Trace Service
-'   Component mTrc is installed and the Conditional Compile Argument
-'   'ExecTrace = 1'.
-' - May alternatively be copied as a Private procedure into any component when
-'   this mBasic component is not installed but the mErH and or mTrc services
-'   are
-' Note: Because the error handling also hands over an 'End of Procedure' to the
-'       mTrc component (when installed and 'ExecTrace = 1') an explicit call of
-'       mTrc.EoP is only performed when mErH is not installed/in use.
+' (E)nd-(o)f-(P)rocedure named (e_proc). Procedure to be copied as Private Sub
+' into any module potentially either using the Common VBA Error Service and/or
+' the Common VBA Execution Trace Service. Has no effect when Conditional Compile
+' Arguments are 0 or not set at all.
 ' ------------------------------------------------------------------------------
 #If ErHComp = 1 Then
     mErH.EoP e_proc
@@ -632,19 +642,14 @@ Public Function ErrMsg(ByVal err_source As String, _
               Optional ByVal err_dscrptn As String = vbNullString, _
               Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Universal error message display service including a debugging option active
+' Universal error message display service. Displays a debugging option button
 ' when the Conditional Compile Argument 'Debugging = 1' and an optional
-' additional "About the error:" section displaying text connected to an error
-' message by two vertical bars (||).
+' additional "About the error:" section when information is concatenated with
+' the error message by two vertical bars (||).
 '
-' A copy of this function is used in each procedure with an error handling
-' (On error Goto eh).
-'
-' The function considers the Common VBA Error Handling Component (ErH) which
-' may be installed (Conditional Compile Argument 'ErHComp = 1') and/or the
-' Common VBA Message Display Component (mMsg) installed (Conditional Compile
-' Argument 'MsgComp = 1'). Only when none of the two is installed the error
-' message is displayed by means of the VBA.MsgBox.
+' May be copied as Private Function into any module. Considers the Common VBA
+' Message Service and the Common VBA Error Services as optional components.
+' When neither is installed the error message is displayed by the VBA.MsgBox.
 '
 ' Usage: Example with the Conditional Compile Argument 'Debugging = 1'
 '
@@ -661,44 +666,31 @@ Public Function ErrMsg(ByVal err_source As String, _
 '            End Select
 '        End Sub/Function/Property
 '
-'        The above may appear a lot of code lines but will be a godsend in case
+' Note:  The above may seem to be a lot of code but will be a godsend in case
 '        of an error!
 '
-' Uses:  - For programmed application errors (Err.Raise AppErr(n), ....) the
-'          function AppErr will be used which turns the positive number into a
-'          negative one. The error message will regard a negative error number
-'          as an 'Application Error' and will use AppErr to turn it back for
-'          the message into its original positive number. Together with the
-'          ErrSrc there will be no need to maintain numerous different error
-'          numbers for a VB-Project.
-'        - The caller provides the source of the error through the module
-'          specific function ErrSrc(PROC) which adds the module name to the
-'          procedure name.
+' Uses:
+' - AppErr For programmed application errors (Err.Raise AppErr(n), ....) to
+'          turn tem into negative and in the error mesaage back into a positive
+'          number.
+' - ErrSrc To provide an unambigous procedure name - prefixed by the module name
 '
 ' W. Rauschenberger Berlin, Nov 2021
+'
+' See:
+' https://warbe-maker.github.io/vba/common/2022/02/15/Personal-and-public-Common-Components.html
 ' ------------------------------------------------------------------------------
 #If ErHComp = 1 Then
-    '~~ ------------------------------------------------------------------------
-    '~~ When the Common VBA Error Handling Component (mErH) is installed in the
-    '~~ VB-Project (which includes the mMsg component) the mErh.ErrMsg service
-    '~~ is preferred since it provides some enhanced features like a path to the
-    '~~ error.
-    '~~ ------------------------------------------------------------------------
-    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line)
-    GoTo xt
+    '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
+    '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
+    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
 #ElseIf MsgComp = 1 Then
-    '~~ ------------------------------------------------------------------------
-    '~~ When only the Common Message Services Component (mMsg) is installed but
-    '~~ not the mErH component the mMsg.ErrMsg service is preferred since it
-    '~~ provides an enhanced layout and other features.
-    '~~ ------------------------------------------------------------------------
-    ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line)
-    GoTo xt
+    '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
+    '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
+    ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
 #End If
-    '~~ -------------------------------------------------------------------
-    '~~ When neither the mMsg nor the mErH component is installed the error
-    '~~ message is displayed by means of the VBA.MsgBox
-    '~~ -------------------------------------------------------------------
+    '~~ When neither of the Common Component is available in the VB-Project
+    '~~ the error message is displayed by means of the VBA.MsgBox
     Dim ErrBttns    As Variant
     Dim ErrAtLine   As String
     Dim ErrDesc     As String
@@ -717,6 +709,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
+    '~~ Consider extra information is provided with the error description
     If InStr(err_dscrptn, "||") <> 0 Then
         ErrDesc = Split(err_dscrptn, "||")(0)
         ErrAbout = Split(err_dscrptn, "||")(1)
@@ -731,10 +724,9 @@ Public Function ErrMsg(ByVal err_source As String, _
             ErrType = "Application Error "
         Case Else
             ErrNo = err_no
-            If (InStr(1, err_dscrptn, "DAO") <> 0 _
-            Or InStr(1, err_dscrptn, "ODBC Teradata Driver") <> 0 _
-            Or InStr(1, err_dscrptn, "ODBC") <> 0 _
-            Or InStr(1, err_dscrptn, "Oracle") <> 0) _
+            If err_dscrptn Like "*DAO*" _
+            Or err_dscrptn Like "*ODBC*" _
+            Or err_dscrptn Like "*Oracle*" _
             Then ErrType = "Database Error " _
             Else ErrType = "VB Runtime Error "
     End Select
@@ -743,30 +735,18 @@ Public Function ErrMsg(ByVal err_source As String, _
     If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
     ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
        
-    ErrText = "Error: " & vbLf & _
-              ErrDesc & vbLf & vbLf & _
-              "Source: " & vbLf & _
-              err_source & ErrAtLine
-    If ErrAbout <> vbNullString _
-    Then ErrText = ErrText & vbLf & vbLf & _
-                  "About: " & vbLf & _
-                  ErrAbout
+    ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
+    If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
     
 #If Debugging Then
     ErrBttns = vbYesNo
-    ErrText = ErrText & vbLf & vbLf & _
-              "Debugging:" & vbLf & _
-              "Yes    = Resume Error Line" & vbLf & _
-              "No     = Terminate"
+    ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
 #Else
     ErrBttns = vbCritical
 #End If
-    
-    ErrMsg = MsgBox(Title:=ErrTitle _
-                  , Prompt:=ErrText _
-                  , Buttons:=ErrBttns)
-xt: Exit Function
+    ErrMsg = MsgBox(Title:=ErrTitle, Prompt:=ErrText, Buttons:=ErrBttns)
 
+xt:
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String

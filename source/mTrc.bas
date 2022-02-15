@@ -164,16 +164,22 @@ Private Property Let NtryTcksOvrhdNtry(Optional ByRef trc_entry As Collection, B
     trc_entry.Add cy, "TON"
 End Property
 
-#If MsgComp = 1 Or ErHComp = 1 Then
 Public Sub Dsply()
 ' ----------------------------------------------------------------------------
 ' Display service, available only when the mMsg component is installed.
 ' ----------------------------------------------------------------------------
-    mMsg.Box box_title:="Trasce result of the Regression test for the mTrc module" _
+#If MsgComp = 1 Or ErHComp = 1 Then
+    mMsg.Box box_title:="Trasce log by the Common VBA Execution Trace Service 'mTrc.Dsply'" _
            , box_msg:=LogTxt(mTrc.LogFile) _
            , box_monospaced:=True
-End Sub
+#Else
+    VBA.MsgBox "The mMsg.Box service is not available and the VBA.MsgBox is inappropriate " & _
+               "to display a file's content." & vbLf & _
+               "Either the Common VBA Message Service is not installed or it is installed " & _
+               "but neither of the Conditional Compile Arguments MsgComp, ErHComp is set to 1." & vbLf & vbLf & _
+               "The display of the trace result will be done by any text file viewer."
 #End If
+End Sub
 
 Private Property Get SplitStr(ByRef s As String)
 ' ----------------------------------------------------------------------------
@@ -201,8 +207,8 @@ Public Property Get LogFile(Optional ByVal tl_append As Boolean = False) As Stri
     LogFile = sLogFile
 End Property
 
-Public Property Let LogFile(Optional ByVal tl_append As Boolean = True, _
-                                          ByVal tl_file As String)
+Public Property Let LogFile(Optional ByVal tl_append As Boolean = False, _
+                                     ByVal tl_file As String)
 ' ----------------------------------------------------------------------------
 ' Determines the file to which the execution trace is written to.
 ' When the Conditional Compile Argument 'ExecTrace = 0' an existing file with
@@ -213,7 +219,7 @@ Public Property Let LogFile(Optional ByVal tl_append As Boolean = True, _
 #If ExecTrace = 1 Then
     sLogFile = tl_file
     With fso
-        If Not tl_append Then
+        If tl_append = False Then
             If .FileExists(tl_file) Then .DeleteFile tl_file, True
         End If
     End With
@@ -224,6 +230,7 @@ Public Property Let LogFile(Optional ByVal tl_append As Boolean = True, _
 #End If
     
     Set fso = Nothing
+
 End Property
 
 Private Function LogInfoLvl() As Long
@@ -973,7 +980,7 @@ Private Sub LogEnd(ByVal tl_ntry As Collection)
     ElapsedSecs = LogElapsedSecs(et_ticks_end:=ItmTcks(tl_ntry), et_ticks_start:=ItmTcks(BgnNtry))
     
     If Not sLogFile = vbNullString Then
-        LogText = LogLinePrefix & ElapsedSecsTotal & ElapsedSecs & RepeatStrng("|  ", ItmLvl(tl_ntry)) & ItmDir(tl_ntry) & " " & ItmId(tl_ntry)
+        LogText = LogLinePrefix & ElapsedSecsTotal & ElapsedSecs & RepeatStrng("|  ", ItmLvl(tl_ntry)) & ItmDir(tl_ntry) & " " & ItmId(tl_ntry) & ItmInf(tl_ntry)
         LogTxt(sLogFile) = LogText
         If TraceStack.Count = 1 Then
             LogText = LogLinePrefix & ElapsedSecsTotal & ElapsedSecs & ItmDir(tl_ntry) & " "
@@ -1121,7 +1128,7 @@ Private Sub TrcEnd(ByVal trc_id As String, _
          , trc_tcks:=cy _
          , trc_dir:=trc_dir _
          , trc_lvl:=iTrcLvl _
-         , trc_inf:=vbNullString _
+         , trc_inf:=trc_inf _
          , trc_ntry:=trc_cll
          
     StckPop stck:=TraceStack, stck_item:=trc_cll, stck_ppd:=itm
