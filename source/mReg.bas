@@ -2,26 +2,22 @@ Attribute VB_Name = "mReg"
 Option Explicit
 ' ----------------------------------------------------------------------------
 ' Standard Module mReg
-' Simplified services for working with the Registry within a VB-Project.
-' Typically this will be configuration-, initiation-, or application data
-' stored as values of a certain value name under a key. All services use
-' the named arguments:
-' reg_key           always starts with "HKEY_CURRENT_USER" or
-'                   "HKEY_LOCAL_MACHINE" followed by sub-keys. The reg_key
-'                   may function as the base-key for an application
+' Services for working with the Registry, i.e. write values to and read values
+' from the Registry within a VB-Project. For a maximum simplicity all services
+' use the following named arguments:
+' reg_key           String expression, obligatory, starts with
+'                   "HKEY_CURRENT_USER" or "HKEY_LOCAL_MACHINE" followed by
+'                   sub-keys. The reg_key may well function as the base-key
+'                   for a VB-Project. It sjhould be noticed that writing to
+'                   "HKEY_LOCAL_MACHINE" requires elevated permissions which
+'                   are not recommendable at all.
 ' reg_value_name    may be prefixed by sub-keys
-' reg_value         any format and any length. values unable to be stored in
+' reg_value         any format and any length. Values unable to be stored in
 '                   the registry raise an error
-' The provided services are pretty much the same as for the same purpose
-' when values written by name into a file organized in
-' [section]
-' <value-name>=<value>.
-' The big difference is, that the registry can store any number of sub-key
-' levels ("sub-sections" in File terminology respectively).
 '
-' Note: The services are not as elaborated and universal as provided via
-'       http://www.cpearson.com/excel/registry.htm but by far more simple
-'       and best adapted for the intended purpose.
+' Note: Because the services aim for ease of use they are not at all as
+'       universal and complet as provided via
+'       http://www.cpearson.com/excel/registry.htm.
 '
 ' Public services:
 ' Delete        Deletes a reg_key with all its sub-keys or only an
@@ -34,9 +30,8 @@ Option Explicit
 '               exists
 ' Keys          Returns a Dictionary with a Dictionary of values as item
 '               and the sub-key as the key (ordered ascending by key)
-' Values        Returns a Dictionary of under a provided key with the
-'               values as item and the valuue-name as the key (ordered
-'               ascending by key)
+' Values        Returns a Dictionary of values under a provided key with
+'               the value-name as the key and the value as the item.
 '
 ' Requires: Reference to "Microsoft Scripting Runtime"
 '
@@ -84,6 +79,27 @@ Private Const KEY_READ                  As Long = &H20019  ' ((READ_CONTROL Or K
                                                            ' SYNCHRONIZE))
 Dim oReg                                As Object
 
+Private Sub BoP(ByVal b_proc As String, _
+                ParamArray b_arguments() As Variant)
+' ------------------------------------------------------------------------------
+' Common 'Begin of Procedure' service. When neither the Common Execution Trace
+' Component (mTrc) nor the Common Error Handling Component (mErH) is installed
+' (indicated by the Conditional Compile Arguments 'ExecTrace = 1' and/or the
+' Conditional Compile Argument 'ErHComp = 1') this procedure does nothing.
+' Else the service is handed over to the corresponding procedures.
+' May be copied as Private Sub into any module or directly used when mBasic is
+' installed.
+' ------------------------------------------------------------------------------
+    Dim s As String
+    If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
+#If ErHComp = 1 Then
+    '~~ The error handling also hands over to the mTrc component when 'ExecTrace = 1'
+    '~~ so the Else is only for the case only the mTrc is installed but not the merH.
+    mErH.BoP b_proc, s
+#ElseIf ExecTrace = 1 Then
+    mTrc.BoP b_proc, s
+#End If
+End Sub
                         
 Public Property Get Value( _
                  Optional ByVal reg_key As String, _
@@ -115,6 +131,26 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
+Private Sub EoP(ByVal e_proc As String, _
+       Optional ByVal e_inf As String = vbNullString)
+' ------------------------------------------------------------------------------
+' Common 'End of Procedure' service. When neither the Common Execution Trace
+' Component (mTrc) nor the Common Error Handling Component (mErH) is installed
+' (indicated by the Conditional Compile Arguments 'ExecTrace = 1' and/or the
+' Conditional Compile Argument 'ErHComp = 1') this procedure does nothing.
+' Else the service is handed over to the corresponding procedures.
+' May be copied as Private Sub into any module or directly used when mBasic is
+' installed.
+' ------------------------------------------------------------------------------
+#If ErHComp = 1 Then
+    '~~ The error handling also hands over to the mTrc component when 'ExecTrace = 1'
+    '~~ so the Else is only for the case the mTrc is installed but the merH is not.
+    mErH.EoP e_proc
+#ElseIf ExecTrace = 1 Then
+    mTrc.EoP e_proc, e_inf
+#End If
+End Sub
+
 Public Property Let Value( _
                  Optional ByVal reg_key As String, _
                  Optional ByVal reg_value_name As String, _
@@ -128,12 +164,11 @@ Public Property Let Value( _
     Dim rString As String
     
     rString = RegString(reg_key, reg_value_name)
-'    Debug.Print rString
-    
     If Not IsValidKey(rString) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided reg_key | reg_value_name ('" & rString & "') lenght exceeds the maximum length of '" & REG_KEY_MAX_LENGTH & "'!"
-'    If Not HasAccess(reg_key, KEY_WRITE) _
-'    Then Err.Raise AppErr(2), ErrSrc(PROC), "No access right to write a value for '" & rString & "'!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The argument reg_key (" & reg_key & _
+                                            ") and the argument reg_value_name (" & reg_value_name & _
+                                            ") resulted in '" & rString & "' which is not a valid key string!"
+
     
     CreateObject("WScript.Shell").RegWrite rString, reg_value, RegType(reg_value)
 
@@ -328,6 +363,12 @@ Public Function Delete(ByVal reg_key As String, _
     
     If reg_value_name <> vbNullString Then
         rString = RegString(reg_key, reg_value_name)
+        If Not IsValidKey(rString) _
+        Then Err.Raise AppErr(1), ErrSrc(PROC), "The argument reg_key (" & reg_key & _
+                                                ") and the argument reg_value_name (" & reg_value_name & _
+                                                ") resulted in '" & rString & "' which is not a valid key string!"
+        
+        
         If Right(rString, 1) = "\" _
         Then rString = Left(rString, Len(rString) - 1)
         CreateObject("WScript.Shell").RegDelete rString ' reg_key & reg_value_name
@@ -529,10 +570,17 @@ Public Function Exists(ByVal reg_key As String, _
 ' Returns TRUE when the key (reg_key) exists and when a name (reg_value_name)
 ' is provided when the name exists. No worry about \! Missing ones are added.
 ' ----------------------------------------------------------------------------
+    Const PROC = "Exists"
+    
+    On Error GoTo eh
     Dim s       As String
     Dim rString As String
     
     rString = RegString(reg_key, reg_value_name)
+    If Not IsValidKey(rString) _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The argument reg_key (" & reg_key & _
+                                            ") and the argument reg_value_name (" & reg_value_name & _
+                                            ") resulted in '" & rString & "' which is not a valid key string!"
     
     If reg_value_name <> vbNullString Then
         If Right(reg_value_name, 1) = "\" _
@@ -541,9 +589,16 @@ Public Function Exists(ByVal reg_key As String, _
     Exists = False
     On Error GoTo xt
     '~~ To have reg_key interpreted as key it has to end with a \.
+    Debug.Print "rString = " & rString
     CreateObject("WScript.Shell").RegRead rString ' reg_key & reg_value_name
     Exists = True
-xt:
+
+xt: Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Public Function Export(ByVal reg_key As String) As String
@@ -644,6 +699,7 @@ Private Function IsValidKey(ByVal reg_key As String) As Boolean
 ' all spaces unstripped longer 0.
 ' ------------------------------------------------------------------------------
     IsValidKey = (Len(reg_key) <= REG_KEY_MAX_LENGTH) And (Len(Trim(reg_key)) > 0)
+    If IsValidKey Then IsValidKey = Split(reg_key, "\")(0) Like "HK*"
 End Function
 
 Private Function IsValidValue(Optional ByVal reg_value As Variant) As Boolean
