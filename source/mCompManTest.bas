@@ -234,8 +234,8 @@ Public Sub Test_Log()
         .Service = ErrSrc(PROC)
         .ServicedItem = " <component-name> "
         .Entry = "Tested"
-        mMsg.Box box_title:="Test-Log:" _
-               , box_msg:=mFile.Txt(ft_file:=.LogFile.Path) _
+        mMsg.Box Title:="Test-Log:" _
+               , Prompt:=mFile.Txt(ft_file:=.LogFile.Path) _
                , box_monospaced:=True
         If fso.FileExists(.LogFile.Path) Then fso.DeleteFile .LogFile.Path
     End With

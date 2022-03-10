@@ -169,8 +169,8 @@ Public Sub Dsply()
 ' Display service, available only when the mMsg component is installed.
 ' ----------------------------------------------------------------------------
 #If MsgComp = 1 Or ErHComp = 1 Then
-    mMsg.Box box_title:="Trasce log provided by the Common VBA Execution Trace Service (displayed by mTrc.Dsply)" _
-           , box_msg:=LogTxt(mTrc.LogFile) _
+    mMsg.Box Prompt:=LogTxt(mTrc.LogFile) _
+           , Title:="Trasce log provided by the Common VBA Execution Trace Service (displayed by mTrc.Dsply)" _
            , box_monospaced:=True
 #Else
     VBA.MsgBox "The mMsg.Box service is not available and the VBA.MsgBox is inappropriate " & _
@@ -918,7 +918,7 @@ Private Sub LogBgn(ByVal tl_ntry As Collection)
     If TraceStack.Count = 1 Then
         If mTrc.LogFile = vbNullString Then
             '~~ Provide a default log file not appended when non had been specified
-            mTrc.LogFile(False) = Replace(ThisWorkbook.FullName, ThisWorkbook.Name, "ExecTrace.log")
+            mTrc.LogFile(False) = Replace(ThisWorkbook.FullName, ThisWorkbook.name, "ExecTrace.log")
         End If
         
         '~~ When the very first trace entry had been pushed on the stack

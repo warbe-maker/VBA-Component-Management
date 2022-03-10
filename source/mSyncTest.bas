@@ -32,7 +32,7 @@ Public Sub Test_SyncColWidth()
     
     For Each ws In wbSource.Worksheets
         If mSyncSheets.SheetExists(wb:=wbTarget _
-                                 , sh1_name:=ws.Name _
+                                 , sh1_name:=ws.name _
                                  , sh1_code_name:=ws.CodeName _
                                  , sh2_name:=sSheetName _
                                   ) _
@@ -124,10 +124,10 @@ xt: With New FileSystemObject
             BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
             BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
             mMsg.Buttons bttns, BttnDelete, BttnKeep
-            If mMsg.Box(box_title:=PROC & " Log-File" _
-                      , box_msg:=mFile.Txt(.GetFile(Log.File)) _
+            If mMsg.Box(Title:=PROC & " Log-File" _
+                      , Prompt:=mFile.Txt(.GetFile(Log.File)) _
                       , box_monospaced:=True _
-                      , box_buttons:=bttns) = BttnDelete _
+                      , Buttons:=bttns) = BttnDelete _
             Then .DeleteFile flLog
         End If
     End With
@@ -184,10 +184,10 @@ xt: With New FileSystemObject
             BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
             BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
             mMsg.Buttons bttns, BttnDelete, BttnKeep
-            If mMsg.Box(box_title:=PROC & " Log-File" _
-                      , box_msg:=mFile.Txt(.GetFile(Log.File)) _
+            If mMsg.Box(Title:=PROC & " Log-File" _
+                      , Prompt:=mFile.Txt(.GetFile(Log.File)) _
                       , box_monospaced:=True _
-                      , box_buttons:=bttns) = BttnDelete _
+                      , Buttons:=bttns) = BttnDelete _
             Then .DeleteFile flLog
         End If
     End With

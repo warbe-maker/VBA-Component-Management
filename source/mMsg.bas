@@ -5,20 +5,20 @@ Option Explicit
 '               Message display services using the fMsg form.
 '
 ' Public services:
-' ------------------------------------------------------------------------------
 ' - Box         In analogy to the MsgBox, provides a simple message but with all
 '               the fexibility for the display of up to 49 reply buttons.
-' - Buttons     Supports the specification of the design buttons displayed in 7
-'               rows by 7 buttons each
+' - Buttons     Supports the specification of the buttons displayed in a matrix
+'               of 7 x 7 buttons (max 7 buttons in max 7 rows)
 ' - Dsply       Exposes all properties and methods for the display of any kind
 '               of message
 ' - Monitor     Uses modeless instances of the fMsg form - any instance is
 '               identified by the window title - to display the progress of a
 '               process or monitor intermediate results.
+' - MsgInstance Treturns a fMsg object identified by the Title
 '
 ' Uses:         fMsg
 '
-' Reqires:      Reference to "Microsoft Scripting Runtime"
+' Requires:     Reference to "Microsoft Scripting Runtime"
 '
 ' See: https://github.com/warbe-maker/Common-VBA-Message-Service
 '
@@ -110,7 +110,7 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
 End Function
 
 Public Sub AssertWidthAndHeight(ByRef width_min As Long, _
-                                ByRef width_max As Long, _
+                                ByRef WIDTH_MAX As Long, _
                                 ByRef height_min As Long, _
                                 ByRef height_max As Long)
 ' ------------------------------------------------------------------------------
@@ -124,7 +124,6 @@ Public Sub AssertWidthAndHeight(ByRef width_min As Long, _
 ' A max height 0 or above the max height limit is set to the max height limit.
 ' Note: Public for test purpose only
 ' ------------------------------------------------------------------------------
-    Const PROC  As String = "AssertWidthAndHeight"
 
     '~~ Convert all limits from percentage to pt
     Dim MsgWidthMaxLimitPt  As Long:    MsgWidthMaxLimitPt = Pnts(MSG_WIDTH_MAX_LIMIT_PERCENTAGE, "w")
@@ -133,49 +132,42 @@ Public Sub AssertWidthAndHeight(ByRef width_min As Long, _
     Dim MsgHeightMinLimitPt As Long:    MsgHeightMinLimitPt = Pnts(MSG_HEIGHT_MIN_LIMIT_PERCENTAGE, "h")
     
     '~~ Convert all percentage arguments into pt arguments
-    If width_max <> 0 And width_max <= 100 Then width_max = Pnts(width_max, "w")
+    If WIDTH_MAX <> 0 And WIDTH_MAX <= 100 Then WIDTH_MAX = Pnts(WIDTH_MAX, "w")
     If width_min <> 0 And width_min <= 100 Then width_min = Pnts(width_min, "w")
     If height_max <> 0 And height_max <= 100 Then height_max = Pnts(height_max, "h")
     If height_min <> 0 And height_min <= 100 Then height_min = Pnts(height_min, "h")
         
     '~~ Provide sensible values for all invalid, improper, or useless
-    If width_min > width_max Then width_min = width_max
+    If width_min > WIDTH_MAX Then width_min = WIDTH_MAX
     If height_min > height_max Then height_min = height_max
     If width_min < MsgWidthMinLimitPt Then width_min = MsgWidthMinLimitPt
-    If width_max <= width_min Then width_max = width_min
-    If width_max > MsgWidthMaxLimitPt Then width_max = MsgWidthMaxLimitPt
+    If WIDTH_MAX <= width_min Then WIDTH_MAX = width_min
+    If WIDTH_MAX > MsgWidthMaxLimitPt Then WIDTH_MAX = MsgWidthMaxLimitPt
     If height_min < MsgHeightMinLimitPt Then height_min = MsgHeightMinLimitPt
     If height_max = 0 Or height_max < height_min Then height_max = height_min
     If height_max > MsgHeightMaxLimitPt Then height_max = MsgHeightMaxLimitPt
     
 End Sub
 
-Public Function Box(Optional ByVal box_msg As String = vbNullString, _
-                    Optional ByVal box_title As String = vbNullString, _
-                    Optional ByVal box_monospaced As Boolean = False, _
-                    Optional ByVal box_buttons As Variant = vbOKOnly, _
-                    Optional ByVal box_buttons_width_min = 70, _
-                    Optional ByVal box_button_default = 1, _
-                    Optional ByVal box_returnindex As Boolean = False, _
-                    Optional ByVal box_width_min As Long = 300, _
-                    Optional ByVal box_width_max As Long = 85, _
-                    Optional ByVal box_height_min As Long = 20, _
-                    Optional ByVal box_height_max As Long = 85) As Variant
+Public Function Box(ByVal Prompt As String, _
+           Optional ByVal Buttons As Variant = vbOKOnly, _
+           Optional ByVal Title As String = vbNullString, _
+           Optional ByVal box_monospaced As Boolean = False, _
+           Optional ByVal box_button_default = 1, _
+           Optional ByVal box_button_width_min = 70, _
+           Optional ByVal box_return_index As Boolean = False, _
+           Optional ByVal box_width_min As Long = 300, _
+           Optional ByVal box_width_max As Long = 85, _
+           Optional ByVal box_height_min As Long = 20, _
+           Optional ByVal box_height_max As Long = 85) As Variant
 ' -------------------------------------------------------------------------------------
-' Common VBA Message Display: A service using the Common VBA Message Form as an
-' alternative MsgBox.
-' Please Note: This Box service is a kind of backward compatibility with the VBA.MsgBox
-'              with equivalent arguments:      VBA.MsgBox | mMsg.Box
-'                                              ---------- + ------------------------
-'                                              Title      | box_title
-'                                              Prompt     | box_msg
-'                                              Buttons    | box_buttons
-'              and explicit                               | box_button_default
-'              and some additional arguments concerning the message size.
+' Display of a message string analogous to the VBA.Msgbox (why the first three
+' arguments are identical.
+' box_button_default
 '
-' See: https://warbe-maker.github.io/vba/common/2020/11/17/Common-VBA-Message-Form.html
+' See: https://github.com/warbe-maker/Common-VBA-Message-Service
 '
-' W. Rauschenberger, Berlin, Nov 2020
+' W. Rauschenberger, Berlin, Feb 2022
 ' -------------------------------------------------------------------------------------
     Const PROC = "Box"
     
@@ -184,16 +176,9 @@ Public Function Box(Optional ByVal box_msg As String = vbNullString, _
     Dim MsgForm As fMsg
 
     '~~ Defaults
-    If box_title = vbNullString Then
-        '~~ Default tile when none had been provided
-        box_title = "Common VBA Message (mMsg.Box) Service"
-    End If
-    If box_msg = vbNullString Then
-        box_msg = "This message is displayed by the Common VBA Message Service 'mMsg.Box' " & _
-                  "as the default for a non provided message string (argument box_msg)"
-    End If
+    If Title = vbNullString Then Title = Application.name
     
-    Message.Text = box_msg
+    Message.Text = Prompt
     Message.MonoSpaced = box_monospaced
 
     AssertWidthAndHeight box_width_min _
@@ -204,23 +189,23 @@ Public Function Box(Optional ByVal box_msg As String = vbNullString, _
     
     '~~ In order to avoid any interferance with modeless displayed fMsg form
     '~~ all services create and use their own instance identified by the message title.
-    Set MsgForm = MsgInstance(box_title)
+    Set MsgForm = MsgInstance(Title)
     With MsgForm
-        .MsgTitle = box_title
+'        .VisualizeControls = True
+        .MsgTitle = Title
         .MsgText(1) = Message
-        .MsgButtons = box_buttons
+        .MsgButtons = Buttons
         .MsgHeightMax = box_height_max    ' percentage of screen height
         .MsgHeightMin = box_height_min    ' percentage of screen height
         .MsgWidthMax = box_width_max      ' percentage of screen width
         .MsgWidthMin = box_width_min        ' defaults to 400 pt. the absolute minimum is 200 pt
-        .MinButtonWidth = box_buttons_width_min
+        .MinButtonWidth = box_button_width_min
         .MsgButtonDefault = box_button_default
         '+------------------------------------------------------------------------+
-        '|| Setup prior showing the form improves the performance significantly  ||
-        '|| and avoids any flickering message window with its setup.             ||
+        '|| Setup prior showing the form is much faster and avoids flickering.   ||
         '|| For testing purpose it may be appropriate to out-comment the Setup.  ||
-        .Setup '                                                                 ||
         '+------------------------------------------------------------------------+
+        .Setup
         .Show
     End With
     Box = RepliedWith
@@ -230,184 +215,195 @@ xt: Exit Function
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Function
 
-Public Function Buttons(ByRef bttns_collection As Collection, _
-                        ParamArray bttns() As Variant) As Collection
-' --------------------------------------------------------------------------
-' Returns a collection comprising of the provided collection
-' (bttns_collection) with the provided items (bttns) added and only the
-' provided items (bttns) as collection (bttns_coollection. The function may
-' thus be used to have a collection with the provided items and one with the
-' provided items added to the provided collection.
-' Example: Set cll = Buttons(cll, "A", "B") ' mode add
-' Example: Buttons cll, "A", "B"
-' --------------------------------------------------------------------------
-    
-    Dim i               As Long
-    Dim s               As String
-    Dim cllOnly         As New Collection
-    Dim lOnlyBttnsInRow As Long                 ' buttons in a row counter
-    Dim lOnlyBttns      As Long                 ' total buttons in cllOnly
-    Dim lOnlyRows       As Long: lOnlyRows = 1  ' button rows counter
-    Dim cllAdd          As Collection
-    Dim lAddBttnsInRow  As Long                 ' buttons in a row counter (excludes break items)
-    Dim lAddBttns       As Long                 ' total buttons in cllAdd
-    Dim lAddRows        As Long: lAddRows = 1   ' button rows counter
-    Dim v1              As Variant
-    Dim v2              As Variant
-    Dim cllBttns        As New Collection
-    
-    If bttns_collection Is Nothing Then
-        Set bttns_collection = New Collection
-        Set cllAdd = New Collection
-    Else
-        Set cllAdd = bttns_collection
-        '~~ Count the buttons already specified in cllAdd
-        For Each v1 In cllAdd
-            If v1 = vbLf Or v1 = vbCrLf Or v1 = vbCr Then
-                lAddBttnsInRow = 0
-            Else
-                lAddBttnsInRow = lAddBttnsInRow + 1
-                lAddRows = lAddRows + 1
-                lAddBttns = lAddBttns + 1
-            End If
-        Next v1
-    End If
-    
-    On Error Resume Next
-    i = LBound(bttns)
-    If Err.Number <> 0 Then GoTo xt
-    
-    '~~ Transpose the the buttons argument (bttns) into a collection considering
-    '~~ that an item may be one with sub-items in a comma delimited string.
-    For Each v1 In bttns
-        If InStr(v1, ",") <> 0 Then
-            '~~ Comma deliomited string
-            For Each v2 In Split(v1, ",")
-                cllBttns.Add v2
-            Next v2
-        Else
-            cllBttns.Add v1
-        End If
-    Next v1
-    
-    '~~ Prepare the cllAdd and the cllOnly Collection
-    For Each v1 In cllBttns
-        If VarType(v1) = vbEmpty Then GoTo nx  ' skip empty items
-        If (lOnlyRows = 7 And lOnlyBttnsInRow = 7) Or lAddBttns = 49 Then GoTo xt ' max possible buttons reached
-        Select Case v1
-            
-            Case vbLf, vbCrLf, vbCr
-                cllOnly.Add v1: lOnlyBttnsInRow = 0
-                cllAdd.Add v1:  lAddBttnsInRow = 0
-            
-            Case vbOKOnly, vbOKCancel, vbYesNo, vbRetryCancel, vbResumeOk
-                '~~ Two more buttons
-                If lOnlyBttnsInRow = 6 Then
-                    cllOnly.Add vbLf
-                    lOnlyBttnsInRow = 0
-                End If
-                If lAddBttnsInRow = 6 Then
-                    cllAdd.Add vbLf
-                    lAddBttnsInRow = 0
-                End If
-                cllOnly.Add v1: lOnlyBttnsInRow = lOnlyBttnsInRow + 2
-                cllAdd.Add v1:  lAddBttnsInRow = lAddBttnsInRow + 2
-                lAddBttns = lAddBttns + 2
-            
-            Case vbAbortRetryIgnore, vbYesNoCancel
-                '~~ Three more buttons
-                If lOnlyBttnsInRow = 5 Then
-                    cllOnly.Add vbLf
-                    lOnlyBttnsInRow = 0
-                End If
-                If lAddBttnsInRow = 5 Then
-                    cllAdd.Add vbLf
-                    lAddBttnsInRow = 0
-                End If
-                cllOnly.Add v1: lOnlyBttnsInRow = lOnlyBttnsInRow + 2
-                cllAdd.Add v1:  lAddBttnsInRow = lAddBttnsInRow + 3
-                lAddBttns = lAddBttns + 3
-            
-            Case Else
-                If TypeName(v1) = "String" Then
-                    ' Any invalid buttons value will be ignored without notice
-                    If lOnlyBttnsInRow = 7 Then
-                        cllOnly.Add vbLf
-                        lOnlyBttnsInRow = 0
-                    End If
-                    If lAddBttnsInRow = 7 Then
-                        cllAdd.Add vbLf
-                        lAddBttnsInRow = 0
-                    End If
-                    cllOnly.Add v1: lOnlyBttnsInRow = lOnlyBttnsInRow + 1:  lOnlyBttns = lOnlyBttns + 1
-                    cllAdd.Add v1:  lAddBttnsInRow = lAddBttnsInRow + 1:    lAddBttns = lAddBttns + 1
-                End If
-        End Select
-nx: Next v1
-    
-xt: Set Buttons = cllAdd
-    Set bttns_collection = cllOnly
-    Exit Function
-
+Private Function BttnsNo(ByVal v As Variant) As Long
+    Select Case v
+        Case vbYesNo, vbRetryCancel, vbResumeOk:    BttnsNo = 2
+        Case vbAbortRetryIgnore, vbYesNoCancel:     BttnsNo = 3
+        Case Else:                                  BttnsNo = 1
+    End Select
 End Function
 
-Public Function ButtonsNumeric(ByVal bn_num_buttons As Long) As Long
-' -------------------------------------------------------------------------------------
-' Returns the Buttons argument (bn_num_buttons) with additional options removed.
-' In order to mimic the Buttons argument of the VBA.MsgBox any values added for other
-' options but the display of the buttons are unstripped (i.e. the values are deducted).
-' -------------------------------------------------------------------------------------
-    Const PROC = "ButtonsNumeric"
+Public Function Buttons(ParamArray bttns() As Variant) As Collection
+' --------------------------------------------------------------------------
+' Returns the provided items (bttns) as Collection. If an item is a
+' Collection its items are extracted and included at the corresponding
+' position. When the consequtive number of buttons exceeds 7 a vbLf is
+' included to indicate a new row. When the number of rows is exieeded any
+' subsequent items are ignored.
+' --------------------------------------------------------------------------
+    Const PROC          As String = "Buttons"
     
     On Error GoTo eh
+    Static StackItems   As Collection
+    Static QueueResult  As Collection
+    Static cllResult    As Collection
+    Static lBttnsInRow  As Long         ' buttons in a row counter (excludes break items)
+    Static lBttns       As Long         ' total buttons in cllAdd
+    Static lRows        As Long         ' button rows counter
+    Static SubItemsDone As Long
+    Dim cll             As Collection
+    Dim dct             As Dictionary
+    Dim i               As Long
+    Dim sDelimiter      As String
+    
+    If cllResult Is Nothing Then
+        Set StackItems = New Collection
+        Set QueueResult = New Collection
+        Set cllResult = New Collection
+        lBttnsInRow = 0
+        lBttns = 0
+        lRows = 0
+        SubItemsDone = 0
+    End If
+    If UBound(bttns) = -1 Then GoTo xt
+    If UBound(bttns) = 0 Then
+        '~~ When only one item is provided it may be a Collection, a Dictionary, a single string or numeric item, or
+        '~~ a string with comma or semicolon delimited items
+        If lRows > 7 Then GoTo xt
+        If TypeName(bttns(0)) = "Collection" Then
+            Set cll = bttns(0)
+            For i = cll.Count To 1 Step -1
+                StckPush StackItems, cll(i)
+            Next i
+        ElseIf TypeName(bttns(0)) = "Dictionary" Then
+            Set dct = bttns(0)
+            For i = dct.Count - 1 To 0 Step -1
+                StckPush StackItems, dct.Items()(i)
+            Next i
+        ElseIf IsNumeric(bttns(0)) _
+            Or (TypeName(bttns(0)) = "String" And bttns(0) <> vbNullString) Then
+            '~~ Any other item but Collection, Numeric or String is ignored
+            Select Case bttns(0)
+                Case vbLf, vbCr, vbCrLf
+                    If lRows < 7 And lBttnsInRow <> 0 Then
+                        '~~ Exceeding rows or empty rows are ignored
+                        cllResult.Add bttns(0)
+                        lBttnsInRow = 0
+                        lRows = lRows + 1
+                    End If
+                Case Else
+                    '~~ The string may still be a comma or semicolon delimited string of items
+                    sDelimiter = vbNullString
+                    If InStr(bttns(0), ",") <> 0 Then sDelimiter = ","
+                    If InStr(bttns(0), ";") <> 0 Then sDelimiter = ";"
+                    If sDelimiter <> vbNullString Then
+                        '~~ The comma or semicolon delimited items are pushed on the stack in reverse order
+                        For i = UBound(Split(bttns(0), sDelimiter)) To 0 Step -1
+                            StckPush StackItems, Trim(Split(bttns(0), sDelimiter)(i))
+                        Next i
+                    Else
+                        '~~ This is a single buttons caption specified by a numeric value or a string
+                        If lRows = 0 Then lRows = 1
+                        
+                        If lRows < 7 _
+                        And lBttnsInRow + BttnsNo(bttns(0)) > 7 Then
+                            '~~ Insert a row break
+                            cllResult.Add vbLf
+                            lRows = lRows + 1
+                            lBttnsInRow = 0
+                        End If
+                        If lRows <= 7 _
+                        And lBttnsInRow + BttnsNo(bttns(0)) <= 7 Then
+                            '~~ Any excessive buttons spec is ignored
+                            If bttns(0) = "B50" Then Stop
+                            cllResult.Add bttns(0)
+                            lBttnsInRow = lBttnsInRow + BttnsNo(bttns(0))
+                        End If
+                    End If
+            End Select
+        End If
+        ' items other than Collection, Dictionary, Numeric or String are ignored
+    Else
+        '~~ More than one item in ParamArray
+        For i = UBound(bttns) To 0 Step -1
+            StckPush StackItems, bttns(i)
+        Next i
+    End If
+    
+    While Not StckIsEmpty(StackItems)
+        Set cllResult = Buttons(StckPop(StackItems))
+    Wend
+
+xt: If Not StckIsEmpty(StackItems) Then Exit Function
+    Set Buttons = cllResult
+    Set cllResult = Nothing
+    Set StackItems = Nothing
+    Exit Function
         
-    While bn_num_buttons >= vbCritical                  ' 16
-        Select Case bn_num_buttons
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+End Function
+
+Public Function BttnsArgs(ByVal ba_arg As Long, _
+                 Optional ByRef ba_rtl_reading As Boolean, _
+                 Optional ByRef ba_box_right As Boolean, _
+                 Optional ByRef ba_set_foreground As Boolean, _
+                 Optional ByRef ba_help_button As Boolean, _
+                 Optional ByRef ba_system_modal As Boolean, _
+                 Optional ByRef ba_default_button As Long, _
+                 Optional ByRef ba_information As Boolean, _
+                 Optional ByRef ba_exclamation As Boolean, _
+                 Optional ByRef ba_question As Boolean, _
+                 Optional ByRef ba_critical As Boolean) As Long
+' -------------------------------------------------------------------------------------
+' Returns the Buttons argument (ba_arg) with all the options removed by returning them
+' as optional arguments. In order to mimic the Buttons argument of the VBA.MsgBox any
+' values added for other options but the display of the buttons are unstripped/deducted.
+' I.e. the values are deducted and the corresponding argument is returtned instead).
+' -------------------------------------------------------------------------------------
+        
+    While ba_arg >= vbCritical                          ' 16
+        Select Case ba_arg
             '~~ VBA.MsgBox Display options
-            Case Is >= vbMsgBoxRtlReading                ' 1048576  not implemented
-                bn_num_buttons = bn_num_buttons - vbMsgBoxRtlReading
-    
-            Case Is >= vbMsgBoxRight                     ' 524288   not implemented
-                bn_num_buttons = bn_num_buttons - vbMsgBoxRight
-    
-            Case Is >= vbMsgBoxSetForeground             ' 65536    not implemented
-                bn_num_buttons = bn_num_buttons - vbMsgBoxSetForeground
+            Case Is >= vbMsgBoxRtlReading               ' 1048576  not implemented
+                ba_arg = ba_arg - vbMsgBoxRtlReading
+                ba_rtl_reading = True
             
-            '~~ Display of a Help button
-            Case Is >= vbMsgBoxHelpButton                ' 16384    not implemented
-                bn_num_buttons = bn_num_buttons - vbMsgBoxHelpButton
-    
-            Case Is >= vbSystemModal                     ' 4096     not implemented
-                bn_num_buttons = bn_num_buttons - vbSystemModal
-    
-            Case Is >= vbDefaultButton4                  ' 768
-                bn_num_buttons = bn_num_buttons - vbDefaultButton4
+            Case Is >= vbMsgBoxRight                    ' 524288   not implemented
+                ba_arg = ba_arg - vbMsgBoxRight
+                ba_box_right = True
             
-            Case Is >= vbDefaultButton3                  ' 512
-                bn_num_buttons = bn_num_buttons - vbDefaultButton3
+            Case Is >= vbMsgBoxSetForeground            ' 65536    not implemented
+                ba_arg = ba_arg - vbMsgBoxSetForeground
+                ba_set_foreground = True
             
-            Case Is >= vbDefaultButton2                  ' 256
-                bn_num_buttons = bn_num_buttons - vbDefaultButton2
-                
-            Case Is >= vbInformation                      ' 64
-                bn_num_buttons = bn_num_buttons - vbInformation
+            Case Is >= vbMsgBoxHelpButton               ' 16384    not implemented: Display of a Help button
+                ba_arg = ba_arg - vbMsgBoxHelpButton
+                ba_help_button = True
+            
+            Case Is >= vbSystemModal                    ' 4096     not implemented
+                ba_arg = ba_arg - vbSystemModal
+                ba_system_modal = True
+            
+            Case Is >= vbDefaultButton4                 ' 768
+                ba_arg = ba_arg - vbDefaultButton4
+                ba_default_button = 4
+            Case Is >= vbDefaultButton3                 ' 512
+                ba_arg = ba_arg - vbDefaultButton3
+                ba_default_button = 3
+            
+            Case Is >= vbDefaultButton2                 ' 256
+                ba_arg = ba_arg - vbDefaultButton2
+                ba_default_button = 2
+            
+            Case Is >= vbInformation                    ' 64
+                ba_arg = ba_arg - vbInformation
+                ba_information = True
             
             Case Is >= vbExclamation                    ' 48
-                bn_num_buttons = bn_num_buttons - vbExclamation
+                ba_arg = ba_arg - vbExclamation
+                ba_exclamation = True
             
             Case Is >= vbQuestion                       ' 32
-                bn_num_buttons = bn_num_buttons - vbQuestion
-    
+                ba_arg = ba_arg - vbQuestion
+                ba_question = True
+            
             Case Is >= vbCritical                       ' 16
-                bn_num_buttons = bn_num_buttons - vbCritical
-    
+                ba_arg = ba_arg - vbCritical
+                ba_critical = True
         End Select
     Wend
-    ButtonsNumeric = bn_num_buttons
+    BttnsArgs = ba_arg
 
-xt: Exit Function
-
-eh:
 End Function
 
 Private Sub ConvertPixelsToPoints(Optional ByVal x_dpi As Single, _
@@ -455,33 +451,38 @@ Public Function Dsply(ByVal dsply_title As String, _
 ' Common VBA Message Display: A service using the Common VBA Message Form as an
 ' alternative to the VBA.MsgBox.
 '
-' Argument               | Description
-' ---------------------- + ----------------------------------------------------
-' dsply_title            | String, Title
-' dsply_msg              | UDT, Message
-' dsply_buttons          | Button captions as Collection
-' dsply_button_default   | Default button, either the index or the caption,
-'                        | defaults to 1 (= the first displayed button)
+' Argument                      | Description
+' ----------------------------- + ----------------------------------------------
+' dsply_title                   | String, Title
+' dsply_msg                     | UDT, Message
+' dsply_buttons                 | Button captions as Collection
+' dsply_button_default          | Default button, either the index or the
+'                               | caption, defaults to 1 (= the first displayed
+'                               | button)
 ' dsply_button_reply_with_index | Defaults to False, when True the index of the
-'                        | of the pressed button is returned else the caption
-'                        | or the VBA.MsgBox button value respectively
-' dsply_modeless         | The message is displayed modeless, defaults to False
-'                        | = vbModal
-' dsply_width_min        | Overwrites the default when not 0
-' dsply_width_max        | Overwrites the default when not 0
-' dsply_height_max       | Overwrites the default when not 0
-' dsply_button_width_min | Overwrites the default when not 0
+'                               | of the pressed button is returned else the
+'                               | caption or the VBA.MsgBox button value
+'                               | respectively
+' dsply_modeless                | The message is displayed modeless, defaults
+'                               | to False = vbModal
+' dsply_width_min               | Overwrites the default when not 0
+' dsply_width_max               | Overwrites the default when not 0
+' dsply_height_max              | Overwrites the default when not 0
+' dsply_button_width_min       | Overwrites the default when not 0
 '
 ' See: https://github.com/warbe-maker/Common-VBA-Message-Service
 '
 ' W. Rauschenberger, Berlin, Nov 2020
-' -------------------------------------------------------------------------------------
+' ------------------------------------------------------------------------------
     Const PROC = "Dsply"
     
     On Error GoTo eh
     Dim i       As Long
     Dim MsgForm As fMsg
 
+#If ExecTrace = 1 Then
+    mTrc.Pause
+#End If
     AssertWidthAndHeight dsply_width_min _
                        , dsply_width_max _
                        , dsply_height_min _
@@ -491,8 +492,9 @@ Public Function Dsply(ByVal dsply_title As String, _
     
     With MsgForm
         .ReplyWithIndex = dsply_button_reply_with_index
-        If dsply_height_max > 0 Then .MsgHeightMax = dsply_height_max ' percentage of screen height
-        If dsply_width_max > 0 Then .MsgWidthMax = dsply_width_max    ' percentage of screen width
+        '~~ Use dimensions when explicitely specified
+        If dsply_height_max > 0 Then .MsgHeightMax = dsply_height_max   ' percentage of screen height
+        If dsply_width_max > 0 Then .MsgWidthMax = dsply_width_max      ' percentage of screen width
         If dsply_width_min > 0 Then .MsgWidthMin = dsply_width_min      ' defaults to 300 pt. the absolute minimum is 200 pt
         If dsply_button_width_min > 0 Then .MinButtonWidth = dsply_button_width_min
         .MsgTitle = dsply_title
@@ -505,11 +507,13 @@ Public Function Dsply(ByVal dsply_title As String, _
         .MsgButtons = dsply_buttons
         .MsgButtonDefault = dsply_button_default
         '+------------------------------------------------------------------------+
-        '|| Setup prior showing the form improves the performance significantly  ||
-        '|| and avoids any flickering message window with its setup.             ||
-        '|| For testing purpose it may be appropriate to out-comment the Setup.  ||
+        '|| Setup prior showing the form is much faster and avoids flickering.   ||
+        '|| For testing - indicated by VisualizerControls = True and             ||
+        '|| dsply_modeless = True - prior Setup is suspended.                    ||
         '+------------------------------------------------------------------------+
-        .Setup '                                                                 ||
+        If Not (.VisualizeControls And dsply_modeless) Then
+            .Setup
+        End If
         If dsply_modeless Then
             DisplayDone = False
             .Show vbModeless
@@ -520,8 +524,12 @@ Public Function Dsply(ByVal dsply_title As String, _
         End If
     End With
     Dsply = RepliedWith
-
-xt: Exit Function
+    
+xt:
+#If ExecTrace = 1 Then
+    mTrc.Continue
+#End If
+    Exit Function
 
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Function
@@ -540,9 +548,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     Dim ErrNo       As Long
     Dim ErrDesc     As String
     Dim ErrType     As String
-    Dim ErrLine     As Long
     Dim ErrAtLine   As String
-    Dim ErrBttns    As Long
     Dim ErrMsgText  As TypeMsg
     Dim ErrAbout    As String
     Dim ErrTitle    As String
@@ -586,9 +592,9 @@ Public Function ErrMsg(ByVal err_source As String, _
     
     '~~ Prepare the Error Reply Buttons
 #If Debugging = 1 Then
-    mMsg.Buttons ErrButtons, vbResumeOk
+    Set ErrButtons = mMsg.Buttons(vbResumeOk)
 #Else
-    mMsg.Buttons ErrButtons, err_buttons
+    Set ErrButtons = mMsg.Buttons(err_buttons)
 #End If
         
     '~~ Display the error message by means of the mMsg's Dsply function
@@ -689,7 +695,7 @@ Public Function Monitor( _
     Const PROC = "Monitor"
    
     On Error GoTo eh
-    Dim msg     As TypeMsg
+    Dim Msg     As TypeMsg
     Dim MsgForm As fMsg
 
     AssertWidthAndHeight mntr_width_min _
@@ -697,39 +703,38 @@ Public Function Monitor( _
                        , mntr_height_min _
                        , mntr_height_max
     
-    Set MsgForm = MsgInstance(mntr_title)
-    msg.Section(1).Label.Text = mntr_header
-    msg.Section(1).Label.MonoSpaced = mntr_msg_monospaced
-    msg.Section(1).Label.FontBold = True
-    msg.Section(1).Text.Text = mntr_msg
-    msg.Section(1).Text.MonoSpaced = mntr_msg_monospaced
+    Set MsgForm = mMsg.MsgInstance(mntr_title)
+    Msg.Section(1).Label.Text = mntr_header
+    Msg.Section(1).Label.MonoSpaced = mntr_msg_monospaced
+    Msg.Section(1).Label.FontBold = True
+    Msg.Section(1).Text.Text = mntr_msg
+    Msg.Section(1).Text.MonoSpaced = mntr_msg_monospaced
     
-    msg.Section(2).Text.Text = mntr_footer
-    msg.Section(2).Text.FontColor = rgbBlue
-    msg.Section(2).Text.FontSize = 8
-    msg.Section(2).Text.FontBold = True
+    Msg.Section(2).Text.Text = mntr_footer
+    Msg.Section(2).Text.FontColor = rgbBlue
+    Msg.Section(2).Text.FontSize = 8
+    Msg.Section(2).Text.FontBold = True
     
     If Trim(MsgForm.MsgTitle) <> Trim(mntr_title) Then
         With MsgForm
             '~~ A new title starts a new progress message
             .MsgTitle = mntr_title
-            .MsgLabel(1) = msg.Section(1).Label
-            .MsgText(1) = msg.Section(1).Text
-            .MsgText(2) = msg.Section(2).Text
+            .MsgLabel(1) = Msg.Section(1).Label
+            .MsgText(1) = Msg.Section(1).Text
+            .MsgText(2) = Msg.Section(2).Text
             .MsgButtons = mntr_buttons
             .MsgWidthMin = mntr_width_min   ' pt min width
             .MsgWidthMax = mntr_width_max   ' pt max width
             .MsgHeightMin = mntr_height_min ' pt min height
             .MsgHeightMax = mntr_height_max ' pt max height
             .MonitorMode = True
-            .DsplyFrmsWthCptnTestOnly = False
+            .IndicateFrameCaptions = False
 
             '+------------------------------------------------------------------------+
-            '|| Setup prior showing the form improves the performance significantly  ||
-            '|| and avoids any flickering message window with its setup.             ||
+            '|| Setup prior showing the form is much faster and avoids flickering.   ||
             '|| For testing purpose it may be appropriate to out-comment the Setup.  ||
-            .Setup '                                                                 ||
             '+------------------------------------------------------------------------+
+            .Setup
             .Show vbModeless
             GoTo xt
         End With
@@ -738,7 +743,7 @@ Public Function Monitor( _
         Application.ScreenUpdating = False
         MsgForm.Monitor mntr_text:=mntr_msg _
                       , mntr_append:=mntr_msg_append _
-                      , mntr_footer:=msg.Section(2).Text.Text
+                      , mntr_footer:=Msg.Section(2).Text.Text
     End If
       
 xt: Exit Function
@@ -837,6 +842,34 @@ Public Function Prcnt(ByVal pc_value As Long, _
     End If
 End Function
 
+Private Function Qdequeue(ByRef qu As Collection) As Variant
+    Const PROC = "DeQueue"
+    
+    On Error GoTo eh
+    If qu Is Nothing Then GoTo xt
+    If QisEmpty(qu) Then GoTo xt
+    On Error Resume Next
+    Set Qdequeue = qu(1)
+    If Err.Number <> 0 _
+    Then Qdequeue = qu(1)
+    qu.Remove 1
+
+xt: Exit Function
+
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+End Function
+
+Private Sub Qenqueue(ByRef qu As Collection, ByVal qu_item As Variant)
+    If qu Is Nothing Then Set qu = New Collection
+    qu.Add qu_item
+End Sub
+
+Private Function QisEmpty(ByVal qu As Collection) As Boolean
+    If Not qu Is Nothing _
+    Then QisEmpty = qu.Count = 0 _
+    Else QisEmpty = True
+End Function
+
 Public Function RoundUp(ByVal v As Variant) As Variant
 ' -------------------------------------------------------------------------------------
 ' Returns (v) rounded up to the next integer. Note: to round down omit the "+ 0.5").
@@ -876,6 +909,54 @@ eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Function
 
 Public Sub StackPush(ByRef stck As Collection, _
+                     ByVal stck_item As Variant)
+' ----------------------------------------------------------------------------
+' Common Stack Push service. Pushes (adds) an item (stck_item) to the stack
+' (stck). When the provided stack (stck) is Nothing the stack is created.
+' ----------------------------------------------------------------------------
+    Const PROC = "StckPush"
+    
+    On Error GoTo eh
+    If stck Is Nothing Then Set stck = New Collection
+    stck.Add stck_item
+
+xt: Exit Sub
+
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+End Sub
+
+Private Function StckIsEmpty(ByVal stck As Collection) As Boolean
+' ----------------------------------------------------------------------------
+' Common Stack Empty check service. Returns True when either there is no stack
+' (stck Is Nothing) or when the stack is empty (items count is 0).
+' ----------------------------------------------------------------------------
+    StckIsEmpty = stck Is Nothing
+    If Not StckIsEmpty Then StckIsEmpty = stck.Count = 0
+End Function
+
+Private Function StckPop(ByVal stck As Collection) As Variant
+' ----------------------------------------------------------------------------
+' Common Stack Pop service. Returns the last item pushed on the stack (stck)
+' and removes the item from the stack. When the stack (stck) is empty a
+' vbNullString is returned.
+' ----------------------------------------------------------------------------
+    Const PROC = "StckPop"
+    
+    On Error GoTo eh
+    If StckIsEmpty(stck) Then GoTo xt
+    
+    On Error Resume Next
+    Set StckPop = stck(stck.Count)
+    If Err.Number <> 0 _
+    Then StckPop = stck(stck.Count)
+    stck.Remove stck.Count
+
+xt: Exit Function
+
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+End Function
+
+Private Sub StckPush(ByRef stck As Collection, _
                      ByVal stck_item As Variant)
 ' ----------------------------------------------------------------------------
 ' Common Stack Push service. Pushes (adds) an item (stck_item) to the stack

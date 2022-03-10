@@ -174,8 +174,8 @@ End Function
 '                                       , fd_exp_file_right_title:="Raw (hosted) Common Component code in Workbook/VBProject " & mBasic.BaseName(mComCompsRawsSaved.RawHostWbFullName(.CompName)) & " (" & sExpFileRaw & ")"
 '
 '        Else
-'            mMsg.Box box_title:="Not a known 'Common Component'!" _
-'                   , box_msg:="The provided component name '" & cmp_comp_name & "' is not registered/known as a 'Common Component'. " & _
+'            mMsg.Box Title:="Not a known 'Common Component'!" _
+'                   , Prompt:="The provided component name '" & cmp_comp_name & "' is not registered/known as a 'Common Component'. " & _
 '                              "To have this component been recognized by CompMan as a 'Common Component' one Workbook has to claim " & _
 '                              "hosting it as the 'Raw Used Common Component'."
 '        End If
@@ -196,7 +196,7 @@ Private Sub EstablishTraceLogFile(ByVal dt_wb As Workbook, _
 ' Establishes a trace log file in the serviced Workbook's parent folder.
 ' --------------------------------------------------------------------------
     Dim sFile As String
-    sFile = Replace(dt_wb.FullName, dt_wb.Name, "CompMan.Service.trc")
+    sFile = Replace(dt_wb.FullName, dt_wb.name, "CompMan.Service.trc")
 
     '~~ Even when dt_append = False: When the filke had been createde today dt_append will be set to True
     With New FileSystemObject
@@ -389,16 +389,16 @@ Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As Stri
                 '~~ Initially registers the Common Component in the ComComps-RawsSaved.dat file
                 '~~ Note: The Raw's Revision Number is updated whenever the raw is exported because it had been modified
                 mComCompsRawsSaved.RawHostWbFullName(v) = mService.Serviced.FullName
-                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.Name
+                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.name
                 mComCompsRawsSaved.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
                 Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
             ElseIf StrComp(mComCompsRawsSaved.RawHostWbFullName(v), mService.Serviced.FullName, vbTextCompare) <> 0 _
-                Or StrComp(mComCompsRawsSaved.RawHostWbName(v), mService.Serviced.Name, vbTextCompare) <> 0 Then
+                Or StrComp(mComCompsRawsSaved.RawHostWbName(v), mService.Serviced.name, vbTextCompare) <> 0 Then
                 '~~ Update the properties when they had changed - which may happen when the Raw Common Component's
                 '~~ host has changed
                 '~~ Note: The RevisionNumber is updated whenever the modified raw is exported
                 mComCompsRawsSaved.RawHostWbFullName(v) = mService.Serviced.FullName
-                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.Name
+                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.name
                 mComCompsRawsSaved.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
                 Log.Entry = "Raw Common Component '" & v & "' hosted changed properties updated"
             End If
@@ -488,7 +488,7 @@ Private Function SavedRawInconsitencyWarning(ByVal sri_raw_exp_file_full_name, _
     Const PROC = "SavedRawInconsitencyWarning"
     
     On Error GoTo eh
-    Dim msg         As mMsg.TypeMsg
+    Dim Msg         As mMsg.TypeMsg
     Dim cllBttns    As Collection
     Dim BttnDsply   As String
     Dim BttnSkip    As String
@@ -499,7 +499,7 @@ Private Function SavedRawInconsitencyWarning(ByVal sri_raw_exp_file_full_name, _
     BttnAnyway = "I know the reason!" & vbLf & "go ahead updating" & vbLf & "(not recommended!)"
     
     mMsg.Buttons cllBttns, BttnDsply, vbLf, BttnAnyway, vbLf, BttnSkip
-    With msg.Section(1)
+    With Msg.Section(1)
         With .Label
             .Text = "Attention!"
             .FontColor = rgbRed
@@ -509,7 +509,7 @@ Private Function SavedRawInconsitencyWarning(ByVal sri_raw_exp_file_full_name, _
             .FontColor = rgbRed
         End With
     End With
-    With msg.Section(2)
+    With Msg.Section(2)
         .Label.Text = "Background:"
         .Text.Text = "When a Raw Common Component is modified within its hosting Workbook it is not only exported. " & _
                      "Its 'Revision Number' is increased and the 'Export File' is copied into the 'Common Components' " & _
@@ -520,7 +520,7 @@ Private Function SavedRawInconsitencyWarning(ByVal sri_raw_exp_file_full_name, _
         
     Do
         Select Case mMsg.Dsply(dsply_title:="Serious inconsistency warning!" _
-                             , dsply_msg:=msg _
+                             , dsply_msg:=Msg _
                              , dsply_buttons:=cllBttns _
                               )
             Case BttnDsply
@@ -613,7 +613,7 @@ Public Function UpdateOutdatedCommonComponents( _
     ElseIf Not uo_wb.FullName Like mConfig.FolderServiced & "*" Then
         '~~ The serviced Workbook is located outside the serviced folder
         UpdateOutdatedCommonComponents = AppErr(2)
-    ElseIf mMe.IsDevInstnc And uo_wb.Name = mMe.DevInstncName Then
+    ElseIf mMe.IsDevInstnc And uo_wb.name = mMe.DevInstncName Then
         '~~ The servicing and the serviced Workbook are both the 'CompMan Development Instance'
         '~~ This is the case when either no CompMan-Addin-Instance is available or it is currently paused
         UpdateOutdatedCommonComponents = AppErr(3)
@@ -694,7 +694,7 @@ Public Function WbkIsOpen( _
         WbkIsOpen = Err.Number = 0
     Else
         On Error Resume Next
-        io_name = Application.Workbooks(io_name).Name
+        io_name = Application.Workbooks(io_name).name
         WbkIsOpen = Err.Number = 0
     End If
 
