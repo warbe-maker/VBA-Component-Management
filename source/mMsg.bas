@@ -109,13 +109,12 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
     If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function
 
-Public Sub AssertWidthAndHeight(ByRef width_min As Long, _
-                                ByRef WIDTH_MAX As Long, _
-                                ByRef height_min As Long, _
-                                ByRef height_max As Long)
+Public Sub AssertWidthAndHeight(Optional ByRef width_min As Long = 0, _
+                                Optional ByRef width_max As Long = 0, _
+                                Optional ByRef height_min As Long = 0, _
+                                Optional ByRef height_max As Long = 0)
 ' ------------------------------------------------------------------------------
-' Returns all provided arguments in pt. When any value is not asserted valid
-' a corresponding return code is returned.
+' Returns all provided arguments in pt.
 ' When the min width is greater than the max width it is set equal with the max
 ' When the height min is greater than the height max it is set to the max limit.
 ' A min width below the min width limit is set to the min limit
@@ -132,17 +131,17 @@ Public Sub AssertWidthAndHeight(ByRef width_min As Long, _
     Dim MsgHeightMinLimitPt As Long:    MsgHeightMinLimitPt = Pnts(MSG_HEIGHT_MIN_LIMIT_PERCENTAGE, "h")
     
     '~~ Convert all percentage arguments into pt arguments
-    If WIDTH_MAX <> 0 And WIDTH_MAX <= 100 Then WIDTH_MAX = Pnts(WIDTH_MAX, "w")
+    If width_max <> 0 And width_max <= 100 Then width_max = Pnts(width_max, "w")
     If width_min <> 0 And width_min <= 100 Then width_min = Pnts(width_min, "w")
     If height_max <> 0 And height_max <= 100 Then height_max = Pnts(height_max, "h")
     If height_min <> 0 And height_min <= 100 Then height_min = Pnts(height_min, "h")
         
     '~~ Provide sensible values for all invalid, improper, or useless
-    If width_min > WIDTH_MAX Then width_min = WIDTH_MAX
+    If width_min > width_max Then width_min = width_max
     If height_min > height_max Then height_min = height_max
     If width_min < MsgWidthMinLimitPt Then width_min = MsgWidthMinLimitPt
-    If WIDTH_MAX <= width_min Then WIDTH_MAX = width_min
-    If WIDTH_MAX > MsgWidthMaxLimitPt Then WIDTH_MAX = MsgWidthMaxLimitPt
+    If width_max <= width_min Then width_max = width_min
+    If width_max > MsgWidthMaxLimitPt Then width_max = MsgWidthMaxLimitPt
     If height_min < MsgHeightMinLimitPt Then height_min = MsgHeightMinLimitPt
     If height_max = 0 Or height_max < height_min Then height_max = height_min
     If height_max > MsgHeightMaxLimitPt Then height_max = MsgHeightMaxLimitPt
@@ -257,6 +256,7 @@ Public Function Buttons(ParamArray bttns() As Variant) As Collection
     End If
     If UBound(bttns) = -1 Then GoTo xt
     If UBound(bttns) = 0 Then
+        If TypeName(bttns(0)) = "Nothing" Then GoTo xt
         '~~ When only one item is provided it may be a Collection, a Dictionary, a single string or numeric item, or
         '~~ a string with comma or semicolon delimited items
         If lRows > 7 Then GoTo xt
@@ -657,95 +657,90 @@ Private Function Max(ParamArray va() As Variant) As Variant
     
 End Function
 
-Public Function Monitor( _
-                   ByVal mntr_title As String, _
-                   ByRef mntr_msg As String, _
-          Optional ByVal mntr_header As String = vbNullString, _
-          Optional ByVal mntr_buttons As Variant = vbNullString, _
-          Optional ByVal mntr_footer As String = "Process in progress! Please wait.", _
-          Optional ByVal mntr_msg_append As Boolean = True, _
-          Optional ByVal mntr_msg_monospaced As Boolean = False, _
-          Optional ByVal mntr_width_min As Long = 40, _
-          Optional ByVal mntr_width_max As Long = 85, _
-          Optional ByVal mntr_height_min As Long = 20, _
-          Optional ByVal mntr_height_max As Long = 85) As Variant
-' -------------------------------------------------------------------------------------
-' Displays an instance of the Common VBA Message Form (fMsg) modeless for a series of
-' progress messages. When no instance for the provided title (mntr_title) exists one
-' is created, else the existing instance is used. This allows multiple modeless message
-' windows at the same time. Arguments:
-' - mntr_title ........: Text displayed at the window handele bar. Identifies the
-'                         progress. I.e. a different title would display a process in
-'                         another instance of the fMsg form.
-' - mntr_msg ..........: The process message displayed.
-' - mntr_header .......: The text displayed above the mntr_msg
-' - mntr_footer .......: The text displayed below the mntr_msg.
-'                         Defaults to "Process in progress! Please wait."
-' - mntr_msg_append ...: Defaults to True. Any text provided with mntr_msg is
-'                         appended to the text already displayed
-' - mntr_msg_monospaced: Displays the mntr_msg monospaced
-' - mntr_width_min ....: Defaults to 400
-' - mntr_width_max ....: Defaults to 80% of the screen size
-' - mntr_height_max ...: Defaults to 70% of the screen size
+
+Public Function Monitor(ByVal mon_title As String, _
+               Optional ByVal mon_header As String = vbNullString, _
+               Optional ByVal mon_footer As String = vbNullString, _
+               Optional ByVal mon_step As String = vbNullString, _
+               Optional ByVal mon_steps_monospaced As Boolean = True, _
+               Optional ByVal mon_steps_visible As Long = 10, _
+               Optional ByVal mon_width_min As Long = 25, _
+               Optional ByVal mon_width_max As Long = 85, _
+               Optional ByVal mon_height_max As Long = 85, _
+               Optional ByVal mon_pos As Range = Nothing) As fMsg
+' ------------------------------------------------------------------------------
 '
-' See: https://warbe-maker.github.io/vba/common/2020/11/17/Common-VBA-Message-Form.html
-'
-' W. Rauschenberger, Berlin, May 2021
-' -------------------------------------------------------------------------------------
+' ------------------------------------------------------------------------------
     Const PROC = "Monitor"
-   
+    
     On Error GoTo eh
-    Dim Msg     As TypeMsg
-    Dim MsgForm As fMsg
-
-    AssertWidthAndHeight mntr_width_min _
-                       , mntr_width_max _
-                       , mntr_height_min _
-                       , mntr_height_max
-    
-    Set MsgForm = mMsg.MsgInstance(mntr_title)
-    Msg.Section(1).Label.Text = mntr_header
-    Msg.Section(1).Label.MonoSpaced = mntr_msg_monospaced
-    Msg.Section(1).Label.FontBold = True
-    Msg.Section(1).Text.Text = mntr_msg
-    Msg.Section(1).Text.MonoSpaced = mntr_msg_monospaced
-    
-    Msg.Section(2).Text.Text = mntr_footer
-    Msg.Section(2).Text.FontColor = rgbBlue
-    Msg.Section(2).Text.FontSize = 8
-    Msg.Section(2).Text.FontBold = True
-    
-    If Trim(MsgForm.MsgTitle) <> Trim(mntr_title) Then
-        With MsgForm
-            '~~ A new title starts a new progress message
-            .MsgTitle = mntr_title
-            .MsgLabel(1) = Msg.Section(1).Label
-            .MsgText(1) = Msg.Section(1).Text
-            .MsgText(2) = Msg.Section(2).Text
-            .MsgButtons = mntr_buttons
-            .MsgWidthMin = mntr_width_min   ' pt min width
-            .MsgWidthMax = mntr_width_max   ' pt max width
-            .MsgHeightMin = mntr_height_min ' pt min height
-            .MsgHeightMax = mntr_height_max ' pt max height
-            .MonitorMode = True
-            .IndicateFrameCaptions = False
-
-            '+------------------------------------------------------------------------+
-            '|| Setup prior showing the form is much faster and avoids flickering.   ||
-            '|| For testing purpose it may be appropriate to out-comment the Setup.  ||
-            '+------------------------------------------------------------------------+
-            .Setup
-            .Show vbModeless
-            GoTo xt
-        End With
-    Else
-        '~~ Another progress message with the same title is appended or relpaces the message in the provided section
-        Application.ScreenUpdating = False
-        MsgForm.Monitor mntr_text:=mntr_msg _
-                      , mntr_append:=mntr_msg_append _
-                      , mntr_footer:=Msg.Section(2).Text.Text
+    Static fMon As fMsg
+            
+    Set fMon = MonitorInitialize(mon_title:=mon_title _
+                               , mon_steps_displayed:=mon_steps_visible _
+                               , mon_steps_monospaced:=mon_steps_monospaced _
+                               , mon_header:=mon_header _
+                               , mon_footer:=mon_footer _
+                               , mon_width_min:=mon_width_min _
+                               , mon_width_max:=mon_width_max _
+                               , mon_height_max:=mon_height_max _
+                               , mon_pos:=mon_pos _
+                                )
+        
+    If mon_step <> vbNullString Or mon_footer <> vbNullString Then
+        fMon.MonitorStep mon_step:=mon_step _
+                       , mon_steps_monospaced:=mon_steps_monospaced _
+                       , mon_footer:=mon_footer
     End If
-      
+    Set Monitor = fMon
+    
+xt: Exit Function
+
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+End Function
+
+Private Function MonitorInitialize(ByVal mon_title As String, _
+                                   ByVal mon_steps_displayed As Long, _
+                          Optional ByVal mon_footer As String = vbNullString, _
+                          Optional ByVal mon_header As String = vbNullString, _
+                          Optional ByVal mon_height_max As Long, _
+                          Optional ByVal mon_pos As Range = Nothing, _
+                          Optional ByVal mon_steps_monospaced As Boolean = False, _
+                          Optional ByVal mon_width_max As Long, _
+                          Optional ByVal mon_width_min As Long) As fMsg
+' ------------------------------------------------------------------------------
+' Establish a monitor window for n (mon_steps) steps by creating the
+' corresponding number of - st first invisible - text boxes
+' ------------------------------------------------------------------------------
+    Const PROC = "MonitorInitialize"
+    
+    On Error GoTo eh
+    Dim fMon    As fMsg
+        
+    AssertWidthAndHeight width_min:=mon_width_min _
+                       , width_max:=mon_width_max _
+                       , height_max:=mon_height_max
+    
+    Set fMon = mMsg.MsgInstance(mon_title)
+    With fMon
+        .SetupDone = True ' Bypass regular message setup
+        .MsgHeightMax = mon_height_max
+        .MsgWidthMax = mon_width_max
+        .MsgWidthMin = mon_width_min
+        
+        .MonitorInitialize mon_title:=mon_title _
+                         , mon_steps_displayed:=mon_steps_displayed _
+                         , mon_steps_monospaced:=mon_steps_monospaced _
+                         , mon_header:=mon_header _
+                         , mon_footer:=mon_footer
+    End With
+    If Not mon_pos Is Nothing Then
+        ShowAtRange fMon, mon_pos, False
+    Else
+        fMon.Show False
+    End If
+    Set MonitorInitialize = fMon
+        
 xt: Exit Function
 
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
@@ -840,34 +835,6 @@ Public Function Prcnt(ByVal pc_value As Long, _
     Else
         Prcnt = pc_value
     End If
-End Function
-
-Private Function Qdequeue(ByRef qu As Collection) As Variant
-    Const PROC = "DeQueue"
-    
-    On Error GoTo eh
-    If qu Is Nothing Then GoTo xt
-    If QisEmpty(qu) Then GoTo xt
-    On Error Resume Next
-    Set Qdequeue = qu(1)
-    If Err.Number <> 0 _
-    Then Qdequeue = qu(1)
-    qu.Remove 1
-
-xt: Exit Function
-
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-End Function
-
-Private Sub Qenqueue(ByRef qu As Collection, ByVal qu_item As Variant)
-    If qu Is Nothing Then Set qu = New Collection
-    qu.Add qu_item
-End Sub
-
-Private Function QisEmpty(ByVal qu As Collection) As Boolean
-    If Not qu Is Nothing _
-    Then QisEmpty = qu.Count = 0 _
-    Else QisEmpty = True
 End Function
 
 Public Function RoundUp(ByVal v As Variant) As Variant
@@ -972,4 +939,50 @@ xt: Exit Sub
 
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
+
+Private Sub ShowAtRange(ByVal sar_form As Object, _
+                        ByVal sar_rng As Range, _
+               Optional ByVal sar_modal As Boolean = True)
+' ----------------------------------------------------------------------------
+'
+' ----------------------------------------------------------------------------
+    Dim PosLeft As Single
+    Dim PosTop As Single
+
+    If ActiveWindow.FreezePanes Then
+       PosLeft = ActiveWindow.Panes(GetPanesIndex(sar_rng)).PointsToScreenPixelsX(sar_rng.Left)
+       PosTop = ActiveWindow.Panes(GetPanesIndex(sar_rng)).PointsToScreenPixelsY(sar_rng.Top + sar_rng.Height)
+    Else
+       PosLeft = ActiveWindow.ActivePane.PointsToScreenPixelsX(sar_rng.Left)
+       PosTop = ActiveWindow.ActivePane.PointsToScreenPixelsY(sar_rng.Top + sar_rng.Height)
+    End If
+
+    ConvertPixelsToPoints PosLeft, PosTop, PosLeft, PosTop
+
+    With sar_form
+       .StartUpPosition = 0
+       .Left = PosLeft
+       .Top = PosTop
+       .Show sar_modal
+    End With
+
+End Sub
+
+Private Function GetPanesIndex(ByVal Rng As Range) As Integer
+    Dim sr As Long:          sr = ActiveWindow.SplitRow
+    Dim sc As Long:          sc = ActiveWindow.SplitColumn
+    Dim r As Long:            r = Rng.Row
+    Dim c As Long:            c = Rng.Column
+    Dim Index As Integer: Index = 1
+
+    Select Case True
+    Case sr = 0 And sc = 0: Index = 1
+    Case sr = 0 And sc > 0 And c > sc: Index = 2
+    Case sr > 0 And sc = 0 And r > sr: Index = 2
+    Case sr > 0 And sc > 0 And r > sr: If c > sc Then Index = 4 Else Index = 3
+    Case sr > 0 And sc > 0 And c > sc: If r > sr Then Index = 4 Else Index = 2
+    End Select
+
+    GetPanesIndex = Index
+End Function
 

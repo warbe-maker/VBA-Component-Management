@@ -131,9 +131,12 @@ Public Function UpdateConfirmed(ByRef uo_comp As clsComp) As Boolean
     sBttnDsplyChanges = "Display code changes" & vbLf & vbLf & mBasic.Spaced(sCompName)
     sBttnUpdate = "Update" & vbLf & vbLf & mBasic.Spaced(sCompName)
     sBttnSkip = "Skip this update"
-    mMsg.Buttons cllButtons, sBttnDsplyChanges _
-                     , vbLf, sBttnUpdate _
-                     , vbLf, sBttnSkip
+    Set cllButtons = mMsg.Buttons(sBttnDsplyChanges _
+                                , vbLf _
+                                , sBttnUpdate _
+                                , vbLf _
+                                , sBttnSkip _
+                                 )
     With sMsg
         If uo_comp.DueModificationWarning Then
             With .Section(1)

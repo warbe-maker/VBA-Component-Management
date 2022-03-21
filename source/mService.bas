@@ -471,8 +471,8 @@ Private Function SyncSourceAndTargetSelected( _
         
         '~~ Buttons preparation
         If Not bWbTarget Or Not bWbSource _
-        Then mMsg.Buttons Buttons, sBttnSourceProject, sBttnTargetProject, vbLf, sBttnTerminate _
-        Else mMsg.Buttons Buttons, sBttnSourceTargetCnfrmd, vbLf, sBttnSourceProject, sBttnTargetProject
+        Then Set Buttons = mMsg.Buttons(sBttnSourceProject, sBttnTargetProject, vbLf, sBttnTerminate) _
+        Else Set Buttons = mMsg.Buttons(sBttnSourceTargetCnfrmd, vbLf, sBttnSourceProject, sBttnTargetProject)
         
         sReply = mMsg.Dsply(dsply_title:="Basic configuration of the Component Management (CompMan Addin)" _
                           , dsply_msg:=sMsg _

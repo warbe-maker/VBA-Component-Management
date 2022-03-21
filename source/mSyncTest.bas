@@ -123,7 +123,7 @@ xt: With New FileSystemObject
             Set flLog = .GetFile(Log.File)
             BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
             BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
-            mMsg.Buttons bttns, BttnDelete, BttnKeep
+            Set bttns = mMsg.Buttons(BttnDelete, BttnKeep)
             If mMsg.Box(Title:=PROC & " Log-File" _
                       , Prompt:=mFile.Txt(.GetFile(Log.File)) _
                       , box_monospaced:=True _
@@ -183,7 +183,7 @@ xt: With New FileSystemObject
             Set flLog = .GetFile(Log.File)
             BttnDelete = "Delete Log-File" & vbLf & .GetFileName(Log.File)
             BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
-            mMsg.Buttons bttns, BttnDelete, BttnKeep
+            Set bttns = mMsg.Buttons(BttnDelete, BttnKeep)
             If mMsg.Box(Title:=PROC & " Log-File" _
                       , Prompt:=mFile.Txt(.GetFile(Log.File)) _
                       , box_monospaced:=True _

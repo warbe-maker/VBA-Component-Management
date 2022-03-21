@@ -498,7 +498,7 @@ Private Function SavedRawInconsitencyWarning(ByVal sri_raw_exp_file_full_name, _
     BttnSkip = "Do not update!" & vbLf & "further investigation" & vbLf & "is required"
     BttnAnyway = "I know the reason!" & vbLf & "go ahead updating" & vbLf & "(not recommended!)"
     
-    mMsg.Buttons cllBttns, BttnDsply, vbLf, BttnAnyway, vbLf, BttnSkip
+    Set cllBttns = mMsg.Buttons(BttnDsply, vbLf, BttnAnyway, vbLf, BttnSkip)
     With Msg.Section(1)
         With .Label
             .Text = "Attention!"

@@ -267,13 +267,13 @@ Private Function GetSyncIssuesConfirmed() As Boolean
             '~~ be mapped between the source and the target Workbook are either obsolete or new. The mapping inability
             '~~ may indicate that both sheet names (Name and CodeName) had been changed which cannot be synchronized
             '~~ because of the missing mapping.
-            mMsg.Buttons cllButtons, sBttnRestricted, sBttnTrmnt, vbLf
+            Set cllButtons = mMsg.Buttons(sBttnRestricted, sBttnTrmnt, vbLf)
             sMsg.Section(3).Text.Text = "1) Sheets in the source Workbbook of which neither the Name nor the CodeName refers to a counterpart in the target Workbook " & _
                                     "are regarded  " & mBasic.Spaced("new") & ". Sheets in the target Workbook in contrast are regarded  " & mBasic.Spaced("obsolete.") & _
                                     "  However, this assumption only holds true when  " & mBasic.Spaced("never") & "  a sheet's Name  a n d  its CodeName is changed. " & _
                                     "Because this is absolutely crucial for this syncronization it needs to be explicitely  " & mBasic.Spaced("asserted.")
         Else
-            mMsg.Buttons cllButtons, sBttnCnfrmd, sBttnTrmnt, vbLf
+            Set cllButtons = mMsg.Buttons(sBttnCnfrmd, sBttnTrmnt, vbLf)
             sMsg.Section(3).Text.Text = "2) New and Obsolete sheets had been made unambigous by the assertion that never a sheet's Name  a n d  its CodeName is changed."
         End If
         

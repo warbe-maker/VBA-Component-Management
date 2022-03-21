@@ -17,6 +17,8 @@ Private sProgressMsg    As String
 
 Public Property Let CompManAddInPausedStatus(ByVal s As String):        Me.Range("rngCompManPauseStatus").Value = s:            End Property
 
+Private Property Get MonitorAnchor() As Range:                          Set MonitorAnchor = Me.Range("celMonitorAnchor"):       End Property
+
 Public Property Get CurrentStatus() As String:                          CurrentStatus = Me.Range("rngCurrentStatus").Value:     End Property
 
 Public Property Let CurrentStatus(ByVal s As String)
@@ -41,45 +43,53 @@ Public Sub LogRenewStep( _
 ' ---------------------------------------------------------------
 '
 ' ---------------------------------------------------------------
-    Dim msg As String
-    Dim l   As Long: l = mMe.RenewStep
+    Dim Msg As String
+    Dim L   As Long: L = mMe.RenewStep
     
-    RenewStep = l
+    RenewStep = L
     If rn_result <> vbNullString Then RenewResult = rn_result
     If rn_action <> vbNullString Then RenewAction = rn_action
     If RenewResult <> vbNullString Then ProgressMsg ' RenewStep, RenewResult, RenewAction
     
-    If RenewStep > 1 And RenewResult <> vbNullString Then
-        msg = sProgressMsg
+    If RenewStep > 0 And RenewResult <> vbNullString Then
+        Msg = sProgressMsg
         If Not rn_last_step Then
-            mMsg.Monitor mntr_title:="Establish or renew CompMan as Addin" _
-                       , mntr_msg:=msg _
-                       , mntr_msg_monospaced:=True _
-                       , mntr_width_min:=600
+            mMsg.Monitor mon_title:="Establish or renew CompMan as Addin" _
+                       , mon_step:=Msg _
+                       , mon_steps_monospaced:=True _
+                       , mon_steps_visible:=15 _
+                       , mon_width_min:=600 _
+                       , mon_pos:=MonitorAnchor
         Else
             If mMe.RenewTerminatedByUser Then
-                mMsg.Monitor mntr_title:="Establish or renew CompMan as Addin" _
-                           , mntr_msg:=msg _
-                           , mntr_msg_monospaced:=True _
-                           , mntr_footer:="Renew process terminated by user! Close window." _
-                           , mntr_width_min:=600
+                mMsg.Monitor mon_title:="Establish or renew CompMan as Addin" _
+                           , mon_step:=Msg _
+                           , mon_steps_monospaced:=True _
+                           , mon_steps_visible:=15 _
+                           , mon_footer:="Renew process terminated by user! Close window." _
+                           , mon_width_min:=600 _
+                           , mon_pos:=MonitorAnchor
             Else
                 If Not rn_renew_failed Then
-                    mMsg.Monitor mntr_title:="Establish or renew CompMan as Addin" _
-                               , mntr_msg:=msg _
-                               , mntr_msg_monospaced:=True _
-                               , mntr_footer:="Renew process  " & mBasic.Spaced("successfully") & "  finished! Close window." _
-                               , mntr_width_min:=600
+                    mMsg.Monitor mon_title:="Establish or renew CompMan as Addin" _
+                               , mon_step:=Msg _
+                               , mon_steps_monospaced:=True _
+                               , mon_steps_visible:=15 _
+                               , mon_footer:="Renew process  " & mBasic.Spaced("successfully") & "  finished! Close window." _
+                               , mon_width_min:=600 _
+                               , mon_pos:=MonitorAnchor
                 Else
-                    mMsg.Monitor mntr_title:="Establish or renew CompMan as Addin" _
-                               , mntr_msg:=msg _
-                               , mntr_msg_monospaced:=True _
-                               , mntr_footer:="Renew process  " & mBasic.Spaced("failed") & "  Close window and " & vbLf & _
+                    mMsg.Monitor mon_title:="Establish or renew CompMan as Addin" _
+                               , mon_step:=Msg _
+                               , mon_steps_monospaced:=True _
+                               , mon_steps_visible:=15 _
+                               , mon_footer:="Renew process  " & mBasic.Spaced("failed") & "  Close window and " & vbLf & _
                                               "the only way to solve this problem:" & vbLf & _
                                               "1. Close all application and restart the computer" & vbLf & _
                                               "2. Remove the CompMan.xlma from its folder" & vbLf & _
                                               "3. Reopen CompMan.xlsb and repeat this Renew (then a setup in fact)." _
-                               , mntr_width_min:=600
+                               , mon_width_min:=600 _
+                               , mon_pos:=MonitorAnchor
                 End If
             End If
         End If
