@@ -22,7 +22,7 @@ Option Explicit
 '
 ' See: https://github.com/warbe-maker/Common-VBA-Message-Service
 '
-' W. Rauschenberger, Berlin Jan 2021 (last revision)
+' W. Rauschenberger, Berlin Feb 2022 (last revision)
 ' ------------------------------------------------------------------------------
 ' ------------------------------------------------------------
 ' Means to get and calculate the display devices DPI in points
@@ -37,6 +37,14 @@ Private Declare PtrSafe Function GetSystemMetrics32 Lib "user32" Alias "GetSyste
 Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
 Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
+
+' Declarations for making a UserForm resizable
+Private Declare PtrSafe Function GetForegroundWindow Lib "User32.dll" () As Long
+Private Declare PtrSafe Function GetWindowLong Lib "User32.dll" Alias "GetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long) As Long
+Private Declare PtrSafe Function SetWindowLong Lib "User32.dll" Alias "SetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+Private Const WS_THICKFRAME As Long = &H40000
+Private Const GWL_STYLE As Long = -16
+
 ' ------------------------------------------------------------
 Public Const MSG_WIDTH_MIN_LIMIT_PERCENTAGE     As Long = 25
 Public Const MSG_WIDTH_MAX_LIMIT_PERCENTAGE     As Long = 98
@@ -52,16 +60,6 @@ Public Const vbResume                           As Long = 6 ' return value (equa
 
 Public ProgressText As String
 
-Public Type TypeMsgLabel
-        FontBold As Boolean
-        FontColor As XlRgbColor
-        FontItalic As Boolean
-        FontName As String
-        FontSize As Long
-        FontUnderline As Boolean
-        MonoSpaced As Boolean ' overwrites any FontName
-        Text As String
-End Type
 Public Type TypeMsgText
         FontBold As Boolean
         FontColor As XlRgbColor
@@ -73,16 +71,32 @@ Public Type TypeMsgText
         Text As String
 End Type
 Public Type TypeMsgSect
-       Label As TypeMsgLabel
+       Label As TypeMsgText
        Text As TypeMsgText
 End Type
 Public Type TypeMsg
     Section(1 To 4) As TypeMsgSect
 End Type
 
+Public Enum KindOfText
+    m_header
+    m_footer
+    m_step
+    m_text
+    m_label
+End Enum
+
 Private bModeless       As Boolean
 Public DisplayDone      As Boolean
 Public RepliedWith      As Variant
+
+Private MsgText1                As TypeMsgText  ' common text element
+Private TextMonitorHeader       As TypeMsgText
+Private TextMonitorFooter       As TypeMsgText
+Private TextMonitorStep         As TypeMsgText
+Private TextMsg                 As TypeMsgText
+Private TextLabel               As TypeMsgText
+Private TextSection             As TypeMsg
 
 Public Property Get Modeless() As Boolean:          Modeless = bModeless:   End Property
 
@@ -96,6 +110,55 @@ End Property
 Public Property Get ScreenWidth() As Single
 '    Debug.Print "Screen-Width: " & GetSystemMetrics32(SM_CXVIRTUALSCREEN) & " dpi"
     ConvertPixelsToPoints x_dpi:=GetSystemMetrics32(SM_CXVIRTUALSCREEN), x_pts:=ScreenWidth
+End Property
+
+Private Property Get Text(Optional ByVal txt_part As KindOfText, _
+                          Optional ByVal txt_section As Long = 1) As TypeMsgText
+' ------------------------------------------------------------------------------
+' Returns the provided text as section-text or -label, monitor-header,
+' -footer, or -step.
+' ------------------------------------------------------------------------------
+    Select Case txt_part
+        Case m_header:    MsgText1 = TextMonitorHeader
+        Case m_footer:    MsgText1 = TextMonitorFooter
+        Case m_step:      MsgText1 = TextMonitorStep
+        Case m_text:      TextSection.Section(txt_section).Text = TextMsg
+        Case m_label:     TextSection.Section(txt_section).Label = TextLabel
+    End Select
+    
+    Text.FontBold = MsgText1.FontBold
+    Text.FontColor = MsgText1.FontColor
+    Text.FontItalic = MsgText1.FontItalic
+    Text.FontName = MsgText1.FontName
+    Text.FontSize = MsgText1.FontSize
+    Text.FontUnderline = MsgText1.FontUnderline
+    Text.MonoSpaced = MsgText1.MonoSpaced
+    Text.Text = MsgText1.Text
+
+End Property
+
+Private Property Let Text(Optional ByVal txt_part As KindOfText, _
+                          Optional ByVal txt_section As Long = 1, _
+                                   ByRef txt_text As TypeMsgText)
+' ------------------------------------------------------------------------------
+' Provide text as section text, section label, monitor header, footer or step.
+' ------------------------------------------------------------------------------
+    MsgText1.FontBold = txt_text.FontBold
+    MsgText1.FontColor = txt_text.FontColor
+    MsgText1.FontItalic = txt_text.FontItalic
+    MsgText1.FontName = txt_text.FontName
+    MsgText1.FontSize = txt_text.FontSize
+    MsgText1.FontUnderline = txt_text.FontUnderline
+    MsgText1.MonoSpaced = txt_text.MonoSpaced
+    MsgText1.Text = txt_text.Text
+    Select Case txt_part
+        Case m_header:    TextMonitorHeader = MsgText1
+        Case m_footer:    TextMonitorFooter = MsgText1
+        Case m_step:      TextMonitorStep = MsgText1
+        Case m_text:      TextSection.Section(txt_section).Text = MsgText1
+        Case m_label:     TextSection.Section(txt_section).Label = MsgText1
+    End Select
+
 End Property
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
@@ -212,6 +275,79 @@ Public Function Box(ByVal Prompt As String, _
 xt: Exit Function
 
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+End Function
+
+Public Function BttnsArgs(ByVal ba_arg As Long, _
+                 Optional ByRef ba_rtl_reading As Boolean, _
+                 Optional ByRef ba_box_right As Boolean, _
+                 Optional ByRef ba_set_foreground As Boolean, _
+                 Optional ByRef ba_help_button As Boolean, _
+                 Optional ByRef ba_system_modal As Boolean, _
+                 Optional ByRef ba_default_button As Long, _
+                 Optional ByRef ba_information As Boolean, _
+                 Optional ByRef ba_exclamation As Boolean, _
+                 Optional ByRef ba_question As Boolean, _
+                 Optional ByRef ba_critical As Boolean) As Long
+' -------------------------------------------------------------------------------------
+' Returns the Buttons argument (ba_arg) with all the options removed by returning them
+' as optional arguments. In order to mimic the Buttons argument of the VBA.MsgBox any
+' values added for other options but the display of the buttons are unstripped/deducted.
+' I.e. the values are deducted and the corresponding argument is returtned instead).
+' -------------------------------------------------------------------------------------
+        
+    While ba_arg >= vbCritical                          ' 16
+        Select Case ba_arg
+            '~~ VBA.MsgBox Display options
+            Case Is >= vbMsgBoxRtlReading               ' 1048576  not implemented
+                ba_arg = ba_arg - vbMsgBoxRtlReading
+                ba_rtl_reading = True
+            
+            Case Is >= vbMsgBoxRight                    ' 524288   not implemented
+                ba_arg = ba_arg - vbMsgBoxRight
+                ba_box_right = True
+            
+            Case Is >= vbMsgBoxSetForeground            ' 65536    not implemented
+                ba_arg = ba_arg - vbMsgBoxSetForeground
+                ba_set_foreground = True
+            
+            Case Is >= vbMsgBoxHelpButton               ' 16384    not implemented: Display of a Help button
+                ba_arg = ba_arg - vbMsgBoxHelpButton
+                ba_help_button = True
+            
+            Case Is >= vbSystemModal                    ' 4096     not implemented
+                ba_arg = ba_arg - vbSystemModal
+                ba_system_modal = True
+            
+            Case Is >= vbDefaultButton4                 ' 768
+                ba_arg = ba_arg - vbDefaultButton4
+                ba_default_button = 4
+            Case Is >= vbDefaultButton3                 ' 512
+                ba_arg = ba_arg - vbDefaultButton3
+                ba_default_button = 3
+            
+            Case Is >= vbDefaultButton2                 ' 256
+                ba_arg = ba_arg - vbDefaultButton2
+                ba_default_button = 2
+            
+            Case Is >= vbInformation                    ' 64
+                ba_arg = ba_arg - vbInformation
+                ba_information = True
+            
+            Case Is >= vbExclamation                    ' 48
+                ba_arg = ba_arg - vbExclamation
+                ba_exclamation = True
+            
+            Case Is >= vbQuestion                       ' 32
+                ba_arg = ba_arg - vbQuestion
+                ba_question = True
+            
+            Case Is >= vbCritical                       ' 16
+                ba_arg = ba_arg - vbCritical
+                ba_critical = True
+        End Select
+    Wend
+    BttnsArgs = ba_arg
+
 End Function
 
 Private Function BttnsNo(ByVal v As Variant) As Long
@@ -331,79 +467,6 @@ xt: If Not StckIsEmpty(StackItems) Then Exit Function
     Exit Function
         
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-End Function
-
-Public Function BttnsArgs(ByVal ba_arg As Long, _
-                 Optional ByRef ba_rtl_reading As Boolean, _
-                 Optional ByRef ba_box_right As Boolean, _
-                 Optional ByRef ba_set_foreground As Boolean, _
-                 Optional ByRef ba_help_button As Boolean, _
-                 Optional ByRef ba_system_modal As Boolean, _
-                 Optional ByRef ba_default_button As Long, _
-                 Optional ByRef ba_information As Boolean, _
-                 Optional ByRef ba_exclamation As Boolean, _
-                 Optional ByRef ba_question As Boolean, _
-                 Optional ByRef ba_critical As Boolean) As Long
-' -------------------------------------------------------------------------------------
-' Returns the Buttons argument (ba_arg) with all the options removed by returning them
-' as optional arguments. In order to mimic the Buttons argument of the VBA.MsgBox any
-' values added for other options but the display of the buttons are unstripped/deducted.
-' I.e. the values are deducted and the corresponding argument is returtned instead).
-' -------------------------------------------------------------------------------------
-        
-    While ba_arg >= vbCritical                          ' 16
-        Select Case ba_arg
-            '~~ VBA.MsgBox Display options
-            Case Is >= vbMsgBoxRtlReading               ' 1048576  not implemented
-                ba_arg = ba_arg - vbMsgBoxRtlReading
-                ba_rtl_reading = True
-            
-            Case Is >= vbMsgBoxRight                    ' 524288   not implemented
-                ba_arg = ba_arg - vbMsgBoxRight
-                ba_box_right = True
-            
-            Case Is >= vbMsgBoxSetForeground            ' 65536    not implemented
-                ba_arg = ba_arg - vbMsgBoxSetForeground
-                ba_set_foreground = True
-            
-            Case Is >= vbMsgBoxHelpButton               ' 16384    not implemented: Display of a Help button
-                ba_arg = ba_arg - vbMsgBoxHelpButton
-                ba_help_button = True
-            
-            Case Is >= vbSystemModal                    ' 4096     not implemented
-                ba_arg = ba_arg - vbSystemModal
-                ba_system_modal = True
-            
-            Case Is >= vbDefaultButton4                 ' 768
-                ba_arg = ba_arg - vbDefaultButton4
-                ba_default_button = 4
-            Case Is >= vbDefaultButton3                 ' 512
-                ba_arg = ba_arg - vbDefaultButton3
-                ba_default_button = 3
-            
-            Case Is >= vbDefaultButton2                 ' 256
-                ba_arg = ba_arg - vbDefaultButton2
-                ba_default_button = 2
-            
-            Case Is >= vbInformation                    ' 64
-                ba_arg = ba_arg - vbInformation
-                ba_information = True
-            
-            Case Is >= vbExclamation                    ' 48
-                ba_arg = ba_arg - vbExclamation
-                ba_exclamation = True
-            
-            Case Is >= vbQuestion                       ' 32
-                ba_arg = ba_arg - vbQuestion
-                ba_question = True
-            
-            Case Is >= vbCritical                       ' 16
-                ba_arg = ba_arg - vbCritical
-                ba_critical = True
-        End Select
-    Wend
-    BttnsArgs = ba_arg
-
 End Function
 
 Private Sub ConvertPixelsToPoints(Optional ByVal x_dpi As Single, _
@@ -644,6 +707,24 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mMsg." & sProc
 End Function
 
+Private Function GetPanesIndex(ByVal Rng As Range) As Integer
+    Dim sr As Long:          sr = ActiveWindow.SplitRow
+    Dim sc As Long:          sc = ActiveWindow.SplitColumn
+    Dim r As Long:            r = Rng.Row
+    Dim c As Long:            c = Rng.Column
+    Dim Index As Integer: Index = 1
+
+    Select Case True
+    Case sr = 0 And sc = 0: Index = 1
+    Case sr = 0 And sc > 0 And c > sc: Index = 2
+    Case sr > 0 And sc = 0 And r > sr: Index = 2
+    Case sr > 0 And sc > 0 And r > sr: If c > sc Then Index = 4 Else Index = 3
+    Case sr > 0 And sc > 0 And c > sc: If r > sr Then Index = 4 Else Index = 2
+    End Select
+
+    GetPanesIndex = Index
+End Function
+
 Private Function Max(ParamArray va() As Variant) As Variant
 ' --------------------------------------------------------
 ' Returns the maximum value of all values provided (va).
@@ -657,11 +738,10 @@ Private Function Max(ParamArray va() As Variant) As Variant
     
 End Function
 
-
 Public Function Monitor(ByVal mon_title As String, _
-               Optional ByVal mon_header As String = vbNullString, _
-               Optional ByVal mon_footer As String = vbNullString, _
-               Optional ByVal mon_step As String = vbNullString, _
+                        ByRef mon_header As TypeMsgText, _
+                        ByRef mon_footer As TypeMsgText, _
+                        ByRef mon_step As TypeMsgText, _
                Optional ByVal mon_steps_monospaced As Boolean = True, _
                Optional ByVal mon_steps_visible As Long = 10, _
                Optional ByVal mon_width_min As Long = 25, _
@@ -675,7 +755,6 @@ Public Function Monitor(ByVal mon_title As String, _
     
     On Error GoTo eh
     Static fMon As fMsg
-            
     Set fMon = MonitorInitialize(mon_title:=mon_title _
                                , mon_steps_displayed:=mon_steps_visible _
                                , mon_steps_monospaced:=mon_steps_monospaced _
@@ -687,11 +766,11 @@ Public Function Monitor(ByVal mon_title As String, _
                                , mon_pos:=mon_pos _
                                 )
         
-    If mon_step <> vbNullString Or mon_footer <> vbNullString Then
-        fMon.MonitorStep mon_step:=mon_step _
-                       , mon_steps_monospaced:=mon_steps_monospaced _
-                       , mon_footer:=mon_footer
-    End If
+    With fMon
+        .Text(m_step) = mon_step
+        .Text(m_footer) = mon_footer
+        .MonitorStep
+    End With
     Set Monitor = fMon
     
 xt: Exit Function
@@ -700,9 +779,9 @@ eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Function
 
 Private Function MonitorInitialize(ByVal mon_title As String, _
+                                   ByRef mon_header As TypeMsgText, _
+                                   ByRef mon_footer As TypeMsgText, _
                                    ByVal mon_steps_displayed As Long, _
-                          Optional ByVal mon_footer As String = vbNullString, _
-                          Optional ByVal mon_header As String = vbNullString, _
                           Optional ByVal mon_height_max As Long, _
                           Optional ByVal mon_pos As Range = Nothing, _
                           Optional ByVal mon_steps_monospaced As Boolean = False, _
@@ -716,23 +795,22 @@ Private Function MonitorInitialize(ByVal mon_title As String, _
     
     On Error GoTo eh
     Dim fMon    As fMsg
-        
+    Dim t       As TypeMsgText
+    
     AssertWidthAndHeight width_min:=mon_width_min _
                        , width_max:=mon_width_max _
                        , height_max:=mon_height_max
     
     Set fMon = mMsg.MsgInstance(mon_title)
     With fMon
+        .Text(m_header) = mon_header
+        .Text(m_footer) = mon_footer
         .SetupDone = True ' Bypass regular message setup
         .MsgHeightMax = mon_height_max
         .MsgWidthMax = mon_width_max
         .MsgWidthMin = mon_width_min
-        
         .MonitorInitialize mon_title:=mon_title _
-                         , mon_steps_displayed:=mon_steps_displayed _
-                         , mon_steps_monospaced:=mon_steps_monospaced _
-                         , mon_header:=mon_header _
-                         , mon_footer:=mon_footer
+                         , mon_steps_displayed:=mon_steps_displayed
     End With
     If Not mon_pos Is Nothing Then
         ShowAtRange fMon, mon_pos, False
@@ -844,6 +922,34 @@ Public Function RoundUp(ByVal v As Variant) As Variant
     RoundUp = Int(v) + (v - Int(v) + 0.5) \ 1
 End Function
 
+Private Sub ShowAtRange(ByVal sar_form As Object, _
+                        ByVal sar_rng As Range, _
+               Optional ByVal sar_modal As Boolean = True)
+' ----------------------------------------------------------------------------
+'
+' ----------------------------------------------------------------------------
+    Dim PosLeft As Single
+    Dim PosTop As Single
+
+    If ActiveWindow.FreezePanes Then
+       PosLeft = ActiveWindow.Panes(GetPanesIndex(sar_rng)).PointsToScreenPixelsX(sar_rng.Left)
+       PosTop = ActiveWindow.Panes(GetPanesIndex(sar_rng)).PointsToScreenPixelsY(sar_rng.Top + sar_rng.Height)
+    Else
+       PosLeft = ActiveWindow.ActivePane.PointsToScreenPixelsX(sar_rng.Left)
+       PosTop = ActiveWindow.ActivePane.PointsToScreenPixelsY(sar_rng.Top + sar_rng.Height)
+    End If
+
+    ConvertPixelsToPoints PosLeft, PosTop, PosLeft, PosTop
+
+    With sar_form
+       .StartUpPosition = 0
+       .Left = PosLeft
+       .Top = PosTop
+       .Show sar_modal
+    End With
+
+End Sub
+
 Public Function StackIsEmpty(ByVal stck As Collection) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the stack (stck) is empty.
@@ -940,49 +1046,22 @@ xt: Exit Sub
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
-Private Sub ShowAtRange(ByVal sar_form As Object, _
-                        ByVal sar_rng As Range, _
-               Optional ByVal sar_modal As Boolean = True)
+Public Sub MakeFormResizable()
 ' ----------------------------------------------------------------------------
+' Written: February 14, 2011
+' Author:  Leith Ross
 '
+' NOTE:  This code should be executed within the UserForm_Activate() event.
 ' ----------------------------------------------------------------------------
-    Dim PosLeft As Single
-    Dim PosTop As Single
-
-    If ActiveWindow.FreezePanes Then
-       PosLeft = ActiveWindow.Panes(GetPanesIndex(sar_rng)).PointsToScreenPixelsX(sar_rng.Left)
-       PosTop = ActiveWindow.Panes(GetPanesIndex(sar_rng)).PointsToScreenPixelsY(sar_rng.Top + sar_rng.Height)
-    Else
-       PosLeft = ActiveWindow.ActivePane.PointsToScreenPixelsX(sar_rng.Left)
-       PosTop = ActiveWindow.ActivePane.PointsToScreenPixelsY(sar_rng.Top + sar_rng.Height)
-    End If
-
-    ConvertPixelsToPoints PosLeft, PosTop, PosLeft, PosTop
-
-    With sar_form
-       .StartUpPosition = 0
-       .Left = PosLeft
-       .Top = PosTop
-       .Show sar_modal
-    End With
+    Dim lStyle As Long
+    Dim hWnd As Long
+    Dim RetVal
+  
+    hWnd = GetForegroundWindow
+    'Get the basic window style
+     lStyle = GetWindowLong(hWnd, GWL_STYLE) Or WS_THICKFRAME
+    'Set the basic window styles
+     RetVal = SetWindowLong(hWnd, GWL_STYLE, lStyle)
 
 End Sub
-
-Private Function GetPanesIndex(ByVal Rng As Range) As Integer
-    Dim sr As Long:          sr = ActiveWindow.SplitRow
-    Dim sc As Long:          sc = ActiveWindow.SplitColumn
-    Dim r As Long:            r = Rng.Row
-    Dim c As Long:            c = Rng.Column
-    Dim Index As Integer: Index = 1
-
-    Select Case True
-    Case sr = 0 And sc = 0: Index = 1
-    Case sr = 0 And sc > 0 And c > sc: Index = 2
-    Case sr > 0 And sc = 0 And r > sr: Index = 2
-    Case sr > 0 And sc > 0 And r > sr: If c > sc Then Index = 4 Else Index = 3
-    Case sr > 0 And sc > 0 And c > sc: If r > sr Then Index = 4 Else Index = 2
-    End Select
-
-    GetPanesIndex = Index
-End Function
 

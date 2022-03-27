@@ -1,10 +1,9 @@
 Attribute VB_Name = "mRenew"
 Option Explicit
 
-Public Sub ByImport( _
-              ByRef rn_wb As Workbook, _
-              ByVal rn_comp_name As String, _
-              ByVal rn_raw_exp_file_full_name As String)
+Public Sub ByImport(ByRef rn_wb As Workbook, _
+                    ByVal rn_comp_name As String, _
+                    ByVal rn_raw_exp_file_full_name As String)
 ' ----------------------------------------------------------------------------
 ' Renews/replaces the component (rn_comp_name) in Workbook (rn_wb) by
 ' importing the Export-File (rn_raw_exp_file_full_name).
@@ -29,7 +28,7 @@ Public Sub ByImport( _
         If mComp.Exists(wb:=rn_wb, comp_name:=rn_comp_name) Then
             sTempName = mComp.TempName(tn_wb:=rn_wb, tn_comp_name:=rn_comp_name)
             '~~ Rename the component when it already exists
-            .VBComponents(rn_comp_name).Name = sTempName
+            .VBComponents(rn_comp_name).name = sTempName
             Log.Entry = "'" & rn_comp_name & "' renamed to '" & sTempName & "'"
             .VBComponents.Remove .VBComponents(sTempName) ' will not take place until process has ended!
             Log.Entry = "'" & sTempName & "' removed (removal is postponed by Excel until process has finished)"
@@ -53,15 +52,18 @@ Public Sub ByImport( _
         Log.Entry = "'" & rn_comp_name & "' exported to '" & Comp.ExpFileFullName & "'"
         mTrc.EoC "Export the Used Common Component"
         
-        '~~ When Excel closes the Workbook with the subsequent Workbook save it may be re-opened
-        '~~ and the update process will continue with the next outdated Used Common Component.
-        '~~ The (irregular) Workbook close however may leave the renamed components un-removed.
-        '~~ When the Workbook is opened again these renamed component may cause duplicate declarations.
-        '~~ To prevent this the code in the renamed component is dleted.
-        ' EliminateCodeInRenamedComponent sTempName ' this had made it much less "reliablele"
+        '~~ On one hand a Workbook Save after each renewed component is an advantage in case a
+        '~~ subsequent renew fails. However, a Workbook Save is a potential risk because Excel
+        '~~ may simply close the Workbook, most propably when the VB-Project does not compile
+        '~~ sucessfully - which may be caused by renamed components which may result in duplicate
+        '~~ declarations. Because any renamed component is removed at the end of the update
+        '~~ process this problem is temporary however.
+        '~~ An (irregular) Workbook close may leave renamed components un-removed.
+        '~~ When the Workbook is re-opened again any renamed component is deleted.
         
-        SaveWbk rn_wb ' This "crahes" every now an then though I've tried a lot
-    
+        OutCommentCodeInRenamedComponent rn_wb, sTempName ' this had made it much less "reliablele"
+'        SaveWbk rn_wb ' This "crahes" every now an then though I've tried a lot
+
     End With
           
 xt: Set fso = Nothing
@@ -107,3 +109,16 @@ Private Function TimedDoEvents() As String
     TimedDoEvents = Format(mBasic.TimerEnd, "00000")
 End Function
 
+Private Sub OutCommentCodeInRenamedComponent(ByRef oc_wb As Workbook, _
+                                             ByVal oc_component As String)
+' ----------------------------------------------------------------------------
+'
+' ----------------------------------------------------------------------------
+    Dim i As Long
+    With oc_wb.VBProject.VBComponents(oc_component).CodeModule
+        For i = 1 To .CountOfLines
+            .ReplaceLine i, "'" & .Lines(i, 1)
+        Next i
+    End With
+
+End Sub
