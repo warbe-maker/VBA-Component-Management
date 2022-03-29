@@ -1,13 +1,146 @@
-22-03-28 00:06:28 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
-22-03-28 00:06:28                 >> Export Changed (by CompMan.xlsb) for CompMan.xlsb: 
-22-03-28 00:06:28 00,0000         |  >> mCompMan.ExportChangedComponents
-22-03-28 00:06:28 00,0545         |  |  >> mService.ExportChangedComponents
-22-03-28 00:06:28 00,1044         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
-22-03-28 00:06:28 00,2261 00,1218 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
-22-03-28 00:06:28 00,2371         |  |  |  >> mExport.ChangedComponents
-22-03-28 00:06:30 02,8594 02,6223 |  |  |  << mExport.ChangedComponents
-22-03-28 00:06:30 02,8795 02,8250 |  |  << mService.ExportChangedComponents
-22-03-28 00:06:30 02,8810 02,8810 |  << mCompMan.ExportChangedComponents
-22-03-28 00:06:30 02,8810 02,8810 << Export Changed (by CompMan.xlsb) for CompMan.xlsb: 
-22-03-28 00:06:30                 Impact on the overall performance (caused by the trace itself): 00,0015 seconds!
-22-03-28 00:06:30 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 08:22:22 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 08:22:22                 >> Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 08:22:22 00,0000         |  >> mCompMan.UpdateOutdatedCommonComponents
+22-03-29 08:22:22 00,0774         |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 08:22:22 00,1276 00,0502 |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 08:22:22 00,1283         |  |  >> mUpdate.Outdated
+22-03-29 08:22:24 02,4116         |  |  |  >> mUpdate.UpdateConfirmed
+
+22-03-29 08:24:01 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 08:24:01                 >> Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 08:24:01 00,0000         |  >> mCompMan.UpdateOutdatedCommonComponents
+22-03-29 08:24:01 00,0457         |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 08:24:01 00,0573 00,0116 |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 08:24:01 00,0581         |  |  >> mUpdate.Outdated
+22-03-29 08:24:02 00,5702         |  |  |  >> mUpdate.UpdateConfirmed
+
+22-03-29 08:34:59 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 08:34:59                 >> Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 08:34:59 00,0000         |  >> mCompMan.UpdateOutdatedCommonComponents
+22-03-29 08:34:59 00,0447         |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 08:34:59 00,0546 00,0099 |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 08:34:59 00,0551         |  |  >> mUpdate.Outdated
+22-03-29 08:34:59 00,5297         |  |  |  >> mUpdate.UpdateConfirmed
+
+22-03-29 08:41:34 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 08:41:34                 >> Export Changed (by CompMan.xlsb) for CompMan.xlsb: 
+22-03-29 08:41:34 00,0000         |  >> mCompMan.ExportChangedComponents
+22-03-29 08:41:34 00,0482         |  |  >> mService.ExportChangedComponents
+22-03-29 08:41:34 00,0937         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 08:41:34 00,1154 00,0217 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 08:41:34 00,1173         |  |  |  >> mExport.ChangedComponents
+22-03-29 08:41:37 03,4806 03,3633 |  |  |  << mExport.ChangedComponents
+22-03-29 08:41:37 03,4813 03,4331 |  |  << mService.ExportChangedComponents
+22-03-29 08:41:37 03,4827 03,4827 |  << mCompMan.ExportChangedComponents
+22-03-29 08:41:37 03,4827 03,4827 << Export Changed (by CompMan.xlsb) for CompMan.xlsb: 
+22-03-29 08:41:37                 Impact on the overall performance (caused by the trace itself): 00,0013 seconds!
+22-03-29 08:41:37 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+
+22-03-29 08:48:51 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 08:48:51                 >> Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 08:48:51 00,0000         |  >> mCompMan.UpdateOutdatedCommonComponents
+22-03-29 08:49:04 13,3783         |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 08:49:04 13,3914 00,0131 |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 08:49:34 42,8076         |  |  >> mUpdate.Outdated
+
+22-03-29 09:15:47 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 09:15:47                 >> Export Changed (by Addin) for CompMan.xlsb: 
+22-03-29 09:15:47 00,0000         |  >> mCompMan.ExportChangedComponents
+22-03-29 09:15:47 00,0496         |  |  >> mService.ExportChangedComponents
+22-03-29 09:15:47 00,0929         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:15:47 00,1033 00,0104 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:15:47 00,1038         |  |  |  >> mExport.ChangedComponents
+22-03-29 09:15:49 02,3967 02,2929 |  |  |  << mExport.ChangedComponents
+22-03-29 09:15:49 02,3975 02,3479 |  |  << mService.ExportChangedComponents
+22-03-29 09:15:49 02,3989 02,3989 |  << mCompMan.ExportChangedComponents
+22-03-29 09:15:49 02,3989 02,3989 << Export Changed (by Addin) for CompMan.xlsb: 
+22-03-29 09:15:49                 Impact on the overall performance (caused by the trace itself): 00,0014 seconds!
+22-03-29 09:15:49 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+
+22-03-29 09:16:20 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 09:16:20                 >> Export Changed (by Addin) for CompMan.xlsb: 
+22-03-29 09:16:20 00,0000         |  >> mCompMan.ExportChangedComponents
+22-03-29 09:16:20 00,0445         |  |  >> mService.ExportChangedComponents
+22-03-29 09:16:20 00,0869         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:16:20 00,0974 00,0105 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:16:20 00,0979         |  |  |  >> mExport.ChangedComponents
+22-03-29 09:16:22 02,3591 02,2611 |  |  |  << mExport.ChangedComponents
+22-03-29 09:16:22 02,3599 02,3154 |  |  << mService.ExportChangedComponents
+22-03-29 09:16:22 02,3605 02,3605 |  << mCompMan.ExportChangedComponents
+22-03-29 09:16:22 02,3605 02,3605 << Export Changed (by Addin) for CompMan.xlsb: 
+22-03-29 09:16:22                 Impact on the overall performance (caused by the trace itself): 00,0005 seconds!
+22-03-29 09:16:22 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+
+22-03-29 09:16:57 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 09:16:57                 >> Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 09:16:57 00,0000         |  >> mCompMan.UpdateOutdatedCommonComponents
+22-03-29 09:16:58 00,0452         |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:16:58 00,0547 00,0095 |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:16:58 00,0560         |  |  >> mUpdate.Outdated
+22-03-29 09:16:58 00,8393 00,7833 |  |  << mUpdate.Outdated
+22-03-29 09:16:58 00,8403 00,8403 |  << mCompMan.UpdateOutdatedCommonComponents
+22-03-29 09:16:58 00,8403 00,8403 << Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 09:16:58                 Impact on the overall performance (caused by the trace itself): 00,0009 seconds!
+22-03-29 09:16:58 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+
+22-03-29 09:18:01 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 09:18:01                 >> Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 09:18:01 00,0000         |  >> mCompMan.UpdateOutdatedCommonComponents
+22-03-29 09:18:01 00,0439         |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:18:01 00,0532 00,0094 |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:18:01 00,0541         |  |  >> mUpdate.Outdated
+22-03-29 09:18:02 00,8183 00,7642 |  |  << mUpdate.Outdated
+22-03-29 09:18:02 00,8192 00,8192 |  << mCompMan.UpdateOutdatedCommonComponents
+22-03-29 09:18:02 00,8192 00,8192 << Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 09:18:02                 Impact on the overall performance (caused by the trace itself): 00,0009 seconds!
+22-03-29 09:18:02 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+
+22-03-29 09:18:13 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 09:18:13                 >> Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 09:18:13 00,0000         |  >> mCompMan.UpdateOutdatedCommonComponents
+22-03-29 09:18:13 00,0454         |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:18:13 00,0552 00,0098 |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:18:13 00,0558         |  |  >> mUpdate.Outdated
+22-03-29 09:18:14 00,9403 00,8845 |  |  << mUpdate.Outdated
+22-03-29 09:18:14 00,9411 00,9411 |  << mCompMan.UpdateOutdatedCommonComponents
+22-03-29 09:18:14 00,9411 00,9411 << Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 09:18:14                 Impact on the overall performance (caused by the trace itself): 00,0007 seconds!
+22-03-29 09:18:14 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+
+22-03-29 09:26:17 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 09:26:17                 >> Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 09:26:17 00,0000         |  >> mCompMan.UpdateOutdatedCommonComponents
+22-03-29 09:26:17 00,0448         |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:26:17 00,0547 00,0099 |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:26:17 00,0552         |  |  >> mUpdate.Outdated
+22-03-29 09:26:18 00,5953         |  |  |  >> mUpdate.UpdateConfirmed
+22-03-29 09:26:21 00,6079 00,0126 |  |  |  << mUpdate.UpdateConfirmed
+22-03-29 09:26:21 00,6101         |  |  |  >> mRenew.ByImport
+22-03-29 09:26:21 00,6109         |  |  |  |  >> mRenew.SaveWbk
+22-03-29 09:26:22 01,1825 00,5716 |  |  |  |  << mRenew.SaveWbk
+22-03-29 09:26:22 01,1835         |  |  |  |  > Rename the to-be-re-imported component
+22-03-29 09:26:22 01,2080 00,0245 |  |  |  |  < Rename the to-be-re-imported component
+22-03-29 09:26:22 01,2084         |  |  |  |  > Import the Raw Common Component
+22-03-29 09:26:22 01,2165 00,0080 |  |  |  |  < Import the Raw Common Component
+22-03-29 09:26:22 01,2169         |  |  |  |  > Export the Used Common Component
+22-03-29 09:26:22 01,2261 00,0092 |  |  |  |  < Export the Used Common Component
+22-03-29 09:26:22 01,2905 00,6805 |  |  |  << mRenew.ByImport
+22-03-29 09:26:22 01,4204 01,3651 |  |  << mUpdate.Outdated
+22-03-29 09:26:22 01,4210 01,4210 |  << mCompMan.UpdateOutdatedCommonComponents
+22-03-29 09:26:22 01,4210 01,4210 << Update Outdated (by Addin) for CompMan.xlsb: 
+22-03-29 09:26:22                 Impact on the overall performance (caused by the trace itself): 00,0006 seconds!
+22-03-29 09:26:22 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+
+22-03-29 09:27:13 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-03-29 09:27:13                 >> Export Changed (by Addin) for CompMan.xlsb: 
+22-03-29 09:27:13 00,0000         |  >> mCompMan.ExportChangedComponents
+22-03-29 09:27:13 00,0437         |  |  >> mService.ExportChangedComponents
+22-03-29 09:27:14 00,0860         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:27:14 00,0973 00,0113 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-03-29 09:27:14 00,0978         |  |  |  >> mExport.ChangedComponents
+22-03-29 09:27:15 02,0507 01,9529 |  |  |  << mExport.ChangedComponents
+22-03-29 09:27:15 02,0515 02,0077 |  |  << mService.ExportChangedComponents
+22-03-29 09:27:15 02,0521 02,0521 |  << mCompMan.ExportChangedComponents
+22-03-29 09:27:15 02,0521 02,0521 << Export Changed (by Addin) for CompMan.xlsb: 
+22-03-29 09:27:15                 Impact on the overall performance (caused by the trace itself): 00,0005 seconds!
+22-03-29 09:27:15 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)

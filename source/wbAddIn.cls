@@ -73,10 +73,6 @@ Private Sub Workbook_Open()
         wsAddIn.Activate
         Application.DisplayFormulaBar = False
         ActiveWindow.DisplayHeadings = False
-        wsAddIn.Range("rngDisplayed").Select
-        ActiveWindow.Zoom = True
-        wsAddIn.Range("A1").Select
-        wsAddIn.Range("celSelect").Select
     End If
     
 xt: Exit Sub

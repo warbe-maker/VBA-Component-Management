@@ -119,3 +119,17 @@ Private Sub ProgressMsg()
     End If
 End Sub
 
+Private Sub Worksheet_Activate()
+    With Me
+        Application.EnableEvents = False
+        .Range("rngDisplayed").Select
+        ActiveWindow.Zoom = True
+        .Range("A1").Select
+        .Range("celSelect").Select
+        Application.EnableEvents = True
+    End With
+End Sub
+
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+
+End Sub

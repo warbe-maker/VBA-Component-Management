@@ -14,7 +14,8 @@ Option Explicit
 ' - Monitor     Uses modeless instances of the fMsg form - any instance is
 '               identified by the window title - to display the progress of a
 '               process or monitor intermediate results.
-' - MsgInstance Treturns a fMsg object identified by the Title
+' - MsgInstance Creates (when not existing) and returns an fMsg object
+'               identified by the Title
 '
 ' Uses:         fMsg
 '
@@ -22,17 +23,15 @@ Option Explicit
 '
 ' See: https://github.com/warbe-maker/Common-VBA-Message-Service
 '
-' W. Rauschenberger, Berlin Feb 2022 (last revision)
+' W. Rauschenberger, Berlin Mar 2022 (last revision)
 ' ------------------------------------------------------------------------------
-' ------------------------------------------------------------
-' Means to get and calculate the display devices DPI in points
-Const SM_XVIRTUALSCREEN                         As Long = &H4C&
-Const SM_YVIRTUALSCREEN                         As Long = &H4D&
-Const SM_CXVIRTUALSCREEN                        As Long = &H4E&
-Const SM_CYVIRTUALSCREEN                        As Long = &H4F&
-Const LOGPIXELSX                                As Long = 88
-Const LOGPIXELSY                                As Long = 90
-Const TWIPSPERINCH                              As Long = 1440
+Const LOGPIXELSX                                As Long = 88        ' -------------
+Const LOGPIXELSY                                As Long = 90        ' Constants for
+Const SM_CXVIRTUALSCREEN                        As Long = &H4E&     ' calculating
+Const SM_CYVIRTUALSCREEN                        As Long = &H4F&     ' the
+Const SM_XVIRTUALSCREEN                         As Long = &H4C&     ' display's
+Const SM_YVIRTUALSCREEN                         As Long = &H4D&     ' DPI in points
+Const TWIPSPERINCH                              As Long = 1440      ' -------------
 Private Declare PtrSafe Function GetSystemMetrics32 Lib "user32" Alias "GetSystemMetrics" (ByVal nIndex As Long) As Long
 Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
@@ -79,11 +78,11 @@ Public Type TypeMsg
 End Type
 
 Public Enum KindOfText
-    m_header
-    m_footer
-    m_step
-    m_text
-    m_label
+    enMonHeader
+    enMonFooter
+    enMonStep
+    enSectText
+    enSectLabel
 End Enum
 
 Private bModeless       As Boolean
@@ -119,11 +118,11 @@ Private Property Get Text(Optional ByVal txt_part As KindOfText, _
 ' -footer, or -step.
 ' ------------------------------------------------------------------------------
     Select Case txt_part
-        Case m_header:    MsgText1 = TextMonitorHeader
-        Case m_footer:    MsgText1 = TextMonitorFooter
-        Case m_step:      MsgText1 = TextMonitorStep
-        Case m_text:      TextSection.Section(txt_section).Text = TextMsg
-        Case m_label:     TextSection.Section(txt_section).Label = TextLabel
+        Case enMonHeader:    MsgText1 = TextMonitorHeader
+        Case enMonFooter:    MsgText1 = TextMonitorFooter
+        Case enMonStep:      MsgText1 = TextMonitorStep
+        Case enSectText:      TextSection.Section(txt_section).Text = TextMsg
+        Case enSectLabel:     TextSection.Section(txt_section).Label = TextLabel
     End Select
     
     Text.FontBold = MsgText1.FontBold
@@ -152,11 +151,11 @@ Private Property Let Text(Optional ByVal txt_part As KindOfText, _
     MsgText1.MonoSpaced = txt_text.MonoSpaced
     MsgText1.Text = txt_text.Text
     Select Case txt_part
-        Case m_header:    TextMonitorHeader = MsgText1
-        Case m_footer:    TextMonitorFooter = MsgText1
-        Case m_step:      TextMonitorStep = MsgText1
-        Case m_text:      TextSection.Section(txt_section).Text = MsgText1
-        Case m_label:     TextSection.Section(txt_section).Label = MsgText1
+        Case enMonHeader:    TextMonitorHeader = MsgText1
+        Case enMonFooter:    TextMonitorFooter = MsgText1
+        Case enMonStep:      TextMonitorStep = MsgText1
+        Case enSectText:      TextSection.Section(txt_section).Text = MsgText1
+        Case enSectLabel:     TextSection.Section(txt_section).Label = MsgText1
     End Select
 
 End Property
@@ -253,13 +252,13 @@ Public Function Box(ByVal Prompt As String, _
     '~~ all services create and use their own instance identified by the message title.
     Set MsgForm = MsgInstance(Title)
     With MsgForm
-'        .VisualizeControls = True
+'        .VisualizeForTest = True
         .MsgTitle = Title
-        .MsgText(1) = Message
+        .Text(enSectText, 1) = Message
         .MsgButtons = Buttons
-        .MsgHeightMax = box_height_max    ' percentage of screen height
-        .MsgHeightMin = box_height_min    ' percentage of screen height
-        .MsgWidthMax = box_width_max      ' percentage of screen width
+        .MsgHeightMax = box_height_max      ' percentage of screen height
+        .MsgHeightMin = box_height_min      ' percentage of screen height
+        .MsgWidthMax = box_width_max        ' percentage of screen width
         .MsgWidthMin = box_width_min        ' defaults to 400 pt. the absolute minimum is 200 pt
         .MinButtonWidth = box_button_width_min
         .MsgButtonDefault = box_button_default
@@ -563,8 +562,8 @@ Public Function Dsply(ByVal dsply_title As String, _
         .MsgTitle = dsply_title
         For i = 1 To .NoOfDesignedMsgSects
             '~~ Save the label and the text udt into a Dictionary by transfering it into an array
-            .MsgLabel(i) = dsply_msg.Section(i).Label
-            .MsgText(i) = dsply_msg.Section(i).Text
+            .Text(enSectLabel, i) = dsply_msg.Section(i).Label
+            .Text(enSectText, i) = dsply_msg.Section(i).Text
         Next i
         
         .MsgButtons = dsply_buttons
@@ -574,7 +573,7 @@ Public Function Dsply(ByVal dsply_title As String, _
         '|| For testing - indicated by VisualizerControls = True and             ||
         '|| dsply_modeless = True - prior Setup is suspended.                    ||
         '+------------------------------------------------------------------------+
-        If Not (.VisualizeControls And dsply_modeless) Then
+        If Not (.VisualizeForTest And dsply_modeless) Then
             .Setup
         End If
         If dsply_modeless Then
@@ -767,8 +766,8 @@ Public Function Monitor(ByVal mon_title As String, _
                                 )
         
     With fMon
-        .Text(m_step) = mon_step
-        .Text(m_footer) = mon_footer
+        .Text(enMonStep) = mon_step
+        .Text(enMonFooter) = mon_footer
         .MonitorStep
     End With
     Set Monitor = fMon
@@ -803,8 +802,8 @@ Private Function MonitorInitialize(ByVal mon_title As String, _
     
     Set fMon = mMsg.MsgInstance(mon_title)
     With fMon
-        .Text(m_header) = mon_header
-        .Text(m_footer) = mon_footer
+        .Text(enMonHeader) = mon_header
+        .Text(enMonFooter) = mon_footer
         .SetupDone = True ' Bypass regular message setup
         .MsgHeightMax = mon_height_max
         .MsgWidthMax = mon_width_max
