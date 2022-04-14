@@ -33,10 +33,6 @@ Public Property Get ComCompsSavedFileFullName() As String
     ComCompsSavedFileFullName = ComCompsFolder & "\ComComps-RawsSaved.dat"
 End Property
 
-Public Property Get ComCompsSavedFolder() As String
-    ComCompsSavedFolder = mConfig.FolderServiced & "\Common-Components"
-End Property
-
 Public Function SavedExpFileExists(ByVal comp_name As String) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when an Export File with the name extracted from the

@@ -150,7 +150,7 @@ Private Property Get CompManCfgFileName() As String
 '       knowing the location it is finally copied to.
 ' ------------------------------------------------------------------------
     Dim fso As New FileSystemObject
-    Select Case fso.GetExtensionName(ThisWorkbook.name)
+    Select Case fso.GetExtensionName(ThisWorkbook.Name)
         Case "xlam"
             '~~ When the CompMan-Addin requests the CompMan.cfg file
             '~~ it is the one which resides in the 'CompManAdmin' sub-folder
@@ -314,9 +314,9 @@ cfg:
         
         mConfig.FolderExport = .FolderExport
     
+        If Not .Canceled Then BasicConfig = True
     End With
-    BasicConfig = True
-    
+  
 xt: Unload fConfig
     Exit Function
 
@@ -334,7 +334,7 @@ Public Function CompManAddinIsOpen() As Boolean
     
     CompManAddinIsOpen = False
     For i = 1 To Application.AddIns2.Count
-        If Application.AddIns2(i).name = CompManAddinName Then
+        If Application.AddIns2(i).Name = CompManAddinName Then
             On Error Resume Next
             Set wbTarget = Application.Workbooks(CompManAddinName)
             CompManAddinIsOpen = Err.Number = 0
@@ -525,14 +525,14 @@ Public Function FolderServicedIsValid() As Boolean
 End Function
 
 Public Sub RenewAddIn()
-' -----------------------------------------------------------
-' Renews the code of the Addin instance of this Workbook with
-' this Workbook's code by displaying a detailed result of the
-' whole RenewAddIn process.
-' Note: It cannot be avoided that this procedure is available
-'       also in the Addin instance. However, its execution is
-'       limited to this Workbook's development instance.
-' -----------------------------------------------------------
+' ------------------------------------------------------------------------------
+' Called via the Command Button in the "Manage CompMan Addin" sheet.
+' Renews the code of the Addin instance of this Workbook with this Workbook's
+' code by displaying a detailed result of the whole RenewAddIn process.
+' Note: It cannot be avoided that this procedure is available also in the Addin
+'       instance. However, its execution is limited to this Workbook's
+'       development instance.
+' ------------------------------------------------------------------------------
     Const PROC = "RenewAddIn"
     
     On Error GoTo eh
@@ -651,9 +651,9 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
         For Each v In dct
             Set wb = dct.Item(v)
             For Each ref In wb.VBProject.References
-                If InStr(ref.name, fso.GetBaseName(CompManAddinName)) <> 0 Then
+                If InStr(ref.Name, fso.GetBaseName(CompManAddinName)) <> 0 Then
                     dctAddInRefs.Add wb, ref
-                    sWbs = wb.name & ", " & sWbs
+                    sWbs = wb.Name & ", " & sWbs
                 End If
             Next ref
         Next v
@@ -838,9 +838,9 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
             Set wb = Application.Workbooks.Open(CompManAddinFullName)
             If Err.Number = 0 Then
                 With New FileSystemObject
-                    sBaseAddinName = .GetBaseName(wb.name)
-                    sBaseDevName = .GetBaseName(ThisWorkbook.name)
-                    wb.VBProject.name = sBaseAddinName
+                    sBaseAddinName = .GetBaseName(wb.Name)
+                    sBaseDevName = .GetBaseName(ThisWorkbook.Name)
+                    wb.VBProject.Name = sBaseAddinName
                 End With
                 mMe.RenewLogResult() = "Passed"
                 Renew_8_OpenAddinInstncWorkbook = True
@@ -874,7 +874,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     For Each v In dctAddInRefs
         Set wb = v
         wb.VBProject.References.AddFromFile CompManAddinFullName
-        sWbs = wb.name & ", " & sWbs
+        sWbs = wb.Name & ", " & sWbs
         bOneRestored = True
     Next v
     
@@ -911,7 +911,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             
             If Not mCompMan.WbkIsOpen(io_name:=DevInstncName) _
             Then Stop _
-            Else wbDevlp.VBProject.name = fso.GetBaseName(DevInstncName)
+            Else wbDevlp.VBProject.Name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
                 mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")   " & mBasic.Spaced("failed!") _
@@ -941,109 +941,109 @@ Private Sub StartupPath()
     
 End Sub
 
-Public Sub TrustThisFolder(Optional ByVal ttf_path As String, _
-                           Optional ByVal ttf_trust_network_folder As Boolean = False, _
-                           Optional ByVal ttf_description As String)
-' ---------------------------------------------------------------------------
-' Add a folder to the 'Trusted Locations' list so that your project's VBA can
-' open Excel files without raising errors like "Office has detected a problem
-' with this file. To help protect your computer this file cannot be opened."
-' Ths function has been implemented to fail silently on error: if you suspect
-' that users don't have permission to assign 'Trusted Location' status in all
-' locations, reformulate this as a function returning True or False
+'Public Sub TrustThisFolder(Optional ByVal ttf_path As String, _
+'                           Optional ByVal ttf_trust_network_folder As Boolean = False, _
+'                           Optional ByVal ttf_description As String)
+'' ---------------------------------------------------------------------------
+'' Add a folder to the 'Trusted Locations' list so that your project's VBA can
+'' open Excel files without raising errors like "Office has detected a problem
+'' with this file. To help protect your computer this file cannot be opened."
+'' Ths function has been implemented to fail silently on error: if you suspect
+'' that users don't have permission to assign 'Trusted Location' status in all
+'' locations, reformulate this as a function returning True or False
+''
+'' Nigel Heffernan January 2015
+''
+'' Based on code published by Daniel Pineault in DevHut.net on June 23, 2010:
+'' www.devhut.net\2010\06\23\vbscript-createset-trusted-location-using-vbscript\
+'' **** **** **** ****  THIS CODE IS IN THE PUBLIC DOMAIN  **** **** **** ****
+'' UNIT TESTING:
+''
+'' 1:    Reinstate the commented-out line 'Debug.Print sSubKey & vbTab & sPath
+'' 2:    Open the Immediate Window and run this command:
+''           TrustThisFolder "Z:\", True, True, "The user's home directory"
+'' 3:    If  "Z:\"  is already in the list, choose another folder
+'' 4:    Repeat step 2 or 3: the folder should be listed in the debug output
+'' 5:    If it isn't listed, disable the error-handler and record any errors
+'' -----------------------------------------------------------------------------
+'    Const PROC = "TrustThisFolder"
+'    Const HKEY_CURRENT_USER = &H80000001
 '
-' Nigel Heffernan January 2015
+'    On Error GoTo eh
+'    Dim sKeyPath            As String
+'    Dim oRegistry           As Object
+'    Dim sSubKey             As String
+'    Dim oSubKeys            As Variant   ' type not specified. After it's populated, it can be iterated
+'    Dim oSubKey             As Variant   ' type not specified.
+'    Dim bSubFolders         As Boolean
+'    Dim bNetworkLocation    As Boolean
+'    Dim iTrustNetwork       As Long
+'    Dim sPath               As String
+'    Dim i                   As Long
+'    Dim fso                 As New FileSystemObject
 '
-' Based on code published by Daniel Pineault in DevHut.net on June 23, 2010:
-' www.devhut.net\2010\06\23\vbscript-createset-trusted-location-using-vbscript\
-' **** **** **** ****  THIS CODE IS IN THE PUBLIC DOMAIN  **** **** **** ****
-' UNIT TESTING:
+'    bSubFolders = True
+'    bNetworkLocation = False
 '
-' 1:    Reinstate the commented-out line 'Debug.Print sSubKey & vbTab & sPath
-' 2:    Open the Immediate Window and run this command:
-'           TrustThisFolder "Z:\", True, True, "The user's home directory"
-' 3:    If  "Z:\"  is already in the list, choose another folder
-' 4:    Repeat step 2 or 3: the folder should be listed in the debug output
-' 5:    If it isn't listed, disable the error-handler and record any errors
-' -----------------------------------------------------------------------------
-    Const PROC = "TrustThisFolder"
-    Const HKEY_CURRENT_USER = &H80000001
-    
-    On Error GoTo eh
-    Dim sKeyPath            As String
-    Dim oRegistry           As Object
-    Dim sSubKey             As String
-    Dim oSubKeys            As Variant   ' type not specified. After it's populated, it can be iterated
-    Dim oSubKey             As Variant   ' type not specified.
-    Dim bSubFolders         As Boolean
-    Dim bNetworkLocation    As Boolean
-    Dim iTrustNetwork       As Long
-    Dim sPath               As String
-    Dim i                   As Long
-    Dim fso                 As New FileSystemObject
-    
-    bSubFolders = True
-    bNetworkLocation = False
-
-    With fso
-        If ttf_path = "" Then
-            ttf_path = .GetSpecialFolder(2).Path
-            If ttf_description = vbNullString Then
-                ttf_description = "The user's local temp folder"
-            End If
-        End If
-    End With
-
-    If Right(ttf_path, 1) <> "\" Then
-        ttf_path = ttf_path & "\"
-    End If
-
-    sKeyPath = vbNullString
-    sKeyPath = sKeyPath & "SOFTWARE\Microsoft\Office\"
-    sKeyPath = sKeyPath & Application.Version
-    sKeyPath = sKeyPath & "\Excel\Security\Trusted Locations\"
-     
-    Set oRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & "." & "\root\default:StdRegProv")
-    '~~ Note: not the usual \root\cimv2  for WMI scripting: the StdRegProv isn't in that folder
-    oRegistry.EnumKey HKEY_CURRENT_USER, sKeyPath, oSubKeys
-    
-    For Each oSubKey In oSubKeys
-        sSubKey = CStr(oSubKey)
-        oRegistry.GetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Path", sPath
-        If sPath = ttf_path Then
-            Exit For
-        End If
-    Next oSubKey
-    
-    If sPath <> ttf_path Then
-        If IsNumeric(Replace(sSubKey, "Location", "")) _
-        Then i = CLng(Replace(sSubKey, "Location", "")) + 1 _
-        Else i = UBound(oSubKeys) + 1
-        
-        sSubKey = "Location" & CStr(i)
-        
-        If ttf_trust_network_folder Then
-            iTrustNetwork = 1
-            oRegistry.GetDWORDValue HKEY_CURRENT_USER, sKeyPath, "AllowNetworkLocations", iTrustNetwork
-            If iTrustNetwork = 0 Then
-                oRegistry.SetDWORDValue HKEY_CURRENT_USER, sKeyPath, "AllowNetworkLocations", 1
-            End If
-        End If
-        
-        oRegistry.CreateKey HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey
-        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Path", ttf_path
-        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Description", ttf_description
-        oRegistry.SetDWORDValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "AllowSubFolders", 1
-
-    End If
-
-xt: Set fso = Nothing
-    Set oRegistry = Nothing
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
+'    With fso
+'        If ttf_path = "" Then
+'            ttf_path = .GetSpecialFolder(2).Path
+'            If ttf_description = vbNullString Then
+'                ttf_description = "The user's local temp folder"
+'            End If
+'        End If
+'    End With
+'
+'    If Right(ttf_path, 1) <> "\" Then
+'        ttf_path = ttf_path & "\"
+'    End If
+'
+'    sKeyPath = vbNullString
+'    sKeyPath = sKeyPath & "SOFTWARE\Microsoft\Office\"
+'    sKeyPath = sKeyPath & Application.Version
+'    sKeyPath = sKeyPath & "\Excel\Security\Trusted Locations\"
+'
+'    Set oRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & "." & "\root\default:StdRegProv")
+'    '~~ Note: not the usual \root\cimv2  for WMI scripting: the StdRegProv isn't in that folder
+'    oRegistry.EnumKey HKEY_CURRENT_USER, sKeyPath, oSubKeys
+'
+'    For Each oSubKey In oSubKeys
+'        sSubKey = CStr(oSubKey)
+'        oRegistry.GetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Path", sPath
+'        If sPath = ttf_path Then
+'            Exit For
+'        End If
+'    Next oSubKey
+'
+'    If sPath <> ttf_path Then
+'        If IsNumeric(Replace(sSubKey, "Location", "")) _
+'        Then i = CLng(Replace(sSubKey, "Location", "")) + 1 _
+'        Else i = UBound(oSubKeys) + 1
+'
+'        sSubKey = "Location" & CStr(i)
+'
+'        If ttf_trust_network_folder Then
+'            iTrustNetwork = 1
+'            oRegistry.GetDWORDValue HKEY_CURRENT_USER, sKeyPath, "AllowNetworkLocations", iTrustNetwork
+'            If iTrustNetwork = 0 Then
+'                oRegistry.SetDWORDValue HKEY_CURRENT_USER, sKeyPath, "AllowNetworkLocations", 1
+'            End If
+'        End If
+'
+'        oRegistry.CreateKey HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey
+'        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Path", ttf_path
+'        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Description", ttf_description
+'        oRegistry.SetDWORDValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "AllowSubFolders", 1
+'
+'    End If
+'
+'xt: Set fso = Nothing
+'    Set oRegistry = Nothing
+'    Exit Sub
+'
+'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+'        Case vbResume:  Stop: Resume
+'        Case Else:      GoTo xt
+'    End Select
+'End Sub
 

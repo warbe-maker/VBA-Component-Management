@@ -149,7 +149,7 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         End If
     End If
@@ -189,13 +189,6 @@ Private Function CodeModuleIsEmpty(ByRef vbc As VBComponent) As Boolean
         CodeModuleIsEmpty = .CountOfLines = 0
         If Not CodeModuleIsEmpty Then CodeModuleIsEmpty = .CountOfLines = 1 And Len(.Lines(1, 1)) < 2
     End With
-End Function
-
-Public Function CompMaxLen(ByRef ml_wb As Workbook) As Long
-    Dim vbc As VBComponent
-    For Each vbc In ml_wb.VBProject.VBComponents
-        CompMaxLen = mBasic.Max(CompMaxLen, Len(vbc.name))
-    Next vbc
 End Function
 
 Public Function Denied() As Boolean
@@ -474,6 +467,7 @@ Private Function SyncSourceAndTargetSelected( _
         Then Set Buttons = mMsg.Buttons(sBttnSourceProject, sBttnTargetProject, vbLf, sBttnTerminate) _
         Else Set Buttons = mMsg.Buttons(sBttnSourceTargetCnfrmd, vbLf, sBttnSourceProject, sBttnTargetProject)
         
+        If Not mMsg.IsValidMsgButtonsArg(Buttons) Then Stop
         sReply = mMsg.Dsply(dsply_title:="Basic configuration of the Component Management (CompMan Addin)" _
                           , dsply_msg:=sMsg _
                           , dsply_buttons:=Buttons _
@@ -531,6 +525,12 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
+Public Function TimedDoEvents() As String
+    mBasic.TimerBegin
+    DoEvents
+    TimedDoEvents = Format(mBasic.TimerEnd, "00000")
+End Function
+
 Private Function UsedCommonComponents(ByRef cl_wb As Workbook) As Dictionary
 ' ---------------------------------------------------------------------------
 ' Returns a Dictionary of all Used Common Components with its VBComponent
@@ -551,11 +551,11 @@ Private Function UsedCommonComponents(ByRef cl_wb As Workbook) As Dictionary
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = cl_wb
-            .CompName = vbc.name
+            .CompName = vbc.Name
             Log.ServicedItem = .VBComp
             If .KindOfComp = enCommCompUsed Then
                 If .Changed Then
-                    dct.Add vbc, vbc.name
+                    dct.Add vbc, vbc.Name
                 Else
                     Log.Entry = "Code un-changed."
                 End If
@@ -671,6 +671,7 @@ End Function
 
 Public Sub RemoveTempRenamed()
 ' ------------------------------------------------------------------------------
+'
 ' ------------------------------------------------------------------------------
     Const PROC = "RemoveTempRenamed"
     
@@ -678,18 +679,19 @@ Public Sub RemoveTempRenamed()
     Dim v   As Variant
     Dim vbc As VBComponent
     
+    mBasic.BoP ErrSrc(PROC)
     With mService.Serviced.VBProject
-        For Each v In .VBComponents
-            Set vbc = v
-            If mService.IsRenamedByCompMan(vbc.name) Then
+        For Each vbc In .VBComponents
+            If mService.IsRenamedByCompMan(vbc.Name) Then
                 .VBComponents.Remove vbc
             End If
-        Next v
+        Next vbc
     End With
 
-xt: Exit Sub
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -814,7 +816,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-
 Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
                         ByVal add_key As Variant, _
                         ByVal add_item As Variant)
@@ -878,14 +879,14 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
     If bOrderByKey Then
         If VarType(add_key) = vbObject Then
             On Error Resume Next
-            add_key.name = add_key.name
+            add_key.Name = add_key.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
         End If
     ElseIf bOrderByItem Then
         If VarType(add_item) = vbObject Then
             On Error Resume Next
-            add_item.name = add_item.name
+            add_item.Name = add_item.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
         End If
@@ -1100,7 +1101,7 @@ Private Function AddAscByKeyValue(ByVal add_key As Variant) As Variant
 ' ----------------------------------------------------------------------------
     If VarType(add_key) = vbObject Then
         On Error Resume Next ' the object may not have a Name property
-        AddAscByKeyValue = add_key.name
+        AddAscByKeyValue = add_key.Name
         If Err.Number <> 0 Then Set AddAscByKeyValue = add_key
     Else
         AddAscByKeyValue = add_key
@@ -1119,7 +1120,7 @@ Public Function AllComps(ByVal ac_wb As Workbook, _
     Set AllComps = New Dictionary
     For Each vbc In ac_wb.VBProject.VBComponents
         Log.ServicedItem = vbc
-        AddAscByKey AllComps, vbc.name, vbc
+        AddAscByKey AllComps, vbc.Name, vbc
         lDone = lDone + 1
         Application.StatusBar = _
         mService.Progress(p_service:=ac_service _
@@ -1130,4 +1131,26 @@ Public Function AllComps(ByVal ac_wb As Workbook, _
 
 End Function
 
+Public Sub SaveWbk(ByRef rs_wb As Workbook)
+    Const PROC = "SaveWbk"
+    
+    On Error GoTo eh
+    mBasic.BoP ErrSrc(PROC)
+    
+    Application.EnableEvents = False
+    '~~ This is the action where the update process may lead to the effect that Excel closes the Workbook
+    '~~ without having deleted the renamed components!
+    Log.Entry = "DoEvents delayed continuation for " & mService.TimedDoEvents & " msec)"
+    rs_wb.Save
+    Log.Entry = "Workbook saved (DoEvents delayed continuation for " & mService.TimedDoEvents & " msec)"
+    Application.EnableEvents = True
+
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
 

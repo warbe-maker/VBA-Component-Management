@@ -98,7 +98,7 @@ Public Sub Test_01_KindOfComp()
     Dim Comp   As clsComp
     Dim sComp   As String
     
-    Set wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsm")
+    Set wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsb")
 
     sComp = "mFile"
     Set Comp = Nothing
@@ -209,7 +209,7 @@ Public Sub Test_Comps_Outdated()
         Set Comp = Nothing
     Next v
     
-    Debug.Print mFile.Txt(Log.LogFile)
+    Debug.Print mFile.txt(Log.LogFile)
     Debug.Print Stats.Total(sic_comps_total) & " Components"
     Debug.Print Stats.Total(sic_comps_changed) & " Outdated"
         
@@ -235,7 +235,7 @@ Public Sub Test_Log()
         .ServicedItem = " <component-name> "
         .Entry = "Tested"
         mMsg.Box Title:="Test-Log:" _
-               , Prompt:=mFile.Txt(ft_file:=.LogFile.Path) _
+               , Prompt:=mFile.txt(ft_file:=.LogFile.Path) _
                , box_monospaced:=True
         If fso.FileExists(.LogFile.Path) Then fso.DeleteFile .LogFile.Path
     End With
@@ -322,10 +322,10 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         Else
-            Log.Entry = "Workbook '" & wbActive.name & "' re-activated by closing the temporary created Workbook"
+            Log.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set Comp = Nothing
@@ -646,7 +646,7 @@ Public Sub Test_SheetControls_Name_and_Type()
     
     Set ws = mCompMan.WbkGetOpen(sWb).Worksheets(sWs)
     For Each shp In ws.Shapes
-        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
+        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.Name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
     Next shp
     For Each v In dct
         Debug.Print dct(v), Tab(45), v

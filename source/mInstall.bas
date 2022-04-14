@@ -40,6 +40,7 @@ Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
                             "(currently  " & mBasic.Spaced(mConfig.FolderServiced) & "  )."
     
     Do
+        If Not mMsg.IsValidMsgButtonsArg(cll) Then Stop
         vReply = mMsg.Dsply(dsply_title:="Select one of the available 'Raw-Components/Common-Components') yet not installed in '" & ic_wb.Name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
                         , dsply_msg:=sMsg _
                         , dsply_buttons:=cll _

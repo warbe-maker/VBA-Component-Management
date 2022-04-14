@@ -53,12 +53,6 @@ Public Enum enKindOfComp       ' The kind of VBComponent in the sense of CompMan
     enInternal = 3             ' Neither a hosted nor a used Raw Common Component
 End Enum
 
-Public Enum enUpdateReply
-    enUpdateOriginWithUsed
-    enUpdateUsedWithOrigin
-    enUpdateNone
-End Enum
-
 ' Distinguish the code of which Workbook is allowed to be updated
 Public Enum vbcmType
     vbext_ct_StdModule = 1          ' .bas
@@ -108,12 +102,10 @@ Public Enum siCounter
     sic_sheets_total
 End Enum
 
-Public asNoSynch()      As String
 Public lMaxCompLength   As Long
 Public dctHostedRaws    As Dictionary
 Public Stats            As clsStats
 Public Log              As clsLog
-Public TraceLog         As clsLog
     
 Private Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
 
@@ -196,7 +188,7 @@ Private Sub EstablishTraceLogFile(ByVal dt_wb As Workbook, _
 ' Establishes a trace log file in the serviced Workbook's parent folder.
 ' --------------------------------------------------------------------------
     Dim sFile As String
-    sFile = Replace(dt_wb.FullName, dt_wb.name, "CompMan.Service.trc")
+    sFile = Replace(dt_wb.FullName, dt_wb.Name, "CompMan.Service.trc")
 
     '~~ Even when dt_append = False: When the filke had been createde today dt_append will be set to True
     With New FileSystemObject
@@ -389,16 +381,16 @@ Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As Stri
                 '~~ Initially registers the Common Component in the ComComps-RawsSaved.dat file
                 '~~ Note: The Raw's Revision Number is updated whenever the raw is exported because it had been modified
                 mComCompsRawsSaved.RawHostWbFullName(v) = mService.Serviced.FullName
-                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.name
+                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.Name
                 mComCompsRawsSaved.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
                 Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
             ElseIf StrComp(mComCompsRawsSaved.RawHostWbFullName(v), mService.Serviced.FullName, vbTextCompare) <> 0 _
-                Or StrComp(mComCompsRawsSaved.RawHostWbName(v), mService.Serviced.name, vbTextCompare) <> 0 Then
+                Or StrComp(mComCompsRawsSaved.RawHostWbName(v), mService.Serviced.Name, vbTextCompare) <> 0 Then
                 '~~ Update the properties when they had changed - which may happen when the Raw Common Component's
                 '~~ host has changed
                 '~~ Note: The RevisionNumber is updated whenever the modified raw is exported
                 mComCompsRawsSaved.RawHostWbFullName(v) = mService.Serviced.FullName
-                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.name
+                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.Name
                 mComCompsRawsSaved.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
                 Log.Entry = "Raw Common Component '" & v & "' hosted changed properties updated"
             End If
@@ -519,6 +511,7 @@ Private Function SavedRawInconsitencyWarning(ByVal sri_raw_exp_file_full_name, _
     End With
         
     Do
+        If Not mMsg.IsValidMsgButtonsArg(cllBttns) Then Stop
         Select Case mMsg.Dsply(dsply_title:="Serious inconsistency warning!" _
                              , dsply_msg:=Msg _
                              , dsply_buttons:=cllBttns _
@@ -613,7 +606,7 @@ Public Function UpdateOutdatedCommonComponents( _
     ElseIf Not uo_wb.FullName Like mConfig.FolderServiced & "*" Then
         '~~ The serviced Workbook is located outside the serviced folder
         UpdateOutdatedCommonComponents = AppErr(2)
-    ElseIf mMe.IsDevInstnc And uo_wb.name = mMe.DevInstncName Then
+    ElseIf mMe.IsDevInstnc And uo_wb.Name = mMe.DevInstncName Then
         '~~ The servicing and the serviced Workbook are both the 'CompMan Development Instance'
         '~~ This is the case when either no CompMan-Addin-Instance is available or it is currently paused
         UpdateOutdatedCommonComponents = AppErr(3)
@@ -630,7 +623,12 @@ Public Function UpdateOutdatedCommonComponents( _
         
         mCompMan.MaintainPropertiesOfHostedRawCommonComponents uo_hosted
         Set Stats = New clsStats
-        mUpdate.Outdated mService.Serviced
+        mUpdate.Outdated
+        
+        '~~ !!!! Saving the Workbook is likely to cause Excel to crash                             !!!!!
+        '~~ !!!! Not saving the Workbook programmatically is stabilizing the process significantly !!!!
+'        mService.SaveWbk uo_wb
+
         UpdateOutdatedCommonComponents = True
         
         mBasic.EoP ErrSrc(PROC)
@@ -694,7 +692,7 @@ Public Function WbkIsOpen( _
         WbkIsOpen = Err.Number = 0
     Else
         On Error Resume Next
-        io_name = Application.Workbooks(io_name).name
+        io_name = Application.Workbooks(io_name).Name
         WbkIsOpen = Err.Number = 0
     End If
 

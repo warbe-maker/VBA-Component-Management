@@ -88,24 +88,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get HostIsOpen() As Boolean
-' ------------------------------------------------------------------------------
-' Note: This property must have been requested and returned TRUE when the
-' following properties provided herewith are obtained:
-' - HostwbPath (sHostWbPath)
-' - VBComp     (vbcRaw
-' - RawHost    (wbRawHost)
-' ------------------------------------------------------------------------------
-    HostIsOpen = mWbk.IsOpen(Me.RawHostWbName)
-    If HostIsOpen Then
-        Set wbRawHost = mWbk.GetOpen(Me.RawHostWbName)
-        Set vbcRaw = wbRawHost.VBProject.VBComponents(sCompName)
-        sHostWbPath = wbRawHost.Path
-    End If
-End Property
-
-Public Property Get HostWbPath() As String:         HostWbPath = sHostWbPath:                                               End Property
-
 Public Property Get RawHostWbBaseName() As String:      RawHostWbBaseName = mComCompsRawsSaved.RawHostWbBaseName(sCompName):        End Property
 
 Public Property Get RawHostWbFullName() As String

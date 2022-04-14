@@ -1,9 +1,9 @@
 Attribute VB_Name = "mUpdate"
 Option Explicit
 
-Public Sub Outdated(ByRef urc_wb As Workbook)
+Public Sub Outdated()
 ' ----------------------------------------------------------------------------
-' Updates any Common Component used in Workbook (urc_wb). Note that Common
+' Updates any Common Component used in Workbook (urc_wbServiced). Note that Common
 ' Components are identifiied by equally named components in another workbook
 ' which is indicated the 'host' Workbook.
 ' ----------------------------------------------------------------------------
@@ -21,14 +21,15 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
     Dim Comps           As New clsComps
     Dim lAll            As Long
     Dim lRemaining      As Long
-    Dim wb              As Workbook
+    Dim wbServiced              As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    Set wb = mService.Serviced
-    Set dctAll = mService.AllComps(wb)
+    Set wbServiced = mService.Serviced
+    Set dctAll = mService.AllComps(wbServiced)
+    SaveWbk wbServiced
 
     Set dctUpdateDue = Comps.Outdated
-    With wb.VBProject
+    With wbServiced.VBProject
         lAll = .VBComponents.Count
         lRemaining = lAll
         bVerbose = True
@@ -38,15 +39,15 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
     
             Set Comp = New clsComp
             With Comp
-                Set .Wrkbk = wb
-                .CompName = vbc.name
+                Set .Wrkbk = wbServiced
+                .CompName = vbc.Name
                 Set .VBComp = vbc
                 Log.ServicedItem = vbc
                 If .KindOfComp = enCommCompUsed Then
                     If .Outdated Then
                         Log.Entry = "Outdated Used Common Component! (Export-Files '" & .ExpFileFullName & "' differs from '" & .Raw.SavedExpFileFullName & "')"
                         If UpdateConfirmed(Comp) Then
-                            mRenew.ByImport rn_wb:=urc_wb _
+                            mRenew.ByImport rn_wb:=wbServiced _
                                  , rn_comp_name:=.CompName _
                                  , rn_raw_exp_file_full_name:=.Raw.SavedExpFileFullName
                             Log.Entry = "Used Common Component renewed/updated by (re-)import of the Raw's Export File (" & .Raw.SavedExpFileFullName & ")"
@@ -74,7 +75,7 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
                              )
         Next v
     End With
-
+    
     Application.StatusBar = vbNullString
     Application.StatusBar = _
     mService.Progress(p_service:=Log.Service _
@@ -83,8 +84,7 @@ Public Sub Outdated(ByRef urc_wb As Workbook)
                     , p_op:="updated" _
                     , p_comps:=sUpdated _
                      )
-
-
+    
 xt: Set fso = Nothing
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -159,6 +159,7 @@ Public Function UpdateConfirmed(ByRef uo_comp As clsComp) As Boolean
     
     Do
         With uo_comp
+            If Not mMsg.IsValidMsgButtonsArg(cllButtons) Then Stop
             vReply = mMsg.Dsply(dsply_title:=Log.Service & "Update " & Spaced(.CompName) & "with changed raw" _
                               , dsply_msg:=sMsg _
                               , dsply_buttons:=cllButtons _

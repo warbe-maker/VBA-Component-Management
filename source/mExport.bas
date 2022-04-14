@@ -148,34 +148,32 @@ Public Sub ChangedComponents()
                                 .CopyExportFileToCommonComponentsFolder
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
-                                Log.Entry = "Hosted Raw Common Component code modified"
+                                Log.Entry = "Code modified of Hosted Raw Common Component"
                                 Log.Entry = "Exported, Revision Number increased, Export File copied to 'Common Components Folder'"
                             ElseIf Not mComCompsRawsSaved.SavedExpFileExists(.CompName) Then
                                 .CopyExportFileToCommonComponentsFolder ' ensure completenes
-                                Log.Entry = "Hosted Raw Common Component unchanged"
+                                Log.Entry = "Unchanged Hosted Raw Common Component"
                             End If
                         Case enCommCompUsed
                             If .Changed Then
                                 '~~ A warning will be displayed when the modification is about to be reverted
                                 '~~ when the component is updated at Workbook open
                                 .DueModificationWarning = True
-                                Log.Entry = "Used Common Component code modified (due revert allert registered)!"
                                 .Export
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
-                                Log.Entry = "Modified component exported (due modification warning set for update)"
+                                Log.Entry = "Modified Used Common Component exported (due revert allert registered!)"
                             Else
-                                Log.Entry = "Used Common Component code unchanged"
+                                Log.Entry = "Unchanged Used Common Component"
                             End If
                         Case Else
                             If .Changed Then
-                                Log.Entry = "Other component code modification exported"
                                 .Export
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
-                                Log.Entry = "Modification exported"
+                                Log.Entry = "Modified code exported"
                             Else
-                               Log.Entry = "Other component unchanged"
+                               Log.Entry = "Unchanged component"
                             End If
                     End Select
                 End With

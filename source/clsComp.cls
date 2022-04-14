@@ -609,10 +609,6 @@ Private Sub CleanUpTemps()
     
 End Sub
 
-Public Function CompType() As Dictionary
-    Set CompType = dctType
-End Function
-
 Public Sub CopyExportFileToCommonComponentsFolder()
 ' ------------------------------------------------------------------------------
 ' Maintain a copy of the hosted raw`s export file in the Common Components
@@ -664,6 +660,7 @@ Public Sub DsplyAllChanges()
         sMsg.Section(4).Label.Text = "Please note!"
         sMsg.Section(4).Text.Text = "Empty code lines and case differences are ignored when they are the only difference."
         
+'        If Not mMsg.IsValidMsgButtonsArg(dsply_buttons) Then Stop
         mMsg.Dsply dsply_title:="Display of code changes failed!" _
                  , dsply_msg:=sMsg
     End If
@@ -683,63 +680,6 @@ End Function
 Public Sub Export()
     Me.VBComp.Export Me.ExpFileFullName
 End Sub
-
-Public Sub IncreaseRevisionNumber()
-' ------------------------------------------------------------------------------
-' Increase of the revision number when the hosted Raw Common Component had
-' been exported because it had changed.
-' ------------------------------------------------------------------------------
-    mComCompsRawsHosted.RawRevisionNumberIncrease Me.CompName
-End Sub
-
-Public Function KoCStrng(ByVal koc As enKindOfComp) As String
-    Select Case koc
-        Case enKindOfComp.enUnknown:        KoCStrng = "Unknown"
-        Case enKindOfComp.enInternal:       KoCStrng = "Internal, neither Raw nor Clone"
-        Case enKindOfComp.enCommCompUsed:       KoCStrng = "Clone"
-        Case enKindOfComp.enCommCompHosted:      KoCStrng = "Raw (Hosted)"
-    End Select
-End Function
-
-Public Function RemoteSheetExists( _
-                            ByRef rs_wb As Workbook, _
-                   Optional ByRef rs_ws_name As String = vbNullString, _
-                   Optional ByRef rs_ws_codename As String = vbNullString, _
-                   Optional ByRef rs_ws As Worksheet = Nothing, _
-                   Optional ByRef rs_vbc As VBComponent = Nothing) As Boolean
-' ---------------------------------------------------------------------------
-' When the remote sheet exists in the remote Workbook (rs_wb) either under
-' the provided remote name (remote_ws_name) or the provided remote CodeName
-' (remote-ws_codename):
-' - True plus the remote Worksheet object (rs_ws) and the remote VBComponent
-'   (rs_vbc).
-' When the remote sheet not exists in the remote Workbook (rs_wb) neither
-' under the provided remote name (remote_ws_name) nor under the provided
-' remote CodeName (remote-ws_codename):
-' - False and neither a remote sheet object nor a remote VBComponent.
-' ---------------------------------------------------------------------------
-    Dim ws  As Worksheet
-    Dim vbc As VBComponent
-    
-    For Each ws In rs_wb.Worksheets
-        If rs_ws_name <> vbNullString And ws.Name = rs_ws_name Then
-            Set rs_ws = ws
-            If rs_ws_codename = vbNullString Then rs_ws_codename = ws.CodeName
-            Exit For
-        ElseIf rs_ws_codename <> vbNullString And ws.CodeName = rs_ws_codename Then
-            Set rs_ws = ws
-            If rs_ws_name = vbNullString Then rs_ws_name = ws.Name
-        End If
-    Next ws
-    
-    For Each vbc In rs_wb.VBProject.VBComponents
-        If rs_ws_codename <> vbNullString And vbc.Name = rs_ws_codename Then
-            Set rs_vbc = vbc
-            Exit For
-        End If
-    Next vbc
-   
-End Function
 
 
 

@@ -108,54 +108,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function CommonUsed(Optional ByRef c_stats As clsStats = Nothing) As Dictionary
-' ----------------------------------------------------------------------------
-' Returns a Dictionary with all componentws in the mService.Serviced Workbook's
-' VBProject which are indicated a Used Common Component.
-' ----------------------------------------------------------------------------
-    Const PROC = "CommonUsed"
-    
-    On Error GoTo eh
-    Dim v           As Variant
-    Dim lRemaining  As Long
-    Dim dctComps    As Dictionary
-    Dim sMsg        As String
-    Dim Log         As New clsLog
-    Dim Comp        As clsComp
-    Dim lUsed       As Long
-    Dim lComps      As Long
-    
-    Log.Service() = PROC
-    Set dctComps = Me.All(c_stats)
-    lRemaining = dctComps.Count
-    
-    For Each v In dctComps
-        lComps = lComps + 1
-        Set Comp = dctComps(v)
-        If Not Comp.KindOfComp = enCommCompUsed Then
-            dctComps.Remove v
-        End If
-        
-        lRemaining = lRemaining - 1
-        sMsg = Log.Service
-        sMsg = sMsg & lUsed & " of " & lComps
-        sMsg = sMsg & " " & String(lComps, ".")
-        If Len(sMsg) > 255 Then
-            sMsg = Left(sMsg, 251) & " ..."
-        End If
-        Application.StatusBar = sMsg
-    
-    Next v
-    Set CommonUsed = dctComps
-    
-xt: Exit Function
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsComps" & "." & sProc
 End Function

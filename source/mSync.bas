@@ -83,7 +83,7 @@ Private Sub ClearLinksToSource()
     On Error GoTo eh
     Dim v           As Variant
     Dim shp         As Shape
-    Dim nm          As name
+    Dim nm          As Name
     Dim sName       As String
     Dim sOnAction   As String
     Dim SheetName   As String
@@ -107,7 +107,7 @@ Private Sub ClearLinksToSource()
         Set shp = Sync.Target.Worksheets(SheetName).Shapes(ControlName)
         On Error Resume Next
         sOnAction = shp.OnAction
-        sOnAction = Replace(sOnAction, Sync.source.name, Sync.Target.name)
+        sOnAction = Replace(sOnAction, Sync.source.Name, Sync.Target.Name)
         shp.OnAction = sOnAction
     Next v
     
@@ -288,6 +288,7 @@ Private Function GetSyncIssuesConfirmed() As Boolean
             cllButtons.Add v
         Next v
         
+        If Not mMsg.IsValidMsgButtonsArg(cllButtons) Then Stop
         sReply = mMsg.Dsply(dsply_title:="Confirm the below synchronization issues" _
                           , dsply_msg:=sMsg _
                           , dsply_buttons:=cllButtons _
@@ -336,10 +337,10 @@ End Function
 
 Private Function NameExists( _
                       ByRef ne_wb As Workbook, _
-                      ByVal ne_nm As name) As Boolean
-    Dim nm As name
+                      ByVal ne_nm As Name) As Boolean
+    Dim nm As Name
     For Each nm In ne_wb.Names
-        NameExists = nm.name = ne_nm.name
+        NameExists = nm.Name = ne_nm.Name
         If NameExists Then Exit For
     Next nm
 End Function
@@ -352,7 +353,7 @@ Private Sub RemoveInvalidRangeNames()
     Const PROC = "RemoveInvalidRangeNames"
     
     On Error GoTo eh
-    Dim nm As name
+    Dim nm As Name
     For Each nm In Sync.Target.Names
         Debug.Print nm.Value
         If InStr(nm.Value, "#") <> 0 Or InStr(nm.RefersTo, "#") <> 0 Then
@@ -382,8 +383,8 @@ Private Sub RenameSheet(ByRef rs_wb As Workbook, _
     On Error GoTo eh
     Dim sh  As Worksheet
     For Each sh In rs_wb.Worksheets
-        If sh.name = rs_old_name Then
-            sh.name = rs_new_name
+        If sh.Name = rs_old_name Then
+            sh.Name = rs_new_name
             Log.Entry = "Sheet-Name changed to '" & rs_new_name & "'"
             Exit For
         End If
@@ -414,7 +415,7 @@ Private Sub RenameWrkbkModule( _
             If vbc.Type = vbext_ct_Document Then
                 If mComp.IsWrkbkDocMod(vbc) Then
                     Log.ServicedItem = vbc
-                    vbc.name = rdm_new_name
+                    vbc.Name = rdm_new_name
                     Log.Entry = "Renamed to '" & rdm_new_name & "' (DoEvents delayed continuations for " & TimedDoEvents & " msec)"
                     Exit For
                 End If
@@ -621,7 +622,7 @@ Private Function WbkIsOpen( _
             WbkIsOpen = Err.Number = 0
         Else
             On Error Resume Next
-            wb_name = Application.Workbooks(wb_name).name
+            wb_name = Application.Workbooks(wb_name).Name
             WbkIsOpen = Err.Number = 0
         End If
     End With

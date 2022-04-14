@@ -1,20 +1,17 @@
 Attribute VB_Name = "mSyncRanges"
 Option Explicit
-' ---------------------------------------------------
-' Standard Module mSyncRngsFrmt
-'          Synchronize the formating of named ranges.
-'
-' ---------------------------------------------------
+' ------------------------------------------------------------------------------
+' Standard Module mSyncRngsFrmt: Synchronize the formating of named ranges.
+' ------------------------------------------------------------------------------
 Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSyncRanges." & s
 End Function
 
 Public Function SyncFormating() As Boolean
-' ----------------------------------------
-' Synchronizes the formating of all named
-' ranges. Returns True when at least one
+' ------------------------------------------------------------------------------
+' Synchronizes the formating of all named ranges. Returns True when at least one
 ' format has been synced.
-' ----------------------------------------
+' ------------------------------------------------------------------------------
     Const PROC = "SyncFormating"
     
     On Error GoTo eh

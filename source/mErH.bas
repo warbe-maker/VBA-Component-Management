@@ -210,7 +210,7 @@ Private Property Get BoPArguments() As String
     On Error GoTo eh
     Dim i       As Long
     Dim sL      As String
-    Dim sR      As String
+    Dim sr      As String
     Dim s       As String
     
     If ArrayIsAllocated(vArguments) Then
@@ -550,6 +550,7 @@ Private Function ErrMsgDsply( _
         .Label.FontColor = rgbBlue
     End With
     
+    If Not mMsg.IsValidMsgButtonsArg(err_buttons) Then Stop
     mMsg.Dsply dsply_title:=sTitle _
              , dsply_msg:=ErrMsgText _
              , dsply_buttons:=err_buttons
