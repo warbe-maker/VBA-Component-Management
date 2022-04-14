@@ -1584,7 +1584,7 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "fMsg." & sProc
 End Function
 
-Private Sub EstblshMonitorFooter(ByVal mf_top As Single)
+Private Sub MonitorEstablishFooter(ByVal mf_top As Single)
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
@@ -1605,7 +1605,7 @@ Private Sub EstblshMonitorFooter(ByVal mf_top As Single)
 
 End Sub
 
-Private Sub EstblshMonitorHeader(ByRef mh_top As Single)
+Private Sub MonitorEstablishHeader(ByRef mh_top As Single)
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
@@ -1627,7 +1627,7 @@ Private Sub EstblshMonitorHeader(ByRef mh_top As Single)
 
 End Sub
 
-Private Sub EstblshMonitorStep(ByRef ms_top As Single)
+Private Sub MonitorEstablishStep(ByRef ms_top As Single)
 ' ------------------------------------------------------------------------------
 ' Adds a monitor step TextBox to the frmSteps Frame, enqueues it into the
 ' cllSteps queue and adjusts the top position to (ms_top).
@@ -1871,7 +1871,7 @@ Public Sub MonitorInitialize(ByVal mon_title As String, _
             
             '~~ Estblsh monitor header
             If TextMonitorHeader.Text <> vbNullString _
-            Then EstblshMonitorHeader mh_top:=siTop
+            Then MonitorEstablishHeader mh_top:=siTop
             
             '~~ Establish the number of visualized monitor steps in its dedicated frame
             Set frmSteps = AddControl(ac_ctl:=Frame, ac_name:="frMonitorSteps")
@@ -1882,7 +1882,7 @@ Public Sub MonitorInitialize(ByVal mon_title As String, _
                 .BorderStyle = fmBorderStyleSingle
                 siTop = 0
                 For i = 1 To lMonitorSteps
-                    EstblshMonitorStep siTop
+                    MonitorEstablishStep siTop
                 Next i
                 .Height = ContentHeight(frmSteps, False)
                 '~~ The maximum height for the steps frame is the max formheight minus the height of header and footer
@@ -1892,11 +1892,12 @@ Public Sub MonitorInitialize(ByVal mon_title As String, _
                 '~~ Estblsh monitor footer
                 If TextMonitorFooter.Text <> vbNullString Then
                     siTop = AdjustToVgrid(frmSteps.Top + .Height)
-                    EstblshMonitorFooter mf_top:=siTop + 6
+                    MonitorEstablishFooter mf_top:=siTop + 6
                 End If
             End With
             VisualizeCtl frmSteps, VISLZE_BCKCLR_MON_STEPS_FRM
             NewHeight(frmSteps.Parent) = Min(.MsgHeightMax, ContentHeight(frmSteps.Parent))
+            NewWidth(frmSteps) = Min(.MsgWidthMax, ContentWidth(frmSteps.Parent))
         End With
         bMonitorInitialized = True
     End If
@@ -1990,21 +1991,26 @@ Public Sub MonitorStep()
             End If
             MonitorStepsAdjustTopPosition
             NewWidth(frmSteps, False) = Min(Me.MsgWidthMax, ContentWidth(frmSteps, False)) ' applies a horizontal scroll-bar or adjust its width
-            NewWidth(frmSteps.Parent) = ContentWidth(frmSteps.Parent)
+            NewWidth(frmSteps.Parent) = ContentWidth(frmSteps.Parent) + 20
             
             siNetHeight = Me.Height - (frmSteps.Height - frmSteps.Top)
             siStepsHeightMax = Me.MsgHeightMax - siNetHeight
-            NewHeight(frmSteps, False, fmScrollActionEnd) = Min(MonitorHeightMaxSteps, ContentHeight(frmSteps, False))
+            NewHeight(frmSteps, False, fmScrollActionEnd) = Min(MonitorHeightMaxSteps, ContentHeight(frmSteps, False)) + ScrollHscrollHeight(frmSteps)
         End If
     End If
     
     If TextMonitorFooter.Text <> vbNullString Then
         siTop = AdjustToVgrid(frmSteps.Top + frmSteps.Height + 6)
-        EstblshMonitorFooter mf_top:=siTop
+        MonitorEstablishFooter mf_top:=siTop
     End If
     
     DoEvents
-    Me.Height = ContentHeight(frmSteps.Parent)
+'    NewHeight(frmSteps.Parent) = Min(.MsgHeightMax, ContentHeight(frmSteps.Parent))
+    NewWidth(frmSteps) = Min(Me.MsgWidthMax, ContentWidth(frmSteps.Parent) + 15)
+  
+    If tbxFooter Is Nothing _
+    Then Me.Height = ContentHeight(frmSteps.Parent) + 35 _
+    Else Me.Height = ContentHeight(tbxFooter.Parent) + 35
     
 xt: Exit Sub
 
@@ -2173,7 +2179,7 @@ End Function
 Private Sub OpenClickedLabelItem(ByVal oc_section As Long)
     Dim sItem As String
     sItem = MsgLabel(oc_section).OpenWhenClicked
-    mMsg.OpenUrlEtc sItem, WIN_NORMAL
+    mMsg.ShellRun sItem, WIN_NORMAL
 End Sub
 
 Public Sub PositionMessageOnScreen( _
