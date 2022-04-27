@@ -47,9 +47,9 @@ Public Sub LogRenewStep( _
     Dim Header  As TypeMsgText
     Dim Step    As TypeMsgText
     Dim Footer  As TypeMsgText
-    Dim L       As Long:        L = mMe.RenewStep
+    Dim l       As Long:        l = mMe.RenewStep
     
-    RenewStep = L
+    RenewStep = l
     If rn_result <> vbNullString Then RenewResult = rn_result
     If rn_action <> vbNullString Then RenewAction = rn_action
     If RenewResult <> vbNullString Then ProgressMsg ' RenewStep, RenewResult, RenewAction
@@ -59,19 +59,16 @@ Public Sub LogRenewStep( _
         Step.MonoSpaced = True
         If Not rn_last_step Then
             mMsg.Monitor mon_title:=Title _
-                       , mon_header:=Header _
-                       , mon_step:=Step _
-                       , mon_footer:=Footer _
-                       , mon_steps_visible:=12 _
-                       , mon_width_min:=600 _
-                       , mon_pos:=MonitorAnchor
+                   , mon_text:=Step _
+                   , mon_steps_displayed:=12 _
+                   , mon_width_min:=70 _
+                   , mon_width_max:=80 _
+                   , mon_pos:=MonitorAnchor
         Else
+            mMsg.Monitor Title, Step
             If mMe.RenewTerminatedByUser Then
                 Footer.Text = "Renew process terminated by user! Close window."
-                mMsg.Monitor mon_title:=Title _
-                           , mon_header:=Header _
-                           , mon_step:=Step _
-                           , mon_footer:=Footer
+                mMsg.MonitorFooter Title, Footer
             Else
                 If Not rn_renew_failed Then
                     With Footer
@@ -79,10 +76,7 @@ Public Sub LogRenewStep( _
                         .FontBold = True
                         .FontColor = rgbBlue
                     End With
-                    mMsg.Monitor mon_title:=Title _
-                               , mon_header:=Header _
-                               , mon_step:=Step _
-                               , mon_footer:=Footer
+                    mMsg.MonitorFooter Title, Footer
                 Else
                     With Footer
                         .Text = "Renew process  " & mBasic.Spaced("failed") & "  Close window and " & vbLf & _
@@ -92,10 +86,7 @@ Public Sub LogRenewStep( _
                                 "3. Reopen CompMan.xlsb and repeat this Renew (then a setup in fact)."
                         .FontColor = rgbRed
                     End With
-                    mMsg.Monitor mon_title:="Establish or renew CompMan as Addin" _
-                               , mon_header:=Header _
-                               , mon_step:=Step _
-                               , mon_footer:=Footer
+                    mMsg.MonitorFooter Title, Footer
                 End If
             End If
         End If

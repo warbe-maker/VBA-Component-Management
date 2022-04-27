@@ -446,7 +446,7 @@ Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As Stri
     Else
         '~~ When this Workbook not or no longer hosts any Common Component Raws the entries
         '~~ the ComCompsHosted.dat is deleted
-        fso.DeleteFile mComCompsRawsHosted.ComCompsHostedFileFullName
+        mFile.Delete mComCompsRawsHosted.ComCompsHostedFileFullName
         '~~ The destiny of the corresponding data in the ComComps-Saved.dat is un-clear
         '~~ The component may be now hosted in another Workbook (likely) or the life of the
         '~~ Common Component has ended. The entry will be removed when it still points to this
