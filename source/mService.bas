@@ -525,12 +525,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function TimedDoEvents() As String
-    mBasic.TimerBegin
-    DoEvents
-    TimedDoEvents = Format(mBasic.TimerEnd, "00000")
-End Function
-
 Private Function UsedCommonComponents(ByRef cl_wb As Workbook) As Dictionary
 ' ---------------------------------------------------------------------------
 ' Returns a Dictionary of all Used Common Components with its VBComponent
@@ -1140,9 +1134,9 @@ Public Sub SaveWbk(ByRef rs_wb As Workbook)
     Application.EnableEvents = False
     '~~ This is the action where the update process may lead to the effect that Excel closes the Workbook
     '~~ without having deleted the renamed components!
-    Log.Entry = "DoEvents delayed continuation for " & mService.TimedDoEvents & " msec)"
+    Log.Entry = mBasic.TimedDoEvents(ErrSrc(PROC))
     rs_wb.Save
-    Log.Entry = "Workbook saved (DoEvents delayed continuation for " & mService.TimedDoEvents & " msec)"
+    Log.Entry = mBasic.TimedDoEvents(ErrSrc(PROC))
     Application.EnableEvents = True
 
 xt: mBasic.EoP ErrSrc(PROC)

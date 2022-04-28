@@ -42,7 +42,7 @@ Public Sub ByImport(ByRef rn_wb As Workbook, _
             '~~ renamed component can be deleted. Outcommenting the renamded component
             '~~ should prevent this.
             OutCommentCodeInRenamedComponent rn_wb, sTempName ' this had made it much less "reliablele"
-            Debug.Print "DoEvents paused the execution for " & mService.TimedDoEvents & " msec"
+            mBasic.TimedDoEvents ErrSrc(PROC)
         
             '~~ Remove the renamed component (postponed thought)
             mTrc.BoC "Remove the renamde component"

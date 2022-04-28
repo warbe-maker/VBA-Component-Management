@@ -416,7 +416,8 @@ Private Sub RenameWrkbkModule( _
                 If mComp.IsWrkbkDocMod(vbc) Then
                     Log.ServicedItem = vbc
                     vbc.Name = rdm_new_name
-                    Log.Entry = "Renamed to '" & rdm_new_name & "' (DoEvents delayed continuations for " & TimedDoEvents & " msec)"
+                    Log.Entry = "Renamed to '" & rdm_new_name
+                    Log.Entry = mBasic.TimedDoEvents(ErrSrc(PROC))
                     Exit For
                 End If
             End If
@@ -564,12 +565,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Function
-
-Private Function TimedDoEvents() As String
-    mBasic.TimerBegin
-    DoEvents
-    TimedDoEvents = Format(mBasic.TimerEnd, "00000")
 End Function
 
 Private Function WbkGetOpen(ByVal go_wb_full_name As String) As Workbook

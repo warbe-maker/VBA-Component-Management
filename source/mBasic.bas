@@ -1039,12 +1039,33 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub TimedDoEvents(ByVal tde_source As String)
-    Debug.Print "> DoEvents in '" & tde_source & "'"
+Public Function TimedDoEvents(ByVal tde_source As String) As String
+' ---------------------------------------------------------------------------
+' For the execution of a DoEvents statement. Provides the information in
+' which procedure it had been executed and the msecs delay it has caused.
+'
+' Note: DoEvents every now and then is able to solve timing problems. When
+'       looking at the description of its effect this often appears
+'       miraculous. However, when it helps ... . But DoEvents allow keyboard
+'       interaction while a process executes. In case of a loop - and when
+'       the DoEvents lies within it, this may be a godsend. But it as well
+'       may cause unpredictable results. This little procedure at least
+'       documents in the Immediate window when (with milliseconds) and where
+'       it had been executed.
+' ---------------------------------------------------------------------------
+    Dim s As String
+    
     mBasic.TimerBegin
     DoEvents
-    Debug.Print "< DoEvents in '" & tde_source & "' (" & TimerEnd & " msec elapsed)"
-End Sub
+    s = Format(Now(), "hh:mm:ss") & ":" _
+      & Right(Format(Timer, "0.000"), 3) _
+      & " DoEvents paused the execution for " _
+      & Format(mBasic.TimerEnd, "00000") _
+      & " msecs in '" & tde_source & "'"
+    Debug.Print s
+    TimedDoEvents = s
+    
+End Function
 
 Public Sub TimerBegin()
     cyTimerTicksBegin = TimerSysCurrentTicks

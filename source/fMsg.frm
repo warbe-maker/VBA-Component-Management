@@ -12,8 +12,6 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-
-
 Option Explicit
 ' -------------------------------------------------------------------------------
 ' UserForm fMsg Provides all means for a message with up to 5 separated text
@@ -97,9 +95,9 @@ Const LOGPIXELSX                        As Long = 88
 Const LOGPIXELSY                        As Long = 90
 Const TWIPSPERINCH                      As Long = 1440
 Private Declare PtrSafe Function GetSystemMetrics32 Lib "user32" Alias "GetSystemMetrics" (ByVal nIndex As Long) As Long
-Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hwnd As Long) As Long
+Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
-Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hwnd As Long, ByVal hDC As Long) As Long
+Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
 ' -------------------------------------------------------------------------------
 
 'Api Declarations
@@ -835,7 +833,7 @@ Private Sub AdjustTopPositions()
                 End If
                 TopPosNextSect = AdjustToVgrid(.Top + .Height + VSPACE_SECTIONS)
             End With
-            TimedDoEvents    ' to properly h-align the text
+            TimedDoEvents ErrSrc(PROC)   ' to properly h-align the text
             AdjustedParentsWidthAndHeight MsectFrm
         End If
     Next i
@@ -1787,6 +1785,7 @@ Private Sub MonitorEstablishStep(ByRef ms_top As Single)
 ' Adds a monitor step TextBox to the frmSteps Frame, enqueues it into the
 ' cllSteps queue and adjusts the top position to (ms_top).
 ' ------------------------------------------------------------------------------
+    Const PROC = "MonitorEstablishStep"
     Const CTL_NAME As String = "tbMonitorStep"
     
     Set tbxStep = AddControl(ac_ctl:=TextBox _
@@ -1804,7 +1803,7 @@ Private Sub MonitorEstablishStep(ByRef ms_top As Single)
     End With
     VisualizeCtl tbxStep, VISLZE_BCKCLR_MON_STEPS_FRM
     Qenqueue cllSteps, tbxStep
-    DoEvents
+    TimedDoEvents ErrSrc(PROC)
     
 End Sub
 
@@ -1972,7 +1971,7 @@ Public Sub MonitorStep()
                 tbx.Top = siTop
                 siTop = AdjustToVgrid(tbx.Top + tbx.Height)
                 siMaxWidth = Max(siMaxWidth, tbx.Width)
-                DoEvents
+                TimedDoEvents ErrSrc(PROC)
             Next i
             
             If TextMonitorStep.MonoSpaced Then
@@ -2000,7 +1999,7 @@ Public Sub MonitorStep()
         End If
     End If
         
-    DoEvents
+    TimedDoEvents ErrSrc(PROC)
     NewWidth(frmSteps) = Min(Me.MsgWidthMax, ContentWidth(frmSteps.Parent) + 15)
     Me.Height = ContentHeight(frmSteps.Parent) + 35
     
@@ -2195,18 +2194,18 @@ Private Sub OpenClickedLabelItem(ByVal oc_section As Long)
 End Sub
 
 Private Function GetPanesIndex(ByVal Rng As Range) As Integer
-    Dim sr As Long:          sr = ActiveWindow.SplitRow
+    Dim sR As Long:          sR = ActiveWindow.SplitRow
     Dim sc As Long:          sc = ActiveWindow.SplitColumn
     Dim r As Long:            r = Rng.row
     Dim c As Long:            c = Rng.Column
     Dim Index As Integer: Index = 1
 
     Select Case True
-    Case sr = 0 And sc = 0: Index = 1
-    Case sr = 0 And sc > 0 And c > sc: Index = 2
-    Case sr > 0 And sc = 0 And r > sr: Index = 2
-    Case sr > 0 And sc > 0 And r > sr: If c > sc Then Index = 4 Else Index = 3
-    Case sr > 0 And sc > 0 And c > sc: If r > sr Then Index = 4 Else Index = 2
+    Case sR = 0 And sc = 0: Index = 1
+    Case sR = 0 And sc > 0 And c > sc: Index = 2
+    Case sR > 0 And sc = 0 And r > sR: Index = 2
+    Case sR > 0 And sc > 0 And r > sR: If c > sc Then Index = 4 Else Index = 3
+    Case sR > 0 And sc > 0 And c > sc: If r > sR Then Index = 4 Else Index = 2
     End Select
 
     GetPanesIndex = Index
@@ -3174,7 +3173,7 @@ Private Sub SetupMsgSectPropSpaced(Optional ByVal msg_append As Boolean = False,
     With MsectTbx
         .SelStart = 0
         .Left = HSPACE_LEFT
-        TimedDoEvents    ' to properly h-align the text
+        TimedDoEvents ErrSrc(PROC)    ' to properly h-align the text
     End With
     
     MsectTbxFrm.Height = MsectTbx.Top + MsectTbx.Height
@@ -3401,18 +3400,6 @@ xt: Exit Sub
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
-Private Sub TimedDoEvents()
-
-    TimerBegin
-    ' Unfortunately the 'way faster DoEvents' method below does not have the desired effect in this module
-    ' If GetQueueStatus(QS_HOTKEY Or QS_KEY Or QS_MOUSEBUTTON Or QS_PAINT) Then DoEvents
-    DoEvents ' this is way slower
-'#If Debugging = 1 Then
-''    Debug.Print "DoEvents in '" & tde_source & "' interrupted the code execution for " & TimerEnd & " msec"
-'#End If
-
-End Sub
-
 Public Sub TimerBegin()
     cyTimerTicksBegin = TimerSysCurrentTicks
 End Sub
@@ -3463,4 +3450,32 @@ Private Sub VisualizeSetupStep(ByVal vss_status As String)
         End If
     End With
 End Sub
+
+Private Function TimedDoEvents(ByVal tde_source As String) As String
+' ---------------------------------------------------------------------------
+' For the execution of a DoEvents statement. Provides the information in
+' which procedure it had been executed and the msecs delay it has caused.
+'
+' Note: DoEvents every now and then is able to solve timing problems. When
+'       looking at the description of its effect this often appears
+'       miraculous. However, when it helps ... . But DoEvents allow keyboard
+'       interaction while a process executes. In case of a loop - and when
+'       the DoEvents lies within it, this may be a godsend. But it as well
+'       may cause unpredictable results. This little procedure at least
+'       documents in the Immediate window when (with milliseconds) and where
+'       it had been executed.
+' ---------------------------------------------------------------------------
+    Dim s As String
+    
+    mBasic.TimerBegin
+    DoEvents
+    s = Format(Now(), "hh:mm:ss") & ":" _
+      & Right(Format(Timer, "0.000"), 3) _
+      & " DoEvents paused the execution for " _
+      & Format(mBasic.TimerEnd, "00000") _
+      & " msecs in '" & tde_source & "'"
+    Debug.Print s
+    TimedDoEvents = s
+    
+End Function
 

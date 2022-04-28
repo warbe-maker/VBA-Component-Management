@@ -70,9 +70,9 @@ Public Property Get ExpFileTempFullName() As String
     With fso
         sTempFolder = mExport.ExpFileFolderPath(Me.RawHostWbFullName) & "\Temp"
         If Not .FolderExists(sTempFolder) Then
-            DoEvents
+            mBasic.TimedDoEvents ErrSrc(PROC)
             .CreateFolder sTempFolder
-            DoEvents
+            mBasic.TimedDoEvents ErrSrc(PROC)
         End If
         ExpFileTempFullName = sTempFolder & "\" & sCompName & Me.ExpFileExt
         If Not .FileExists(ExpFileTempFullName) Then
