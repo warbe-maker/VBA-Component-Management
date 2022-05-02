@@ -10,10 +10,7 @@ Attribute VB_Exposed = True
 Option Explicit
 
 Private sCurrentStatus  As String
-Private RenewStep       As Long
-Private RenewAction     As String
-Private RenewResult     As String
-Private sProgressMsg    As String
+Private sRenewResult    As String
 
 Public Property Let CompManAddInPausedStatus(ByVal s As String):        Me.Range("rngCompManPauseStatus").Value = s:            End Property
 
@@ -35,35 +32,33 @@ End Property
 
 Public Property Let RenewInfo(ByVal s As String):                       Me.Range("rngRenewInfo").Value = s:                 End Property
 
-Public Sub LogRenewStep( _
-               Optional ByVal rn_action As String = vbNullString, _
-               Optional ByVal rn_result As String = vbNullString, _
-               Optional ByVal rn_last_step As Boolean = False, _
-               Optional ByVal rn_renew_failed As Boolean = False)
+Public Sub MonitorRenewStep(Optional ByVal rn_action As String = vbNullString, _
+                            Optional ByVal rn_result As String = vbNullString, _
+                            Optional ByVal rn_last_step As Boolean = False, _
+                            Optional ByVal rn_renew_failed As Boolean = False)
 ' ---------------------------------------------------------------
 '
 ' ---------------------------------------------------------------
-    Dim Title   As String:      Title = "Establish or renew CompMan as Addin"
-    Dim Header  As TypeMsgText
-    Dim Step    As TypeMsgText
-    Dim Footer  As TypeMsgText
-    Dim l       As Long:        l = mMe.RenewStep
+    Dim Title           As String:      Title = "Establish or renew CompMan as Addin"
+    Dim Header          As TypeMsgText
+    Dim Step            As TypeMsgText
+    Dim Footer          As TypeMsgText
+    Dim sProgressMsg    As String
     
-    RenewStep = l
-    If rn_result <> vbNullString Then RenewResult = rn_result
-    If rn_action <> vbNullString Then RenewAction = rn_action
-    If RenewResult <> vbNullString Then ProgressMsg ' RenewStep, RenewResult, RenewAction
+    If rn_result <> vbNullString Then sRenewResult = rn_result
+'    If rn_action <> vbNullString Then RenewAction = rn_action
+    If sRenewResult <> vbNullString Then sProgressMsg = ProgressMsg(RenewStep, RenewAction, sRenewResult)
     
-    If RenewStep > 0 And RenewResult <> vbNullString Then
+    If mMe.RenewStep > 0 And sRenewResult <> vbNullString Then
         Step.Text = sProgressMsg
         Step.MonoSpaced = True
         If Not rn_last_step Then
             mMsg.Monitor mon_title:=Title _
-                   , mon_text:=Step _
-                   , mon_steps_displayed:=12 _
-                   , mon_width_min:=70 _
-                   , mon_width_max:=80 _
-                   , mon_pos:=MonitorAnchor
+                       , mon_text:=Step _
+                       , mon_steps_displayed:=12 _
+                       , mon_width_min:=70 _
+                       , mon_width_max:=80 _
+                       , mon_pos:=MonitorAnchor
         Else
             mMsg.Monitor Title, Step
             If mMe.RenewTerminatedByUser Then
@@ -92,23 +87,25 @@ Public Sub LogRenewStep( _
         End If
         sProgressMsg = vbNullString
     End If
-    RenewResult = vbNullString
+    sRenewResult = vbNullString
     
 End Sub
 
-Private Sub ProgressMsg()
-    If sProgressMsg = vbNullString Then
-        sProgressMsg = mBasic.Align(RenewStep, 2, AlignRight) & " " & RenewResult & " " & Split(RenewAction, vbLf)(0)
-        If UBound(Split(RenewAction, vbLf)) > 0 Then
-            sProgressMsg = sProgressMsg & vbLf & "          " & Split(RenewAction, vbLf)(1)
+Private Function ProgressMsg(ByVal pm_step As Long, _
+                             ByVal pm_action As String, _
+                             ByVal pm_result As String) As String
+    If ProgressMsg = vbNullString Then
+        ProgressMsg = mBasic.Align(pm_step, 2, AlignRight) & " " & pm_result & " " & Split(pm_action, vbLf)(0)
+        If UBound(Split(pm_action, vbLf)) > 0 Then
+            ProgressMsg = ProgressMsg & vbLf & "          " & Split(pm_action, vbLf)(1)
         End If
     Else
-        sProgressMsg = sProgressMsg & vbLf & mBasic.Align(RenewStep, 2, AlignRight) & " " & RenewResult & " " & Split(RenewAction, vbLf)(0)
+        ProgressMsg = ProgressMsg & vbLf & mBasic.Align(pm_step, 2, AlignRight) & " " & pm_result & " " & Split(pm_action, vbLf)(0)
         If UBound(Split(RenewAction, vbLf)) > 0 Then
-            sProgressMsg = sProgressMsg & vbLf & "   " & Split(RenewAction, vbLf)(1)
+            ProgressMsg = ProgressMsg & vbLf & "   " & Split(pm_action, vbLf)(1)
         End If
     End If
-End Sub
+End Function
 
 Private Sub Worksheet_Activate()
     With Me

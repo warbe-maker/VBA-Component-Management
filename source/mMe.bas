@@ -13,12 +13,12 @@ Option Private Module
 '                                  'AddIn Instance' of this Workbook
 ' - CfgAsserted                    Returns True when the required properties
 '                                  (the paths) are configured and exist
-' - ControlItemRenewAdd            Adds a 'RenewAddIn' control item to the
+' - ControlItemRenewAdd            Adds a 'Renew___AddIn' control item to the
 '                                  'Add-Ins' poupup menu.
-' - ControlItemRenewRemove         Removes the 'RenewAddIn' control item
+' - ControlItemRenewRemove         Removes the 'Renew___AddIn' control item
 '                                  from the 'Add-Ins' poupup menu when the
 '                                  Workbook is closed.
-' - RenewAddIn                     Called via the 'RenewAddIn' control item
+' - Renew___AddIn                     Called via the 'Renew___AddIn' control item
 '                                  in the 'Add-Ins' popup menu or executed
 '                                  via the corresponding Command Button at
 '                                  the 'Manage CompMan Addin' Worksheet.
@@ -201,26 +201,29 @@ Public Property Get IsDevInstnc() As Boolean
     End With
 End Property
 
-Public Property Let RenewLogAction(Optional ByVal la_last As Boolean = False, _
-                                            ByVal la_action As String)
+Public Property Let RenewAction(Optional ByVal la_last As Boolean = False, _
+                                         ByVal la_action As String)
+' -----------------------------------------------------------------------
+' Increase renew step and save action
+' -----------------------------------------------------------------------
     lRenewStep = lRenewStep + 1
     sRenewAction = la_action
-    wsAddIn.LogRenewStep rn_action:=sRenewAction _
-                       , rn_last_step:=la_last
+    Debug.Print lRenewStep & ". " & sRenewAction
 End Property
 
-Public Property Let RenewLogResult( _
-                    Optional ByVal la_result_text As String = vbNullString, _
-                    Optional ByVal la_last As Boolean = False, _
-                             ByVal la_result As String)
-    wsAddIn.LogRenewStep rn_result:=la_result, rn_action:=la_result_text, rn_last_step:=la_last
+Public Property Get RenewAction(Optional ByVal la_last As Boolean = False) As String
+    RenewAction = sRenewAction
 End Property
 
-Public Property Get RenewStep() As Long:    RenewStep = lRenewStep: End Property
-
-Public Property Let RenewStep(ByVal l As Long)
-    lRenewStep = l
+Public Property Let RenewMonitorResult(Optional ByVal la_result_text As String = vbNullString, _
+                                       Optional ByVal la_last As Boolean = False, _
+                                                ByVal la_result As String)
+    wsAddIn.MonitorRenewStep rn_result:=la_result _
+                           , rn_action:=la_result_text _
+                           , rn_last_step:=la_last
 End Property
+
+Public Property Get RenewStep() As Long:        RenewStep = lRenewStep: End Property
 
 Public Property Get RenewTerminatedByUser() As Boolean
     RenewTerminatedByUser = bRenewTerminatedByUser
@@ -370,16 +373,19 @@ Private Sub DevInstncWorkbookClose()
     
     On Error GoTo eh
 
-    mMe.RenewLogAction = "Close 'Development-Instance-Workbook' (" & DevInstncName & ")"
+    mMe.RenewAction = "Close 'Development-Instance-Workbook' (" & DevInstncName & ")"
     
     On Error Resume Next
     wbDevlp.Activate
     wbDevlp.Close False
-    If Err.Number <> 0 _
-    Then mMe.RenewLogResult("Closing the 'Development-Instance-Workbook' (" & DevInstncName & ") failed with:" & vbLf & _
-                            "(" & Err.Description & ")" _
-                           ) = "Failed" _
-    Else mMe.RenewLogResult() = "Passed"
+    If Err.Number <> 0 Then
+        mMe.RenewMonitorResult("Closing the 'Development-Instance-Workbook' (" & DevInstncName & ") failed with:" & vbLf & _
+                               "(" & Err.Description & ")" _
+                              ) = "Failed"
+    Else
+        mMe.RenewMonitorResult() = "Passed"
+    End If
+    
 xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -394,19 +400,21 @@ Private Sub DevInstncWorkbookDelete()
     On Error GoTo eh
     Dim fso As New FileSystemObject
     
-    mMe.RenewLogAction = "Delete the 'Development-Instance-Workbook' (" & DevInstncName & ")"
+    mMe.RenewAction = "Delete the 'Development-Instance-Workbook' (" & DevInstncName & ")"
     
     With fso
         If .FileExists(DevInstncFullName) Then
             On Error Resume Next
             .DeleteFile DevInstncFullName
-            If Err.Number = 0 _
-            Then mMe.RenewLogResult() = "Passed" _
-            Else mMe.RenewLogResult("Deleting the 'Development-Instance-Workbook' (" & DevInstncName & ") failed with:" & vbLf & _
-                                    "(" & Err.Description & ")" _
-                                   ) = "Failed"
+            If Err.Number = 0 Then
+                mMe.RenewMonitorResult() = "Passed"
+            Else
+                mMe.RenewMonitorResult("Deleting the 'Development-Instance-Workbook' (" & DevInstncName & ") failed with:" & vbLf & _
+                                       "(" & Err.Description & ")" _
+                                      ) = "Failed"
+            End If
         Else
-            mMe.RenewLogResult() = "Passed"
+            mMe.RenewMonitorResult() = "Passed"
         End If
     End With
 
@@ -524,44 +532,44 @@ Public Function FolderServicedIsValid() As Boolean
     End With
 End Function
 
-Public Sub RenewAddIn()
+Public Sub Renew___AddIn()
 ' ------------------------------------------------------------------------------
 ' Called via the Command Button in the "Manage CompMan Addin" sheet.
 ' Renews the code of the Addin instance of this Workbook with this Workbook's
-' code by displaying a detailed result of the whole RenewAddIn process.
+' code by displaying a detailed result of the whole Renew___AddIn process.
 ' Note: It cannot be avoided that this procedure is available also in the Addin
 '       instance. However, its execution is limited to this Workbook's
 '       development instance.
 ' ------------------------------------------------------------------------------
-    Const PROC = "RenewAddIn"
+    Const PROC = "Renew___AddIn"
     
     On Error GoTo eh
-    RenewStep = 0
+    lRenewStep = 0
 
     Application.EnableEvents = False
     bSucceeded = False
                             
     '~~ Get the CompMan base configuration confirmed or changed
-    If Not Renew_0_ConfirmConfig Then GoTo xt
+    If Not Renew_1_ConfirmConfig Then GoTo xt
                          
     '~~ Assert the Renew service is performed from within the development instance Workbbok
     '~~ Note that the distinction of the instances requires the above basic configuration confirmed
-    If Not Renew_1_DevInstnc Then GoTo xt
+    If Not Renew_2_DevInstnc Then GoTo xt
     
     '~~ Assert no Workbooks are open referring to the Addin
-    Renew_2_SaveAndRemoveAddInReferences
+    Renew_3_SaveAndRemoveAddInReferences
     If Not bAllRemoved Then GoTo xt
 
     '~~ Assure the current version of the Addin's development instance has been saved
     '~~ Note: Unconditionally saving the Workbook does an incredible trick:
     '~~       The un-unstalled and IsAddin=False Workbook is released from the Application
     '~~       and no longer considered "used"
-    Renew_3_DevInstncWorkbookSave
+    Renew_4_DevInstncWorkbookSave
     wbSource.Activate
           
     '~~ Attempt to turn Addin to "IsAddin=False", uninstall and close it
     If CompManAddinIsOpen Then
-        Renew_4_Set_IsAddin_ToFalse wbTarget
+        Renew_5_Set_IsAddin_ToFalse wbTarget
         If Not Renew_5_CloseAddinInstncWorkbook Then GoTo xt
     End If
     
@@ -601,38 +609,44 @@ End Sub
 
 Private Sub RenewFinalResult()
     If bSucceeded Then
-        mMe.RenewLogAction = "Successful!"
-        RenewLogResult(la_last:=True, la_result_text:=mBasic.Spaced("Successful!") & "   The Addin '" & CompManAddinName & "' has been renewed by the development instance '" & DevInstncName & "'") = "Passed"
+        mMe.RenewAction = "Successful!"
+        RenewMonitorResult(la_last:=True _
+                         , la_result_text:=mBasic.Spaced("Successful!") & "   The Addin '" & CompManAddinName & "' has been renewed by the development instance '" & DevInstncName & "'" _
+                          ) = "Passed"
     Else
-        mMe.RenewLogAction = "Not Successful!"
-        mMe.RenewLogResult(la_last:=True, la_result_text:="Renewing the Addin '" & CompManAddinName & "' by the development instance '" & DevInstncName & "'  " & mBasic.Spaced("failed!")) = "Failed"
+        mMe.RenewAction = "Not Successful!"
+        mMe.RenewMonitorResult(la_last:=True _
+                             , la_result_text:="Renewing the Addin '" & CompManAddinName & "' by the development instance '" & DevInstncName & "'  " & mBasic.Spaced("failed!") _
+                              ) = "Failed"
     End If
 End Sub
 
-Private Function Renew_0_ConfirmConfig() As Boolean
-    mMe.RenewLogAction = "Assert 'CompMan's Basic Configuration'"
-    Renew_0_ConfirmConfig = mMe.BasicConfig(addin_folder_obligatory:=True)
-    If Renew_0_ConfirmConfig _
-    Then mMe.RenewLogResult = "Passed" _
-    Else mMe.RenewLogResult = "Failed"
+Private Function Renew_1_ConfirmConfig() As Boolean
+    mMe.RenewAction = "Assert 'CompMan's Basic Configuration'"
+    Renew_1_ConfirmConfig = mMe.BasicConfig(addin_folder_obligatory:=True)
+    If Renew_1_ConfirmConfig _
+    Then mMe.RenewMonitorResult = "Passed" _
+    Else mMe.RenewMonitorResult = "Failed"
 End Function
 
-Private Function Renew_1_DevInstnc() As Boolean
-    mMe.RenewLogAction = "Assert this 'Setup/Renew' service is executed from the 'Development-Instance-Workbook'"
-    Renew_1_DevInstnc = IsDevInstnc()
-    If Not Renew_1_DevInstnc _
-    Then mMe.RenewLogResult("The 'RenewAddIn' service had not been executed from within the development instance Workbook (" & DevInstncName & ")!" _
-                           ) = "Failed" _
-    Else mMe.RenewLogResult = "Passed"
+Private Function Renew_2_DevInstnc() As Boolean
+    mMe.RenewAction = "Assert this 'Setup/Renew' service is executed from the 'Development-Instance-Workbook'"
+    Renew_2_DevInstnc = IsDevInstnc()
+    If Not Renew_2_DevInstnc Then
+        mMe.RenewMonitorResult("The 'Renew___AddIn' service had not been executed from within the development instance Workbook (" & DevInstncName & ")!" _
+                              ) = "Failed"
+    Else
+        mMe.RenewMonitorResult = "Passed"
+    End If
 End Function
 
-Private Sub Renew_2_SaveAndRemoveAddInReferences()
+Private Sub Renew_3_SaveAndRemoveAddInReferences()
 ' ----------------------------------------------------------------
 ' - Allows the user to close any open Workbook which refers to the
 '   Addin, which definitly hinders the Addin from being re-newed.
 ' - Returns TRUE when the user closed all open Workbboks.
 ' ----------------------------------------------------------------
-    Const PROC = "Renew_2_SaveAndRemoveAddInReferences"
+    Const PROC = "Renew_3_SaveAndRemoveAddInReferences"
     
     On Error GoTo eh
     Dim dct         As Dictionary
@@ -643,7 +657,7 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
     Dim bOneRemoved As Boolean
     Dim fso         As New FileSystemObject
 
-    mMe.RenewLogAction = "Save and remove references to the Addin from open Workbooks"
+    mMe.RenewAction = "Save and remove references to the Addin from open Workbooks"
     
     With Application
         Set dct = mWbk.Opened ' Returns a Dictionary with all open Workbooks in any application instance
@@ -669,9 +683,9 @@ Private Sub Renew_2_SaveAndRemoveAddInReferences()
     
     If bOneRemoved Then
         sWbs = Left(sWbs, Len(sWbs) - 2)
-        mMe.RenewLogResult() = "Passed"
+        mMe.RenewMonitorResult() = "Passed"
     Else
-        mMe.RenewLogResult(sRenewAction & vbLf & "None of the open Workbook's VBProject had a 'Reference' to the 'CompMan-Addin'" _
+        mMe.RenewMonitorResult(sRenewAction & vbLf & "None of the open Workbook's VBProject had a 'Reference' to the 'CompMan-Addin'" _
                           ) = "Passed"
     End If
     
@@ -683,16 +697,16 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Renew_3_DevInstncWorkbookSave()
-    Const PROC = "Renew_3_DevInstncWorkbookSave"
+Private Sub Renew_4_DevInstncWorkbookSave()
+    Const PROC = "Renew_4_DevInstncWorkbookSave"
     
     On Error GoTo eh
-    mMe.RenewLogAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ")"
+    mMe.RenewAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ")"
     
     Set wbSource = Application.Workbooks(DevInstncName)
     wbSource.Save
     wbSource.Activate
-    mMe.RenewLogResult() = "Passed"
+    mMe.RenewMonitorResult() = "Passed"
 
 xt: Exit Sub
 
@@ -702,18 +716,17 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Renew_4_Set_IsAddin_ToFalse(ByRef wb As Workbook)
-    Const PROC = "Renew_4_Set_IsAddin_ToFalse"
+Private Sub Renew_5_Set_IsAddin_ToFalse(ByRef wb As Workbook)
+    Const PROC = "Renew_5_Set_IsAddin_ToFalse"
     
     On Error GoTo eh
-
-    mMe.RenewLogAction = "Set the 'IsAddin' property of the 'CompMan-Addin' to FALSE"
+    mMe.RenewAction = "Set the 'IsAddin' property of the 'CompMan-Addin' to FALSE"
     
     If wb.IsAddin = True Then
         wb.IsAddin = False
-        mMe.RenewLogResult() = "Passed"
+        mMe.RenewMonitorResult() = "Passed"
     Else
-        mMe.RenewLogResult("The 'IsAddin' property of the 'ComMan-Addin' was already set to FALSE" _
+        mMe.RenewMonitorResult("The 'IsAddin' property of the 'ComMan-Addin' was already set to FALSE" _
                           ) = "Passed"
     End If
     
@@ -731,17 +744,19 @@ Private Function Renew_5_CloseAddinInstncWorkbook() As Boolean
 ' ------------------------------------------------------------
     Const PROC = "Renew_5_CloseAddinInstncWorkbook"
     
-    mMe.RenewLogAction = "Close the 'CompMan-Addin'"
+    mMe.RenewAction = "Close the 'CompMan-Addin'"
     On Error Resume Next
     wbSource.Activate
     wbTarget.Close False
     Renew_5_CloseAddinInstncWorkbook = Err.Number = 0
-    If Not Renew_5_CloseAddinInstncWorkbook _
-    Then mMe.RenewLogResult("Closing the 'CompMan-Addin' (" & CompManAddinName & ") failed with:" & vbLf & _
-                            "(" & Err.Description & ")" _
-                           ) = "Failed" _
-    Else mMe.RenewLogResult = "Passed"
-
+    If Not Renew_5_CloseAddinInstncWorkbook Then
+        mMe.RenewMonitorResult("Closing the 'CompMan-Addin' (" & CompManAddinName & ") failed with:" & vbLf & _
+                               "(" & Err.Description & ")" _
+                              ) = "Failed"
+    Else
+        mMe.RenewMonitorResult = "Passed"
+    End If
+    
 xt: Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -757,21 +772,23 @@ Private Function Renew_6_DeleteAddInInstanceWorkbook() As Boolean
     Const PROC = "Renew_6_DeleteAddInInstanceWorkbook"
     
     On Error GoTo eh
-
-    mMe.RenewLogAction = "Delete the 'CompMan-Addin' Workbook' (" & CompManAddinName & ")"
+    mMe.RenewAction = "Delete the 'CompMan-Addin' Workbook' (" & CompManAddinName & ")"
+    
     With New FileSystemObject
         If .FileExists(CompManAddinFullName) Then
             On Error Resume Next
             .DeleteFile CompManAddinFullName
             Renew_6_DeleteAddInInstanceWorkbook = Err.Number = 0
-            If Renew_6_DeleteAddInInstanceWorkbook _
-            Then mMe.RenewLogResult = "Passed" _
-            Else mMe.RenewLogResult("Deleting the 'CompMan-Addin' (" & CompManAddinName & ") failed with:" & vbLf & _
-                                    "(" & Err.Description & ")" _
-                                   ) = "Failed"
+            If Renew_6_DeleteAddInInstanceWorkbook Then
+                mMe.RenewMonitorResult = "Passed"
+            Else
+                mMe.RenewMonitorResult("Deleting the 'CompMan-Addin' (" & CompManAddinName & ") failed with:" & vbLf & _
+                                       "(" & Err.Description & ")" _
+                                      ) = "Failed"
+            End If
         Else
             Renew_6_DeleteAddInInstanceWorkbook = True
-            mMe.RenewLogResult = "Passed"
+            mMe.RenewMonitorResult = "Passed"
         End If
     End With
     
@@ -791,7 +808,7 @@ Private Function Renew_7_SaveDevInstncWorkbookAsAddin() As Boolean
     Const PROC = "Renew_7_SaveDevInstncWorkbookAsAddin"
     
     On Error GoTo eh
-    mMe.RenewLogAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ") as 'CompMan-Addin' (" & CompManAddinName & ")"
+    mMe.RenewAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ") as 'CompMan-Addin' (" & CompManAddinName & ")"
     
     With Application
         If Not CompManAddinWrkbkExists Then
@@ -800,13 +817,15 @@ Private Function Renew_7_SaveDevInstncWorkbookAsAddin() As Boolean
             On Error Resume Next
             wbSource.SaveAs CompManAddinFullName, FileFormat:=xlAddInFormat
             Renew_7_SaveDevInstncWorkbookAsAddin = Err.Number = 0
-            If Not Renew_7_SaveDevInstncWorkbookAsAddin _
-            Then mMe.RenewLogResult("Save Development instance as Addin instance  " & mBasic.Spaced("failed!") _
-                                   ) = "Failed" _
-            Else mMe.RenewLogResult() = "Passed"
+            If Not Renew_7_SaveDevInstncWorkbookAsAddin Then
+                mMe.RenewMonitorResult("Save Development instance as Addin instance  " & mBasic.Spaced("failed!") _
+                                      ) = "Failed"
+            Else
+                mMe.RenewMonitorResult() = "Passed"
+            End If
             .EnableEvents = True
         Else ' file still exists
-            mMe.RenewLogResult("Setup/Renew of the 'CompMan-Addin' as copy of the 'Development-Instance-Workbook'  " & mBasic.Spaced("failed!") _
+            mMe.RenewMonitorResult("Setup/Renew of the 'CompMan-Addin' as copy of the 'Development-Instance-Workbook'  " & mBasic.Spaced("failed!") _
                               ) = "Failed"
         End If
     End With
@@ -833,7 +852,7 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
     
     If Not CompManAddinIsOpen Then
         If CompManAddinWrkbkExists Then
-            mMe.RenewLogAction = "Re-open the 'CompMan-Addin' (" & CompManAddinName & ")"
+            mMe.RenewAction = "Re-open the 'CompMan-Addin' (" & CompManAddinName & ")"
             On Error Resume Next
             Set wb = Application.Workbooks.Open(CompManAddinFullName)
             If Err.Number = 0 Then
@@ -842,12 +861,12 @@ Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
                     sBaseDevName = .GetBaseName(ThisWorkbook.Name)
                     wb.VBProject.Name = sBaseAddinName
                 End With
-                mMe.RenewLogResult() = "Passed"
+                mMe.RenewMonitorResult() = "Passed"
                 Renew_8_OpenAddinInstncWorkbook = True
             Else
-                mMe.RenewLogResult("(Re)opening the 'CompMan-Addin' (" & CompManAddinName & ") failed with:" & vbLf & _
-                                   "(" & Err.Description & ")" _
-                                  ) = "Failed"
+                mMe.RenewMonitorResult("(Re)opening the 'CompMan-Addin' (" & CompManAddinName & ") failed with:" & vbLf & _
+                                       "(" & Err.Description & ")" _
+                                      ) = "Failed"
             End If
         End If
     End If
@@ -869,7 +888,7 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     Dim sWbs            As String
     Dim bOneRestored    As Boolean
     
-    mMe.RenewLogAction = "Restore all saved 'References' to the 'CompMan-Addin' in open Workbooks"
+    mMe.RenewAction = "Restore all saved 'References' to the 'CompMan-Addin' in open Workbooks"
     
     For Each v In dctAddInRefs
         Set wb = v
@@ -880,10 +899,10 @@ Private Sub Renew_9_RestoreReferencesToAddIn()
     
     If bOneRestored Then
         sWbs = Left(sWbs, Len(sWbs) - 2)
-        mMe.RenewLogResult() = "Passed"
+        mMe.RenewMonitorResult() = "Passed"
     Else
-        mMe.RenewLogResult(sRenewAction & vbLf & "Restoring 'References' did not find any saved to restore" _
-                          ) = "Passed"
+        mMe.RenewMonitorResult(sRenewAction & vbLf & "Restoring 'References' did not find any saved to restore" _
+                              ) = "Passed"
     End If
     
 xt: Exit Sub
@@ -904,7 +923,7 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
         If Not DevInstncWorkbookExists Then
             '~~ At this point the Development instance Workbook must no longer exist at its location
             .EnableEvents = False
-            mMe.RenewLogAction = "Save the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")"
+            mMe.RenewAction = "Save the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")"
             
             On Error Resume Next
             wbAddIn.SaveAs DevInstncFullName, FileFormat:=xlDevlpFormat, ReadOnlyRecommended:=False
@@ -914,15 +933,15 @@ Private Sub SaveAddinInstncWorkbookAsDevlp()
             Else wbDevlp.VBProject.Name = fso.GetBaseName(DevInstncName)
             
             If Err.Number <> 0 Then
-                mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")   " & mBasic.Spaced("failed!") _
-                                  ) = "Failed"
+                mMe.RenewMonitorResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")   " & mBasic.Spaced("failed!") _
+                                      ) = "Failed"
             Else
-                mMe.RenewLogResult() = "Passed"
+                mMe.RenewMonitorResult() = "Passed"
             End If
             .EnableEvents = True
         Else ' file still exists
-            mMe.RenewLogResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")  " & mBasic.Spaced("failed!") _
-                              ) = "Failed"
+            mMe.RenewMonitorResult("Saving the 'CompMan-Addin' (" & CompManAddinName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")  " & mBasic.Spaced("failed!") _
+                                  ) = "Failed"
         End If
     End With
 

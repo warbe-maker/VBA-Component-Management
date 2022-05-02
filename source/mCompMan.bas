@@ -463,7 +463,7 @@ xt: Set fso = Nothing
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -566,9 +566,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function UpdateOutdatedCommonComponents( _
-                ByRef uo_wb As Workbook, _
-       Optional ByVal uo_hosted As String = vbNullString) As Variant
+Public Function UpdateOutdatedCommonComponents(ByRef uo_wb As Workbook, _
+                                      Optional ByVal uo_hosted As String = vbNullString) As Variant
 ' ------------------------------------------------------------------------------
 ' Updates all outdated 'Used Common Components'.
 '
@@ -637,7 +636,7 @@ Public Function UpdateOutdatedCommonComponents( _
 xt: Set Log = Nothing
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

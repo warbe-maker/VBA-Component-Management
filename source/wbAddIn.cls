@@ -12,7 +12,7 @@ Option Explicit
 ' !! This Workbook exists as two instances:                                   !!
 ' !! 1. The development instance CompManDev.xlsb                              !!
 ' !! 2. The Addin instance CompMan.xlma which is setup/renewed via the        !!
-' !!    development instance service mMe.RenewAddIn                           !!
+' !!    development instance service mMe.Renew___AddIn                           !!
 '
 ' See: https://github.com/warbe-maker/Excel-VB-Components-Management-Services
 '
