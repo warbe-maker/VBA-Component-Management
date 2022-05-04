@@ -2751,7 +2751,7 @@ Private Sub Setup1_Title(ByVal setup_title As String, _
         End With
         .Caption = setup_title
         Correction = .laMsgTitle.Width * 0.11 ' The correction is a percentage of the length of the title template Label control
-        siWidth = .laMsgTitle.Width + 40 + Correction
+        siWidth = .laMsgTitle.Width + 44 + Correction
         .Width = Min(setup_width_max, siWidth)
         .Width = Max(.Width, setup_width_min)
         TitleWidth = .Width

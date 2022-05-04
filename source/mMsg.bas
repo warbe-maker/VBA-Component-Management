@@ -45,12 +45,12 @@ Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
     Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal ms As Long)
 #End If
 Private Declare PtrSafe Function GetSystemMetrics32 Lib "user32" Alias "GetSystemMetrics" (ByVal nIndex As Long) As Long
-Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hwnd As Long) As Long
+Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
-Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hwnd As Long, ByVal hDC As Long) As Long
+Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
-    (ByVal hwnd As Long, _
+    (ByVal hWnd As Long, _
     ByVal lpOperation As String, _
     ByVal lpFile As String, _
     ByVal lpParameters As String, _
@@ -73,8 +73,8 @@ Private Const ERROR_BAD_FORMAT = 11&
 
 ' Declarations for making a UserForm resizable
 Private Declare PtrSafe Function GetForegroundWindow Lib "User32.dll" () As Long
-Private Declare PtrSafe Function GetWindowLong Lib "User32.dll" Alias "GetWindowLongA" (ByVal hwnd As Long, ByVal nIndex As Long) As Long
-Private Declare PtrSafe Function SetWindowLong Lib "User32.dll" Alias "SetWindowLongA" (ByVal hwnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+Private Declare PtrSafe Function GetWindowLong Lib "User32.dll" Alias "GetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long) As Long
+Private Declare PtrSafe Function SetWindowLong Lib "User32.dll" Alias "SetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
 Private Const WS_THICKFRAME As Long = &H40000
 Private Const GWL_STYLE As Long = -16
 
@@ -681,7 +681,8 @@ Public Function ErrMsg(ByVal err_source As String, _
     End If
     
     '~~ Prepare Error Title
-    ErrTitle = ErrType & " " & ErrNo & " in: '" & err_source & "'" & ErrAtLine
+    ErrTitle = ErrType & ErrNo & " in: '" & err_source & "'" & ErrAtLine
+    Debug.Print ErrTitle
     
     '~~ Prepare the Error Reply Buttons
 #If Debugging = 1 Then
@@ -739,18 +740,18 @@ Private Function ErrSrc(ByVal sProc As String) As String
 End Function
 
 Private Function GetPanesIndex(ByVal Rng As Range) As Integer
-    Dim sr As Long:          sr = ActiveWindow.SplitRow
+    Dim sR As Long:          sR = ActiveWindow.SplitRow
     Dim sc As Long:          sc = ActiveWindow.SplitColumn
     Dim r As Long:            r = Rng.row
     Dim c As Long:            c = Rng.Column
     Dim Index As Integer: Index = 1
 
     Select Case True
-    Case sr = 0 And sc = 0: Index = 1
-    Case sr = 0 And sc > 0 And c > sc: Index = 2
-    Case sr > 0 And sc = 0 And r > sr: Index = 2
-    Case sr > 0 And sc > 0 And r > sr: If c > sc Then Index = 4 Else Index = 3
-    Case sr > 0 And sc > 0 And c > sc: If r > sr Then Index = 4 Else Index = 2
+    Case sR = 0 And sc = 0: Index = 1
+    Case sR = 0 And sc > 0 And c > sc: Index = 2
+    Case sR > 0 And sc = 0 And r > sR: Index = 2
+    Case sR > 0 And sc > 0 And r > sR: If c > sc Then Index = 4 Else Index = 3
+    Case sR > 0 And sc > 0 And c > sc: If r > sR Then Index = 4 Else Index = 2
     End Select
 
     GetPanesIndex = Index
@@ -792,14 +793,14 @@ Public Sub MakeFormResizable()
 ' NOTE:  This code should be executed within the UserForm_Activate() event.
 ' ----------------------------------------------------------------------------
     Dim lStyle As Long
-    Dim hwnd As Long
+    Dim hWnd As Long
     Dim RetVal
   
-    hwnd = GetForegroundWindow
+    hWnd = GetForegroundWindow
     'Get the basic window style
-     lStyle = GetWindowLong(hwnd, GWL_STYLE) Or WS_THICKFRAME
+     lStyle = GetWindowLong(hWnd, GWL_STYLE) Or WS_THICKFRAME
     'Set the basic window styles
-     RetVal = SetWindowLong(hwnd, GWL_STYLE, lStyle)
+     RetVal = SetWindowLong(hWnd, GWL_STYLE, lStyle)
 
 End Sub
 

@@ -138,7 +138,7 @@ Public Property Let Arry( _
 ' is optionally returned by Arry-Get.
 ' ----------------------------------------------------------------------------
                     
-    mFile.Txt(ft_file:=fa_file _
+    mFile.txt(ft_file:=fa_file _
             , ft_append:=fa_append _
             , ft_split:=fa_split _
              ) = Join(fa_ar, fa_split)
@@ -171,7 +171,7 @@ Public Property Get Arry( _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named '" & fa_file & "' does not exist!"
     
     '~~ Unload file to a string
-    sFile = mFile.Txt(ft_file:=fa_file _
+    sFile = mFile.txt(ft_file:=fa_file _
                     , ft_split:=sSplit _
                      )
     If sFile = vbNullString Then GoTo xt
@@ -257,8 +257,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Property
-
-                            
+                      
 Public Property Get Sections(Optional ByVal pp_file As Variant, _
                              Optional ByVal pp_sections As Variant = vbNullString, _
                              Optional ByRef pp_file_result As String) As Dictionary
@@ -275,16 +274,15 @@ Public Property Get Sections(Optional ByVal pp_file As Variant, _
     On Error GoTo eh
     Dim vName   As Variant
     Dim fl      As String
+    Dim dct     As New Dictionary
     
     If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     pp_file_result = fl
-    
-    Set Sections = New Dictionary
-    
+        
     If pp_sections = vbNullString Then
         '~~ Return all sections
         For Each vName In mFile.SectionNames(fl)
-            AddAscByKey add_dct:=Sections _
+            AddAscByKey add_dct:=dct _
                       , add_key:=vName _
                       , add_item:=mFile.Values(pp_file:=fl, pp_section:=vName)
         Next vName
@@ -292,14 +290,16 @@ Public Property Get Sections(Optional ByVal pp_file As Variant, _
         '~~ Return named sections
         For Each vName In NamesInArg(pp_sections)
             If mFile.SectionExists(pp_file, vName) Then
-                AddAscByKey add_dct:=Sections _
+                AddAscByKey add_dct:=dct _
                           , add_key:=vName _
                           , add_item:=mFile.Values(pp_file, vName)
             End If
         Next vName
     End If
 
-xt: Exit Property
+xt: Set Sections = dct
+    Set dct = Nothing
+    Exit Property
 
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -381,7 +381,7 @@ Public Property Get Temp( _
     Set fso = Nothing
 End Property
 
-Public Property Get Txt( _
+Public Property Get txt( _
          Optional ByVal ft_file As Variant, _
          Optional ByVal ft_append As Boolean = True, _
          Optional ByRef ft_split As String) As String
@@ -419,9 +419,9 @@ Public Property Get Txt( _
             s = VBA.Left$(s, Len(s) - 2)
         End If
     Else
-        Txt = vbNullString
+        txt = vbNullString
     End If
-    If Txt = vbCrLf Then Txt = vbNullString Else Txt = s
+    If txt = vbCrLf Then txt = vbNullString Else txt = s
 
 xt: Exit Property
 
@@ -431,7 +431,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Let Txt( _
+Public Property Let txt( _
          Optional ByVal ft_file As Variant, _
          Optional ByVal ft_append As Boolean = True, _
          Optional ByRef ft_split As String, _
@@ -986,18 +986,18 @@ Public Function Differs( _
     Dim sTest1      As String
     Dim sTest2      As String
     Dim v           As Variant
-    
+   
     Set dctDif = New Dictionary
     sFile1 = fd_file1.Path
     sFile2 = fd_file2.Path
     
-    s1 = mFile.Txt(ft_file:=sFile1, ft_split:=sSplit)
+    s1 = mFile.txt(ft_file:=sFile1, ft_split:=sSplit)
     If fd_ignore_empty_records Then
         '~~ Eliminate empty records
         sTest1 = VBA.Replace$(s1, sSplit & sSplit, sSplit)
     End If
     
-    s2 = mFile.Txt(ft_file:=sFile2, ft_split:=sSplit)
+    s2 = mFile.txt(ft_file:=sFile2, ft_split:=sSplit)
     If fd_ignore_empty_records Then
         '~~ Eliminate empty records
         sTest2 = VBA.Replace$(s2, sSplit & sSplit, sSplit)
@@ -2006,7 +2006,7 @@ Public Function SectionNames(Optional ByVal pp_file As Variant, _
     If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     pp_file_result = fl
     
-    If Len(mFile.Txt(fl)) = 0 Then GoTo xt
+    If Len(mFile.txt(fl)) = 0 Then GoTo xt
     Set SectionNames = New Dictionary
     
     Do While (iLen = Len(strBuffer) - 2) Or (iLen = 0)
@@ -2022,13 +2022,14 @@ Public Function SectionNames(Optional ByVal pp_file As Variant, _
         asSections = Split(strBuffer, vbNullChar)
         For i = LBound(asSections) To UBound(asSections)
             If Len(asSections(i)) <> 0 _
-            Then AddAscByKey add_dct:=SectionNames _
+            Then AddAscByKey add_dct:=dct _
                            , add_key:=asSections(i) _
                            , add_item:=asSections(i)
         Next i
     End If
     
-xt: Set dct = Nothing
+xt: Set SectionNames = dct
+    Set dct = Nothing
     Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
@@ -2185,9 +2186,8 @@ Public Function ValueNames(ByVal pp_file As Variant, _
         End If
     Next v
         
-    Set ValueNames = dctNames
-
-xt: Set dctNames = Nothing
+xt: Set ValueNames = dctNames
+    Set dctNames = Nothing
     Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
@@ -2210,6 +2210,7 @@ Public Function Values(ByVal pp_file As Variant, _
     On Error GoTo eh
     Dim asNames()   As String
     Dim dctNames    As New Dictionary
+    Dim dctValues   As New Dictionary
     Dim i           As Long
     Dim lResult     As Long
     Dim sNames      As String
@@ -2240,7 +2241,7 @@ Public Function Values(ByVal pp_file As Variant, _
             sName = asNames(i)
             If Len(sName) <> 0 Then
                 If Not dctNames.Exists(sName) _
-                Then AddAscByKey add_dct:=Values _
+                Then AddAscByKey add_dct:=dctValues _
                                , add_key:=sName _
                                , add_item:=mFile.Value(pp_file:=fl _
                                                      , pp_section:=pp_section _
@@ -2249,7 +2250,9 @@ Public Function Values(ByVal pp_file As Variant, _
         Next i
     End If
 
-xt: Exit Function
+xt: Set Values = dctValues
+    Set dctValues = Nothing
+    Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

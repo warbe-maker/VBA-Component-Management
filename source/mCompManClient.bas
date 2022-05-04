@@ -11,7 +11,9 @@ Option Explicit
 ' See also Github repo:
 ' https://github.com/warbe-maker/Excel-VB-Components-Management-Services
 ' ----------------------------------------------------------------------
-Private Busy As Boolean ' prevent parallel execution of a service
+Private Busy                As Boolean ' prevent parallel execution of a service
+Private Const COMPMAN_ADDIN As String = "CompMan.xlam"
+Private Const COMPMAN_DEVLP As String = "CompMan.xlsb"
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -54,7 +56,7 @@ Public Sub CompManService(ByVal cm_service As String, _
         On Error Resume Next
         Application.Run COMPMAN_BY_DEVLP & cm_service, ThisWorkbook, hosted
         If Err.Number = 1004 Then
-            Application.StatusBar = "'" & cm_service & "' neither available by '" & COMPMAN_BY_ADDIN & "' nor by '" & COMPMAN_BY_DEVLP & "'!"
+            Application.StatusBar = "'" & cm_service & "' neither available by  " & COMPMAN_ADDIN & "  nor by  " & COMPMAN_DEVLP
             GoTo xt
         End If
     ElseIf Err.Number = 0 Then
