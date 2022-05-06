@@ -13,3 +13,19 @@
 22-05-05 00:04:48 03,3589 03,3589 << Export Changed (by CompMan.xlsb) for CompMan.xlsb: 
 22-05-05 00:04:48                 Impact on the overall performance (caused by the trace itself): 00,0005 seconds!
 22-05-05 00:04:48 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+
+22-05-05 20:46:48 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-05-05 20:46:48                 >> Export Changed (by Addin) for CompMan.xlsb: 
+22-05-05 20:46:48 00,0000         |  >> mCompMan.ExportChangedComponents
+22-05-05 20:46:48 00,0603         |  |  >> mService.ExportChangedComponents
+22-05-05 20:46:49 00,1162         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-05-05 20:46:49 00,1941 00,0779 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-05-05 20:46:49 00,1954         |  |  |  >> mExport.ChangedComponents
+22-05-05 20:46:55 06,0974         |  |  |  |  >> mService.RemoveTempRenamed
+22-05-05 20:46:55 06,0984 00,0010 |  |  |  |  << mService.RemoveTempRenamed
+22-05-05 20:46:55 06,0996 05,9042 |  |  |  << mExport.ChangedComponents
+22-05-05 20:46:55 06,1007 06,0405 |  |  << mService.ExportChangedComponents
+22-05-05 20:46:55 06,1022 06,1022 |  << mCompMan.ExportChangedComponents
+22-05-05 20:46:55 06,1022 06,1022 << Export Changed (by Addin) for CompMan.xlsb: 
+22-05-05 20:46:55                 Impact on the overall performance (caused by the trace itself): 00,0015 seconds!
+22-05-05 20:46:55 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
