@@ -106,6 +106,7 @@ Public lMaxCompLength   As Long
 Public dctHostedRaws    As Dictionary
 Public Stats            As clsStats
 Public Log              As clsLog
+
     
 Private Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
 
@@ -141,67 +142,6 @@ Public Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
     If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
 End Function
-
-'Public Sub CompareUsedWithRaw(ByVal cmp_comp_name As String)
-'' -----------------------------------------------------------
-''
-'' -----------------------------------------------------------
-'    Const PROC = "CompareUsedWithRaw"
-'
-'    On Error GoTo eh
-'    Dim sExpFileRaw As String
-'    Dim wb          As Workbook
-'    Dim Comp        As New clsComp
-'
-'    Set wb = ActiveWorkbook
-'    With Comp
-'        Set .Wrkbk = wb
-'        .CompName = cmp_comp_name
-'        Set .VBComp = wb.VBProject.VBComponents(.CompName)
-'        If .KindOfComp = enCommCompUsed Then
-'            sExpFileRaw = .Raw.ExpFileFullName
-'            mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=.ExpFileFullName _
-'                                       , fd_exp_file_right_full_name:=sExpFileRaw _
-'                                       , fd_exp_file_left_title:="Clone (used) Common Component code in Workbook/VBProject " & Comp.WrkbkBaseName & " (" & .ExpFileFullName & ")" _
-'                                       , fd_exp_file_right_title:="Raw (hosted) Common Component code in Workbook/VBProject " & mBasic.BaseName(mComCompsRawsSaved.RawHostWbFullName(.CompName)) & " (" & sExpFileRaw & ")"
-'
-'        Else
-'            mMsg.Box Title:="Not a known 'Common Component'!" _
-'                   , Prompt:="The provided component name '" & cmp_comp_name & "' is not registered/known as a 'Common Component'. " & _
-'                              "To have this component been recognized by CompMan as a 'Common Component' one Workbook has to claim " & _
-'                              "hosting it as the 'Raw Used Common Component'."
-'        End If
-'    End With
-'    Set Comp = Nothing
-'
-'xt: Exit Sub
-'
-'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-'        Case vbResume:  Stop: Resume
-'        Case Else:      GoTo xt
-'    End Select
-'End Sub
-
-Private Sub EstablishTraceLogFile(ByVal dt_wb As Workbook, _
-                         Optional ByVal dt_append As Boolean = False)
-' --------------------------------------------------------------------------
-' Establishes a trace log file in the serviced Workbook's parent folder.
-' --------------------------------------------------------------------------
-    Dim sFile As String
-    sFile = Replace(dt_wb.FullName, dt_wb.Name, "CompMan.Service.trc")
-
-    '~~ Even when dt_append = False: When the filke had been createde today dt_append will be set to True
-    With New FileSystemObject
-        If .FileExists(sFile) Then
-            If Format(.GetFile(sFile).DateCreated, "YYYY-MM-DD") = Format(Now(), "YYYY-MM-DD") Then
-                dt_append = True
-            End If
-        End If
-    End With
-    mTrc.LogFile(tl_append:=dt_append) = sFile
-    mTrc.LogTitle = Log.Service
-
-End Sub
 
 Public Sub DisplayChanges( _
            Optional ByVal fl_1 As String = vbNullString, _
@@ -245,10 +185,172 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Function ErrMsg(ByVal err_source As String, _
+               Optional ByVal err_no As Long = 0, _
+               Optional ByVal err_dscrptn As String = vbNullString, _
+               Optional ByVal err_line As Long = 0) As Variant
+' ------------------------------------------------------------------------------
+' Universal error message display service including a debugging option active
+' when the Conditional Compile Argument 'Debugging = 1' and an optional
+' additional "About the error:" section displaying text connected to an error
+' message by two vertical bars (||).
+'
+' A copy of this function is used in each procedure with an error handling
+' (On error Goto eh).
+'
+' The function considers the Common VBA Error Handling Component (ErH) which
+' may be installed (Conditional Compile Argument 'ErHComp = 1') and/or the
+' Common VBA Message Display Component (mMsg) installed (Conditional Compile
+' Argument 'MsgComp = 1'). Only when none of the two is installed the error
+' message is displayed by means of the VBA.MsgBox.
+'
+' Usage: Example with the Conditional Compile Argument 'Debugging = 1'
+'
+'        Private/Public <procedure-name>
+'            Const PROC = "<procedure-name>"
+'
+'            On Error Goto eh
+'            ....
+'        xt: Exit Sub/Function/Property
+'
+'        eh: Select Case ErrMsg(ErrSrc(PROC))
+'               Case vbResume:  Stop: Resume
+'               Case Else:      GoTo xt
+'            End Select
+'        End Sub/Function/Property
+'
+'        The above may appear a lot of code lines but will be a godsend in case
+'        of an error!
+'
+' Uses:  - For programmed application errors (Err.Raise AppErr(n), ....) the
+'          function AppErr will be used which turns the positive number into a
+'          negative one. The error message will regard a negative error number
+'          as an 'Application Error' and will use AppErr to turn it back for
+'          the message into its original positive number. Together with the
+'          ErrSrc there will be no need to maintain numerous different error
+'          numbers for a VB-Project.
+'        - The caller provides the source of the error through the module
+'          specific function ErrSrc(PROC) which adds the module name to the
+'          procedure name.
+'
+' W. Rauschenberger Berlin, Nov 2021
+' ------------------------------------------------------------------------------
+#If ErHComp = 1 Then
+    '~~ ------------------------------------------------------------------------
+    '~~ When the Common VBA Error Handling Component (mErH) is installed in the
+    '~~ VB-Project (which includes the mMsg component) the mErh.ErrMsg service
+    '~~ is preferred since it provides some enhanced features like a path to the
+    '~~ error.
+    '~~ ------------------------------------------------------------------------
+    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line)
+    GoTo xt
+#ElseIf MsgComp = 1 Then
+    '~~ ------------------------------------------------------------------------
+    '~~ When only the Common Message Services Component (mMsg) is installed but
+    '~~ not the mErH component the mMsg.ErrMsg service is preferred since it
+    '~~ provides an enhanced layout and other features.
+    '~~ ------------------------------------------------------------------------
+    ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line)
+    GoTo xt
+#End If
+    '~~ -------------------------------------------------------------------
+    '~~ When neither the mMsg nor the mErH component is installed the error
+    '~~ message is displayed by means of the VBA.MsgBox
+    '~~ -------------------------------------------------------------------
+    Dim ErrBttns    As Variant
+    Dim ErrAtLine   As String
+    Dim ErrDesc     As String
+    Dim ErrLine     As Long
+    Dim ErrNo       As Long
+    Dim ErrSrc      As String
+    Dim ErrText     As String
+    Dim ErrTitle    As String
+    Dim ErrType     As String
+    Dim ErrAbout    As String
+        
+    '~~ Obtain error information from the Err object for any argument not provided
+    If err_no = 0 Then err_no = Err.Number
+    If err_line = 0 Then ErrLine = Erl
+    If err_source = vbNullString Then err_source = Err.source
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
+    
+    If InStr(err_dscrptn, "||") <> 0 Then
+        ErrDesc = Split(err_dscrptn, "||")(0)
+        ErrAbout = Split(err_dscrptn, "||")(1)
+    Else
+        ErrDesc = err_dscrptn
+    End If
+    
+    '~~ Determine the type of error
+    Select Case err_no
+        Case Is < 0
+            ErrNo = AppErr(err_no)
+            ErrType = "Application Error "
+        Case Else
+            ErrNo = err_no
+            If (InStr(1, err_dscrptn, "DAO") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC Teradata Driver") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC") <> 0 _
+            Or InStr(1, err_dscrptn, "Oracle") <> 0) _
+            Then ErrType = "Database Error " _
+            Else ErrType = "VB Runtime Error "
+    End Select
+    
+    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
+    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
+    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
+       
+    ErrText = "Error: " & vbLf & _
+              ErrDesc & vbLf & vbLf & _
+              "Source: " & vbLf & _
+              err_source & ErrAtLine
+    If ErrAbout <> vbNullString _
+    Then ErrText = ErrText & vbLf & vbLf & _
+                  "About: " & vbLf & _
+                  ErrAbout
+    
+#If Debugging Then
+    ErrBttns = vbYesNo
+    ErrText = ErrText & vbLf & vbLf & _
+              "Debugging:" & vbLf & _
+              "Yes    = Resume Error Line" & vbLf & _
+              "No     = Terminate"
+#Else
+    ErrBttns = vbCritical
+#End If
+    
+    ErrMsg = MsgBox(Title:=ErrTitle _
+                  , Prompt:=ErrText _
+                  , Buttons:=ErrBttns)
+xt: Exit Function
+
+End Function
+
 Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mCompMan" & "." & es_proc
 End Function
 
+Private Sub EstablishTraceLogFile(ByVal dt_wb As Workbook, _
+                         Optional ByVal dt_append As Boolean = False)
+' --------------------------------------------------------------------------
+' Establishes a trace log file in the serviced Workbook's parent folder.
+' --------------------------------------------------------------------------
+    Dim sFile As String
+    sFile = Replace(dt_wb.FullName, dt_wb.Name, "CompMan.Service.trc")
+
+    '~~ Even when dt_append = False: When the filke had been createde today dt_append will be set to True
+    With New FileSystemObject
+        If .FileExists(sFile) Then
+            If Format(.GetFile(sFile).DateCreated, "YYYY-MM-DD") = Format(Now(), "YYYY-MM-DD") Then
+                dt_append = True
+            End If
+        End If
+    End With
+    mTrc.LogFile(tl_append:=dt_append) = sFile
+    mTrc.LogTitle = Log.Service
+
+End Sub
 
 Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
 ' ----------------------------------------------------------------------------
@@ -468,6 +570,44 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Public Function RunTest(ByVal rt_service As String, _
+                        ByVal rt_serviced_wb As Workbook) As Variant
+' --------------------------------------------------------------------------
+' Ensures the requested service is able to run or returns the reason why not.
+' The function returns:
+' - AppErr(1) when CompMan is not configured properly
+' - AppErr(2) when the service Workbook is not in the configures Folder
+' - AppErr(3) when the requested service (rt_service) was
+'             "UpdateOutdatedUsedCommonComponents" but the servicing and the
+'             serviced Workbook are both CompMan.xlsb - and the Workbook
+'             cannot update itself. This error only happens when the Addin
+'             is not available.
+' - AppErr(4) when the servicing Workbook is the Addin which is available
+'             but paused. It would requires CompMan.xlsb to run the
+'             service. When CompMan.xlsb is open, it will provide the
+'             service.
+' --------------------------------------------------------------------------
+    Const PROC = "RunTest"
+    
+    On Error GoTo eh
+    If Not mMe.FolderServicedIsValid Then
+        RunTest = AppErr(1) ' The serviced root folder is invalid (not configured or not existing)
+    ElseIf Not rt_serviced_wb.FullName Like mConfig.FolderServiced & "*" Then
+        RunTest = AppErr(2) ' The serviced Workbook is located outside the serviced folder
+    ElseIf mMe.IsAddinInstnc And mMe.CompManAddinIsPaused Then
+        RunTest = AppErr(4) ' The service is about to be provided by the Addin but the Addin is currently paused
+    ElseIf rt_service = "UpdateOutdatedCommonComponents" And mMe.IsDevInstnc And rt_serviced_wb.Name = mMe.DevInstncName Then
+        RunTest = AppErr(3) ' The servicing and the serviced Workbook are both the 'CompMan Development Instance'
+    End If
+
+xt: Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
 
 Private Function SavedRawInconsitencyWarning(ByVal sri_raw_exp_file_full_name, _
                                              ByVal sri_saved_exp_file_full_name, _

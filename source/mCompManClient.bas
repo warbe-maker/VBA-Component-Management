@@ -11,9 +11,12 @@ Option Explicit
 ' See also Github repo:
 ' https://github.com/warbe-maker/Excel-VB-Components-Management-Services
 ' ----------------------------------------------------------------------
-Private Busy                As Boolean ' prevent parallel execution of a service
 Private Const COMPMAN_ADDIN As String = "CompMan.xlam"
 Private Const COMPMAN_DEVLP As String = "CompMan.xlsb"
+
+Private Busy                As Boolean ' prevent parallel execution of a service
+Private RunWbModule         As String
+Private RunService          As String
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -49,17 +52,29 @@ Public Sub CompManService(ByVal cm_service As String, _
     End If
     Busy = True
     
+    RunService = cm_service
+    
+    '~~ Test whether the service can be provided
     On Error Resume Next
-    vDone = Application.Run(COMPMAN_BY_ADDIN & cm_service, ThisWorkbook, hosted)
-    If Err.Number = 1004 Then
-        '~~ The Addin is (currently) not available at all. Let's try with the CompMan.xlsb which might be open
+    Application.Run COMPMAN_BY_ADDIN & "RunTest", cm_service, ThisWorkbook
+    If Err.Number = 0 Then
+        RunWbModule = COMPMAN_BY_ADDIN
+    ElseIf 1004 Then
         On Error Resume Next
-        Application.Run COMPMAN_BY_DEVLP & cm_service, ThisWorkbook, hosted
-        If Err.Number = 1004 Then
+        Application.Run COMPMAN_BY_DEVLP & "RunTest", cm_service, ThisWorkbook
+        If Err.Number = 0 Then
+            RunWbModule = COMPMAN_BY_DEVLP
+        ElseIf 1004 Then
             Application.StatusBar = "'" & cm_service & "' neither available by  " & COMPMAN_ADDIN & "  nor by  " & COMPMAN_DEVLP
             GoTo xt
         End If
-    ElseIf Err.Number = 0 Then
+    End If
+    
+    '~~ Either the Addin or the development instance is ready to run the service
+    vDone = Application.Run(RunWbModule & cm_service, ThisWorkbook, hosted)
+    If IsString(vDone) Then
+        Application.StatusBar = vDone
+    Else
         Select Case vDone
             Case AppErr(1)
             '~~ CompMan is not configured prperly
@@ -67,10 +82,11 @@ Public Sub CompManService(ByVal cm_service As String, _
                 '~~ Workbook not serviced because not in the configured serviced folder
                 GoTo xt
             Case AppErr(3)
-                '~~ The requestes service was UpdateOutdatedUsedCommonComponents but
+                '~~ The requested service was UpdateOutdatedUsedCommonComponents but
                 '~~ the servicing and the service Workbook are both CompMan.xlsb and
                 '~~ the Workbook cannot update itself. This error only happens when the
                 '~~ Addin is not available.
+                Application.StatusBar = "'" & COMPMAN_ADDIN & "' is not available (the '" & COMPMAN_BY_DEVLP & "' cannot update its own modules)!"
             Case AppErr(4)
                 '~~ The Addin is available but is currently paused. It requires CompMan.xlsb
                 '~~ to Continue it. When CompMan.xlsb is open, the service will be provided however
@@ -80,8 +96,6 @@ Public Sub CompManService(ByVal cm_service As String, _
                     Application.StatusBar = "'" & cm_service & "' neither available by '" & COMPMAN_BY_ADDIN & "' nor by '" & COMPMAN_BY_DEVLP & "'!"
                 End If
         End Select
-    ElseIf IsString(vDone) Then
-        Application.StatusBar = vDone
     End If
 
 xt: Busy = False
@@ -93,10 +107,10 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function ErrMsg(ByVal err_source As String, _
-              Optional ByVal err_no As Long = 0, _
-              Optional ByVal err_dscrptn As String = vbNullString, _
-              Optional ByVal err_line As Long = 0) As Variant
+Private Function ErrMsg(ByVal err_source As String, _
+               Optional ByVal err_no As Long = 0, _
+               Optional ByVal err_dscrptn As String = vbNullString, _
+               Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
 ' Universal error message display service including a debugging option active
 ' when the Conditional Compile Argument 'Debugging = 1' and an optional
