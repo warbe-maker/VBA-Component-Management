@@ -395,7 +395,8 @@ Public Function ExportChangedComponents( _
 ' b) the serviced Workbook does not reside in a folder exclusivelyx (i.e. the
 '    Workbook does not live in its own dedicated folder
 ' c) WinMerge is not installed
-
+'
+' Precondition: The service has been checked by the client to be able to run.
 ' ----------------------------------------------------------------------------
     Const PROC = "ExportChangedComponents"
     
@@ -404,31 +405,16 @@ Public Function ExportChangedComponents( _
     Set Log = New clsLog
     Log.Service = SRVC_EXPORT_CHANGED
     
-    '~~ Determine any reason the service basically cannot be provided
-    If Not mMe.FolderServicedIsValid Then
-        '~~ The serviced root folder is invalid (not configured or not existing)
-        ExportChangedComponents = AppErr(1)
-    ElseIf Not ec_wb.FullName Like mConfig.FolderServiced & "*" Then
-        '~~ The serviced Workbook is located outside the serviced folder
-        ExportChangedComponents = AppErr(2)
-    ElseIf mMe.IsAddinInstnc And mMe.CompManAddinIsPaused Then
-        '~~ When the service is about to be provided by the Addin but the Addin is currently paused
-        '~~ another try with the serviced provided by the open Development instance may do the job.
-        ExportChangedComponents = AppErr(4)
+    EstablishTraceLogFile ec_wb
+    mBasic.BoP ErrSrc(PROC)
     
-    '~~ The very basic requirements are met
-    Else
-        EstablishTraceLogFile ec_wb
-        mBasic.BoP ErrSrc(PROC)
-        
-        If mService.Denied Then GoTo xt
-        
-        mService.ExportChangedComponents ec_hosted
-        ExportChangedComponents = True
-        ExportChangedComponents = Application.StatusBar
-        
-        mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
-    End If
+    If mService.Denied Then GoTo xt
+    
+    mService.ExportChangedComponents ec_hosted
+    ExportChangedComponents = True
+    ExportChangedComponents = Application.StatusBar
+    
+    mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
 
 xt: Exit Function
     
@@ -729,6 +715,8 @@ Public Function UpdateOutdatedCommonComponents(ByRef uo_wb As Workbook, _
 ' b) the serviced Workbook does not reside in a folder exclusivelyx (i.e. the
 '    Workbook does not live in its own dedicated folder
 ' c) WinMerge is not installed
+'
+' Precondition: The service has been checked by the client to be able to run.
 ' ------------------------------------------------------------------------------
     Const PROC = "UpdateOutdatedCommonComponents"
     
@@ -737,41 +725,20 @@ Public Function UpdateOutdatedCommonComponents(ByRef uo_wb As Workbook, _
     Set mService.Serviced = uo_wb
     Set Log = New clsLog
     Log.Service(new_log:=True) = SRVC_UPDATE_OUTDATED
+    EstablishTraceLogFile uo_wb
     
-    '~~ Prevent any service is performed when not possible, applicable or any other reason
-    If Not mMe.FolderServicedIsValid Then
-        '~~ The serviced root folder is invalid (not configured or not existing)
-        UpdateOutdatedCommonComponents = AppErr(1)
-    ElseIf Not uo_wb.FullName Like mConfig.FolderServiced & "*" Then
-        '~~ The serviced Workbook is located outside the serviced folder
-        UpdateOutdatedCommonComponents = AppErr(2)
-    ElseIf mMe.IsDevInstnc And uo_wb.Name = mMe.DevInstncName Then
-        '~~ The servicing and the serviced Workbook are both the 'CompMan Development Instance'
-        '~~ This is the case when either no CompMan-Addin-Instance is available or it is currently paused
-        UpdateOutdatedCommonComponents = AppErr(3)
-    ElseIf mMe.IsAddinInstnc And mMe.CompManAddinIsPaused Then
-        '~~ When the service is about to be provided by the Addin but the Addin is currently paused
-        '~~ another try with the serviced provided by the open Development instance may do the job.
-        UpdateOutdatedCommonComponents = AppErr(4)
+    mBasic.BoP ErrSrc(PROC)
+    mCompMan.MaintainPropertiesOfHostedRawCommonComponents uo_hosted
+    Set Stats = New clsStats
+    mUpdate.Outdated
     
-    Else
-        EstablishTraceLogFile uo_wb
-        mBasic.BoP ErrSrc(PROC)
-        
-        If mService.Denied Then GoTo xt
-        
-        mCompMan.MaintainPropertiesOfHostedRawCommonComponents uo_hosted
-        Set Stats = New clsStats
-        mUpdate.Outdated
-        
-        '~~ !!!! Saving the Workbook is likely to cause Excel to crash                             !!!!!
-        '~~ !!!! Not saving the Workbook programmatically is stabilizing the process significantly !!!!
+    '~~ !!!! Saving the Workbook is likely to cause Excel to crash                             !!!!!
+    '~~ !!!! Not saving the Workbook programmatically is stabilizing the process significantly !!!!
 '        mService.SaveWbk uo_wb
 
-        UpdateOutdatedCommonComponents = True
-        
-        mBasic.EoP ErrSrc(PROC)
-    End If
+    UpdateOutdatedCommonComponents = True
+    
+    mBasic.EoP ErrSrc(PROC)
     
 xt: Set Log = Nothing
     Exit Function
