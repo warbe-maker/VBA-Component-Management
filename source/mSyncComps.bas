@@ -69,9 +69,9 @@ Public Sub SyncCodeChanges()
                                 , sync_source_codelines:=SourceComp.CodeLines
                 Log.Entry = "Code updated line-by-line with code from Export-File '" & SourceComp.ExpFileFullName & "'"
             Else
-                mRenew.ByImport rn_wb:=Sync.Target _
-                              , rn_comp_name:=vbc.Name _
-                              , rn_raw_exp_file_full_name:=SourceComp.ExpFileFullName
+                mRenew.ByImport bi_wb_serviced:=Sync.Target _
+                              , bi_comp_name:=vbc.Name _
+                              , bi_exp_file:=SourceComp.ExpFileFullName
                 Log.Entry = "Renewed/updated by import of '" & SourceComp.ExpFileFullName & "'"
             End If
         End If

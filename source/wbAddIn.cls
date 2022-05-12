@@ -62,7 +62,7 @@ Private Sub Workbook_Open()
         '~~ Executed by the development instance when open or by the Addin
         '~~ when established and automatically available when referenced by
         '~~ the VB-Project
-        mCompManClient.CompManService "UpdateOutdatedCommonComponents", HOSTED_RAWS
+        mCompManClient.CompManService "UpdateOutdatedCommonComponents", HOSTED_RAWS, True
         '~~ ------------------------------------------------------------------
         mMe.DisplayStatus
         Application.ScreenUpdating = False

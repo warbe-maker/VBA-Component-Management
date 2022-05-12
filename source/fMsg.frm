@@ -11,7 +11,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 Option Explicit
 ' -------------------------------------------------------------------------------
 ' UserForm fMsg Provides all means for a message with up to 5 separated text
@@ -2710,7 +2709,9 @@ Public Sub Setup()
     '~~ the vertical scrollbar visible
     AdjustTopPositions
     
-    Me.Width = Max(ContentWidth(BttnsArea.Parent), ContentWidth(MsectsArea.Parent)) + 15
+    If MsectsArea.Visible Then
+        Me.Width = Max(ContentWidth(BttnsArea.Parent), ContentWidth(MsectsArea.Parent)) + 15
+    End If
     Me.Height = Max(ContentHeight(BttnsArea.Parent), ContentHeight(MsectsArea.Parent)) + 35
     
     PositionOnScreen
@@ -3502,49 +3503,55 @@ Private Sub ApplicationRunViaButton(ByVal ar_button As String)
     Dim cll         As Collection
     Dim sService    As String
     Dim Msg         As TypeMsg
+    Dim i           As Long
     
-    If dctApplicationRunArgs.Exists(ar_button) Then
-        Set cll = dctApplicationRunArgs(ar_button)
-        sService = cll(1).Name & "!" & cll(2)
-        
-        Set cll = dctApplicationRunArgs(ar_button)
-        Select Case cll.Count
-            Case 2: Application.Run sService                 ' service call without arguments
-            Case 3: Application.Run sService, cll(3)
-            Case 4: Application.Run sService, cll(3), cll(4)
-            Case 5: Application.Run sService, cll(3), cll(4), cll(5)
-            Case 6: Application.Run sService, cll(3), cll(4), cll(5), cll(6)
-            Case 7: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7)
-            Case 8: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8)
-            Case 9: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9)
-            Case 10: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10)
-            Case 11: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11)
-            Case 12: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11), cll(12)
-            Case 13: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11), cll(12), cll(13)
-            Case 14: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11), cll(12), cll(13), cll(14)
-            Case 15: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11), cll(12), cll(13), cll(14), cll(15)
-            Case 16: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11), cll(12), cll(13), cll(14), cll(15), cll(16)
+    For i = 0 To dctApplicationRunArgs.Count - 1
+        If StrComp(dctApplicationRunArgs.Keys()(i), ar_button, vbTextCompare) = True Then
+            Debug.Print "ar_button: '" & ar_button & "'"
+            Debug.Print "Keys(i)  : '" & dctApplicationRunArgs.Keys()(i) & "'"
+            Debug.Print "Exists:     " & dctApplicationRunArgs.Exists(ar_button)
+            Set cll = dctApplicationRunArgs.Items()(i)
+            sService = cll(1).Name & "!" & cll(2)
+            
+            Select Case cll.Count
+                Case 2: Application.Run sService                 ' service call without arguments
+                Case 3: Application.Run sService, cll(3)
+                Case 4: Application.Run sService, cll(3), cll(4)
+                Case 5: Application.Run sService, cll(3), cll(4), cll(5)
+                Case 6: Application.Run sService, cll(3), cll(4), cll(5), cll(6)
+                Case 7: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7)
+                Case 8: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8)
+                Case 9: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9)
+                Case 10: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10)
+                Case 11: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11)
+                Case 12: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11), cll(12)
+                Case 13: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11), cll(12), cll(13)
+                Case 14: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11), cll(12), cll(13), cll(14)
+                Case 15: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11), cll(12), cll(13), cll(14), cll(15)
+                Case 16: Application.Run sService, cll(3), cll(4), cll(5), cll(6), cll(7), cll(8), cll(9), cll(10), cll(11), cll(12), cll(13), cll(14), cll(15), cll(16)
             End Select
-    Else
-        With Msg.Section(1).Text
-            .Text = "This button is useless when the form is displayed modeless," & vbLf & _
-                    "unless it is provided by the caller with an action to perform " & vbLf & _
-                    "- which is not the case!"
-            .FontColor = rgbRed
-            .FontBold = True
-            .MonoSpaced = True
-        End With
-        With Msg.Section(2)
-            With .Label
-                .Text = "What this means:"
-                .FontColor = rgbBlue
-            End With
-            .Text.Text = "In a modeless displayed form there should be no buttons other than those an 'Application.Run' service had been specified to be performed when clicked."
-        End With
+            GoTo xt
+        End If
+    Next i
         
-        mMsg.Dsply dsply_title:="No 'Application.Run' information provided for this button!" _
-                 , dsply_msg:=Msg
-    End If
+    With Msg.Section(1).Text
+        .Text = "This button is useless when the form is displayed modeless," & vbLf & _
+                "unless it is provided by the caller with an action to perform " & vbLf & _
+                "- which is not the case!"
+        .FontColor = rgbRed
+        .FontBold = True
+        .MonoSpaced = True
+    End With
+    With Msg.Section(2)
+        With .Label
+            .Text = "What this means:"
+            .FontColor = rgbBlue
+        End With
+        .Text.Text = "In a modeless displayed form there should be no buttons other than those an 'Application.Run' service had been specified to be performed when clicked."
+    End With
+    
+    mMsg.Dsply dsply_title:="No 'Application.Run' information provided for this button!" _
+             , dsply_msg:=Msg
     
 xt: Exit Sub
 

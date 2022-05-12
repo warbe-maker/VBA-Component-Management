@@ -48,9 +48,9 @@ Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
         Select Case vReply
             Case BTT_INST_DONE: Exit Do
             Case Else
-                mRenew.ByImport rn_wb:=ic_wb _
-                              , rn_comp_name:=vReply _
-                              , rn_raw_exp_file_full_name:=mComCompsRawsSaved.SavedExpFileFullName(vReply)
+                mRenew.ByImport bi_wb_serviced:=ic_wb _
+                              , bi_comp_name:=vReply _
+                              , bi_exp_file:=mComCompsRawsSaved.SavedExpFileFullName(vReply)
         End Select
     Loop
 xt: Exit Sub

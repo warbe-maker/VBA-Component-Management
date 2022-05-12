@@ -331,8 +331,8 @@ Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mCompMan" & "." & es_proc
 End Function
 
-Private Sub EstablishTraceLogFile(ByVal dt_wb As Workbook, _
-                         Optional ByVal dt_append As Boolean = False)
+Public Sub EstablishTraceLogFile(ByVal dt_wb As Workbook, _
+                        Optional ByVal dt_append As Boolean = False)
 ' --------------------------------------------------------------------------
 ' Establishes a trace log file in the serviced Workbook's parent folder.
 ' --------------------------------------------------------------------------
@@ -379,9 +379,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function ExportChangedComponents( _
-                ByRef ec_wb As Workbook, _
-       Optional ByVal ec_hosted As String = vbNullString) As Variant
+Public Function ExportChangedComponents(ByRef ec_wb As Workbook, _
+                               Optional ByVal ec_hosted As String = vbNullString, _
+                               Optional ByVal ec_modeless As Boolean = False) As Variant
 ' ----------------------------------------------------------------------------
 ' Exports any component the code had been modified (UserForm also when the
 ' form has changed) to the configured export folder (defaults to 'source').
@@ -430,12 +430,13 @@ End Sub
 
 Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As String)
 ' ----------------------------------------------------------------------------
-' Manages all aspects of Raw/Hosted Common Components which includes the
-' copies of the Export File in the Common Components Folder.
-' - Registers a Workbook as 'Raw-Host' when it claims hosting at least one
-'   Common Component (mh_wb)
-' - Registers for each hosted 'Raw Common Component':
-'   - in the local ComCompsHosted.dat the properties:
+' Manages the following for Raw/Hosted Common Components:
+' - Registers the Workbook as 'Raw-Host' when it hosts at least one Common
+'   Component
+' - Maintains an up-to-date copy of the Exportfile in the Common Components
+'   Folder.
+' - Maintains for each hosted 'Raw Common Component' the properties:
+'   - in the local ComCompsHosted.dat:
 '     - Component Name
 '     - Revision Number
 '   - in the ComComps-RawsSaved.dat in the Common Components folder:
@@ -492,7 +493,7 @@ Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As Stri
                 End If
                 mComCompsRawsHosted.RawExpFileFullName(v) = .ExpFileFullName ' in any case update the Export File name
                 If mService.FilesDiffer(fd_exp_file_1:=.ExpFile _
-                                          , fd_exp_file_2:=mComCompsRawsSaved.SavedExpFile(v)) Then
+                                      , fd_exp_file_2:=mComCompsRawsSaved.SavedExpFile(v)) Then
                     '~~ Attention! This is a cruical issue which shold never be the case. However, when different
                     '~~ computers/users are involved in the development process ...
                     '~~ Instead of simply updating the saved raw Export File better have carefully checked the case
@@ -532,8 +533,8 @@ Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As Stri
             Set Comp = Nothing
         Next v
     Else
-        '~~ When this Workbook not or no longer hosts any Common Component Raws the entries
-        '~~ the ComCompsHosted.dat is deleted
+        '~~ When this Workbook not or no longer hosts any Common Component Raws the correponding entries
+        '~~ the ComCompsHosted.dat are deleted
         mFile.Delete mComCompsRawsHosted.ComCompsHostedFileFullName
         '~~ The destiny of the corresponding data in the ComComps-Saved.dat is un-clear
         '~~ The component may be now hosted in another Workbook (likely) or the life of the
@@ -692,35 +693,36 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function UpdateOutdatedCommonComponents(ByRef uo_wb As Workbook, _
-                                      Optional ByVal uo_hosted As String = vbNullString) As Variant
+Public Sub UpdateOutdatedCommonComponents(ByRef uo_wb As Workbook, _
+                                 Optional ByVal uo_hosted As String = vbNullString, _
+                                 Optional ByVal uo_modeless As Boolean = False)
 ' ------------------------------------------------------------------------------
-' Updates all outdated 'Used Common Components'.
-'
-' The function is terminated (returns FALSE) without further notice when:
-' a) the serviced root folder is invalid (not configured or not existing)
-' b) when the servicing and the serviced Workbook are both the 'CompMan
-'    Development Instance'
-'    Note: While the 'Development instance is able to export its modified
-'          components it cannot update its own outdated 'Used Common
-'          Components'. This is only possible by the 'Addin Instance'
-'          which must be open and not 'paused'
-' c) the serviced Workbook is located outside the serviced folder
-'
-' When the function returns vbNullString it is terminated "silent" which is
-' the case when the seftviced Workbook does not reside within the 'Serviced
-' Folder'. Any return string <> vbNullsString is displayed in the
-' Application.StatusBar which may be caused by:
-' a) the Workbook is one restored by Excel
-' b) the serviced Workbook does not reside in a folder exclusivelyx (i.e. the
-'    Workbook does not live in its own dedicated folder
-' c) WinMerge is not installed
+' When the service is not requested "item-by-item" (uo_modeless = False) all
+' the Workbook's (uo_wb) outdated 'Used Common Components' are updated/renewed.
+' When the service is requested "item-by-item" (uo_modeless = True) the
+' Workbook's (uo_wb) outdated 'Used Common Components' are presented in a
+' modeless displayed message for one being selected for update.
 '
 ' Precondition: The service has been checked by the client to be able to run.
 ' ------------------------------------------------------------------------------
     Const PROC = "UpdateOutdatedCommonComponents"
     
     On Error GoTo eh
+    Dim dct         As Dictionary
+    Dim i           As Long
+    Dim wbServiced  As Workbook
+    Dim RawExpFile  As String
+    Dim fUpdate     As fMsg
+    Dim Msg         As TypeMsg
+    Dim sTitle      As String:      sTitle = "Update outdated 'Common Components'"
+    Dim cll         As Collection
+    Dim dctRunArgs  As Dictionary
+    Dim RenewComp   As String
+    Dim Comps       As New clsComps
+    Dim cllBttns    As New Collection
+    Dim sBttn1      As String
+    Dim sBttn2      As String
+    Dim Comp        As clsComp
     
     Set mService.Serviced = uo_wb
     Set Log = New clsLog
@@ -729,25 +731,57 @@ Public Function UpdateOutdatedCommonComponents(ByRef uo_wb As Workbook, _
     
     mBasic.BoP ErrSrc(PROC)
     mCompMan.MaintainPropertiesOfHostedRawCommonComponents uo_hosted
-    Set Stats = New clsStats
-    mUpdate.Outdated
     
-    '~~ !!!! Saving the Workbook is likely to cause Excel to crash                             !!!!!
-    '~~ !!!! Not saving the Workbook programmatically is stabilizing the process significantly !!!!
-'        mService.SaveWbk uo_wb
-
-    UpdateOutdatedCommonComponents = True
+    If Not uo_modeless Then
+        Set Stats = New clsStats
+        mUpdate.Outdated uo_wb
+        '-------------------------------------------------------
+        ' The Workbook is not intentionally not saved since this
+        ' this turned out likely to cause Excel to crash.
+        '-------------------------------------------------------
+    Else
+        mUpdate.Outdated uo_wb, True, dct
+        mMsg.MsgInstance sTitle, True
+        If dct.Count > 0 Then
+            Set fUpdate = mMsg.MsgInstance(sTitle)
+            For i = 1 To mBasic.Min(dct.Count, 7)
+                Set Comp = dct.Items()(i - 1)
+                With Comp
+                    sBttn1 = "Update outdated" & vbLf & vbLf & .CompName
+                    sBttn2 = "Display changes of" & vbLf & vbLf & .CompName
+                    mMsg.ButtonAppRun dctRunArgs, sBttn1, ThisWorkbook, "mRenew.Run", .Wrkbk, .CompName, .Raw.SavedExpFileFullName, uo_hosted
+                    mMsg.ButtonAppRun dctRunArgs, sBttn2, ThisWorkbook, "mService.ExpFilesDiffDisplay", .ExpFileFullName, .Raw.SavedExpFileFullName, "Currently used (" & .ExpFileFullName & ")", "Up-to-date (" & .Raw.SavedExpFileFullName & ")"
+                End With
+                Set cllBttns = mMsg.Buttons(cllBttns, sBttn1, sBttn2, vbLf)
+            Next i
+            Msg.Section(1).Text.Text = "Press the button of the outdated Common Component to be updated. " & _
+                                       "This dialog is re-displayed (without the then already updated component) " & _
+                                       "until there's no outdated component left or the dialog is closed explicitely."
+            With Msg.Section(2)
+                .Label.Text = "About:"
+                .Label.FontColor = rgbBlue
+                .Text.Text = "Experience has shown that this way of renewing outdated Common Components, " & _
+                             "i.e. one component at a time,  is the most stable approach. Since the dialog " & _
+                             "is displayed modeless the serviced workbook may be saved after each individual update."
+            End With
+            mMsg.Dsply dsply_title:=sTitle _
+                     , dsply_msg:=Msg _
+                     , dsply_buttons:=cllBttns _
+                     , dsply_modeless:=True _
+                     , dsply_buttons_app_run:=dctRunArgs
+                     
+        End If
+    End If
     
-    mBasic.EoP ErrSrc(PROC)
-    
-xt: Set Log = Nothing
-    Exit Function
+xt: mBasic.EoP ErrSrc(PROC)
+    Set Log = Nothing
+    Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Function
+End Sub
 
 Public Function WbkGetOpen(ByVal go_wb_full_name As String) As Workbook
 ' ----------------------------------------------------------------------------

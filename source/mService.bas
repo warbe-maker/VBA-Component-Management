@@ -14,156 +14,6 @@ Public Function AppErr(ByVal app_err_no As Long) As Long
     If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
 End Function
 
-Public Sub RenewComp( _
-      Optional ByVal rc_exp_file_full_name As String = vbNullString, _
-      Optional ByVal rc_comp_name As String = vbNullString, _
-      Optional ByRef rc_wb As Workbook = Nothing)
-' --------------------------------------------------------------------
-' This service renews a component, either specified via its name
-' (rc_comp_name) or via the Export-File (rc_exp_file_full_name), in
-' the Workbook (rc_wb) which defaults to the ActiveWorkbook.
-' - When the provided Export-File (rc_exp_file_full_name) does exist
-'   but a component name has been provided a file selection dialog is
-'   displayed with the possible files already filtered.
-' - When no Export-File is selected the service terminates without
-'   notice.
-' - When the Workbook (rc_wb) is omitted it defaults to the
-'   ActiveWorkbook.
-' - When the ActiveWorkbook or the provided Workbook is ThisWorkbook
-'   the service terminates without notice
-'
-' Usage ways
-' - When the Addin instance of this Workbook is setup/open from the
-'   immediate window:
-'   Application.Run "CompMan.xlam!mService.RenewComp"
-'
-'   This way allows to renew any component in any Workbook including
-'   this development instance
-' - When only the development instance is open, from the immediate
-'   window:
-'   Application.Run "CompMan.xlsb!mService.RenewComp"
-'
-' W. Rauschenberger Berlin, Jan 2021
-' --------------------------------------------------------------------
-    Const PROC = "RenewComp"
-
-    On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim Comp        As New clsComp
-    Dim flFile      As File
-    Dim wbTemp      As Workbook
-    Dim wbActive    As Workbook
-    Dim sBaseName   As String
-    
-    mBasic.BoP ErrSrc(PROC)
-    If rc_wb Is Nothing Then Set rc_wb = ActiveWorkbook
-    If Log Is Nothing Then Set Log = New clsLog
-    
-    Comp.Wrkbk = rc_wb
-    If rc_exp_file_full_name <> vbNullString Then
-        If Not fso.FileExists(rc_exp_file_full_name) Then
-            rc_exp_file_full_name = vbNullString ' enforces selection when the component name is also not provided
-        End If
-    End If
-    
-    If rc_comp_name <> vbNullString Then
-        Comp.CompName = rc_comp_name
-        If Not Comp.Exists Then
-            If rc_exp_file_full_name <> vbNullString Then
-                rc_comp_name = fso.GetBaseName(rc_exp_file_full_name)
-            End If
-        End If
-    End If
-    
-    If ThisWorkbook Is rc_wb Then
-        Debug.Print "The service '" & ErrSrc(PROC) & "' cannot run when ThisWorkbook is identical with the ActiveWorkbook!"
-        GoTo xt
-    End If
-    
-    If rc_exp_file_full_name = vbNullString _
-    And rc_comp_name = vbNullString Then
-        '~~ ---------------------------------------------
-        '~~ Select the Export-File for the re-new service
-        '~~ of which the base name will be regared as the component to be renewed.
-        '~~ --------------------------------------------------------
-        If mFile.Picked(p_title:="Select the Export-File for the re-new service" _
-                      , p_filters:="Standard Modules,*.bas;Class Modules,*.cls;UserForms,*.frm" _
-                      , p_file:=flFile) _
-        Then rc_exp_file_full_name = flFile.Path
-    End If
-    
-    If rc_comp_name <> vbNullString _
-    And rc_exp_file_full_name = vbNullString Then
-        Comp.CompName = rc_comp_name
-        '~~ ------------------------------------------------
-        '~~ Select the component's corresponding Export-File
-        '~~ ------------------------------------------------
-        sBaseName = fso.GetBaseName(rc_exp_file_full_name)
-        '~~ Select the Export-File for the re-new service
-        If mFile.Picked(p_title:="Select the Export-File for the provided component '" & rc_comp_name & "'!" _
-                      , p_init_path:=mExport.ExpFileFolderPath(rc_wb) _
-                      , p_filters:="Component,*." & Comp.ExpFileExt _
-                      , p_file:=flFile) _
-        Then rc_exp_file_full_name = flFile.Path
-    End If
-    
-    If rc_exp_file_full_name = vbNullString Then
-        MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
-             , Prompt:="Service '" & ErrSrc(PROC) & "' will be aborted because no " & _
-                       "existing Export-File has been provided!" _
-             , Buttons:=vbOKOnly
-        GoTo xt ' no Export-File selected
-    End If
-    
-    With Comp
-        Log.ServicedItem = .VBComp
-        If rc_comp_name <> vbNullString Then
-            If fso.GetBaseName(rc_exp_file_full_name) <> rc_comp_name Then
-                MsgBox Title:="Service '" & ErrSrc(PROC) & "' will be aborted!" _
-                     , Prompt:="Service '" & ErrSrc(PROC) & "' will be aborted because the " & _
-                               "Export-File '" & rc_exp_file_full_name & "' and the component name " & _
-                               "'" & rc_comp_name & "' do not indicate the same component!" _
-                     , Buttons:=vbOKOnly
-                GoTo xt
-            End If
-            .CompName = rc_comp_name
-        Else
-            .CompName = fso.GetBaseName(rc_exp_file_full_name)
-        End If
-        
-        If .Wrkbk Is ActiveWorkbook Then
-            Set wbActive = ActiveWorkbook
-            Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
-            Log.Entry = "Active Workbook de-activated by creating a temporary Workbook"
-        End If
-            
-        mRenew.ByImport rn_wb:=.Wrkbk _
-             , rn_comp_name:=.CompName _
-             , rn_raw_exp_file_full_name:=rc_exp_file_full_name
-        Log.Entry = "Component renewed/updated by (re-)import of '" & rc_exp_file_full_name & "'"
-    End With
-    
-xt: If Not wbTemp Is Nothing Then
-        wbTemp.Close SaveChanges:=False
-        Log.Entry = "Temporary created Workbook closed without save"
-        Set wbTemp = Nothing
-        If Not ActiveWorkbook Is wbActive Then
-            wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
-            Set wbActive = Nothing
-        End If
-    End If
-    Set Comp = Nothing
-    Set fso = Nothing
-    mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
 Public Sub CompManAddinContinue()
 ' -------------------------------------------
 ' Continues the paused CompMan Addin Services
@@ -264,7 +114,8 @@ Public Sub ExportChangedComponents(ByVal hosted As String)
                                                  "(it may have been called directly via the 'Immediate Window'"
     If mService.Denied Then GoTo xt
     mCompMan.MaintainPropertiesOfHostedRawCommonComponents hosted
-    
+    Set Log = New clsLog
+    Log.Service = PROC
     mExport.ChangedComponents
         
 xt: Set dctHostedRaws = Nothing
@@ -585,18 +436,22 @@ Public Function FilesDiffer(ByVal fd_exp_file_1 As File, _
     Dim fl2 As File
     
     With fso
-        If VarType(fd_exp_file_1) = vbString Then
+        If TypeName(fd_exp_file_1) = "File" Then
             If Not .FileExists(fd_exp_file_1) _
-            Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided 'fd_exp_file_1' is a string not identifying an existing file!"
+            Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided 'fd_exp_file_1' does not exist!"
             Set fl1 = fso.GetFile(fd_exp_file_1)
+        ElseIf TypeName(fd_exp_file_1) = "Nothing" _
+            Then Err.Raise AppErr(2), ErrSrc(PROC), "File 'fd_exp_file_1' is not provided!"
         Else
             Set fl1 = fd_exp_file_1
         End If
         
-        If VarType(fd_exp_file_2) = vbString Then
+        If TypeName(fd_exp_file_2) = "File" Then
             If Not .FileExists(fd_exp_file_2) _
-            Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided 'fd_exp_file_2' is a string not identifying an existing file!"
+            Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided 'fd_exp_file_2' does not exist!"
             Set fl2 = fso.GetFile(fd_exp_file_2)
+        ElseIf TypeName(fd_exp_file_2) = "Nothing" _
+            Then Err.Raise AppErr(2), ErrSrc(PROC), "File 'fd_exp_file_2' is not provided!"
         Else
             Set fl2 = fd_exp_file_2
         End If
@@ -810,9 +665,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
-                        ByVal add_key As Variant, _
-                        ByVal add_item As Variant)
+Public Sub AddAscByKey(ByRef add_dct As Dictionary, _
+                       ByVal add_key As Variant, _
+                       ByVal add_item As Variant)
 ' ------------------------------------------------------------------------------------
 ' Adds to the Dictionary (add_dct) an item (add_item) in ascending order by the key
 ' (add_key). When the key is an object with no Name property an error is raisede.
@@ -1110,6 +965,8 @@ Public Function AllComps(ByVal ac_wb As Workbook, _
 ' ---------------------------------------------------------------------------
     Dim vbc     As VBComponent
     Dim lDone   As Long
+    
+    If Log Is Nothing Then Set Log = New clsLog
     
     Set AllComps = New Dictionary
     For Each vbc In ac_wb.VBProject.VBComponents

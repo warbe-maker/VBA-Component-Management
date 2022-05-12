@@ -69,7 +69,8 @@ Public Function Changed(Optional ByRef c_stats As clsStats = Nothing) As Diction
     
 End Function
 
-Public Function Outdated(Optional ByRef o_stats As clsStats = Nothing) As Dictionary
+Public Function Outdated(ByVal o_wb_serviced As Workbook, _
+                         Optional ByRef o_stats As clsStats = Nothing) As Dictionary
 ' ----------------------------------------------------------------------------
 ' Returns a Dictionary of all VBComponents in the mService.Serviced Workbook's
 ' VBProject indicated Used Common Components of which an update is due because
@@ -89,18 +90,18 @@ Public Function Outdated(Optional ByRef o_stats As clsStats = Nothing) As Dictio
     Set dct = Me.All
     For Each v In dct
         Set Comp = dct(v)
-        If Not Comp.KindOfComp = enCommCompUsed Then
-            dct.Remove v
-        Else
-            If Not Comp.Outdated Then
+        With Comp
+            If Not .KindOfComp = enCommCompUsed Then
+                dct.Remove v
+            ElseIf Not .Outdated Then
                 dct.Remove v
             End If
-        End If
+        End With
     Next v
-    Set Outdated = dct
     If Not o_stats Is Nothing Then o_stats.Count sic_used_comm_comp_Outdated, dct.Count
     
-xt: Exit Function
+xt: Set Outdated = dct
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

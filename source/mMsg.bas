@@ -255,7 +255,6 @@ Public Sub ButtonAppRun(ByRef bar_dct As Dictionary, _
     Next v
     If bar_dct.Exists(bar_button) Then bar_dct.Remove bar_button
     bar_dct.Add bar_button, cll
-    Set cll = Nothing
     
 xt: Exit Sub
 

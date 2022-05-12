@@ -47,9 +47,8 @@ Public Sub Regression()
     
 End Sub
 
-Public Sub RemoveTestCodeChange( _
-                 Optional ByVal exp_file As String = vbNullString, _
-                 Optional ByRef vbc As VBComponent = Nothing)
+Public Sub RemoveTestCodeChange(Optional ByVal exp_file As String = vbNullString, _
+                                Optional ByRef vbc As VBComponent = Nothing)
 ' ------------------------------------------------------------------
 ' Removes a code line from the provided VBComponent (vbc) which has
 ' been added for test purpose.
@@ -197,7 +196,7 @@ Public Sub Test_Comps_Outdated()
     Set Stats = New clsStats
     Log.File = mFile.Temp(, ".log")
     
-    Set dct = Comps.Outdated
+    Set dct = Comps.Outdated(mService.Serviced)
     For Each v In dct
         Stats.Count sic_used_comm_comps
         Set Comp = dct(v)
@@ -281,7 +280,7 @@ Public Sub Test_Refs()
     
 End Sub
 
-Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
+Public Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
                           ByVal rnc_comp_name As String)
 ' --------------------------------------------------------
 ' This test procedure is exclusively initiated within the
@@ -289,7 +288,7 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
 ' the 'CompMan-Addin' which needs to be open.
 ' When these conditions are not met a message is displayed
 ' --------------------------------------------------------
-    Const PROC = "Test_RenewComp"
+    Const PROC = "Test_RenewByImport"
     
     Dim Comp        As New clsComp
     Dim wbActive    As Workbook
@@ -311,9 +310,9 @@ Public Sub Test_RenewComp(ByVal rnc_exp_file_full_name, _
             Log.Entry = "Active Workbook de-activated by creating a temporary Workbook"
         End If
             
-        mRenew.ByImport rn_wb:=.Wrkbk _
-                      , rn_comp_name:=.CompName _
-                      , rn_raw_exp_file_full_name:=rnc_exp_file_full_name
+        mRenew.ByImport bi_wb_serviced:=.Wrkbk _
+                      , bi_comp_name:=.CompName _
+                      , bi_exp_file:=rnc_exp_file_full_name
     End With
     
 xt: If Not wbTemp Is Nothing Then
@@ -338,18 +337,18 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_RenewComp_0_Regression()
+Public Sub Test_RenewByImport_0_Regression()
     Const PROC = ""
     
     On Error GoTo eh
     If mMe.IsAddinInstnc Then Exit Sub
     
     mBasic.EoP ErrSrc(PROC)
-'    Test_RenewComp_1a_Standard_Module_ExpFile_Remote "mFile", repeat:=1
-'    Test_RenewComp_1b_Standard_Module_ExpFile_Local "mFile", repeat:=1
-'    Test_RenewComp_2_Class_Module_ExpFile_Local "clsLog", repeat:=2
-'    Test_RenewComp_3a_UserForm_ExpFile_Local "fMsg", repeat:=1
-    Test_RenewComp_3b_UserForm_ExpFile_Remote "fMsg", repeat:=1
+'    Test_RenewByImport_1a_Standard_Module_ExpFile_Remote "mFile", repeat:=1
+'    Test_RenewByImport_1b_Standard_Module_ExpFile_Local "mFile", repeat:=1
+'    Test_RenewByImport_2_Class_Module_ExpFile_Local "clsLog", repeat:=2
+'    Test_RenewByImport_3a_UserForm_ExpFile_Local "fMsg", repeat:=1
+    Test_RenewByImport_3b_UserForm_ExpFile_Remote "fMsg", repeat:=1
 
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -360,16 +359,15 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_RenewComp_1a_Standard_Module_ExpFile_Remote( _
-            ByVal test_comp_name As String, _
-   Optional ByVal repeat As Long = 1)
+Public Sub Test_RenewByImport_1a_Standard_Module_ExpFile_Remote(ByVal test_comp_name As String, _
+                                                       Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
 ' can be renewed by the re-import of an Export-File.
 ' The test asserts that a Workbook is able to renew its own VBA code provided
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
-    Const PROC          As String = "Test_RenewComp_1a_UserForm_ExpFile_Remote"
+    Const PROC          As String = "Test_RenewByImport_1a_UserForm_ExpFile_Remote"
     
     On Error GoTo eh
     Dim Comp            As New clsComp
@@ -419,16 +417,15 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_RenewComp_1b_Standard_Module_ExpFile_Local( _
-            ByVal test_comp_name As String, _
-   Optional ByVal repeat As Long = 1)
+Public Sub Test_RenewByImport_1b_Standard_Module_ExpFile_Local(ByVal test_comp_name As String, _
+                                                      Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
 ' can be renewed by the re-import of an Export-File.
 ' The test asserts that a Workbook is able to renew its own VBA code provided
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
-    Const PROC = "Test_RenewComp_1b_Standard_Module_ExpFile_Local"
+    Const PROC = "Test_RenewByImport_1b_Standard_Module_ExpFile_Local"
     
     On Error GoTo eh
     Dim Comp    As New clsComp
@@ -468,16 +465,15 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_RenewComp_2_Class_Module_ExpFile_Local( _
-            ByVal test_comp_name As String, _
-   Optional ByVal repeat As Long = 1)
+Private Sub Test_RenewByImport_2_Class_Module_ExpFile_Local(ByVal test_comp_name As String, _
+                                                   Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
 ' can be renewed by the re-import of an Export-File.
 ' The test asserts that a Workbook is able to renew its own VBA code provided
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
-    Const PROC = "Test_RenewComp_2_Class_Module_ExpFile_Local"
+    Const PROC = "Test_RenewByImport_2_Class_Module_ExpFile_Local"
     
     On Error GoTo eh
     Dim Comp    As New clsComp
@@ -517,16 +513,15 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_RenewComp_3a_UserForm_ExpFile_Local( _
-            ByVal test_comp_name As String, _
-   Optional ByVal repeat As Long = 1)
+Private Sub Test_RenewByImport_3a_UserForm_ExpFile_Local(ByVal test_comp_name As String, _
+                                                Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
 ' can be renewed by the re-import of an Export-File.
 ' The test asserts that a Workbook is able to renew its own VBA code provided
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
-    Const PROC          As String = "Test_RenewComp_3a_UserForm_ExpFile_Local"
+    Const PROC          As String = "Test_RenewByImport_3a_UserForm_ExpFile_Local"
     
     On Error GoTo eh
     Dim Comp    As New clsComp
@@ -568,16 +563,15 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_RenewComp_3b_UserForm_ExpFile_Remote( _
-            ByVal test_comp_name As String, _
-   Optional ByVal repeat As Long = 1)
+Private Sub Test_RenewByImport_3b_UserForm_ExpFile_Remote(ByVal test_comp_name As String, _
+                                                 Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
 ' can be renewed by the re-import of an Export-File.
 ' The test asserts that a Workbook is able to renew its own VBA code provided
 ' it is not active when it is done.
 ' ----------------------------------------------------------------------------
-    Const PROC          As String = "Test_RenewComp_3b_UserForm_ExpFile_Remote"
+    Const PROC          As String = "Test_RenewByImport_3b_UserForm_ExpFile_Remote"
     
     On Error GoTo eh
     Dim Comp        As New clsComp
