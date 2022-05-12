@@ -1,15 +1,15 @@
-22-05-12 19:52:33 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
-22-05-12 19:52:33                 >> Export Changed (by CompMan.xlsb) for CompMan.xlsb: 
-22-05-12 19:52:33 00,0000         |  >> mCompMan.ExportChangedComponents
-22-05-12 19:52:33 00,0624         |  |  >> mService.ExportChangedComponents
-22-05-12 19:52:33 00,0946         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
-22-05-12 19:52:33 00,1111 00,0164 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
-22-05-12 19:52:33 00,1231         |  |  |  >> mExport.ChangedComponents
-22-05-12 19:52:35 02,4966         |  |  |  |  >> mService.RemoveTempRenamed
-22-05-12 19:52:35 02,5015 00,0049 |  |  |  |  << mService.RemoveTempRenamed
-22-05-12 19:52:35 02,5078 02,3848 |  |  |  << mExport.ChangedComponents
-22-05-12 19:52:35 02,5126 02,4502 |  |  << mService.ExportChangedComponents
-22-05-12 19:52:35 02,5169 02,5169 |  << mCompMan.ExportChangedComponents
-22-05-12 19:52:35 02,5169 02,5169 << Export Changed (by CompMan.xlsb) for CompMan.xlsb: 
-22-05-12 19:52:35                 Impact on the overall performance (caused by the trace itself): 00,0042 seconds!
-22-05-12 19:52:35 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-05-12 20:07:43 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-05-12 20:07:43                 >> Export Changed (by CompMan.xlsb) for CompMan.xlsb: 
+22-05-12 20:07:43 00,0000         |  >> mCompMan.ExportChangedComponents
+22-05-12 20:07:43 00,0628         |  |  >> mService.ExportChangedComponents
+22-05-12 20:07:43 00,0966         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-05-12 20:07:43 00,1124 00,0157 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-05-12 20:07:43 00,1249         |  |  |  >> mExport.ChangedComponents
+22-05-12 20:07:46 02,4929         |  |  |  |  >> mService.RemoveTempRenamed
+22-05-12 20:07:46 02,4977 00,0048 |  |  |  |  << mService.RemoveTempRenamed
+22-05-12 20:07:46 02,5020 02,3772 |  |  |  << mExport.ChangedComponents
+22-05-12 20:07:46 02,5081 02,4452 |  |  << mService.ExportChangedComponents
+22-05-12 20:07:46 02,5123 02,5123 |  << mCompMan.ExportChangedComponents
+22-05-12 20:07:46 02,5123 02,5123 << Export Changed (by CompMan.xlsb) for CompMan.xlsb: 
+22-05-12 20:07:46                 Impact on the overall performance (caused by the trace itself): 00,0042 seconds!
+22-05-12 20:07:46 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
