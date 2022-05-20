@@ -645,27 +645,30 @@ Public Function ErrMsg(ByVal err_source As String, _
 ' Universal error message display service. See:
 ' https://warbe-maker.github.io/vba/common/2022/02/15/Personal-and-public-Common-Components.html
 '
+' Basic service:
 ' - Displays a debugging option button when the Conditional Compile Argument
 '   'Debugging = 1'
 ' - Displays an optional additional "About the error:" section when a string is
 '   concatenated with the error message by two vertical bars (||)
-' - Invokes mErH.ErrMsg when the Conditional Compile Argument ErHComp = !
-' - Invokes mMsg.ErrMsg when the Conditional Compile Argument MsgComp = ! (and
+' - Displays the error message by means of VBA.MsgBox when neither of the
+'   following is installed
+'
+' Extendend service when other Common Components are installed and indicated via
+' Conditional Compile Arguments:
+' - Invokes mErH.ErrMsg when the Conditional Compile Argument ErHComp = 1
+' - Invokes mMsg.ErrMsg when the Conditional Compile Argument MsgComp = 1 (and
 '   the mErH module is not installed / MsgComp not set)
-' - Displays the error message by means of VBA.MsgBox when neither of the two
-'   components is installed
 '
 ' Uses:
-' - AppErr For programmed application errors (Err.Raise AppErr(n), ....) to
-'          turn them into negative and in the error message back into a
-'          positive number.
+' - AppErr For programmed application errors (Err.Raise AppErr(n), ....) to turn
+'          them into negative and in the error message back into a positive
+'          number.
 ' - ErrSrc To provide an unambiguous procedure name by prefixing is with the
 '          module name.
 '
-' See:
-' https://github.com/warbe-maker/Common-VBA-Error-Services
+' See: https://github.com/warbe-maker/Common-VBA-Error-Services
 '
-' W. Rauschenberger Berlin, Feb 2022
+' W. Rauschenberger Berlin, May 2022
 ' ------------------------------------------------------------------------------' ------------------------------------------------------------------------------
 #If ErHComp = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project

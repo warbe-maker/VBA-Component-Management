@@ -380,8 +380,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Function ExportChangedComponents(ByRef ec_wb As Workbook, _
-                               Optional ByVal ec_hosted As String = vbNullString, _
-                               Optional ByVal ec_modeless As Boolean = False) As Variant
+                               Optional ByVal ec_hosted As String = vbNullString) As Variant
 ' ----------------------------------------------------------------------------
 ' Exports any component the code had been modified (UserForm also when the
 ' form has changed) to the configured export folder (defaults to 'source').
@@ -559,18 +558,13 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Function RunTest(ByVal rt_service As String, _
-                        ByVal rt_serviced_wb As Workbook) As Variant
+                        ByRef rt_serviced_wb As Workbook) As Variant
 ' --------------------------------------------------------------------------
 ' Ensures the requested service is able to run or returns the reason why not.
 ' The function returns:
 ' - AppErr(1) when CompMan is not configured properly
 ' - AppErr(2) when the service Workbook is not in the configures Folder
-' - AppErr(3) when the requested service (rt_service) was
-'             "UpdateOutdatedUsedCommonComponents" but the servicing and the
-'             serviced Workbook are both CompMan.xlsb - and the Workbook
-'             cannot update itself. This error only happens when the Addin
-'             is not available.
-' - AppErr(4) when the servicing Workbook is the Addin which is available
+' - AppErr(3) when the servicing Workbook is the Addin which is available
 '             but paused. It would requires CompMan.xlsb to run the
 '             service. When CompMan.xlsb is open, it will provide the
 '             service.
@@ -583,9 +577,7 @@ Public Function RunTest(ByVal rt_service As String, _
     ElseIf Not rt_serviced_wb.FullName Like mConfig.FolderServiced & "*" Then
         RunTest = AppErr(2) ' The serviced Workbook is located outside the serviced folder
     ElseIf mMe.IsAddinInstnc And mMe.CompManAddinIsPaused Then
-        RunTest = AppErr(4) ' The service is about to be provided by the Addin but the Addin is currently paused
-    ElseIf rt_service = "UpdateOutdatedCommonComponents" And mMe.IsDevInstnc And rt_serviced_wb.Name = mMe.DevInstncName Then
-        RunTest = AppErr(3) ' The servicing and the serviced Workbook are both the 'CompMan Development Instance'
+        RunTest = AppErr(3) ' The service is about to be provided by the Addin but the Addin is currently paused
     End If
 
 xt: Exit Function
@@ -693,15 +685,15 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub UpdateOutdatedCommonComponents(ByRef uo_wb As Workbook, _
+Public Sub UpdateOutdatedCommonComponents(ByRef uo_wb_serviced As Workbook, _
                                  Optional ByVal uo_hosted As String = vbNullString, _
-                                 Optional ByVal uo_modeless As Boolean = False)
+                                 Optional ByVal uo_unused As Boolean)
 ' ------------------------------------------------------------------------------
-' When the service is not requested "item-by-item" (uo_modeless = False) all
-' the Workbook's (uo_wb) outdated 'Used Common Components' are updated/renewed.
-' When the service is requested "item-by-item" (uo_modeless = True) the
-' Workbook's (uo_wb) outdated 'Used Common Components' are presented in a
-' modeless displayed message for one being selected for update.
+' Presents the serviced Workbook's outdated components in a modeless dialog with
+' two buttons for each component. One button executes Application.Run mRenew.Run
+' for a component to update it, the other executes Application.Run
+' mService.ExpFilesDiffDisplay to display the code changes.
+' Note: uo_unused is for backwards compatibility only.
 '
 ' Precondition: The service has been checked by the client to be able to run.
 ' ------------------------------------------------------------------------------
@@ -714,7 +706,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef uo_wb As Workbook, _
     Dim RawExpFile  As String
     Dim fUpdate     As fMsg
     Dim Msg         As TypeMsg
-    Dim sTitle      As String:      sTitle = "Update outdated 'Common Components'"
+    Dim sTitle      As String
     Dim cll         As Collection
     Dim dctRunArgs  As Dictionary
     Dim RenewComp   As String
@@ -724,54 +716,63 @@ Public Sub UpdateOutdatedCommonComponents(ByRef uo_wb As Workbook, _
     Dim sBttn2      As String
     Dim Comp        As clsComp
     
-    Set mService.Serviced = uo_wb
+    Set mService.Serviced = uo_wb_serviced
     Set Log = New clsLog
     Log.Service(new_log:=True) = SRVC_UPDATE_OUTDATED
-    EstablishTraceLogFile uo_wb
+    EstablishTraceLogFile uo_wb_serviced
     
     mBasic.BoP ErrSrc(PROC)
     mCompMan.MaintainPropertiesOfHostedRawCommonComponents uo_hosted
     
-    If Not uo_modeless Then
-        Set Stats = New clsStats
-        mUpdate.Outdated uo_wb
-        '-------------------------------------------------------
-        ' The Workbook is not intentionally not saved since this
-        ' this turned out likely to cause Excel to crash.
-        '-------------------------------------------------------
-    Else
-        mUpdate.Outdated uo_wb, True, dct
-        mMsg.MsgInstance sTitle, True
-        If dct.Count > 0 Then
-            Set fUpdate = mMsg.MsgInstance(sTitle)
-            For i = 1 To mBasic.Min(dct.Count, 7)
-                Set Comp = dct.Items()(i - 1)
-                With Comp
-                    sBttn1 = "Update outdated" & vbLf & vbLf & .CompName
-                    sBttn2 = "Display changes of" & vbLf & vbLf & .CompName
-                    mMsg.ButtonAppRun dctRunArgs, sBttn1, ThisWorkbook, "mRenew.Run", .Wrkbk, .CompName, .Raw.SavedExpFileFullName, uo_hosted
-                    mMsg.ButtonAppRun dctRunArgs, sBttn2, ThisWorkbook, "mService.ExpFilesDiffDisplay", .ExpFileFullName, .Raw.SavedExpFileFullName, "Currently used (" & .ExpFileFullName & ")", "Up-to-date (" & .Raw.SavedExpFileFullName & ")"
-                End With
-                Set cllBttns = mMsg.Buttons(cllBttns, sBttn1, sBttn2, vbLf)
-            Next i
-            Msg.Section(1).Text.Text = "Press the button of the outdated Common Component to be updated. " & _
-                                       "This dialog is re-displayed (without the then already updated component) " & _
-                                       "until there's no outdated component left or the dialog is closed explicitely."
-            With Msg.Section(2)
-                .Label.Text = "About:"
-                .Label.FontColor = rgbBlue
-                .Text.Text = "Experience has shown that this way of renewing outdated Common Components, " & _
-                             "i.e. one component at a time,  is the most stable approach. Since the dialog " & _
-                             "is displayed modeless the serviced workbook may be saved after each individual update."
-            End With
-            mMsg.Dsply dsply_title:=sTitle _
-                     , dsply_msg:=Msg _
-                     , dsply_buttons:=cllBttns _
-                     , dsply_modeless:=True _
-                     , dsply_buttons_app_run:=dctRunArgs
-                     
-        End If
-    End If
+    sTitle = "To-be-updated outdated Common Component(s)"
+    Set dct = mRenew.Outdated(uo_wb_serviced)
+    mMsg.MsgInstance sTitle, True
+    If dct.Count = 0 Then GoTo xt
+        
+    '~~ Prepare a modeless message with a pair of buttons for each outdated component.
+    '~~ The mMsg.Dsply service allows only 7 button rows. The number of rows might
+    '~~ thus not cover all outdated components. Any exessive components will be
+    '~~ displayed by subsequent calls of this service.
+    Set fUpdate = mMsg.MsgInstance(sTitle)
+    For i = 1 To mBasic.Min(dct.Count, 7)
+        Set Comp = dct.Items()(i - 1)
+        With Comp
+            sBttn1 = .CompName & vbLf & vbLf & "Update"
+            sBttn2 = .CompName & vbLf & vbLf & "Changes"
+            mMsg.ButtonAppRun dctRunArgs, sBttn1, ThisWorkbook, "mRenew.Run", .Wrkbk, .CompName, .Raw.SavedExpFileFullName, uo_hosted
+            mMsg.ButtonAppRun dctRunArgs, sBttn2, ThisWorkbook, "mService.ExpFilesDiffDisplay", .ExpFileFullName, .Raw.SavedExpFileFullName, "Currently used (" & .ExpFileFullName & ")", "Up-to-date (" & .Raw.SavedExpFileFullName & ")"
+        End With
+        Set cllBttns = mMsg.Buttons(cllBttns, sBttn1, sBttn2, vbLf)
+    Next i
+    With Msg.Section(1)
+        .Label.Text = "Update:"
+        .Label.FontColor = rgbBlue
+        .Text.Text = "Press/click the button to update the desired outdated Common Component. The component " & _
+                     "will be updated and the dialog re-displayed - without the then already updated component, " & _
+                     "until there's no outdated component left or the dialog is closed explicitely."
+    End With
+    With Msg.Section(2)
+        .Label.Text = "Changes:"
+        .Label.FontColor = rgbBlue
+        .Text.Text = "Press/click the button to display/check which of the code has changed"
+    End With
+    With Msg.Section(3)
+        .Label.Text = "About:"
+        .Label.FontColor = rgbBlue
+        .Text.Text = "Experience has shown that this way of renewing outdated Common Components. " & _
+                     "I.e. updating one component at a time by a service performed via Application.Run " & _
+                     "is the most stable approach. Since the dialog is displayed modeless the serviced " & _
+                     "workbook may be saved after each individual update - and will be saved prior an update."
+    End With
+    
+    '~~ Display a modeless message with a pair of buttons for each outdated component
+    mMsg.Dsply dsply_title:=sTitle _
+             , dsply_msg:=Msg _
+             , dsply_buttons:=cllBttns _
+             , dsply_modeless:=True _
+             , dsply_buttons_app_run:=dctRunArgs _
+             , dsply_width_min:=40
+                 
     
 xt: mBasic.EoP ErrSrc(PROC)
     Set Log = Nothing

@@ -69,52 +69,9 @@ Private Property Get ADDIN_FORMAT() As XlFileFormat ' = ... needs adjustment whe
     ADDIN_FORMAT = xlOpenXMLAddIn
 End Property
 
-'Public Property Get FolderAddin() As String
-'    FolderAddin = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_FOLDER)
-'End Property
-'
-'Public Property Let FolderAddin(ByVal s As String)
-'    Const PROC = "FolderAddin-Let"
-'
-'    On Error GoTo eh
-'    Dim sCfgFile    As String
-'
-'    sCfgFile = CompManCfgFileName
-'
-'    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_FOLDER) = s
-'    With New FileSystemObject
-'        .CopyFile sCfgFile, s & COMPMAN_ADMIN_FOLDER_NAME & .GetFileName(sCfgFile)
-'    End With
-'    TrustThisFolder ttf_path:=s, ttf_description:="The alternate Excel open path"
-'
-'xt: Exit Property
-'
-'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-'        Case vbResume:  Stop: Resume
-'        Case Else:      End
-'    End Select
-'End Property
-
 Public Property Get CompManAddinFullName() As String
     CompManAddinFullName = AddInPath & DBSLASH & CompManAddinName
 End Property
-
-'Public Property Get CompManAddinIsPaused() As Boolean
-'    Dim s As String
-'    s = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED)
-'    If s = vbNullString Then
-'        CompManAddinIsPaused = False
-'    Else
-'        CompManAddinIsPaused = VBA.CBool(s)
-'    End If
-'End Property
-'
-'Public Property Let CompManAddinIsPaused(ByVal b As Boolean)
-'    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_ADDIN_PAUSED) = b
-'    With New FileSystemObject
-'        .CopyFile CompManCfgFileName, FolderAddin & COMPMAN_ADMIN_FOLDER_NAME & .GetFileName(CompManCfgFileName)
-'    End With
-'End Property
 
 Private Property Get CompManAddinIsSetup() As Boolean
 ' ------------------------------------------------------------
@@ -163,15 +120,6 @@ Private Property Get CompManCfgFileName() As String
     Set fso = Nothing
 End Property
 
-'Public Property Get FolderExport() As String
-'    FolderExport = Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_EXPORT_FOLDER)
-'    If FolderExport = vbNullString Then FolderExport = "source"
-'End Property
-'
-'Public Property Let FolderExport(ByVal s As String)
-'    Value(pp_section:=SECTION_BASE_CONFIG, pp_value_name:=VNAME_COMPMAN_EXPORT_FOLDER) = s
-'End Property
-
 Public Property Get DevInstncFullName() As String
     Dim fso As New FileSystemObject
     DevInstncFullName = mConfig.FolderServiced & DBSLASH _
@@ -203,12 +151,8 @@ End Property
 
 Public Property Let RenewAction(Optional ByVal la_last As Boolean = False, _
                                          ByVal la_action As String)
-' -----------------------------------------------------------------------
-' Increase renew step and save action
-' -----------------------------------------------------------------------
     lRenewStep = lRenewStep + 1
     sRenewAction = la_action
-    Debug.Print lRenewStep & ". " & sRenewAction
 End Property
 
 Public Property Get RenewAction(Optional ByVal la_last As Boolean = False) As String
@@ -307,11 +251,6 @@ cfg:
         ElseIf mConfig.FolderServiced <> .FolderServiced Then
             '~~ The configured Serviced-Root-Folder has been changed
             '~~ All content is moved to the new folder
-'            fso.MoveFile Source:=mConfig.FolderServiced & "\*" _
-'                         , Destination:=.FolderServiced & "\"
-'            'Move all folders to destination folder
-'            fso.MoveFolder Source:=mConfig.FolderServiced & "\*" _
-'                         , Destination:=.FolderServiced & "\"
             mConfig.FolderServiced = .FolderServiced
         End If
         

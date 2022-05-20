@@ -3,8 +3,8 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} fConfig
    Caption         =   "CompMan's basic configuration (user specific in Registry )"
    ClientHeight    =   6030
    ClientLeft      =   90
-   ClientTop       =   435
-   ClientWidth     =   11655
+   ClientTop       =   438
+   ClientWidth     =   11658
    OleObjectBlob   =   "fConfig.frx":0000
    StartUpPosition =   1  'Fenstermitte
 End

@@ -38,18 +38,13 @@ End Sub
 
 Private Sub Workbook_Open()
 ' ----------------------------------------------------------------------------
-' Attention: ThisWorkbook's raw clones (i.e. the used common components) are
-'            only updated when the CompMan Addin is active. This is only the
-'            case when at least one Workbook referring to it is open (this
-'            development instance cannot refer to 'its' Addin instance because
-'            it may not exist - in case of a 'cold start'. On the other hand,
-'            it will be essential that the Addin is established with
-'            up-to-date used raw clones.
-'            Conclusion: For a 'cold start', i.e. the development instance is
-'            opened the very first time it is assumed up-to-date. Later on,
-'            when a used clone's raw is changed - that is when the Addin will
-'            be active - the development instance will be opened to get its
-'            cloned raws updated and the Addin instance will be renewed.
+' Attention:  ThisWorkbook's raw clones (i.e. the used common components) are
+'             only updated when the CompMan Addin is active.
+' Conclusion: For a 'cold start' of CompMan, i.e. the development instance is
+'             opened the very first time it is assumed up-to-date. Later on,
+'             when a used clone's raw is changed - that is when the Addin will
+'             be active - the development instance will be opened to get its
+'             cloned raws updated and the Addin instance will be renewed.
 ' ------------------------------------------------------------------------------
     Const PROC = "Workbook_Open"
     
@@ -62,7 +57,7 @@ Private Sub Workbook_Open()
         '~~ Executed by the development instance when open or by the Addin
         '~~ when established and automatically available when referenced by
         '~~ the VB-Project
-        mCompManClient.CompManService "UpdateOutdatedCommonComponents", HOSTED_RAWS, True
+        mCompManClient.CompManService "UpdateOutdatedCommonComponents", HOSTED_RAWS
         '~~ ------------------------------------------------------------------
         mMe.DisplayStatus
         Application.ScreenUpdating = False

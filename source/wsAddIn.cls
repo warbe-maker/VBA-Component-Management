@@ -46,8 +46,10 @@ Public Sub MonitorRenewStep(Optional ByVal rn_action As String = vbNullString, _
     Dim sProgressMsg    As String
     
     If rn_result <> vbNullString Then sRenewResult = rn_result
-'    If rn_action <> vbNullString Then RenewAction = rn_action
     If sRenewResult <> vbNullString Then sProgressMsg = ProgressMsg(RenewStep, RenewAction, sRenewResult)
+    Step.FontSize = 8
+    Footer.FontSize = 8
+    Step.MonoSpaced = True
     
     If mMe.RenewStep > 0 And sRenewResult <> vbNullString Then
         Step.Text = sProgressMsg
