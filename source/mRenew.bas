@@ -146,7 +146,7 @@ Public Sub Run(ByRef r_wb_serviced As Workbook, _
     MonitorStep.MonoSpaced = True
     MonitorStep.FontSize = 9
     Set Log = New clsLog
-    Log.Service = SRVC_UPDATE_OUTDATED
+    Log.Service(True) = SRVC_UPDATE_OUTDATED ' new log file when older 1 day
     
     '~~ Save the serviced Workbook when yet not saved (initialize the monitor window)
     If Not r_wb_serviced.Saved Then
@@ -191,7 +191,6 @@ Public Sub Run(ByRef r_wb_serviced As Workbook, _
             MonitorStep.Text = Step & ". Rename the component '" & r_comp_name & "' to '" & sTempName & "'."
             mMsg.Monitor MonitorTitle, MonitorStep
             .VBComponents(r_comp_name).Name = sTempName
-            Log.Entry = "'" & r_comp_name & "' renamed to '" & sTempName & "'"
             
             '~~ Outcomment the renamed component's code
             Step = Step + 1
@@ -205,7 +204,6 @@ Public Sub Run(ByRef r_wb_serviced As Workbook, _
             MonitorStep.Text = Step & ". Remove the renamed component."
             mMsg.Monitor MonitorTitle, MonitorStep
             .VBComponents.Remove .VBComponents(sTempName) ' will not take place until process has ended!
-            Log.Entry = "'" & sTempName & "' removed (removal is postponed by Excel until process has finished)"
             
         End If
         
@@ -226,7 +224,6 @@ Public Sub Run(ByRef r_wb_serviced As Workbook, _
             .CompName = r_comp_name
         End With
         .VBComponents(r_comp_name).Export Comp.ExpFileFullName
-        Log.Entry = "'" & r_comp_name & "' exported to '" & Comp.ExpFileFullName & "'"
         
         '~~ Remove the activated hidden Workbook and re-activate the serviced Workbook
         Step = Step + 1
@@ -328,7 +325,6 @@ Public Function Outdated(ByVal od_wb_serviced As Workbook) As Dictionary
                 Set .Wrkbk = od_wb_serviced
                 .CompName = vbc.Name
                 Set .VBComp = vbc
-                Log.ServicedItem = vbc
                 If .KindOfComp = enCommCompUsed Then
                     If .Outdated Then
                         AddAscByKey dctOutdated, .CompName, Comp

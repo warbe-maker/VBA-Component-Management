@@ -991,9 +991,9 @@ Public Sub SaveWbk(ByRef rs_wb As Workbook)
     Application.EnableEvents = False
     '~~ This is the action where the update process may lead to the effect that Excel closes the Workbook
     '~~ without having deleted the renamed components!
-    Log.Entry = mBasic.TimedDoEvents(ErrSrc(PROC))
+    mBasic.TimedDoEvents (ErrSrc(PROC))
     rs_wb.Save
-    Log.Entry = mBasic.TimedDoEvents(ErrSrc(PROC))
+    mBasic.TimedDoEvents (ErrSrc(PROC))
     Application.EnableEvents = True
 
 xt: mBasic.EoP ErrSrc(PROC)

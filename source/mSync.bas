@@ -417,7 +417,6 @@ Private Sub RenameWrkbkModule( _
                     Log.ServicedItem = vbc
                     vbc.Name = rdm_new_name
                     Log.Entry = "Renamed to '" & rdm_new_name
-                    Log.Entry = mBasic.TimedDoEvents(ErrSrc(PROC))
                     Exit For
                 End If
             End If
