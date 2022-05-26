@@ -146,11 +146,14 @@ Public Sub Test_10_ExportChangedComponents()
     
 End Sub
 
-Public Sub Test_BasicConfig()
+Public Sub Test_Config()
 
-    If Not mMe.BasicConfig Then
-        Debug.Print "Basic configuration invalid!"
-    End If
+    '~~ 1. Basic configuration
+    mMe.Config
+    '~~ 2. Addin configuration
+    mMe.Config cfg_addin:=True
+    '~~ 3. Synchronization configuration
+    mMe.Config cfg_sync:=True
     
 End Sub
 

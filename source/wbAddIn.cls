@@ -51,7 +51,7 @@ Private Sub Workbook_Open()
     On Error GoTo eh
        
     If mMe.IsDevInstnc Then
-        mMe.BasicConfig bc_silent:=True
+        mMe.Config cfg_silent:=True ' displays the configuration dialog only when the basic configuration is invalid
         '~~ ------------------------------------------------------------------
         '~~ CompMan Workbook_Open service 'UpdateOutdatedCommonComponents':
         '~~ Executed by the development instance when open or by the Addin
@@ -68,6 +68,16 @@ Private Sub Workbook_Open()
         wsAddIn.Activate
         Application.DisplayFormulaBar = False
         ActiveWindow.DisplayHeadings = False
+    
+        '~~ ------------------------------------------------------------------
+        '~~ When the Workbook is opened from within the configured 'synced'
+        '~~ folder it will be synchronized with its corresponding raw
+        '~~ (the synchronization.source-Workbook) located in the 'serviced'
+        '~~ folder. When the required preconditions are not met the service
+        '~~ will be denied.
+        mMe.Config cfg_silent:=True, cfg_sync:=True ' displays the configuration dialog only when the synchronization configuration is invalid
+        mCompManClient.CompManService "Synchronize"
+        '~~ ------------------------------------------------------------------
     End If
     
 xt: Exit Sub
@@ -88,7 +98,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     '~~ *) automatically available only when a Workbook is open which has
     '~~    in the VBProject a Reference to the CompMan Addin.
     If mMe.IsDevInstnc Then
-        mMe.BasicConfig bc_silent:=True
+        mMe.Config cfg_silent:=True
            mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
         If Not ThisWorkbook.Saved Then
             Application.EnableEvents = False

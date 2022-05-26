@@ -65,7 +65,7 @@ Public Sub CompManService(ByVal cms_name As String, _
     sServicing = WbServicing(cms_name)
     If sServicing <> vbNullString Then
         If cms_name = SERVICE_SYNCHRONIZE _
-        Then Application.Run sServicing & "!mCompMan." & SERVICE_SYNCHRONIZE, ThisWorkbook _
+        Then Application.Run sServicing & "!mCompMan." & cms_name, ThisWorkbook _
         Else Application.Run sServicing & "!mCompMan." & cms_name, ThisWorkbook, cms_hosted_common_components
     End If
     

@@ -289,8 +289,8 @@ End Sub
 
 Public Sub SyncOOBsNew()
 ' -------------------------------------------------------------
-' Copy all new controls from the sourec Workbook (Sync.Source)
-' to the target Workbook (Sync.Target) and ajust the properties
+' Copy all new controls from the sourec Workbook (Sync.SourceWb)
+' to the target Workbook (Sync.TargetWb) and ajust the properties
 ' -------------------------------------------------------------
     Const PROC = "SyncOOBsNew"
     
@@ -306,16 +306,16 @@ Public Sub SyncOOBsNew()
         For Each v In .SourceSheetOOBs
             sSheet = mSync.KeySheetName(v)
             sControl = .SourceSheetOOBs(v)
-            If mSheetControls.ControlExists(sync_wb:=.Target _
+            If mSheetControls.ControlExists(sync_wb:=.TargetWb _
                                           , sync_sheet_name:=sSheet _
-                                          , sync_sheet_code_name:=mSyncSheets.SheetCodeName(.source, sSheet) _
+                                          , sync_sheet_code_name:=mSyncSheets.SheetCodeName(.SourceWb, sSheet) _
                                           , sync_sheet_control_name:=sControl _
                                            ) _
             Then GoTo next_oob
             '~~ The source shape not yet exists in the target Workbook's corresponding sheet
             '~~ (idetified either by its Name or CodeName) and thus is regarde new and needs
             '~~ to be copied and its Properties adjusted.
-            Set wsSource = .source.Worksheets(sSheet)
+            Set wsSource = .SourceWb.Worksheets(sSheet)
             Set oob = wsSource.OLEObjects(sControl)
             Log.ServicedItem = oob
             If Sync.Mode = Confirm Then
@@ -327,7 +327,7 @@ Public Sub SyncOOBsNew()
             Else
                 '~~ When new OLEObjects are syncronized the Worksheet's Name/CodeName will have been syncronized before!
                 If Not .IsNewSheet(sSheet) Then
-                    Set wsTarget = .Target.Worksheets(sSheet)
+                    Set wsTarget = .TargetWb.Worksheets(sSheet)
                     CopyOOB sc_source:=wsSource _
                             , sc_target:=wsTarget _
                             , sc_oob_name:=sControl
@@ -348,8 +348,8 @@ End Sub
 
 Public Sub SyncControlsNew()
 ' -----------------------------------------------------------
-' Copy new shapes from the sourec Workbook (Sync.Source) to
-' the target Workbook (Sync.Target) and ajust the properties
+' Copy new shapes from the sourec Workbook (Sync.SourceWb) to
+' the target Workbook (Sync.TargetWb) and ajust the properties
 ' -----------------------------------------------------------
     Const PROC = "SyncControlsNew"
     
@@ -365,16 +365,16 @@ Public Sub SyncControlsNew()
         For Each v In .SourceSheetControls
             sSheet = mSync.KeySheetName(v)
             sControl = .SourceSheetControls(v)
-            If mSheetControls.ControlExists(sync_wb:=.Target _
+            If mSheetControls.ControlExists(sync_wb:=.TargetWb _
                                           , sync_sheet_name:=sSheet _
-                                          , sync_sheet_code_name:=SheetCodeName(.source, sSheet) _
+                                          , sync_sheet_code_name:=SheetCodeName(.SourceWb, sSheet) _
                                           , sync_sheet_control_name:=sControl _
                                            ) _
             Then GoTo next_shape
             '~~ The source sheet control not yet exists in the target Workbook's corresponding sheet
             '~~ (idetified either by its Name or CodeName) and thus is regarde new and needs
             '~~ to be copied and its Properties adjusted.
-            Set wsSource = .source.Worksheets(sSheet)
+            Set wsSource = .SourceWb.Worksheets(sSheet)
             Set shp = wsSource.Shapes(sControl)
             Log.ServicedItem = shp
             If .Mode = Confirm Then
@@ -386,7 +386,7 @@ Public Sub SyncControlsNew()
             Else
                 '~~ When new shapes are syncronized the Worksheet's Name/CodeName will have been syncronized before!
                 If Not .IsNewSheet(sSheet) Then
-                    Set wsTarget = .Target.Worksheets(sSheet)
+                    Set wsTarget = .TargetWb.Worksheets(sSheet)
                     CopyShape sc_source:=wsSource _
                             , sc_target:=wsTarget _
                             , sc_name:=sControl
@@ -408,7 +408,7 @@ End Sub
 
 Public Sub SyncOOBsObsolete()
 ' -----------------------------------------------------------
-' Remove obsolete shapes in the target Workbook (Sync.Target)
+' Remove obsolete shapes in the target Workbook (Sync.TargetWb)
 ' -----------------------------------------------------------
     Const PROC = "SyncOOBsObsolete"
     
@@ -423,13 +423,13 @@ Public Sub SyncOOBsObsolete()
         For Each v In .TargetSheetOOBs
             sSheet = mSync.KeySheetName(v)
             sControl = .TargetSheetOOBs(v)
-            If mSheetControls.ControlExists(sync_wb:=.source _
+            If mSheetControls.ControlExists(sync_wb:=.SourceWb _
                                           , sync_sheet_name:=KeySheetName(v) _
-                                          , sync_sheet_code_name:=SheetCodeName(.Target, sSheet) _
+                                          , sync_sheet_code_name:=SheetCodeName(.TargetWb, sSheet) _
                                           , sync_sheet_control_name:=sControl _
                                            ) _
             Then GoTo next_oob
-            Set wsTarget = .Target.Worksheets(sSheet)
+            Set wsTarget = .TargetWb.Worksheets(sSheet)
             Set oob = wsTarget.OLEObjects(sControl)
             Log.ServicedItem = oob
             
@@ -455,7 +455,7 @@ End Sub
 
 Public Sub SyncControlsObsolete()
 ' -----------------------------------------------------------
-' Remove obsolete shapes in the target Workbook (Sync.Target)
+' Remove obsolete shapes in the target Workbook (Sync.TargetWb)
 ' -----------------------------------------------------------
     Const PROC = "SyncControlsObsolete"
     
@@ -471,13 +471,13 @@ Public Sub SyncControlsObsolete()
             Application.ScreenUpdating = False
             sSheet = mSync.KeySheetName(v)
             sControl = mSync.KeyControlName(v)
-            If mSheetControls.ControlExists(sync_wb:=.source _
+            If mSheetControls.ControlExists(sync_wb:=.SourceWb _
                                           , sync_sheet_name:=KeySheetName(v) _
-                                          , sync_sheet_code_name:=SheetCodeName(.Target, sSheet) _
+                                          , sync_sheet_code_name:=SheetCodeName(.TargetWb, sSheet) _
                                           , sync_sheet_control_name:=sControl _
                                            ) _
             Then GoTo next_shape
-            Set wsTarget = .Target.Worksheets(sSheet)
+            Set wsTarget = .TargetWb.Worksheets(sSheet)
             Set shp = wsTarget.Shapes(sControl)
             Log.ServicedItem = shp
             
@@ -518,16 +518,16 @@ Public Sub SyncControlsProperties()
         For Each v In .SourceSheetControls
             sSheet = mSync.KeySheetName(v)
             sControl = mSync.KeyControlName(v)
-            If Not mSheetControls.ControlExists(sync_wb:=.Target _
+            If Not mSheetControls.ControlExists(sync_wb:=.TargetWb _
                                               , sync_sheet_name:=sSheet _
-                                              , sync_sheet_code_name:=SheetCodeName(.source, sSheet) _
+                                              , sync_sheet_code_name:=SheetCodeName(.SourceWb, sSheet) _
                                               , sync_sheet_control_name:=sControl _
                                                ) _
             Then GoTo next_shape
             Log.ServicedItem = sControl
 
-            SyncCntrlProperties .source.Worksheets(sSheet).Shapes.Item(sControl) _
-                              , .Target.Worksheets(sSheet).Shapes.Item(sControl)
+            SyncCntrlProperties .SourceWb.Worksheets(sSheet).Shapes.Item(sControl) _
+                              , .TargetWb.Worksheets(sSheet).Shapes.Item(sControl)
 
 next_shape:
         Next v
@@ -560,14 +560,14 @@ Public Sub SyncOOBsProperties()
         For Each v In .SourceSheetOOBs
             sSheet = mSync.KeySheetName(v)
             sControl = mSync.KeyControlName(v)
-            If Not mSheetControls.ControlExists(sync_wb:=.Target _
+            If Not mSheetControls.ControlExists(sync_wb:=.TargetWb _
                                               , sync_sheet_name:=sSheet _
-                                              , sync_sheet_code_name:=SheetCodeName(.source, sSheet) _
+                                              , sync_sheet_code_name:=SheetCodeName(.SourceWb, sSheet) _
                                               , sync_sheet_control_name:=sControl _
                                                ) _
             Then GoTo next_shape
-            Set vSource = .source.Worksheets(sSheet).OLEObjects(sControl)
-            Set vTarget = .Target.Worksheets(sSheet).OLEObjects(sControl)
+            Set vSource = .SourceWb.Worksheets(sSheet).OLEObjects(sControl)
+            Set vTarget = .TargetWb.Worksheets(sSheet).OLEObjects(sControl)
             SyncOOBProperties vSource _
                             , vTarget
 

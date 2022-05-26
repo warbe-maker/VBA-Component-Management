@@ -148,11 +148,10 @@ next_fl:
 
 End Function
 
-Public Function SyncVBProjects( _
-                Optional ByRef wb_target As Workbook = Nothing, _
-                Optional ByVal wb_source_name As String = vbNullString, _
-                Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
-                Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
+Public Function SyncVBProjects(Optional ByRef wb_target As Workbook = Nothing, _
+                               Optional ByVal wb_source_name As String = vbNullString, _
+                               Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
+                               Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
 ' --------------------------------------------------------------------------------------------
 ' Synchronizes the target Workbook (wb_target) with the source Workbook (wb_source).
 ' Returns TRUE when successfully finished. The service is denied when the following
@@ -619,18 +618,18 @@ Public Function ExpFilesDiffDisplay( _
     
     If Not AppIsInstalled("WinMerge") _
     Then Err.Raise Number:=AppErr(1) _
-                 , source:=ErrSrc(PROC) _
+                 , Source:=ErrSrc(PROC) _
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
     If Not fso.FileExists(fd_exp_file_left_full_name) _
     Then Err.Raise Number:=AppErr(2) _
-                 , source:=ErrSrc(PROC) _
+                 , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & fd_exp_file_left_full_name & """ does not exist!"
     
     If Not fso.FileExists(fd_exp_file_right_full_name) _
     Then Err.Raise Number:=AppErr(3) _
-                 , source:=ErrSrc(PROC) _
+                 , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & fd_exp_file_right_full_name & """ does not exist!"
     
     '~~ Save WinMerge configuration items and set them for CompMan
@@ -887,7 +886,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     

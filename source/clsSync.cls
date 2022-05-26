@@ -132,9 +132,9 @@ Friend Property Get SheetsNew() As Long:                        SheetsNew = lShe
 
 Friend Property Get SheetsObsolete() As Long:                   SheetsObsolete = lSheetsObsolete:                       End Property
 
-Friend Property Get source() As Workbook:                       Set source = wbSyncSource:                              End Property
+Friend Property Get SourceWb() As Workbook:                     Set SourceWb = wbSyncSource:                            End Property
 
-Friend Property Set source(ByRef wb As Workbook):               Set wbSyncSource = wb:                                  End Property
+Friend Property Set SourceWb(ByRef wb As Workbook):             Set wbSyncSource = wb:                                  End Property
 
 Friend Property Get SourceNames() As Dictionary:                Set SourceNames = dctSourceNames:                       End Property
 
@@ -148,9 +148,9 @@ Friend Property Get SourceSheetOOBs() As Dictionary:            Set SourceSheetO
 
 Friend Property Get TargetSheetOOBs() As Dictionary:            Set TargetSheetOOBs = dctTargetSheetOOBs:               End Property
 
-Friend Property Get Target() As Workbook:                       Set Target = wbSyncTarget:                              End Property
+Friend Property Get TargetWb() As Workbook:                     Set TargetWb = wbSyncTarget:                            End Property
 
-Friend Property Set Target(ByRef wb As Workbook):               Set wbSyncTarget = wb:                                  End Property
+Friend Property Set TargetWb(ByRef wb As Workbook):             Set wbSyncTarget = wb:                                  End Property
 
 Friend Property Get TargetNames() As Dictionary:                Set TargetNames = dctTargetNames:                       End Property
 
@@ -314,7 +314,7 @@ Public Sub DisplayCollectedSourceSheets()
     Debug.Print Align(align_s:="T/S", align_lngth:=10, align_mode:=AlignCentered) & Align("Key", 30) & "Item"
     Set dct = Me.SourceSheets
     For i = 1 To dct.Count
-        Set ws = Me.source.Worksheets(dct.Items()(i - 1))
+        Set ws = Me.SourceWb.Worksheets(dct.Items()(i - 1))
         Debug.Print Align("Source", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.Name & ")"
     Next i
 End Sub
@@ -340,7 +340,7 @@ Public Sub DisplayCollectedTargetSheets()
     Debug.Print Align(align_s:="T/S", align_lngth:=10, align_mode:=AlignCentered) & Align("Key", 30) & "Item"
     Set dct = Me.SourceSheets
     For i = 1 To dct.Count
-        Set ws = Me.source.Worksheets(dct.Items()(i - 1))
+        Set ws = Me.SourceWb.Worksheets(dct.Items()(i - 1))
         Debug.Print Align("Target", 10) & Align(dct.Keys()(i - 1), 30) & ws.CodeName & "(" & ws.Name & ")"
     Next i
 End Sub

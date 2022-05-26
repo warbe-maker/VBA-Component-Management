@@ -33,12 +33,12 @@ Public Function SyncFormating() As Boolean
         Stats.Count sic_named_ranges
         sSheet = Replace(Split(dct(v), "!")(0), "=", vbNullString)
         sName = v
-        Set ws = Sync.Target.Worksheets(sSheet)
-        Set rngTarget = Sync.Target.Worksheets(sSheet).Range(sName)
-        Set rngSource = Sync.source.Worksheets(sSheet).Range(sName)
+        Set ws = Sync.TargetWb.Worksheets(sSheet)
+        Set rngTarget = Sync.TargetWb.Worksheets(sSheet).Range(sName)
+        Set rngSource = Sync.SourceWb.Worksheets(sSheet).Range(sName)
         Log.ServicedItem = rngTarget
-        Debug.Print "Source range: " & rngSource.Name.Name, Tab(45), Sync.source.Name & dct(v) & vbLf & _
-                    "Target range: " & rngTarget.Name.Name, Tab(45), Sync.Target.Name & dct(v)
+        Debug.Print "Source range: " & rngSource.Name.Name, Tab(45), Sync.SourceWb.Name & dct(v) & vbLf & _
+                    "Target range: " & rngTarget.Name.Name, Tab(45), Sync.TargetWb.Name & dct(v)
         SyncProperties rngSource, rngTarget
 next_v:
     Next v
@@ -65,14 +65,14 @@ Public Sub SyncNamedColumnsWidth( _
     Dim RangeName   As String
     
     If ws_source Is Nothing And ws_target Is Nothing Then
-        For Each ws In Sync.source.Worksheets
-            If mSyncSheets.SheetExists(wb:=Sync.Target _
+        For Each ws In Sync.SourceWb.Worksheets
+            If mSyncSheets.SheetExists(wb:=Sync.TargetWb _
                                      , sh1_name:=ws.Name _
                                      , sh1_code_name:=ws.CodeName _
                                      , sh2_name:=sSheetName _
                                       ) _
             Then
-                Set ws_target = Sync.Target.Worksheets(sSheetName)
+                Set ws_target = Sync.TargetWb.Worksheets(sSheetName)
                 Set ws_source = ws
                 With ws
                     For i = 1 To .UsedRange.Columns.CountLarge
@@ -130,14 +130,14 @@ Public Sub SyncNamedRowsHeight( _
     Dim RangeName   As String
     
     If ws_source Is Nothing And ws_target Is Nothing Then
-        For Each ws In Sync.source.Worksheets
-            If mSyncSheets.SheetExists(wb:=Sync.Target _
+        For Each ws In Sync.SourceWb.Worksheets
+            If mSyncSheets.SheetExists(wb:=Sync.TargetWb _
                                      , sh1_name:=ws.Name _
                                      , sh1_code_name:=ws.CodeName _
                                      , sh2_name:=sSheetName _
                                       ) _
             Then
-                Set ws_target = Sync.Target.Worksheets(sSheetName)
+                Set ws_target = Sync.TargetWb.Worksheets(sSheetName)
                 Set ws_source = ws
                 With ws
                     For i = 1 To .UsedRange.Rows.CountLarge

@@ -1,9 +1,59 @@
 Attribute VB_Name = "mSyncTest"
 Option Explicit
 
+Private Const TEST_SYNC_SOURCE = "E:\Ablage\Excel VBA\DevAndTest\Common-VBA-Excel-Component-Management-Services\SyncTest\SyncSource\CompManSyncTest.xlsb"
+Private Const TEST_SYNC_TARGET = "E:\Ablage\Excel VBA\CompManSyncService\CompManSyncTest-Target\CompManSyncTest.xlsb"
+
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mSyncTest." & sProc
 End Function
+
+Public Sub Test_SyncRefs()
+' ------------------------------------------------------------------------------
+'
+' ------------------------------------------------------------------------------
+    Const PROC          As String = "Test_SyncRefs"
+    Const TEST_REF_1    As String = "Microsoft Visual Basic for Applications Extensibility 5.6"
+
+    On Error GoTo eh
+    Dim wbSource    As Workbook
+    Dim TestRef1    As Reference
+    
+    mBasic.BoP ErrSrc(PROC)
+    For Each TestRef1 In ThisWorkbook.VBProject.References
+        If TestRef1.Description Like "*Extensibility*" Then Exit For
+    Next TestRef1
+    If TestRef1 Is Nothing Then Stop ' Error with test-Setup !!!
+    
+    mSync.SyncBackup TEST_SYNC_SOURCE
+    mSync.SyncRestore TEST_SYNC_TARGET
+    mSync.SyncBackup TEST_SYNC_TARGET
+    
+    '~~ Prepare the 'Synchronization-Source-Workbook for this test
+    Application.EnableEvents = False
+    Set wbSource = mWbk.GetOpen(TEST_SYNC_SOURCE)
+    
+    If Not mSyncRefs.RefExists(wbSource, "Microsoft Visual Basic for Applications Extensibility 5.6") Then
+        wbSource.VBProject.References.AddFromGuid GUID:=TestRef1.GUID, Major:=TestRef1.Major, Minor:=TestRef1.Minor
+    End If
+    wbSource.Close
+    Application.EnableEvents = True
+    
+    '~~ Prepare the 'Synchronization-Source-Workbook for this test
+    
+    '~~ Run the test
+    Application.Run ThisWorkbook.Name & "!mCompMan." & SERVICE_SYNCHRONIZE, mWbk.GetOpen(TEST_SYNC_TARGET)
+
+    mSync.SyncRestore TEST_SYNC_SOURCE
+
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
 
 Public Sub Test_SyncColWidth()
 ' ---------------------------------------------------------------------
@@ -14,31 +64,27 @@ Public Sub Test_SyncColWidth()
     Const PROC = "Test_SyncColWidth"
     
     On Error GoTo eh
-    Dim sSource     As String
-    Dim sTarget     As String
     Dim wbSource    As Workbook
-    Dim wbTarget    As Workbook
+    Dim WbTarget    As Workbook
     Dim ws          As Worksheet
     Dim sSheetName  As String
     
-    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncTarget\SyncTarget.xlsb"
-    sSource = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
+   
+    mSync.SyncRestore TEST_SYNC_TARGET
+    mSync.SyncBackup TEST_SYNC_TARGET
     
-    mSync.SyncRestore sTarget
-    mSync.SyncBackup sTarget
-    
-    Set wbTarget = mCompMan.WbkGetOpen(sTarget)
-    Set wbSource = mCompMan.WbkGetOpen(sSource)
+    Set WbTarget = mCompMan.WbkGetOpen(TEST_SYNC_TARGET)
+    Set wbSource = mCompMan.WbkGetOpen(TEST_SYNC_SOURCE)
     
     For Each ws In wbSource.Worksheets
-        If mSyncSheets.SheetExists(wb:=wbTarget _
-                                 , sh1_name:=ws.name _
+        If mSyncSheets.SheetExists(wb:=WbTarget _
+                                 , sh1_name:=ws.Name _
                                  , sh1_code_name:=ws.CodeName _
                                  , sh2_name:=sSheetName _
                                   ) _
         Then
             mSyncRanges.SyncNamedColumnsWidth ws_source:=ws _
-                                            , ws_target:=wbTarget.Worksheets(sSheetName)
+                                            , ws_target:=WbTarget.Worksheets(sSheetName)
         
         End If
     Next ws
@@ -60,17 +106,12 @@ Public Sub Test_SyncVBProjects()
     Const PROC = "Test_SyncVBProjects"
     
     On Error GoTo eh
-    Dim sSource     As String
-    Dim sTarget     As String
-        
-    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncTarget\SyncTarget.xlsb"
-    sSource = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
-           
-    Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
-    mSync.SyncRestore sTarget
+                   
+    Set mService.Serviced = mCompMan.WbkGetOpen(TEST_SYNC_TARGET)
+    mSync.SyncRestore TEST_SYNC_TARGET
     
-    mService.SyncVBProjects wb_target:=mCompMan.WbkGetOpen(sTarget) _
-                          , wb_source_name:=sSource _
+    mService.SyncVBProjects wb_target:=mCompMan.WbkGetOpen(TEST_SYNC_TARGET) _
+                          , wb_source_name:=TEST_SYNC_SOURCE _
                           , restricted_sheet_rename_asserted:=True _
                           , design_rows_cols_added_or_deleted:=False
     
@@ -87,8 +128,6 @@ Public Sub Test_Synch_CompsChanged()
     
     On Error GoTo eh
     Dim fso         As New FileSystemObject
-    Dim sTarget     As String
-    Dim sSource     As String
     Dim BttnDelete  As String
     Dim BttnKeep    As String
     Dim flLog       As File
@@ -98,24 +137,21 @@ Public Sub Test_Synch_CompsChanged()
     Set Stats = New clsStats
     Set Sync = New clsSync
     Set Log = New clsLog
-
-    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncTarget\SyncTarget.xlsb"
-    sSource = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
     
-    Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
-    Set Sync.Target = mService.Serviced
-    Set Sync.source = mCompMan.WbkGetOpen(sSource)
+    Set mService.Serviced = mCompMan.WbkGetOpen(TEST_SYNC_TARGET)
+    Set Sync.TargetWb = mService.Serviced
+    Set Sync.SourceWb = mCompMan.WbkGetOpen(TEST_SYNC_SOURCE)
     Log.File = mFile.Temp(mService.Serviced.Path, ".log")
     
     Sync.CollectAllSyncItems
     
-    LastModif = fso.GetFile(sTarget).DateLastModified
+    LastModif = fso.GetFile(TEST_SYNC_TARGET).DateLastModified
     
-    mSync.SyncBackup sTarget
+    mSync.SyncBackup TEST_SYNC_TARGET
     mSyncComps.SyncCodeChanges
-    mSync.SyncRestore sTarget
+    mSync.SyncRestore TEST_SYNC_TARGET
     Application.EnableEvents = False ' The open service UpdateOutdatedCommonComponents would start with a new log-file otherwise
-    mCompMan.WbkGetOpen sTarget
+    mCompMan.WbkGetOpen TEST_SYNC_TARGET
     Application.EnableEvents = True
 
 xt: With New FileSystemObject
@@ -125,7 +161,7 @@ xt: With New FileSystemObject
             BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
             Set bttns = mMsg.Buttons(BttnDelete, BttnKeep)
             If mMsg.Box(Title:=PROC & " Log-File" _
-                      , Prompt:=mFile.Txt(.GetFile(Log.File)) _
+                      , Prompt:=mFile.txt(.GetFile(Log.File)) _
                       , box_monospaced:=True _
                       , Buttons:=bttns) = BttnDelete _
             Then .DeleteFile flLog
@@ -146,8 +182,6 @@ Public Sub Test_Synch_RangesFormating()
     
     On Error GoTo eh
     Dim fso         As New FileSystemObject
-    Dim sTarget     As String
-    Dim sSource     As String
     Dim BttnDelete  As String
     Dim BttnKeep    As String
     Dim flLog       As File
@@ -160,22 +194,19 @@ Public Sub Test_Synch_RangesFormating()
     Set Stats = New clsStats
     Set Sync = New clsSync
     
-    sTarget = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Target-Project\Test_Sync_Target.xlsb"
-    sSource = "E:\Ablage\Excel VBA\DevAndTest\Test-Sync-Source-Project\Test_Sync_Source.xlsb"
-    
-    Set mService.Serviced = mCompMan.WbkGetOpen(sTarget)
-    Set Sync.Target = mService.Serviced
-    Set Sync.source = mCompMan.WbkGetOpen(sSource)
+    Set mService.Serviced = mCompMan.WbkGetOpen(TEST_SYNC_TARGET)
+    Set Sync.TargetWb = mService.Serviced
+    Set Sync.SourceWb = mCompMan.WbkGetOpen(TEST_SYNC_SOURCE)
     
     Sync.CollectAllSyncItems
     
-    LastModif = fso.GetFile(sTarget).DateLastModified
+    LastModif = fso.GetFile(TEST_SYNC_TARGET).DateLastModified
     
-    mSync.SyncBackup sTarget
+    mSync.SyncBackup TEST_SYNC_TARGET
     mSyncRanges.SyncFormating
-    mSync.SyncRestore sTarget
+    mSync.SyncRestore TEST_SYNC_TARGET
     Application.EnableEvents = False ' The open service UpdateOutdatedCommonComponents would start with a new log-file otherwise
-    mCompMan.WbkGetOpen sTarget
+    mCompMan.WbkGetOpen TEST_SYNC_TARGET
     Application.EnableEvents = True
 
 xt: With New FileSystemObject
@@ -185,7 +216,7 @@ xt: With New FileSystemObject
             BttnKeep = "Keep Log-File" & vbLf & .GetFileName(Log.File)
             Set bttns = mMsg.Buttons(BttnDelete, BttnKeep)
             If mMsg.Box(Title:=PROC & " Log-File" _
-                      , Prompt:=mFile.Txt(.GetFile(Log.File)) _
+                      , Prompt:=mFile.txt(.GetFile(Log.File)) _
                       , box_monospaced:=True _
                       , Buttons:=bttns) = BttnDelete _
             Then .DeleteFile flLog

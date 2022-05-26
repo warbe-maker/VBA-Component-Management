@@ -202,35 +202,46 @@ Public Property Get xlAddInFormat() As Long:            xlAddInFormat = ADDIN_FO
 Public Property Get xlDevlpFormat() As Long:            xlDevlpFormat = DEVLP_FORMAT:                                       End Property
 
 Public Sub CompManConfig()
-    mMe.BasicConfig bc_silent:=False, addin_folder_obligatory:=False
+' ----------------------------------------------------------------------------
+' Invoked by the corresponding button in the wsAddin (Manage CompMan addin)
+' Worksheet.
+' ----------------------------------------------------------------------------
+    mMe.Config cfg_silent:=False, cfg_addin:=False, cfg_sync:=False
 End Sub
 
-Public Function BasicConfig( _
-       Optional ByVal bc_silent As Boolean = False, _
-       Optional ByVal addin_folder_obligatory = False) As Boolean
+Public Function Config(Optional ByVal cfg_silent As Boolean = False, _
+                       Optional ByVal cfg_addin As Boolean = False, _
+                       Optional ByVal cfg_sync As Boolean = False) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns TRUE when the 'Basic Configuration', i.e. the Addin-Folder (when
-' obligatory), the Serviced-Root-Folder and the Export-Folder are valid.
-' When a silent check is requested the configuration dialog is only displayed
-' when something required is still invalid, e.g. not yet configured.
+' Returns TRUE when the basic configuration and any additional requested
+' configurations (cfg_addin or cfg_sync) are valid.
+' - Basic configuration: Serviced-Root-Folder and Export-Folder are valid.
+' - Addin configuration: The Addin-Folder is valid
+' - Sync configuration:  The Synchronization-Folder is valid
+' When a silent configuration check is requested (cfg_silent = True) the
+' configuration dialog is only displayed when something required is still
+' invalid or yet not configured.
 ' ----------------------------------------------------------------------------
-    Const PROC = "BasicConfig"
+    Const PROC = "Config"
 
     On Error GoTo eh
     Dim fso As New FileSystemObject
     
-    If bc_silent Then
+    If cfg_silent Then
         '~~ When silent is requested the configuration dialog is only displayed when there is anything still to be configured
-        If addin_folder_obligatory And Not mMe.FolderAddinIsValid Then GoTo cfg
-        If Not mMe.FolderServicedIsValid Then GoTo cfg
-        If Not mConfig.FolderExport <> vbNullString Then GoTo cfg
-        BasicConfig = True
-        GoTo xt
+        Select Case True
+            Case mMe.FolderServicedIsValid, _
+                 mConfig.FolderExport <> vbNullString, _
+                 cfg_addin And mMe.FolderAddinIsValid, _
+                 cfg_sync And mMe.FolderSyncedIsValid
+                Config = True
+                GoTo xt
+        End Select
     End If
     
-cfg:
     With fConfig
-        .AddinConfigObligatory = addin_folder_obligatory
+        .AddinConfigObligatory = cfg_addin
+        .SyncConfigObligatory = cfg_sync
         .Show
         If mMe.RenewTerminatedByUser Then GoTo xt
         
@@ -253,10 +264,18 @@ cfg:
             '~~ All content is moved to the new folder
             mConfig.FolderServiced = .FolderServiced
         End If
+             
+        If mConfig.FolderSynced = vbNullString Then
+            mConfig.FolderSynced = .FolderSynced
+        ElseIf mConfig.FolderSynced <> .FolderSynced Then
+            '~~ The configured Synchronization-Folder has been changed
+            mConfig.FolderSynced = .FolderSynced
+        End If
+        
         
         mConfig.FolderExport = .FolderExport
     
-        If Not .Canceled Then BasicConfig = True
+        If Not .Canceled Then Config = True
     End With
   
 xt: Unload fConfig
@@ -293,9 +312,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub CompManAddinPause()
-' ----------------------------------
+' ----------------------------------------------------------------------------
 ' Pauses the CompMan Addin Services
-' ---------------------------------
+' ----------------------------------------------------------------------------
     If mMe.IsDevInstnc Then
         mConfig.AddinPaused = True
         mMe.DisplayStatus
@@ -471,6 +490,19 @@ Public Function FolderServicedIsValid() As Boolean
     End With
 End Function
 
+Public Function FolderSyncedIsValid() As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the current configured Synchronization-Folder is valid.
+' ----------------------------------------------------------------------------
+    If mConfig.FolderSynced <> vbNullString Then
+        With New FileSystemObject
+            If .FolderExists(mConfig.FolderSynced) Then
+                FolderSyncedIsValid = True
+            End If
+        End With
+    End If
+End Function
+
 Public Sub Renew___AddIn()
 ' ------------------------------------------------------------------------------
 ' Called via the Command Button in the "Manage CompMan Addin" sheet.
@@ -562,7 +594,7 @@ End Sub
 
 Private Function Renew_1_ConfirmConfig() As Boolean
     mMe.RenewAction = "Assert 'CompMan's Basic Configuration'"
-    Renew_1_ConfirmConfig = mMe.BasicConfig(addin_folder_obligatory:=True)
+    Renew_1_ConfirmConfig = mMe.Config(cfg_addin:=True)
     If Renew_1_ConfirmConfig _
     Then mMe.RenewMonitorResult = "Passed" _
     Else mMe.RenewMonitorResult = "Failed"
@@ -580,11 +612,11 @@ Private Function Renew_2_DevInstnc() As Boolean
 End Function
 
 Private Sub Renew_3_SaveAndRemoveAddInReferences()
-' ----------------------------------------------------------------
-' - Allows the user to close any open Workbook which refers to the
-'   Addin, which definitly hinders the Addin from being re-newed.
+' ----------------------------------------------------------------------------
+' - Allows the user to close any open Workbook which refers to the Addin,
+'   which definitly hinders the Addin from being re-newed.
 ' - Returns TRUE when the user closed all open Workbboks.
-' ----------------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC = "Renew_3_SaveAndRemoveAddInReferences"
     
     On Error GoTo eh
@@ -678,9 +710,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Private Function Renew_5_CloseAddinInstncWorkbook() As Boolean
-' ------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Returns True when the Addin has successfully been closed.
-' ------------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC = "Renew_5_CloseAddinInstncWorkbook"
     
     mMe.RenewAction = "Close the 'CompMan-Addin'"
@@ -705,9 +737,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function Renew_6_DeleteAddInInstanceWorkbook() As Boolean
-' ---------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Returns True when the Addin instance Workbbook has been deleted
-' ---------------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC = "Renew_6_DeleteAddInInstanceWorkbook"
     
     On Error GoTo eh
@@ -740,10 +772,10 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function Renew_7_SaveDevInstncWorkbookAsAddin() As Boolean
-' ----------------------------------------------------------------
-' Returns True when the development instance Workbook has
-' successfully saved as Addin.
-' ----------------------------------------------------------------
+' ----------------------------------------------------------------------------
+' Returns True when the development instance Workbook has successfully saved
+' as Addin.
+' ----------------------------------------------------------------------------
     Const PROC = "Renew_7_SaveDevInstncWorkbookAsAddin"
     
     On Error GoTo eh
@@ -778,10 +810,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function Renew_8_OpenAddinInstncWorkbook() As Boolean
-' -----------------------------------------------------------
-' Returns True when the Addin instance Workbook has success-
-' fully been opened.
-' -----------------------------------------------------------
+' ----------------------------------------------------------------------------
+' Returns True when the Addin instance Workbook has successfully been opened.
+' ----------------------------------------------------------------------------
     Const PROC = "Renew_8_OpenAddinInstncWorkbook"
     
     On Error GoTo eh
@@ -898,110 +929,4 @@ Private Sub StartupPath()
     Debug.Print Application.AltStartupPath
     
 End Sub
-
-'Public Sub TrustThisFolder(Optional ByVal ttf_path As String, _
-'                           Optional ByVal ttf_trust_network_folder As Boolean = False, _
-'                           Optional ByVal ttf_description As String)
-'' ---------------------------------------------------------------------------
-'' Add a folder to the 'Trusted Locations' list so that your project's VBA can
-'' open Excel files without raising errors like "Office has detected a problem
-'' with this file. To help protect your computer this file cannot be opened."
-'' Ths function has been implemented to fail silently on error: if you suspect
-'' that users don't have permission to assign 'Trusted Location' status in all
-'' locations, reformulate this as a function returning True or False
-''
-'' Nigel Heffernan January 2015
-''
-'' Based on code published by Daniel Pineault in DevHut.net on June 23, 2010:
-'' www.devhut.net\2010\06\23\vbscript-createset-trusted-location-using-vbscript\
-'' **** **** **** ****  THIS CODE IS IN THE PUBLIC DOMAIN  **** **** **** ****
-'' UNIT TESTING:
-''
-'' 1:    Reinstate the commented-out line 'Debug.Print sSubKey & vbTab & sPath
-'' 2:    Open the Immediate Window and run this command:
-''           TrustThisFolder "Z:\", True, True, "The user's home directory"
-'' 3:    If  "Z:\"  is already in the list, choose another folder
-'' 4:    Repeat step 2 or 3: the folder should be listed in the debug output
-'' 5:    If it isn't listed, disable the error-handler and record any errors
-'' -----------------------------------------------------------------------------
-'    Const PROC = "TrustThisFolder"
-'    Const HKEY_CURRENT_USER = &H80000001
-'
-'    On Error GoTo eh
-'    Dim sKeyPath            As String
-'    Dim oRegistry           As Object
-'    Dim sSubKey             As String
-'    Dim oSubKeys            As Variant   ' type not specified. After it's populated, it can be iterated
-'    Dim oSubKey             As Variant   ' type not specified.
-'    Dim bSubFolders         As Boolean
-'    Dim bNetworkLocation    As Boolean
-'    Dim iTrustNetwork       As Long
-'    Dim sPath               As String
-'    Dim i                   As Long
-'    Dim fso                 As New FileSystemObject
-'
-'    bSubFolders = True
-'    bNetworkLocation = False
-'
-'    With fso
-'        If ttf_path = "" Then
-'            ttf_path = .GetSpecialFolder(2).Path
-'            If ttf_description = vbNullString Then
-'                ttf_description = "The user's local temp folder"
-'            End If
-'        End If
-'    End With
-'
-'    If Right(ttf_path, 1) <> "\" Then
-'        ttf_path = ttf_path & "\"
-'    End If
-'
-'    sKeyPath = vbNullString
-'    sKeyPath = sKeyPath & "SOFTWARE\Microsoft\Office\"
-'    sKeyPath = sKeyPath & Application.Version
-'    sKeyPath = sKeyPath & "\Excel\Security\Trusted Locations\"
-'
-'    Set oRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & "." & "\root\default:StdRegProv")
-'    '~~ Note: not the usual \root\cimv2  for WMI scripting: the StdRegProv isn't in that folder
-'    oRegistry.EnumKey HKEY_CURRENT_USER, sKeyPath, oSubKeys
-'
-'    For Each oSubKey In oSubKeys
-'        sSubKey = CStr(oSubKey)
-'        oRegistry.GetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Path", sPath
-'        If sPath = ttf_path Then
-'            Exit For
-'        End If
-'    Next oSubKey
-'
-'    If sPath <> ttf_path Then
-'        If IsNumeric(Replace(sSubKey, "Location", "")) _
-'        Then i = CLng(Replace(sSubKey, "Location", "")) + 1 _
-'        Else i = UBound(oSubKeys) + 1
-'
-'        sSubKey = "Location" & CStr(i)
-'
-'        If ttf_trust_network_folder Then
-'            iTrustNetwork = 1
-'            oRegistry.GetDWORDValue HKEY_CURRENT_USER, sKeyPath, "AllowNetworkLocations", iTrustNetwork
-'            If iTrustNetwork = 0 Then
-'                oRegistry.SetDWORDValue HKEY_CURRENT_USER, sKeyPath, "AllowNetworkLocations", 1
-'            End If
-'        End If
-'
-'        oRegistry.CreateKey HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey
-'        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Path", ttf_path
-'        oRegistry.SetStringValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "Description", ttf_description
-'        oRegistry.SetDWORDValue HKEY_CURRENT_USER, sKeyPath & "\" & sSubKey, "AllowSubFolders", 1
-'
-'    End If
-'
-'xt: Set fso = Nothing
-'    Set oRegistry = Nothing
-'    Exit Sub
-'
-'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-'        Case vbResume:  Stop: Resume
-'        Case Else:      GoTo xt
-'    End Select
-'End Sub
 

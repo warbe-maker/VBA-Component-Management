@@ -7,8 +7,8 @@ End Function
 
 Public Sub SyncNew()
 ' ----------------------------------------------------------------
-' Synchronize the names in the target Worksheet (Sync.Target) with
-' those new in the source Workbook (Sync.Source) considering that
+' Synchronize the names in the target Worksheet (Sync.TargetWb) with
+' those new in the source Workbook (Sync.SourceWb) considering that
 ' new Names which refer to a new sheet will automatically be
 ' synchronized when the new sheet is copied from the source to
 ' the target Workbook. All other new names refer to a range in
@@ -29,7 +29,7 @@ Public Sub SyncNew()
         Stats.Count sic_names_new
         '~~ The source name not yet exists in the target Workbook and thus is regarde new
         '~~ However, new names potentially in concert require a design change of the concerned sheet
-        Set nm = Sync.source.Names.Item(v)
+        Set nm = Sync.SourceWb.Names.Item(v)
         SheetReferred = Replace(Split(nm.RefersTo, "!")(0), "=", vbNullString)
         If Sync.Mode = Confirm Then
             '~~ When the new name refers to a new sheet it is not syncronized
@@ -54,8 +54,8 @@ End Sub
 
 Public Sub SyncObsolete()
 ' ----------------------------------------------------------------
-' Synchronize the names in Worksheet (Sync.Target) with those in
-' Workbook (Sync.Source) - when either a sheet's name (wb_sheet_name) or
+' Synchronize the names in Worksheet (Sync.TargetWb) with those in
+' Workbook (Sync.SourceWb) - when either a sheet's name (wb_sheet_name) or
 ' a sheet's CodeName (wb_sheet_codename) is provided only those
 ' names which refer to that sheet.
 ' - Note: Obsolete names are removed but missing names cannot be
@@ -76,7 +76,7 @@ Public Sub SyncObsolete()
     For Each v In Sync.TargetNames
         If Sync.SourceNames.Exists(v) Then GoTo next_v
         Stats.Count sic_names_obsolete
-        Set nm = Sync.Target.Names.Item(v)
+        Set nm = Sync.TargetWb.Names.Item(v)
         '~~ The target name does not exist in the source and thus  has become obsolete
         If Sync.Mode = Confirm Then
             Log.ServicedItem = nm

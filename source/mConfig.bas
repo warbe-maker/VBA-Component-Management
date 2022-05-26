@@ -9,10 +9,12 @@ Private Const VNAME_ADDIN_IS_PAUSED         As String = "AddinIsPaused"
 Private Const VNAME_FOLDER_ADDIN            As String = "FolderAddin"
 Private Const VNAME_FOLDER_EXPORT           As String = "FolderExport"
 Private Const VNAME_FOLDER_SERVICED         As String = "FolderServiced"
+Private Const VNAME_FOLDER_SYNCED           As String = "FolderSynced"
 
-Private FolderServicedIsValid               As Boolean
 Private FolderAddinIsValid                  As Boolean
 Private FolderExportIsValid                 As Boolean
+Private FolderServicedIsValid               As Boolean
+Private FolderSyncedIsValid                 As Boolean
 
 Public Property Get AddinPaused() As Boolean
     AddinPaused = CBool(RegValue(VNAME_ADDIN_IS_PAUSED))
@@ -84,6 +86,10 @@ End Property
 Public Property Get FolderServiced() As String:             FolderServiced = WsValue(VNAME_FOLDER_SERVICED):        End Property
 
 Public Property Let FolderServiced(ByVal s As String):      WsValue(VNAME_FOLDER_SERVICED) = s:                     End Property
+
+Public Property Get FolderSynced() As String:               FolderSynced = WsValue(VNAME_FOLDER_SYNCED):            End Property
+
+Public Property Let FolderSynced(ByVal s As String):        WsValue(VNAME_FOLDER_SYNCED) = s:                       End Property
 
 ' ---------------------------------------------------------------------------
 ' Interfaces to the wsBasicConfig Worksheet
@@ -296,7 +302,7 @@ Public Sub ForwardFolderName(ByRef ff_history As String, _
             sFolder = ff_wb_parent_folder & "\" & Names(i)
             sFolder = Replace(sFolder, "\\", "\")
             If .FolderExists(sFolder) Then
-                .GetFolder(sFolder).name = NameNow
+                .GetFolder(sFolder).Name = NameNow
             End If
         Next i
     End With

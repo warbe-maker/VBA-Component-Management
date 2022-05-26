@@ -2,17 +2,18 @@ Attribute VB_Name = "mSync"
 Option Explicit
 ' ----------------------------------------------------------------------------
 ' Standard Module mSync
-' Provides all services and means for the synchronization of a
-' Target- with a Source-Workbook/VBProject.
 '
-' Public services:
+' Provides all services and means for the synchronization of a
+' 'Synchronization- Target-Workbook with its corresponding 'Synchronization-
+' Source-Workbook'.
 '
 ' ----------------------------------------------------------------------------
-Private Const SHEET_CONTROL_CONCAT = ": "        ' Sheet-Shape concatenator
+Private Const SHEET_CONTROL_CONCAT  As String = ": "                    ' Sheet-Shape concatenator
+Private Const WB_SYNC_TARGET        As String = "_CompMan_Sync_Target"  ' name suffix for the sync target working copy
 
-Public Sync         As clsSync
-Private bSyncDenied As Boolean      ' when True the synchronization is not performed
-Private cSource     As clsComp
+Public Sync                         As clsSync
+Private bSyncDenied                 As Boolean      ' when True the synchronization is not performed
+Private cSource                     As clsComp
 
 Public Enum SyncMode
     Count = 1
@@ -20,17 +21,91 @@ Public Enum SyncMode
     Synchronize = 3
 End Enum
 
+Private Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed 'Application' error number not conflicts with the
+' number of a 'VB Runtime Error' or any other system error.
+' - Returns a given positive 'Application Error' number (app_err_no) into a
+'   negative by adding the system constant vbObjectError
+' - Returns the original 'Application Error' number when called with a negative
+'   error number.
+' ------------------------------------------------------------------------------
+    If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
+End Function
+
+Public Function TheSyncTargetsSource(ByVal sts_target_wb As Workbook) As String
+' ----------------------------------------------------------------------------
+' Returns the full name of the Workbook which is considered the
+' 'Syncronization-Target-Workbook's' corresponding source. A vbNullString is
+' returne when it cannot be identified in CompMan's 'Serviced-Folder.
+' ----------------------------------------------------------------------------
+    Const PROC = "TheSyncTargetsSource"
+    
+    On Error GoTo eh
+    Dim cll As Collection
+    
+    If mFile.Exists(ex_folder:=mConfig.FolderServiced, ex_file:=mSync.SyncTargetOriginName(sts_target_wb), ex_result_files:=cll) Then
+        If cll.Count <> 1 _
+        Then Err.Raise AppErr(1), ErrSrc(PROC), "Unable to identify the 'Synchronization-Target-Workbook's corresponding 'Synchronization-Source-Workbook' because the " & _
+                                                "'Serviced-Folder' contains either none or more than one file named '" & mSync.SyncTargetOriginName(sts_target_wb) & "'"
+        TheSyncTargetsSource = cll(1).Path
+    End If
+
+xt: Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Public Function IsSyncTargetCopy(ByVal itc_wb As Workbook) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the Workbook (itc_wb) is a synchornization target Workbook
+' working copy.
+' ----------------------------------------------------------------------------
+    IsSyncTargetCopy = InStr(itc_wb.Name, WB_SYNC_TARGET) <> 0
+End Function
+
+Public Function SyncTargetOriginName(ByVal ston_wb As Workbook) As String
+' ----------------------------------------------------------------------------
+' Returns serviced 'Synchronization-Target-Workbook's (ston_wb) origin name.
+' ----------------------------------------------------------------------------
+    SyncTargetOriginName = Replace(ston_wb.Name, WB_SYNC_TARGET, vbNullString)
+    
+End Function
+
+Public Function SaveAsSyncTargetCopy(ByVal satc_wb As Workbook) As Workbook
+' ----------------------------------------------------------------------------
+' Saves the Workbook (satc_wb) as 'Synchronization-Target-Workbook' working
+' copy.
+' ----------------------------------------------------------------------------
+    
+    Dim fso     As New FileSystemObject
+    Dim ext     As String
+    Dim sCopyAs As String
+    
+    If Not IsSyncTargetCopy(satc_wb) Then
+        ext = fso.GetExtensionName(satc_wb.FullName)
+        sCopyAs = satc_wb.Path & Replace(satc_wb.Name, "." & ext, vbNullString) & WB_SYNC_TARGET & "." & ext
+        satc_wb.SaveAs FileName:=sCopyAs, AccessMode:=xlExclusive
+        Set SaveAsSyncTargetCopy = mWbk.GetOpen(sCopyAs)
+    End If
+    Set fso = Nothing
+    
+End Function
+
 Public Sub ByCodeLines( _
                  ByVal sync_target_comp_name As String, _
                  ByVal wb_source_full_name As String, _
                  ByRef sync_source_codelines As Dictionary)
-' ---------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Synchronizes the code of a Target-VBComponent
 ' (sync_target_comp_name) in a Target-Workbook/VB-Project
-' (Sync.Target) with the code in the Export-File of the
+' (Sync.TargetWb) with the code in the Export-File of the
 ' corresponding Source-Workbook/VB-Project's
 ' (wb_source_full_name) component line by line.
-' ---------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC = "ByCodeLines"
 
     On Error GoTo eh
@@ -51,7 +126,7 @@ Public Sub ByCodeLines( _
         End With
     End If
     
-    With Sync.Target.VBProject.VBComponents(sync_target_comp_name).CodeModule
+    With Sync.TargetWb.VBProject.VBComponents(sync_target_comp_name).CodeModule
         If .CountOfLines > 0 _
         Then .DeleteLines 1, .CountOfLines   ' Remove all lines from the cloned raw component
         
@@ -90,7 +165,7 @@ Private Sub ClearLinksToSource()
     Dim ControlName As String
     
     '~~ Clear back-referred range names
-    For Each nm In Sync.Target.Names
+    For Each nm In Sync.TargetWb.Names
         On Error Resume Next
         sName = Split(nm.RefersTo, "]")(1)
         If Err.Number = 0 Then
@@ -104,15 +179,52 @@ Private Sub ClearLinksToSource()
     For Each v In Sync.TargetSheetControls
         SheetName = mSync.KeySheetName(v)
         ControlName = mSync.KeyControlName(v)
-        Set shp = Sync.Target.Worksheets(SheetName).Shapes(ControlName)
+        Set shp = Sync.TargetWb.Worksheets(SheetName).Shapes(ControlName)
         On Error Resume Next
         sOnAction = shp.OnAction
-        sOnAction = Replace(sOnAction, Sync.source.Name, Sync.Target.Name)
+        sOnAction = Replace(sOnAction, Sync.SourceWb.Name, Sync.TargetWb.Name)
         shp.OnAction = sOnAction
     Next v
     
 xt: Exit Sub
     
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Sub CollectSyncIssuesForApplicationRun()
+' ------------------------------------------------------------------------------
+' Collects all synchronization issues and displays them in a modeless dialog
+' for being performed by a click on the corresponding command button. This
+' procedure is repeated until there os no synchronization still outstanding.
+' ------------------------------------------------------------------------------
+    Const PROC = "CollectSyncIssuesForApplicationRun"
+    
+    On Error GoTo eh
+    Sync.Mode = Confirm
+    
+    mSyncRefs.SyncNew
+    mSyncRefs.SyncObsolete
+    
+    mSyncSheets.SyncName
+    mSyncSheets.SyncCodeName
+    mSyncSheets.SyncNew
+    mSyncSheets.SyncObsolete
+
+    mSyncComps.SyncNew
+    mSyncComps.SyncObsolete
+    mSyncComps.SyncCodeChanges
+    
+    mSyncSheetCtrls.SyncControlsNew
+    mSyncSheetCtrls.SyncControlsObsolete
+    
+    mSyncNames.SyncNew
+    mSyncNames.SyncObsolete
+    
+xt: Exit Sub
+
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
@@ -227,11 +339,10 @@ Private Function ErrSrc(ByVal s As String) As String
 End Function
 
 Private Function GetSyncIssuesConfirmed() As Boolean
-' --------------------------------------------------
-' Loops CollectSyncIssuesForConfirmation and their
-' display until either confirmed or terminated.
-' Returns TRUE when confirmed and LASE otherwise.
-' ---------------------------------------------------
+' ------------------------------------------------------------------------------
+' Loops CollectSyncIssuesForConfirmation and their display until either
+' confirmed or terminated. Returns TRUE when confirmed and FALSE otherwise.
+' ------------------------------------------------------------------------------
     Const PROC = "GetSyncIssuesConfirmed"
     
     On Error GoTo eh
@@ -255,7 +366,7 @@ Private Function GetSyncIssuesConfirmed() As Boolean
             .FontSize = 8.5
         End With
         sMsg.Section(2).Text.Text = "The above syncronisation issues need to be confirmed - or " & _
-                                "terminated in case of any concerns!"
+                                    "terminated in case of any concerns!"
         
         sBttnCnfrmd = "Synchronize"
         sBttnTrmnt = "Terminate!"
@@ -354,7 +465,7 @@ Private Sub RemoveInvalidRangeNames()
     
     On Error GoTo eh
     Dim nm As Name
-    For Each nm In Sync.Target.Names
+    For Each nm In Sync.TargetWb.Names
         Debug.Print nm.Value
         If InStr(nm.Value, "#") <> 0 Or InStr(nm.RefersTo, "#") <> 0 Then
             Log.ServicedItem = nm
@@ -442,9 +553,9 @@ End Sub
 '    Dim wsSource    As Worksheet
 '    Dim wsTarget    As Worksheet
 '
-'    For i = 1 To Sync.Source.Worksheets.Count
-'        Set wsSource = Sync.Source.Worksheets(i)
-'        Set wsTarget = Sync.Target.Worksheets(i)
+'    For i = 1 To Sync.SourceWb.Worksheets.Count
+'        Set wsSource = Sync.SourceWb.Worksheets(i)
+'        Set wsTarget = Sync.TargetWb.Worksheets(i)
 '        If wsSource.Name <> wsTarget.Name Then
 '            '~~ Sheet position has changed
 '            If Sync.Mode = Confirm Then
@@ -463,20 +574,34 @@ End Sub
 '    End Select
 'End Sub
 
-Public Sub SyncBackup(ByVal sWrkbk As String)
-' -----------------------------------------------------
-' Saves a copy of the synchronization target Workbook
-' (Sync.Target) under its name with a suffix .Backup
-' -----------------------------------------------------
+Public Sub SyncBackup(ByVal sWbSync As String)
+' ------------------------------------------------------------------------------
+' Creates a backup for the 'Synchronization-Workbook' (sWbSync) by copying
+' over an existing backup file or creating one.
+' When the 'Synchronization-Workbook' (sWbSync) was initially open it is
+' reopened after backup.
+' ------------------------------------------------------------------------------
     Const PROC = "SyncBackup"
     
     On Error GoTo eh
+    Dim fso     As New FileSystemObject
+    Dim wb      As Workbook
+    Dim WasOpen As Boolean
     
-    With New FileSystemObject
-        .CopyFile sWrkbk, sWrkbk & ".Backup"
+    With fso
+        If .FileExists(sWbSync) Then
+            If mWbk.IsOpen(sWbSync, wb) Then
+                WasOpen = True
+                wb.Close SaveChanges:=False
+            End If
+        
+            .CopyFile sWbSync, sWbSync & ".Backup"
+            If WasOpen Then mWbk.GetOpen sWbSync
+        End If
     End With
 
-xt: Exit Sub
+xt: Set fso = Nothing
+    Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -484,27 +609,38 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub SyncRestore(ByVal sWrkbk As String)
-' ------------------------------------------------------------
-' Restores a synchronization target Workbook by deleting it
-' and renaming the ....Backup file
-' ------------------------------------------------------------
+Public Sub SyncRestore(ByVal sWbSync As String)
+' ------------------------------------------------------------------------------
+' Restores the 'Synchronization-Workbook' (sWbSync) - provided a backup exists -
+' by copying the backup file which overwrites an existing file or creates
+' one if not existing. The backup is deleted. When the Workbook was initially
+' open it is reopened after restore.
+' ------------------------------------------------------------------------------
     Const PROC = "SyncRestore"
     
     On Error GoTo eh
-    Dim fso         As New FileSystemObject
+    Dim fso     As New FileSystemObject
+    Dim wb      As Workbook
+    Dim WasOpen As Boolean
     
     On Error Resume Next
-    mCompMan.WbkGetOpen(sWrkbk).Close SaveChanges:=False
     With fso
-        If .FileExists(sWrkbk & ".Backup") Then
-            .CopyFile sWrkbk & ".Backup", sWrkbk
-            .DeleteFile sWrkbk & ".Backup"
+        If .FileExists(sWbSync) Then
+            If mWbk.IsOpen(sWbSync, wb) Then
+                WasOpen = True
+                wb.Close SaveChanges:=False
+            End If
         End If
+    
+        If .FileExists(sWbSync & ".Backup") Then
+            .CopyFile sWbSync & ".Backup", sWbSync ' copy with overwrite
+            .DeleteFile sWbSync & ".Backup"
+        End If
+    
+        If WasOpen Then mWbk.GetOpen sWbSync
     End With
     
 xt: Set fso = Nothing
-    mCompMan.WbkGetOpen sWrkbk
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -513,15 +649,14 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
         
-Public Function SyncTargetWithSource( _
-          ByRef wb_target As Workbook, _
-          ByRef wb_source As Workbook, _
- Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
- Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
-' --------------------------------------------------------------------
-' Synchronizes a target Workbook (Sync.Target) with a source Workbook
-' (Sync.Source). Returns TRUE when finished without error.
-' --------------------------------------------------------------------
+Public Function SyncTargetWithSource(ByRef wb_target As Workbook, _
+                                     ByRef wb_source As Workbook, _
+                            Optional ByVal restricted_sheet_rename_asserted As Boolean = False, _
+                            Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
+' ------------------------------------------------------------------------------
+' Synchronizes the 'Synchronization-Target-Workbook (wb_target) with the
+' 'Synchronization_source-Workbook and returns TRUE when finished without error.
+' ------------------------------------------------------------------------------
     Const PROC = "SyncTargetWithSource"
     
     On Error GoTo eh
@@ -531,24 +666,21 @@ Public Function SyncTargetWithSource( _
     Log.Service = SRVC_SYNC_WORKBOOKS
     mService.Progress Log.Service
     
-    '~~ Make sure both Workbook's Export-Files are up-to-date
-    wb_source.Save
-    wb_target.Save
+    With Sync
+        .ChangedClear
+        .RestrictRenameAsserted = restricted_sheet_rename_asserted
+        Set .SourceWb = wb_source
+        Set .TargetWb = wb_target
+        .CollectAllSyncItems
+        .ManualSynchRequired = False
+        
+        '~~ Count new and obsolete sheets
+        .Mode = Count
+        mSyncSheets.SyncNew
+        mSyncSheets.SyncObsolete
+        .Ambigous = True
+    End With
     
-    Sync.ChangedClear
-    Sync.RestrictRenameAsserted = restricted_sheet_rename_asserted
-    Set Sync.source = wb_source
-    Set Sync.Target = wb_target
-    Sync.CollectAllSyncItems
-    
-    Sync.ManualSynchRequired = False
-    
-    '~~ Count new and obsolete sheets
-    Sync.Mode = Count
-    mSyncSheets.SyncNew
-    mSyncSheets.SyncObsolete
-    
-    Sync.Ambigous = True
     bSyncDenied = True
 
     If GetSyncIssuesConfirmed Then
@@ -565,6 +697,26 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Function
+
+Public Sub SyncTargetWithSourceViaAppRunActions(ByRef wb_target As Workbook, _
+                                                ByRef wb_source As Workbook)
+' ------------------------------------------------------------------------------
+' Synchronizes the 'Synchronization-Target-Workbook (wb_target) with the
+' 'Synchronization_source-Workbook and returns TRUE when finished without error.
+' ------------------------------------------------------------------------------
+    Const PROC = "SyncTargetWithSourceViaAppRunActions"
+    
+    On Error GoTo eh
+    
+    If mSyncRefs.SyncRefs(wb_target, wb_source) Then GoTo xt ' A modeless dialog had been displayed to synchronize References
+    
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
 
 Private Function WbkGetOpen(ByVal go_wb_full_name As String) As Workbook
 ' ----------------------------------------------------------------------

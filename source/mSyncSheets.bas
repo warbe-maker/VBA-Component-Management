@@ -132,17 +132,17 @@ End Sub
 '    Dim TargetComp  As clsComp
 '
 '    With Sync
-'        For Each vbc In .Source.VBProject.VBComponents
+'        For Each vbc In .SourceWb.VBProject.VBComponents
 '            If Not vbc.Type = vbext_ct_Document Then GoTo next_sheet
 '            If Not mComp.IsSheetDocMod(vbc) Then GoTo next_sheet
 '
 '            Set SourceComp = New clsRaw
-'            Set SourceComp.Wrkbk = .Source
+'            Set SourceComp.Wrkbk = .SourceWb
 '            SourceComp.CompName = vbc.Name
-'            If Not SourceComp.Exists(.Target) Then GoTo next_sheet
+'            If Not SourceComp.Exists(.TargetWb) Then GoTo next_sheet
 '
 '            Set TargetComp = New clsComp
-'            Set TargetComp.Wrkbk = .Target
+'            Set TargetComp.Wrkbk = .TargetWb
 '            TargetComp.CompName = vbc.Name
 '            SourceComp.CloneExpFileFullName = TargetComp.ExpFileFullName
 '            If Not SourceComp.Changed(TargetComp) Then GoTo next_sheet
@@ -194,8 +194,8 @@ Public Sub SyncCodeName()
     
     For Each v In Sync.SourceSheets
         sSourceSheetName = Sync.SourceSheets(v)
-        sSourceSheetCodeName = SheetCodeName(Sync.source, sSourceSheetName)
-        If Not SheetExists(wb:=Sync.Target _
+        sSourceSheetCodeName = SheetCodeName(Sync.SourceWb, sSourceSheetName)
+        If Not SheetExists(wb:=Sync.TargetWb _
                          , sh1_name:=sSourceSheetName _
                          , sh1_code_name:=sSourceSheetCodeName _
                          , sh2_name:=sTargetSheetName _
@@ -210,7 +210,7 @@ Public Sub SyncCodeName()
             If Sync.Mode = Confirm Then
                 Sync.ConfInfo = "CodeName change to '" & sSourceSheetCodeName & "'"
             Else
-                For Each vbc In Sync.Target.VBProject.VBComponents
+                For Each vbc In Sync.TargetWb.VBProject.VBComponents
                     If vbc.Name = sTargetSheetCodeName Then
                         vbc.Name = sSourceSheetCodeName
                         '~~ When the sheet's CodeName has changed the sheet's code will only also be
@@ -249,8 +249,8 @@ Public Sub SyncName()
     With Sync
         For Each v In .SourceSheets
             sSourceSheetName = .SourceSheets(v)
-            sSourceSheetCodeName = SheetCodeName(.source, sSourceSheetName)
-            If Not SheetExists(wb:=.Target _
+            sSourceSheetCodeName = SheetCodeName(.SourceWb, sSourceSheetName)
+            If Not SheetExists(wb:=.TargetWb _
                              , sh1_name:=sSourceSheetName _
                              , sh1_code_name:=sSourceSheetCodeName _
                              , sh2_name:=sTargetSheetName _
@@ -258,7 +258,7 @@ Public Sub SyncName()
                               ) _
             Then GoTo next_comp
             If sTargetSheetCodeName = sSourceSheetCodeName And sTargetSheetName <> sSourceSheetName Then
-                Log.ServicedItem = .source.Worksheets(sSourceSheetName)
+                Log.ServicedItem = .SourceWb.Worksheets(sSourceSheetName)
                 Stats.Count sic_sheets_name
                 
                 '~~ The sheet's Name has changed while the sheets CodeName remained unchanged
@@ -266,7 +266,7 @@ Public Sub SyncName()
                     .ConfInfo = "Name change to '" & sSourceSheetName & "'."
                     SourceSheetNameChange sSourceSheetName, sSourceSheetCodeName, sTargetSheetName, sTargetSheetCodeName
                 Else
-                    .Target.Worksheets(sTargetSheetName).Name = sSourceSheetName
+                    .TargetWb.Worksheets(sTargetSheetName).Name = sSourceSheetName
                     Log.Entry = "Name changed to '" & sSourceSheetName & "'."
                 End If
             End If
@@ -285,7 +285,7 @@ End Sub
 Public Sub SyncNew()
 ' ---------------------------------------------------------------
 ' Synchronize sheets regarded new, i.e. which exist in the source
-' Workbook (Sync.Source) but not in the target Workbook (Sync.Target).
+' Workbook (Sync.SourceWb) but not in the target Workbook (Sync.TargetWb).
 ' - When the optional new sheets counter (sync_new_count) is
 '   provided, the new sheets are only counted
 ' - In lMode=Confirm only the syncronization infos are collect
@@ -313,8 +313,8 @@ Public Sub SyncNew()
     With Sync
         For Each v In .SourceSheets
             sSourceName = .SourceSheets(v)
-            sSourceCodeName = SheetCodeName(.source, sSourceName)
-            If Not SheetExists(wb:=.Target _
+            sSourceCodeName = SheetCodeName(.SourceWb, sSourceName)
+            If Not SheetExists(wb:=.TargetWb _
                              , sh1_name:=sSourceName _
                              , sh1_code_name:=sSourceCodeName _
                              , sh2_name:=sTargetName _
@@ -323,7 +323,7 @@ Public Sub SyncNew()
                 If NameChange(sSourceName, sSourceCodeName) Then GoTo next_v
         
                 '~~ The sheet not exist in the target Workbook under the Name nor under the CodeName.
-                Set ws = .source.Worksheets(sSourceName)
+                Set ws = .SourceWb.Worksheets(sSourceName)
                 Log.ServicedItem = ws
                 Stats.Count sic_sheets_new
                 
@@ -349,8 +349,8 @@ Public Sub SyncNew()
                 Else
                     '~~ This is the third call for getting the syncronizations done
                     '~~ The new sheet is copied to the corresponding position in the target Workbook
-                    .source.Worksheets(sSourceName).Copy _
-                    After:=.Target.Sheets(.Target.Worksheets.Count)
+                    .SourceWb.Worksheets(sSourceName).Copy _
+                    After:=.TargetWb.Sheets(.TargetWb.Worksheets.Count)
                     Log.Entry = "Copied from source Workbook."
                 End If
             End If
@@ -368,9 +368,9 @@ End Sub
 
 Public Sub SyncObsolete()
 ' --------------------------------------------------------------------
-' Remove sheets in the target (Sync.Target) which are regarded
+' Remove sheets in the target (Sync.TargetWb) which are regarded
 ' obsolete because they do not exist in the target Workbook
-' (Sync.Target) neither under their Name nor theit CodeName.
+' (Sync.TargetWb) neither under their Name nor theit CodeName.
 ' - When the optional obsolet sheets counter (sync_obsolete_count)
 '   is provided, the obsolete sheets are only counted
 ' - In lMode=Confirm only the syncronization infos are collected
@@ -398,8 +398,8 @@ Public Sub SyncObsolete()
     With Sync
         For Each v In .TargetSheets
             sTargetSheetName = .TargetSheets(v)
-            sTargetSheetCodeName = SheetCodeName(.Target, sTargetSheetName)
-            If Not SheetExists(wb:=.source _
+            sTargetSheetCodeName = SheetCodeName(.TargetWb, sTargetSheetName)
+            If Not SheetExists(wb:=.SourceWb _
                              , sh1_name:=sTargetSheetName _
                              , sh1_code_name:=sTargetSheetCodeName _
                              ) Then
@@ -407,7 +407,7 @@ Public Sub SyncObsolete()
                 
                 '~~ Target sheet not or no longer exists in source Workbook
                 '~~ neither under the Name nor under the CodeName
-                Set ws = .Target.Worksheets(sTargetSheetName)
+                Set ws = .TargetWb.Worksheets(sTargetSheetName)
                 Log.ServicedItem = ws
                 Stats.Count sic_sheets_obsolete
                 
@@ -432,7 +432,7 @@ Public Sub SyncObsolete()
                     '~~ This is a Worksheet with no corresponding component and no corresponding sheet in the source Workbook.
                     '~~ Because it has been asserted that sheets are never renamed by Name and CodeName at once
                     '~~ this Worksheet is regarded obsolete for sure and will thus now be removed
-                    For Each ws In .Target.Worksheets
+                    For Each ws In .TargetWb.Worksheets
                         If ws.CodeName = sTargetSheetCodeName Then
                             '~~ This is the obsolete sheet to be removed
                             Application.DisplayAlerts = False
@@ -460,8 +460,8 @@ End Sub
 
 Public Sub SyncOrder()
 ' ----------------------------------------------------------------------------
-' Syncronize the order of the sheets in the synch target Workbook (Sync.Target)
-' to appear in the same order as in the synch source Workbook (Sync.Source).
+' Syncronize the order of the sheets in the synch target Workbook (Sync.TargetWb)
+' to appear in the same order as in the synch source Workbook (Sync.SourceWb).
 ' ----------------------------------------------------------------------------
     Const PROC = "SyncOrder"
     
@@ -470,14 +470,14 @@ Public Sub SyncOrder()
     Dim wsTarget    As Worksheet
     Dim i           As Long
     
-    While i > Sync.source.Worksheets.Count
-        For i = 1 To Sync.source.Worksheets.Count
-            If Sync.TargetSheets.Exists(Sync.source.Worksheets(i).Name) Then
-                Set wsSource = Sync.source.Worksheets(i)
-                Set wsTarget = Sync.Target.Worksheets(i)
+    While i > Sync.SourceWb.Worksheets.Count
+        For i = 1 To Sync.SourceWb.Worksheets.Count
+            If Sync.TargetSheets.Exists(Sync.SourceWb.Worksheets(i).Name) Then
+                Set wsSource = Sync.SourceWb.Worksheets(i)
+                Set wsTarget = Sync.TargetWb.Worksheets(i)
                 If wsTarget.Name <> wsSource.Name Then
                     Log.ServicedItem = wsTarget
-                    wsTarget.Move After:=Sheets(Sync.Target.Worksheets.Count)
+                    wsTarget.Move After:=Sheets(Sync.TargetWb.Worksheets.Count)
                     Log.Entry = "Order synced!"
                     GoTo again
                 End If

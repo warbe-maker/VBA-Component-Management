@@ -271,7 +271,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -334,8 +334,11 @@ End Function
 Public Sub EstablishTraceLogFile(ByVal dt_wb As Workbook, _
                         Optional ByVal dt_append As Boolean = False)
 ' --------------------------------------------------------------------------
-' Establishes a trace log file in the serviced Workbook's parent folder.
+' Establishes a trace log file in the serviced Workbook's parent folder
+' provided the corresponding Conditional Compile Argument = 1.
 ' --------------------------------------------------------------------------
+#If ExecTrace = 1 Then
+    
     Dim sFile As String
     sFile = Replace(dt_wb.FullName, dt_wb.Name, "CompMan.Service.trc")
 
@@ -349,7 +352,7 @@ Public Sub EstablishTraceLogFile(ByVal dt_wb As Workbook, _
     End With
     mTrc.LogFile(tl_append:=dt_append) = sFile
     mTrc.LogTitle = Log.Service
-
+#End If
 End Sub
 
 Public Sub ExportAll(Optional ByRef ea_wb As Workbook = Nothing)
@@ -560,24 +563,49 @@ End Sub
 Public Function RunTest(ByVal rt_service As String, _
                         ByRef rt_serviced_wb As Workbook) As Variant
 ' --------------------------------------------------------------------------
-' Ensures the requested service is able to run or returns the reason why not.
+' Ensures the requested service (rt_service) is able to run or returns the
+' reason why not.
 ' The function returns:
-' - AppErr(1) when CompMan is not configured properly
-' - AppErr(2) when the service Workbook is not in the configures Folder
-' - AppErr(3) when the servicing Workbook is the Addin which is available
-'             but paused. It would requires CompMan.xlsb to run the
-'             service. When CompMan.xlsb is open, it will provide the
-'             service.
+' - AppErr(1): when CompMan's current configuration does not support the
+'              requested service, i.e. either the 'Synchronization-Folder'
+'              for the 'Synchronization' service is invalid or the
+'              'Servicing-Folder' for all other services is invalid.
+' - AppErr(2): when the servicing Workbook is the available Addin but the
+'              Addin is currently paused. It would requires CompMan.xlsb to
+'              run the service. When CompMan.xlsb is open, it will provide
+'              the service provided it is not also the serviced Workbook.
+' - AppErr(3): when the requested service is "Synchronize" and the
+'              corresponding 'Synchronization-Source-Workbook' is not
+'              available in the 'Serviced-Folder' path.
+'              Note: In case it is already open the 'Synchronization-Target-
+'                    Workbook will be unable to open because of the same name
 ' --------------------------------------------------------------------------
     Const PROC = "RunTest"
     
     On Error GoTo eh
-    If Not mMe.FolderServicedIsValid Then
+    
+    If rt_service = SERVICE_SYNCHRONIZE And Not mMe.FolderSyncedIsValid Then
         RunTest = AppErr(1) ' The serviced root folder is invalid (not configured or not existing)
-    ElseIf Not rt_serviced_wb.FullName Like mConfig.FolderServiced & "*" Then
-        RunTest = AppErr(2) ' The serviced Workbook is located outside the serviced folder
-    ElseIf mMe.IsAddinInstnc And mMe.CompManAddinIsPaused Then
-        RunTest = AppErr(3) ' The service is about to be provided by the Addin but the Addin is currently paused
+        Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
+                    "Rrequired 'Synchronize-Folder' invalid or not configured."
+                    
+    ElseIf rt_service <> SERVICE_SYNCHRONIZE And Not mMe.FolderServicedIsValid Then
+        RunTest = AppErr(1) ' The serviced root folder is invalid (not configured or not existing)
+        Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
+                    "Required 'Serviced-Folder' invalid or not configured."
+    
+    ElseIf rt_service = SERVICE_SYNCHRONIZE And Not rt_serviced_wb.FullName Like mConfig.FolderSynced & "*" Then
+        RunTest = AppErr(2)
+        Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
+                    "Serviced Workbook not opened from within the confifured 'Synchronize-Folder'."
+    
+    ElseIf rt_service <> SERVICE_SYNCHRONIZE And Not rt_serviced_wb.FullName Like mConfig.FolderServiced & "*" Then
+        RunTest = AppErr(2)
+        Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
+                    "Serviced Workbook not opened from within the configured 'Serviced-Folder'."
+    
+    ElseIf rt_service = SERVICE_SYNCHRONIZE And Not mFile.Exists(ex_folder:=mConfig.FolderServiced, ex_file:=rt_serviced_wb.Name) Then
+        RunTest = AppErr(3)
     End If
 
 xt: Exit Function
@@ -586,6 +614,11 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Function
+
+Private Function SyncSourceInDevFolder(ByVal ss_serviced As Workbook) As Boolean
+    Stop ' impl pending
+
 End Function
 
 Private Function SavedRawInconsitencyWarning(ByVal sri_raw_exp_file_full_name, _
@@ -653,32 +686,60 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub SynchTargetWbWithSourceWb( _
-                               ByRef wb_target As Workbook, _
-                               ByVal wb_source As String)
+Public Sub Synchronize(ByVal sync_target_wb As Workbook)
 ' ----------------------------------------------------------------------------
-' Synchronizes the code of the open/ed Workbook (clone_project) with the code
-' of the source Workbook (raw_project). The service is performed provided:
-' - the Workbook is open/ed in the configured "Serviced Root"
-' - the CompMan Addin is not paused
-' - the open/ed Workbook is not a restored version
+' Initiates the synchronization of the opened (or open) Workbook
+' (sync_target_wb) with the code of the corresponding, i.e. the Workbook with
+' the corresponding name located in CompMan's 'Serviced-Folder' which is
+' considered the 'Synchronization-Source-Workbook'. The service is performed
+' provided:
+' - the Workbook (sync_target_wb) is open/ed from within the configured
+'   'Synchronize-Folder'. The Workbook is initially opened by ist origin name
+'   but immediately 'Saved-As' the 'Synchronization-Target-Workbook' in order
+'   to provide a backup and allow to open the corresponding 'Synchronization-
+'   Source-Workbook'. I.e. when the open Workbook (sync_target_wb) is already
+'   named under its 'Synchronization-Target-Workbook' name this first step
+'   has already been performed (both, the source and the target are ready for
+'   sync)
+' - a corresponding Workbook (not open!) is located in CompMan's configured
+'   'Serviced-Folder'
+' - CompMan's synchronization service is available. i.e. the opened Workbook
+'   is able to be served by the CompMan development instance or by the Addin
+'   instance
+' - the open/ed Workbook is not a restored version.
 ' ----------------------------------------------------------------------------
-    Const PROC = "SynchTargetWbWithSourceWb"
+    Const PROC = "Synchronize"
     
-    On Error GoTo eh
-    
-    Set mService.Serviced = wb_target
-    If Log Is Nothing Then Set Log = New clsLog
-    Log.Service = SRVC_SYNC_WORKBOOKS
-    EstablishTraceLogFile wb_target
+    Dim cllResultFiles  As Collection
+    Dim SyncSourceWb    As Workbook
+    Dim SyncTargetWb    As Workbook
+    Dim sSyncSource     As String
     
     mBasic.BoP ErrSrc(PROC)
-    mService.SyncVBProjects wb_target:=wb_target, wb_source_name:=wb_source
+    '~~ Provide the 'Synchronization-Target-' and the 'Synchronization_Source-Workbook'
+    '~~ When the service is subsequently called both may alread be open.
+    sSyncSource = TheSyncTargetsSource(sync_target_wb)
+    Application.EnableEvents = False
     
-xt: mBasic.EoP ErrSrc(PROC)
-    Set Log = Nothing
-    Exit Sub
+    '~~ When the open Workbook (sync_target_wb) is not the working copy one is provided now
+    If Not mSync.IsSyncTargetCopy(sync_target_wb) _
+    Then Set SyncTargetWb = mSync.SaveAsSyncTargetCopy(sync_target_wb) _
+    Else Set SyncTargetWb = sync_target_wb
+    
+    '~~ Get the target's source Workbook, opened when not already open
+    Set SyncSourceWb = mWbk.GetOpen(sSyncSource)
+    Application.EnableEvents = True
+    
+    '~~ Start the synchronization of the Workbooks
+    Set mService.Serviced = sync_target_wb
+    If Log Is Nothing Then Set Log = New clsLog
+    Log.Service = SRVC_SYNC_WORKBOOKS
+    mSync.SyncTargetWithSourceViaAppRunActions wb_target:=SyncTargetWb, wb_source:=SyncSourceWb
 
+xt: Set Log = Nothing
+    mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+    
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
