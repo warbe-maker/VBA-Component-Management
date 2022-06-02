@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} fMsg 
-   ClientHeight    =   11598
+   ClientHeight    =   11595
    ClientLeft      =   150
    ClientTop       =   390
    ClientWidth     =   12390
@@ -2234,7 +2234,7 @@ Private Sub ShowAtRange(ByVal sar_rng As Range)
     ConvertPixelsToPoints PosLeft, PosTop, PosLeft, PosTop
 
     With Me
-       .StartupPosition = 0
+       .StartUpPosition = 0
        .Left = PosLeft
        .Top = PosTop
     End With
@@ -2273,12 +2273,19 @@ Public Sub PositionOnScreen(Optional ByVal pos_top_left As Variant = 3)
             pos_top = CLng(Trim(Split(pos_top_left, ";")(0)))
             pos_left = CLng(Trim(Split(pos_top_left, ";")(1)))
             With Me
-                .StartupPosition = enManual
+                .StartUpPosition = 0
+                .Top = Application.Top + 5
+                .Left = Application.Left + 5
                 .Left = pos_left
                 .Top = pos_top
             End With
         Case IsNumeric(pos_top_left)
-            Me.StartupPosition = pos_top_left
+            With Me
+                .StartUpPosition = 0
+                .Top = Application.Top + 5
+                .Left = Application.Left + 5
+                .StartUpPosition = pos_top_left
+            End With
     End Select
     
     '~~ First make sure the bottom right fits,
@@ -2647,7 +2654,7 @@ Public Sub Setup()
     IndicateFrameCaptionsSetup bIndicateFrameCaptions ' may be True for test purpose
     
     '~~ Start the setup as if there wouldn't be any message - which might be the case
-    Me.StartupPosition = 2
+    Me.StartUpPosition = 2
     Me.Height = 200                             ' just to start with - specifically for test purpose
     Me.Width = siMsgWidthMin
     

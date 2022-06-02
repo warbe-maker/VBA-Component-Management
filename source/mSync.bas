@@ -3,13 +3,18 @@ Option Explicit
 ' ----------------------------------------------------------------------------
 ' Standard Module mSync
 '
-' Provides all services and means for the synchronization of a
-' 'Synchronization- Target-Workbook with its corresponding 'Synchronization-
-' Source-Workbook'.
+' Provides all services and means for the synchronization of a Target- with
+' its corresponding Source-Workbook.
 '
+' Note: All Run.... services are invoked via Application.Run
+'
+'
+' W. Rauschenberger, Berlin June 2022
 ' ----------------------------------------------------------------------------
-Private Const SHEET_CONTROL_CONCAT  As String = ": "                    ' Sheet-Shape concatenator
-Private Const WB_SYNC_TARGET        As String = "_CompMan_Sync_Target"  ' name suffix for the sync target working copy
+Private Const SHEET_CONTROL_CONCAT  As String = ": "                                ' Sheet-Shape concatenator
+Private Const WB_SYNC_TARGET        As String = "_CompMan_Sync_Target"              ' name suffix for the sync target working copy
+
+Public Const TITLE_SYNC_REFS        As String = "Synchronize VB-Project References" ' Identifies the synchronization dialog
 
 Public Sync                         As clsSync
 Private bSyncDenied                 As Boolean      ' when True the synchronization is not performed
@@ -75,7 +80,7 @@ Public Function SyncTargetOriginName(ByVal ston_wb As Workbook) As String
     
 End Function
 
-Public Function SaveAsSyncTargetCopy(ByVal satc_wb As Workbook) As Workbook
+Public Function SaveAsSyncTargetWorkingCopy(ByVal satc_wb As Workbook) As Workbook
 ' ----------------------------------------------------------------------------
 ' Saves the Workbook (satc_wb) as 'Synchronization-Target-Workbook' working
 ' copy.
@@ -88,8 +93,9 @@ Public Function SaveAsSyncTargetCopy(ByVal satc_wb As Workbook) As Workbook
     If Not IsSyncTargetCopy(satc_wb) Then
         ext = fso.GetExtensionName(satc_wb.FullName)
         sCopyAs = satc_wb.Path & Replace(satc_wb.Name, "." & ext, vbNullString) & WB_SYNC_TARGET & "." & ext
+        mFile.Delete sCopyAs
         satc_wb.SaveAs FileName:=sCopyAs, AccessMode:=xlExclusive
-        Set SaveAsSyncTargetCopy = mWbk.GetOpen(sCopyAs)
+        Set SaveAsSyncTargetWorkingCopy = mWbk.GetOpen(sCopyAs)
     End If
     Set fso = Nothing
     
@@ -204,10 +210,7 @@ Public Sub CollectSyncIssuesForApplicationRun()
     
     On Error GoTo eh
     Sync.Mode = Confirm
-    
-    mSyncRefs.SyncNew
-    mSyncRefs.SyncObsolete
-    
+        
     mSyncSheets.SyncName
     mSyncSheets.SyncCodeName
     mSyncSheets.SyncNew
@@ -241,10 +244,7 @@ Private Sub CollectSyncIssuesForConfirmation()
     
     On Error GoTo eh
     Sync.Mode = Confirm
-    
-    mSyncRefs.SyncNew
-    mSyncRefs.SyncObsolete
-    
+        
     mSyncSheets.SyncName
     mSyncSheets.SyncCodeName
     mSyncSheets.SyncNew
@@ -268,8 +268,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function DoSynchronization( _
-                    Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
+Private Function DoSynchronization(Optional ByVal design_rows_cols_added_or_deleted As Boolean = False) As Boolean
 ' -------------------------------------------------
 ' Perform all synch services in 'Synchronize' mode.
 ' -------------------------------------------------
@@ -280,10 +279,7 @@ Private Function DoSynchronization( _
     Stats.Clear
     
     Sync.NameChange.RemoveAll
-    
-    mSyncRefs.SyncNew
-    mSyncRefs.SyncObsolete
-    
+       
     mSyncSheets.SyncCodeName
     mSyncSheets.SyncName
     Sync.CollectAllSyncItems ' re-collect with new names
@@ -698,19 +694,33 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub SyncTargetWithSourceViaAppRunActions(ByRef wb_target As Workbook, _
-                                                ByRef wb_source As Workbook)
+Public Sub RunSync(ByVal wb_target As Workbook, _
+                   ByVal wb_source As Workbook)
 ' ------------------------------------------------------------------------------
-' Synchronizes the 'Synchronization-Target-Workbook (wb_target) with the
-' 'Synchronization_source-Workbook and returns TRUE when finished without error.
+' Synchronizes the 'Synchronization-Target-Workbook (wb_target) with its corres-
+' ponding (same named) 'Synchronization-Source-Workbook. Items rynchronized are:
+' - References
+' - Sheet-Code-Lines
+' - Sheet-Code-Names
+' - Sheet-Names
+' - Sheet-Objects
+' - Sheet-Order
+' - Modules-Code-Lines
+' - Workbook-Code-Lines
 ' ------------------------------------------------------------------------------
-    Const PROC = "SyncTargetWithSourceViaAppRunActions"
+    Const PROC = "RunSync"
     
     On Error GoTo eh
+    Dim cllObsolete As New Collection
+    Dim cllNew      As New Collection
     
-    If mSyncRefs.SyncRefs(wb_target, wb_source) Then GoTo xt ' A modeless dialog had been displayed to synchronize References
+    '~~ Collect to be synced References and display them in mode-less dialog
+    '~~ Once initiated, the dialog loops until all References are synchronized or the dialog is teminated
+    mSyncRefs.SyncRefs wb_target, wb_source
     
-xt: Exit Sub
+xt: Set cllNew = Nothing
+    Set cllObsolete = Nothing
+    Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

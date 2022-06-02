@@ -723,7 +723,7 @@ Public Sub Synchronize(ByVal sync_target_wb As Workbook)
     
     '~~ When the open Workbook (sync_target_wb) is not the working copy one is provided now
     If Not mSync.IsSyncTargetCopy(sync_target_wb) _
-    Then Set SyncTargetWb = mSync.SaveAsSyncTargetCopy(sync_target_wb) _
+    Then Set SyncTargetWb = mSync.SaveAsSyncTargetWorkingCopy(sync_target_wb) _
     Else Set SyncTargetWb = sync_target_wb
     
     '~~ Get the target's source Workbook, opened when not already open
@@ -734,7 +734,13 @@ Public Sub Synchronize(ByVal sync_target_wb As Workbook)
     Set mService.Serviced = sync_target_wb
     If Log Is Nothing Then Set Log = New clsLog
     Log.Service = SRVC_SYNC_WORKBOOKS
-    mSync.SyncTargetWithSourceViaAppRunActions wb_target:=SyncTargetWb, wb_source:=SyncSourceWb
+    
+    mSyncRefs.SyncRefs SyncTargetWb, SyncSourceWb
+'    mSyncSheets
+'    mSyncSheetCtrls
+'    mSyncNames
+'    mSyncRanges
+'    mSyncComps
 
 xt: Set Log = Nothing
     mBasic.EoP ErrSrc(PROC)

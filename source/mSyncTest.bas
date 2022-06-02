@@ -8,6 +8,21 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mSyncTest." & sProc
 End Function
 
+Public Sub Test_Sync()
+' ------------------------------------------------------------------------------
+'
+' ------------------------------------------------------------------------------
+
+    mSync.SyncBackup TEST_SYNC_TARGET
+    mSync.SyncBackup TEST_SYNC_SOURCE
+
+    mSyncTest.Test_SyncRefs
+    
+    mSync.SyncRestore TEST_SYNC_TARGET
+    mSync.SyncRestore TEST_SYNC_SOURCE
+
+End Sub
+
 Public Sub Test_SyncRefs()
 ' ------------------------------------------------------------------------------
 '
@@ -17,29 +32,37 @@ Public Sub Test_SyncRefs()
 
     On Error GoTo eh
     Dim wbSource    As Workbook
+    Dim wbTarget    As Workbook
     Dim TestRef1    As Reference
+    Dim ref         As Reference
     
     mBasic.BoP ErrSrc(PROC)
     For Each TestRef1 In ThisWorkbook.VBProject.References
         If TestRef1.Description Like "*Extensibility*" Then Exit For
     Next TestRef1
     If TestRef1 Is Nothing Then Stop ' Error with test-Setup !!!
-    
-    mSync.SyncBackup TEST_SYNC_SOURCE
-    mSync.SyncRestore TEST_SYNC_TARGET
-    mSync.SyncBackup TEST_SYNC_TARGET
-    
-    '~~ Prepare the 'Synchronization-Source-Workbook for this test
+       
     Application.EnableEvents = False
+    '~~ Prepare the 'Synchronization-Source-Workbook for this test
     Set wbSource = mWbk.GetOpen(TEST_SYNC_SOURCE)
     
-    If Not mSyncRefs.RefExists(wbSource, "Microsoft Visual Basic for Applications Extensibility 5.6") Then
+    If Not mSyncRefs.RefExists(wbSource, "ActiveMovie", ref) Then
         wbSource.VBProject.References.AddFromGuid GUID:=TestRef1.GUID, Major:=TestRef1.Major, Minor:=TestRef1.Minor
     End If
     wbSource.Close
+    
+    '~~ Prepare the 'Synchronization-Target-Workbook for this test
+    Set wbTarget = mWbk.GetOpen(TEST_SYNC_TARGET)
+    If Not mSyncRefs.RefExists(wbTarget, "") Then
+        wbSource.VBProject.References.AddFromGuid GUID:=TestRef1.GUID, Major:=TestRef1.Major, Minor:=TestRef1.Minor
+    End If
+    wbSource.Close
+    
+    
+    
+    
     Application.EnableEvents = True
     
-    '~~ Prepare the 'Synchronization-Source-Workbook for this test
     
     '~~ Run the test
     Application.Run ThisWorkbook.Name & "!mCompMan." & SERVICE_SYNCHRONIZE, mWbk.GetOpen(TEST_SYNC_TARGET)
@@ -65,7 +88,7 @@ Public Sub Test_SyncColWidth()
     
     On Error GoTo eh
     Dim wbSource    As Workbook
-    Dim WbTarget    As Workbook
+    Dim wbTarget    As Workbook
     Dim ws          As Worksheet
     Dim sSheetName  As String
     
@@ -73,18 +96,18 @@ Public Sub Test_SyncColWidth()
     mSync.SyncRestore TEST_SYNC_TARGET
     mSync.SyncBackup TEST_SYNC_TARGET
     
-    Set WbTarget = mCompMan.WbkGetOpen(TEST_SYNC_TARGET)
+    Set wbTarget = mCompMan.WbkGetOpen(TEST_SYNC_TARGET)
     Set wbSource = mCompMan.WbkGetOpen(TEST_SYNC_SOURCE)
     
     For Each ws In wbSource.Worksheets
-        If mSyncSheets.SheetExists(wb:=WbTarget _
+        If mSyncSheets.SheetExists(wb:=wbTarget _
                                  , sh1_name:=ws.Name _
                                  , sh1_code_name:=ws.CodeName _
                                  , sh2_name:=sSheetName _
                                   ) _
         Then
             mSyncRanges.SyncNamedColumnsWidth ws_source:=ws _
-                                            , ws_target:=WbTarget.Worksheets(sSheetName)
+                                            , ws_target:=wbTarget.Worksheets(sSheetName)
         
         End If
     Next ws
