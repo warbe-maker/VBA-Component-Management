@@ -106,8 +106,8 @@ Public Property Get RawHostWbName(Optional ByVal comp_name As String) As String
 End Property
 
 Public Property Let RawHostWbName(Optional ByVal comp_name As String, _
-                                        ByVal host_wb_name As String)
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_HOST_NAME) = host_wb_name
+                                        ByVal host_wbk_name As String)
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_HOST_NAME) = host_wbk_name
 End Property
 
 Public Property Get RawHostWbBaseName(Optional ByVal comp_name As String) As String
@@ -115,8 +115,8 @@ Public Property Get RawHostWbBaseName(Optional ByVal comp_name As String) As Str
 End Property
 
 Public Property Let RawHostWbBaseName(Optional ByVal comp_name As String, _
-                                            ByVal host_wb_base_name As String)
-    Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_HOST_BASE_NAME) = host_wb_base_name
+                                            ByVal host_wbk_base_name As String)
+    Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_HOST_BASE_NAME) = host_wbk_base_name
 End Property
 
 Public Property Get RawSavedRevisionNumber(Optional ByVal comp_name As String) As String
@@ -201,8 +201,8 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mRaw" & "." & sProc
 End Function
 
-Public Function Exists(ByVal raw_comp_name As String) As Boolean
-    Exists = Components.Exists(raw_comp_name)
+Public Function Exists(ByVal raw_vbc_name As String) As Boolean
+    Exists = Components.Exists(raw_vbc_name)
 End Function
 
 Public Function MaxRawLenght() As Long

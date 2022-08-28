@@ -45,19 +45,17 @@ A dialog will open for the selection of the _Source&#8209;Workbook_ and the _Tar
 
 The synchronization is done to  the following extent:
 
-| Synchronized item                  | Extent of synchronization |
+| Synchronized item                  | Synchronization details |
 |------------------------------------|---------------------------|
-| _References_                       | Complete (new References are added, obsolete References are removed  |
-| _Component&nbsp;types:<br>-&nbsp;Standard&nbsp;Module_<br>-&nbsp;_Class&nbsp;Modules_<br>\-&nbsp;_UserForm_| Complete (new components are added, obsolete components are deleted, and changed components are replaced |
-| _Data&nbsp;Modules_                |**Workbook**: Code change<br>**Worksheet**: New, obsolete, and code changes (see [restrictions](#worksheet-synchronization-restrictions) below) |
-| _Shapes_                           | New, obsolete, (properties, though largely covered may still be incomplete) |
-| _ActiveX&nbsp;Controls_            | New, obsolete, (properties, though largely covered may still be incomplete) |
-| _Range&nbsp;Names_                 | Obsolete, new only when it is asserted that all relevant columns and rows are synced beforehand (pending implementation, see Worksheet synchronization below) |
+| _References_                       | New References are added and obsolete References are removed  |
+| _Components_                       | All types (_Standard&nbsp;Module_, _Data&nbsp;Module_, _Class&nbsp;Module_, _UserForm_). New components are added, obsolete components are removed, and of changed components the code is updated. |
+| _Worksheets_                       | New Worksheets are added, obsolete Worksheets are removed, changed Worksheet Names are synchronized, changed Worksheet-Code-Names are synchronized (see [restrictions](#worksheet-synchronization-restrictions) below).|
+| _Sheet-Shapes_                     | New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed, the Properties of all Shapes are synchronized (though largely covered may still be incomplete) |
+| _Range&nbsp;Names_                 | New Range-Names are added, obsolete Range-Names are removed. Attention! The synchronization of new Range-Names which concern new columns or rows depend on (manually beforehand) synched new rowsnd columns!|
 | _Named&nbsp;Range&nbsp;Properties_ | Named ranges already in sync (currently implemented)
 
 #### Worksheet synchronization restrictions
-- While the code of a sheet is fully synchronized, design changes such like the insertion of new columns or rows as well as any formatting changes remain a manual task.
-- A Worksheet's _Name_ may be changed as well as its _CodeName_. However, when both are changed this would be interpreted as new sheet and the old sheet will be seen as obsolete - which in such a case is definitely not what was intended. In order to avoid a synchronization disaster in such case an explicit assertion is requested that only one of the two but never both are changed at a time.
+Never change both, the _Name_ and the _CodeName_ of a Worksheet! When a Worksheet's _Name_ ***and*** its _CodeName_ is changed at the same time the concerned sheet will be considered new and the (no longer identifiable as such) corresponding sheet will be considered obsolete - which in such a case is definitely not what was intended.
 
 ## Installation
 1. Download and open [CompMan.xlsb][1] <br> When the Workbook is opened for the first time it will show a dialog for the required _Basic Configuration_. Either the open Workbook is used or an Addin instance of it may be setup which then will be available when Excel is started (requires the next step). 

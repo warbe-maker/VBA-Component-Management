@@ -181,7 +181,7 @@ Public Function Align( _
 
 End Function
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
+Public Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
 ' Ensures that a programmed 'Application' error number not conflicts with the
 ' number of a 'VB Runtime Error' or any other system error.
@@ -1067,7 +1067,7 @@ Public Function TimedDoEvents(ByVal tde_source As String) As String
       & " DoEvents paused the execution for " _
       & Format(mBasic.TimerEnd, "00000") _
       & " msecs in '" & tde_source & "'"
-    Debug.Print s
+'    Debug.Print s
     TimedDoEvents = s
     
 End Function

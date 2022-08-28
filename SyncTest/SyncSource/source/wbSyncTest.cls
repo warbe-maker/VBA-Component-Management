@@ -25,14 +25,14 @@ Private Sub Workbook_Open()
     '~~ has been opened from within the 'Serviced-Folder' path and either the
     '~~ CompMan development instance or the CompMan Addin instance is available
     '~~ as the servicing Workbook.
-    mCompManClient.CompManService "UpdateOutdatedCommonComponents"
+    mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED
     
     '~~ The following statement invokes the named service, provided the Workbook
     '~~ has been opened from within the 'Synchronize-Folder' path, either the
     '~~ CompMan development instance or the CompMan Addin instance is available
     '~~ as the servicing Workbook and the corresponding 'Synchronization-Source-
     '~~ Workbook' is available (must not be open!) in the 'Serviced-Folder' path.
-    mCompManClient.CompManService "Synchronize"
+    mCompManClient.CompManService mCompManClient.SRVC_SYNCHRONIZE
 
 End Sub
 
@@ -42,7 +42,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     '~~ has been opened from within the 'Serviced-Folder' path and either the
     '~~ CompMan development instance or the CompMan Addin instance is available
     '~~ as the servicing Workbook.
-    mCompManClient.CompManService "ExportChangedComponents"
+    mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED
 
 End Sub
 

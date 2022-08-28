@@ -14,8 +14,6 @@ Private sRenewResult    As String
 
 Public Property Let CompManAddInPausedStatus(ByVal s As String):        Me.Range("rngCompManPauseStatus").Value = s:            End Property
 
-Private Property Get MonitorAnchor() As Range:                          Set MonitorAnchor = Me.Range("celMonitorAnchor"):       End Property
-
 Public Property Get CurrentStatus() As String:                          CurrentStatus = Me.Range("rngCurrentStatus").Value:     End Property
 
 Public Property Let CurrentStatus(ByVal s As String)
@@ -29,6 +27,8 @@ Public Property Let CurrentStatus(ByVal s As String)
         End If
     End With
 End Property
+
+Private Property Get MonitorAnchor() As Range:                          Set MonitorAnchor = Me.Range("celMonitorAnchor"):       End Property
 
 Public Property Let RenewInfo(ByVal s As String):                       Me.Range("rngRenewInfo").Value = s:                 End Property
 
@@ -80,7 +80,7 @@ Public Sub MonitorRenewStep(Optional ByVal rn_action As String = vbNullString, _
                                 "the only way to solve this problem is:" & vbLf & _
                                 "1. Close all application and restart the computer" & vbLf & _
                                 "2. Remove the CompMan.xlma from its folder" & vbLf & _
-                                "3. Reopen CompMan.xlsb and repeat this Renew (then a setup in fact)."
+                                "3. Reopen " & mCompManClient.COMPMAN_DEVLP & " and repeat this Renew (then a setup in fact)."
                         .FontColor = rgbRed
                     End With
                     mMsg.MonitorFooter Title, Footer
@@ -123,3 +123,4 @@ End Sub
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
 
 End Sub
+

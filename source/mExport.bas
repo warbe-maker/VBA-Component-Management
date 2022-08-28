@@ -20,7 +20,7 @@ Public Sub All()
     Dim sStatus     As String
     Dim Comp        As clsComp
     Dim Comps       As New clsComps
-    Dim wb          As Workbook
+    Dim wbk         As Workbook
     Dim lAll        As Long
     Dim lExported   As Long
     Dim lRemaining  As String
@@ -37,8 +37,8 @@ Public Sub All()
     If mMe.IsAddinInstnc _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
     
-    Set wb = mService.Serviced
-    With wb.VBProject
+    Set wbk = mService.Serviced
+    With wbk.VBProject
         lAll = .VBComponents.Count
         lRemaining = lAll
         
@@ -111,7 +111,7 @@ Public Sub ChangedComponents()
     Dim sStatus     As String
     Dim v           As Variant
     Dim vbc         As VBComponent
-    Dim wb          As Workbook
+    Dim wbk         As Workbook
     
     mBasic.BoP ErrSrc(PROC)
     
@@ -123,10 +123,10 @@ Public Sub ChangedComponents()
     '~~ I.e. of no longer existing VBComponents or at an outdated location
     CleanUpObsoleteExpFiles
         
-    Set wb = mService.Serviced
-    Set dctAll = mService.AllComps(wb, sStatus)
+    Set wbk = mService.Serviced
+    Set dctAll = mService.AllComps(wbk, sStatus)
     
-    With wb.VBProject
+    With wbk.VBProject
         lAll = .VBComponents.Count
         lRemaining = lAll
         
@@ -180,7 +180,7 @@ Public Sub ChangedComponents()
                 Set Comp = Nothing
             End If
             lRemaining = lRemaining - 1
-            Application.StatusBar = _
+            mService.DsplyStatus _
             mService.Progress(p_service:=sStatus _
                             , p_result:=lExported _
                             , p_of:=lAll _
@@ -192,8 +192,7 @@ Public Sub ChangedComponents()
         Next v
     End With
 
-    Application.StatusBar = vbNullString
-    Application.StatusBar = _
+    mService.DsplyStatus _
     mService.Progress(p_service:=sStatus _
                     , p_result:=lExported _
                     , p_of:=lAll _
@@ -300,15 +299,15 @@ Public Function ExpFileFolderPath(ByVal v As Variant) As String
     
     On Error GoTo eh
     Dim fso     As New FileSystemObject
-    Dim wb      As Workbook
+    Dim wbk     As Workbook
     Dim s       As String
     Dim sPath   As String
     
     With fso
         Select Case TypeName(v)
             Case "Workbook"
-                Set wb = v
-                sPath = wb.Path & "\" & mConfig.FolderExport
+                Set wbk = v
+                sPath = wbk.Path & "\" & mConfig.FolderExport
             Case "String"
                 s = v
                 If Not .FileExists(s) _

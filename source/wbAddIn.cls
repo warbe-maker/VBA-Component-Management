@@ -9,10 +9,10 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
 ' ------------------------------------------------------------------------------
-' !! This Workbook exists as two instances:                                   !!
-' !! 1. The development instance CompManDev.xlsb                              !!
-' !! 2. The Addin instance CompMan.xlma which is setup/renewed via the        !!
-' !!    development instance service mMe.Renew___AddIn                           !!
+' || This Workbook exists as two instances:
+' || 1. CompMan.xlsb as the development instance
+' || 2. CompMan.xlma as Addin instance  when one has been setup via the
+' ||    development instance service mMe.Renew___AddIn
 '
 ' See: https://github.com/warbe-maker/Excel-VB-Components-Management-Services
 '
@@ -57,17 +57,19 @@ Private Sub Workbook_Open()
         '~~ Executed by the development instance when open or by the Addin
         '~~ when established and automatically available when referenced by
         '~~ the VB-Project
-        mCompManClient.CompManService "UpdateOutdatedCommonComponents", HOSTED_RAWS
+        mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, HOSTED_RAWS
         '~~ ------------------------------------------------------------------
         mMe.DisplayStatus
-        Application.ScreenUpdating = False
+        With Application
+            .ScreenUpdating = False
+            .DisplayFormulaBar = False
+        End With
+        wsAddIn.Activate
         With ActiveWindow
             .DisplayHorizontalScrollBar = False
             .DisplayVerticalScrollBar = False
+            .DisplayHeadings = False
         End With
-        wsAddIn.Activate
-        Application.DisplayFormulaBar = False
-        ActiveWindow.DisplayHeadings = False
     
         '~~ ------------------------------------------------------------------
         '~~ When the Workbook is opened from within the configured 'synced'
@@ -76,7 +78,7 @@ Private Sub Workbook_Open()
         '~~ folder. When the required preconditions are not met the service
         '~~ will be denied.
         mMe.Config cfg_silent:=True, cfg_sync:=True ' displays the configuration dialog only when the synchronization configuration is invalid
-        mCompManClient.CompManService "Synchronize"
+        mCompManClient.CompManService mCompManClient.SRVC_SYNCHRONIZE
         '~~ ------------------------------------------------------------------
     End If
     
@@ -99,7 +101,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     '~~    in the VBProject a Reference to the CompMan Addin.
     If mMe.IsDevInstnc Then
         mMe.Config cfg_silent:=True
-           mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
+           mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
         If Not ThisWorkbook.Saved Then
             Application.EnableEvents = False
             ThisWorkbook.Save

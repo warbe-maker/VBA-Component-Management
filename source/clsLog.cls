@@ -8,28 +8,36 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
+' -----------------------------------------------------------------------------------
+' Class Module clsLog
+'
+' Public services: - Entry                  Appends an entry to the log file.
+'                  - FileFullName
+'                  - Folder
+'                  - LogFile
+'                  - ServicedItemsMaxLen
+'                  - Service
+'                  - ServicedItem
+' -----------------------------------------------------------------------------------
+Private Const LOG_FILE_NAME = "CompMan.Services.log" ' Default log file name
 
-Private Const SERVICES_LOG_FILE  As String = "CompMan.Services.log"
-
-Private sService                As String
-Private sFile                   As String
-Private sFolder                 As String
-Private bNewLog                 As Boolean
-Private sEntry                  As String
-Private sServicedItem           As String
-Private sServicedItemType       As String
-Private sServicedItemName       As String
-Private lMaxLenServicedItemType As Long
-Private lMaxLenServicedItemName As Long
+Private bNewLog                     As Boolean
+Private sEntry                      As String
+Private sFileFullName               As String
+Private sFolder                     As String
+Private sService                    As String
+Private sServicedItem               As String
+Private sServicedItemName           As String
+Private sServicedItemType           As String
 
 Private Sub Class_Initialize()
     bNewLog = True
 End Sub
 
 Friend Property Let Entry(ByVal s As String)
-' ------------------------------------------
+' -----------------------------------------------------------------------------------
 ' Append an entry to the log file.
-' ------------------------------------------
+' -----------------------------------------------------------------------------------
     Static sItem    As String
     Dim sCompName   As String
     
@@ -42,39 +50,35 @@ Friend Property Let Entry(ByVal s As String)
             sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & ServicedItem & s
         End If
     End If
-    mFile.txt(ft_file:=sFile, ft_append:=True) = sEntry
+    mFile.txt(ft_file:=sFileFullName, ft_append:=True) = sEntry
     sItem = sServicedItem
     sCompName = Split(ServicedItemName, "(")(0)
     
 End Property
 
-Friend Property Get File() As String:               File = sFile:               End Property
+Friend Property Get FileFullName() As String:           FileFullName = sFileFullName:   End Property
 
-Friend Property Let File(ByVal s As String):        sFile = s:                  End Property
+Friend Property Let FileFullName(ByVal s As String):    sFileFullName = s:              End Property
 
-Friend Property Get Folder() As String:             Folder = sFolder:           End Property
+Friend Property Get Folder() As String:                 Folder = sFolder:               End Property
 
-Friend Property Let Folder(ByVal s As String):      sFolder = s:                End Property
+Friend Property Let Folder(ByVal s As String):          sFolder = s:                    End Property
 
 Friend Property Get LogFile() As File
+' -----------------------------------------------------------------------------------
+' Returns the log file as file object
+' -----------------------------------------------------------------------------------
     Dim sLogFullName    As String
-    If InStr(Me.File, ":") <> 0 Then
-        sLogFullName = Me.File
-    Else
-        sLogFullName = Me.Folder & "\" & Me.File
-    End If
+    
+    If InStr(sFileFullName, ":") <> 0 _
+    Then sLogFullName = sFileFullName _
+    Else sLogFullName = Me.Folder & "\" & sFileFullName
+    
     With New FileSystemObject
         If Not .FileExists(sLogFullName) Then .CreateTextFile sLogFullName
         Set LogFile = .GetFile(sLogFullName)
     End With
-End Property
 
-Friend Property Get MaxLenServicedItemName() As Long
-    MaxLenServicedItemName = lMaxLenServicedItemName
-End Property
-
-Friend Property Get MaxLenServicedItemType() As Long
-    MaxLenServicedItemType = lMaxLenServicedItemType
 End Property
 
 Friend Property Get Service(Optional ByVal new_log As Boolean = False) As String
@@ -87,50 +91,60 @@ Friend Property Let Service(Optional ByVal new_log As Boolean = False, _
 ' ----------------------------------------------------------------------------
 ' - Assembles the service's Application.StatusBar message
 ' - Creates a new log file when none yet exists or when a new log is requested
-'   (new_log = True)
-' - Add a services split line when there are already logs in the file
+'   (new_log = True) and the existing's creation dates back more than one day
+' - Appends a service header (split line) when there are already logs in the
+'   file and the service name has changed.
 ' - Wirite a log header for the service
 ' ----------------------------------------------------------------------------
     Const PROC = "Service-Let"
     
     On Error GoTo eh
+    Dim bNewService As Boolean
+    Dim sNewService As String
+    Dim fso         As New FileSystemObject
     
-    sService = sv_name & " (by "
+    sNewService = sv_name & " (by "
     If ThisWorkbook.Name = mMe.CompManAddinName _
-    Then sService = sService & "Addin" _
-    Else sService = sService & ThisWorkbook.Name
-    sService = sService & ") for " & mService.Serviced.Name & ": "
+    Then sNewService = sNewService & "Addin" _
+    Else sNewService = sNewService & ThisWorkbook.Name
+    sNewService = sNewService & ") for " & mService.Serviced.Name & ": "
+    bNewService = sNewService <> sService
+    sService = sNewService
     
     bNewLog = new_log
     Me.Folder = mService.Serviced.Path
     
     '~~ In case no specific log-file had been decided a default log-file is determined
-    If Me.File = vbNullString Then sFile = Me.Folder & "\" & SERVICES_LOG_FILE
+    If sFileFullName = vbNullString Then sFileFullName = Me.Folder & "\" & LOG_FILE_NAME
 
-    With New FileSystemObject
-        If bNewLog And .FileExists(sFile) Then
-            If VBA.DateDiff("d", .GetFile(sFile).DateCreated, Now()) > 0 Then
-                .DeleteFile sFile
+    With fso
+        If bNewLog And .FileExists(sFileFullName) Then
+            If VBA.DateDiff("d", .GetFile(sFileFullName).DateCreated, Now()) > 0 Then
+                .DeleteFile sFileFullName
             End If
         End If
-        If Not .FileExists(sFile) Then .CreateTextFile (sFile)
+        If Not .FileExists(sFileFullName) Then .CreateTextFile sFileFullName
         bNewLog = False
     End With
     
-    If mFile.txt(ft_file:=sFile) <> vbNullString Then
-        '~~ Insert a new log section line when hte file already has written logs
-        mFile.txt(ft_file:=sFile _
-                 , ft_append:=True _
-                  ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "=")
-    End If
+    If bNewService Then
+        '~~ When the service differs from a previous service
+        If mFile.txt(ft_file:=sFileFullName) <> vbNullString Then
+            '~~ When the log file already contains log entries insert a split line
+            mFile.txt(ft_file:=sFileFullName _
+                     , ft_append:=True _
+                      ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "=")
+        End If
     
-    '~~ Write a service header
-    mFile.txt(ft_file:=sFile _
-            , ft_append:=True _
-             ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sService & vbCrLf & _
-                 Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "-")
+        '~~ Append a service header to the log file
+        mFile.txt(ft_file:=sFileFullName _
+                , ft_append:=True _
+                 ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sService & vbCrLf & _
+                     Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "-")
+    End If
 
-xt: Exit Property
+xt: Set fso = Nothing
+    Exit Property
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -142,20 +156,20 @@ Friend Property Get ServicedItem() As Variant
     If sServicedItemType = vbNullString And sServicedItemName = vbNullString Then
         ServicedItem = sServicedItem
     Else
-        sServicedItem = mBasic.Align(sServicedItemType, lMaxLenServicedItemType) & " " & mBasic.Align(sServicedItemName, lMaxLenServicedItemName, , " ", ".") & ": "
+        sServicedItem = mBasic.Align(sServicedItemType, wsService.ServicedItemsMaxLenType) & " " & mBasic.Align(sServicedItemName, wsService.ServicedItemsMaxLenName, , " ", ".") & ": "
         ServicedItem = sServicedItem
     End If
 End Property
 
-Friend Property Let ServicedItem(ByRef v As Variant)
-' ----------------------------------------------------
-' Determine the serviced item's type and name string
-' for logging and compute the maximum length for both.
-' ----------------------------------------------------
+Friend Property Let ServicedItem(ByVal v As Variant)
+' -----------------------------------------------------------------------------------
+' Determines the serviced item's type and name string for logging and computes the
+' maximum length for both.
+' -----------------------------------------------------------------------------------
     
     Dim vbc As VBComponent
-    Dim nm  As Name
-    Dim ws  As Worksheet
+    Dim nam  As Name
+    Dim wsh  As Worksheet
     Dim ref As Reference
     Dim shp As Shape
     Dim oob As OLEObject
@@ -168,71 +182,64 @@ Friend Property Let ServicedItem(ByRef v As Variant)
     Dim lbl As Label
     Dim img As Image
     Dim cbt As CommandButton
-    Dim Rng As Range
+    Dim rng As Range
     
     Select Case TypeName(v)
-        Case "VBComponent"
-            Set vbc = v
-            Select Case vbc.Type
-                Case vbext_ct_ActiveXDesigner:  ServicedItemType = "ActiveX-Designer":      ServicedItemName = vbc.Name
-                Case vbext_ct_ClassModule:      ServicedItemType = "Class-Module":          ServicedItemName = vbc.Name
-                Case vbext_ct_MSForm:           ServicedItemType = "UserForm":              ServicedItemName = vbc.Name
-                Case vbext_ct_StdModule:        ServicedItemType = "Standard-Module":       ServicedItemName = vbc.Name
-                Case vbext_ct_Document
-                    If mComp.IsSheetDocMod(vbc) Then
-                                                ServicedItemType = "Worksheet CodeName":    ServicedItemName = vbc.Name
-                    Else
-                                                ServicedItemType = "Workbook":              ServicedItemName = vbc.Name
-                    End If
-            End Select
-        Case "Name"
-            Set nm = v
-            ServicedItemType = "Name"
-            ServicedItemName = Replace(nm.Name, nm.Parent.Name & "!", vbNullString) & "(" & nm.RefersTo & ")"
-            If MaxLenServicedItemName = 60 Then Stop
-
-        Case "OLEObject":       Set oob = v:    ServicedItemType = "(Sheet)ActiveX":    ServicedItemName = "(" & oob.Parent.Name & ")" & oob.Name
-        Case "Reference":       Set ref = v:    ServicedItemType = TypeName(ref):                                               ServicedItemName = ref.Name
-        Case "Shape":           Set shp = v:    ServicedItemType = shp.Parent.Name & "(" & mSheetControls.CntrlType(shp) & ")": ServicedItemName = mSheetControls.CntrlName(shp)
-        Case "Worksheet":       Set ws = v:     ServicedItemType = "Worksheet Name(CodeName)":                                  ServicedItemName = FinalName(ws.Name) & "(" & FinalName(ws.CodeName) & ")"
-        Case "String"
-            sServicedItemType = vbNullString
-            sServicedItemName = vbNullString
-            sServicedItem = mBasic.Align(v, lMaxLenServicedItemType + lMaxLenServicedItemName + 1, , " ", ".") & ": "
-        Case "CommandButton":   Set cbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "Image":           Set img = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "Label":           Set lbl = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "ListBox":         Set lbx = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "OptionButton":    Set obt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "ScrollBar":       Set scb = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "SpinButton":      Set sbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "TextBox":         Set tbx = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "ToggleButton":    Set tbt = v:    ServicedItemType = TypeName(v):         ServicedItemName = v.Name
-        Case "Range":           Set Rng = v:    ServicedItemType = "Named Range":       ServicedItemName = Rng.Name.Name
+        Case "VBComponent":     Set vbc = v:    Select Case vbc.Type
+                                                    Case vbext_ct_ActiveXDesigner:  ServicedItemProperties "ActiveX-Designer", vbc.Name
+                                                    Case vbext_ct_ClassModule:      ServicedItemProperties "Class-Module", vbc.Name
+                                                    Case vbext_ct_MSForm:           ServicedItemProperties "UserForm", vbc.Name
+                                                    Case vbext_ct_StdModule:        ServicedItemProperties "Standard-Module", vbc.Name
+                                                    Case vbext_ct_Document:         If mComp.IsSheetDocMod(vbc) _
+                                                                                    Then ServicedItemProperties "Worksheet", vbc.Name _
+                                                                                    Else ServicedItemProperties "Workbook", vbc.Name
+                                                End Select
+        Case "Name":            Set nam = v:    ServicedItemProperties "Name", Replace(nam.Name, nam.Parent.Name & "!", vbNullString) & "(" & nam.RefersTo & ")"
+        Case "Reference":       Set ref = v:    ServicedItemProperties TypeName(ref), ref.Description
+        Case "Shape":           Set shp = v:    ServicedItemProperties mSyncShapes.TypeString(shp), shp.Parent.Name & "." & mSyncShapes.ShapeNames(shp)
+        Case "Worksheet":       Set wsh = v:    ServicedItemProperties "Worksheet", wsh.CodeName
+        Case "String":                          ServicedItemProperties Split(v, ";")(0), Split(v, ";")(1)
+        Case "CommandButton":   Set cbt = v:    ServicedItemProperties TypeName(v), v.Name
+        Case "Image":           Set img = v:    ServicedItemProperties TypeName(v), v.Name
+        Case "Label":           Set lbl = v:    ServicedItemProperties TypeName(v), v.Name
+        Case "ListBox":         Set lbx = v:    ServicedItemProperties TypeName(v), v.Name
+        Case "OptionButton":    Set obt = v:    ServicedItemProperties TypeName(v), v.Name
+        Case "ScrollBar":       Set scb = v:    ServicedItemProperties TypeName(v), v.Name
+        Case "SpinButton":      Set sbt = v:    ServicedItemProperties TypeName(v), v.Name
+        Case "TextBox":         Set tbx = v:    ServicedItemProperties TypeName(v), v.Name
+        Case "ToggleButton":    Set tbt = v:    ServicedItemProperties TypeName(v), v.Name
+        Case "Range":           Set rng = v:    ServicedItemProperties TypeName(v), v.Name.Name
         Case Else
-            Debug.Print "TypeName '" & TypeName(v) & "' not yet considered"
+            Debug.Print "TypeName '" & TypeName(v) & "' not yet considered as a serviced item"
     End Select
 End Property
 
 Private Property Get ServicedItemName() As String
-    ServicedItemName = sServicedItemName & "(" & lMaxLenServicedItemName & ")"
+    ServicedItemName = sServicedItemName & "(" & wsService.ServicedItemsMaxLenName & ")"
 End Property
 
 Private Property Let ServicedItemName(ByVal s As String)
     sServicedItemName = s
-    lMaxLenServicedItemName = Max(lMaxLenServicedItemName, Len(sServicedItemName))
 End Property
 
 Private Property Get ServicedItemType() As String
-    ServicedItemType = sServicedItemType & "(" & lMaxLenServicedItemType & ")"
+    ServicedItemType = sServicedItemType & "(" & wsService.ServicedItemsMaxLenType & ")"
 End Property
 
 Private Property Let ServicedItemType(ByVal s As String)
     sServicedItemType = s
-    lMaxLenServicedItemType = Max(lMaxLenServicedItemType, Len(sServicedItemType))
 End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsLog" & "." & sProc
 End Function
+
+Private Sub ServicedItemProperties(ByVal sip_type As String, _
+                                   ByVal sip_name As String)
+    ServicedItemType = sip_type
+    ServicedItemName = sip_name
+    wsService.ServicedItemsMaxLenType = Max(wsService.ServicedItemsMaxLenType, Len(sip_type))
+    wsService.ServicedItemsMaxLenName = Max(wsService.ServicedItemsMaxLenName, Len(sip_name))
+
+End Sub
 

@@ -60,7 +60,7 @@ Option Private Module
 '
 ' Requires:         Reference to "Microsoft Scripting Runtine"
 '
-' W. Rauschenberger, Berlin May 2022
+' W. Rauschenberger, Berlin June 2022
 '
 ' See also https://github.com/warbe-maker/Common-VBA-File-Services.
 ' ----------------------------------------------------------------------------
@@ -138,7 +138,7 @@ Public Property Let Arry( _
 ' is optionally returned by Arry-Get.
 ' ----------------------------------------------------------------------------
                     
-    mFile.Txt(ft_file:=fa_file _
+    mFile.txt(ft_file:=fa_file _
             , ft_append:=fa_append _
             , ft_split:=fa_split _
              ) = Join(fa_ar, fa_split)
@@ -171,7 +171,7 @@ Public Property Get Arry( _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named '" & fa_file & "' does not exist!"
     
     '~~ Unload file to a string
-    sFile = mFile.Txt(ft_file:=fa_file _
+    sFile = mFile.txt(ft_file:=fa_file _
                     , ft_split:=sSplit _
                      )
     If sFile = vbNullString Then GoTo xt
@@ -216,16 +216,25 @@ Public Property Get Dict(ByVal fd_file As Variant) As Dictionary
     Dim a       As Variant
     Dim dct     As New Dictionary
     Dim sSplit  As String
-    Dim fso     As File
+    Dim flo     As File
     Dim sFile   As String
     Dim i       As Long
+    Dim fso     As New FileSystemObject
     
-    If Not Exists(fd_file, fso) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The file object (fd_file) does not exist!"
+    Select Case TypeName(fd_file)
+        Case "File"
+            If Not fso.FileExists(fd_file.Path) _
+            Then Err.Raise AppErr(1), ErrSrc(PROC), "The file object (fd_file) does not exist!"
+            Set flo = fd_file
+        Case "String"
+            If Not fso.FileExists(fd_file) _
+            Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided file string (fd_file) is not an existing file!"
+            Set flo = fso.GetFile(fd_file)
+    End Select
     
     '~~ Unload file into a test stream
     With New FileSystemObject
-        Set ts = .OpenTextFile(fso.Path, 1)
+        Set ts = .OpenTextFile(flo.Path, 1)
         With ts
             On Error Resume Next ' may be empty
             sFile = .ReadAll
@@ -273,7 +282,7 @@ Public Property Get Sections(Optional ByVal pp_file As Variant, _
     Const PROC = "Sections-Get"
     
     On Error GoTo eh
-    Dim vName   As Variant
+    Dim VNAME   As Variant
     Dim fl      As String
     
     If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
@@ -283,20 +292,20 @@ Public Property Get Sections(Optional ByVal pp_file As Variant, _
     
     If pp_sections = vbNullString Then
         '~~ Return all sections
-        For Each vName In mFile.SectionNames(fl)
+        For Each VNAME In mFile.SectionNames(fl)
             AddAscByKey add_dct:=Sections _
-                      , add_key:=vName _
-                      , add_item:=mFile.Values(pp_file:=fl, pp_section:=vName)
-        Next vName
+                      , add_key:=VNAME _
+                      , add_item:=mFile.Values(pp_file:=fl, pp_section:=VNAME)
+        Next VNAME
     Else
         '~~ Return named sections
-        For Each vName In NamesInArg(pp_sections)
-            If mFile.SectionExists(pp_file, vName) Then
+        For Each VNAME In NamesInArg(pp_sections)
+            If mFile.SectionExists(pp_file, VNAME) Then
                 AddAscByKey add_dct:=Sections _
-                          , add_key:=vName _
-                          , add_item:=mFile.Values(pp_file, vName)
+                          , add_key:=VNAME _
+                          , add_item:=mFile.Values(pp_file, VNAME)
             End If
-        Next vName
+        Next VNAME
     End If
 
 xt: Exit Property
@@ -381,7 +390,7 @@ Public Property Get Temp( _
     Set fso = Nothing
 End Property
 
-Public Property Get Txt( _
+Public Property Get txt( _
          Optional ByVal ft_file As Variant, _
          Optional ByVal ft_append As Boolean = True, _
          Optional ByRef ft_split As String) As String
@@ -419,9 +428,9 @@ Public Property Get Txt( _
             s = VBA.Left$(s, Len(s) - 2)
         End If
     Else
-        Txt = vbNullString
+        txt = vbNullString
     End If
-    If Txt = vbCrLf Then Txt = vbNullString Else Txt = s
+    If txt = vbCrLf Then txt = vbNullString Else txt = s
 
 xt: Exit Property
 
@@ -431,7 +440,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Let Txt( _
+Public Property Let txt( _
          Optional ByVal ft_file As Variant, _
          Optional ByVal ft_append As Boolean = True, _
          Optional ByRef ft_split As String, _
@@ -910,18 +919,18 @@ Public Function Compare(ByVal fc_file_left As String, _
     
     If Not AppIsInstalled("WinMerge") _
     Then Err.Raise Number:=AppErr(1) _
-                 , source:=ErrSrc(PROC) _
+                 , Source:=ErrSrc(PROC) _
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
     If Not fso.FileExists(fc_file_left) _
     Then Err.Raise Number:=AppErr(2) _
-                 , source:=ErrSrc(PROC) _
+                 , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file_left & """ does not exist!"
     
     If Not fso.FileExists(fc_file_right) _
     Then Err.Raise Number:=AppErr(3) _
-                 , source:=ErrSrc(PROC) _
+                 , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file_right & """ does not exist!"
     
     sCommand = "WinMergeU /e" & _
@@ -991,13 +1000,13 @@ Public Function Differs( _
     sFile1 = fd_file1.Path
     sFile2 = fd_file2.Path
     
-    s1 = mFile.Txt(ft_file:=sFile1, ft_split:=sSplit)
+    s1 = mFile.txt(ft_file:=sFile1, ft_split:=sSplit)
     If fd_ignore_empty_records Then
         '~~ Eliminate empty records
         sTest1 = VBA.Replace$(s1, sSplit & sSplit, sSplit)
     End If
     
-    s2 = mFile.Txt(ft_file:=sFile2, ft_split:=sSplit)
+    s2 = mFile.txt(ft_file:=sFile2, ft_split:=sSplit)
     If fd_ignore_empty_records Then
         '~~ Eliminate empty records
         sTest2 = VBA.Replace$(s2, sSplit & sSplit, sSplit)
@@ -1217,7 +1226,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -1416,12 +1425,12 @@ Private Function Fc(ByVal fc_file1 As String, fc_file2 As String)
     
     If Not fso.FileExists(fc_file1) _
     Then Err.Raise Number:=AppErr(2) _
-                 , source:=ErrSrc(PROC) _
+                 , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file1 & """ does not exist!"
     
     If Not fso.FileExists(fc_file2) _
     Then Err.Raise Number:=AppErr(3) _
-                 , source:=ErrSrc(PROC) _
+                 , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file2 & """ does not exist!"
     
     sCommand = "Fc /C /W " & _
@@ -1565,7 +1574,7 @@ Private Function NamesInArg( _
     On Error GoTo eh
     Dim cll     As New Collection
     Dim dct     As Dictionary
-    Dim vName   As Variant
+    Dim VNAME   As Variant
     
     Select Case VarType(v)
         Case vbObject
@@ -1581,9 +1590,9 @@ Private Function NamesInArg( _
             End Select
         Case vbString
             If v <> vbNullString Then
-                For Each vName In Split(v, ",")
+                For Each VNAME In Split(v, ",")
                     cll.Add VBA.Trim$(v)
-                Next vName
+                Next VNAME
             End If
         Case Is >= vbArray
         Case Else
@@ -2006,7 +2015,7 @@ Public Function SectionNames(Optional ByVal pp_file As Variant, _
     If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     pp_file_result = fl
     
-    If Len(mFile.Txt(fl)) = 0 Then GoTo xt
+    If Len(mFile.txt(fl)) = 0 Then GoTo xt
     Set SectionNames = New Dictionary
     
     Do While (iLen = Len(strBuffer) - 2) Or (iLen = 0)
@@ -2052,7 +2061,7 @@ Public Sub SectionsCopy(ByVal pp_source As String, _
     On Error GoTo eh
     Dim fso         As New FileSystemObject
     Dim dct         As Dictionary
-    Dim vName       As Variant
+    Dim VNAME       As Variant
     Dim vSection    As Variant
     
     For Each vSection In NamesInArg(pp_sections)
@@ -2063,11 +2072,11 @@ Public Sub SectionsCopy(ByVal pp_source As String, _
         End If
         Set dct = mFile.Values(pp_file:=pp_source _
                             , pp_section:=vSection)
-        For Each vName In dct
+        For Each VNAME In dct
             mFile.Value(pp_file:=pp_target _
                       , pp_section:=vSection _
-                      , pp_value_name:=vName) = dct(vName)
-        Next vName
+                      , pp_value_name:=VNAME) = dct(VNAME)
+        Next VNAME
      Next vSection
 
 xt: Set dct = Nothing

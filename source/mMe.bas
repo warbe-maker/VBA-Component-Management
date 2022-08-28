@@ -52,8 +52,8 @@ Private Const ADDIN_WORKBOOK_EXTENSION      As String = "xlam"  ' Extension may 
 Private Const DEVLP_WORKBOOK_EXTENSION      As String = "xlsb"  ' Extension may depend on Excel version
 
 Private wbDevlp                 As Workbook
-Private wbSource                As Workbook                     ' This development instance as the renew source
-Private wbTarget                As Workbook                     ' The Addin instance as renew target
+Private wbkSource                As Workbook                     ' This development instance as the renew source
+Private wbkTarget                As Workbook                     ' The Addin instance as renew target
 Private bSucceeded              As Boolean
 Private bAllRemoved             As Boolean
 Private dctAddInRefs            As Dictionary
@@ -252,7 +252,7 @@ Public Function Config(Optional ByVal cfg_silent As Boolean = False, _
         ElseIf StrComp(.FolderAddin, mConfig.FolderAddin, vbTextCompare) <> 0 Then
             '~~ When the configured CompMan-Addin-Folder has been changed to another location
             '~~ the CompManAdminFolder has to be copied before the new configuration can be saved
-            fso.MoveFolder source:=mMe.CompManAdminFolder(mConfig.FolderAddin) _
+            fso.MoveFolder Source:=mMe.CompManAdminFolder(mConfig.FolderAddin) _
                          , Destination:=CompManAdminFolder(.FolderAddin)
             mConfig.FolderAddin = .FolderAddin
         End If
@@ -297,7 +297,7 @@ Public Function CompManAddinIsOpen() As Boolean
     For i = 1 To Application.AddIns2.Count
         If Application.AddIns2(i).Name = CompManAddinName Then
             On Error Resume Next
-            Set wbTarget = Application.Workbooks(CompManAddinName)
+            Set wbkTarget = Application.Workbooks(CompManAddinName)
             CompManAddinIsOpen = Err.Number = 0
             GoTo xt
         End If
@@ -536,11 +536,11 @@ Public Sub Renew___AddIn()
     '~~       The un-unstalled and IsAddin=False Workbook is released from the Application
     '~~       and no longer considered "used"
     Renew_4_DevInstncWorkbookSave
-    wbSource.Activate
+    wbkSource.Activate
           
     '~~ Attempt to turn Addin to "IsAddin=False", uninstall and close it
     If CompManAddinIsOpen Then
-        Renew_5_Set_IsAddin_ToFalse wbTarget
+        Renew_5_Set_IsAddin_ToFalse wbkTarget
         If Not Renew_5_CloseAddinInstncWorkbook Then GoTo xt
     End If
     
@@ -567,7 +567,7 @@ xt: RenewFinalResult
     
     Application.EnableEvents = False
     On Error Resume Next
-    wbSource.Activate
+    wbkSource.Activate
     Application.EnableEvents = True
     
     Exit Sub
@@ -634,7 +634,7 @@ Private Sub Renew_3_SaveAndRemoveAddInReferences()
         Set dct = mWbk.Opened ' Returns a Dictionary with all open Workbooks in any application instance
         Set dctAddInRefs = New Dictionary
         For Each v In dct
-            Set wb = dct.Item(v)
+            Set wb = dct.item(v)
             For Each ref In wb.VBProject.References
                 If InStr(ref.Name, fso.GetBaseName(CompManAddinName)) <> 0 Then
                     dctAddInRefs.Add wb, ref
@@ -674,9 +674,9 @@ Private Sub Renew_4_DevInstncWorkbookSave()
     On Error GoTo eh
     mMe.RenewAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ")"
     
-    Set wbSource = Application.Workbooks(DevInstncName)
-    wbSource.Save
-    wbSource.Activate
+    Set wbkSource = Application.Workbooks(DevInstncName)
+    wbkSource.Save
+    wbkSource.Activate
     mMe.RenewMonitorResult() = "Passed"
 
 xt: Exit Sub
@@ -717,8 +717,8 @@ Private Function Renew_5_CloseAddinInstncWorkbook() As Boolean
     
     mMe.RenewAction = "Close the 'CompMan-Addin'"
     On Error Resume Next
-    wbSource.Activate
-    wbTarget.Close False
+    wbkSource.Activate
+    wbkTarget.Close False
     Renew_5_CloseAddinInstncWorkbook = Err.Number = 0
     If Not Renew_5_CloseAddinInstncWorkbook Then
         mMe.RenewMonitorResult("Closing the 'CompMan-Addin' (" & CompManAddinName & ") failed with:" & vbLf & _
@@ -786,7 +786,7 @@ Private Function Renew_7_SaveDevInstncWorkbookAsAddin() As Boolean
             '~~ At this point the Addin must no longer exist at its location
             .EnableEvents = False
             On Error Resume Next
-            wbSource.SaveAs CompManAddinFullName, FileFormat:=xlAddInFormat
+            wbkSource.SaveAs CompManAddinFullName, FileFormat:=xlAddInFormat
             Renew_7_SaveDevInstncWorkbookAsAddin = Err.Number = 0
             If Not Renew_7_SaveDevInstncWorkbookAsAddin Then
                 mMe.RenewMonitorResult("Save Development instance as Addin instance  " & mBasic.Spaced("failed!") _

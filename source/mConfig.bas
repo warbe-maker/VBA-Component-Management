@@ -92,15 +92,35 @@ Public Property Get FolderSynced() As String:               FolderSynced = WsVal
 Public Property Let FolderSynced(ByVal s As String):        WsValue(VNAME_FOLDER_SYNCED) = s:                       End Property
 
 ' ---------------------------------------------------------------------------
-' Interfaces to the wsBasicConfig Worksheet
+' Interfaces to the "Basic Config" (wsBasicConfig) Worksheet
 ' ---------------------------------------------------------------------------
 Private Property Get WsValue(Optional ByVal v_value_name As String) As Variant
-    WsValue = mWbk.Value(v_ws:=wsBasicConfig, v_name:=v_value_name)
+    WsValue = mWbk.Value(wsBasicConfig, v_value_name)
 End Property
 
 Private Property Let WsValue(Optional ByVal v_value_name As String, _
-                                    ByVal v_value As Variant)
-    mWbk.Value(v_ws:=wsBasicConfig, v_name:=v_value_name) = v_value
+                                      ByVal v_value As Variant)
+    Dim fso         As New FileSystemObject
+    Dim sCurrent    As String
+    Dim fCurrent    As Folder
+    
+    sCurrent = WsValue(v_value_name)
+    With fso
+        If sCurrent <> vbNullString Then
+            If .FolderExists(sCurrent) And v_value <> sCurrent Then
+                Set fCurrent = .GetFolder(sCurrent)
+                fCurrent.Name = v_value
+            End If
+        Else
+            If Not .FolderExists(v_value) Then
+                .CreateFolder v_value
+            End If
+        End If
+    End With
+    mWbk.Value(wsBasicConfig, v_value_name) = v_value
+
+    Set fso = Nothing
+    
 End Property
 
 ' ---------------------------------------------------------------------------
@@ -212,7 +232,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -277,10 +297,10 @@ Private Function WsExists(ByVal value_name As String) As Boolean
 End Function
 
 Public Sub ForwardFolderName(ByRef ff_history As String, _
-                             ByVal ff_wb_parent_folder As String)
+                             ByVal ff_wbk_parent_folder As String)
 ' ----------------------------------------------------------------------------
 ' Forwards (renames) any outdatede Export Folder name in a Workbook's parent
-' folder (ff-wb_parent_folder) to the current name.
+' folder (ff-wbk_parent_folder) to the current name.
 ' ----------------------------------------------------------------------------
     Const PROC = "ForwardFolderName"
     
@@ -299,7 +319,7 @@ Public Sub ForwardFolderName(ByRef ff_history As String, _
     
     With fso
         For i = iUBound - 1 To 0 Step -1
-            sFolder = ff_wb_parent_folder & "\" & Names(i)
+            sFolder = ff_wbk_parent_folder & "\" & Names(i)
             sFolder = Replace(sFolder, "\\", "\")
             If .FolderExists(sFolder) Then
                 .GetFolder(sFolder).Name = NameNow

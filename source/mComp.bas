@@ -21,38 +21,36 @@ Option Explicit
 ' ------------------------------------------------------------------------
 Public Const RENAMED_BY_COMPMAN = "_RenamedByCompMan"
 
-Public Function Exists( _
-                 ByRef wb As Workbook, _
-                 ByVal comp_name As String) As Boolean
+Public Function Exists(ByVal xst_wbk As Workbook, _
+                       ByVal xst_vbc_name As String) As Boolean
 ' ----------------------------------------------------
 ' Returns TRUE when the component (comp_name) exists
-' in the Workbook (wb).
+' in the Workbook (wbk).
 ' -----------------------------------------------------
     Dim s As String
     On Error Resume Next
-    s = wb.VBProject.VBComponents(comp_name).Name
+    s = xst_wbk.VBProject.VBComponents(xst_vbc_name).Name
     Exists = Err.Number = 0
 End Function
 
-Public Function IsSheetDocMod( _
-                        ByRef vbc As VBComponent, _
-               Optional ByRef wb As Workbook = Nothing, _
-               Optional ByRef sh_name As String = vbNullString) As Boolean
+Public Function IsSheetDocMod(ByRef is_vbc As VBComponent, _
+                     Optional ByRef is_wbk As Workbook = Nothing, _
+                     Optional ByRef is_wsh_name As String = vbNullString) As Boolean
 ' ------------------------------------------------------------------------
 ' Returns TRUE when the Component (vbc) is the Worksheet object. When the
-' optional Workbook (wb) is provided, the sheet's Name is returned
+' optional Workbook (wbk) is provided, the sheet's Name is returned
 ' (sh_name).
 ' ------------------------------------------------------------------------
-    Dim ws As Worksheet
+    Dim wsh As Worksheet
     
-    IsSheetDocMod = vbc.Type = vbext_ct_Document And Not mComp.IsWrkbkDocMod(vbc)
-    If Not wb Is Nothing Then
-        For Each ws In wb.Worksheets
-            If ws.CodeName = vbc.Name Then
-                sh_name = ws.Name
+    IsSheetDocMod = is_vbc.Type = vbext_ct_Document And Not mComp.IsWrkbkDocMod(is_vbc)
+    If Not is_wbk Is Nothing Then
+        For Each wsh In is_wbk.Worksheets
+            If wsh.CodeName = is_vbc.Name Then
+                is_wsh_name = wsh.Name
                 Exit For
             End If
-        Next ws
+        Next wsh
     End If
 End Function
 
@@ -65,17 +63,17 @@ Public Function IsWrkbkDocMod(ByRef vbc As VBComponent) As Boolean
     
 End Function
 
-Public Function TempName(ByVal tn_wb As Workbook, _
-                         ByVal tn_comp_name As String) As String
+Public Function TempName(ByVal tn_wbk As Workbook, _
+                         ByVal tn_vbc_name As String) As String
 ' ----------------------------------------------------------------------------
-' Returns a yet not existing temporary name for a component (tn_comp_name).
+' Returns a yet not existing temporary name for a component (tn_vbc_name).
 ' ----------------------------------------------------------------------------
     Dim i As Long
     
-    TempName = tn_comp_name & RENAMED_BY_COMPMAN
+    TempName = tn_vbc_name & RENAMED_BY_COMPMAN
     Do
         On Error Resume Next
-        TempName = tn_wb.VBProject.VBComponents(TempName).Name
+        TempName = tn_wbk.VBProject.VBComponents(TempName).Name
         If Err.Number <> 0 Then Exit Do ' a component with sTempName does not exist
         i = i + 1: TempName = TempName & i
     Loop
@@ -90,7 +88,7 @@ Public Function TypeString(ByVal vbc As VBComponent) As String
             Then TypeString = "Document-Module (Worksheet)" _
             Else TypeString = "Document-Module (Workbook)"
         Case vbext_ct_MSForm:           TypeString = "UserForm"
-        Case vbext_ct_StdModule:        TypeString = "Standatd-Module"
+        Case vbext_ct_StdModule:        TypeString = "Standard-Module"
     End Select
 End Function
 

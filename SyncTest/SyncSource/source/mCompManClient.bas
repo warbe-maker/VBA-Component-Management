@@ -9,22 +9,23 @@ Option Explicit
 ' - Update of outdated used 'Common Components' (by re-importing an
 '   up-to-date component's Export File whereby this corresponding 'raw'
 '   component is hosted in another, possibly dedicated Workbook).
-' - Synchronization of a 'Synchronization-Target-Workbook' with its
-'   up-to-date 'Synchronization-source-Workbook'
+' - Synchronization of a 'Sync-Target-Workbook' with its
+'   up-to-date 'Sync-source-Workbook'
 '
 ' W. Rauschenberger, Berlin May 2022
 '
 ' See also Github repo:
 ' https://github.com/warbe-maker/Excel-VB-Components-Management-Services
 ' ----------------------------------------------------------------------
-Public Const SERVICE_UPDATE_OUTDATED    As String = "UpdateOutdatedCommonComponents"
-Public Const SERVICE_SYNCHRONIZE        As String = "Synchronize"
+' CompMan's global specifications essential for CompMan clients
+Public Const SRVC_UPDATE_OUTDATED   As String = "UpdateOutdatedCommonComponents"
+Public Const SRVC_SYNCHRONIZE       As String = "SynchronizeWorkbooks"
+Public Const SRVC_EXPORT_CHANGED    As String = "ExportChangedComponents"
+Public Const COMPMAN_ADDIN          As String = "CompMan.xlam"
+Public Const COMPMAN_DEVLP          As String = "CompMan.xlsb"
 
-Private Const COMPMAN_ADDIN             As String = "CompMan.xlam"
-Private Const COMPMAN_DEVLP             As String = "CompMan.xlsb"
-Private Const vbResume                  As Long = 6 ' return value (equates to vbYes)
-
-Dim Busy        As Boolean ' prevent parallel execution of a service
+Private Const vbResume              As Long = 6 ' return value (equates to vbYes)
+Private Busy                        As Boolean ' prevent parallel execution of a service
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -43,8 +44,8 @@ Public Sub CompManService(ByVal cms_name As String, _
 ' ----------------------------------------------------------------------------
 ' Execution of the CompMan service (cms_name) preferably via the "CompMan
 ' Development Instance" as the servicing Workbook. Only when not available the
-' "CompMan AddIn Instance" (CompMan.xlam) becomes the servicing Workbook -
-' which maynot be open either or open but paused.
+' "CompMan AddIn Instance" (mCompManClient.COMPMAN_ADDIN) becomes the servicing
+' Workbook - which maynot be open either or open but paused.
 ' Note: cms_unused is for backwards compatibility only
 ' ----------------------------------------------------------------------------
     Const PROC = "CompManService"
@@ -64,8 +65,8 @@ Public Sub CompManService(ByVal cms_name As String, _
     
     sServicing = WbServicing(cms_name)
     If sServicing <> vbNullString Then
-        If cms_name = SERVICE_SYNCHRONIZE _
-        Then Application.Run sServicing & "!mCompMan." & cms_name, ThisWorkbook _
+        If cms_name = mCompManClient.SRVC_SYNCHRONIZE _
+        Then Application.Run sServicing & "!mCompMan." & mCompManClient.SRVC_SYNCHRONIZE, ThisWorkbook _
         Else Application.Run sServicing & "!mCompMan." & cms_name, ThisWorkbook, cms_hosted_common_components
     End If
     
@@ -116,16 +117,16 @@ Private Function WbServicing(ByVal csa_service As String) As String
         AvailableByDev = Err.Number = 0
         
         On Error GoTo eh
-        If Not csa_service = SERVICE_UPDATE_OUTDATED _
-           And Not csa_service = SERVICE_SYNCHRONIZE Then
+        If Not csa_service = mCompManClient.SRVC_UPDATE_OUTDATED _
+           And Not csa_service = mCompManClient.SRVC_SYNCHRONIZE Then
             '~~ When the requested service is neither update nor synchronize and the CompMan development
             '~~ instance is available it is given priority over a possibly also available CompMan Addin instance.
             Select Case True
                 Case AvailableByDev
-                    WbServicing = COMPMAN_DEVLP
+                    WbServicing = mCompManClient.COMPMAN_DEVLP
                     Result = ResultByDev
                 Case Not AvailableByDev And AvailableByAddin
-                    WbServicing = COMPMAN_ADDIN
+                    WbServicing = mCompManClient.COMPMAN_ADDIN
                     Result = ResultByAddin
             End Select
         Else
@@ -133,17 +134,17 @@ Private Function WbServicing(ByVal csa_service As String) As String
             '~~ is the CompMan development instance the service is only available when the
             '~~ Addin instance is avaialble.
             Select Case True
-                Case AvailableByAddin And ThisWorkbook.Name = COMPMAN_DEVLP
-                    WbServicing = COMPMAN_ADDIN
+                Case AvailableByAddin And ThisWorkbook.Name = mCompManClient.COMPMAN_DEVLP
+                    WbServicing = mCompManClient.COMPMAN_ADDIN
                     Result = ResultByAddin
-                Case AvailableByDev And ThisWorkbook.Name <> COMPMAN_DEVLP
-                    WbServicing = COMPMAN_DEVLP
+                Case AvailableByDev And ThisWorkbook.Name <> mCompManClient.COMPMAN_DEVLP
+                    WbServicing = mCompManClient.COMPMAN_DEVLP
                     Result = ResultByDev
                 Case AvailableByAddin
-                    WbServicing = COMPMAN_ADDIN
+                    WbServicing = mCompManClient.COMPMAN_ADDIN
                     Result = ResultByAddin
                 Case Else
-                    Application.StatusBar = "Update sercvice not available by Addin! (" & COMPMAN_DEVLP & " cannot update its own components)"
+                    DsplyStatus "Update sercvice not available by Addin! (" & mCompManClient.COMPMAN_DEVLP & " cannot update its own components)"
            End Select
         End If
     End If
@@ -155,8 +156,8 @@ Private Function WbServicing(ByVal csa_service As String) As String
             Case AppErr(1), AppErr(2)
                 WbServicing = vbNullString
             Case AppErr(3)
-                Application.StatusBar = csa_service & " ( by " & WbServicing & ") for " & ThisWorkbook.Name & ": " & _
-                                        "Denied! (the corresponding 'Synchronization-Source-Workbook' has not been found in CompMan's 'Serviced-Folder'!"
+                DsplyStatus csa_service & " ( by " & WbServicing & ") for " & ThisWorkbook.Name & ": " & _
+                                        "Denied! (the corresponding 'Sync-Source-Workbook' has not been found in CompMan's 'Serviced-Folder'!"
                 WbServicing = vbNullString
         End Select
     End If
@@ -331,3 +332,11 @@ Private Function IsString(ByVal v As Variant, _
         End If
     End If
 End Function
+
+Private Sub DsplyStatus(ByVal s As String)
+    With Application
+        .StatusBar = vbNullString
+        .StatusBar = s
+    End With
+End Sub
+

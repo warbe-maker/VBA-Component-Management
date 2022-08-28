@@ -107,8 +107,8 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mRaw" & "." & sProc
 End Function
 
-Public Function Exists(ByVal raw_comp_name As String) As Boolean
-    Exists = Components.Exists(raw_comp_name)
+Public Function Exists(ByVal raw_vbc_name As String) As Boolean
+    Exists = Components.Exists(raw_vbc_name)
 End Function
 
 Public Function MaxRawLenght() As Long
