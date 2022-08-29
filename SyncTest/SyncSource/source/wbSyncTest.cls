@@ -8,49 +8,41 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
-
-Private Const HOSTED_RAWS = ""
-Private Const COMPMAN_BY_ADDIN  As String = "CompMan.xlam!mCompMan."
-Private Const COMPMAN_BY_DEVLP  As String = "CompMan.xlsb!mCompMan."
+' ----------------------------------------------------------------------------
+' CompManSyncTest Workbook (module wbSyncTest)
+'
+' While a synchronysation has not been performed and this Workbook resides in
+' CompMan's 'Serviced-Folder' path it is the 'Synchronization-Source-Workbook'.
+' When this Workbook is opened from within CompMan's 'Synchronization-Folder'
+' path it will automatically invoke the synchronization service.
+'
+' W. Rauschenberger, Berlin May 2022
+' ----------------------------------------------------------------------------
 
 Private Sub Workbook_Open()
     
-    '~~ ------------------------------------------------------------------
-    '~~ CompMan Workbook_Open service 'UpdateRawClones':
-    '~~ Executed by the Addin *) or via the development instance when open
-    '~~ *) automatically available only when referenced by the VB-Project
-    CompManService "UpdateRawClones"
-    '~~ ------------------------------------------------------------------
+    '~~ The following statement invokes the named service, provided the Workbook
+    '~~ has been opened from within the 'Serviced-Folder' path and either the
+    '~~ CompMan development instance or the CompMan Addin instance is available
+    '~~ as the servicing Workbook.
+    mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED
     
-xt: Exit Sub
+    '~~ The following statement invokes the named service, provided the Workbook
+    '~~ has been opened from within the 'Synchronize-Folder' path, either the
+    '~~ CompMan development instance or the CompMan Addin instance is available
+    '~~ as the servicing Workbook and the corresponding 'Synchronization-Source-
+    '~~ Workbook' is available (must not be open!) in the 'Serviced-Folder' path.
+    mCompManClient.CompManService mCompManClient.SRVC_SYNCHRONIZE
 
 End Sub
 
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
 
-    '~~ ------------------------------------------------------------------
-    '~~ CompMan Workbook_Before_Save service 'ExportChangedComponents':
-    '~~ Executed by the Addin *) or via the development instance when open
-    '~~ *) automatically available only when referenced by the VB-Project
-    CompManService "ExportChangedComponents"
-    '~~ ------------------------------------------------------------------
-
-xt: Exit Sub
+    '~~ The following statement invokes the named service, provided the Workbook
+    '~~ has been opened from within the 'Serviced-Folder' path and either the
+    '~~ CompMan development instance or the CompMan Addin instance is available
+    '~~ as the servicing Workbook.
+    mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED
 
 End Sub
 
-Private Function CompManService(ByVal service As String) As Boolean
-' ----------------------------------------------------------------------------
-' Execution of the CompMan service (service) preferrably via the CompMan-Addin
-' or when not available alternatively via the CompMan's development instance.
-' ----------------------------------------------------------------------------
-    On Error Resume Next
-    Application.Run COMPMAN_BY_ADDIN & service, ThisWorkbook, HOSTED_RAWS
-    If Err.Number = 1004 Then
-        On Error Resume Next
-        Application.Run COMPMAN_BY_DEVLP & service, ThisWorkbook, HOSTED_RAWS
-        If Err.Number = 1004 Then
-            Application.StatusBar = "CompMan-Service: '" & service & "' neither available by '" & COMPMAN_BY_ADDIN & "' nor by '" & COMPMAN_BY_DEVLP & "' available!"
-        End If
-    End If
-End Function

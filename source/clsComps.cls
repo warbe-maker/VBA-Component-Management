@@ -26,17 +26,17 @@ Public Function All(Optional ByRef a_stats As clsStats = Nothing) As Dictionary
 ' Note: The mDct.DctAdd service orders the items ascending by key (possible
 '       because the key object has a Name property.
 ' ----------------------------------------------------------------------------
-    Dim wb      As Workbook
+    Dim wbk     As Workbook
     Dim vbc     As VBComponent
     Dim Comp    As clsComp
     
-    Set wb = mService.Serviced
-    With wb.VBProject
+    Set wbk = mService.Serviced
+    With wbk.VBProject
         For Each vbc In .VBComponents
             If Not a_stats Is Nothing Then a_stats.Count sic_comps
             Set Comp = New clsComp
             With Comp
-                Set .Wrkbk = wb
+                Set .Wrkbk = wbk
                 .CompName = vbc.Name
                 Set .VBComp = vbc
             End With
@@ -69,7 +69,7 @@ Public Function Changed(Optional ByRef c_stats As clsStats = Nothing) As Diction
     
 End Function
 
-Public Function Outdated(ByVal o_wb_serviced As Workbook, _
+Public Function Outdated(ByVal o_wbk_serviced As Workbook, _
                          Optional ByRef o_stats As clsStats = Nothing) As Dictionary
 ' ----------------------------------------------------------------------------
 ' Returns a Dictionary of all VBComponents in the mService.Serviced Workbook's
@@ -98,7 +98,7 @@ Public Function Outdated(ByVal o_wb_serviced As Workbook, _
             End If
         End With
     Next v
-    If Not o_stats Is Nothing Then o_stats.Count sic_used_comm_comp_Outdated, dct.Count
+    If Not o_stats Is Nothing Then o_stats.Count sic_used_comm_vbc_Outdated, dct.Count
     
 xt: Set Outdated = dct
     Exit Function

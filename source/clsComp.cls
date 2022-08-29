@@ -143,45 +143,24 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Property
 
 Friend Property Get CodeLines() As Dictionary
-' ----------------------------------------------------------
-' Returns the content of an Export-File (Me.ExpFileFullName)
-' as array, considering any kind of line break characters.
-' ----------------------------------------------------------
+' ---------------------------------------------------------------------------
+' Returns the content this VBComponent's Export-File (Me.ExpFileFullName) as
+' Dictionary with the extra Module Information at the beginning and leading/
+' trailing empty code lines removed.
+' ---------------------------------------------------------------------------
     Const PROC = "CodeLines"
-    Const ATTRIB_VB = "Attribute VB_"
 
     On Error GoTo eh
-    Dim i   As Long
-    Dim j   As Long
-    Dim dct As Dictionary
+    Dim dct As New Dictionary
     
     With New FileSystemObject
-        Set dct = mFile.Dict(.GetFile(Me.ExpFileFullName))
+        Set dct = mFile.Dict(Me.ExpFile)
     End With
-    
-    '~~ Remove the extra module information lines
-    For i = dct.Count - 1 To 0 Step -1
-        If Left(dct.Items()(i), Len(ATTRIB_VB)) = ATTRIB_VB Then Exit For
-    Next i
-    
-    For j = 0 To i
-'        Debug.Print dct.Items()(0)
-        dct.Remove dct.Keys()(0)
-    Next j
-    '~~ Remove any leading or trailing empty items
-    If dct.Count = 0 Then GoTo xt
-    While dct.Items()(0) = vbNullString
-        dct.Remove dct.Keys()(0)
-    Wend
-    
-'    Debug.Print dct.Items()(0)
-    
-    ' Remove any trailing empty items
-    While dct.Items()(dct.Count - 1) = vbNullString
-        dct.Remove dct.Keys()(dct.Count - 1)
-    Wend
+    RemoveModuleInfo dct
+    RemoveLeadingTrailingEmptyLines dct
 
 xt: Set CodeLines = dct
+    Set dct = Nothing
     Exit Property
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -189,6 +168,54 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Property
+
+Private Sub RemoveLeadingTrailingEmptyLines(ByRef dct As Dictionary)
+' ------------------------------------------------------------------------------
+' Removes any empty lines (length = 0) from the beginning and the end of a
+' Dictionary (dct).
+' ------------------------------------------------------------------------------
+    Const PROC = "RemoveLeadingTrailingEmptyLines"
+    
+    On Error GoTo eh
+    If dct.Count > 0 Then
+        While Len(Trim(dct.Items()(0))) = 0                 ' Remove leading empty items
+            dct.Remove dct.Keys()(0)
+        Wend
+    End If
+    
+    If dct.Count > 0 Then
+        While Len(Trim(dct.Items()(dct.Count - 1))) = 0     ' Remove trailing empty items
+            dct.Remove dct.Keys()(dct.Count - 1)
+        Wend
+    End If
+    
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Sub RemoveModuleInfo(ByRef dct As Dictionary)
+' ------------------------------------------------------------------------------
+' Remove the extra module information lines from a Dictionary which resulted
+' from the contents of a VBComponent's Export-File.
+' ------------------------------------------------------------------------------
+    Const ATTRIB_VB = "Attribute VB_*"
+    
+    Dim i   As Long
+    Dim j   As Long
+    
+    For i = Min(15, dct.Count - 1) To 0 Step -1
+        If dct.Items()(i) Like ATTRIB_VB Then Exit For
+    Next i
+        
+    For j = 0 To i
+        dct.Remove dct.Keys()(0)
+    Next j
+    
+End Sub
 
 Friend Property Get CodeName( _
               Optional ByVal scn_name As String) As String
@@ -242,11 +269,11 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Get Exists(Optional ByRef ex_wb As Workbook = Nothing) As Boolean
+Friend Property Get Exists(Optional ByRef ex_wbk As Workbook = Nothing) As Boolean
     Dim v As VBComponent
-    If Not ex_wb Is Nothing Then
+    If Not ex_wbk Is Nothing Then
         On Error Resume Next
-        Set v = ex_wb.VBProject.VBComponents(sCompName)
+        Set v = ex_wbk.VBProject.VBComponents(sCompName)
         Exists = Not v Is Nothing
     ElseIf vbc Is Nothing Then
         On Error Resume Next
@@ -258,11 +285,11 @@ Friend Property Get Exists(Optional ByRef ex_wb As Workbook = Nothing) As Boolea
 End Property
 
 Friend Property Get ExistsBySheetName(Optional ByVal eb_name As String) As Boolean
-    Dim ws As Worksheet
-    For Each ws In Me.Wrkbk.Worksheets
-        ExistsBySheetName = ws.Name = eb_name
+    Dim wsh As Worksheet
+    For Each wsh In Me.Wrkbk.Worksheets
+        ExistsBySheetName = wsh.Name = eb_name
         If ExistsBySheetName Then Exit For
-    Next ws
+    Next wsh
 End Property
 
 Friend Property Get ExpFile() As File

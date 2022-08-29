@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} fConfig 
    Caption         =   "CompMan's basic configuration (user specific in Registry )"
-   ClientHeight    =   6030
+   ClientHeight    =   7152
    ClientLeft      =   90
-   ClientTop       =   438
-   ClientWidth     =   11658
+   ClientTop       =   435
+   ClientWidth     =   11655
    OleObjectBlob   =   "fConfig.frx":0000
    StartUpPosition =   1  'Fenstermitte
 End
@@ -19,14 +19,17 @@ Private fso                         As New FileSystemObject
 Private bFolderServicedIsValid      As Boolean
 Private bFolderAddinIsValid         As Boolean
 Private bFolderExportIsValid        As Boolean
+Private bFolderSyncedIsValid        As Boolean
 Private bAddinConfigObligatory      As Boolean
+Private bSyncConfigObligatory       As Boolean
 Private bCanceled                   As Boolean
 
 Private Sub UserForm_Initialize()
     With Me
         .FolderAddin = mConfig.FolderAddin
-        .FolderServiced = mConfig.FolderServiced
+        .FolderServiced = mConfig.ServicedDevAndTestFolder
         .FolderExport = Replace(Split(mConfig.FolderExport, ",")(UBound(Split(mConfig.FolderExport, ","))), "\", vbNullString)
+        .FolderSynced = mConfig.ServicedSyncTargetFolder
         .Caption = "CompMan's basic configuration"
     End With
     VerifyConfig
@@ -36,33 +39,31 @@ Private Sub VerifyConfig()
     FolderServicedVerify
     FolderAddinVerify
     FolderExportVerify
+    FolderSyncedVerify
     If MayBeConfirmed Then Me.cmbConfirmed.Enabled = True
 End Sub
 
 Private Property Get MayBeConfirmed() As Boolean
     With Me
-        If ((bAddinConfigObligatory And FolderAddinIsValid) _
-         Or (.FolderAddin <> vbNullString And FolderAddinIsValid) _
-           ) _
-        And .FolderServicedIsValid _
-        And .FolderExportIsValid _
-        Then
-            MayBeConfirmed = True
-        Else
-            MayBeConfirmed = False
-        End If
+        Select Case True
+            Case (bAddinConfigObligatory And FolderAddinIsValid) Or (.FolderAddin <> vbNullString And FolderAddinIsValid) _
+                 And .FolderServicedIsValid _
+                 And .FolderExportIsValid _
+                 And (bSyncConfigObligatory And FolderSyncedIsValid) Or (.FolderSynced <> vbNullString And FolderSyncedIsValid)
+                MayBeConfirmed = True
+            Case Else
+                MayBeConfirmed = False
+        End Select
     End With
 End Property
 
-Public Property Let AddinConfigObligatory(ByVal b As Boolean)
-    bAddinConfigObligatory = b
-End Property
+Public Property Let AddinConfigObligatory(ByVal b As Boolean):  bAddinConfigObligatory = b:                         End Property
 
-Public Property Get FolderAddin() As String
-    FolderAddin = Me.tbxFolderAddin.Text
-End Property
+Public Property Let SyncConfigObligatory(ByVal b As Boolean):   bSyncConfigObligatory = b:                          End Property
 
-Public Property Let FolderAddin(ByVal s As String):             Me.tbxFolderAddin.Text = s:                 End Property
+Public Property Get FolderAddin() As String:                    FolderAddin = Me.tbxFolderAddin.Text:               End Property
+
+Public Property Let FolderAddin(ByVal s As String):             Me.tbxFolderAddin.Text = s:                         End Property
 
 Private Property Let FolderAddinInfo( _
         Optional ByVal invalid As Boolean = False, _
@@ -75,17 +76,16 @@ Private Property Let FolderAddinInfo( _
     End With
 End Property
 
-Public Property Get FolderAddinIsValid() As Boolean:            FolderAddinIsValid = bFolderAddinIsValid:   End Property
+Public Property Get FolderAddinIsValid() As Boolean:            FolderAddinIsValid = bFolderAddinIsValid:           End Property
 
-Private Property Let FolderAddinIsValid(ByVal b As Boolean):    bFolderAddinIsValid = b:                    End Property
+Private Property Let FolderAddinIsValid(ByVal b As Boolean):    bFolderAddinIsValid = b:                            End Property
 
-Public Property Get FolderExport() As String:                   FolderExport = Me.tbxFolderExport.Text:     End Property
+Public Property Get FolderExport() As String:                   FolderExport = Me.tbxFolderExport.Text:             End Property
 
-Public Property Let FolderExport(ByVal s As String):            Me.tbxFolderExport.Text = s:                End Property
+Public Property Let FolderExport(ByVal s As String):            Me.tbxFolderExport.Text = s:                        End Property
 
-Private Property Let FolderExportInfo( _
-        Optional ByVal invalid As Boolean = False, _
-                 ByVal s As String)
+Private Property Let FolderExportInfo(Optional ByVal invalid As Boolean = False, _
+                                               ByVal s As String)
                  
     With Me.lblFolderExportInfo
         .Caption = s
@@ -94,35 +94,41 @@ Private Property Let FolderExportInfo( _
     End With
 End Property
 
-Public Property Get FolderExportIsValid() As Boolean:           FolderExportIsValid = bFolderExportIsValid: End Property
+Public Property Get FolderExportIsValid() As Boolean:           FolderExportIsValid = bFolderExportIsValid:         End Property
 
-Private Property Let FolderExportIsValid(ByVal b As Boolean):   bFolderExportIsValid = b:                   End Property
+Private Property Let FolderExportIsValid(ByVal b As Boolean):   bFolderExportIsValid = b:                           End Property
 
-Public Property Get FolderServicedIsValid() As Boolean
-    FolderServicedIsValid = bFolderServicedIsValid
+Public Property Get FolderServicedIsValid() As Boolean:         FolderServicedIsValid = bFolderServicedIsValid:     End Property
+
+Private Property Let FolderServicedIsValid(ByVal b As Boolean): bFolderServicedIsValid = b:                         End Property
+
+Public Property Get FolderSyncedIsValid() As Boolean:           FolderSyncedIsValid = bFolderSyncedIsValid:         End Property
+
+Private Property Let FolderSyncedIsValid(ByVal b As Boolean):   bFolderSyncedIsValid = b:                           End Property
+
+Public Property Get FolderSynced() As String:                   FolderSynced = Me.tbxFolderSynced.Text:             End Property
+
+Public Property Let FolderSynced(ByVal s As String):             Me.tbxFolderSynced.Text = s:                       End Property
+
+Private Property Let FolderSyncedInfo(Optional ByVal invalid As Boolean = False, _
+                                               ByVal s As String)
+                 
+    With Me.lblFolderSyncedInfo
+        .Caption = s
+        If s <> vbNullString Then .Visible = True Else .Visible = False
+        If invalid Then .ForeColor = rgbRed Else .ForeColor = rgbBlack
+    End With
 End Property
 
-Private Property Let FolderServicedIsValid(ByVal b As Boolean)
-    bFolderServicedIsValid = b
-End Property
 
-Public Property Get MoveFolderAddin() As Boolean
-    MoveFolderAddin = Me.cbxFolderAddinMove.Value
-End Property
+Public Property Get MoveFolderServiced() As Boolean:            MoveFolderServiced = Me.cbxMoveServicedRoot.Value:  End Property
 
-Public Property Get MoveFolderServiced() As Boolean
-    MoveFolderServiced = Me.cbxMoveServicedRoot.Value
-End Property
+Public Property Get FolderServiced() As String:                 FolderServiced = Me.tbxFolderServiced.Text:         End Property
 
-Public Property Get FolderServiced() As String
-    FolderServiced = Me.tbxFolderServiced.Text
-End Property
+Public Property Let FolderServiced(ByVal s As String):  Me.tbxFolderServiced.Text = s:                      End Property
 
-Public Property Let FolderServiced(ByVal s As String):      Me.tbxFolderServiced.Text = s:          End Property
-
-Private Property Let FolderServicedInfo( _
-        Optional ByVal invalid As Boolean = False, _
-                 ByVal s As String)
+Private Property Let FolderServicedInfo(Optional ByVal invalid As Boolean = False, _
+                                                 ByVal s As String)
     With Me.lblFolderServicedInfo
         .Caption = s
         If s <> vbNullString Then .Visible = True Else .Visible = False
@@ -153,11 +159,9 @@ Private Sub FolderAddinVerify()
             FolderAddinInfo(True) = "Invalid! (the folder does not exist)"
         ElseIf mConfig.FolderAddin <> vbNullString Then
             If StrComp(.FolderAddin, mConfig.FolderAddin, vbTextCompare) <> 0 Then
-                .cbxFolderAddinMove.Visible = True
                 FolderAddinInfo = "The folder for the CompMan Addin instance is about to change from '" & mConfig.FolderAddin & "' " & _
                                   "to '" & .FolderAddin & "'!"
             Else
-                .cbxFolderAddinMove.Visible = False
                 FolderAddinInfo = "Folder for the CompMan Addin instance. Defaults to the current Application.AltStartupPath " & _
                                   "if one is already specified. I.e. any selected folder becomes the Application.AltStartupPath. " & _
                                   "Take into account when altered!"
@@ -177,6 +181,18 @@ Private Sub cmbFolderAddin_Click()
         s = mBasic.SelectFolder("Select the folder for the 'CompMan-Addin-Instance'")
         If s <> vbNullString Then
             .FolderAddin = s
+        End If
+    End With
+    VerifyConfig
+
+End Sub
+
+Private Sub cmbFolderSynced_Click()
+    Dim s As String
+    With Me
+        s = mBasic.SelectFolder("Select the folder for CompMan's 'Synchronization' service")
+        If s <> vbNullString Then
+            .FolderSynced = s
         End If
     End With
     VerifyConfig
@@ -246,10 +262,10 @@ Private Sub FolderServicedVerify()
             FolderServicedInfo(True) = "Invalid! (folder does not exist)"
             .cmbConfirmed.Enabled = False
         ElseIf mConfig.FolderExport <> vbNullString _
-            And StrComp(.FolderServiced, mConfig.FolderServiced, vbTextCompare) <> 0 Then
+            And StrComp(.FolderServiced, mConfig.ServicedDevAndTestFolder, vbTextCompare) <> 0 Then
             .cbxMoveServicedRoot.Visible = True
             FolderServicedIsValid = True
-            FolderServicedInfo = "The serviced root folder is about to chasnge from '" & mConfig.FolderServiced & "' " & _
+            FolderServicedInfo = "The serviced root folder is about to chasnge from '" & mConfig.ServicedDevAndTestFolder & "' " & _
                                      "to '" & .FolderServiced & "'! Moving all content to new folder may be appropriate."
             .cmbConfirmed.Enabled = True
         Else
@@ -257,6 +273,40 @@ Private Sub FolderServicedVerify()
             FolderServicedIsValid = True
             FolderServicedInfo = "Folder in which Workbook/Workbook folder must be located for being supported by CompMan"
             .cmbConfirmed.Enabled = True
+        End If
+    End With
+
+End Sub
+
+Private Sub FolderSyncedVerify()
+' ----------------------------------------------------------------------------
+' Verification of the current configured 'Synchronization-Folder'
+' ----------------------------------------------------------------------------
+    With Me
+        FolderSyncedIsValid = False
+        
+        If .FolderSynced = vbNullString Then
+            FolderSyncedInfo(True) = "Not yet configured! Folder in which a Workbook/Workbook-Folder " & _
+                                     "must be located for being considered by CompMan's 'Synchronization' service."
+            .cmbConfirmed.Enabled = True
+        ElseIf Not fso.FolderExists(.FolderSynced) Then
+            FolderSyncedInfo(True) = "Invalid! (the currently configured 'Synchronization' folder does not exist)"
+            .cmbConfirmed.Enabled = False
+        ElseIf .FolderServiced <> vbNullString Then ' a 'serviced' folder is already configured
+            If InStr(.FolderSynced, .FolderServiced) <> 0 Then
+                FolderSyncedIsValid = False
+                FolderSyncedInfo(True) = "The folder for CompMan's 'Synchronization' service must not be a sub-folder " & _
+                                         "of the 'Serviced' folder! (both may have the same root folder however)"
+                .cmbConfirmed.Enabled = False
+            Else
+                .cmbConfirmed.Enabled = True
+                FolderSyncedInfo = "Current configured folder. Any Workbook opened from within this folder will be considered " & _
+                                   "by CompMan's 'Synchronization' service - provided all required preconditions are met."
+                FolderSyncedIsValid = True
+            End If
+        Else
+            .cmbConfirmed.Enabled = True
+            FolderSyncedIsValid = True
         End If
     End With
 

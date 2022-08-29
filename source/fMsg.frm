@@ -540,15 +540,9 @@ Public Property Let NewHeight(Optional ByRef nh_frame_form As Object, _
     If Not IsFrameOrForm(nh_frame_form) _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided argument is neither a Frame nor a Form!"
         
-'    Debug.Print "nh_frame_form.Name   = " & nh_frame_form.Name
-'    Debug.Print "nh_frame_form.Height = " & nh_frame_form.Height
-'    Debug.Print "siContentHeight      = " & siContentHeight
     nh_frame_form.Height = nh_height
-'    Debug.Print "New frame height     = " & nh_frame_form.Height
-'    Debug.Print "V-Scroll             = " & ScrollVscrollApplied(nh_frame_form)
     
     If siContentHeight - nh_frame_form.Height > nh_threshold_height_diff Then
-        Debug.Print "apply a vertical scroll-bar for " & nh_frame_form.Name
         ScrollVscrollApply sva_frame_form:=nh_frame_form, sva_content_height:=siContentHeight, sva_y_action:=nh_y_action
     ElseIf ScrollVscrollApplied(nh_frame_form) Then
         ScrollVscrollRemove nh_frame_form
@@ -578,12 +572,7 @@ Private Property Let NewWidth(Optional ByRef nw_frame_form As Object, _
     If nw_frame_form Is Nothing Then Err.Raise AppErr(1), ErrSrc(PROC), "The required argument 'nw_frame_form' is Nothing!"
     If Not IsFrameOrForm(nw_frame_form) Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided argument 'nw_frame_form' is neither a Frame nor a Form!"
     
-'    Debug.Print "nw_frame_form.Name  = " & nw_frame_form.Name
-'    Debug.Print "nw_frame_form.Width = " & nw_frame_form.Width
-'    Debug.Print "siContentWidth      = " & siContentWidth
     nw_frame_form.Width = nw_width
-'    Debug.Print "New frame width     = " & nw_frame_form.Width
-'    Debug.Print "H-Scroll            = " & ScrollHscrollApplied(nw_frame_form)
 
     If siContentWidth - nw_frame_form.Width > nw_threshold_width_diff Then
         ScrollHscrollApply sha_frame_form:=nw_frame_form, sha_content_width:=siContentWidth
@@ -1245,7 +1234,6 @@ Private Sub Collect(ByRef col_into As Variant, _
                         Case "Dictionary"
                             i = col_into.Count + 1
                             col_into.Add i, ctl
-'                            Debug.Print col_into.Count & ": " & ctl.Name
                         Case Else
                             Set col_into = ctl
                             Exit For
@@ -1346,7 +1334,6 @@ Private Sub CollectDesignControls()
             Set cmb = frm.Controls(lBttn)
             sKey = lRow & "-" & lBttn + 1
             dctBttns.Add sKey, cmb
-'            Debug.Print "Button " & sKey & ": " & cmb.Name
         Next lBttn
     Next lRow
     
@@ -1486,7 +1473,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -2234,7 +2221,7 @@ Private Sub ShowAtRange(ByVal sar_rng As Range)
     ConvertPixelsToPoints PosLeft, PosTop, PosLeft, PosTop
 
     With Me
-       .StartupPosition = 0
+       .StartUpPosition = 0
        .Left = PosLeft
        .Top = PosTop
     End With
@@ -2273,12 +2260,19 @@ Public Sub PositionOnScreen(Optional ByVal pos_top_left As Variant = 3)
             pos_top = CLng(Trim(Split(pos_top_left, ";")(0)))
             pos_left = CLng(Trim(Split(pos_top_left, ";")(1)))
             With Me
-                .StartupPosition = enManual
+                .StartUpPosition = 0
+                .Top = Application.Top + 5
+                .Left = Application.Left + 5
                 .Left = pos_left
                 .Top = pos_top
             End With
         Case IsNumeric(pos_top_left)
-            Me.StartupPosition = pos_top_left
+            With Me
+                .StartUpPosition = 0
+                .Top = Application.Top + 5
+                .Left = Application.Left + 5
+                .StartUpPosition = pos_top_left
+            End With
     End Select
     
     '~~ First make sure the bottom right fits,
@@ -2382,7 +2376,6 @@ Private Sub ScrollHscrollApply(ByRef sha_frame_form As Variant, _
         
     With sha_frame_form
         If Not ScrollHscrollApplied(sha_frame_form) Then
-            Debug.Print "apply a horizontal scroll-bar for " & sha_frame_form.Name
             Select Case .ScrollBars
                 Case fmScrollBarsBoth
                     .KeepScrollBarsVisible = fmScrollBarsBoth
@@ -2494,8 +2487,6 @@ Private Sub ScrollVscrollApply(ByRef sva_frame_form As Variant, _
             .Width = ContentWidth(sva_frame_form) + ScrollVscrollWidth(sva_frame_form)
         End If
     End With
-    Debug.Print "Height Frame   = " & sva_frame_form.Height
-    Debug.Print "Height Scroll  = " & sva_content_height
 
 xt: Exit Sub
     
@@ -2616,14 +2607,11 @@ Private Sub ScrollVscrollWhereApplicable()
                 ScrollVscrollMsgSectionOrArea TotalExceedingHeight
             ElseIf PrcntgHeightfrmBttnsArea >= 0.6 Then
                 '~~ Only the buttons area will be reduced and applied with a vertical scrollbar.
-'                Debug.Print frmBttnsArea.Height - TotalExceedingHeight
                 NewHeight(frmBttnsArea) = frmBttnsArea.Height - TotalExceedingHeight
             Else
                 '~~ Both, the message area and the buttons area will be
                 '~~ height reduced proportionally and applied with a vertical scrollbar
-'                Debug.Print frmMsectsArea.Height - (TotalExceedingHeight * PrcntgHeightMsgArea)
                 NewHeight(frmMsectsArea) = frmMsectsArea.Height - (TotalExceedingHeight * PrcntgHeightMsgArea)
-'                Debug.Print frmBttnsArea.Height - (TotalExceedingHeight * PrcntgHeightfrmBttnsArea)
                 NewHeight(frmBttnsArea) = frmBttnsArea.Height - (TotalExceedingHeight * PrcntgHeightfrmBttnsArea)
             End If
         End With
@@ -2647,7 +2635,7 @@ Public Sub Setup()
     IndicateFrameCaptionsSetup bIndicateFrameCaptions ' may be True for test purpose
     
     '~~ Start the setup as if there wouldn't be any message - which might be the case
-    Me.StartupPosition = 2
+    Me.StartUpPosition = 2
     Me.Height = 200                             ' just to start with - specifically for test purpose
     Me.Width = siMsgWidthMin
     
@@ -3015,7 +3003,6 @@ Private Sub SetupMsgSect()
                 
         If MsgSectLbl.Text <> vbNullString Then
             MsectLbl.Visible = True
-'            Debug.Print MsectLbl.Name
             With MsectLbl
                 .Left = 10
                 .Width = Me.InsideWidth - (siHmarginFrames * 2)
@@ -3153,7 +3140,6 @@ Private Sub SetupMsgSectPropSpaced(Optional ByVal msg_append As Boolean = False,
     frmMsectsArea.Width = Me.InsideWidth
     MsectFrm.Width = frmMsectsArea.Width
     MsectTbxFrm.Width = MsectFrm.Width - 5
-'    Debug.Print "MsectTbxFrm.Width = " & MsectTbxFrm.Width
     
     frmBttnsArea.Top = frmMsectsArea.Top + frmMsectsArea.Height + 20
     Me.Height = frmBttnsArea.Top + frmBttnsArea.Height + 20
@@ -3481,7 +3467,6 @@ Private Function TimedDoEvents(ByVal tde_source As String) As String
       & " DoEvents paused the execution for " _
       & Format(TimerEnd, "00000") _
       & " msecs in '" & tde_source & "'"
-    Debug.Print s
     TimedDoEvents = s
     
 End Function
@@ -3509,14 +3494,11 @@ Private Sub ApplicationRunViaButton(ByVal ar_button As String)
     Dim sButton     As String
     
     sButton = Replace(Replace(ar_button, vbCrLf, "|"), vbLf, "|")
-    Debug.Print "Button:   '" & sButton & "'"
     For i = 0 To dctApplicationRunArgs.Count - 1
         sKey = Replace(Replace(dctApplicationRunArgs.Keys()(i), vbCrLf, "|"), vbLf, "|")
         If sKey = sButton Then
             Set cll = dctApplicationRunArgs.Items()(i)
             sService = cll(1).Name & "!" & cll(2)
-            Debug.Print "Key     : '" & sKey & "'"
-            Debug.Print "sService:   " & sService
             
             Select Case cll.Count
                 Case 2: Application.Run sService                 ' service call without arguments

@@ -478,7 +478,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -558,61 +558,66 @@ Private Function DctAddOrderValue(ByVal dctkey As Variant, _
 
 End Function
 
-Public Function DctDiffers( _
-                ByVal dct1 As Dictionary, _
-                ByVal dct2 As Dictionary, _
-       Optional ByVal diffitems As Boolean = True, _
-       Optional ByVal diffkeys As Boolean = True) As Boolean
-' ----------------------------------------------------------
-' Returns TRUE when Dictionary 1 (dct1) is different from
-' Dictionary 2 (dct2). diffitems and diffkeys may be False
-' when only either of the two differences matters.
-' When both are false only a differns in the number of
-' entries constitutes a difference.
-' ----------------------------------------------------------
-Const PROC  As String = "DictDiffers"
-Dim i       As Long
-Dim v       As Variant
-
+Public Function DctDiffers(ByVal dd_dct1 As Dictionary, _
+                           ByVal dd_dct2 As Dictionary, _
+                  Optional ByVal dd_diff_items As Boolean = True, _
+                  Optional ByVal dd_diff_keys As Boolean = True, _
+                  Optional ByVal dd_ignore_items_empty As Boolean = False, _
+                  Optional ByVal dd_ignore_case As Boolean = False) As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when Dictionary-1 (dd_dct1) differs from Dictionary-2 (dd_dct2).
+' - With the option 'Different Items' (dd_diff_items) = TRUE a difference is
+'   constituted by different items
+' - With the option 'Different Keys' (dd_diff_keys) = TRUE the difference is
+'   constituted by different keys
+' - When both options are FALSE a difference is constituted by a different number
+'   of entries
+' Note: When the compared item or key is an object the difference considers by
+'       different object names. When the objects do not have a Name property
+'       the difference considers different object
+' ------------------------------------------------------------------------------
+    Const PROC = "DictDiffers"
+    
     On Error GoTo eh
+    Dim i       As Long
+    Dim v       As Variant
     
-    '~~ Difference in entries
-    DctDiffers = dct1.Count <> dct2.Count
-    If DctDiffers Then GoTo xt
-    
-    If diffitems Then
-        '~~ Difference in items
-        For i = 0 To dct1.Count - 1
-            If VarType(dct1.Items()(i)) = vbObject And VarType(dct1.Items()(i)) = vbObject Then
-                DctDiffers = Not dct1.Items()(i) Is dct2.Items()(i)
-                If DctDiffers Then GoTo xt
-            ElseIf (VarType(dct1.Items()(i)) = vbObject And VarType(dct1.Items()(i)) <> vbObject) _
-                Or (VarType(dct1.Items()(i)) <> vbObject And VarType(dct1.Items()(i)) = vbObject) Then
-                DctDiffers = True
-                GoTo xt
-            ElseIf dct1.Items()(i) <> dct2.Items()(i) Then
-                DctDiffers = True
-                GoTo xt
-            End If
-        Next i
+    If dd_ignore_items_empty Then
+        '~~ Remove empty items (items with a lenght = 0) from both Dictionaries
+        mDct.RemoveEmptyItems dd_dct1
+        mDct.RemoveEmptyItems dd_dct2
     End If
     
-    If diffkeys Then
-        '~~ Difference in keys
-        For i = 0 To dct1.Count - 1
-            If VarType(dct1.Keys()(i)) = vbObject And VarType(dct1.Keys()(i)) = vbObject Then
-                DctDiffers = Not dct1.Keys()(i) Is dct2.Keys()(i)
-                If DctDiffers Then GoTo xt
-            ElseIf (VarType(dct1.Keys()(i)) = vbObject And VarType(dct1.Keys()(i)) <> vbObject) _
-                Or (VarType(dct1.Keys()(i)) <> vbObject And VarType(dct1.Keys()(i)) = vbObject) Then
-                DctDiffers = True
-                GoTo xt
-            ElseIf dct1.Keys()(i) <> dct2.Keys()(i) Then
-                DctDiffers = True
-                GoTo xt
-            End If
-        Next i
-    End If
+    Select Case True
+        Case Not dd_diff_items And Not dd_diff_keys
+            '~~ A difference is constituted only by a different number of entries
+            DctDiffers = dd_dct1.Count <> dd_dct2.Count
+        Case dd_diff_items And Not dd_diff_keys
+            '~~ A difference is constituted by different items
+            For i = 0 To dd_dct1.Count - 1
+                If Differs(dd_dct1.Items()(i), dd_dct2.Items()(i), dd_ignore_items_empty) Then
+                    DctDiffers = True
+                    Exit For
+                End If
+            Next i
+    
+        Case dd_diff_keys And Not dd_diff_items
+            '~~ A difference is constituted by different keys
+            For i = 0 To dd_dct1.Count - 1
+                If Differs(dd_dct1.Keys()(i), dd_dct2.Keys()(i)) Then
+                    DctDiffers = True
+                    Exit For
+                End If
+            Next i
+    
+        Case dd_diff_keys And dd_diff_items
+            '~~ A difference is constituted by different keys and different items
+            For i = 0 To dd_dct1.Count - 1
+                DctDiffers = Differs(dd_dct1.Keys()(i), dd_dct2.Keys()(i)) _
+                         And Differs(dd_dct1.Items()(i), dd_dct2.Items()(i), dd_ignore_items_empty)
+                If DctDiffers Then Exit For
+            Next i
+    End Select
        
 xt: Exit Function
     
@@ -620,6 +625,50 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Function
+
+Public Sub RemoveEmptyItems(ByRef dct As Dictionary)
+' ------------------------------------------------------------------------------
+' Removes all empty items (type string lenght = 0) from a Dictionary (dct).
+' ------------------------------------------------------------------------------
+    Dim v As Variant
+    For Each v In dct
+        If VarType(dct(v)) = vbString Then
+            If Len(Trim(dct(v))) = 0 Then
+                dct.Remove v
+            End If
+        End If
+    Next v
+
+End Sub
+
+Private Function Differs(ByVal v1 As Variant, _
+                         ByVal v2 As Variant, _
+                Optional ByVal ignore_case As Boolean = False, _
+                Optional ByVal ignore_empty As Boolean = False) As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when v1 differs from v2. When v1 and v2 is an object TRUE is
+' returned when objects' Name differ, when the objects do not have a Name
+' property TRUE is returned when the objects are different.
+' ------------------------------------------------------------------------------
+    Select Case True
+        Case VarType(v1) = vbObject And VarType(v2) = vbObject
+            On Error Resume Next
+            Differs = v1.Name <> v2.Name
+            If Err.Number <> 0 _
+            Then Differs = Not v1 Is v2
+        Case (VarType(v1) = vbObject And VarType(v1) <> vbObject)
+            Differs = True
+        Case (VarType(v1) <> vbObject And VarType(v1) = vbObject)
+            Differs = True
+        Case VarType(v1) = vbString And VarType(v2) = vbString
+            If ignore_case _
+            Then Differs = StrComp(v1, v2, vbTextCompare) _
+            Else Differs = StrComp(v1, v2, vbBinaryCompare)
+        Case Else
+            Differs = v1 <> v2
+    End Select
+                         
 End Function
 
 Private Function DctAddItemExists( _

@@ -59,7 +59,7 @@ Public Function UpdateConfirmed(ByRef uo_comp As clsComp) As Boolean
             .Label.Text = "About this update:"
             .Text.Text = "When the update of the outdated 'Used Common Component'  " & mBasic.Spaced(sCompName) & "  " & _
                          "is skipped the request will be displayed again the next time this Workbook is opened " & _
-                         "(from within the configured 'Serviced Folder' " & mConfig.FolderServiced & "."
+                         "(from within the configured 'Serviced Folder' " & mConfig.ServicedDevAndTestFolder & "."
         End With
     End With
     

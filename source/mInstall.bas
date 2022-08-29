@@ -3,7 +3,7 @@ Option Explicit
 
 Private Const BTT_INST_DONE = "Done"
 
-Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
+Public Sub CommonComponents(Optional ByRef ic_wbk As Workbook)
 ' -----------------------------------------------------------
 ' Installs one or more 'Common-Componernts' by importing the
 ' selected 'Raw-Component's Export-File.
@@ -17,7 +17,7 @@ Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
     Dim vReply  As Variant
     Dim sMsg    As TypeMsg
     
-    If ic_wb Is Nothing Then Set ic_wb = ActiveWorkbook
+    If ic_wbk Is Nothing Then Set ic_wbk = ActiveWorkbook
     If mMe.IsAddinInstnc Then GoTo xt
     
     For Each v In mComCompsRawsSaved.Components
@@ -25,7 +25,7 @@ Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
             cll.Add vbLf
             i = 0
         End If
-        If Not mComp.Exists(ic_wb, v) Then
+        If Not mComp.Exists(ic_wbk, v) Then
             cll.Add v
             i = i + 1
         End If
@@ -37,19 +37,19 @@ Public Sub CommonComponents(Optional ByRef ic_wb As Workbook)
     sMsg.Section(2).Text.Text = "The selection contains all known 'Raw-Components/Common-Components' which are not already installed " & _
                             "(i.e. imported). Any components missed may either not be indicated 'hosted' in any Workbook or the Workbook " & _
                             "does not reside within the configured 'Serviced-Root-Folder'" & vbLf & _
-                            "(currently  " & mBasic.Spaced(mConfig.FolderServiced) & "  )."
+                            "(currently  " & mBasic.Spaced(mConfig.ServicedDevAndTestFolder) & "  )."
     
     Do
         If Not mMsg.IsValidMsgButtonsArg(cll) Then Stop
-        vReply = mMsg.Dsply(dsply_title:="Select one of the available 'Raw-Components/Common-Components') yet not installed in '" & ic_wb.Name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
+        vReply = mMsg.Dsply(dsply_title:="Select one of the available 'Raw-Components/Common-Components') yet not installed in '" & ic_wbk.Name & "' or press '" & VBA.Replace(BTT_INST_DONE, vbLf, " ") & "'" _
                         , dsply_msg:=sMsg _
                         , dsply_buttons:=cll _
                          )
         Select Case vReply
             Case BTT_INST_DONE: Exit Do
             Case Else
-                mRenew.ByImport bi_wb_serviced:=ic_wb _
-                              , bi_comp_name:=vReply _
+                mRenew.ByImport bi_wbk_serviced:=ic_wbk _
+                              , bi_vbc_name:=vReply _
                               , bi_exp_file:=mComCompsRawsSaved.SavedExpFileFullName(vReply)
         End Select
     Loop

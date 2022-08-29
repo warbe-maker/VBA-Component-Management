@@ -35,61 +35,70 @@ The service also checks whether a  _Used&nbsp;Common&nbsp;Component_ has been mo
 ### The _UpdateOutdatedCommonComponents_ service
 Used with the _Workbook\_Open_ event all  _Used&nbsp;Common&nbsp;Components_ are checked whether they are outdated. In case a dialog is displayed which allows to display the code difference (by means of WinMerge) perform the update or skip it. The update uses the  _Export&nbsp;File_ of the _Raw&nbsp;Common&nbsp;Component_ in the _Common&nbspComponents_ folder. This service is the core service and most critical service provided by CompMan. Excel may every now and then close the serviced Workbook when code is updated. Fortunately the Workbook can be opened again and the update service continues.  
 
-### The _SynchTargetWbWithSourceWb_ service
+### The _Synchronize Workbooks_ service
 
+#### General
 The service allows a productive Workbook to remain in use while its VB-Project is developed/modified/maintained in a copy of it. When all changed had been done the productive version is synchronized with the changed copy with the benefit of a significantly shorter downtime for the productive Workbook. 
-> Because this is a mere development service it has no user interface. The service is invoked  from the _Immediate&nbsp;Window_ of the VB Editor when the _[CompMan.xlsb][1]_ Workbook is open by entering `mCompMan.SynchTargetWbWithSourceWb`.
+> The service has no user interface. The service is invoked when the _Sync-Target-Workbook_ (prepared for the service!) is opened from within the configured _Synchronization Target Folder_ while the _Sync-Source-Workbook_ (its dedicated Workbook folder respectively) resides in the _Serviced Development & Test Folder_.
 
-A dialog will open for the selection of the _Source&#8209;Workbook_ and the _Target&#8209;Workbook_. Source is the Workbook with the up-to-date code and target is the Workbook to be synchronized (selected Workbooks may already be open). To avoid a possible irritation, having opened the source Workbook beforehand may be appropriate. In case there are some outdated _Used&nbsp;Common&nbsp;Components_ the update service will run and display a confirmation dialog.
-> It is not recommendable to also have the _Target Workbook_ moved or copied into the _Serviced&nbsp;Folder_. When it is opened therein all outdated _Used&nbsp;Common&nbsp;Components_ would immediately be updated. But this should rather be done by the synchronization.
+#### Synchronization extent
 
-The synchronization is done to  the following extent:
-
-| Synchronized item                  | Extent of synchronization |
+| Synchronized item                  | Synchronization details |
 |------------------------------------|---------------------------|
-| _References_                       | Complete (new References are added, obsolete References are removed  |
-| _Component&nbsp;types:<br>-&nbsp;Standard&nbsp;Module_<br>-&nbsp;_Class&nbsp;Modules_<br>\-&nbsp;_UserForm_| Complete (new components are added, obsolete components are deleted, and changed components are replaced |
-| _Data&nbsp;Modules_                |**Workbook**: Code change<br>**Worksheet**: New, obsolete, and code changes (see [restrictions](#worksheet-synchronization-restrictions) below) |
-| _Shapes_                           | New, obsolete, (properties, though largely covered may still be incomplete) |
-| _ActiveX&nbsp;Controls_            | New, obsolete, (properties, though largely covered may still be incomplete) |
-| _Range&nbsp;Names_                 | Obsolete, new only when it is asserted that all relevant columns and rows are synced beforehand (pending implementation, see Worksheet synchronization below) |
+| _References_                       | New References are added and obsolete References are removed  |
+| _Components_                       | All types (_Standard&nbsp;Module_, _Data&nbsp;Module_, _Class&nbsp;Module_, _UserForm_). New components are added, obsolete components are removed, and of changed components the code is updated. |
+| _Worksheets_                       | New Worksheets are added, obsolete Worksheets are removed, changed Worksheet Names are synchronized, changed Worksheet-Code-Names are synchronized (see [restrictions](#worksheet-synchronization-restrictions) below).|
+| _Sheet-Shapes_                     | New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed, the Properties of all Shapes are synchronized (though largely covered may still be incomplete) |
+| _Range&nbsp;Names_                 | New Range-Names are added, obsolete Range-Names are removed. Attention! The synchronization of new Range-Names which concern new columns or rows depend on (manually beforehand) synced new rows and columns!|
 | _Named&nbsp;Range&nbsp;Properties_ | Named ranges already in sync (currently implemented)
 
-#### Worksheet synchronization restrictions
-- While the code of a sheet is fully synchronized, design changes such like the insertion of new columns or rows as well as any formatting changes remain a manual task.
-- A Worksheet's _Name_ may be changed as well as its _CodeName_. However, when both are changed this would be interpreted as new sheet and the old sheet will be seen as obsolete - which in such a case is definitely not what was intended. In order to avoid a synchronization disaster in such case an explicit assertion is requested that only one of the two but never both are changed at a time.
+> ***Worksheet synchronization restriction!***  
+Never change both, the _Name_ ***and*** the _CodeName_ of a Worksheet! When a Worksheet's _Name_ ***and*** its _CodeName_ is changed at the same time the concerned sheet will be considered new and the (no longer identifiable as such) corresponding sheet will be considered obsolete - which in such a case is definitely not what was intended.
 
-## Installation
-1. Download and open [CompMan.xlsb][1] <br> When the Workbook is opened for the first time it will show a dialog for the required _Basic Configuration_. Either the open Workbook is used or an Addin instance of it may be setup which then will be available when Excel is started (requires the next step). 
+## Installation, provision of the CompMan services
+1. Download and open [CompMan.xlsb][1] <br> When the Workbook is opened for the first time it will show a dialog for the required _Basic Folders Configuration_. Either the open Workbook is used or an Addin instance of it may be setup which then will be available when Excel is started (requires the next step). 
 
-2. Use the _Setup/Renew_ button on the displayed Worksheet to establish the _CompMan_ as _Addin_ . The service requires to re-confirm the [basic configuration](#basic-configuration). Once _CompMan_ had been established as _Addin_ the services will be available when Excel starts - unless it is not removed from the _Addin&nbsp;Folder_.
+2. Optionally: Use the _Setup/Renew_ button on the displayed Worksheet to establish _CompMan_ as _Addin_ . This Setup/Renew requires to configure or re-confirm the [Basic Folders Configuration](#basic-folders-configuration). Once _CompMan_ had been established as _Addin_ the services will be available when Excel starts - needless to say: unless it is not removed from the [_Addin&nbsp;Folder_](#basic-folders-configuration).
 
 ## Usage
 
-> #### Serviced or not serviced
-> Even when a Workbook is prepared for being serviced by _CompMan_ **nothing at all will happen** when the Workbook resides outside the _Serviced Folder_. In other words, when the Workbook becomes productive it should be copied to another location in order not to be bothered by CompMan services. 
+> ***Serviced or not serviced?***  
+Even when a Workbook is prepared for being serviced by _CompMan_ **nothing at all will happen** when the Workbook resides outside the configured  [_Serviced Development & Test Folder_](#basic-folders-configuration) - or, in case of the _Synchronization-Service_, outside the configured [_Serviced Synchronization Target Folder_](#basic-folders-configuration). Consequently, a productive Workbook should not reside in a serviced folder and should not be opened from therein. 
 
-### Preconditions for any Workbook for being serviced by _CompMan_
+### Preconditions for Workbooks for being serviced by CompMan
 
-1. The Workbook must be located in the configured [Serviced Folder](#basic-configuration) 
-2. The Workbook must resides exclusively in its dedicated folder, in other words it must be the only Workbook in its parent folder
+1. The _[mCompManClient.bas][3]_ had been downloaded and imported. <br>The _mCompManClient_ module serves as the link to the CompMan services.
+2. For all three services: The Workbook (its dedicated folder respectively) resides in the configured [_Serviced Development & Test Folder_](#basic-folders-configuration) and is opened from there. Note: For the _Synchronization Service_ this Workbook serves as the _Sync-Source-Workbook_.
+3. For the _Synchronization_ service specifically: The Workbook resides (had explicitly and temporarily for this purpose moved to) the configured [_Serviced Synchronization Target Folder_](#basic-folders-configuration) and is opened from there
+3. The Workbook resides in its dedicated folder (i.e. it is the only Workbook in its parent folder)
 4. Either the  _[CompMan.xlsb][1]_ Workbook is open or _CompMan_ had been setup as _Addin_
 5. [WinMerge English][4] ([WinMerge German][5]) is installed
-6. The _[mCompManClient.bas][3]_ has been downloaded and imported <br>This component is the link to the services either provided by the _CompMan-Addin_ or directly by the _[CompMan.xlsb][1]_ Workbook
-7. The Workbook component is prepared as follows<br>
+6. The Workbook module is prepared as follows<br>
 ```vb
-Private Const HOSTED_RAWS = "mFile" ' The hosted 'Raw Common Components' (comma delimited if any)
+' In case the Workbook hosts Raw Common Components, else `HOSTED_RAWS = vbNullString`
+Private Const HOSTED_RAWS = "xxx,yyy,zzz" ' The hosted 'Raw Common Components' (comma delimited if any)
 
 Private Sub Workbook_Open()
-    mCompManClient.CompManService "UpdateOutdatedCommonComponents", HOSTED_RAWS
+    '~~ The below statement has no effect unless this (the Workbook serviced by CompMan)
+    '~~ is opened from within the configured 'Serviced Development & Test Folder'.
+    mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, HOSTED_RAWS
+    
+    '~~ The below statement has no effect unless this (the Workbook being synchronized by CompMan)
+    '~~ is opened from within the configured 'Serviced Synchronization Target Folder'.
+    '~~ The statement is only required for a Workbook which may be synchronized
+    mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, HOSTED_RAWS
 End Sub
 
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
-    mCompManClient.CompManService "ExportChangedComponents", HOSTED_RAWS
+    '~~ The below statement has no effect unless this (the Workbook serviced by CompMan)
+    '~~ had been opened from within the configured 'Serviced Development & Test Folder'.
+    mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
 End Sub
 ```
 
 Note that `HOSTED_RAWS = vbNullString` when the Workbook does not host a _Raw&nbsp;Common&nbsp;Component_.
+
+#### Precondition for _CompMan's Synchronize Workbooks_ service
 
 ### Other
 
@@ -103,14 +112,14 @@ CompMan is pretty much focused on _Common&nbsp;Components_. In order to prevent 
 Use the corresponding command buttons when the Workbook [CompMan.xlsb][1] is open. Pausing the Addin is only a CompMan development feature. When the Addin is paused while the [CompMan.xlsb][1] is open CompMan works as if the Addin were not setup which means the services are directly provided by the open [CompMan.xlsb][1]. When the [CompMan.xlsb][1] Workbook is closed and an Addin had been setup the Addin will be _continued_ automatically. This ensures that the Addin is available for the [CompMan.xlsb][1] Workbook when it is opened again.
 > The _CompMan Addin_ is the only means which allows to update outdated _Used&nbsp;Common&nbsp;Components_ in the [CompMan.xlsb][1] Workbook. I.e. the development instance of the Addin.
 
-#### Basic configuration
-Stored in the Registry under the Base-Key _HKCU\SOFTWARE\CompManVBP\BasicConfig\_
+#### Basic Folders Configuration
 
-| Item | Description |
-|------|-------------|
-| _Serviced&nbsp;Folder_ | The folder in which a Workbook (its dedicated folder respectively) must be located in order to get serviced by CompMan. |
-| _Addin&nbsp;Folder_ | Obligatory only when CompMan is Setup/Renewed. This folder defaults to the _Application.AltStartupPath_ when one is already specified/in use. The specified or confirmed folder is (or becomes) the _Application.AltStartupPath_. |
+| Folder | Description |
+|--------|-------------|
+| _Serviced&nbsp;Development&nbsp;&&nbsp;Test&nbsp;Folder_ | The folder in which a Workbook (the dedicated Workbook-Folder respectively) must be located for the CompMan services _Export Changed Components_ and or _Update Outdated Components_. |
+| _Addin&nbsp;Folder_ | Obligatory only when CompMan's Addin-Instance is Setup/Renewed. This folder defaults to the _Application.AltStartupPath_ when one is already specified or in use repectively. The specified or confirmed folder is (or becomes) the _Application.AltStartupPath_. |
 | _Export&nbsp;Folder_ | Name of the folder (defaults to _source_) for the _Export Files_ of new or modified components.<br>Note: CompMan only exports new or modified components. |
+| _Serviced&nbsp;Synchronization&nbsp;Target&nbsp;Folder_ | The folder in which a _Sync-Target-Workbook_ must reside for the CompMan service _Synchronize Workbooks_ | 
 
 #### Summary of CompMan specific files
 

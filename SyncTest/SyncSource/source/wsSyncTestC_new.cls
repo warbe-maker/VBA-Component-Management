@@ -7,6 +7,9 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
-Private Sub ToggleButton1_Click()
+Option Explicit
 
+Public Sub ControlButtonFormControl_Test_C_Klicken()
+    MsgBox "ControlButtonFormControl_Test_C has been clicked!"
 End Sub
+

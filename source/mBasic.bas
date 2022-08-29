@@ -181,7 +181,7 @@ Public Function Align( _
 
 End Function
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
+Public Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
 ' Ensures that a programmed 'Application' error number not conflicts with the
 ' number of a 'VB Runtime Error' or any other system error.
@@ -674,10 +674,12 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
+    GoTo xt
 #ElseIf MsgComp = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
     '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
     ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
+    GoTo xt
 #End If
     '~~ When neither of the Common Component is available in the VB-Project
     '~~ the error message is displayed by means of the VBA.MsgBox
@@ -695,7 +697,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -1065,7 +1067,7 @@ Public Function TimedDoEvents(ByVal tde_source As String) As String
       & " DoEvents paused the execution for " _
       & Format(mBasic.TimerEnd, "00000") _
       & " msecs in '" & tde_source & "'"
-    Debug.Print s
+'    Debug.Print s
     TimedDoEvents = s
     
 End Function

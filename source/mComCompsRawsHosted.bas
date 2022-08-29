@@ -17,35 +17,30 @@ Private Const VNAME_RAW_REVISION_NUMBER     As String = "RawRevisionNumber"
 Private Const VNAME_RAW_EXP_FILE_FULL_NAME  As String = "RawExpFileFullName"
 
 Public Property Get ComCompsHostedFileFullName() As String
-    Dim wb As Workbook: Set wb = mService.Serviced
-    ComCompsHostedFileFullName = Replace(wb.FullName, wb.Name, "ComCompsHosted.dat")
+    Dim wbk As Workbook: Set wbk = mService.Serviced
+    ComCompsHostedFileFullName = Replace(wbk.FullName, wbk.Name, "ComCompsHosted.dat")
 End Property
 
-Public Property Get RawExpFileFullName( _
-                     Optional ByVal comp_name As String) As String
+Public Property Get RawExpFileFullName(Optional ByVal comp_name As String) As String
     RawExpFileFullName = Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_EXP_FILE_FULL_NAME)
 End Property
 
-Public Property Let RawExpFileFullName( _
-                              Optional ByVal comp_name As String, _
-                                       ByVal exp_file_full_name As String)
+Public Property Let RawExpFileFullName(Optional ByVal comp_name As String, _
+                                                ByVal exp_file_full_name As String)
     Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_EXP_FILE_FULL_NAME) = exp_file_full_name
 End Property
 
-Public Property Get RawRevisionNumber( _
-                          Optional ByVal comp_name As String) As String
+Public Property Get RawRevisionNumber(Optional ByVal comp_name As String) As String
     RawRevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_REVISION_NUMBER)
 End Property
 
-Public Property Let RawRevisionNumber( _
-                          Optional ByVal comp_name As String, _
-                                   ByVal comp_rev_no As String)
+Public Property Let RawRevisionNumber(Optional ByVal comp_name As String, _
+                                               ByVal comp_rev_no As String)
     Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_REVISION_NUMBER) = comp_rev_no
 End Property
 
-Private Property Get Value( _
-           Optional ByVal pp_section As String, _
-           Optional ByVal pp_value_name As String) As Variant
+Private Property Get Value(Optional ByVal pp_section As String, _
+                           Optional ByVal pp_value_name As String) As Variant
 ' ----------------------------------------------------------------------------
 ' Returns the value named (pp_value_name) from the section (pp_section) in the
 ' file ComCompsHostedFileFullName.
@@ -65,10 +60,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Private Property Let Value( _
-           Optional ByVal pp_section As String, _
-           Optional ByVal pp_value_name As String, _
-                    ByVal pp_value As Variant)
+Private Property Let Value(Optional ByVal pp_section As String, _
+                           Optional ByVal pp_value_name As String, _
+                                    ByVal pp_value As Variant)
 ' ----------------------------------------------------------------------------
 ' Writes the value (pp_value) under the name (pp_value_name) into the
 ' ComCompsHostedFileFullName.
@@ -97,8 +91,8 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mRaw" & "." & sProc
 End Function
 
-Public Function Exists(ByVal raw_comp_name As String) As Boolean
-    Exists = Components.Exists(raw_comp_name)
+Public Function Exists(ByVal raw_vbc_name As String) As Boolean
+    Exists = Components.Exists(raw_vbc_name)
 End Function
 
 Public Function MaxRawLenght() As Long

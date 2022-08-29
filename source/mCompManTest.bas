@@ -92,19 +92,19 @@ End Sub
 Public Sub Test_01_KindOfComp()
     Const PROC = "Test_01_KindOfComp"
 
-    Dim wb      As Workbook
+    Dim wbk     As Workbook
     Dim fso     As New FileSystemObject
-    Dim Comp   As clsComp
+    Dim Comp    As clsComp
     Dim sComp   As String
     
-    Set wb = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsb")
+    Set wbk = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsb")
 
     sComp = "mFile"
     Set Comp = Nothing
     Set Comp = New clsComp
     With Comp
-        Set .Wrkbk = wb
-        Set .VBComp = wb.VBProject.VBComponents(sComp)
+        Set .Wrkbk = wbk
+        Set .VBComp = wbk.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enKindOfComp.enCommCompUsed
     End With
 
@@ -112,8 +112,8 @@ Public Sub Test_01_KindOfComp()
     Set Comp = Nothing
     Set Comp = New clsComp
     With Comp
-        Set .Wrkbk = wb
-        Set .VBComp = wb.VBProject.VBComponents(sComp)
+        Set .Wrkbk = wbk
+        Set .VBComp = wbk.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enCommCompUsed
     End With
     
@@ -121,12 +121,12 @@ Public Sub Test_01_KindOfComp()
     Set Comp = Nothing
     Set Comp = New clsComp
     With Comp
-        Set .Wrkbk = wb
-        Set .VBComp = wb.VBProject.VBComponents(sComp)
+        Set .Wrkbk = wbk
+        Set .VBComp = wbk.VBProject.VBComponents(sComp)
         Debug.Assert .KindOfComp() = enInternal
     End With
     
-xt: wb.Close SaveChanges:=False
+xt: wbk.Close SaveChanges:=False
     Set Comp = Nothing
     Set fso = Nothing
     Exit Sub
@@ -146,11 +146,14 @@ Public Sub Test_10_ExportChangedComponents()
     
 End Sub
 
-Public Sub Test_BasicConfig()
+Public Sub Test_Config()
 
-    If Not mMe.BasicConfig Then
-        Debug.Print "Basic configuration invalid!"
-    End If
+    '~~ 1. Basic configuration
+    mMe.Config
+    '~~ 2. Addin configuration
+    mMe.Config cfg_addin:=True
+    '~~ 3. Synchronization configuration
+    mMe.Config cfg_sync:=True
     
 End Sub
 
@@ -194,7 +197,7 @@ Public Sub Test_Comps_Outdated()
     
     Set mService.Serviced = ThisWorkbook
     Set Stats = New clsStats
-    Log.File = mFile.Temp(, ".log")
+    Log.FileFullName = mFile.Temp(, ".log")
     
     Set dct = Comps.Outdated(mService.Serviced)
     For Each v In dct
@@ -215,7 +218,7 @@ Public Sub Test_Comps_Outdated()
     Set Comps = Nothing
     Set Stats = Nothing
     With New FileSystemObject
-        If .FileExists(Log.File) Then .DeleteFile (Log.File)
+        If .FileExists(Log.FileFullName) Then .DeleteFile (Log.FileFullName)
     End With
     Set Log = Nothing
 
@@ -225,7 +228,7 @@ Public Sub Test_Log()
     Const PROC = "Test_Log"
     
     On Error GoTo eh
-    Dim fso         As New FileSystemObject
+    Dim fso As New FileSystemObject
     
     Set Log = New clsLog
     Set mService.Serviced = ThisWorkbook
@@ -281,13 +284,13 @@ Public Sub Test_Refs()
 End Sub
 
 Public Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
-                          ByVal rnc_comp_name As String)
-' --------------------------------------------------------
+                              ByVal rnc_vbc_name As String)
+' ------------------------------------------------------------------------------
 ' This test procedure is exclusively initiated within the
-' 'CompMan-Development-Instance-Workbook and executed by
-' the 'CompMan-Addin' which needs to be open.
-' When these conditions are not met a message is displayed
-' --------------------------------------------------------
+' 'CompMan-Development-Instance-Workbook and executed by' the 'CompMan-Addin'
+' which needs to be open. When these conditions are not met a message is
+' displayed.
+' ------------------------------------------------------------------------------
     Const PROC = "Test_RenewByImport"
     
     Dim Comp        As New clsComp
@@ -297,11 +300,11 @@ Public Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
     If mMe.IsDevInstnc Then GoTo xt
     
     Set mService.Serviced = ThisWorkbook
-    Log.File = mFile.Temp(, ".log")
+    Log.FileFullName = mFile.Temp(, ".log")
     Log.Service = "Renew Component Test"
     
     With Comp
-        .CompName = rnc_comp_name
+        .CompName = rnc_vbc_name
         Log.ServicedItem = .VBComp
         
         If .Wrkbk Is ActiveWorkbook Then
@@ -310,8 +313,8 @@ Public Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
             Log.Entry = "Active Workbook de-activated by creating a temporary Workbook"
         End If
             
-        mRenew.ByImport bi_wb_serviced:=.Wrkbk _
-                      , bi_comp_name:=.CompName _
+        mRenew.ByImport bi_wbk_serviced:=.Wrkbk _
+                      , bi_vbc_name:=.CompName _
                       , bi_exp_file:=rnc_exp_file_full_name
     End With
     
@@ -359,7 +362,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_RenewByImport_1a_Standard_Module_ExpFile_Remote(ByVal test_comp_name As String, _
+Public Sub Test_RenewByImport_1a_Standard_Module_ExpFile_Remote(ByVal test_vbc_name As String, _
                                                        Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
@@ -370,10 +373,10 @@ Public Sub Test_RenewByImport_1a_Standard_Module_ExpFile_Remote(ByVal test_comp_
     Const PROC          As String = "Test_RenewByImport_1a_UserForm_ExpFile_Remote"
     
     On Error GoTo eh
-    Dim Comp            As New clsComp
-    Dim i               As Long
-    Dim sExpFile        As String
-    Dim flExport        As File
+    Dim Comp        As New clsComp
+    Dim i           As Long
+    Dim sExpFile    As String
+    Dim flExport    As File
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
@@ -381,13 +384,13 @@ Public Sub Test_RenewByImport_1a_Standard_Module_ExpFile_Remote(ByVal test_comp_
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
-            '~~ rc_comp_name As String
-            '~~ rc_wb As Workbook
+            '~~ rc_vbc_name As String
+            '~~ rc_wbk As Workbook
             '~~ -------------------------------
             mBasic.BoP ErrSrc(PROC)
             With Comp
                 Set .Wrkbk = ThisWorkbook
-                .CompName = test_comp_name
+                .CompName = test_vbc_name
                             
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export-File
@@ -417,7 +420,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_RenewByImport_1b_Standard_Module_ExpFile_Local(ByVal test_comp_name As String, _
+Public Sub Test_RenewByImport_1b_Standard_Module_ExpFile_Local(ByVal test_vbc_name As String, _
                                                       Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
@@ -437,13 +440,13 @@ Public Sub Test_RenewByImport_1b_Standard_Module_ExpFile_Local(ByVal test_comp_n
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
-            '~~ rc_comp_name As String
-            '~~ rc_wb As Workbook
+            '~~ rc_vbc_name As String
+            '~~ rc_wbk As Workbook
             '~~ -------------------------------
             mBasic.BoP ErrSrc(PROC)
             With Comp
                 Set .Wrkbk = ThisWorkbook
-                .CompName = test_comp_name
+                .CompName = test_vbc_name
             
                 For i = 1 To repeat
                     Application.Run mRenew_ByImport _
@@ -465,7 +468,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_RenewByImport_2_Class_Module_ExpFile_Local(ByVal test_comp_name As String, _
+Private Sub Test_RenewByImport_2_Class_Module_ExpFile_Local(ByVal test_vbc_name As String, _
                                                    Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
@@ -485,13 +488,13 @@ Private Sub Test_RenewByImport_2_Class_Module_ExpFile_Local(ByVal test_comp_name
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
-            '~~ rc_comp_name As String
-            '~~ rc_wb As Workbook
+            '~~ rc_vbc_name As String
+            '~~ rc_wbk As Workbook
             '~~ -------------------------------
             mBasic.BoP ErrSrc(PROC)
             With Comp
                 Set .Wrkbk = ThisWorkbook
-                .CompName = test_comp_name
+                .CompName = test_vbc_name
             
                 For i = 1 To repeat
                     Application.Run mRenew_ByImport _
@@ -513,7 +516,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_RenewByImport_3a_UserForm_ExpFile_Local(ByVal test_comp_name As String, _
+Private Sub Test_RenewByImport_3a_UserForm_ExpFile_Local(ByVal test_vbc_name As String, _
                                                 Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
@@ -533,13 +536,13 @@ Private Sub Test_RenewByImport_3a_UserForm_ExpFile_Local(ByVal test_comp_name As
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
-            '~~ rc_comp_name As String
-            '~~ rc_wb As Workbook
+            '~~ rc_vbc_name As String
+            '~~ rc_wbk As Workbook
             '~~ -------------------------------
             mBasic.BoP ErrSrc(PROC)
             With Comp
                 Set .Wrkbk = ThisWorkbook
-                .CompName = test_comp_name
+                .CompName = test_vbc_name
             
                 '~~ -------------------------------------------------
                 '~~ First test with the components origin Export-File
@@ -563,7 +566,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_RenewByImport_3b_UserForm_ExpFile_Remote(ByVal test_comp_name As String, _
+Private Sub Test_RenewByImport_3b_UserForm_ExpFile_Remote(ByVal test_vbc_name As String, _
                                                  Optional ByVal repeat As Long = 1)
 ' ----------------------------------------------------------------------------
 ' This is a kind of "burn-in" test in order to prove that a Standard Module
@@ -585,13 +588,13 @@ Private Sub Test_RenewByImport_3b_UserForm_ExpFile_Remote(ByVal test_comp_name A
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
-            '~~ rc_comp_name As String
-            '~~ rc_wb As Workbook
+            '~~ rc_vbc_name As String
+            '~~ rc_wbk As Workbook
             '~~ -------------------------------
             mBasic.BoP ErrSrc(PROC)
             With Comp
                 Set .Wrkbk = ThisWorkbook
-                .CompName = test_comp_name
+                .CompName = test_vbc_name
                             
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export-File
@@ -621,39 +624,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_SheetControls_Name_and_Type()
-' --------------------------------------------------
-' List all sheet controls ordered ascending by name.
-' --------------------------------------------------
-    Const PROC = "Test_SheetControls_Name_and_Type"
-    
-    On Error GoTo eh
-    Dim ws  As Worksheet
-    Dim shp As Shape
-    Dim dct As New Dictionary
-    Dim v   As Variant
-    Dim sWb As String
-    Dim sWs As String
-    
-    sWb = "E:\Ablage\Excel VBA\DevAndTest\Excel-VB-Project-Component-Management-Services\Test\SyncSource\SyncSource.xlsb"
-    sWs = "Test_B1"
-    
-    Set ws = mCompMan.WbkGetOpen(sWb).Worksheets(sWs)
-    For Each shp In ws.Shapes
-        mDct.DctAdd dct, mSheetControls.CntrlName(shp), ws.Name & "(" & mSheetControls.CntrlType(shp) & ")", order_bykey, seq_ascending, sense_caseignored, , True
-    Next shp
-    For Each v In dct
-        Debug.Print dct(v), Tab(45), v
-    Next v
-
-xt: Set dct = Nothing
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
 
 Public Sub Test_UpdateOutdatedCommonComponents()
     Const PROC  As String = "Test_UpdateOutdatedCommonComponents"

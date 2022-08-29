@@ -8,21 +8,25 @@ Private Const CONFIG_BASE_KEY               As String = "HKCU\SOFTWARE\CompManVB
 Private Const VNAME_ADDIN_IS_PAUSED         As String = "AddinIsPaused"
 Private Const VNAME_FOLDER_ADDIN            As String = "FolderAddin"
 Private Const VNAME_FOLDER_EXPORT           As String = "FolderExport"
-Private Const VNAME_FOLDER_SERVICED         As String = "FolderServiced"
+Private Const VNAME_FOLDER_SERVICED         As String = "ServicedDevAndTestFolder"
+Private Const VNAME_FOLDER_SYNCED           As String = "ServicedSyncTargetFolder"
 
-Private FolderServicedIsValid               As Boolean
 Private FolderAddinIsValid                  As Boolean
 Private FolderExportIsValid                 As Boolean
+Private FolderServicedIsValid               As Boolean
+Private FolderSyncedIsValid                 As Boolean
 
 Public Property Get AddinPaused() As Boolean
     AddinPaused = CBool(RegValue(VNAME_ADDIN_IS_PAUSED))
 End Property
 
-Public Property Let AddinPaused(ByVal b As Boolean):   RegValue(VNAME_ADDIN_IS_PAUSED) = Abs(CInt(b)): End Property
+Public Property Let AddinPaused(ByVal b As Boolean):            RegValue(VNAME_ADDIN_IS_PAUSED) = Abs(CInt(b)): End Property
 
-Public Property Get FolderAddin() As String:                    FolderAddin = WsValue(VNAME_FOLDER_ADDIN):      End Property
+Public Property Get FolderAddin() As String:                    FolderAddin = FolderName(VNAME_FOLDER_ADDIN):      End Property
 
-Public Property Let FolderAddin(ByVal s As String):             WsValue(VNAME_FOLDER_ADDIN) = s:                End Property
+Public Property Let FolderAddin(ByVal s As String)
+    FolderName(VNAME_FOLDER_ADDIN) = s
+End Property
 
 Public Property Get FolderExport() As String
 ' ----------------------------------------------------------------------------
@@ -36,7 +40,7 @@ Public Property Get FolderExport() As String
     Dim Names()     As String
     Dim iUBound     As Long
     
-    sHistory = WsValue(VNAME_FOLDER_EXPORT)
+    sHistory = FolderName(VNAME_FOLDER_EXPORT)
     If sHistory = vbNullString Then
         FolderExport = "source" ' The default
     Else
@@ -62,39 +66,68 @@ Public Property Let FolderExport(ByVal s As String)
 ' When the most current folder name is not = s the new name is added comma
 ' separated in order to have the history of names maintained.
 ' Note: It may take an unknown time until all Workbooks serviced by CompMan
-'       had been switched to a new Export Folder name. The history allows
-'       forwarding outdated folder names to the most current configured name.
+'       had been switched to the new named Export Folder name. The history
+'       allows forwarding outdated folder names to the most current configured
+'       name.
 ' ----------------------------------------------------------------------------
     Dim sHistory    As String
     Dim Names()     As String
     Dim iUBound     As Long
     
-    sHistory = WsValue(VNAME_FOLDER_EXPORT)
+    '~~ Maintain folder name history
+    sHistory = FolderName(VNAME_FOLDER_EXPORT)
     If sHistory = vbNullString Then
-        WsValue(VNAME_FOLDER_EXPORT) = s
+        FolderName(VNAME_FOLDER_EXPORT) = s
     Else
         Names = Split(sHistory, ",")
         iUBound = UBound(Names)
         If Names(iUBound) <> s Then
-            WsValue(VNAME_FOLDER_EXPORT) = sHistory & "," & s
+            FolderName(VNAME_FOLDER_EXPORT) = sHistory & "," & s
         End If
     End If
+
 End Property
 
-Public Property Get FolderServiced() As String:             FolderServiced = WsValue(VNAME_FOLDER_SERVICED):        End Property
+Public Property Get ServicedDevAndTestFolder() As String:               ServicedDevAndTestFolder = FolderName(VNAME_FOLDER_SERVICED):   End Property
 
-Public Property Let FolderServiced(ByVal s As String):      WsValue(VNAME_FOLDER_SERVICED) = s:                     End Property
+Public Property Let ServicedDevAndTestFolder(ByVal s As String):        FolderName(VNAME_FOLDER_SERVICED) = s:                          End Property
 
-' ---------------------------------------------------------------------------
-' Interfaces to the wsBasicConfig Worksheet
-' ---------------------------------------------------------------------------
-Private Property Get WsValue(Optional ByVal v_value_name As String) As Variant
-    WsValue = mWbk.Value(v_ws:=wsBasicConfig, v_name:=v_value_name)
+Public Property Get ServicedSyncTargetFolder() As String:               ServicedSyncTargetFolder = FolderName(VNAME_FOLDER_SYNCED):     End Property
+
+Public Property Let ServicedSyncTargetFolder(ByVal s As String):        FolderName(VNAME_FOLDER_SYNCED) = s:                            End Property
+
+Private Property Get FolderName(Optional ByVal v_value_name As String) As Variant
+    FolderName = mWbk.Value(wsBasicConfig, v_value_name)
 End Property
 
-Private Property Let WsValue(Optional ByVal v_value_name As String, _
-                                    ByVal v_value As Variant)
-    mWbk.Value(v_ws:=wsBasicConfig, v_name:=v_value_name) = v_value
+Private Property Let FolderName(Optional ByVal v_value_name As String, _
+                                      ByVal v_value As Variant)
+' ---------------------------------------------------------------------------
+' Writes the name of a configured folder to the wsService Worksheet. When the
+' folder name changes an existing folder is renamed, a non-existing folder is
+' created.
+' ---------------------------------------------------------------------------
+    Dim fso         As New FileSystemObject
+    Dim sCurrent    As String
+    Dim fCurrent    As Folder
+    
+    sCurrent = FolderName(v_value_name)
+    With fso
+        If sCurrent <> vbNullString Then
+            If .FolderExists(sCurrent) And v_value <> sCurrent Then
+                Set fCurrent = .GetFolder(sCurrent)
+                fCurrent.Name = v_value
+            End If
+        Else
+            If Not .FolderExists(v_value) Then
+                .CreateFolder v_value
+            End If
+        End If
+    End With
+    mWbk.Value(wsBasicConfig, v_value_name) = v_value
+
+    Set fso = Nothing
+    
 End Property
 
 ' ---------------------------------------------------------------------------
@@ -206,7 +239,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -271,10 +304,10 @@ Private Function WsExists(ByVal value_name As String) As Boolean
 End Function
 
 Public Sub ForwardFolderName(ByRef ff_history As String, _
-                             ByVal ff_wb_parent_folder As String)
+                             ByVal ff_wbk_parent_folder As String)
 ' ----------------------------------------------------------------------------
 ' Forwards (renames) any outdatede Export Folder name in a Workbook's parent
-' folder (ff-wb_parent_folder) to the current name.
+' folder (ff-wbk_parent_folder) to the current name.
 ' ----------------------------------------------------------------------------
     Const PROC = "ForwardFolderName"
     
@@ -293,10 +326,10 @@ Public Sub ForwardFolderName(ByRef ff_history As String, _
     
     With fso
         For i = iUBound - 1 To 0 Step -1
-            sFolder = ff_wb_parent_folder & "\" & Names(i)
+            sFolder = ff_wbk_parent_folder & "\" & Names(i)
             sFolder = Replace(sFolder, "\\", "\")
             If .FolderExists(sFolder) Then
-                .GetFolder(sFolder).name = NameNow
+                .GetFolder(sFolder).Name = NameNow
             End If
         Next i
     End With
