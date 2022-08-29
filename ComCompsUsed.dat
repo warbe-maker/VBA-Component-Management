@@ -28,7 +28,7 @@ DueModificationWarning=0
 [mWrksht]
 DueModificationWarning=1
 [mWbk]
-DueModificationWarning=1
+DueModificationWarning=0
 RawRevisionNumber=2022-07-22.001
 [mPublicItems]
 RawRevisionNumber=2022-04-12.001
