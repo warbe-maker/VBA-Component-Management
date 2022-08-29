@@ -26,7 +26,7 @@ Private Const VNAME_RAW_SAVED_REVISION_NUMBER   As String = "RawRevisionNumber"
 Private Const VNAME_RAW_EXP_FILE_FULL_NAME      As String = "RawExpFileFullName"
 
 Public Property Get ComCompsFolder() As String:
-    ComCompsFolder = mConfig.FolderServiced & "\Common-Components"
+    ComCompsFolder = mConfig.ServicedDevAndTestFolder & "\Common-Components"
 End Property
 
 Public Property Get ComCompsSavedFileFullName() As String

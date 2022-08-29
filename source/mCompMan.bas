@@ -595,25 +595,27 @@ Public Function RunTest(ByVal rt_service As String, _
     If rt_service = mCompManClient.SRVC_SYNCHRONIZE And Not mMe.FolderSyncedIsValid Then
         RunTest = AppErr(1) ' The serviced root folder is invalid (not configured or not existing)
         Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
-                    "Rrequired 'Synchronize-Folder' invalid or not configured."
+                    "The required 'Serviced Synchronize-Target Folder' is invalid or not configured."
                     
     ElseIf rt_service <> mCompManClient.SRVC_SYNCHRONIZE And Not mMe.FolderServicedIsValid Then
         RunTest = AppErr(1) ' The serviced root folder is invalid (not configured or not existing)
         Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
-                    "Required 'Serviced-Folder' invalid or not configured."
+                    "The required 'Serviced Development & Test Folder' is invalid or not configured."
     
-    ElseIf rt_service = mCompManClient.SRVC_SYNCHRONIZE And Not rt_serviced_wbk.FullName Like mConfig.FolderSynced & "*" Then
+    ElseIf rt_service = mCompManClient.SRVC_SYNCHRONIZE And Not rt_serviced_wbk.FullName Like mConfig.ServicedSyncTargetFolder & "*" Then
         RunTest = AppErr(2)
         Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
-                    "Serviced Workbook not opened from within the confifured 'Synchronize-Folder'."
+                    "The serviced Workbook not opened from within the configured 'Serviced Synchronize-Target Folder'."
     
-    ElseIf rt_service <> mCompManClient.SRVC_SYNCHRONIZE And Not rt_serviced_wbk.FullName Like mConfig.FolderServiced & "*" Then
+    ElseIf rt_service <> mCompManClient.SRVC_SYNCHRONIZE And Not rt_serviced_wbk.FullName Like mConfig.ServicedDevAndTestFolder & "*" Then
         RunTest = AppErr(2)
         Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
-                    "Serviced Workbook not opened from within the configured 'Serviced-Folder'."
+                    "The serviced Workbook is not opened from within the configured 'Serviced Development & Test Folder'."
     
-    ElseIf rt_service = mCompManClient.SRVC_SYNCHRONIZE And Not mFile.Exists(ex_folder:=mConfig.FolderServiced, ex_file:=rt_serviced_wbk.Name) Then
+    ElseIf rt_service = mCompManClient.SRVC_SYNCHRONIZE And Not mFile.Exists(ex_folder:=mConfig.ServicedSyncTargetFolder, ex_file:=rt_serviced_wbk.Name) Then
         RunTest = AppErr(3)
+        Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
+                    "The serviced Workbook's Synchronization-Source-Workbook is not available in the configured 'Serviced Development & Test Folder'."
     End If
 
 xt: Exit Function

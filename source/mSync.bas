@@ -12,8 +12,8 @@ Option Explicit
 ' W. Rauschenberger, Berlin June 2022
 ' ----------------------------------------------------------------------------
 Private Const SHEET_CONTROL_CONCAT          As String = ": "                                ' Sheet-Shape concatenator
-Private Const SYNC_COPY_SUFFIX              As String = "_Synched"                          ' name suffix for the sync target working copy
 
+Public Const SYNC_COPY_SUFFIX               As String = "_Synched"                          ' name suffix for the sync target working copy
 Public Const APP_RUN_ARG_BUTTON_CAPTION     As Long = 1
 Public Const APP_RUN_ARG_SERVICING_WORKBOOK As Long = 2
 Public Const APP_RUN_ARG_SERVICE            As Long = 3
@@ -80,7 +80,7 @@ Public Function SyncTargetsSource(ByVal sts_target_wbk As Workbook) As String
     On Error GoTo eh
     Dim cll As Collection
     
-    If mFile.Exists(ex_folder:=mConfig.FolderServiced, ex_file:=mSync.SyncTargetOriginName(sts_target_wbk), ex_result_files:=cll) Then
+    If mFile.Exists(ex_folder:=mConfig.ServicedDevAndTestFolder, ex_file:=mSync.SyncTargetOriginName(sts_target_wbk), ex_result_files:=cll) Then
         If cll.Count <> 1 _
         Then Err.Raise AppErr(1), ErrSrc(PROC), "Unable to identify the 'Sync-Target-Workbook's corresponding 'Sync-Source-Workbook' because the " & _
                                                 "'Serviced-Folder' contains either none or more than one file named '" & mSync.SyncTargetOriginName(sts_target_wbk) & "'" _

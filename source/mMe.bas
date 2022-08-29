@@ -122,7 +122,7 @@ End Property
 
 Public Property Get DevInstncFullName() As String
     Dim fso As New FileSystemObject
-    DevInstncFullName = mConfig.FolderServiced & DBSLASH _
+    DevInstncFullName = mConfig.ServicedDevAndTestFolder & DBSLASH _
                           & fso.GetBaseName(DevInstncName) & DBSLASH _
                           & DevInstncName
 End Property
@@ -245,35 +245,14 @@ Public Function Config(Optional ByVal cfg_silent As Boolean = False, _
         .Show
         If mMe.RenewTerminatedByUser Then GoTo xt
         
-        If Not .FolderAddinIsValid Or Not .FolderServicedIsValid Or Not .FolderExportIsValid Then GoTo xt
-        
-        If mConfig.FolderAddin = vbNullString Then
+        If Not .FolderAddinIsValid Or Not .FolderServicedIsValid Or Not .FolderExportIsValid Then
+            GoTo xt
+        Else
             mConfig.FolderAddin = .FolderAddin
-        ElseIf StrComp(.FolderAddin, mConfig.FolderAddin, vbTextCompare) <> 0 Then
-            '~~ When the configured CompMan-Addin-Folder has been changed to another location
-            '~~ the CompManAdminFolder has to be copied before the new configuration can be saved
-            fso.MoveFolder Source:=mMe.CompManAdminFolder(mConfig.FolderAddin) _
-                         , Destination:=CompManAdminFolder(.FolderAddin)
-            mConfig.FolderAddin = .FolderAddin
+            mConfig.ServicedDevAndTestFolder = .FolderServiced
+            mConfig.ServicedSyncTargetFolder = .FolderSynced
+            mConfig.FolderExport = .FolderExport
         End If
-        
-        If mConfig.FolderServiced = vbNullString Then
-            mConfig.FolderServiced = .FolderServiced
-        ElseIf mConfig.FolderServiced <> .FolderServiced Then
-            '~~ The configured Serviced-Root-Folder has been changed
-            '~~ All content is moved to the new folder
-            mConfig.FolderServiced = .FolderServiced
-        End If
-             
-        If mConfig.FolderSynced = vbNullString Then
-            mConfig.FolderSynced = .FolderSynced
-        ElseIf mConfig.FolderSynced <> .FolderSynced Then
-            '~~ The configured Synchronization-Folder has been changed
-            mConfig.FolderSynced = .FolderSynced
-        End If
-        
-        
-        mConfig.FolderExport = .FolderExport
     
         If Not .Canceled Then Config = True
     End With
@@ -431,7 +410,7 @@ Public Sub DisplayStatus()
                 wsAddIn.CompManAddInPausedStatus = _
                 "The 'CompMan-AddIn' is currently  a c t i v e !  The services 'UpdateOutdatedCommonComponents' and 'ExportChangedComponents'" & vbLf & _
                 "will be available for Workbooks calling them under the following preconditions: " & vbLf & _
-                "1. The Workbook is located in the configured 'Serviced-Folder' " & mConfig.FolderServiced & "'" & vbLf & _
+                "1. The Workbook is located in the configured 'Serviced-Folder' " & mConfig.ServicedDevAndTestFolder & "'" & vbLf & _
                 "2. The Workbook is the only one in its parent folder" & vbLf & _
                 "3. The Workbook is not a version restored by Excel (in case it has to be saved first)" & vbLf
             End If
@@ -482,8 +461,8 @@ Public Function FolderServicedIsValid() As Boolean
 ' Returns TRUE when the current configured ServicedRoot-Folder is valid.
 ' ----------------------------------------------------------------------------
     With New FileSystemObject
-        If mConfig.FolderServiced <> vbNullString Then
-            If .FolderExists(mConfig.FolderServiced) Then
+        If mConfig.ServicedDevAndTestFolder <> vbNullString Then
+            If .FolderExists(mConfig.ServicedDevAndTestFolder) Then
                 FolderServicedIsValid = True
             End If
         End If
@@ -494,9 +473,9 @@ Public Function FolderSyncedIsValid() As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the current configured Synchronization-Folder is valid.
 ' ----------------------------------------------------------------------------
-    If mConfig.FolderSynced <> vbNullString Then
+    If mConfig.ServicedSyncTargetFolder <> vbNullString Then
         With New FileSystemObject
-            If .FolderExists(mConfig.FolderSynced) Then
+            If .FolderExists(mConfig.ServicedSyncTargetFolder) Then
                 FolderSyncedIsValid = True
             End If
         End With

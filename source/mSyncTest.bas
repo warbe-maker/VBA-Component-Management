@@ -2,8 +2,6 @@ Attribute VB_Name = "mSyncTest"
 Option Explicit
 
 Private Const TEST_BOOK_SYNC        As String = "CompManSyncTest.xlsb"
-Private Const TEST_BOOK_TARGET      As String = "E:\Ablage\Excel VBA\CompManSyncService\CompManSyncTest\CompManSyncTest.xlsb"
-Private Const TEST_BOOK_TARGET_COPY As String = "E:\Ablage\Excel VBA\CompManSyncService\CompManSyncTest\CompManSyncTest_Synched.xlsb"
 Private Const TEST_SHEET_SOURCE     As String = "Test_A"
 Private Const TEST_SHAPE_SOURCE     As String = "CommandButton2_Test_A"
 Private Const TEST_OOB_SOURCE       As String = "CommandButtonActiveX_Test_A"
@@ -21,6 +19,14 @@ Private wbkTarget   As Workbook
 Private wshSource   As Worksheet
 Private wshTarget   As Worksheet
 
+Private Property Get TestBookTarget() As String
+    TestBookTarget = mConfig.ServicedSyncTargetFolder & "\" & TEST_BOOK_SYNC
+End Property
+
+Private Property Get TestBookTargetCopy() As String
+    TestBookTargetCopy = mConfig.ServicedSyncTargetFolder & "\" & TEST_BOOK_SYNC & mSync.SYNC_COPY_SUFFIX
+End Property
+
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mSyncTest." & sProc
 End Function
@@ -35,7 +41,7 @@ Public Sub Test_00_RegressionTest()
     On Error GoTo eh
     mBasic.BoP ErrSrc(PROC)
     Application.EnableEvents = True
-    mWbk.GetOpen TEST_BOOK_TARGET ' initiates the synchronization
+    mWbk.GetOpen TestBookTarget ' initiates the synchronization
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -365,9 +371,9 @@ Private Sub Test_EnvironmentCleanup()
     Dim wbk As Workbook
     
     With fso
-        If .FileExists(TEST_BOOK_TARGET_COPY) Then
-            If mWbk.IsOpen(TEST_BOOK_TARGET_COPY, wbk) Then wbk.Close False
-            .DeleteFile TEST_BOOK_TARGET_COPY
+        If .FileExists(TestBookTargetCopy) Then
+            If mWbk.IsOpen(TestBookTargetCopy, wbk) Then wbk.Close False
+            .DeleteFile TestBookTargetCopy
         End If
     End With
     If mWbk.IsOpen(TEST_BOOK_SYNC, wbk) Then wbk.Close False
@@ -406,7 +412,7 @@ Private Sub Test_EnvironmentProvide()
     
     On Error GoTo eh
     Application.EnableEvents = False
-    Set wbkServiced = mWbk.GetOpen(TEST_BOOK_TARGET)
+    Set wbkServiced = mWbk.GetOpen(TestBookTarget)
     Set wbkTarget = mSync.SyncTargetWorkingCopy(wbkServiced)
     Set wbkSource = mWbk.GetOpen(mSync.SyncTargetsSource(wbkServiced), False) ' for testing not opened read-only
     If wshSource Is Nothing Then Set wshSource = wbkSource.Worksheets(TEST_SHEET_SOURCE)

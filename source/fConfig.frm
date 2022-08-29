@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} fConfig 
    Caption         =   "CompMan's basic configuration (user specific in Registry )"
-   ClientHeight    =   7350
+   ClientHeight    =   7152
    ClientLeft      =   90
-   ClientTop       =   438
-   ClientWidth     =   11658
+   ClientTop       =   435
+   ClientWidth     =   11655
    OleObjectBlob   =   "fConfig.frx":0000
    StartUpPosition =   1  'Fenstermitte
 End
@@ -27,9 +27,9 @@ Private bCanceled                   As Boolean
 Private Sub UserForm_Initialize()
     With Me
         .FolderAddin = mConfig.FolderAddin
-        .FolderServiced = mConfig.FolderServiced
+        .FolderServiced = mConfig.ServicedDevAndTestFolder
         .FolderExport = Replace(Split(mConfig.FolderExport, ",")(UBound(Split(mConfig.FolderExport, ","))), "\", vbNullString)
-        .FolderSynced = mConfig.FolderSynced
+        .FolderSynced = mConfig.ServicedSyncTargetFolder
         .Caption = "CompMan's basic configuration"
     End With
     VerifyConfig
@@ -120,7 +120,6 @@ Private Property Let FolderSyncedInfo(Optional ByVal invalid As Boolean = False,
     End With
 End Property
 
-Public Property Get MoveFolderAddin() As Boolean:               MoveFolderAddin = Me.cbxFolderAddinMove.Value:      End Property
 
 Public Property Get MoveFolderServiced() As Boolean:            MoveFolderServiced = Me.cbxMoveServicedRoot.Value:  End Property
 
@@ -160,11 +159,9 @@ Private Sub FolderAddinVerify()
             FolderAddinInfo(True) = "Invalid! (the folder does not exist)"
         ElseIf mConfig.FolderAddin <> vbNullString Then
             If StrComp(.FolderAddin, mConfig.FolderAddin, vbTextCompare) <> 0 Then
-                .cbxFolderAddinMove.Visible = True
                 FolderAddinInfo = "The folder for the CompMan Addin instance is about to change from '" & mConfig.FolderAddin & "' " & _
                                   "to '" & .FolderAddin & "'!"
             Else
-                .cbxFolderAddinMove.Visible = False
                 FolderAddinInfo = "Folder for the CompMan Addin instance. Defaults to the current Application.AltStartupPath " & _
                                   "if one is already specified. I.e. any selected folder becomes the Application.AltStartupPath. " & _
                                   "Take into account when altered!"
@@ -265,10 +262,10 @@ Private Sub FolderServicedVerify()
             FolderServicedInfo(True) = "Invalid! (folder does not exist)"
             .cmbConfirmed.Enabled = False
         ElseIf mConfig.FolderExport <> vbNullString _
-            And StrComp(.FolderServiced, mConfig.FolderServiced, vbTextCompare) <> 0 Then
+            And StrComp(.FolderServiced, mConfig.ServicedDevAndTestFolder, vbTextCompare) <> 0 Then
             .cbxMoveServicedRoot.Visible = True
             FolderServicedIsValid = True
-            FolderServicedInfo = "The serviced root folder is about to chasnge from '" & mConfig.FolderServiced & "' " & _
+            FolderServicedInfo = "The serviced root folder is about to chasnge from '" & mConfig.ServicedDevAndTestFolder & "' " & _
                                      "to '" & .FolderServiced & "'! Moving all content to new folder may be appropriate."
             .cmbConfirmed.Enabled = True
         Else
