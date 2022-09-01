@@ -16,9 +16,62 @@ Option Explicit
 Private Const VNAME_RAW_REVISION_NUMBER     As String = "RawRevisionNumber"
 Private Const VNAME_RAW_EXP_FILE_FULL_NAME  As String = "RawExpFileFullName"
 
+Public Function IsNewHostedRaw(ByVal in_vbc_name As String) As Boolean
+' ---------------------------------------------------------------------------
+' Returns TRUE when the serviced Workbook claims a component "hosted raw
+' common coponent" and the concerned component is yet not registered in the
+' Serviced Workbook's 'ComCompsHosted.dat' (ComCompsHostedFileFullName) or no
+' 'ComCompsHosted.dat' exists.
+' ---------------------------------------------------------------------------
+    IsNewHostedRaw = Not IsRegisteredLocally(in_vbc_name)
+End Function
+
+Public Property Get IsRegisteredLocally(ByVal irl_vbc_name As String) As Boolean
+    IsRegisteredLocally = Exists(irl_vbc_name)
+End Property
+
+Public Sub SaveToGlobalFolder(ByVal stgf_vbc_name As String, _
+                              ByVal stgf_exp_file As File, _
+                              ByVal stgf_exp_file_full_name As String)
+' ------------------------------------------------------------------------------
+' Save a copy of the hosted raw`s (stgf_vbc_name) export file to the Common
+' Components folder which serves as source for the update of Common Components
+' used in other VB-Projects.
+' ------------------------------------------------------------------------------
+    Dim frxFile As File
+    Dim fso     As New FileSystemObject
+    
+    mComCompsRawsGlobal.SavedExpFile(stgf_vbc_name) = stgf_exp_file
+    '~~ When the Export file has a .frm extension the .frx file needs to be copied too
+    If fso.GetExtensionName(stgf_exp_file_full_name) = "frm" Then
+        Set frxFile = fso.GetFile(Replace(stgf_exp_file_full_name, "frm", "frx"))
+        mComCompsRawsGlobal.SavedExpFile(stgf_vbc_name) = frxFile
+    End If
+
+    mComCompsRawsGlobal.RawExpFileFullName(stgf_vbc_name) = stgf_exp_file_full_name
+    mComCompsRawsGlobal.RawHostWbBaseName(stgf_vbc_name) = fso.GetBaseName(mService.Serviced.FullName)
+    mComCompsRawsGlobal.RawHostWbFullName(stgf_vbc_name) = mService.Serviced.FullName
+    mComCompsRawsGlobal.RawHostWbName(stgf_vbc_name) = mService.Serviced.Name
+    mComCompsRawsGlobal.RawSavedRevisionNumber(stgf_vbc_name) = mComCompsRawsHosted.RawRevisionNumber(stgf_vbc_name)
+    
+    Set fso = Nothing
+End Sub
+
+Public Property Get IsRegisteredGlobally(ByVal irg_vbc_name As String) As Boolean
+    IsRegisteredGlobally = mComCompsRawsGlobal.Exists(irg_vbc_name)
+End Property
+
 Public Property Get ComCompsHostedFileFullName() As String
-    Dim wbk As Workbook: Set wbk = mService.Serviced
+    Dim wbk As Workbook
+    Dim fso As New FileSystemObject
+    
+    Set wbk = mService.Serviced
     ComCompsHostedFileFullName = Replace(wbk.FullName, wbk.Name, "ComCompsHosted.dat")
+    If Not fso.FileExists(ComCompsHostedFileFullName) Then
+        fso.CreateTextFile ComCompsHostedFileFullName
+    End If
+    Set fso = Nothing
+    
 End Property
 
 Public Property Get RawExpFileFullName(Optional ByVal comp_name As String) As String

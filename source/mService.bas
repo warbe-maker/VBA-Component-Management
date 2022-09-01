@@ -580,8 +580,9 @@ Public Function FilesDiffer(ByVal fd_exp_file_1 As File, _
             If Not .FileExists(fd_exp_file_2) _
             Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided 'fd_exp_file_2' does not exist!"
             Set fl2 = fso.GetFile(fd_exp_file_2)
-        ElseIf TypeName(fd_exp_file_2) = "Nothing" _
-            Then Err.Raise AppErr(2), ErrSrc(PROC), "File 'fd_exp_file_2' is not provided!"
+        ElseIf TypeName(fd_exp_file_2) = "Nothing" Then
+            FilesDiffer = True
+            GoTo xt
         Else
             Set fl2 = fd_exp_file_2
         End If

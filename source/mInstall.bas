@@ -20,7 +20,7 @@ Public Sub CommonComponents(Optional ByRef ic_wbk As Workbook)
     If ic_wbk Is Nothing Then Set ic_wbk = ActiveWorkbook
     If mMe.IsAddinInstnc Then GoTo xt
     
-    For Each v In mComCompsRawsSaved.Components
+    For Each v In mComCompsRawsGlobal.Components
         If i >= 7 Then
             cll.Add vbLf
             i = 0
@@ -50,7 +50,7 @@ Public Sub CommonComponents(Optional ByRef ic_wbk As Workbook)
             Case Else
                 mRenew.ByImport bi_wbk_serviced:=ic_wbk _
                               , bi_vbc_name:=vReply _
-                              , bi_exp_file:=mComCompsRawsSaved.SavedExpFileFullName(vReply)
+                              , bi_exp_file:=mComCompsRawsGlobal.SavedExpFileFullName(vReply)
         End Select
     Loop
 xt: Exit Sub

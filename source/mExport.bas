@@ -145,13 +145,13 @@ Public Sub ChangedComponents()
                                 Log.Entry = "Hosted Raw Common Component code modified"
                                 .Export
                                 .RevisionNumberIncrease
-                                .CopyExportFileToCommonComponentsFolder
+                                mComCompsRawsHosted.SaveToGlobalFolder .CompName, .ExpFile, .ExpFileFullName
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
                                 Log.Entry = "Code modified of Hosted Raw Common Component"
                                 Log.Entry = "Exported, Revision Number increased, Export File copied to 'Common Components Folder'"
-                            ElseIf Not mComCompsRawsSaved.SavedExpFileExists(.CompName) Then
-                                .CopyExportFileToCommonComponentsFolder ' ensure completenes
+                            ElseIf Not mComCompsRawsGlobal.SavedExpFileExists(.CompName) Then
+                                mComCompsRawsHosted.SaveToGlobalFolder .CompName, .ExpFile, .ExpFileFullName ' ensure completenes
                                 Log.Entry = "Unchanged Hosted Raw Common Component"
                             End If
                         Case enCommCompUsed

@@ -117,10 +117,10 @@ Public Log              As clsLog
 Private Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
 
 Private Property Let HostedRaws(ByVal hr As Variant)
-' ---------------------------------------------------
-' Saves the names of the hosted raw components (hr)
-' to the Dictionary (dctHostedRaws).
-' ---------------------------------------------------
+' ----------------------------------------------------------------------------
+' Saves the names of the components claimed 'hosted raw components' (hr) to
+' the Dictionary (dctHostedRaws).
+' ----------------------------------------------------------------------------
     Dim v       As Variant
     Dim sComp   As String
     
@@ -462,7 +462,7 @@ Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As Stri
     On Error GoTo eh
     Dim v               As Variant
     Dim fso             As New FileSystemObject
-    Dim Comp            As clsComp
+    Dim RawComComp      As clsComp
     Dim sHostBaseName   As String
     
     mBasic.BoP ErrSrc(PROC)
@@ -472,75 +472,86 @@ Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As Stri
                     
     If HostedRaws.Count <> 0 Then
         For Each v In HostedRaws
-            If Not mComCompsRawsHosted.Exists(v) Then
-                '~~ Initially register the component as a 'Hosted Raw Common Component'
-                mComCompsRawsHosted.RawRevisionNumberIncrease v     ' this will initially set it
-            End If
-            If Not mComCompsRawsSaved.Exists(v) Then
-                '~~ Initially registers the Common Component in the ComComps-RawsSaved.dat file
-                '~~ Note: The Raw's Revision Number is updated whenever the raw is exported because it had been modified
-                mComCompsRawsSaved.RawHostWbFullName(v) = mService.Serviced.FullName
-                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.Name
-                mComCompsRawsSaved.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
-                Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
-            ElseIf StrComp(mComCompsRawsSaved.RawHostWbFullName(v), mService.Serviced.FullName, vbTextCompare) <> 0 _
-                Or StrComp(mComCompsRawsSaved.RawHostWbName(v), mService.Serviced.Name, vbTextCompare) <> 0 Then
-                '~~ Update the properties when they had changed - which may happen when the Raw Common Component's
-                '~~ host has changed
-                '~~ Note: The RevisionNumber is updated whenever the modified raw is exported
-                mComCompsRawsSaved.RawHostWbFullName(v) = mService.Serviced.FullName
-                mComCompsRawsSaved.RawHostWbName(v) = mService.Serviced.Name
-                mComCompsRawsSaved.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
-                Log.Entry = "Raw Common Component '" & v & "' hosted changed properties updated"
-            End If
-            Set Comp = New clsComp
-            With Comp
+            Set RawComComp = New clsComp
+            With RawComComp
                 Set .Wrkbk = mService.Serviced
                 .CompName = v
-                If Not fso.FileExists(.ExpFileFullName) Then
-                    '~~ Initially export the new Common Component claimed being hosted in this Workbook
-                    .VBComp.Export .ExpFileFullName
+                If mComCompsRawsHosted.IsNewHostedRaw(v) Then
+                    '~~ Initially export the component the serviced Workbook claims 'hosted raw common component'
+                    If Not fso.FileExists(.ExpFileFullName) Then
+                        .VBComp.Export .ExpFileFullName
+                    End If
+                    If mComCompsRawsHosted.IsNewHostedRaw(v) Then
+                        '~~ Initially register the component as a 'Hosted Raw Common Component'
+                        mComCompsRawsHosted.RawRevisionNumberIncrease v     ' this will initially set it
+                    End If
                 End If
                 mComCompsRawsHosted.RawExpFileFullName(v) = .ExpFileFullName ' in any case update the Export File name
+                If Not mComCompsRawsGlobal.Exists(v) Then
+                    '~~ Initially registers the Common Component in the ComComps-RawsSaved.dat file
+                    '~~ Note: The Raw's Revision Number is updated whenever the raw is exported because it had been modified
+                    mComCompsRawsGlobal.RawHostWbFullName(v) = mService.Serviced.FullName
+                    mComCompsRawsGlobal.RawHostWbName(v) = mService.Serviced.Name
+                    mComCompsRawsGlobal.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
+                    Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
+                End If
+                If Not mComCompsRawsGlobal.Exists(v) Then
+                    '~~ Initially registers the Common Component in the ComComps-RawsSaved.dat file
+                    '~~ Note: The Raw's Revision Number is updated whenever the raw is exported because it had been modified
+                    mComCompsRawsGlobal.RawHostWbFullName(v) = mService.Serviced.FullName
+                    mComCompsRawsGlobal.RawHostWbName(v) = mService.Serviced.Name
+                    mComCompsRawsGlobal.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
+                    Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
+                ElseIf StrComp(mComCompsRawsGlobal.RawHostWbFullName(v), mService.Serviced.FullName, vbTextCompare) <> 0 _
+                    Or StrComp(mComCompsRawsGlobal.RawHostWbName(v), mService.Serviced.Name, vbTextCompare) <> 0 Then
+                    '~~ Update the properties when they had changed - which may happen when the Raw Common Component's
+                    '~~ host has changed
+                    '~~ Note: The RevisionNumber is updated whenever the modified raw is exported
+                    mComCompsRawsHosted.SaveToGlobalFolder v, .ExpFile, .ExpFileFullName
+                    mComCompsRawsGlobal.RawHostWbFullName(v) = mService.Serviced.FullName
+                    mComCompsRawsGlobal.RawHostWbName(v) = mService.Serviced.Name
+                    mComCompsRawsGlobal.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
+                    Log.Entry = "Raw Common Component '" & v & "' hosted changed properties updated"
+                End If
                 If mService.FilesDiffer(fd_exp_file_1:=.ExpFile _
-                                      , fd_exp_file_2:=mComCompsRawsSaved.SavedExpFile(v)) Then
+                                      , fd_exp_file_2:=mComCompsRawsGlobal.SavedExpFile(v)) Then
                     '~~ Attention! This is a cruical issue which shold never be the case. However, when different
                     '~~ computers/users are involved in the development process ...
                     '~~ Instead of simply updating the saved raw Export File better have carefully checked the case
-                    If mComCompsRawsSaved.RawSavedRevisionNumber(v) = mComCompsRawsHosted.RawRevisionNumber(v) Then
+                    If mComCompsRawsGlobal.RawSavedRevisionNumber(v) = mComCompsRawsHosted.RawRevisionNumber(v) Then
                         If SavedRawInconsitencyWarning _
                            (sri_raw_exp_file_full_name:=.ExpFile.Path _
-                          , sri_saved_exp_file_full_name:=mComCompsRawsSaved.SavedExpFile(v).Path _
+                          , sri_saved_exp_file_full_name:=mComCompsRawsGlobal.SavedExpFile(v).Path _
                           , sri_diff_message:="While the Revision Number of the 'Hosted Raw'  " & mBasic.Spaced(v) & "  is identical with the " & _
                                               "'Saved Raw' their Export Files are different. Compared were:" & vbLf & _
                                               "Hosted Raw Export File = " & .ExpFile.Path & vbLf & _
-                                              "Saved Raw Export File  = " & mComCompsRawsSaved.SavedExpFile(v).Path & vbLf & _
+                                              "Saved Raw Export File  = " & mComCompsRawsGlobal.SavedExpFile(v).Path & vbLf & _
                                               "whereby any empty code lines and case differences had been ignored. " & _
                                               "The difference thus really matters!" _
                            ) Then
-                            .CopyExportFileToCommonComponentsFolder
+                            mComCompsRawsHosted.SaveToGlobalFolder v, .ExpFile, .ExpFileFullName
                         End If
-                    ElseIf mComCompsRawsSaved.RawSavedRevisionNumber(v) <> mComCompsRawsHosted.RawRevisionNumber(v) Then
+                    ElseIf mComCompsRawsGlobal.RawSavedRevisionNumber(v) <> mComCompsRawsHosted.RawRevisionNumber(v) Then
                         If SavedRawInconsitencyWarning _
                            (sri_raw_exp_file_full_name:=.ExpFile.Path _
-                          , sri_saved_exp_file_full_name:=mComCompsRawsSaved.SavedExpFile(v).Path _
+                          , sri_saved_exp_file_full_name:=mComCompsRawsGlobal.SavedExpFile(v).Path _
                           , sri_diff_message:="The 'Revision Number' of the 'Hosted Raw Common Component's Export File' and the " & _
                                               "the 'Saved Raw's Export File' differ:" & vbLf & _
                                               "Hosted Raw = " & mComCompsRawsHosted.RawRevisionNumber(v) & vbLf & _
-                                              "Saved Raw  = " & mComCompsRawsSaved.RawSavedRevisionNumber(v) & vbLf & _
+                                              "Saved Raw  = " & mComCompsRawsGlobal.RawSavedRevisionNumber(v) & vbLf & _
                                               "and also the Export Files differ. Compared were:" & vbLf & _
                                               "Hosted Raw = " & .ExpFile.Path & vbLf & _
-                                              "Saved Raw  = " & mComCompsRawsSaved.SavedExpFile(v).Path & vbLf & _
+                                              "Saved Raw  = " & mComCompsRawsGlobal.SavedExpFile(v).Path & vbLf & _
                                               "whereby any empty code lines and case differences had been ignored. " & _
                                               "The difference thus really matters! Updating is not at all " & _
                                               "recommendable before the issue had been clarified." _
                            ) Then
-                            .CopyExportFileToCommonComponentsFolder
+                            mComCompsRawsHosted.SaveToGlobalFolder v, .ExpFile, .ExpFileFullName
                         End If
                     End If
                 End If
             End With
-            Set Comp = Nothing
+            Set RawComComp = Nothing
         Next v
     Else
         '~~ When this Workbook not or no longer hosts any Common Component Raws the correponding entries
@@ -550,10 +561,10 @@ Public Sub MaintainPropertiesOfHostedRawCommonComponents(ByVal mh_hosted As Stri
         '~~ The component may be now hosted in another Workbook (likely) or the life of the
         '~~ Common Component has ended. The entry will be removed when it still points to this
         '~~ Workbook. When it points to another one it appears to have been moved alrerady.
-        For Each v In mComCompsRawsSaved.Components
-            If StrComp(mComCompsRawsSaved.RawHostWbFullName(comp_name:=v), mService.Serviced.FullName, vbTextCompare) = 0 Then
-                mComCompsRawsSaved.Remove comp_name:=v
-                Log.Entry = "Component no longer hosted in '" & mService.Serviced.FullName & "' removed from '" & mComCompsRawsSaved.ComCompsSavedFileFullName & "'"
+        For Each v In mComCompsRawsGlobal.Components
+            If StrComp(mComCompsRawsGlobal.RawHostWbFullName(comp_name:=v), mService.Serviced.FullName, vbTextCompare) = 0 Then
+                mComCompsRawsGlobal.Remove comp_name:=v
+                Log.Entry = "Component no longer hosted in '" & mService.Serviced.FullName & "' removed from '" & mComCompsRawsGlobal.ComCompsSavedFileFullName & "'"
             End If
         Next v
     End If

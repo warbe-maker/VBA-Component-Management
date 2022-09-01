@@ -348,7 +348,7 @@ Public Property Let Sections( _
             mFile.Value(pp_file:=fl _
                       , pp_section:=sSection _
                       , pp_value_name:=sName _
-                       ) = dctValues.Item(vN)
+                       ) = dctValues.item(vN)
         Next vN
     Next vS
     
@@ -629,7 +629,7 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
         '~~ and the add_key already exists the add_item is updated
         If bOrderByKey And Not bStayWithFirst Then
             If .Exists(add_key) Then
-                If VarType(add_item) = vbObject Then Set .Item(add_key) = add_item Else .Item(add_key) = add_item
+                If VarType(add_item) = vbObject Then Set .item(add_key) = add_item Else .item(add_key) = add_item
                 GoTo xt
             End If
         End If
@@ -673,9 +673,9 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
     
     For Each vKeyExisting In add_dct
         
-        If VarType(add_dct.Item(vKeyExisting)) = vbObject _
-        Then Set vItemExisting = add_dct.Item(vKeyExisting) _
-        Else vItemExisting = add_dct.Item(vKeyExisting)
+        If VarType(add_dct.item(vKeyExisting)) = vbObject _
+        Then Set vItemExisting = add_dct.item(vKeyExisting) _
+        Else vItemExisting = add_dct.item(vKeyExisting)
         
         With dctTemp
             If bDone Then
@@ -1514,7 +1514,7 @@ Public Function IsValidFolderName(ivf_name As String) As Boolean
     Dim fso As New FileSystemObject
     
     With CreateObject("VBScript.RegExp")
-        .PATTERN = "^(?!(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.[^.]*)?$)[^<>:""/\\|?*\x00-\x1F]*[^<>:""/\\|?*\x00-\x1F\ .]$"
+        .Pattern = "^(?!(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.[^.]*)?$)[^<>:""/\\|?*\x00-\x1F]*[^<>:""/\\|?*\x00-\x1F\ .]$"
         IsValidFolderName = Not .Test(ivf_name)
     End With
     
@@ -1582,7 +1582,7 @@ Private Function NamesInArg( _
                 Case "Dictionary"
                     Set dct = v
                     For Each v In dct
-                        cll.Add dct.Item(v)
+                        cll.Add dct.item(v)
                     Next v
                 Case "Collection"
                     Set cll = v
@@ -2006,17 +2006,16 @@ Public Function SectionNames(Optional ByVal pp_file As Variant, _
     On Error GoTo eh
     Dim fso             As New FileSystemObject
     Dim asSections()    As String
-    Dim dct             As New Dictionary
     Dim i               As Long
     Dim iLen            As Long
     Dim strBuffer       As String
     Dim fl              As String
     
+    Set SectionNames = New Dictionary
     If PPFile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     pp_file_result = fl
     
     If Len(mFile.txt(fl)) = 0 Then GoTo xt
-    Set SectionNames = New Dictionary
     
     Do While (iLen = Len(strBuffer) - 2) Or (iLen = 0)
         If strBuffer = vbNullString _
@@ -2037,8 +2036,7 @@ Public Function SectionNames(Optional ByVal pp_file As Variant, _
         Next i
     End If
     
-xt: Set dct = Nothing
-    Exit Function
+xt: Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

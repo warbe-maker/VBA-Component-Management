@@ -11,7 +11,7 @@ Option Explicit
 '
 ' The entries (sections) are maintained along with the Workbook_Open
 ' event via the UpdateOutdatedCommonComponents service. The revision number is the copy
-' of the revision number provided by mComCompsRawsSaved.RawSavedRevisionNumber.
+' of the revision number provided by mComCompsRawsGlobal.RawSavedRevisionNumber.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_RAW_REVISION_NUMBER As String = "RawRevisionNumber"
 Private Const VNAME_DUE_MODIF_WARNING   As String = "DueModificationWarning"

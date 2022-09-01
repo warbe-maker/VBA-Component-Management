@@ -1,12 +1,12 @@
-Attribute VB_Name = "mComCompsRawsSaved"
+Attribute VB_Name = "mComCompsRawsGlobal"
 Option Explicit
 ' ---------------------------------------------------------------------------
-' Standard Module mComCompsRawsSaved
+' Standard Module mComCompsRawsGlobal
 ' Maintains in the Common Components folder (ComCompsFolder)
-' - a file named (ComCompsSavedFileFullName) for all registered Common
-'   Components (i.e. components managed by CompMan services. The file has the
+' - a file named (ComCompsSavedFileFullName) for all globally registered
+'   Common Components, i.e. components managed by CompMan services with the
 '   following structure:
-'   [<component-name]
+'   [<component-name>]
 '   HostFullName=<host-workbook-full-name>
 '   HostName=<host-workbook-name>
 '   HostBaseName=<hort-workbook-base-name>
@@ -49,8 +49,12 @@ Public Property Get SavedExpFile(Optional ByVal comp_name) As File
     Dim FileName    As String
     With New FileSystemObject
         FileName = .GetFileName(RawExpFileFullName(comp_name))
-        If .FileExists(ComCompsFolder & "\" & FileName) Then
-            Set SavedExpFile = .GetFile(ComCompsFolder & "\" & FileName)
+        If FileName <> vbNullString Then
+            If .FileExists(ComCompsFolder & "\" & FileName) Then
+                Set SavedExpFile = .GetFile(ComCompsFolder & "\" & FileName)
+            Else
+                Set SavedExpFile = .CreateTextFile(ComCompsFolder & "\" & FileName)
+            End If
         End If
     End With
 End Property
@@ -78,6 +82,8 @@ End Property
 
 Public Property Get RawExpFileFullName(Optional ByVal comp_name As String) As String
     RawExpFileFullName = Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_EXP_FILE_FULL_NAME)
+    If RawExpFileFullName = vbNullString Then
+    End If
 End Property
 
 Public Property Let RawExpFileFullName(Optional ByVal comp_name As String, _
