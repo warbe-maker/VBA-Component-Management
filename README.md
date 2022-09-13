@@ -20,11 +20,11 @@ Also see the [Programmatically updating Excel VBA code][2] post for this subject
 | _Servicing&nbsp;Workbook_ | The service providing Workbook, either the _[CompMan.xlsb][1]_ Workbook (when it is open) or the _CompMan Addin_ when it is set up. |
 | _Serviced&nbsp;Workbook_ | The Workbook prepared for being serviced, provided it is located within the _Serviced&nbsp;Folder_ for the Update and Export service or in the .
 |_VB&#8209;Project_    | Used synonymous with Workbook |
-| _Sync&#8209;Source&#8209;Workbook_   | The temporary copy of productive Workbook which becomes by then the _Target-Workbook/Project for the synchronization.|
-| _Sync&#8209;Target&#8209;Workbook | A _Workbook/VP-Project_ which is a copy (i.e regarding the VB-Project code a clone) of a corresponding  _VB&#8209;Raw&#8209;Project_. The code of the clone project is kept up-to-date by means of a code synchronization service. |
+| _Sync&#8209;Source&#8209;Workbook_   | A _Workbook/VP-Project_ temporarily copied to the [Serviced _Development and Test Folder_](#serviced-development-and-test-folder) for being modified - and finally synchronized with its origin Workbook.|
+| _Sync&#8209;Target&#8209;Workbook_ | A _Workbook/VP-Project_ temporarily moved to a [_Serviced _Synchronization Target Folder_](#serviced-synchronization-target-folder) for being synchronized with this Workbook which had been temporarily copied to the [Serviced _Development and Test Folder_](#serviced-development-and-test-folder) for being modified. |
 | _Workbook&#8209;Folder_ | A folder dedicated to a _Workbook/VB-Project_ with all its Export-Files (in a \source sub-folder). When the folder is the equivalent of a _GitHub repo_ it may contain other files like a README and a LICENSE (provided GitHub is used for the project's versioning which not only  recommendable but also pretty easy to use.|
 
-[^1]: The terms _Raw_ and _Clone_ follow the [GitHub][6] terminology
+[^1]: The terms _Raw_ and _Clone_ follow [_GitHub_][6] terminology
 
 ## Services
 ### The _ExportChangedComponents_ service
@@ -37,7 +37,7 @@ Used with the _Workbook\_Open_ event all  _Used&nbsp;Common&nbsp;Components_ are
 
 #### General
 The service allows a productive Workbook to remain in use while its VB-Project is developed/modified/maintained in a copy of it. When all changed had been done the productive version is synchronized with the changed copy with the benefit of a significantly shorter downtime for the productive Workbook. 
-> As with the Export and Update service, this service has no user interface! It is invoked when the _Sync-Target-Workbook_ (prepared for the service!) is opened from within the configured _Synchronization Target Folder_ while the _Sync-Source-Workbook_ (its dedicated Workbook folder respectively) resides in the _Serviced Development & Test Folder_.
+> As with the Export and Update service, this service has no user interface! It is invoked when the _Sync-Target-Workbook_ (prepared for the service!) is opened from within the configured _Synchronization Target Folder_ while the _Sync-Source-Workbook_ (its dedicated Workbook folder respectively) resides in the _Serviced Development and Test Folder_.
 
 #### Synchronization extent
 
@@ -47,8 +47,8 @@ The service allows a productive Workbook to remain in use while its VB-Project i
 | _Components_                       | All types (_Standard&nbsp;Module_, _Data&nbsp;Module_, _Class&nbsp;Module_, _UserForm_). New components are added, obsolete components are removed, and of changed components the code is updated. |
 | _Worksheets_                       | New Worksheets are added, obsolete Worksheets are removed, changed Worksheet Names are synchronized, changed Worksheet-Code-Names are synchronized (see [restrictions](#worksheet-synchronization-restrictions) below).|
 | _Sheet-Shapes_                     | New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed, the Properties of all Shapes are synchronized (though largely covered may still be incomplete) |
-| _Range&nbsp;Names_                 | New Range-Names are added, obsolete Range-Names are removed. Attention! The synchronization of new Range-Names which concern new columns or rows depend on (manually beforehand) synced new rows and columns!|
 | _Named&nbsp;Range&nbsp;Properties_ | Named ranges already in sync (currently implemented)
+| _Range&nbsp;Names_                 | New Range-Names are added, obsolete Range-Names are removed. Attention! The synchronization of new Range-Names which concern new columns or rows depend on (manually beforehand) synced new rows and columns!|
 
 > ***Worksheet synchronization restriction!***  
 Never change both, the _Name_ ***and*** the _CodeName_ of a Worksheet! When a Worksheet's _Name_ ***and*** its _CodeName_ is changed at the same time the concerned sheet will be considered new and the (no longer identifiable as such) corresponding sheet will be considered obsolete - which in such a case is definitely not what was intended.
@@ -61,7 +61,7 @@ Never change both, the _Name_ ***and*** the _CodeName_ of a Worksheet! When a Wo
 ## Configuration
 When the [CompMan.xlsb][1] Workbook is opened for the first time, i. e.  when the configuration is incomplete or incorrect, a configuration dialog opens for the following items to be configured or corrected:
 
-#### Serviced _Development & Test Folder_
+#### Serviced _Development and Test Folder_
 Folder dedicated for the development and maintenance of Workbooks (VB-Projects respectively). The folder in which a Workbook (the dedicated Workbook-Folder respectively) must be located for the CompMan services _Export Changed Components_ and or _Update Outdated Components_.
 
 #### _Addin Folder_
@@ -76,13 +76,13 @@ Folder in which a _Sync-Target-Workbook_ must reside for the use of [The _Workbo
 ## Usage
 
 > ***Serviced or not serviced?***  
-Even when a Workbook is prepared for being serviced by _CompMan_ **nothing at all will happen** when the Workbook resides outside the configured  [_Serviced Development & Test Folder_](#basic-folders-configuration) - or, in case of the _Synchronization-Service_, outside the configured [_Serviced Synchronization Target Folder_](#basic-folders-configuration). Consequently, a productive Workbook should not reside in a serviced folder and should not be opened from therein. 
+Even when a Workbook is prepared for being serviced by _CompMan_ **nothing at all will happen** when the Workbook resides outside the configured  [_Serviced Development and Test Folder_](#configuration) - or, in case of the _Synchronization-Service_, outside the configured [_Serviced Synchronization Target Folder_](#configuration). Consequently, a productive Workbook should not reside in a serviced folder and should not be opened from therein. 
 
 ### Preconditions for Workbooks for being serviced by CompMan
 
 1. The _[mCompManClient.bas][3]_ had been downloaded and imported. <br>The _mCompManClient_ module serves as the link to the CompMan services.
-2. For all three services: The Workbook (its dedicated folder respectively) resides in the configured [_Serviced Development & Test Folder_](#basic-folders-configuration) and is opened from there. Note: For the _Synchronization Service_ this Workbook serves as the _Sync-Source-Workbook_.
-3. For the _Synchronization_ service specifically: The Workbook resides (had explicitly and temporarily for this purpose moved to) the configured [_Serviced Synchronization Target Folder_](#basic-folders-configuration) and is opened from there
+2. For all three services: The Workbook (its dedicated folder respectively) resides in the configured [_Serviced Development and Test Folder_](#basic-folders-configuration) and is opened from there. Note: For the _Synchronization Service_ this Workbook serves as the _Sync-Source-Workbook_.
+3. For the _Synchronization_ service specifically: The Workbook resides (had explicitly and temporarily for this purpose moved to) the configured [_Serviced Synchronization Target Folder_](#configuration) and is opened from there
 3. The Workbook resides in its dedicated folder (i.e. it is the only Workbook in its parent folder)
 4. Either the  _[CompMan.xlsb][1]_ Workbook is open or _CompMan_ had been setup as _Addin_
 5. [WinMerge English][4] ([WinMerge German][5]) is installed
@@ -93,7 +93,7 @@ Private Const HOSTED_RAWS = "xxx,yyy,zzz" ' The hosted 'Raw Common Components' (
 
 Private Sub Workbook_Open()
     '~~ The below statement has no effect unless this (the Workbook serviced by CompMan)
-    '~~ is opened from within the configured 'Serviced Development & Test Folder'.
+    '~~ is opened from within the configured 'Serviced Development and Test Folder'.
     mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, HOSTED_RAWS
     
     '~~ The below statement has no effect unless this (the Workbook being synchronized by CompMan)
@@ -104,20 +104,20 @@ End Sub
 
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     '~~ The below statement has no effect unless this (the Workbook serviced by CompMan)
-    '~~ had been opened from within the configured 'Serviced Development & Test Folder'.
+    '~~ had been opened from within the configured 'Serviced Development and Test Folder'.
     mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
 End Sub
 ```
 
 ### Using the _Synchronization Service_
-#### General
-_CompMan's_ _Synchronization Service_ is designed for Workbooks the VB-Project needs to be changed without interrupting the productive use - even when the change takes time. As with the _Export_ and _Update_ service, all it needs is to open the Sync-Target-Workbook from the configured [_Serviced Development & Test Folder_](#basic-folders-configuration). This can be achieved by performing the following steps:
+_CompMan's_ _Synchronization Service_ is designed for Workbooks the VB-Project needs to be changed without interrupting the productive use - even when the change takes time. As with the _Export_ and _Update_ service, all it needs is to open the Sync-Target-Workbook from the configured [_Serviced Development and Test Folder_](#configuration). This can be achieved by performing the following steps:
 1. Follow the [Installation and provision of the CompMan services](#installation-and-provision-of-the-compman-services) instructions. 
-2. Copy the productive Workbook into a dedicated folder within the configured [_Serviced Development & Test Folder_](#basic-folders-configuration) and modify the VB-Project as intended. When the development/modification has been finished proceed with the next steps.
-3. Move the productive Workbook to the configured [_Serviced Synchronization Target Folder_](#basic-folders-configuration). When this folder has yet not been configured along with the first step, now proceed to the open [CompMan.xlsb][1] and use the _CompMan Configuration_ on the displayed Worksheet.
-4. Open the moved Workbook and follow the synchronization steps. The synchronization will be done on a working copy (name with a suffix _Synced_).
-5. When the synchronization has finished, save the working copy as the new productive Workbook - e.g. by dropping the _Synced_ suffix from the name and moving it back to the "production location" it originates.
-6. When everything has finally turned out perfect the remaining Workbook from step 3 may be removed
+2. Copy the productive Workbook into a dedicated folder within the configured [_Serviced Development and Test Folder_](#configuration) and modify the VB-Project as intended. When the development/modification has been finished proceed with the next steps.
+3. Move the productive Workbook to the configured [_Serviced Synchronization Target Folder_](#configuration). When this folder has yet not been configured along with the first step, now proceed to the open [CompMan.xlsb][1] and use the _CompMan Configuration_ on the displayed Worksheet.
+4. ***Essential!*** New inserted columns and rows are not synchronized. When the Workbook's modifications  include new inserted rows and/or columns a manual synchronization preparation is required b inserting those rows and/or columns into the _Sync-Target-Workbook_.  
+5. Open the moved Workbook and follow the synchronization steps. The synchronization will be done on a working copy (name with a suffix _Synced_).
+6. When the synchronization has finished, save the working copy as the new productive Workbook - e.g. by dropping the _Synced_ suffix from the name and moving it back to the "production location" it originates.
+7. When everything has finally turned out perfect the remaining Workbook from step 3 may be removed
 
 ### Other
 #### Common Components
