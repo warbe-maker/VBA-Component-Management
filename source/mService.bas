@@ -271,7 +271,7 @@ End Function
 Public Sub DsplyStatus(ByVal s As String)
     With Application
         .StatusBar = vbNullString
-        .StatusBar = Trim(s) & vbLf
+        .StatusBar = Trim(s)
     End With
 '    DoEvents
 End Sub
@@ -535,7 +535,7 @@ Public Sub ExportChangedComponents(ByVal hosted As String)
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                                  "(it may have been called directly via the 'Immediate Window'"
     If mService.Denied Then GoTo xt
-    mCompMan.MaintainPropertiesOfHostedRawCommonComponents hosted
+    mComCompRawsHosted.Manage hosted
     Set Log = New clsLog
     Log.Service = PROC
     mExport.ChangedComponents
@@ -588,11 +588,11 @@ Public Function FilesDiffer(ByVal fd_exp_file_1 As File, _
         End If
     End With
     
-    FilesDiffer = mFile.Differs(fd_file1:=fl1 _
-                              , fd_file2:=fl2 _
-                              , fd_stop_after:=1 _
-                              , fd_ignore_empty_records:=True _
-                              , fd_compare:=vbTextCompare).Count <> 0
+    FilesDiffer = mFso.FileDiffers(fd_file1:=fl1 _
+                                 , fd_file2:=fl2 _
+                                 , fd_stop_after:=1 _
+                                 , fd_ignore_empty_records:=True _
+                                 , fd_compare:=vbTextCompare).Count <> 0
 xt: Set fso = Nothing
     Exit Function
                             
@@ -634,7 +634,7 @@ Public Function FilesDifference(ByVal fd_exp_file_1 As File, _
         End If
     End With
     
-    Set FilesDifference = mFile.Differs(fd_file1:=fl1 _
+    Set FilesDifference = mFso.FileDiffers(fd_file1:=fl1 _
                                       , fd_file2:=fl2 _
                                       , fd_stop_after:=1 _
                                       , fd_ignore_empty_records:=True _
@@ -785,7 +785,7 @@ End Sub
 Private Function SelectServicedWrkbk(ByVal gs_service As String) As Workbook
     Dim fl As File
     
-    If mFile.Picked(p_title:="Select the Workbook (may already be open, will be opened if not) to be served by the " & gs_service & " service" _
+    If mFso.FilePicked(p_title:="Select the Workbook (may already be open, will be opened if not) to be served by the " & gs_service & " service" _
                   , p_filters:="Excel Workbook,*.xl*" _
                   , p_file:=fl) _
     Then Set SelectServicedWrkbk = mCompMan.WbkGetOpen(fl.Path) _
@@ -888,7 +888,7 @@ Private Function SyncSourceAndTargetSelected( _
         Select Case sReply
             Case sBttnTargetProject
                 Do
-                    If mFile.Picked(p_title:="Select the '" & TARGET_PROJECT & " to be synchronized with the '" & SOURCE_PROJECT & "'" _
+                    If mFso.FilePicked(p_title:="Select the '" & TARGET_PROJECT & " to be synchronized with the '" & SOURCE_PROJECT & "'" _
                                   , p_filters:="Excel Workbook,*.xl*" _
                                   , p_file:=fl) _
                     Then
@@ -901,7 +901,7 @@ Private Function SyncSourceAndTargetSelected( _
                 sWbSource = Split(sWbSource, ": ")(0)
             Case sBttnSourceProject
                 Do
-                    If mFile.Picked(p_title:="Select the '" & SOURCE_PROJECT & " as the synchronization source for the '" & TARGET_PROJECT & "'" _
+                    If mFso.FilePicked(p_title:="Select the '" & SOURCE_PROJECT & " as the synchronization source for the '" & TARGET_PROJECT & "'" _
                                   , p_filters:="Excel Workbook,*.xl*" _
                                   , p_file:=fl) _
                     Then

@@ -11,7 +11,7 @@ Option Explicit
 '
 ' The entries (sections) are maintained along with the Workbook_Open
 ' event via the UpdateOutdatedCommonComponents service. The revision number is the copy
-' of the revision number provided by mComCompsRawsGlobal.RawSavedRevisionNumber.
+' of the revision number provided by mComCompRawsGlobal.RawSavedRevisionNumber.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_RAW_REVISION_NUMBER As String = "RawRevisionNumber"
 Private Const VNAME_DUE_MODIF_WARNING   As String = "DueModificationWarning"
@@ -63,7 +63,7 @@ Private Property Get Value( _
 ' file ComCompsUsedFile.
 ' ----------------------------------------------------------------------------
     On Error GoTo eh
-    Value = mFile.Value(pp_file:=ComCompsUsedFile _
+    Value = mFso.FilePrivProfValue(pp_file:=ComCompsUsedFile _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -86,7 +86,7 @@ Private Property Let Value( _
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    mFile.Value(pp_file:=ComCompsUsedFile _
+    mFso.FilePrivProfValue(pp_file:=ComCompsUsedFile _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -100,7 +100,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Property
 
 Public Function Components() As Dictionary
-    Set Components = mFile.SectionNames(ComCompsSavedFileFullName)
+    Set Components = mFso.FilePrivProfSectionNames(ComCompsSavedFileFullName)
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
@@ -134,13 +134,13 @@ End Function
 
 Private Function NameExists(ByVal pp_section As String, _
                             ByVal pp_value_name As String) As Boolean
-    NameExists = mFile.Exists(ex_file:=ComCompsUsedFile _
+    NameExists = mFso.Exists(ex_file:=ComCompsUsedFile _
                             , ex_section:=pp_section _
                             , ex_value_name:=pp_value_name)
 End Function
 
 Public Sub Remove(ByVal comp_name As String)
-    mFile.RemoveSections pp_file:=ComCompsSavedFileFullName _
-                       , pp_sections:=comp_name
+    mFso.FilePrivProfRemoveSections pp_file:=ComCompsSavedFileFullName _
+                                  , pp_sections:=comp_name
 End Sub
 

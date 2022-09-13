@@ -99,7 +99,7 @@ Public Sub Test_01_KindOfComp()
     
     Set wbk = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsb")
 
-    sComp = "mFile"
+    sComp = "mFso"
     Set Comp = Nothing
     Set Comp = New clsComp
     With Comp
@@ -197,7 +197,7 @@ Public Sub Test_Comps_Outdated()
     
     Set mService.Serviced = ThisWorkbook
     Set Stats = New clsStats
-    Log.FileFullName = mFile.Temp(, ".log")
+    Log.FileFullName = mFso.FileTemp(, ".log")
     
     Set dct = Comps.Outdated(mService.Serviced)
     For Each v In dct
@@ -211,7 +211,7 @@ Public Sub Test_Comps_Outdated()
         Set Comp = Nothing
     Next v
     
-    Debug.Print mFile.txt(Log.LogFile)
+    Debug.Print mFso.FileTxt(Log.LogFile)
     Debug.Print Stats.Total(sic_comps_total) & " Components"
     Debug.Print Stats.Total(sic_comps_changed) & " Outdated"
         
@@ -237,7 +237,7 @@ Public Sub Test_Log()
         .ServicedItem = " <component-name> "
         .Entry = "Tested"
         mMsg.Box Title:="Test-Log:" _
-               , Prompt:=mFile.txt(ft_file:=.LogFile.Path) _
+               , Prompt:=mFso.FileTxt(ft_file:=.LogFile.Path) _
                , box_monospaced:=True
         If fso.FileExists(.LogFile.Path) Then fso.DeleteFile .LogFile.Path
     End With
@@ -254,7 +254,7 @@ End Sub
 Public Sub Test_Path()
 
     With New FileSystemObject
-        Debug.Print .GetFile(mFile.Temp()).Path
+        Debug.Print .GetFile(mFso.FileTemp()).Path
     End With
 End Sub
 
@@ -300,7 +300,7 @@ Public Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
     If mMe.IsDevInstnc Then GoTo xt
     
     Set mService.Serviced = ThisWorkbook
-    Log.FileFullName = mFile.Temp(, ".log")
+    Log.FileFullName = mFso.FileTemp(, ".log")
     Log.Service = "Renew Component Test"
     
     With Comp
@@ -347,8 +347,8 @@ Public Sub Test_RenewByImport_0_Regression()
     If mMe.IsAddinInstnc Then Exit Sub
     
     mBasic.EoP ErrSrc(PROC)
-'    Test_RenewByImport_1a_Standard_Module_ExpFile_Remote "mFile", repeat:=1
-'    Test_RenewByImport_1b_Standard_Module_ExpFile_Local "mFile", repeat:=1
+'    Test_RenewByImport_1a_Standard_Module_ExpFile_Remote "mFso", repeat:=1
+'    Test_RenewByImport_1b_Standard_Module_ExpFile_Local "mFso", repeat:=1
 '    Test_RenewByImport_2_Class_Module_ExpFile_Local "clsLog", repeat:=2
 '    Test_RenewByImport_3a_UserForm_ExpFile_Local "fMsg", repeat:=1
     Test_RenewByImport_3b_UserForm_ExpFile_Remote "fMsg", repeat:=1
@@ -395,7 +395,7 @@ Public Sub Test_RenewByImport_1a_Standard_Module_ExpFile_Remote(ByVal test_vbc_n
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
-                If mFile.Picked(p_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
+                If mFso.FilePicked(p_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
                               , p_init_path:=mExport.ExpFileFolderPath(.Wrkbk) _
                               , p_filters:="Export File,*." & Comp.ExpFileExt _
                               , p_file:=flExport) _
@@ -599,7 +599,7 @@ Private Sub Test_RenewByImport_3b_UserForm_ExpFile_Remote(ByVal test_vbc_name As
                 '~~ ------------------------------------------------------
                 '~~ Second test with the selection of a remote Export-File
                 '~~ ------------------------------------------------------
-                If mFile.Picked(p_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
+                If mFso.FilePicked(p_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
                               , p_init_path:=mExport.ExpFileFolderPath(.Wrkbk) _
                               , p_filters:="UserForm, *." & Comp.ExpFileExt _
                               , p_file:=flExport) _
@@ -677,8 +677,8 @@ Public Sub Test_WinMerge()
     Dim f1  As File
     Dim f2  As File
     
-    mFile.Picked p_file:=f1
-    mFile.Picked p_file:=f2
+    mFso.FilePicked p_file:=f1
+    mFso.FilePicked p_file:=f2
     sF1 = f1.Path
     sF2 = f2.Path
     

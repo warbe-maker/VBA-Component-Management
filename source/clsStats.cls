@@ -20,24 +20,6 @@ Public Sub Clear()
     aCount(0) = 0
 End Sub
 
-Public Property Get AlignedValue(ByVal sic As siCounter) As String
-    Dim v       As Variant
-    Dim Value   As Long
-    
-    If lMaxLen = 0 Then
-        For Each v In aCount
-            lMaxLen = Max(lMaxLen, Len(CStr(v)))
-        Next v
-    End If
-    
-    Value = Me.Total(sic)
-    If sic = sic_non_doc_mod_total Then
-        Value = Me.Total(sic_comps_total) - Me.Total(sic_sheets_total) - 1
-    End If
-    
-    AlignedValue = mBasic.Align(CStr(Value), lMaxLen, AlignRight)
-End Property
-
 Public Property Get Total(Optional ByVal sic As siCounter) As Long
     If UBound(aCount) < sic Then Total = 0 Else Total = aCount(sic)
 End Property

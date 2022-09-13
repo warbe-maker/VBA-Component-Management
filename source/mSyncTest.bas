@@ -312,12 +312,12 @@ ns:      Next shp
     Next wsh
     
     Debug.Print dctRW.Count
-    sFile = mFile.Temp(, "txt")
+    sFile = mFso.FileTemp(, "txt")
     For Each v In dctRW
-        mFile.txt(sFile) = mBasic.Align(v, lMaxLen, , , ".") & dctRW(v)
+        mFso.FileTxt(sFile) = mBasic.Align(v, lMaxLen, , , ".") & dctRW(v)
     Next v
     mMsg.ShellRun sFile, WIN_NORMAL
-    Stop: mFile.Delete sFile
+    Stop: mFso.FileDelete sFile
     
     '~~ Add all still missing (synchronizability not proved) Properties
     For enProperty = mSyncShapePrprtys.enPropertiesOOBFirst To mSyncShapePrprtys.enPropertiesShapeLast
@@ -330,12 +330,12 @@ ns:      Next shp
         End If
     Next enProperty
     
-    sFile = mFile.Temp(, "txt")
+    sFile = mFso.FileTemp(, "txt")
     For Each v In dctRW
-        mFile.txt(sFile) = mBasic.Align(v, lMaxLen, , , ".") & dctRW(v)
+        mFso.FileTxt(sFile) = mBasic.Align(v, lMaxLen, , , ".") & dctRW(v)
     Next v
     mMsg.ShellRun sFile, WIN_NORMAL
-    Stop: mFile.Delete sFile
+    Stop: mFso.FileDelete sFile
         
 xt: Set dctRW = Nothing
     Test_EnvironmentCleanup

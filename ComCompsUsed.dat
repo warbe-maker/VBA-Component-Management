@@ -18,7 +18,7 @@ RawRevisionNumber=2022-05-25.001
 DueModificationWarning=0
 [mFile]
 RawRevisionNumber=2022-06-28.001
-DueModificationWarning=1
+DueModificationWarning=0
 [mBasic]
 RawRevisionNumber=2022-07-23.001
 DueModificationWarning=0
@@ -32,4 +32,6 @@ DueModificationWarning=0
 RawRevisionNumber=2022-07-22.001
 [mPublicItems]
 RawRevisionNumber=2022-04-12.001
-DueModificationWarning=0
+DueModificationWarning=1
+[mFso]
+DueModificationWarning=1

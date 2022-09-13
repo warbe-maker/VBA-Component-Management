@@ -38,7 +38,7 @@ Option Private Module
 '                                  configured 'Serviced Folder' - which
 '                                  prevents productive Workbooks are bothered
 ' Uses Common Components:
-' - mFile                   Get/Let PrivateProperty value service
+' - mFso                   Get/Let PrivateProperty value service
 ' - mWrkbk                  GetOpen and Opened service
 ' - mMsg                    Dsply, Box, and Buttons service used by the
 '                           RenewAddin,  Renew_1_ConfirmConfig service
@@ -181,7 +181,7 @@ Private Property Get Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String) As Variant
     
-    Value = mFile.Value(pp_file:=CompManCfgFileName _
+    Value = mFso.FilePrivProfValue(pp_file:=CompManCfgFileName _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -191,7 +191,7 @@ Private Property Let Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String, _
                     ByVal pp_value As Variant)
-    mFile.Value(pp_file:=CompManCfgFileName _
+    mFso.FilePrivProfValue(pp_file:=CompManCfgFileName _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value

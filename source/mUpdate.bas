@@ -51,7 +51,7 @@ Public Function UpdateConfirmed(ByRef uo_comp As clsComp) As Boolean
                 .Text.Text = "The code of the 'Used Common Component'   " & mBasic.Spaced(sCompName) & _
                              "    had been modified within this Workbook/VBProject. This modification will be " & _
                              "reverted with this update. Displaying the difference will be the last chance to " & _
-                             "modify the 'Raw Common Component' in its hosting Workbook (" & mComCompsRawsGlobal.RawHostWbFullName(sCompName) & ")."
+                             "modify the 'Raw Common Component' in its hosting Workbook (" & mComCompRawsGlobal.RawHostWbFullName(sCompName) & ")."
                 .Text.FontColor = rgbRed
             End With
         End If

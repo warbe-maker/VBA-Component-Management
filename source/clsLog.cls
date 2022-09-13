@@ -50,7 +50,7 @@ Friend Property Let Entry(ByVal s As String)
             sEntry = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & ServicedItem & s
         End If
     End If
-    mFile.txt(ft_file:=sFileFullName, ft_append:=True) = sEntry
+    mFso.FileTxt(ft_file:=sFileFullName, ft_append:=True) = sEntry
     sItem = sServicedItem
     sCompName = Split(ServicedItemName, "(")(0)
     
@@ -129,15 +129,15 @@ Friend Property Let Service(Optional ByVal new_log As Boolean = False, _
     
     If bNewService Then
         '~~ When the service differs from a previous service
-        If mFile.txt(ft_file:=sFileFullName) <> vbNullString Then
+        If mFso.FileTxt(ft_file:=sFileFullName) <> vbNullString Then
             '~~ When the log file already contains log entries insert a split line
-            mFile.txt(ft_file:=sFileFullName _
+            mFso.FileTxt(ft_file:=sFileFullName _
                      , ft_append:=True _
                       ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "=")
         End If
     
         '~~ Append a service header to the log file
-        mFile.txt(ft_file:=sFileFullName _
+        mFso.FileTxt(ft_file:=sFileFullName _
                 , ft_append:=True _
                  ) = Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & sService & vbCrLf & _
                      Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "-")

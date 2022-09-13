@@ -101,10 +101,6 @@ Public Property Let DueModificationWarning(ByVal b As Boolean)
     mComCompsUsed.DueModificationWarning(sCompName) = b
 End Property
 
-Public Sub RevisionNumberIncrease()
-    mComCompsRawsHosted.RawRevisionNumberIncrease (sCompName)
-End Sub
-
 Friend Property Get Changed() As Boolean
 ' ------------------------------------------------------------------------------
 ' Returns TRUE when the Component's Export-File dose not exist or a temporary
@@ -154,7 +150,7 @@ Friend Property Get CodeLines() As Dictionary
     Dim dct As New Dictionary
     
     With New FileSystemObject
-        Set dct = mFile.Dict(Me.ExpFile)
+        Set dct = mFso.FileDict(Me.ExpFile)
     End With
     RemoveModuleInfo dct
     RemoveLeadingTrailingEmptyLines dct
@@ -376,7 +372,7 @@ Friend Property Get RevisionNumbersDiffer() As Boolean
 ' Returns TRUE when the RevisionNumber of the Raw Common Component differs from
 ' the current RevisionNumber of this Used Common Component.
 ' ------------------------------------------------------------------------------
-    RevisionNumbersDiffer = mComCompsRawsGlobal.RawSavedRevisionNumber(sCompName) <> mComCompsUsed.RevisionNumber(sCompName)
+    RevisionNumbersDiffer = mComCompRawsGlobal.RawSavedRevisionNumber(sCompName) <> mComCompsUsed.RevisionNumber(sCompName)
 End Property
 
 
@@ -443,9 +439,9 @@ Friend Property Get KindOfComp() As enKindOfComp
     On Error GoTo eh
     
     If lKindOfComp = enKindOfComp.enUnknown Then
-        If mComCompsRawsGlobal.Exists(sCompName) Then
+        If mComCompRawsGlobal.Exists(sCompName) Then
             '~~ The component is registered in the ComComps-Saved.dat as a known Common Component
-            If mComCompsRawsGlobal.RawHostWbName(comp_name:=sCompName) = Me.Wrkbk.Name Then
+            If mComCompRawsGlobal.RawHostWbName(comp_name:=sCompName) = Me.Wrkbk.Name Then
                 '~~ When the registered host is this Component's Workbook the component is regarded
                 '~~ the hosted one else it is a Used Common Component
                 lKindOfComp = enCommCompHosted
@@ -498,7 +494,7 @@ Public Property Get RawChanged() As Boolean
     Const PROC = "RawChanged"
     
     On Error GoTo eh
-    If Me.RevisionNumber < mComCompsRawsGlobal.RawSavedRevisionNumber(sCompName) Then
+    If Me.RevisionNumber < mComCompRawsGlobal.RawSavedRevisionNumber(sCompName) Then
         '~~ The Revision Number of the Raw Common Component is greater which means that
         '~~ a modification had been exported - and the Revision Number thereby increased
         If Not mService.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
@@ -508,11 +504,11 @@ Public Property Get RawChanged() As Boolean
             '~~ Component must have been updated manually already - e.g. by dragging
             '~~ the component from the hosting Workbook. So just the Revision Number
             '~~ needs to be set equal.
-            mComCompsUsed.RevisionNumber(sCompName) = mComCompsRawsGlobal.RawSavedRevisionNumber(sCompName)
+            mComCompsUsed.RevisionNumber(sCompName) = mComCompRawsGlobal.RawSavedRevisionNumber(sCompName)
         Else
             RawChanged = True
         End If
-    ElseIf Me.RevisionNumber = mComCompsRawsGlobal.RawSavedRevisionNumber(sCompName) Then
+    ElseIf Me.RevisionNumber = mComCompRawsGlobal.RawSavedRevisionNumber(sCompName) Then
         If mService.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
                               , fd_exp_file_2:=Raw.SavedExpFile) Then
             '~~ it is not the Raw which had changed but the Used Common Component in its Workbook.

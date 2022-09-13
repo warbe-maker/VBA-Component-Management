@@ -80,7 +80,7 @@ Public Function SyncTargetsSource(ByVal sts_target_wbk As Workbook) As String
     On Error GoTo eh
     Dim cll As Collection
     
-    If mFile.Exists(ex_folder:=mConfig.ServicedDevAndTestFolder, ex_file:=mSync.SyncTargetOriginName(sts_target_wbk), ex_result_files:=cll) Then
+    If mFso.Exists(ex_folder:=mConfig.ServicedDevAndTestFolder, ex_file:=mSync.SyncTargetOriginName(sts_target_wbk), ex_result_files:=cll) Then
         If cll.Count <> 1 _
         Then Err.Raise AppErr(1), ErrSrc(PROC), "Unable to identify the 'Sync-Target-Workbook's corresponding 'Sync-Source-Workbook' because the " & _
                                                 "'Serviced-Folder' contains either none or more than one file named '" & mSync.SyncTargetOriginName(sts_target_wbk) & "'" _
@@ -152,7 +152,7 @@ Public Function SyncTargetWorkingCopy(ByVal satc_wbk As Workbook) As Workbook
         sSyncTargetWorkingCopy = satc_wbk.FullName
         Application.EnableEvents = False
         satc_wbk.Close False
-        mFile.Delete sSyncTargetWorkingCopy
+        mFso.FileDelete sSyncTargetWorkingCopy
         mWbk.GetOpen sSyncTargetOrigin
         Application.EnableEvents = True
     

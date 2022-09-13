@@ -5,7 +5,7 @@ Option Explicit
 ' ----------------------------------------------------------------------------
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
-    (ByVal hwnd As Long, _
+    (ByVal hWnd As Long, _
     ByVal lpOperation As String, _
     ByVal lpFile As String, _
     ByVal lpParameters As String, _
@@ -561,7 +561,7 @@ End Function
 
 Private Function IsPublicConst(ByVal is_line As String, _
                                ByRef is_item As String, _
-                              ByVal is_comp As String) As Boolean
+                               ByVal is_comp As String) As Boolean
     If LineBeginsWith(is_line, "Public Const ", is_item) Then
         IsPublicConst = True
         KindOfItem(is_comp & "." & is_item) = "C"
@@ -886,7 +886,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Sub
 
 Private Sub Statistics_Test()
-    Statistics Application.Workbooks("CompMan.xlsb"), "mBasic, mDct, mErH, mMsg, fMsg, mFile, mTrc, mWbk"
+    Statistics Application.Workbooks("CompMan.xlsb"), "mBasic, mDct, mErH, mMsg, fMsg, mFso, mTrc, mWbk"
 End Sub
 
 Private Sub UnstripComment(ByRef uc_line As String)
@@ -1029,7 +1029,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Sub
 
 Private Sub Xref_Test()
-    Xref Application.Workbooks("CompMan.xlsb"), "mBasic, mDct, mErH, mMsg, fMsg, mFile, mTrc, mWbk"
+    Xref Application.Workbooks("CompMan.xlsb"), "mBasic, mDct, mErH, mMsg, fMsg, mFso, mTrc, mWbk"
 End Sub
 
 Private Sub XrefComponents(ByRef total_code_lines As Long)

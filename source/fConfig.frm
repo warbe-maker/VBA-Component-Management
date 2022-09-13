@@ -120,12 +120,9 @@ Private Property Let FolderSyncedInfo(Optional ByVal invalid As Boolean = False,
     End With
 End Property
 
-
-Public Property Get MoveFolderServiced() As Boolean:            MoveFolderServiced = Me.cbxMoveServicedRoot.Value:  End Property
-
 Public Property Get FolderServiced() As String:                 FolderServiced = Me.tbxFolderServiced.Text:         End Property
 
-Public Property Let FolderServiced(ByVal s As String):  Me.tbxFolderServiced.Text = s:                      End Property
+Public Property Let FolderServiced(ByVal s As String):          Me.tbxFolderServiced.Text = s:                      End Property
 
 Private Property Let FolderServicedInfo(Optional ByVal invalid As Boolean = False, _
                                                  ByVal s As String)
