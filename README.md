@@ -4,9 +4,7 @@
 [Services](#services)  
 &nbsp;&nbsp;&nbsp;[The _ExportChangedComponents_ service](#the-exportchangedcomponents-service)  
 &nbsp;&nbsp;&nbsp;&nbsp;[The _UpdateOutdatedCommonComponents_ service](#the-updateoutdatedcommoncomponents-service)  
-&nbsp;&nbsp;&nbsp;&nbsp;[The Workbook Synchronization service](#the-workbook-synchronization-service)  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[General](#general)  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[The extent of synchronization](#the-extent-of-synchronization)  
+&nbsp;&nbsp;&nbsp;&nbsp;[The VB-Project Synchronization service](#the-vb-project-synchronization-service)  
 [Installation](#installation)  
 [Configuration](#configuration)  
 &nbsp;&nbsp;&nbsp;[Serviced Development and Test Folder](#serviced-development-and-test-folder)  
@@ -20,12 +18,15 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Enabling the _Export_ service](#enabling-the-export-service)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Enabling the _Update_ service](#enabling-the-update-service)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Enabling the _Synchronization_ service](#enabling-the-synchronization-service)  
-&nbsp;&nbsp;&nbsp;[Using the Synchronization Service](#using-the-synchronization-service)  
+&nbsp;&nbsp;&nbsp;[Using the Synchronization Service](#using-the-synchronization-service)     
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Steps](#steps)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Worksheet synchronization](#worksheet-synchronization)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[References synchronization](#references-synchronization)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[VB-Components synchronization](#vb-components-synchronization)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Names synchronization](#names-synchronization)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Synchronization of obsolete Names](#synchronization-of-obsolete-names)   
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Synchronization of new Names](#synchronization-of-new-names)   
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Manual pre-synchronization preparation](#manual-pre-synchronization-preparation)   
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Sheet-Shape synchronization](#sheet-shape-synchronization)  
 [Other](#other)  
 &nbsp;&nbsp;&nbsp;[Common Components](#common-components)  
@@ -71,11 +72,10 @@ Used with the _Workbook\_BeforeSave_ event, all _VB-Components_ code is compared
 ### The _UpdateOutdatedCommonComponents_ service
 Used with the _Workbook\_Open_ event all  _Used&nbsp;Common&nbsp;Components_ are checked whether they are outdated. In case a dialog is displayed which allows to display the code difference (by means of WinMerge) perform the update or skip it. The update uses the  _Export&nbsp;File_ of the _Raw&nbsp;Common&nbsp;Component_ in the _Common&nbspComponents_ folder. This service is the core service and most critical service provided by CompMan. Excel may every now and then close the serviced Workbook when code is updated. Fortunately the Workbook can be opened again and the update service continues.  
 
-### The _Workbook Synchronization_ service
+### The _VB-Project Synchronization_ service
 
-#### General
-The service allows a productive Workbook to remain in use while a copy of it is used for the developed/modification/maintenance. When all changed had been done the productive version is synchronized with the changed copy with the benefit of a significantly shorter downtime for the productive Workbook. 
-> As with the _Export_ and _Update_ service, this service has no user interface! The service is invoked when the _Sync-Target-Workbook_ (i.e. the temporarily moved productive Workbook) is opened from within the configured _Synchronization Target Folder_ provided the _Sync-Source-Workbook_ (i.e the copy of the productive Workbook) resides in the _Serviced Development and Test Folder_.
+The service allows a productive Workbook to remain in use while the VB-Project in a copy of it is developed/modified/maintained. When all changes had been done the VB-Project of the productive Workbook is synchronized. The benefit: A significant shorter downtime for the productive Workbook. 
+> As with the _Export_ and _Update_ service, this service has no user interface! The service is invoked when the _Sync-Target-Workbook_ (i.e. the temporarily moved productive Workbook) is opened from within the configured _Synchronization Target Folder_. Provided the _Sync-Source-Workbook_ (i.e the copy of the productive Workbook) resides in the _Serviced Development and Test Folder_.
 
 ## Installation
 1. Download and open [CompMan.xlsb][1]
@@ -90,7 +90,7 @@ When the [CompMan.xlsb][1] Workbook is opened for the first time, i. e.  when th
 |***Serviced&nbsp;Development&nbsp;and&nbsp;Test&nbsp;Folder***| CompMan's  _Export Changed Components_ and or _Update Outdated Components_ service is only provided for Workbooks opened from within this folder,  dedicated for the development and maintenance of Workbooks (VB-Projects respectively).|
 |***Addin Folder***|The folder defaults to the _Application.AltStartupPath_ when one is already specified or in use respectively. The specified or confirmed folder is (or becomes) the _Application.AltStartupPath_. The folder is obligatory only when CompMan is setup as _Addin-Instance_. |
 |***Export&nbsp;Folder***|Name of the folder under the dedicated Workbook-Folder into which modified _VB-Components_ are exported.|
-|***Serviced&nbsp;Synchronization&nbsp;Target&nbsp;Folder***|Folder in which a _Sync-Target-Workbook_ must reside for the use of [The _Workbook Synchronization_ service](#the-workbook-synchronization-service).|
+|***Serviced&nbsp;Synchronization&nbsp;Target&nbsp;Folder***|Folder in which a _Sync-Target-Workbook_ must reside for the use of [The _VB-Project Synchronization_ service](#the-workbook-synchronization-service).|
 
 ## Usage
 ### Serviced or not serviced  
@@ -156,7 +156,7 @@ End Sub
 7. When everything has finally turned out perfect the remaining Workbook from step 3 may be removed
 
 #### _Worksheet_ synchronization
-New Worksheets are added, obsolete Worksheets are removed, changed Worksheet Names are synchronized, changed Worksheet-Code-Names are synchronized.
+New Worksheets are added, obsolete Worksheets are removed, changed Worksheet Names ****or!**** changed Worksheet-Code-Names are synchronized.
 >Attention! The _Name_ ***and*** the _CodeName_ of a Worksheet must never both be changed. When a Worksheet's _Name_ ***and*** its _CodeName_ is changed at the same time the concerned sheet will be considered new and the (no longer identifiable as such) corresponding sheet will be considered obsolete - which in such a case is definitely not what was intended.
 #### _References_ synchronization
 New References are added and obsolete References are removed.
@@ -165,9 +165,24 @@ Synchronized are all types of VB-Components:  (_Standard&nbsp;Module_, _Data&nbs
 
 #### _Names_ synchronization
 !!! still under development !!!
+Names synchronization is the most delicate of all synchronizations and requires specific attention.
 
-Synchronized are obsolete and new Names. When the referenced Range of a Name has a changed, i.e. when the named range had moved due to an inserted or removed range, the "old" Name is regarded obsolete and removed and the new Name is added.
->***Essential!*** New inserted or deleted ranges (columns, rows, cells) are not synchronized. When the Workbook's modifications include new and/or inserted ranges these need to be synchronized manually beforehand. Due to this, the _Sync-Target-Workbook_ is opened with a corresponding option dialog.
+##### Synchronization of obsolete Names
+A Name is regarded obsolete when it is neither used in any Sync-Source-Workbook Worksheets cell's formula nor in any line of vba code. This may occur to Names which do exist in the Sync-Source-Workbook and the Sync-Target-Workbook. An Name detected obsolete in the Sync-Source-Workbook will be exempted from synchronization, an obsolete Name in the Sync-Target-Workbook will be removed. 
+
+##### Synchronization of new Names
+A Name is considered new when the Name's 'mere name' [^2] exists in the Sync-Source-Workbook but not in the Sync-Target-Workbook. However, when a new Name is synchronized it may refer-to the wrong range in the Sync-Target-Workbook which is a potentially serious issue:
+
+
+While the Sync-Source-Workbook is under development, maintenance, etc., the Workbook of which it is a copy remains "productive". The advantage of this approach, a minimized downtime for the productive Workbook comes with the downside that rows and even columns may be added which may affect the range a Name refers-to. On the other side, sheet-design changes in the Sync-Source-Workbook may add or remove cells/ranges as well. Both will results in a synchronization mess impossible to be sorted out programmatically.
+
+>The only way out of the dilemma is a [manual pre-synchronization preparation](#manual-pre-synchronization-preparation) flanked by very careful checks before a new Name is added. New inserted or deleted ranges (columns, rows, cells) are not synchronized. When the Workbook's modifications include new and/or inserted ranges these need to be [synchronized manually beforehand](#manual-pre-synchronization-preparation) - which is supported/enabled by the open-decision-dialog displayed when the _Sync-Target-Workbook_ is opened.
+>New names with wrong referred range have to be avoided by ****manually establishing the new Name in the Sync-Target-Workbook in a manual pre-synchronization effort****. A corresponding warning is displayed with the synchronization dialog and the pre-synchronization can be made by interrupting the synchronization and continuing it afterwards.
+
+##### Manual pre-synchronization preparation
+When a synchronization dialog is terminated without any action the whole synchronization will be interrupted leaving the Sync-Target-Workbook's working copy open. However it is not recommendable to do the manual work in this open Workbook but rather close it by saving the synchronizations already performed and opening the origin Sync-Target-Workbook again by selection the preparation option from the displayed ope-decision dialog. When the Sync-Target-Workbook is closed and re-opened the option ***Continue ongoing synchronization*** will continue synchronizing the outstanding.   
+
+[^2]: A Name objects 'mere name' is one without a sheet-name-prefix
 
 #### _Sheet-Shape_ synchronization
 New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. The Properties of all Shapes are synchronized. However, though largely covered the properties synchronization may still be incomplete. 
