@@ -156,8 +156,13 @@ End Sub
 7. When everything has finally turned out perfect the remaining Workbook from step 3 may be removed
 
 #### _Worksheet_ synchronization
-New Worksheets are added, obsolete Worksheets are removed, changed Worksheet Names ****or!**** changed Worksheet-Code-Names are synchronized.
->Attention! The _Name_ ***and*** the _CodeName_ of a Worksheet must never both be changed. When a Worksheet's _Name_ ***and*** its _CodeName_ is changed at the same time the concerned sheet will be considered new and the (no longer identifiable as such) corresponding sheet will be considered obsolete - which in such a case is definitely not what was intended.
+- ***New Worksheets***
+  - The Sync-Source-Worksheet is cloned to the Sync-Target-Workbook
+  - Back-links to the Sync-Source-Workbook are eliminated
+  - All concerned Names scope is synchronized
+- ***Obsolete Worksheets*** are removed
+- ***Worksheets' Name <span style="color:red">****or!****</span> Code-Name change*** are synchronized.  
+>Attention! <span style="color:red">The _Name_ ***and*** the _CodeName_ of a Worksheet must never both be changed.</span> When a Worksheet's _Name_ ***and*** its _CodeName_ is changed at the same time the concerned sheet will be considered new and the (no longer identifiable as such) corresponding sheet will be considered obsolete - which in such a case is definitely not what was intended.
 #### _References_ synchronization
 New References are added and obsolete References are removed.
 #### _VB-Components_ synchronization
