@@ -4,11 +4,11 @@
 [Services](#services)  
 &nbsp;&nbsp;&nbsp;[The _ExportChangedComponents_ service](#the-exportchangedcomponents-service)  
 &nbsp;&nbsp;&nbsp;&nbsp;[The _UpdateOutdatedCommonComponents_ service](#the-updateoutdatedcommoncomponents-service)  
-&nbsp;&nbsp;&nbsp;&nbsp;[The VB-Project Synchronization service](#the-vb-project-synchronization-service)  
+&nbsp;&nbsp;&nbsp;&nbsp;[The Synchronize VB-Project service](#the-synchronize-vb-project-service)  
 [Installation](#installation)  
 [Configuration](#configuration)  
 &nbsp;&nbsp;&nbsp;[Serviced Development and Test Folder](#serviced-development-and-test-folder)  
-&nbsp;&nbsp;&nbsp;[Addin Folder](#addin-folder)  
+&nbsp;&nbsp;&nbsp;[Add-in Folder](#add-in-folder)  
 &nbsp;&nbsp;&nbsp;[Name of the _***Export&nbsp;Folder***](#name-of-the-exportfolder)  
 &nbsp;&nbsp;&nbsp;[Serviced Synchronization Target Folder](#serviced-synchronization-target-folder)  
 [Usage](#usage)  
@@ -56,7 +56,7 @@ Also see the [Programmatically updating Excel VBA code][2] post for this subject
 | _Raw&nbsp;Common&nbsp;Component_ | The instance of a _Common&nbsp;Component_ which is regarded the developed, maintained and tested 'original', hosted in a dedicated _Raw&#8209;Host_ Workbook. The term _raw_ is borrowed from GitHub and indicates the original version of something |
 | _Raw&#8209;Host_      | The Workbook/_VB-Project_ which hosts the _Raw-Component_ |
 |_Service_             | Generic term for any _Public Property_, _Public Sub_, or _Public Function_ of a _Component_ |
-| _Servicing&nbsp;Workbook_ | The service providing Workbook, either the _[CompMan.xlsb][1]_ Workbook (when it is open) or the _CompMan Addin_ when it is set up. |
+| _Servicing&nbsp;Workbook_ | The service providing Workbook, either the _[CompMan.xlsb][1]_ Workbook (when it is open) or the _CompMan Add-in_ when it is set up. |
 | _Serviced&nbsp;Workbook_ | The Workbook prepared for being serviced, provided it is located within the _Serviced&nbsp;Folder_ for the Update and Export service or in the .
 |_VB&#8209;Project_    | Used synonymous with Workbook |
 | _Sync&#8209;Source&#8209;Workbook_   | A _Workbook/VP-Project_ temporarily copied to the [Serviced _Development and Test Folder_](#serviced-development-and-test-folder) for being modified - and finally synchronized with its origin Workbook.|
@@ -67,20 +67,19 @@ Also see the [Programmatically updating Excel VBA code][2] post for this subject
 
 ## Services
 ### The _ExportChangedComponents_ service
-Used with the _Workbook\_BeforeSave_ event, all _VB-Components_ code is compared with its previous _Export&nbsp;File_. When the code had changed the component is re-exported to the configured _Export Folder_ of which the name defaults to _source_. These _Export&nbsp;Files_ not only function as a code  backup in case Excel fucked-up a VB-Project but only enable versioning (by using [GitHub][6] for instance). See also [Common Components](#common-components) which are handled specifically.
+Used with the _Workbook\_BeforeSave_ event, all _VB-Components_ code is compared with its previous _Export&nbsp;File_. When the code had changed the component is re-exported to the configured _Export Folder_ of which the name defaults to _source_. These _Export&nbsp;Files_ not only function as a code  backup in case Excel ends up with a destroyed VB-Project, which may happen every now and then - but only functions as a versioning means (e.g. when [GitHub][6] is used for instance). See also [Common Components](#common-components) which are handled specifically.
 
 ### The _UpdateOutdatedCommonComponents_ service
 Used with the _Workbook\_Open_ event all  _Used&nbsp;Common&nbsp;Components_ are checked whether they are outdated. In case a dialog is displayed which allows to display the code difference (by means of WinMerge) perform the update or skip it. The update uses the  _Export&nbsp;File_ of the _Raw&nbsp;Common&nbsp;Component_ in the _Common&nbspComponents_ folder. This service is the core service and most critical service provided by CompMan. Excel may every now and then close the serviced Workbook when code is updated. Fortunately the Workbook can be opened again and the update service continues.  
 
-### The _VB-Project Synchronization_ service
-
-The service allows a productive Workbook to remain in use while the VB-Project in a copy of it is developed/modified/maintained. When all changes had been done the VB-Project of the productive Workbook is synchronized. The benefit: A significant shorter downtime for the productive Workbook. 
+### The _Synchronize VB-Project_ service
+The service allows a productive Workbook to remain in use while the VB-Project is developed, modified, maintained, etc., in a copy of it. When all changes had been done the VB-Project of the productive Workbook is synchronized. The benefit: A significant shorter downtime for the productive Workbook. 
 > As with the _Export_ and _Update_ service, this service has no user interface! The service is invoked when the _Sync-Target-Workbook_ (i.e. the temporarily moved productive Workbook) is opened from within the configured _Synchronization Target Folder_. Provided the _Sync-Source-Workbook_ (i.e the copy of the productive Workbook) resides in the _Serviced Development and Test Folder_.
 
 ## Installation
 1. Download and open [CompMan.xlsb][1]
 2. When the Workbook is opened for the first time it will show a dialog for the required [Configuration](#configuration).
-3. Optionally: Use the _Setup/Renew_ button on the displayed Worksheet to establish _CompMan_ as _Addin_ . This Setup/Renew requires to configure or re-confirm the [Configuration](#configuration). Once _CompMan_ had been established as _Addin_ the services will be available when Excel starts - needless to say: unless it is not removed from the configured [_Addin&nbsp;Folder_](#basic-folders-configuration).
+3. Optionally: Use the _Setup/Renew_ button on the displayed Worksheet to establish _CompMan_ as _Add-in_ . This Setup/Renew requires to configure or re-confirm the [Configuration](#configuration). Once _CompMan_ had been established as _Add-in_ the services will be available when Excel starts - needless to say: unless it is not removed from the configured [_Add-in&nbsp;Folder_](#basic-folders-configuration).
 
 ## Configuration
 When the [CompMan.xlsb][1] Workbook is opened for the first time, i. e.  when the configuration is incomplete or incorrect, a configuration dialog opens for the following items to be configured or corrected:
@@ -88,16 +87,22 @@ When the [CompMan.xlsb][1] Workbook is opened for the first time, i. e.  when th
 | Item | Purpose |
 |------|---------|
 |***Serviced&nbsp;Development&nbsp;and&nbsp;Test&nbsp;Folder***| CompMan's  _Export Changed Components_ and or _Update Outdated Components_ service is only provided for Workbooks opened from within this folder,  dedicated for the development and maintenance of Workbooks (VB-Projects respectively).|
-|***Addin Folder***|The folder defaults to the _Application.AltStartupPath_ when one is already specified or in use respectively. The specified or confirmed folder is (or becomes) the _Application.AltStartupPath_. The folder is obligatory only when CompMan is setup as _Addin-Instance_. |
+|***Add-in Folder***|The folder defaults to the _Application.AltStartupPath_ when one is already specified or in use respectively. The specified or confirmed folder is (or becomes) the _Application.AltStartupPath_. The folder is obligatory only when CompMan is setup as _Add-in-Instance_. |
 |***Export&nbsp;Folder***|Name of the folder under the dedicated Workbook-Folder into which modified _VB-Components_ are exported.|
-|***Serviced&nbsp;Synchronization&nbsp;Target&nbsp;Folder***|Folder in which a _Sync-Target-Workbook_ must reside for the use of [The _VB-Project Synchronization_ service](#the-workbook-synchronization-service).|
+|***Serviced&nbsp;Synchronization&nbsp;Target&nbsp;Folder***|Folder in which a _Sync-Target-Workbook_ must reside for the use of [The _Synchronize VB-Project_ service](#the-synchronize-vb-project-service).|
 
 ## Usage
 ### Serviced or not serviced  
-Even when a Workbook is enabled for being serviced by _CompMan_ **nothing at all will happen** unless the Workbook resides in the  configured [_Serviced Development and Test Folder_](#configuration) - in case of the _Synchronization-Service_, the configured [_Serviced Synchronization Target Folder_](#configuration). Consequently, a productive Workbook must not be used from within a serviced folder.
+A Workbook will only be serviced by CompMan provided
+- CompMan is either setup as Add-in or the [CompMan.xlsb][1] is open
+- a valid [_Serviced Development and Test Folder_](#configuration) is configured
+- the Workbook is [enabled](#services-enabling)/prepared for being serviced
+- the Workbook resides in the configured [_Serviced Development and Test Folder_](#configuration) and is opened from within it
+
+Consequently, a productive Workbook must not be used from within the configured [_Serviced Development and Test Folder_](#configuration).
 
 ### General preconditions
-1. Either the  _[CompMan.xlsb][1]_ Workbook is open or _CompMan_ had been setup as _Addin_
+1. Either the  _[CompMan.xlsb][1]_ Workbook is open or _CompMan_ had been setup as _Add-in_
 2. [WinMerge English][4] ([WinMerge German][5]) is installed
 
 ### Services enabling
@@ -203,10 +208,6 @@ _CompMan_ maintains for each _Raw&nbsp;Common&nbsp;Component_ a copy of the _Exp
 #### The _Revision Number_
 CompMan is pretty much focused on _Common&nbsp;Components_. In order to prevent updates of _Used&nbsp;Common&nbsp;Components_ with outdated raw versions CompMan maintains a _Revision Number_ for them which is increased whenever a new modified version is exported. The _Revision Number_ is maintained in a file _ComCompsHosted.dat_ located in the Workbook folder and kept in sync with the Revision Number_ in a file _ComCompsSaved.dat_ located in [the _Common Components_ folder](#the-common-components-folder).
 
-#### Pausing/continuing the CompMan Add-in
-Use the corresponding command buttons when the Workbook [CompMan.xlsb][1] is open. Pausing the Addin is only a CompMan development feature. When the Addin is paused while the [CompMan.xlsb][1] is open CompMan works as if the Addin were not setup which means the services are directly provided by the open [CompMan.xlsb][1]. When the [CompMan.xlsb][1] Workbook is closed and an Addin had been setup the Addin will be _continued_ automatically. This ensures that the Addin is available for the [CompMan.xlsb][1] Workbook when it is opened again.
-> The _CompMan Addin_ is the only means which allows to update outdated _Used&nbsp;Common&nbsp;Components_ in the [CompMan.xlsb][1] Workbook. I.e. the development instance of the Addin.
-
 #### CompMan's specific files
 
 | File                     | Location             | Description               |
@@ -214,12 +215,23 @@ Use the corresponding command buttons when the Workbook [CompMan.xlsb][1] is ope
 | _ComCompsHosted.dat_     | The serviced Workbook's parent folder | PrivateProfile file for the registration of all _Raw&nbsp;Common&nbsp;Components_ hosted in the corresponding Workbook. Content scheme:<small>  `[component-name]`  `RawExpFileFullName=<file-full-name>`  ` RawRevisionNumber=YYYY-MM-DD.000>` |
 | _ComCompsUsed.dat_       | The serviced Workbook's parent folder | Private Profile file for the registration of all _Used&nbsp;Common&nbsp;Components_. Content scheme:<small>  `[component-name]`  `RawRevisionNumber=YYYY-MM-DD.000>` |
 | _ComComps&#8209;RawsSaved.dat_ | [_Common&nbsp;Components_ folder](#common-components-folder) | PrivateProfile file for the registration of all known _Raw&nbsp;Common&nbsp;Components_ |
-| _CompMan.Service.trc_ | The serviced Workbook's parent folder | Execution trace of the performed CompMan service, available only when the _Conditional Compile Argument_ `ExecTrace = 1` is set in the servicing Workbook which is either the CompMan.xlsb Workbook directly or the CompMan.xlam Addin instance of it. |
+| _CompMan.Service.trc_ | The serviced Workbook's parent folder | Execution trace of the performed CompMan service, available only when the _Conditional Compile Argument_ `ExecTrace = 1` is set in the servicing Workbook which is either the CompMan.xlsb Workbook directly or the CompMan.xlam Add-in instance of it. |
 |  _CompMan.Service.log | The serviced Workbook's parent folder | Log file for the executed CompMan services. |
 
 #### Multiple computers involved in VB-Project's development/maintenance
 I do use two computers at two locations and prefer not to be bound to one. Some may prefer a network drive others a cloud based service. I prefer GitHub which makes using several computers very comfortable. In any case there is a certain need to prevent updates of used _Common&nbsp;Components_ with outdated hosted/raw versions.
 
+#### _CompMan_ as _Add-in_
+When the [CompMan.xls][1] Workbook is open it will preferably used to provide requested services. Once the Workbook has been setup as Add-in the Add-in will be used when the [CompMan.xls][1] Workbook is not open.
+##### Establishing  _CompMan_ as _Add-in_
+When the [CompMan.xls][1] Workbook is open the displayed Worksheet provides a button to do so.
+
+##### Making use of _CompMan_ as _Add-in_
+The Add-in is 
+
+##### Pausing/continuing the CompMan Add-in
+Use the corresponding command buttons when the Workbook [CompMan.xlsb][1] is open. Pausing the Add-in is only a CompMan development feature. When the Add-in is paused while the [CompMan.xlsb][1] is open CompMan works as if the Add-in were not setup which means the services are directly provided by the open [CompMan.xlsb][1]. When the [CompMan.xlsb][1] Workbook is closed and an Add-in had been setup the Add-in will be _continued_ automatically. This ensures that the Add-in is available for the [CompMan.xlsb][1] Workbook when it is opened again.
+> The _CompMan Add-in_ is the only means which allows to update outdated _Used&nbsp;Common&nbsp;Components_ in the [CompMan.xlsb][1] Workbook. I.e. the development instance of the Add-in.
 ## Contribution
 Contribution of any kind is welcome raising issues or by commenting the corresponding post [Programmatically-updating-Excel-VBA-code][2].
 
