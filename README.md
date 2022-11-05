@@ -13,8 +13,7 @@
 &nbsp;&nbsp;&nbsp;[Serviced Synchronization Target Folder](#serviced-synchronization-target-folder)  
 [Usage](#usage)  
 &nbsp;&nbsp;&nbsp;[Serviced or not serviced](#serviced-or-not-serviced)  
-&nbsp;&nbsp;&nbsp;[General preconditions](#general-preconditions)  
-&nbsp;&nbsp;&nbsp;[Services enabling](#services-enabling)  
+&nbsp;&nbsp;&nbsp;[Enabling the services](#enabling-the-services)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Enabling the _Export_ service](#enabling-the-export-service)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Enabling the _Update_ service](#enabling-the-update-service)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Enabling the _Synchronization_ service](#enabling-the-synchronization-service)  
@@ -74,7 +73,7 @@ Used with the _Workbook\_Open_ event all  _Used&nbsp;Common&nbsp;Components_ are
 
 ### The _Synchronize VB-Project_ service
 The service allows a productive Workbook to remain in use while the VB-Project is developed, modified, maintained, etc., in a copy of it. When all changes had been done the VB-Project of the productive Workbook is synchronized. The benefit: A significant shorter downtime for the productive Workbook. 
-> As with the _Export_ and _Update_ service, this service has no user interface! The service is invoked when the _Sync-Target-Workbook_ (i.e. the temporarily moved productive Workbook) is opened from within the configured _Synchronization Target Folder_. Provided the _Sync-Source-Workbook_ (i.e the copy of the productive Workbook) resides in the _Serviced Development and Test Folder_.
+> As with the _Export_ and _Update_ service, this service has no user interface! The service is invoked when the _Sync-Target-Workbook_ (i.e. the temporarily moved productive Workbook) is opened from within the configured _Synchronization Target Folder_. Provided the _Sync-Source-Workbook_ (i.e the copy of the productive Workbook) resides in the [_Serviced Development and Test Folder_](#configuration).
 
 ## Installation
 1. Download and open [CompMan.xlsb][1]
@@ -82,33 +81,34 @@ The service allows a productive Workbook to remain in use while the VB-Project i
 3. Optionally: Use the _Setup/Renew_ button on the displayed Worksheet to establish _CompMan_ as _Add-in_ . This Setup/Renew requires to configure or re-confirm the [Configuration](#configuration). Once _CompMan_ had been established as _Add-in_ the services will be available when Excel starts - needless to say: unless it is not removed from the configured [_Add-in&nbsp;Folder_](#basic-folders-configuration).
 
 ## Configuration
-When the [CompMan.xlsb][1] Workbook is opened for the first time, i. e.  when the configuration is incomplete or incorrect, a configuration dialog opens for the following items to be configured or corrected:
-
-| Item | Purpose |
-|------|---------|
-|***Serviced&nbsp;Development&nbsp;and&nbsp;Test&nbsp;Folder***| CompMan's  _Export Changed Components_ and or _Update Outdated Components_ service is only provided for Workbooks opened from within this folder,  dedicated for the development and maintenance of Workbooks (VB-Projects respectively).|
-|***Add-in Folder***|The folder defaults to the _Application.AltStartupPath_ when one is already specified or in use respectively. The specified or confirmed folder is (or becomes) the _Application.AltStartupPath_. The folder is obligatory only when CompMan is setup as _Add-in-Instance_. |
-|***Export&nbsp;Folder***|Name of the folder under the dedicated Workbook-Folder into which modified _VB-Components_ are exported.|
-|***Serviced&nbsp;Synchronization&nbsp;Target&nbsp;Folder***|Folder in which a _Sync-Target-Workbook_ must reside for the use of [The _Synchronize VB-Project_ service](#the-synchronize-vb-project-service).|
+When the [CompMan.xlsb][1] Workbook is opened for the first time and/or when the configuration is incomplete or incorrect, a configuration dialog opens for the following items to be configured or corrected:
+#### Serviced Development and Test Folder
+CompMan's  _Export Changed Components_ and or _Update Outdated Components_ service is only provided for Workbooks opened from within this folder,  dedicated for the development and maintenance of Workbooks (VB-Projects respectively).
+#### Add-in Folder
+The folder defaults to the _Application.AltStartupPath_ when one is already specified or in use respectively. The specified or confirmed folder is (or becomes) the _Application.AltStartupPath_. The folder is obligatory only when CompMan is setup as _Add-in-Instance_.
+#### Export Folder
+Folder within the dedicated Workbook folder into which the _Export_ service exports modified _VB-Components_.
+#### Serviced Synchronization Target Folder
+Folder into which a Workbook the [The _Synchronize VB-Project_ service](#the-synchronize-vb-project-service) has been enabled, is temporarily moved and opened from there in order to have its VB-Project synchronized with the same named Workbook residing in the configured [_Serviced Development and Test Folder_](#configuration).
 
 ## Usage
-### Serviced or not serviced  
+### Serviced or not serviced
 A Workbook will only be serviced by CompMan provided
-- CompMan is either setup as Add-in or the [CompMan.xlsb][1] is open
+- the servicing Workbook (the [CompMan.xlsb][1] Workbook or its Add-in instance is open
 - a valid [_Serviced Development and Test Folder_](#configuration) is configured
-- the Workbook is [enabled](#services-enabling)/prepared for being serviced
-- the Workbook resides in the configured [_Serviced Development and Test Folder_](#configuration) and is opened from within it
+- the Workbook is [enabled](#services-enabling)/prepared for the service
+- the serviced Workbook resides in the configured [_Serviced Development and Test Folder_](#configuration) and is opened from within it
+- the serviced Workbook is the only Workbook in its dedicated folder
+- the Update service requires the installation of WinMerge ([WinMerge English][4], [WinMerge German][5] for instance
 
-Consequently, a productive Workbook must not be used from within the configured [_Serviced Development and Test Folder_](#configuration).
+Consequently, a productive Workbook must not be used from within the configured [_Serviced Development and Test Folder_](#configuration). When a Workbook with any [enabled](#services-enabling)/prepared service is opened opened from outside a configured serviced folder the user will not be bothered by any means, i.e. will not recognize CompMan at all.
 
-### General preconditions
-1. Either the  _[CompMan.xlsb][1]_ Workbook is open or _CompMan_ had been setup as _Add-in_
-2. [WinMerge English][4] ([WinMerge German][5]) is installed
-
-### Services enabling
+### Enabling the services
+>Even when a Workbook has a service enabled: When required preconditions are not met the service is denied without notice.
 #### Enabling the _Export_ service
+The _Export_ service is performed whenever the Workbook is saved from within the configured [_Serviced Development and Test Folder_](#configuration) and all the [preconditions](#serviced-or-not-serviced) are met..
 1. Download and import the _[mCompManClient.bas][3]_ which serves as the link to the CompMan services.
-2. In the Workbook module copy the following:
+2. Into the Workbook module copy the following:
 ```vb
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     '~~ The below statement has no effect unless this (the Workbook serviced by CompMan)
@@ -116,11 +116,11 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
 End Sub
 ```
-3. Make sure the Workbook (its dedicated folder respectively) resides in the configured [_Serviced Development and Test Folder_](#basic-folders-configuration) and is opened from there.
 
 #### Enabling the _Update_ service
+The _Update_ service is performed whenever the Workbook is opened from within the configured [_Serviced Development and Test Folder_](#configuration) folder and all the [preconditions](#serviced-or-not-serviced) are meet.
 1. Download and import the _[mCompManClient.bas][3]_ which serves as the link to the CompMan services.
-2. In the Workbook module copy the following:
+2. Into the Workbook module copy the following:
 ```vb
 Private Sub Workbook_Open()
     '~~ The below statement has no effect unless this (the Workbook serviced by CompMan)
@@ -137,9 +137,10 @@ Const HOSTED_RAWS = <component-name>[,<component-name]...
 ```vb
 Const HOSTED_RAWS = vbNullstring
 ```
-3. Make sure the Workbook (its dedicated folder respectively) resides in the configured [_Serviced Development and Test Folder_](#basic-folders-configuration) and is opened from there.
+The _Update_ service is provided when the Workbook is opened.
 
 #### Enabling the _Synchronization_ service
+The _Synchronize VB-Project_ service is performed when the Workbook is opened from within the configured [_Serviced Synchronization Target Folder_](#configuration) and all the [preconditions](#serviced-or-not-serviced) are meet
 1. Download and import the _[mCompManClient.bas][3]_ which serves as the link to the CompMan services.
 2. In the Workbook module copy the following:
 ```vb
@@ -166,7 +167,9 @@ End Sub
   - Back-links to the Sync-Source-Workbook are eliminated
   - All concerned Names scope is synchronized
 - ***Obsolete Worksheets*** are removed
-- ***Worksheets' Name <span style="color:red">****or!****</span> Code-Name change*** are synchronized.  
+- ***Worksheets' Name <span style="color:red">****or!****</span> Code-Name change*** are synchronized
+- Not yet implemented: ***Worksheets owned by the VB-Project***, that means those protected and without any unlocked (input) cell, are synchronized by default - disregarding any change.
+
 >Attention! <span style="color:red">The _Name_ ***and*** the _CodeName_ of a Worksheet must never both be changed.</span> When a Worksheet's _Name_ ***and*** its _CodeName_ is changed at the same time the concerned sheet will be considered new and the (no longer identifiable as such) corresponding sheet will be considered obsolete - which in such a case is definitely not what was intended.
 #### _References_ synchronization
 New References are added and obsolete References are removed.
@@ -183,8 +186,7 @@ A Name is regarded obsolete when it is neither used in any Sync-Source-Workbook 
 ##### Synchronization of new Names
 A Name is considered new when the Name's 'mere name' [^2] exists in the Sync-Source-Workbook but not in the Sync-Target-Workbook. However, when a new Name is synchronized it may refer-to the wrong range in the Sync-Target-Workbook which is a potentially serious issue:
 
-
-While the Sync-Source-Workbook is under development, maintenance, etc., the Workbook of which it is a copy remains "productive". The advantage of this approach, a minimized downtime for the productive Workbook comes with the downside that rows and even columns may be added which may affect the range a Name refers-to. On the other side, sheet-design changes in the Sync-Source-Workbook may add or remove cells/ranges as well. Both will results in a synchronization mess impossible to be sorted out programmatically.
+While the _Sync-Source-Workbook_ is under development, maintenance, etc., the Workbook of which it is a copy remains "productive". The advantage of this approach, a minimized downtime for the productive Workbook comes with the downside that rows and even columns may be added which may affect the range a Name refers-to. On the other side, sheet-design changes in the Sync-Source-Workbook may add or remove cells/ranges as well. Both will results in a synchronization mess impossible to be sorted out.
 
 >The only way out of the dilemma is a [manual pre-synchronization preparation](#manual-pre-synchronization-preparation) flanked by very careful checks before a new Name is added. New inserted or deleted ranges (columns, rows, cells) are not synchronized. When the Workbook's modifications include new and/or inserted ranges these need to be [synchronized manually beforehand](#manual-pre-synchronization-preparation) - which is supported/enabled by the open-decision-dialog displayed when the _Sync-Target-Workbook_ is opened.
 >New names with wrong referred range have to be avoided by ****manually establishing the new Name in the Sync-Target-Workbook in a manual pre-synchronization effort****. A corresponding warning is displayed with the synchronization dialog and the pre-synchronization can be made by interrupting the synchronization and continuing it afterwards.
