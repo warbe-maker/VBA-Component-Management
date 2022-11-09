@@ -201,7 +201,13 @@ New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. 
 
 ### Other
 #### Status of the Add-in
-
+| Status             | Meaning |
+|--------------------|---------|
+| Paused             | The Add-in is currently paused |
+| Open               | CompMan is setup as Add-in and the Add-in is open, i.e. available/active |
+| Setup but not Open | CompMan is setup as Add-in but the Add-in is not open! |
+| Not Setup          | CompMan is currently not setup as Add-in |
+ 
 #### Common Components
 One of the initial intentions for the development of CompMan was to keep _Common&nbspComponent_ up-to-date in all VB-Projects which use them. Thus the export service handles _Raw&nbsp;Common&nbsp;Components_ in a specific way: It registers hosted _Raw&nbsp;Common&nbsp;Components_, it increases a [_Revision Number_](#the-revision-number) with each export and additionally copies the _Export&nbsp;File_ to a _Common Components_ folder which functions as the source for the [_UpdateOutdatedCommonComponents_ service](#the-updateoutdatedcommoncomponents-service) (while the hosting Workbook itself is not in charge with this service.  
 The service also checks whether a  _Used&nbsp;Common&nbsp;Component_ has been modified within the VB-Project using it - which may happen accidentally or intentionally - and registers a **due modification revert alert** displayed when the Workbook is opened subsequently and the [_UpdateOutdatedCommonComponents_ service](#the-updateoutdatedcommoncomponents-service) is about to revert the made modifications, allowing to display the code difference (using WinMerge).
