@@ -83,9 +83,9 @@ The service allows a productive Workbook to remain in use while the VB-Project i
 ## Configuration
 When the [CompMan.xlsb][1] Workbook is opened for the first time and/or when the configuration is incomplete or incorrect, a configuration dialog opens for the following items to be configured or corrected:
 #### Serviced Development and Test Folder
-CompMan's  _Export Changed Components_ and or _Update Outdated Components_ service is only provided for Workbooks opened from within this folder,  dedicated for the development and maintenance of Workbooks (VB-Projects respectively).
+The folder is essential for CompMan's  _Export Changed Components_ and or _Update Outdated Components_ service because the service is only provided for Workbooks opened from within this folder. When no such folder is configured or invalid the service will be denied without notice for Workbooks the service is [enabled](#enabling-the-services).
 #### Add-in Folder
-The folder defaults to the _Application.AltStartupPath_ when one is already specified or in use respectively. The specified or confirmed folder is (or becomes) the _Application.AltStartupPath_. The folder is obligatory only when CompMan is setup as _Add-in-Instance_.
+The folder defaults to the _Application.AltStartupPath_ when one is already specified or in use respectively. The located/specified folder is (or becomes) the _Application.AltStartupPath_. The folder is obligatory only when CompMan is setup as _Add-in-Instance_. When no Add-in folder is configured the [CompMan.xlsb][1] Workbook cannot be setup as Add-in.
 #### Export Folder
 Folder within the dedicated Workbook folder into which the _Export_ service exports modified _VB-Components_.
 #### Serviced Synchronization Target Folder
@@ -200,6 +200,8 @@ When a synchronization dialog is terminated without any action the whole synchro
 New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. The Properties of all Shapes are synchronized. However, though largely covered the properties synchronization may still be incomplete. 
 
 ### Other
+#### Status of the Add-in
+
 #### Common Components
 One of the initial intentions for the development of CompMan was to keep _Common&nbspComponent_ up-to-date in all VB-Projects which use them. Thus the export service handles _Raw&nbsp;Common&nbsp;Components_ in a specific way: It registers hosted _Raw&nbsp;Common&nbsp;Components_, it increases a [_Revision Number_](#the-revision-number) with each export and additionally copies the _Export&nbsp;File_ to a _Common Components_ folder which functions as the source for the [_UpdateOutdatedCommonComponents_ service](#the-updateoutdatedcommoncomponents-service) (while the hosting Workbook itself is not in charge with this service.  
 The service also checks whether a  _Used&nbsp;Common&nbsp;Component_ has been modified within the VB-Project using it - which may happen accidentally or intentionally - and registers a **due modification revert alert** displayed when the Workbook is opened subsequently and the [_UpdateOutdatedCommonComponents_ service](#the-updateoutdatedcommoncomponents-service) is about to revert the made modifications, allowing to display the code difference (using WinMerge).
