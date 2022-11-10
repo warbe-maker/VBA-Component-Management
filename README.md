@@ -8,7 +8,7 @@
 [Installation](#installation)  
 [Configuration](#configuration)  
 &nbsp;&nbsp;&nbsp;[Serviced Development and Test Folder](#serviced-development-and-test-folder)  
-&nbsp;&nbsp;&nbsp;[Add-in Folder](#add-in-folder)  
+&nbsp;&nbsp;&nbsp;[Addin Folder](#add-in-folder)  
 &nbsp;&nbsp;&nbsp;[Name of the _***Export&nbsp;Folder***](#name-of-the-exportfolder)  
 &nbsp;&nbsp;&nbsp;[Serviced Synchronization Target Folder](#serviced-synchronization-target-folder)  
 [Usage](#usage)  
@@ -31,7 +31,7 @@
 &nbsp;&nbsp;&nbsp;[Common Components](#common-components)  
 &nbsp;&nbsp;&nbsp;[The Common Components folder](#the-common-components-folder)  
 &nbsp;&nbsp;&nbsp;[The Revision Number](#the-revision-number)  
-&nbsp;&nbsp;&nbsp;[Pausing/continuing the CompMan Add-in](#pausingcontinuing-the-compman-add-in)  
+&nbsp;&nbsp;&nbsp;[Pausing/continuing the CompMan Addin](#pausingcontinuing-the-compman-add-in)  
 &nbsp;&nbsp;&nbsp;[CompMan's specific files](#compmans-specific-files)  
 &nbsp;&nbsp;&nbsp;[Multiple computers involved in VB-Project's development/maintenance](#multiple-computers-involved-in-vb-projects-developmentmaintenance)  
 [Contribution](#contribution)</sup>
@@ -55,7 +55,7 @@ Also see the [Programmatically updating Excel VBA code][2] post for this subject
 | _Raw&nbsp;Common&nbsp;Component_ | The instance of a _Common&nbsp;Component_ which is regarded the developed, maintained and tested 'original', hosted in a dedicated _Raw&#8209;Host_ Workbook. The term _raw_ is borrowed from GitHub and indicates the original version of something |
 | _Raw&#8209;Host_      | The Workbook/_VB-Project_ which hosts the _Raw-Component_ |
 |_Service_             | Generic term for any _Public Property_, _Public Sub_, or _Public Function_ of a _Component_ |
-| _Servicing&nbsp;Workbook_ | The service providing Workbook, either the _[CompMan.xlsb][1]_ Workbook (when it is open) or the _CompMan Add-in_ when it is set up. |
+| _Servicing&nbsp;Workbook_ | The service providing Workbook, either the _[CompMan.xlsb][1]_ Workbook (when it is open) or the _CompMan Addin_ when it is set up and open. |
 | _Serviced&nbsp;Workbook_ | The Workbook prepared for being serviced, provided it is located within the _Serviced&nbsp;Folder_ for the Update and Export service or in the .
 |_VB&#8209;Project_    | Used synonymous with Workbook |
 | _Sync&#8209;Source&#8209;Workbook_   | A _Workbook/VP-Project_ temporarily copied to the [Serviced _Development and Test Folder_](#serviced-development-and-test-folder) for being modified - and finally synchronized with its origin Workbook.|
@@ -78,14 +78,14 @@ The service allows a productive Workbook to remain in use while the VB-Project i
 ## Installation
 1. Download and open [CompMan.xlsb][1]
 2. When the Workbook is opened for the first time it will show a dialog for the required [Configuration](#configuration).
-3. Optionally: Use the _Setup/Renew_ button on the displayed Worksheet to establish _CompMan_ as _Add-in_ . This Setup/Renew requires to configure or re-confirm the [Configuration](#configuration). Once _CompMan_ had been established as _Add-in_ the services will be available when Excel starts - needless to say: unless it is not removed from the configured [_Add-in&nbsp;Folder_](#basic-folders-configuration).
+3. Optionally: Use the _Setup/Renew_ button on the displayed Worksheet to establish _CompMan_ as _Addin_ . This Setup/Renew requires a valid configured [_Addin folder_](#addin-folder). Once _CompMan_ had been established as _Addin_ the services will be available when at least one open Workbook's VB-Project has referenced it. See also [Pros and cons for a CompMan Addin](#pros-and-cons-for-a-compman-addin)
 
 ## Configuration
 When the [CompMan.xlsb][1] Workbook is opened for the first time and/or when the configuration is incomplete or incorrect, a configuration dialog opens for the following items to be configured or corrected:
 #### Serviced Development and Test Folder
 The folder is essential for CompMan's  _Export Changed Components_ and or _Update Outdated Components_ service because the service is only provided for Workbooks opened from within this folder. When no such folder is configured or invalid the service will be denied without notice for Workbooks the service is [enabled](#enabling-the-services).
-#### Add-in Folder
-The folder defaults to the _Application.AltStartupPath_ when one is already specified or in use respectively. The located/specified folder is (or becomes) the _Application.AltStartupPath_. The folder is obligatory only when CompMan is setup as _Add-in-Instance_. When no Add-in folder is configured the [CompMan.xlsb][1] Workbook cannot be setup as Add-in.
+#### Addin Folder
+The folder defaults to the _Application.AltStartupPath_ when one is already specified or in use respectively. The located/specified folder is (or becomes) the _Application.AltStartupPath_. The folder is obligatory only when CompMan is setup as _Addin-Instance_. When no Addin folder is configured the [CompMan.xlsb][1] Workbook cannot be setup as Addin.
 #### Export Folder
 Folder within the dedicated Workbook folder into which the _Export_ service exports modified _VB-Components_.
 #### Serviced Synchronization Target Folder
@@ -94,7 +94,7 @@ Folder into which a Workbook the [The _Synchronize VB-Project_ service](#the-syn
 ## Usage
 ### Serviced or not serviced
 A Workbook will only be serviced by CompMan provided
-- the servicing Workbook (the [CompMan.xlsb][1] Workbook or its Add-in instance is open
+- the servicing Workbook (the [CompMan.xlsb][1] Workbook or its Addin instance is open
 - a valid [_Serviced Development and Test Folder_](#configuration) is configured
 - the Workbook is [enabled](#services-enabling)/prepared for the service
 - the serviced Workbook resides in the configured [_Serviced Development and Test Folder_](#configuration) and is opened from within it
@@ -200,13 +200,14 @@ When a synchronization dialog is terminated without any action the whole synchro
 New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. The Properties of all Shapes are synchronized. However, though largely covered the properties synchronization may still be incomplete. 
 
 ### Other
-#### Status of the Add-in
+#### Status of the Addin
 | Status             | Meaning |
 |--------------------|---------|
-| Paused             | The Add-in is currently paused |
-| Open               | CompMan is setup as Add-in and the Add-in is open, i.e. available/active |
-| Setup but not Open | CompMan is setup as Add-in but the Add-in is not open! |
-| Not Setup          | CompMan is currently not setup as Add-in |
+| configured | A valid, existing [_Addin folder_](#add-in-folder) is specified |
+| paused     | The Addin is currently paused. I.e. even when open it is programmatic-ally deactivated |
+| open       | The CompMan-Addin open, it may still be paused however |
+| not open   | The [CompMan.xlsb][1] Workbook is setup as Addin but the Addin is yet not open! Excel opens the Addin only when at least one open Workbook's VB-Project has referenced it. |
+| setup      | The [CompMan.xlsb][1] Workbook is setup as Addin, i.e. it is available in the configured [_Addin folder_](#add-in-folder)  |
  
 #### Common Components
 One of the initial intentions for the development of CompMan was to keep _Common&nbspComponent_ up-to-date in all VB-Projects which use them. Thus the export service handles _Raw&nbsp;Common&nbsp;Components_ in a specific way: It registers hosted _Raw&nbsp;Common&nbsp;Components_, it increases a [_Revision Number_](#the-revision-number) with each export and additionally copies the _Export&nbsp;File_ to a _Common Components_ folder which functions as the source for the [_UpdateOutdatedCommonComponents_ service](#the-updateoutdatedcommoncomponents-service) (while the hosting Workbook itself is not in charge with this service.  
@@ -225,23 +226,18 @@ CompMan is pretty much focused on _Common&nbsp;Components_. In order to prevent 
 | _ComCompsHosted.dat_     | The serviced Workbook's parent folder | PrivateProfile file for the registration of all _Raw&nbsp;Common&nbsp;Components_ hosted in the corresponding Workbook. Content scheme:<small>  `[component-name]`  `RawExpFileFullName=<file-full-name>`  ` RawRevisionNumber=YYYY-MM-DD.000>` |
 | _ComCompsUsed.dat_       | The serviced Workbook's parent folder | Private Profile file for the registration of all _Used&nbsp;Common&nbsp;Components_. Content scheme:<small>  `[component-name]`  `RawRevisionNumber=YYYY-MM-DD.000>` |
 | _ComComps&#8209;RawsSaved.dat_ | [_Common&nbsp;Components_ folder](#common-components-folder) | PrivateProfile file for the registration of all known _Raw&nbsp;Common&nbsp;Components_ |
-| _CompMan.Service.trc_ | The serviced Workbook's parent folder | Execution trace of the performed CompMan service, available only when the _Conditional Compile Argument_ `ExecTrace = 1` is set in the servicing Workbook which is either the CompMan.xlsb Workbook directly or the CompMan.xlam Add-in instance of it. |
+| _CompMan.Service.trc_ | The serviced Workbook's parent folder | Execution trace of the performed CompMan service, available only when the _Conditional Compile Argument_ `ExecTrace = 1` is set in the servicing Workbook which is either the CompMan.xlsb Workbook directly or the CompMan.xlam Addin instance of it. |
 |  _CompMan.Service.log | The serviced Workbook's parent folder | Log file for the executed CompMan services. |
 
 #### Multiple computers involved in VB-Project's development/maintenance
 I do use two computers at two locations and prefer not to be bound to one. Some may prefer a network drive others a cloud based service. I prefer GitHub which makes using several computers very comfortable. In any case there is a certain need to prevent updates of used _Common&nbsp;Components_ with outdated hosted/raw versions.
 
-#### _CompMan_ as _Add-in_
-When the [CompMan.xls][1] Workbook is open it will preferably used to provide requested services. Once the Workbook has been setup as Add-in the Add-in will be used when the [CompMan.xls][1] Workbook is not open.
-##### Establishing  _CompMan_ as _Add-in_
-When the [CompMan.xls][1] Workbook is open the displayed Worksheet provides a button to do so.
+#### Pros and cons for a CompMan Addin
+Life is easy when the [CompMan.xls][1] Workbook is open. However, opening it would not be required for Workbooks with [enabled services](#enabling-the-services) once the Workbook is setup as Addin. On the other hand CompMan as Addin adds avoidable complexity to the matter: At first, the Addin will only be available when at least one opened Workbook's VB-Project has referenced it. Second, referencing it in a VB-Project will cause problems when the Workbook is opened in an environment the Addin is not available. Debugging/compiling will throw errors for each not fully qualified VBA function (`Right`  needs to be coded `VBA.Right`). Something which is pretty unusual because `Visual Basic for Applications` is a standard reference in VB-Projects.
 
-##### Making use of _CompMan_ as _Add-in_
-The Add-in is 
-
-##### Pausing/continuing the CompMan Add-in
-Use the corresponding command buttons when the Workbook [CompMan.xlsb][1] is open. Pausing the Add-in is only a CompMan development feature. When the Add-in is paused while the [CompMan.xlsb][1] is open CompMan works as if the Add-in were not setup which means the services are directly provided by the open [CompMan.xlsb][1]. When the [CompMan.xlsb][1] Workbook is closed and an Add-in had been setup the Add-in will be _continued_ automatically. This ensures that the Add-in is available for the [CompMan.xlsb][1] Workbook when it is opened again.
-> The _CompMan Add-in_ is the only means which allows to update outdated _Used&nbsp;Common&nbsp;Components_ in the [CompMan.xlsb][1] Workbook. I.e. the development instance of the Add-in.
+##### Pausing/continuing the CompMan Addin
+Use the corresponding command buttons when the Workbook [CompMan.xlsb][1] is open. Pausing the Addin is only a CompMan development feature. When the Addin is paused while the [CompMan.xlsb][1] is open CompMan works as if the Addin were not setup which means the services are directly provided by the open [CompMan.xlsb][1]. When the [CompMan.xlsb][1] Workbook is closed and an Addin had been setup the Addin will be _continued_ automatically. This ensures that the Addin is available for the [CompMan.xlsb][1] Workbook when it is opened again.
+> The _CompMan Addin_ is the only means which allows to update outdated _Used&nbsp;Common&nbsp;Components_ in the [CompMan.xlsb][1] Workbook. I.e. the development instance of the Addin.
 ## Contribution
 Contribution of any kind is welcome raising issues or by commenting the corresponding post [Programmatically-updating-Excel-VBA-code][2].
 
