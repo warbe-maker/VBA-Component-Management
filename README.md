@@ -184,7 +184,7 @@ When a synchronization dialog is terminated without any action the whole synchro
 New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. The Properties of all Shapes are synchronized. However, though largely covered the properties synchronization may still be incomplete. 
 
 ### Other
-#### Status of the Add-in
+#### Status of the CompMan Add-in
 | Status             | Meaning |
 |--------------------|---------|
 | configured | A valid, existing [_Add-in folder_](#add-in-folder) is specified |

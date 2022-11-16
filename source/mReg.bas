@@ -48,7 +48,7 @@ Private Declare PtrSafe Function RegEnumValue Lib "advapi32.dll" Alias "RegEnumV
     lpcbValueName As Long, ByVal lpReserved As Long, lpType As Long, _
     lpData As Any, lpcbData As Long) As Long
 Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (dest As _
-    Any, Source As Any, ByVal numBytes As Long)
+    Any, source As Any, ByVal numBytes As Long)
 
 Private Const HKEY_CURRENT_USER      As Long = &H80000001
 Private Const HKEY_LOCAL_MACHINE     As Long = &H80000002
@@ -266,14 +266,14 @@ Private Sub DctAddAscByKey(ByRef add_dct As Dictionary, _
     If bOrderByKey Then
         If VarType(add_key) = vbObject Then
             On Error Resume Next
-            add_key.Name = add_key.Name
+            add_key.name = add_key.name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
         End If
     ElseIf bOrderByItem Then
         If VarType(add_item) = vbObject Then
             On Error Resume Next
-            add_item.Name = add_item.Name
+            add_item.name = add_item.name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
         End If
@@ -344,7 +344,7 @@ Private Function DctAddOrderValue(ByVal dctkey As Variant) As Variant
 ' When key is an object its name becomes the order value else the key as is.
 ' ----------------------------------------------------------------------------
     If VarType(dctkey) = vbObject _
-    Then DctAddOrderValue = dctkey.Name _
+    Then DctAddOrderValue = dctkey.name _
     Else DctAddOrderValue = dctkey
 End Function
 
@@ -504,7 +504,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -589,6 +589,7 @@ Public Function Exists(ByVal reg_key As String, _
     Exists = False
     On Error GoTo xt
     '~~ To have reg_key interpreted as key it has to end with a \.
+    Debug.Print "rString = " & rString
     CreateObject("WScript.Shell").RegRead rString ' reg_key & reg_value_name
     Exists = True
 
@@ -822,7 +823,7 @@ Public Function Values(ByVal reg_key As String) As Dictionary
     Dim dataLen         As Long
     Dim handle          As Long
     Dim Index           As Long
-    Dim Name            As String
+    Dim name            As String
     Dim ValueNameLength As Long
     Dim resLong         As Long
     Dim resString       As String
@@ -843,22 +844,22 @@ Public Function Values(ByVal reg_key As String) As Dictionary
     
     Do
         ValueNameLength = 260           ' this is the max length for a key name
-        Name = Space$(ValueNameLength)
+        name = Space$(ValueNameLength)
         '~~ prepare the receiving buffer for the value
         dataLen = 4096
         ReDim resBinary(0 To dataLen - 1) As Byte
         
         '~~ Read the value's name and data
-        RetVal = RegEnumValue(HKey, Index, Name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
+        RetVal = RegEnumValue(HKey, Index, name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
         
         '~~ Enlarge the buffer if more space is required
         If RetVal = ERROR_MORE_DATA Then
             ReDim resBinary(0 To dataLen - 1) As Byte
-            RetVal = RegEnumValue(HKey, Index, Name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
+            RetVal = RegEnumValue(HKey, Index, name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
         End If
         
         If RetVal Then Exit Do                      ' exit the loop if any other error (typically, no more values)
-        ValueName = Left$(Name, ValueNameLength)    ' retrieve the value's name
+        ValueName = Left$(name, ValueNameLength)    ' retrieve the value's name
         
         '~~ Return a value corresponding to the value type
         Select Case valueType
