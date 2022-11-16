@@ -82,18 +82,18 @@ The service allows a productive Workbook to remain in use while the VB-Project i
 
 ## Configuration
 When the [CompMan.xlsb][1] Workbook is opened a _Config_ Worksheet is displayed providing all means for configuring or changing the configuration.
-#### Serviced Development and Test Folder
+#### Configuring the Serviced Development and Test Folder
 The folder is essential for CompMan's  _Export Changed Components_ and or _Update Outdated Components_ service because the service is only provided for Workbooks with [enabled](#enabling-the-services) services when opened from within this folder. When no such folder is configured or the configured one is invalid services will be denied without notice for Workbooks even when service is [enabled](#enabling-the-services).
-#### Export Folder
+#### Configuring the Export Folder
 Folder within a Workbook's folder into which the _Export_ service exports modified _VB-Components_. This folder is one of the many reasons why a serviced Workbook must be the only Workbook in its parent folder. The name of the _Export Folder_ defaults to _source_ but may be changed at any time. Export folders with an outdated name will be renamed right away or when detected by the _Export Service_. 
-#### Addin Folder
+#### Configuring the Addin Folder
 The folder in which the CompMan Workbook is saved to as Add-in. The folder is obligatory only when CompMan is about to be setup as _Add-in_. When no _Addin Folder_ is configured the [CompMan.xlsb][1] Workbook cannot be setup as Add-in.
 #### _Clear_ the Add-in
 When CompMan should not or no longer be available as Add-in this button will clear all resources except the configured Add-in folder physically.
 
-#### Serviced Synchronization Target Folder
-Folder into which a Workbook for which the [_Synchronize VB-Project_ service](#enabling-the-synchronization-service) has been enabled, is temporarily moved and opened from there in order to have its VB-Project synchronized with the same named Workbook residing in the configured [_Serviced Development and Test Folder_](#serviced-development-and-test-folder).
-#### Locate/specify the _Synchronization Archive Folder_
+#### Configuring the Serviced Synchronization Target Folder
+Folder into which a Workbook for which the _Synchronize VB-Project_ has been [enabled](#enabling-the-synchronization-service), is temporarily moved and opened from there in order to have its VB-Project synchronized with the corresponding (same named) Workbook residing in the configured [_Serviced Development and Test Folder_](#serviced-development-and-test-folder).
+#### Configuring the _Synchronization Archive Folder_
 A _Synchronization Archive Folder_ is obligatory when the _Synchronize VB-Project_ service is used. The service will archive a _Sync-Target-Workbook_ before it is synchronized with its corresponding _Sync-Source-Workbook_. When none is selected the folder will be reset to 'not configured'. 
 
 #### CompMan Workbook auto-open
@@ -106,11 +106,11 @@ Only used when CompMan is maintained to enforce its use even when Add-in is open
 ## Usage
 ### Serviced or not serviced
 A Workbook will only be serviced by CompMan provided
-- the ***servicing Workbook*** is open, which is either the [CompMan.xlsb][1] Workbook or the [CompMan Add-in](#compman-used-as-addin)
+- the opened Workbook has a service [enabled](#services-enabling)
+- a ***servicing CompMan instance*** (the [CompMan.xlsb][1] Workbook and/or the [CompMan Add-in](#compman-used-as-addin) is open
 - a valid [_Serviced Development and Test Folder_](#serviced-development-and-test-folder) is configured
-- the Workbook is [enabled](#services-enabling)/prepared for the service
-- the serviced Workbook resides in the configured [_Serviced Development and Test Folder_](#configuration) and is opened from within it
-- the ***serviced Workbook*** is the only Workbook in its parent folder
+- the ***to-be-serviced Workbook*** is opened from within a sub-folder of the configured [_Serviced Development and Test Folder_](#configuration), in case of the _Synchronization service_ from within a sub-folder of the configured _Sync-Target-Folder_.
+- the ***to-be-serviced Workbook*** is the only Workbook in its parent folder (the parent folder may have sub-folders with Workbooks however)
 - WinMerge ([WinMerge English][4], [WinMerge German][5] or any other language version is installed (it is used to display the difference for any components about to be updated by the [_Update_](#enabling-the-update-service)
 
 As a consequence from the above, a productive Workbook must not be used from within the configured [_Serviced Development and Test Folder_](#configuration). When a Workbook with any [enabled](#services-enabling)/prepared service is opened when located elsewhere the user will not be bothered by any means, i.e. will not even recognize CompMan at all - even when open/available.
