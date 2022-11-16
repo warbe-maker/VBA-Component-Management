@@ -82,7 +82,7 @@ The service allows a productive Workbook to remain in use while the VB-Project i
 
 ## Configuration
 When the [CompMan.xlsb][1] Workbook is opened a _Config_ Worksheet is displayed providing all means for configuring or changing the configuration.
-#### The Serviced Development and Test Folder
+#### The _Serviced Development and Test Folder_
 The folder is essential for CompMan's  _Export Changed Components_ and or _Update Outdated Components_ service because the service is only provided for Workbooks with [enabled](#enabling-the-services) services when opened from within a sub-folder of this folder. When no such folder is configured or the configured one is invalid the services will be denied without notice. When the configuration of the folder is terminated, i.e. no folder is selected, the folder becomes 'not configured'. 
 #### The Export Folder
 Folder within a Workbook's folder into which the _Export_ service exports modified _VB-Components_. This folder is one of the many reasons why a serviced Workbook must be the only Workbook in its parent folder. The name of the _Export Folder_ defaults to _source_ but may be changed at any time. Export folders with an outdated name will be renamed right away or when detected by the _Export Service_. 
