@@ -68,7 +68,7 @@ Folder into which a Workbook for which the _Synchronize VB-Project_ has been [en
 #### The Synchronization Archive Folder
 A _Synchronization Archive Folder_ is obligatory when the _Synchronize VB-Project_ service is used. The service will archive a _Sync-Target-Workbook_ before it is synchronized with its corresponding _Sync-Source-Workbook_. When none is selected the folder will be reset to 'not configured'. When the configuration of the folder is terminated, i.e. no folder is selected, the folder becomes 'not configured'. 
 #### Setup Auto-open for the CompMan Workbook
-Once there are Workbooks with enabled services frequently opened it may make sense to have the the [CompMan.xlsb][1] Workbook automatically opened. Note: Also the [CompMan Add-in](#compman-used-as-add-in) will be setup with an Auto-open. And just in case: When the CompMan Workbook is moved to a different location and opened, the setup Auto-open (in the users XLSTART folder) will automatically be updated.
+Once Workbooks with enabled services are frequently opened it may make sense to have the the [CompMan.xlsb][1] Workbook automatically opened when Excel starts. This configuration switches from 'not setup' to 'setup' and vice versa. Note: Also the [CompMan Add-in](#compman-used-as-add-in) will be setup with an Auto-open. And just in case: When the CompMan Workbook is moved to a different location and opened, the setup Auto-open (in the users XLSTART folder) will automatically be updated.
 #### Setup/Renew Add-in
 This configuration option is only possible/visible when a valid [_Add-in Folder_](#the-add-in-folder) is configured. Once the Add-in is configured it will automatically be opened when Excel starts.
 #### Pause/Continue Add-in
