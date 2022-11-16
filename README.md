@@ -68,7 +68,7 @@ Folder into which a Workbook for which the _Synchronize VB-Project_ has been [en
 #### The Synchronization Archive Folder
 A _Synchronization Archive Folder_ is obligatory when the _Synchronize VB-Project_ service is used. The service will archive a _Sync-Target-Workbook_ before it is synchronized with its corresponding _Sync-Source-Workbook_. When none is selected the folder will be reset to 'not configured'. When the configuration of the folder is terminated, i.e. no folder is selected, the folder becomes 'not configured'. 
 #### Setup Auto-open for the CompMan Workbook
-Since CompMan is a mere VB-Project development aid it makes sense for developers to have it automatically opened when Excel starts. When CompMan is used as Add-in the Add-in will automatically be opened. Once Auto-open is setup the shortcut placed in the users XLSTART folder will automatically be updated once the CompMan Workbook is opened from a different location.
+Once there are Workbooks with enabled services frequently opened it may make sense to have the the [CompMan.xlsb][1] Workbook automatically opened. Note: Also the [CompMan Add-in](#compman-used-as-add-in) will be setup with an Auto-open. And just in case: When the CompMan Workbook is moved to a different location and opened, the setup Auto-open (in the users XLSTART folder) will automatically be updated.
 #### Setup/Renew Add-in
 This configuration option is only possible/visible when a valid [_Add-in Folder_](#the-add-in-folder) is configured. Once the Add-in is configured it will automatically be opened when Excel starts.
 #### Pause/Continue Add-in
@@ -78,7 +78,7 @@ Only used when CompMan is maintained to enforce its use even when Add-in is open
 ### Serviced or not serviced
 A Workbook will only be serviced by CompMan provided
 - the opened Workbook has a service [enabled](#services-enabling)
-- a ***servicing CompMan instance*** (the [CompMan.xlsb][1] Workbook and/or the [CompMan Add-in](#compman-used-as-Add-in) is open
+- a ***servicing CompMan instance*** (the [CompMan.xlsb][1] Workbook and/or the [CompMan Add-in](#compman-used-as-add-in) is open
 - a valid [_Serviced Development and Test Folder_](#serviced-development-and-test-folder) is configured
 - the ***to-be-serviced Workbook*** is opened from within a sub-folder of the configured [_Serviced Development and Test Folder_](#configuration), in case of the _Synchronization service_ from within a sub-folder of the configured _Sync-Target-Folder_.
 - the ***to-be-serviced Workbook*** is the only Workbook in its parent folder (the parent folder may have sub-folders with Workbooks however)
