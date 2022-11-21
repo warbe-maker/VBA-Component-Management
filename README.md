@@ -70,10 +70,11 @@ A _Synchronization Archive Folder_ is obligatory when the _Synchronize VB-Projec
 #### Setup Auto-open for the CompMan Workbook
 Once Workbooks with enabled services are frequently opened it may make sense to have the the [CompMan.xlsb][1] Workbook automatically opened when Excel starts. This configuration switches from 'not setup' to 'setup' and vice versa. Note: Also the [CompMan Add-in](#compman-used-as-add-in) will be setup with an Auto-open. And just in case: When the CompMan Workbook is moved to a different location and opened, the setup Auto-open (in the users XLSTART folder) will automatically be updated.
 #### Setup/Renew Add-in
-This configuration option is only possible/visible when a valid [_Add-in Folder_](#the-add-in-folder) is configured. Once the Add-in is configured it will automatically be opened when Excel starts.
+Sets up or renews the CompMan Add-in. Once the Add-in is setup/renewed it will automatically be opened when Excel starts.
+>The command button is only available/visible when a valid [_Add-in Folder_](#the-add-in-folder) is configured.
 #### Pause/Continue Add-in
-Only used when CompMan is maintained to enforce its use even when Add-in is open.
-
+Pauses/continues the setup Add-in. This configuration option is only used when the [CompMan.xlsb][1] Workbook is maintained in order to enforce its use even when the Add-in is open/available.
+>The command button is only available/visible when a valid [_Add-in Folder_](#the-add-in-folder) is configured.
 ## Usage
 ### Serviced or not serviced
 A Workbook will only be serviced by CompMan provided
