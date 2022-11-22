@@ -32,10 +32,10 @@ Public Sub Display(ByVal d_hosted As String)
     mBasic.BoP ErrSrc(PROC)
     sTitle = "To-be-updated outdated Common Component(s)"
     mMsg.MsgInstance sTitle, True ' unload any previous
-'    mService.WbkSave mService.WbkServiced
     
     If mOutdated.Collect(dctOutdated).Count = 0 Then
-        mService.DsplyStatus Log.Service & " Done! (" & wsService.CommonComponentsUpdated & " of " & wsService.CommonComponentsUsed & " updated)"
+        mService.DsplyStatus Log.Service & " Done! (" & wsService.CommonComponentsUpdated & " of " & _
+                             wsService.CommonComponentsUsed & " used Common Components updated/renewed)"
         GoTo xt
     End If
     
