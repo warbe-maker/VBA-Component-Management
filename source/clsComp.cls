@@ -62,11 +62,11 @@ Private sTmpExpFileFullName As String
 Private sWrkbkBaseName      As String       ' Common Component host Workbook's base name
 Private sWrkbkFullName      As String       ' Common Component host Workbook's full name
 Private vbc                 As VBComponent  ' VBComponent managed by this Class Module
-Private wb                  As Workbook     ' The class' Workbook
+Private wbk                 As Workbook     ' The class' Workbook
 Private sService            As String       ' Name of the 'Service' folder, i.e. the folder of the Workbook
 Private dctType             As Dictionary
 Private lMaxLenComp         As Long
-Private sh                  As Worksheet
+Private wsh                 As Worksheet
 Private fso                 As FileSystemObject
 Public Raw                  As clsRaw       ' The raw component's properties for a Used Common Component
 
@@ -82,7 +82,7 @@ End Sub
 
 Private Sub Class_Terminate()
     Set dctChanges = Nothing
-    Set wb = Nothing
+    Set wbk = Nothing
     Set vbc = Nothing
     Set flExpFile = Nothing
     
@@ -213,18 +213,19 @@ Private Sub RemoveModuleInfo(ByRef dct As Dictionary)
     
 End Sub
 
-Friend Property Get CodeName( _
-              Optional ByVal scn_name As String) As String
+Friend Property Get CodeName(Optional ByVal scn_name As String) As String
 ' ------------------------------------------------------------------------------
 ' Returns the sheet's CodeName through its Name.
 ' ------------------------------------------------------------------------------
     Dim wsh As Worksheet
-    For Each wsh In wb.Worksheets
-        If sh.Name = scn_name Then
+    
+    For Each wsh In wbk.Worksheets
+        If wsh.Name = scn_name Then
             CodeName = wsh.CodeName
             Exit For
         End If
     Next wsh
+    
 End Property
 
 Friend Property Get CompName() As String:           CompName = sCompName:       End Property
@@ -242,16 +243,16 @@ Friend Property Let CompName(ByVal s As String)
     
     If s = vbNullString Then Stop
     sCompName = s
-    If Not wb Is Nothing Then
+    If Not wbk Is Nothing Then
         If Me.Exists Then
-            Set vbc = wb.VBProject.VBComponents(sCompName)
+            Set vbc = wbk.VBProject.VBComponents(sCompName)
             Select Case vbc.Type
                 Case vbext_ct_StdModule:    sExpFileExt = ".bas"
                 Case vbext_ct_ClassModule:  sExpFileExt = ".cls"
                 Case vbext_ct_MSForm:       sExpFileExt = ".frm"
                 Case vbext_ct_Document:     sExpFileExt = ".cls"
             End Select
-            sExpFileFullName = mExport.ExpFileFolderPath(wb) & "\" & vbc.Name & sExpFileExt
+            sExpFileFullName = mExport.ExpFileFolderPath(wbk) & "\" & vbc.Name & sExpFileExt
         End If
     Else
         Err.Raise AppErr(1), ErrSrc(PROC), "Component Name assigned for a yet unknown Workbook!"
@@ -273,7 +274,7 @@ Friend Property Get Exists(Optional ByRef ex_wbk As Workbook = Nothing) As Boole
         Exists = Not v Is Nothing
     ElseIf vbc Is Nothing Then
         On Error Resume Next
-        Set vbc = wb.VBProject.VBComponents(sCompName)
+        Set vbc = wbk.VBProject.VBComponents(sCompName)
         Exists = Not vbc Is Nothing
     Else
         Exists = Not vbc Is Nothing
@@ -315,7 +316,7 @@ Friend Property Get ExpFileExt() As String: ExpFileExt = sExpFileExt:   End Prop
 'Private Property Get ExpFileExt() As String
 '
 '    If sExpFileExt = vbNullString Then
-'        If vbc Is Nothing Then Set vbc = wb.VBProject.VBComponents(sCompName)
+'        If vbc Is Nothing Then Set vbc = wbk.VBProject.VBComponents(sCompName)
 '        With Me
 '            Select Case vbc.Type
 '                Case vbext_ct_StdModule:    sExpFileExt = ".bas"
@@ -394,10 +395,10 @@ Friend Property Get ExpFileTempFullName() As String
     Const PROC = "ExpFileTempFullName-Get"
     
     On Error GoTo eh
-    If Not wb Is Nothing Then
+    If Not wbk Is Nothing Then
         With fso
             If sTmpFolder = vbNullString Then
-                sTmpFolder = mExport.ExpFileFolderPath(wb) & "\Temp"
+                sTmpFolder = mExport.ExpFileFolderPath(wbk) & "\Temp"
             End If
             If Not .FolderExists(sTmpFolder) Then
                 mBasic.TimedDoEvents ErrSrc(PROC)
@@ -538,9 +539,9 @@ Friend Property Get Service() As String
     Service = sService
 End Property
 
-Friend Property Get sheet() As Worksheet:               Set sheet = sh:            End Property
+Friend Property Get sheet() As Worksheet:               Set sheet = wsh:            End Property
 
-Friend Property Set sheet(ByRef wsh As Worksheet):      Set sh = wsh:               End Property
+Friend Property Set sheet(ByRef s_wsh As Worksheet):      Set wsh = s_wsh:               End Property
 
 Friend Property Get TypeString() As String
 ' ----------------------------------------
@@ -562,12 +563,12 @@ Friend Property Get Wrkbk() As Workbook
     
     On Error GoTo eh
     
-    If wb Is Nothing Then
+    If wbk Is Nothing Then
         If Not fso.FileExists(sWrkbkFullName) _
         Then Err.Raise AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
-        Set wb = mCompMan.WbkGetOpen(sWrkbkFullName)
+        Set wbk = mCompMan.WbkGetOpen(sWrkbkFullName)
     Else
-        Set Wrkbk = wb
+        Set Wrkbk = wbk
     End If
     
 xt: Exit Property
@@ -578,9 +579,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Set Wrkbk(ByRef wbk As Workbook)
+Friend Property Set Wrkbk(ByRef w_wbk As Workbook)
 ' ---------------------------------------------------------
-' Provides the properties: - Wrkbk         (wb)
+' Provides the properties: - Wrkbk         (wbk)
 '                          - WrkbFullName  (sWrkbkFullName)
 '                          - WrkbkBaseName (sWrkbkBaseName)
 '                          - ExpFilePath   (sExpFilePath)
@@ -590,14 +591,14 @@ Friend Property Set Wrkbk(ByRef wbk As Workbook)
     
     Dim vbc As VBComponent
     
-    Set wb = wbk
-    sWrkbkFullName = wb.FullName
+    Set wbk = w_wbk
+    sWrkbkFullName = wbk.FullName
     With fso
         sWrkbkBaseName = .GetBaseName(sWrkbkFullName)
         sExpFilePath = .GetParentFolderName(sWrkbkFullName)
-        sService = .GetFileName(wb.Path)
+        sService = .GetFileName(wbk.Path)
     End With
-    For Each vbc In wb.VBProject.VBComponents
+    For Each vbc In wbk.VBProject.VBComponents
         lMaxLenComp = mBasic.Max(lMaxLenComp, Len(vbc.Name))
     Next vbc
     

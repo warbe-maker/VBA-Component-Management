@@ -51,7 +51,7 @@ Private Property Get ComCompsUsedFile() As String
 ' ----------------------------------------------------------------------------
 ' Returns the name of the ComCompdUsed.dat file for the serviced Workbook.
 ' ----------------------------------------------------------------------------
-    ComCompsUsedFile = Replace(mService.Serviced.FullName, mService.Serviced.Name, "ComCompsUsed.dat")
+    ComCompsUsedFile = Replace(mService.WbkServiced.FullName, mService.WbkServiced.name, "ComCompsUsed.dat")
 End Property
 
 Private Property Get Value( _

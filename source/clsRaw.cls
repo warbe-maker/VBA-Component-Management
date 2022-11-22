@@ -17,14 +17,14 @@ Option Explicit
 ' CompName
 '
 ' ----------------------------------------------------------------------------------------
-Private fso                         As New FileSystemObject
-Private sCompName                   As String
-Private sTempFolder                 As String
-Private wbRawHost                   As Workbook
-Private sRawHostWbFullName          As String
-Private sHostWbPath                 As String
-Private sExpFileExt                 As String
-Private vbcRaw                      As VBComponent
+Private fso                 As New FileSystemObject
+Private sCompName           As String
+Private sTempFolder         As String
+Private wbRawHost           As Workbook
+Private sRawHostWbFullName  As String
+Private sHostWbPath         As String
+Private sExpFileExt         As String
+Private vbcRaw              As VBComponent
 
 Private Sub Class_Terminate()
     CleanUpTemps

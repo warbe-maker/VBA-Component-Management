@@ -45,7 +45,7 @@ Public Sub Manage(ByVal mh_hosted As String)
     Dim sHostBaseName   As String
     
     mBasic.BoP ErrSrc(PROC)
-    sHostBaseName = fso.GetBaseName(mService.Serviced.FullName)
+    sHostBaseName = fso.GetBaseName(mService.WbkServiced.FullName)
     Set dctHostedRaws = New Dictionary
     HostedRaws = mh_hosted
                     
@@ -53,7 +53,7 @@ Public Sub Manage(ByVal mh_hosted As String)
         For Each v In HostedRaws
             Set RawComComp = New clsComp
             With RawComComp
-                Set .Wrkbk = mService.Serviced
+                Set .Wrkbk = mService.WbkServiced
                 .CompName = v
                 If mComCompRawsHosted.IsNewHostedRaw(v) Then
                     '~~ Initially export the component the serviced Workbook claims 'hosted raw common component'
@@ -68,27 +68,27 @@ Public Sub Manage(ByVal mh_hosted As String)
                 If Not mComCompRawsGlobal.Exists(v) Then
                     '~~ Initially registers the Common Component in the ComComps-RawsSaved.dat file
                     '~~ Note: The Raw's Revision Number is updated whenever the raw is exported because it had been modified
-                    mComCompRawsGlobal.RawHostWbFullName(v) = mService.Serviced.FullName
-                    mComCompRawsGlobal.RawHostWbName(v) = mService.Serviced.Name
-                    mComCompRawsGlobal.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
+                    mComCompRawsGlobal.RawHostWbFullName(v) = mService.WbkServiced.FullName
+                    mComCompRawsGlobal.RawHostWbName(v) = mService.WbkServiced.name
+                    mComCompRawsGlobal.RawHostWbBaseName(v) = fso.GetBaseName(mService.WbkServiced.FullName)
                     Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
                 End If
                 If Not mComCompRawsGlobal.Exists(v) Then
                     '~~ Initially registers the Common Component in the ComComps-RawsSaved.dat file
                     '~~ Note: The Raw's Revision Number is updated whenever the raw is exported because it had been modified
-                    mComCompRawsGlobal.RawHostWbFullName(v) = mService.Serviced.FullName
-                    mComCompRawsGlobal.RawHostWbName(v) = mService.Serviced.Name
-                    mComCompRawsGlobal.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
+                    mComCompRawsGlobal.RawHostWbFullName(v) = mService.WbkServiced.FullName
+                    mComCompRawsGlobal.RawHostWbName(v) = mService.WbkServiced.name
+                    mComCompRawsGlobal.RawHostWbBaseName(v) = fso.GetBaseName(mService.WbkServiced.FullName)
                     Log.Entry = "Raw-Component '" & v & "' hosted in this Workbook registered"
-                ElseIf StrComp(mComCompRawsGlobal.RawHostWbFullName(v), mService.Serviced.FullName, vbTextCompare) <> 0 _
-                    Or StrComp(mComCompRawsGlobal.RawHostWbName(v), mService.Serviced.Name, vbTextCompare) <> 0 Then
+                ElseIf StrComp(mComCompRawsGlobal.RawHostWbFullName(v), mService.WbkServiced.FullName, vbTextCompare) <> 0 _
+                    Or StrComp(mComCompRawsGlobal.RawHostWbName(v), mService.WbkServiced.name, vbTextCompare) <> 0 Then
                     '~~ Update the properties when they had changed - which may happen when the Raw Common Component's
                     '~~ host has changed
                     '~~ Note: The RevisionNumber is updated whenever the modified raw is exported
                     mComCompRawsHosted.SaveToGlobalFolder v, .ExpFile, .ExpFileFullName
-                    mComCompRawsGlobal.RawHostWbFullName(v) = mService.Serviced.FullName
-                    mComCompRawsGlobal.RawHostWbName(v) = mService.Serviced.Name
-                    mComCompRawsGlobal.RawHostWbBaseName(v) = fso.GetBaseName(mService.Serviced.FullName)
+                    mComCompRawsGlobal.RawHostWbFullName(v) = mService.WbkServiced.FullName
+                    mComCompRawsGlobal.RawHostWbName(v) = mService.WbkServiced.name
+                    mComCompRawsGlobal.RawHostWbBaseName(v) = fso.GetBaseName(mService.WbkServiced.FullName)
                     Log.Entry = "Raw Common Component '" & v & "' hosted changed properties updated"
                 End If
                 If mService.FilesDiffer(fd_exp_file_1:=.ExpFile _
@@ -140,9 +140,9 @@ Public Sub Manage(ByVal mh_hosted As String)
         '~~ Common Component has ended. The entry will be removed when it still points to this
         '~~ Workbook. When it points to another one it appears to have been moved alrerady.
         For Each v In mComCompRawsGlobal.Components
-            If StrComp(mComCompRawsGlobal.RawHostWbFullName(comp_name:=v), mService.Serviced.FullName, vbTextCompare) = 0 Then
+            If StrComp(mComCompRawsGlobal.RawHostWbFullName(comp_name:=v), mService.WbkServiced.FullName, vbTextCompare) = 0 Then
                 mComCompRawsGlobal.Remove comp_name:=v
-                Log.Entry = "Component no longer hosted in '" & mService.Serviced.FullName & "' removed from '" & mComCompRawsGlobal.ComCompsSavedFileFullName & "'"
+                Log.Entry = "Component no longer hosted in '" & mService.WbkServiced.FullName & "' removed from '" & mComCompRawsGlobal.ComCompsSavedFileFullName & "'"
             End If
         Next v
     End If
@@ -255,9 +255,9 @@ Public Sub SaveToGlobalFolder(ByVal stgf_vbc_name As String, _
     End If
 
     mComCompRawsGlobal.RawExpFileFullName(stgf_vbc_name) = stgf_exp_file_full_name
-    mComCompRawsGlobal.RawHostWbBaseName(stgf_vbc_name) = fso.GetBaseName(mService.Serviced.FullName)
-    mComCompRawsGlobal.RawHostWbFullName(stgf_vbc_name) = mService.Serviced.FullName
-    mComCompRawsGlobal.RawHostWbName(stgf_vbc_name) = mService.Serviced.Name
+    mComCompRawsGlobal.RawHostWbBaseName(stgf_vbc_name) = fso.GetBaseName(mService.WbkServiced.FullName)
+    mComCompRawsGlobal.RawHostWbFullName(stgf_vbc_name) = mService.WbkServiced.FullName
+    mComCompRawsGlobal.RawHostWbName(stgf_vbc_name) = mService.WbkServiced.name
     mComCompRawsGlobal.RawSavedRevisionNumber(stgf_vbc_name) = mComCompRawsHosted.RawRevisionNumber(stgf_vbc_name)
     
     Set fso = Nothing
@@ -271,8 +271,8 @@ Private Property Get ComCompsHostedFileFullName() As String
     Dim wbk As Workbook
     Dim fso As New FileSystemObject
     
-    Set wbk = mService.Serviced
-    ComCompsHostedFileFullName = Replace(wbk.FullName, wbk.Name, "ComCompsHosted.dat")
+    Set wbk = mService.WbkServiced
+    ComCompsHostedFileFullName = Replace(wbk.FullName, wbk.name, "ComCompsHosted.dat")
     If Not fso.FileExists(ComCompsHostedFileFullName) Then
         fso.CreateTextFile ComCompsHostedFileFullName
     End If

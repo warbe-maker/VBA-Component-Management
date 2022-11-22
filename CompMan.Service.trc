@@ -1,12 +1,13 @@
-22-09-13 13:00:14 05,0694         |  >> mCompMan.UpdateOutdatedCommonComponents
-22-09-13 13:00:14 05,0699         |  |  >> mRaw.Manage
-22-09-13 13:00:14 05,0988 00,0289 |  |  << mRaw.Manage
-22-09-13 13:00:14 05,1036         |  |  >> mRenew.Outdated
-22-09-13 13:00:14 05,6177         |  |  |  >> mService.SaveWbk
-22-09-13 13:00:18 08,9700 03,3523 |  |  |  << mService.SaveWbk
-22-09-13 13:00:19 09,8854 04,7818 |  |  << mRenew.Outdated
-22-09-13 13:00:19 09,9385 04,8692 |  << mCompMan.UpdateOutdatedCommonComponents
-22-09-13 13:00:19 09,9459 09,9459 << mRenew.Run
-22-09-13 13:00:19 09,9459 09,9459 << UpdateOutdatedCommonComponents (by Addin) for CompMan.xlsb: 
-22-09-13 13:00:19                 Impact on the overall performance (caused by the trace itself): 00,0073 seconds!
-22-09-13 13:00:19 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-11-22 15:29:52 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-11-22 15:29:52                 >> UpdateOutdatedCommonComponents (by Add-in) for CompMan.xlsb: 
+22-11-22 15:29:52 00,0000         |  >> mCompMan.UpdateOutdatedCommonComponents
+22-11-22 15:29:52 00,0006         |  |  >> mRaw.Manage
+22-11-22 15:29:52 00,0125 00,0119 |  |  << mRaw.Manage
+22-11-22 15:29:52 00,0128         |  |  >> mOutdated.Display
+22-11-22 15:29:52 00,0129         |  |  |  >> mOutdated.Collect
+22-11-22 15:29:52 00,4235 00,4105 |  |  |  << mOutdated.Collect
+22-11-22 15:29:52 00,4246 00,4118 |  |  << mOutdated.Display
+22-11-22 15:29:52 00,4250 00,4250 |  << mCompMan.UpdateOutdatedCommonComponents
+22-11-22 15:29:52 00,4250 00,4250 << UpdateOutdatedCommonComponents (by Add-in) for CompMan.xlsb: 
+22-11-22 15:29:52                 Impact on the overall performance (caused by the trace itself): 00,0004 seconds!
+22-11-22 15:29:52 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)

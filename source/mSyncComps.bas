@@ -42,10 +42,11 @@ End Function
 
 Public Sub ByCodeLines(ByVal sync_vbc As VBComponent)
 ' ----------------------------------------------------------------------------
-' Synchronizes the code of a Target-VBComponent (sync_target_vbc_name) in a
-' Target-Workbook/VB-Project (Synch.TargetWb) with the code in the Export-File
-' of the corresponding Sync-Source-Workbook/VB-Project's
-' component line by line.
+' Synchronizes the code of a Sync-Target-Workbook's VB-Component by replacing
+' the code lines with the code lines of the corrresponding Sync-Source-
+' Workbook's VB-Component (sync_vbc).
+' Note: Replacement by line is the only choice to replace the code of a Data
+'       module.
 ' ----------------------------------------------------------------------------
     Const PROC = "ByCodeLines"
 
@@ -54,28 +55,18 @@ Public Sub ByCodeLines(ByVal sync_vbc As VBComponent)
     Dim SourceComp  As clsComp
     Dim SourceCode  As Dictionary
     Dim v           As Variant
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
-    
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    
-    Debug.Print ErrSrc(PROC) & " Target: " & wbkTarget.Name
-    Debug.Print ErrSrc(PROC) & " Source: " & wbkSource.Name
-    
-    '~~ Obtain non provided code lines for the line by line syncronization
+        
+    '~~ Obtain the new code lines from the Sync-source-Workbook's component
     Set SourceComp = New clsComp
     With SourceComp
-        Set .Wrkbk = wbkSource
-        .CompName = sync_vbc.Name
+        Set .Wrkbk = mSync.source
+        .CompName = sync_vbc.name
         Set SourceCode = .CodeLines
     End With
     
-    With wbkTarget.VBProject.VBComponents(sync_vbc.Name).CodeModule
-        If .CountOfLines > 0 _
-        Then .DeleteLines 1, .CountOfLines   ' Remove all lines from the cloned raw component
-        
-        For Each v In SourceCode   ' Insert the raw component's code lines
+    With mSync.TargetCopy.VBProject.VBComponents(sync_vbc.name).CodeModule
+        If .CountOfLines > 0 Then .DeleteLines 1, .CountOfLines     ' Remove all lines from the cloned raw component
+        For Each v In SourceCode                                    ' Insert the raw component's code lines
             i = i + 1
             .InsertLines i, SourceCode(v)
         Next v
@@ -98,28 +89,24 @@ Public Sub CollectAllItems()
     
     Dim dct         As New Dictionary
     Dim vbc         As VBComponent
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
     Dim v           As Variant
     Dim lMaxLen     As Long
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
     
-    For Each vbc In wbkTarget.VBProject.VBComponents
-        lMaxLen = mBasic.Max(lMaxLen, Len(vbc.Name))
+    For Each vbc In mSync.TargetCopy.VBProject.VBComponents
+        lMaxLen = mBasic.Max(lMaxLen, Len(vbc.name))
     Next vbc
-    For Each vbc In wbkSource.VBProject.VBComponents
-        lMaxLen = mBasic.Max(lMaxLen, Len(vbc.Name))
+    For Each vbc In mSync.source.VBProject.VBComponents
+        lMaxLen = mBasic.Max(lMaxLen, Len(vbc.name))
     Next vbc
     wsService.MaxLenVbcName = lMaxLen
     
-    For Each vbc In wbkTarget.VBProject.VBComponents
-        If Not dct.Exists(vbc.Name) Then mDct.DctAdd dct, ItemSyncName(vbc), vbc, , seq_ascending
+    For Each vbc In mSync.TargetCopy.VBProject.VBComponents
+        If Not dct.Exists(vbc.name) Then mDct.DctAdd dct, ItemSyncName(vbc), vbc, , seq_ascending
     Next vbc
-    For Each vbc In wbkSource.VBProject.VBComponents
-        If Not dct.Exists(vbc.Name) Then mDct.DctAdd dct, ItemSyncName(vbc), vbc, , seq_ascending
+    For Each vbc In mSync.source.VBProject.VBComponents
+        If Not dct.Exists(vbc.name) Then mDct.DctAdd dct, ItemSyncName(vbc), vbc, , seq_ascending
     Next vbc
     
     For Each v In dct
@@ -146,48 +133,49 @@ Public Function CollectChanged() As Dictionary
     Dim TargetComp  As clsComp
     Dim v           As Variant
     Dim vbc         As VBComponent
-    Dim wbkSource    As Workbook
-    Dim wbkTarget    As Workbook
+    Dim sProgress   As String
     
     mSync.MonitorStep "Collecting VB-Components the code has changed"
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
        
     If wsSync.VbcNumberChanged = 0 _
     Or (wsSync.VbcNumberChanged > 0 And wsSync.VbcNumberChangedDone + wsSync.VbcNumberChangedFailed < wsSync.VbcNumberChanged) Then
-        For Each vbc In wbkSource.VBProject.VBComponents
+        sProgress = String(mSync.source.VBProject.VBComponents.Count, ".")
+        For Each vbc In mSync.source.VBProject.VBComponents
+            mSync.MonitorStep "Collecting VB-Components the code has changed " & sProgress
             Set SourceComp = New clsComp
             With SourceComp
-                Set .Wrkbk = wbkSource
-                .CompName = vbc.Name
+                Set .Wrkbk = mSync.source
+                .CompName = vbc.name
             End With
-            If Exists(vbc, wbkTarget) Then
+            If Exists(vbc, mSync.TargetCopy) Then
                 Set TargetComp = New clsComp
                 With TargetComp
-                    Set .Wrkbk = wbkTarget
-                    .CompName = vbc.Name
+                    Set .Wrkbk = mSync.TargetCopy
+                    .CompName = vbc.name
                 End With
                 If CompChanged(SourceComp.CodeLines, TargetComp.CodeLines) Then
                     Log.ServicedItem = vbc
                     Set cll = New Collection
                     cll.Add mComp.TypeString(vbc) & _
-                            " " & vbc.Name & _
+                            " " & vbc.name & _
                             vbLf & vbLf & _
                             "Synchronize code change"   ' 1. The button's caption
                     cll.Add ThisWorkbook                ' 2. The servicing Workbook
                     cll.Add "mSyncComps.SyncChanged"    ' 3. The service to run
-                    cll.Add vbc.Name                    ' 4. The VBComponent to update/renew
+                    cll.Add vbc.name                    ' 4. The VBComponent to update/renew
                     mDct.DctAdd dct, ItemSyncName(vbc), cll, order_bykey, seq_ascending, sense_casesensitive
                     Set cll = Nothing
                 End If
                 Set TargetComp = Nothing
                 Set SourceComp = Nothing
             End If
+            sProgress = Left(sProgress, Len(sProgress) - 1)
         Next vbc
     End If
     
+    mSync.MonitorStep "Collecting VB-Components the code has changed " & sProgress
     If wsSync.VbcNumberChanged = 0 Then
-        '~~ Write not yet registered itens to wsSync sheet
+        '~~ Write not yet registered items to the wsSync sheet
         For Each v In dct
             wsSync.VbcItemChanged(v) = True
         Next v
@@ -207,7 +195,7 @@ Private Function ItemSyncName(ByVal vbc As VBComponent) As String
 ' ------------------------------------------------------------------------------
 ' Returns a VBComponent-Name used as id throughout VBComponent synchronization.
 ' ------------------------------------------------------------------------------
-    ItemSyncName = mBasic.Align(vbc.Name, wsService.MaxLenVbcName) & " " & mComp.TypeString(vbc)
+    ItemSyncName = mBasic.Align(vbc.name, wsService.MaxLenVbcName) & " " & mComp.TypeString(vbc)
 End Function
 
 Public Function CollectNew() As Dictionary
@@ -221,28 +209,23 @@ Public Function CollectNew() As Dictionary
     Dim cll         As Collection
     Dim dct         As New Dictionary
     Dim vbc         As VBComponent
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
     Dim v           As Variant
     
     mSync.MonitorStep "Collecting VB-Components new"
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    
     If wsSync.VbcNumberNew = 0 _
     Or (wsSync.VbcNumberNew > 0 And wsSync.VbcNumberNewDone + wsSync.VbcNumberNewFailed < wsSync.VbcNumberNew) Then
-        For Each vbc In wbkSource.VBProject.VBComponents
+        For Each vbc In mSync.source.VBProject.VBComponents
             If vbc.Type <> vbext_ct_Document And vbc.Type <> vbext_ct_ActiveXDesigner Then
-                If Not Exists(vbc, wbkTarget) Then
+                If Not Exists(vbc, mSync.TargetCopy) Then
                     Log.ServicedItem = vbc
                     Set cll = New Collection
                     cll.Add mComp.TypeString(vbc) & _
-                            " " & vbc.Name & _
+                            " " & vbc.name & _
                             vbLf & vbLf & _
                             "Add"                   ' 1. The button's caption
                     cll.Add ThisWorkbook            ' 2. The servicing Workbook
                     cll.Add "mSyncComps.SyncNew"    ' 3. The service to run
-                    cll.Add vbc.Name                ' 4. The VBComponent to remove
+                    cll.Add vbc.name                ' 4. The VBComponent to remove
                     mDct.DctAdd dct, ItemSyncName(vbc), cll, order_bykey, seq_ascending, sense_casesensitive
                     Set cll = Nothing
                 End If
@@ -279,29 +262,24 @@ Public Function CollectObsolete() As Dictionary
     Dim CompTarget  As clsComp
     Dim cll         As Collection
     Dim dct         As New Dictionary
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
     Dim v           As Variant
     
     mSync.MonitorStep "Collecting VB-Components obsolete"
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    
     If wsSync.VbcNumberObsolete = 0 _
     Or (wsSync.VbcNumberObsolete > 0 And wsSync.VbcNumberObsoleteDone + wsSync.VbcNumberObsoleteFailed < wsSync.VbcNumberObsolete) Then
-        For Each vbc In wbkTarget.VBProject.VBComponents
+        For Each vbc In mSync.TargetCopy.VBProject.VBComponents
             If vbc.Type <> vbext_ct_Document Then
                 '~~ Datamodules cannot be obsolete but only Worksheets (not the subject here!)
-                If Not Exists(vbc, wbkSource) Then
+                If Not Exists(vbc, mSync.source) Then
                     Log.ServicedItem = vbc
                     Set cll = New Collection
                     cll.Add mComp.TypeString(vbc) & _
-                            " " & vbc.Name & _
+                            " " & vbc.name & _
                             vbLf & vbLf & _
                             "Remove"                    ' 1. The button's caption
                     cll.Add ThisWorkbook                ' 2. The servicing Workbook
                     cll.Add "mSyncComps.SyncObsolete"   ' 3. The service to run
-                    cll.Add vbc.Name                    ' 4. The VBComponent to remove
+                    cll.Add vbc.name                    ' 4. The VBComponent to remove
                     mDct.DctAdd dct, ItemSyncName(vbc), cll, order_bykey, seq_ascending, sense_casesensitive
                     Set cll = Nothing
                 End If
@@ -352,7 +330,6 @@ Public Function Done(ByRef sync_new As Dictionary, _
     Set sync_obsolete = mSyncComps.CollectObsolete
     Set sync_new = mSyncComps.CollectNew
     Set sync_changed = mSyncComps.CollectChanged
-    
     Done = (sync_new.Count _
           + sync_obsolete.Count _
           + sync_changed.Count) = 0
@@ -375,7 +352,7 @@ Private Function Exists(ByVal ex_vbc As VBComponent, _
     Dim vbc As VBComponent
     
     For Each vbc In ex_wbk.VBProject.VBComponents
-        If vbc.Name = ex_vbc.Name Then
+        If vbc.name = ex_vbc.name Then
             Exists = True
             Set ex_vbc_result = vbc
             Exit For
@@ -396,7 +373,7 @@ Private Function GetVBComp(ByVal get_vbc_name As String, _
     On Error Resume Next
     Set GetVBComp = get_wbk.VBProject.VBComponents(get_vbc_name)
     If Err.Number <> 0 _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The VBProject in the Workbook '" & get_wbk.Name & "' has no VBComponent named '" & get_vbc_name & "'!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The VBProject in the Workbook '" & get_wbk.name & "' has no VBComponent named '" & get_vbc_name & "'!"
 
 xt: Exit Function
 
@@ -415,20 +392,15 @@ Public Sub SyncNew(ByVal sync_vbc_name As String)
     
     On Error GoTo eh
     Dim SourceComp  As clsComp
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
     
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
-    
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     Set SourceComp = New clsComp
     With SourceComp
-        Set .Wrkbk = wbkSource
+        Set .Wrkbk = mSync.source
         .CompName = sync_vbc_name
-        If Not .Exists(wbkTarget) Then
+        If Not .Exists(mSync.TargetCopy) Then
             Log.ServicedItem = .VBComp
-            wbkTarget.VBProject.VBComponents.Import .ExpFileFullName
+            mSync.TargetCopy.VBProject.VBComponents.Import .ExpFileFullName
             Log.Entry = "Added (by import of the ExportFile from the corresponding Sync-Source-Workbook's VBComponent"
             wsSync.VbcItemNewDone(ItemSyncName(.VBComp)) = True
         End If
@@ -457,28 +429,21 @@ Public Sub SyncChanged(ByVal sync_vbc_name As String)
     
     On Error GoTo eh
     Dim vbc         As VBComponent
-    Dim SourceComp  As clsComp
-    Dim TargetComp  As clsComp
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
+    Dim SourceComp  As New clsComp
+    Dim TargetComp  As New clsComp
     
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     
-    For Each vbc In wbkSource.VBProject.VBComponents
-        If vbc.Name = sync_vbc_name Then
+    For Each vbc In mSync.source.VBProject.VBComponents
+        If vbc.name = sync_vbc_name Then
             Log.ServicedItem = vbc
-            Set SourceComp = New clsComp
-            With SourceComp
-                Set .Wrkbk = wbkSource
-                .CompName = vbc.Name
-            End With
-            Set TargetComp = New clsComp
-            With TargetComp
-                Set .Wrkbk = wbkTarget
-                .CompName = vbc.Name
-            End With
+            '~~ Establish the Sync-Source-Workbook's VB-Component
+            Set SourceComp.Wrkbk = mSync.source
+            SourceComp.CompName = vbc.name
+            
+            '~~ Establish the Sync-Source-Workbook's VB-Component
+            Set TargetComp.Wrkbk = mSync.TargetCopy
+            TargetComp.CompName = vbc.name
                 
             Select Case SourceComp.VBComp.Type
                 Case vbext_ct_Document
@@ -487,8 +452,8 @@ Public Sub SyncChanged(ByVal sync_vbc_name As String)
                     wsSync.VbcItemChangedDone(ItemSyncName(vbc)) = True
                     TargetComp.ExpFile.Delete
                 Case vbext_ct_StdModule, vbext_ct_MSForm, vbext_ct_ClassModule
-                    mRenew.ByImport bi_wbk_serviced:=wbkTarget _
-                                  , bi_vbc_name:=vbc.Name _
+                    mRenew.ByImport bi_wbk_serviced:=mSync.TargetCopy _
+                                  , bi_vbc_name:=vbc.name _
                                   , bi_exp_file:=SourceComp.ExpFileFullName
                     wsSync.VbcItemChangedDone(ItemSyncName(vbc)) = True
                     TargetComp.ExpFile.Delete
@@ -524,20 +489,15 @@ Public Sub RunDsplyDiff(ByVal sync_vbc_name As String)
     On Error GoTo eh
     Dim SourceComp  As clsComp
     Dim TargetComp  As clsComp
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
-    
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
     
     Set SourceComp = New clsComp
     With SourceComp
-        Set .Wrkbk = wbkSource
+        Set .Wrkbk = mSync.source
         .CompName = sync_vbc_name
     End With
     Set TargetComp = New clsComp
     With TargetComp
-        Set .Wrkbk = wbkTarget
+        Set .Wrkbk = mSync.TargetCopy
         .CompName = sync_vbc_name
     End With
     mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=TargetComp.ExpFileFullName _
@@ -563,18 +523,14 @@ Public Sub SyncObsolete(ByVal sync_vbc_name As String)
     
     On Error GoTo eh
     Dim vbc             As VBComponent
-    Dim wbkTarget       As Workbook
-    Dim wbkSource       As Workbook
     Dim sItemSyncName   As String
     
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     
-    Set vbc = GetVBComp(sync_vbc_name, wbkTarget)
+    Set vbc = GetVBComp(sync_vbc_name, mSync.TargetCopy)
     sItemSyncName = ItemSyncName(vbc)
     Log.ServicedItem = vbc
-    wbkTarget.VBProject.VBComponents.Remove vbc
+    mSync.TargetCopy.VBProject.VBComponents.Remove vbc
     Log.Entry = "Removed!"
     wsSync.VbcItemObsoleteDone(sItemSyncName) = True
 
@@ -608,17 +564,12 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     Dim i           As Long
     Dim BttnDiff    As String
     Dim v           As Variant
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
-    
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
     
     wsService.SyncDialogTitle = TITLE_SYNC_REFS
     Set fSync = mMsg.MsgInstance(TITLE_SYNC_REFS)
     With Msg.Section(1)
         .Label.Text = "Obsolete components:"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.MonoSpaced = True
         For Each v In sync_obsolete
             .Text.Text = .Text.Text & vbLf & v
@@ -627,7 +578,7 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     End With
     With Msg.Section(2)
         .Label.Text = "New components:"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.MonoSpaced = True
         For Each v In sync_new
             .Text.Text = .Text.Text & vbLf & v
@@ -636,7 +587,7 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     End With
     With Msg.Section(3)
         .Label.Text = "Modified components:"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.MonoSpaced = True
         For Each v In sync_changed
             .Text.Text = .Text.Text & vbLf & v
@@ -645,7 +596,7 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     End With
     With Msg.Section(4)
         .Label.Text = "About synchronizing VB-Components:"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.Text = "Code modification is done in two ways:" & vbLf & _
                      "For Non-Datamodules the code is updated by removing it and re-importing the ExportFile " & _
                      "of the Sync-Source-Workbook's corresponding VB-Component." & vbLf & _
@@ -655,6 +606,15 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
                      "take a bit more effort and time. After each synchronization action the dialog is re-displayed " & _
                      "with the still remaining synchronization tasks."
     End With
+    With Msg.Section(5)
+        With .Label
+            .Text = "See: Using the Synchronization Service"
+            .FontColor = rgbBlue
+            .OpenWhenClicked = mCompMan.README_URL & mSync.README_SYNC_CHAPTER
+        End With
+        .Text.Text = "The chapter 'Using the Synchronization Service' will provide additional information"
+    End With
+    
     If sync_obsolete.Count + sync_new.Count + sync_changed.Count > 0 Then
         
         '~~ Prepare the Command-Buttons and their corresponding Application.Run action

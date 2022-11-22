@@ -35,19 +35,19 @@ Public Sub All()
     CleanUpObsoleteExpFiles
     
     If mMe.IsAddinInstnc _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Addin instance which is impossible for this operation!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Add-in instance which is impossible for this operation!"
     
-    Set wbk = mService.Serviced
+    Set wbk = mService.WbkServiced
     With wbk.VBProject
         lAll = .VBComponents.Count
         lRemaining = lAll
         
         For Each vbc In .VBComponents
-            If Not mService.IsRenamedByCompMan(vbc.Name) Then
+            If Not mService.IsRenamedByCompMan(vbc.name) Then
                 Set Comp = New clsComp
                 With Comp
-                    .Wrkbk = mService.Serviced
-                    .CompName = vbc.Name
+                    .Wrkbk = mService.WbkServiced
+                    .CompName = vbc.name
                     '~~ Only export if it is not a component renamed by CompMan which is a left over
                     .Export
                     lExported = lExported + 1
@@ -123,7 +123,7 @@ Public Sub ChangedComponents()
     '~~ I.e. of no longer existing VBComponents or at an outdated location
     CleanUpObsoleteExpFiles
         
-    Set wbk = mService.Serviced
+    Set wbk = mService.WbkServiced
     Set dctAll = mService.AllComps(wbk, sStatus)
     
     With wbk.VBProject
@@ -132,11 +132,11 @@ Public Sub ChangedComponents()
         
         For Each v In dctAll
             Set vbc = dctAll(v)
-            If Not mService.IsRenamedByCompMan(vbc.Name) Then
+            If Not mService.IsRenamedByCompMan(vbc.name) Then
                 Set Comp = New clsComp
                 With Comp
-                    Set .Wrkbk = mService.Serviced
-                    .CompName = vbc.Name
+                    Set .Wrkbk = mService.WbkServiced
+                    .CompName = vbc.name
                     Log.ServicedItem = vbc
                     Set .VBComp = vbc
                     Select Case .KindOfComp
@@ -146,7 +146,7 @@ Public Sub ChangedComponents()
                                 .Export
                                 mComCompRawsHosted.RawRevisionNumberIncrease v
                                 mComCompRawsHosted.SaveToGlobalFolder .CompName, .ExpFile, .ExpFileFullName
-                                sExported = sExported & vbc.Name & ", "
+                                sExported = sExported & vbc.name & ", "
                                 lExported = lExported + 1
                                 Log.Entry = "Code modified of Hosted Raw Common Component"
                                 Log.Entry = "Exported, Revision Number increased, Export File copied to 'Common Components Folder'"
@@ -160,7 +160,7 @@ Public Sub ChangedComponents()
                                 '~~ when the component is updated at Workbook open
                                 .DueModificationWarning = True
                                 .Export
-                                sExported = sExported & vbc.Name & ", "
+                                sExported = sExported & vbc.name & ", "
                                 lExported = lExported + 1
                                 Log.Entry = "Modified Used Common Component exported (due revert allert registered!)"
                             Else
@@ -169,7 +169,7 @@ Public Sub ChangedComponents()
                         Case Else
                             If .Changed Then
                                 .Export
-                                sExported = sExported & vbc.Name & ", "
+                                sExported = sExported & vbc.name & ", "
                                 lExported = lExported + 1
                                 Log.Entry = "Modified code exported"
                             Else
@@ -229,18 +229,18 @@ Private Sub CleanUpObsoleteExpFiles()
     Dim fo      As Folder
     Dim fosub   As Folder
     
-    sExp = mExport.ExpFileFolderPath(mService.Serviced) ' the current specified Export-Folder
+    sExp = mExport.ExpFileFolderPath(mService.WbkServiced) ' the current specified Export-Folder
 
     '~~ Cleanup of any Export-Files residing outside the specified 'Export-Folder'
     Set cll = New Collection
-    cll.Add fso.GetFolder(mService.Serviced.Path)
+    cll.Add fso.GetFolder(mService.WbkServiced.Path)
     Do While cll.Count > 0
         Set fo = cll(1): cll.Remove 1 'get folder and dequeue it
         If fo.Path <> sExp Then
             For Each fosub In fo.SubFolders
                 cll.Add fosub ' enqueue it
             Next fosub
-            If fo.ParentFolder = mService.Serviced.Path Or fo.Path = mService.Serviced.Path Then
+            If fo.ParentFolder = mService.WbkServiced.Path Or fo.Path = mService.WbkServiced.Path Then
                 '~~ Cleanup is done only in the Workbook-folder and any direct sub-folder
                 '~~ Folders in sub-folders are exempted.
                 For Each fl In fo.Files
@@ -259,7 +259,7 @@ Private Sub CleanUpObsoleteExpFiles()
     For Each fl In fso.GetFolder(sExp).Files
         Select Case fso.GetExtensionName(fl.Path)
             Case "bas", "cls", "frm", "frx"
-                If Not mComp.Exists(mService.Serviced, fso.GetBaseName(fl)) Then cll.Add fl.Path
+                If Not mComp.Exists(mService.WbkServiced, fso.GetBaseName(fl)) Then cll.Add fl.Path
         End Select
     Next fl
         
@@ -271,7 +271,7 @@ Private Sub CleanUpObsoleteExpFiles()
         Next v
     End With
     
-    RemoveEmptyFolders ref_folder:=mService.Serviced.Path, ref_sub_folders:=False
+    RemoveEmptyFolders ref_folder:=mService.WbkServiced.Path, ref_sub_folders:=False
     
 xt: Set cll = Nothing
     Set fso = Nothing
@@ -291,35 +291,82 @@ Private Function ErrSrc(ByVal sProc As String) As String
 End Function
 
 Public Function ExpFileFolderPath(ByVal v As Variant) As String
-' --------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Returns a Workbook's path for all Export Files whereby the name of the
-' folder is the the configured one which defaults to 'source'.
+' folder is the configured one (which defaults to 'source'). When no export
+' folder exists, one is created. In case an outdated export folder exists,
+' i.e. one with an outdated name, this one is renamed instead.
 ' ----------------------------------------------------------------------------
     Const PROC = "ExpFileFolderPath"
     
     On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim wbk     As Workbook
-    Dim s       As String
-    Dim sPath   As String
+    Dim fso         As New FileSystemObject
+    Dim wbk         As Workbook
+    Dim s           As String
+    Dim sPath       As String
+    Dim fldExisting As Folder
+    Dim sPathParent As String
     
     With fso
         Select Case TypeName(v)
             Case "Workbook"
                 Set wbk = v
-                sPath = wbk.Path & "\" & mConfig.FolderExport
+                sPathParent = wbk.Path
+                sPath = sPathParent & "\" & wsConfig.FolderExport
             Case "String"
                 s = v
                 If Not .FileExists(s) _
                 Then Err.Raise AppErr(1), ErrSrc(PROC), "'" & s & "' is not the FullName of an existing Workbook!"
-                sPath = .GetParentFolderName(s) & "\" & mConfig.FolderExport
+                sPathParent = .GetParentFolderName(s)
+                sPath = sPathParent & "\" & wsConfig.FolderExport
             Case Else
                 Err.Raise AppErr(1), ErrSrc(PROC), "The required information about the concerned Workbook is neither provided as a Workbook object nor as a string identifying an existing Workbooks FullName"
         End Select
-        If Not .FolderExists(sPath) Then .CreateFolder sPath
+        If Not .FolderExists(sPath) Then
+            '~~ When no 'Export' folder exists there may still be an outdated one of which the nmae had not already been changed.
+            '~~ When an export folder with a different name already exists this one should be renamed.
+            If AnExportFolderExists(sPathParent, fldExisting) Then
+                fldExisting.name = wsConfig.FolderExport
+            Else
+                .CreateFolder sPath
+            End If
+        End If
     End With
     
 xt: ExpFileFolderPath = sPath
+    Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function AnExportFolderExists(ByVal oef_path As String, _
+                                              ByRef oef_fld As Folder) As Boolean
+' --------------------------------------------------------------------------
+' When a folder exists with files *.bas, *.cls, or *.frm the function
+' returns TRUE and the identified folder (oef_flf).
+' --------------------------------------------------------------------------
+    Const PROC = "AnExportFolderExists"
+    
+    On Error GoTo eh
+    Dim fso As New FileSystemObject
+    Dim fld As Folder
+    Dim fle As File
+    
+    For Each fld In fso.GetFolder(oef_path).SubFolders
+        For Each fle In fld.Files
+            Select Case fso.GetExtensionName(fle.Path)
+                Case "bas", "cls", "frm"
+                    Set oef_fld = fld
+                    AnExportFolderExists = True
+                    GoTo xt
+            End Select
+        Next fle
+    Next fld
+    
+xt: Set fso = Nothing
     Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -339,22 +386,22 @@ Private Sub RemoveEmptyFolders(ByVal ref_folder As String, _
     Dim fso         As New FileSystemObject
     Dim iFolders    As Long
     Dim oFolder     As Folder
-    Dim oSubFolder  As Folder
+    Dim oSubfolder  As Folder
     
     ref_folder = Replace(ref_folder & "\", "\\", "\") ' add a possibly missing trailing \
     Set oFolder = fso.GetFolder(ref_folder)
     If Not fso.FolderExists(ref_folder) Then GoTo xt
     
-    For Each oSubFolder In oFolder.SubFolders
+    For Each oSubfolder In oFolder.SubFolders
         '~~ Loop through all subfolders
-        iFolders = oSubFolder.SubFolders.Count
-        If oSubFolder.Files.Count = 0 And iFolders = 0 Then
+        iFolders = oSubfolder.SubFolders.Count
+        If oSubfolder.Files.Count = 0 And iFolders = 0 Then
             '~~ Remove the folder when it has no files and no sub-folders
-            RmDir oSubFolder.Path
+            RmDir oSubfolder.Path
         End If
         '~~ Recursively repeat if there are any subfolders within the subfolder
         If ref_sub_folders Then
-            If iFolders <> 0 Then RemoveEmptyFolders (ref_folder & oSubFolder.Name)
+            If iFolders <> 0 Then RemoveEmptyFolders (ref_folder & oSubfolder.name)
         End If
     Next
 

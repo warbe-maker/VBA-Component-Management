@@ -18,7 +18,7 @@ Private vbc     As VBComponent
 Private vbcm    As CodeModule
 
 Private Property Get mRenew_ByImport() As String
-    mRenew_ByImport = CompManAddinName & "!mRenew.ByImport"
+    mRenew_ByImport = mAddin.WbkName & "!mOutdated.RenewByReImport"
 End Property
 
 Public Sub ClearIW()
@@ -150,7 +150,7 @@ Public Sub Test_Config()
 
     '~~ 1. Basic configuration
     mMe.Config
-    '~~ 2. Addin configuration
+    '~~ 2. Add-in configuration
     mMe.Config cfg_addin:=True
     '~~ 3. Synchronization configuration
     mMe.Config cfg_sync:=True
@@ -166,7 +166,7 @@ Public Sub Test_Comps_Changed()
     Dim Log     As New clsLog
     Dim s       As String
     
-    Set mService.Serviced = ThisWorkbook
+    mService.WbkServiced = ThisWorkbook
     Set Stats = New clsStats
     
     Set dct = Comps.Changed(Stats)
@@ -195,11 +195,11 @@ Public Sub Test_Comps_Outdated()
     Dim dct     As Dictionary
     Dim Log     As New clsLog
     
-    Set mService.Serviced = ThisWorkbook
+    mService.WbkServiced = ThisWorkbook
     Set Stats = New clsStats
     Log.FileFullName = mFso.FileTemp(, ".log")
     
-    Set dct = Comps.Outdated(mService.Serviced)
+    Set dct = Comps.Outdated(mService.WbkServiced)
     For Each v In dct
         Stats.Count sic_used_comm_comps
         Set Comp = dct(v)
@@ -231,7 +231,7 @@ Public Sub Test_Log()
     Dim fso As New FileSystemObject
     
     Set Log = New clsLog
-    Set mService.Serviced = ThisWorkbook
+    mService.WbkServiced = ThisWorkbook
     With Log
         .Service = ErrSrc(PROC)
         .ServicedItem = " <component-name> "
@@ -287,7 +287,7 @@ Public Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
                               ByVal rnc_vbc_name As String)
 ' ------------------------------------------------------------------------------
 ' This test procedure is exclusively initiated within the
-' 'CompMan-Development-Instance-Workbook and executed by' the 'CompMan-Addin'
+' 'CompMan-Development-Instance-Workbook and executed by' the 'CompMan Add-in'
 ' which needs to be open. When these conditions are not met a message is
 ' displayed.
 ' ------------------------------------------------------------------------------
@@ -299,7 +299,7 @@ Public Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
     
     If mMe.IsDevInstnc Then GoTo xt
     
-    Set mService.Serviced = ThisWorkbook
+    mService.WbkServiced = ThisWorkbook
     Log.FileFullName = mFso.FileTemp(, ".log")
     Log.Service = "Renew Component Test"
     
@@ -313,9 +313,9 @@ Public Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
             Log.Entry = "Active Workbook de-activated by creating a temporary Workbook"
         End If
             
-        mRenew.ByImport bi_wbk_serviced:=.Wrkbk _
-                      , bi_vbc_name:=.CompName _
-                      , bi_exp_file:=rnc_exp_file_full_name
+        mOutdated.RenewByReImport rbi_wbk_serviced:=.Wrkbk _
+                                , rbi_vbc_name:=.CompName _
+                                , rbi_exp_file:=rnc_exp_file_full_name
     End With
     
 xt: If Not wbTemp Is Nothing Then
@@ -324,10 +324,10 @@ xt: If Not wbTemp Is Nothing Then
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
+            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
             Set wbActive = Nothing
         Else
-            Log.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
+            Log.Entry = "Workbook '" & wbActive.name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set Comp = Nothing
@@ -380,7 +380,7 @@ Public Sub Test_RenewByImport_1a_Standard_Module_ExpFile_Remote(ByVal test_vbc_n
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
-        If mMe.CompManAddinIsOpen Then
+        If mAddin.IsOpen Then
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
@@ -401,7 +401,7 @@ Public Sub Test_RenewByImport_1a_Standard_Module_ExpFile_Remote(ByVal test_vbc_n
                               , p_file:=flExport) _
                 Then sExpFile = flExport.Path
                 For i = 1 To repeat
-                    Application.Run mRenew_ByImport _
+                    Application.Run .Wrkbk.name & "!mOutdated.RenewByReImport" _
                                   , .Wrkbk _
                                   , .CompName _
                                   , sExpFile
@@ -436,7 +436,7 @@ Public Sub Test_RenewByImport_1b_Standard_Module_ExpFile_Local(ByVal test_vbc_na
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
-        If mMe.CompManAddinIsOpen Then
+        If mAddin.IsOpen Then
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
@@ -484,7 +484,7 @@ Private Sub Test_RenewByImport_2_Class_Module_ExpFile_Local(ByVal test_vbc_name 
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
-        If mMe.CompManAddinIsOpen Then
+        If mAddin.IsOpen Then
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
@@ -532,7 +532,7 @@ Private Sub Test_RenewByImport_3a_UserForm_ExpFile_Local(ByVal test_vbc_name As 
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
-        If mMe.CompManAddinIsOpen Then
+        If mAddin.IsOpen Then
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
@@ -584,7 +584,7 @@ Private Sub Test_RenewByImport_3b_UserForm_ExpFile_Remote(ByVal test_vbc_name As
     
     If mMe.IsAddinInstnc Then Exit Sub
     If mMe.IsDevInstnc Then
-        If mMe.CompManAddinIsOpen Then
+        If mAddin.IsOpen Then
             ' ---------------------------------
             '~~ Arguments for the Run:
             '~~ rc_exp_file_full_name As String
@@ -630,15 +630,15 @@ Public Sub Test_UpdateOutdatedCommonComponents()
     
     On Error GoTo eh
     Dim AddinService    As String
-    Dim AddinStatus     As String
+    Dim AddInStatus     As String
     
     If mService.Denied Then GoTo xt
 
-    AddinService = CompManAddinName & "!mCompMan.UpdateOutdatedCommonComponents"
-    If mMe.CompManAddinIsOpen Then
-        AddinStatus = " (currently the case) "
+    AddinService = mAddin.WbkName & "!mCompMan.UpdateOutdatedCommonComponents"
+    If mAddin.IsOpen Then
+        AddInStatus = " (currently the case) "
     Else
-        AddinStatus = " (currently  " & mBasic.Spaced("not") & "  the case) "
+        AddInStatus = " (currently  " & mBasic.Spaced("not") & "  the case) "
     End If
     
     If mMe.IsDevInstnc Then
@@ -649,15 +649,15 @@ Public Sub Test_UpdateOutdatedCommonComponents()
                       , ThisWorkbook
         
         If Err.Number = 1004 Then
-            MsgBox Title:="CompMan-Addin not open (required for test: " & PROC & "!" _
-                 , Prompt:="Application.Run " & vbLf & vbLf & AddinService & vbLf & vbLf & "failed because the 'CompMan-Addin' is not open!" _
+            MsgBox Title:="CompMan Add-in not open (required for test: " & PROC & "!" _
+                 , Prompt:="Application.Run " & vbLf & vbLf & AddinService & vbLf & vbLf & "failed because the 'CompMan Add-in' is not open!" _
                  , Buttons:=vbExclamation
         End If
         mBasic.EoP ErrSrc(PROC)
     Else
         MsgBox Title:="Test " & PROC & " not executed!" _
-             , Prompt:="Executions of this test must not be performed 'within' the 'CompMan-Addin' Workbook." & vbLf & vbLf & _
-                       "The test requires the 'CompMan-Addin' (" & mMe.CompManAddinName & ") is open " & AddinStatus & " but must be performed " & _
+             , Prompt:="Executions of this test must not be performed 'within' the 'CompMan Add-in' Workbook." & vbLf & vbLf & _
+                       "The test requires the 'CompMan Add-in' (" & mAddin.WbkName & ") is open " & AddInStatus & " but must be performed " & _
                        "from within the development instance (" & mMe.DevInstncFullName & ")." _
              , Buttons:=vbExclamation
     End If

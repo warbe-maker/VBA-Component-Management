@@ -10,22 +10,25 @@ Option Compare Text
 '          - the Workbook resides in its own dedicated folder
 '          - the Workbook calls the '' service with the Open event
 '          - the Workbook calls the '' service with the Save event
-' Usage:   This Workbbok's services are available as 'CompMan-AddIn' when
-'          - at least once the Renew service had been performed
-'          - either a Workbbook referring to the Addin is opened
-'          - or the Addin-Workbook-Development-Instance is opened and Renew
-'            is performed again
+' Usage:   This Workbbok's services may additionally be available Add-in when
+'          setup and open.
 '
-' Coding rules: (case matters!)
-'               - nme indicates a Name object
-'               - wbk indicates a Workbook object
-'               - wsh indicate a Worksheet object
-'               - shp indicates a Shape object
-'               - dct indicates a Dictionary object
-'               - an underscore letter (_) indicates an argument (_ is not used for anything else!)
-'               - arguments have a prefix followed by a _
+' Common coding rules: (where case matters!)
+' - nme indicates a Name object
+' - wbk indicates a Workbook object
+' - wsh indicate a Worksheet object
+' - shp indicates a Shape object
+' - dct indicates a Dictionary object
+' - procedure's arguments (in order to distinguish them from
+'   anything else):
+'   -- have at least one underscore letter (_), usually after a prefix
+'   -- are strictly in lower case letters
+'   -- only lower case letters and underscrores (_) are not used for anything
+'      else!
+' - Constants are in upper-case letters with underscores (_) for better
+'   readability and their lower-case counterpart is never used as argument
 '
-'          For further detailed information see:
+' See also:
 ' https://warbe-maker.github.io/warbe-maker.github.io/vba/excel/code/component/management/2021/03/02/Programatically-updating-Excel-VBA-code.html
 ' ----------------------------------------------------------------------------
 ' Services:
@@ -50,22 +53,14 @@ Option Compare Text
 '
 ' W. Rauschenberger Berlin August 2019
 ' -------------------------------------------------------------------------------
-Public Const MAX_LEN_TYPE           As Long = 17
+Public Const MAX_LEN_TYPE                   As Long = 17
+Public Const README_URL                     As String = "https://github.com/warbe-maker/Common-VBA-Excel-Component-Management-Services/blob/master/README.md"
 
-Public Enum enKindOfComp       ' The kind of VBComponent in the sense of CompMan
+Public Enum enKindOfComp            ' The kind of VBComponent in the sense of CompMan
     enUnknown = 0
     enCommCompHosted = 1
-    enCommCompUsed = 2             ' The Component is a used raw, i.e. the raw is hosted by another Workbook
-    enInternal = 3             ' Neither a hosted nor a used Raw Common Component
-End Enum
-
-' Distinguish the code of which Workbook is allowed to be updated
-Public Enum vbcmType
-    vbext_ct_StdModule = 1          ' .bas
-    vbext_ct_ClassModule = 2        ' .cls
-    vbext_ct_MSForm = 3             ' .frm
-    vbext_ct_ActiveXDesigner = 11   ' ??
-    vbext_ct_Document = 100         ' .cls
+    enCommCompUsed = 2              ' The Component is a used raw, i.e. the raw is hosted by another Workbook
+    enInternal = 3                  ' Neither a hosted nor a used Raw Common Component
 End Enum
 
 Public Enum siCounter
@@ -276,7 +271,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -345,7 +340,7 @@ Public Sub EstablishExecTraceFile(ByVal etl_wbk_serviced As Workbook, _
 #If ExecTrace = 1 Then
     
     Dim sFile As String
-    sFile = Replace(etl_wbk_serviced.FullName, etl_wbk_serviced.Name, "CompMan.Service.trc")
+    sFile = Replace(etl_wbk_serviced.FullName, etl_wbk_serviced.name, "CompMan.Service.trc")
 
     '~~ Even when etl_append = False: When the file had been createde today etl_append will be set to True
     With New FileSystemObject
@@ -374,205 +369,11 @@ Public Sub ExportAll(Optional ByRef ea_wbk_serviced As Workbook = Nothing)
     
     mBasic.BoP ErrSrc(PROC)
     If ea_wbk_serviced Is Nothing _
-    Then Set mService.Serviced = ActiveWorkbook _
-    Else Set mService.Serviced = ea_wbk_serviced
+    Then mService.WbkServiced = ActiveWorkbook _
+    Else mService.WbkServiced = ea_wbk_serviced
     mExport.All
     
 xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Function ExportChangedComponents(ByRef ec_wbk_serviced As Workbook, _
-                               Optional ByVal ec_hosted As String = vbNullString) As Variant
-' ----------------------------------------------------------------------------
-' Exports any component the code had been modified (UserForm also when the
-' form has changed) to the configured export folder (defaults to 'source').
-'
-' The function is terminated (returns FALSE) without further notice when:
-' a) the serviced root folder is invalid (not configured or not existing)
-' b) the serviced Workbook is located outside the serviced folder
-'
-' The function is terminated (returns FALSE but loggs the reason) when:
-' a) the Workbook is one restored by Excel
-' b) the serviced Workbook does not reside in a folder exclusivelyx (i.e. the
-'    Workbook does not live in its own dedicated folder
-' c) WinMerge is not installed
-'
-' Precondition: The service has been checked by the client to be able to run.
-' ----------------------------------------------------------------------------
-    Const PROC = "ExportChangedComponents"
-    
-    On Error GoTo eh
-    Set mService.Serviced = ec_wbk_serviced
-    Set Log = New clsLog
-    wsService.ServicedItemsMaxLenName = 0
-    wsService.ServicedItemsMaxLenType = 0
-    Log.Service = mCompManClient.SRVC_EXPORT_CHANGED
-    
-    EstablishExecTraceFile ec_wbk_serviced
-    mBasic.BoP ErrSrc(PROC)
-    
-    If mService.Denied Then GoTo xt
-    
-    mService.ExportChangedComponents ec_hosted
-    ExportChangedComponents = True
-    ExportChangedComponents = Application.StatusBar
-    
-    mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
-
-xt: Exit Function
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Public Sub Install()
-    mService.Install ActiveWorkbook
-End Sub
-
-Public Function RunTest(ByVal rt_service As String, _
-                        ByRef rt_serviced_wbk As Workbook) As Variant
-' --------------------------------------------------------------------------
-' Ensures the requested service (rt_service) is able to run or returns the
-' reason why not.
-' The function returns:
-' - AppErr(1): when CompMan's current configuration does not support the
-'              requested service, i.e. either the 'Synchronization-Folder'
-'              for the 'Synchronization' service is invalid or the
-'              'Servicing-Folder' for all other services is invalid.
-' - AppErr(2): when the servicing Workbook is the available Addin but the
-'              Addin is currently paused. It would requires
-'              mCompManClient.COMPMAN_DEVLP to run the service. When
-'              the mCompManClient.COMPMAN_DEVLP is open, it will provide
-'              the service provided it is not also the serviced Workbook.
-' - AppErr(3): when the requested service is "Synchronize" and the
-'              corresponding 'Sync-Source-Workbook' is not available in the
-'              'Serviced-Folder' path.
-'              Note: In case it is already open the 'Sync-Target-
-'                    Workbook will be unable to open because of the same name
-' --------------------------------------------------------------------------
-    Const PROC = "RunTest"
-    
-    On Error GoTo eh
-    
-    If rt_service = mCompManClient.SRVC_SYNCHRONIZE And Not mMe.FolderSyncedIsValid Then
-        RunTest = AppErr(1) ' The serviced root folder is invalid (not configured or not existing)
-        Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
-                    "The required 'Serviced Synchronize-Target Folder' is invalid or not configured."
-                    
-    ElseIf rt_service <> mCompManClient.SRVC_SYNCHRONIZE And Not mMe.FolderServicedIsValid Then
-        RunTest = AppErr(1) ' The serviced root folder is invalid (not configured or not existing)
-        Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
-                    "The required 'Serviced Development & Test Folder' is invalid or not configured."
-    
-    ElseIf rt_service = mCompManClient.SRVC_SYNCHRONIZE And Not rt_serviced_wbk.FullName Like mConfig.ServicedSyncTargetFolder & "*" Then
-        RunTest = AppErr(2)
-        Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
-                    "The serviced Workbook not opened from within the configured 'Serviced Synchronize-Target Folder'."
-    
-    ElseIf rt_service <> mCompManClient.SRVC_SYNCHRONIZE And Not rt_serviced_wbk.FullName Like mConfig.ServicedDevAndTestFolder & "*" Then
-        RunTest = AppErr(2)
-        Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
-                    "The serviced Workbook is not opened from within the configured 'Serviced Development & Test Folder'."
-    
-    ElseIf rt_service = mCompManClient.SRVC_SYNCHRONIZE And Not mFso.Exists(ex_folder:=mConfig.ServicedSyncTargetFolder, ex_file:=rt_serviced_wbk.Name) Then
-        RunTest = AppErr(3)
-        Debug.Print rt_service & " (by " & ThisWorkbook.Name & "): Denied! " & _
-                    "The serviced Workbook's Synchronization-Source-Workbook is not available in the configured 'Serviced Development & Test Folder'."
-    End If
-
-xt: Exit Function
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Private Function SyncSourceInDevFolder(ByVal ss_serviced As Workbook) As Boolean
-    Stop ' impl pending
-
-End Function
-
-Public Sub SynchronizeWorkbooks(ByVal sync_wbk_serviced As Workbook)
-' ----------------------------------------------------------------------------
-' Initiates the synchronization of the opened (or open) Workbook
-' (sync_wbk_serviced) with the code of the corresponding, i.e. the
-' Workbook with the corresponding name located in CompMan's 'Serviced-Folder'
-' which is considered the 'Sync-Source-Workbook'. The service is performed
-' provided:
-' - the Workbook (sync_wbk_serviced) is open/ed from within the configured
-'   'Synchronize-Folder'. The Workbook is initially opened by ist origin name
-'   but immediately 'Saved-As' the 'Sync-Target-Workbook' in order
-'   to provide a backup and allow to open the corresponding 'Sync-
-'   Source-Workbook'. I.e. when the open Workbook (sync_wbk_serviced) is
-'   already named under its 'Sync-Target-Workbook' name this first step
-'   has already been performed (both, the source and the target are ready for
-'   sync)
-' - a corresponding Workbook (not open!) is located in CompMan's configured
-'   'Serviced-Folder'
-' - CompMan's synchronization service is available. i.e. the opened Workbook
-'   is able to be served by the CompMan development instance or by the Addin
-'   instance
-' - the open/ed Workbook is not a restored version.
-' ----------------------------------------------------------------------------
-    Const PROC = "SynchronizeWorkbooks"
-    
-    Dim cllResultFiles          As Collection
-    Dim SyncWbSource            As Workbook
-    Dim SyncWbTargetWrkngCpy    As Workbook
-    Dim sSyncWbTargetWrkngCpy   As String
-    
-    Set mService.Serviced = sync_wbk_serviced
-    Set Log = New clsLog
-    wsService.ServicedItemsMaxLenName = 0
-    wsService.ServicedItemsMaxLenType = 0
-    Log.Service = mCompManClient.SRVC_SYNCHRONIZE
-    
-#If ExecTrace = 1 Then
-    mTrc.LogFile = Replace(sync_wbk_serviced.FullName, sync_wbk_serviced.Name, "Exec.trc")
-#End If
-    mBasic.BoP ErrSrc(PROC)
-    Application.EnableEvents = False
-       
-    wsService.ServicedItemsMaxLenName = 0
-    wsService.ServicedItemsMaxLenType = 0
-    
-    mSync.MonitorStep "Provide Sync-Target- and -Source-Workbook"
-    '~~ Provide the 'Sync-Target-Workbook' (may alread be open)
-    Set SyncWbTargetWrkngCpy = mSync.SyncTargetWorkingCopy(sync_wbk_serviced)
-    
-    '~~ Get the target's source Workbook, opened read-only! when not already open
-    Debug.Print "Open '" & mSync.SyncTargetsSource(sync_wbk_serviced) & "' as Sync-Source-Workbook"
-    Set SyncWbSource = mWbk.GetOpen(mSync.SyncTargetsSource(sync_wbk_serviced), True)
-    
-    MonitorStep "Clear Sync-Target-Workbook ExportFiles"
-    mSync.ClearSyncTargetExportFiles
-    
-    Application.EnableEvents = True
-    
-    '~~ Get the synchronization figures
-    MonitorStep "Initialize global synchronization settings"
-    Set mService.Serviced = SyncWbTargetWrkngCpy
-    wsService.SyncTargetWorkbookName = SyncWbTargetWrkngCpy.Name
-    wsService.SyncSourceWorkbookName = SyncWbSource.Name
-        
-    MonitorStep "Collect all potential synchronization items"
-    mSync.CollectSyncItems
-    
-    '~~ Do the synchronization of the Workbooks
-    MonitorStep "Run the synchronizations"
-    mSync.RunSync
-    
-xt: Set Log = Nothing
-    mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -612,9 +413,13 @@ Public Sub UpdateOutdatedCommonComponents(ByRef uo_wbk_serviced As Workbook, _
     Dim sBttn2      As String
     Dim Comp        As clsComp
     
-    Set mService.Serviced = uo_wbk_serviced
+    wsService.ClearDataAllServices
+    wsService.ClearDataUpdateService
+    wsService.ServicedWorkbookFullName = uo_wbk_serviced.FullName
+    mService.WbkServiced = uo_wbk_serviced
     Set Log = New clsLog
     Log.Service(new_log:=True) = mCompManClient.SRVC_UPDATE_OUTDATED
+    wsService.LogFileFullName = Log.FileFullName
     wsService.ServicedItemsMaxLenName = 0
     wsService.ServicedItemsMaxLenType = 0
     EstablishExecTraceFile uo_wbk_serviced
@@ -622,58 +427,8 @@ Public Sub UpdateOutdatedCommonComponents(ByRef uo_wbk_serviced As Workbook, _
     mBasic.BoP ErrSrc(PROC)
     mComCompRawsHosted.Manage uo_hosted
     
-    sTitle = "To-be-updated outdated Common Component(s)"
-    Set dct = mRenew.Outdated(uo_wbk_serviced)
-    mMsg.MsgInstance sTitle, True
-    If dct.Count = 0 Then
-        mService.DsplyStatus Log.Service & " Done!"
-        GoTo xt
-    End If
-    '~~ Prepare a modeless message with a pair of buttons for each outdated component.
-    '~~ The mMsg.Dsply service allows only 7 button rows. The number of rows might
-    '~~ thus not cover all outdated components. Any exessive components will be
-    '~~ displayed by subsequent calls of this service.
-    Set fUpdate = mMsg.MsgInstance(sTitle)
-    For i = 1 To mBasic.Min(dct.Count, 7)
-        Set Comp = dct.Items()(i - 1)
-        With Comp
-            sBttn1 = .CompName & vbLf & vbLf & "Update"
-            sBttn2 = .CompName & vbLf & vbLf & "Changes"
-            mMsg.ButtonAppRun dctRunArgs, sBttn1, ThisWorkbook, "mRenew.Run", .Wrkbk, .CompName, .Raw.SavedExpFileFullName, uo_hosted
-            mMsg.ButtonAppRun dctRunArgs, sBttn2, ThisWorkbook, "mService.ExpFilesDiffDisplay", .ExpFileFullName, .Raw.SavedExpFileFullName, "Currently used (" & .ExpFileFullName & ")", "Up-to-date (" & .Raw.SavedExpFileFullName & ")"
-        End With
-        Set cllBttns = mMsg.Buttons(cllBttns, sBttn1, sBttn2, vbLf)
-    Next i
-    With Msg.Section(1)
-        .Label.Text = "Update:"
-        .Label.FontColor = rgbBlue
-        .Text.Text = "Press/click the button to update the desired outdated Common Component. The component " & _
-                     "will be updated and the dialog re-displayed - without the then already updated component, " & _
-                     "until there's no outdated component left or the dialog is closed explicitely."
-    End With
-    With Msg.Section(2)
-        .Label.Text = "Changes:"
-        .Label.FontColor = rgbBlue
-        .Text.Text = "Press/click the button to display/check which of the code has changed"
-    End With
-    With Msg.Section(3)
-        .Label.Text = "About:"
-        .Label.FontColor = rgbBlue
-        .Text.Text = "Experience has shown that this way of renewing outdated Common Components. " & _
-                     "I.e. updating one component at a time by a service performed via Application.Run " & _
-                     "is the most stable approach. Since the dialog is displayed modeless the serviced " & _
-                     "workbook may be saved after each individual update - and will be saved prior an update."
-    End With
-    
-    '~~ Display a modeless message with a pair of buttons for each outdated component
-    mMsg.Dsply dsply_title:=sTitle _
-             , dsply_msg:=Msg _
-             , dsply_buttons:=cllBttns _
-             , dsply_modeless:=True _
-             , dsply_buttons_app_run:=dctRunArgs _
-             , dsply_width_min:=40
-                 
-    
+    mOutdated.Display uo_hosted ' Dialog to update/renew one by one
+                     
 xt: mBasic.EoP ErrSrc(PROC)
     Set Log = Nothing
     Exit Sub
@@ -683,6 +438,165 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Public Function ExportChangedComponents(ByRef ec_wbk_serviced As Workbook, _
+                               Optional ByVal ec_hosted As String = vbNullString) As Variant
+' ----------------------------------------------------------------------------
+' Exports any component the code had been modified (UserForm also when the
+' form has changed) to the configured export folder (defaults to 'source').
+'
+' The function is terminated (returns FALSE) without further notice when:
+' a) the serviced root folder is invalid (not configured or not existing)
+' b) the serviced Workbook is located outside the serviced folder
+'
+' The function is terminated (returns FALSE but loggs the reason) when:
+' a) the Workbook is one restored by Excel
+' b) the serviced Workbook does not reside in a folder exclusivelyx (i.e. the
+'    Workbook does not live in its own dedicated folder
+' c) WinMerge is not installed
+'
+' Precondition: The service has been checked by the client to be able to run.
+' ----------------------------------------------------------------------------
+    Const PROC = "ExportChangedComponents"
+    
+    On Error GoTo eh
+    wsService.ClearDataAllServices
+    wsService.ServicedWorkbookFullName = ec_wbk_serviced.FullName
+    mService.WbkServiced = ec_wbk_serviced
+    Set Log = New clsLog
+    Log.Service = mCompManClient.SRVC_EXPORT_CHANGED
+    
+    EstablishExecTraceFile ec_wbk_serviced
+    mBasic.BoP ErrSrc(PROC)
+    
+    If mService.Denied Then GoTo xt
+    mService.ExportChangedComponents ec_hosted
+    ExportChangedComponents = True
+    ExportChangedComponents = Application.StatusBar
+    
+xt: Application.EnableEvents = True
+    mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
+    Exit Function
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Public Sub Install()
+    mService.Install ActiveWorkbook
+End Sub
+
+Public Function RunTest(ByVal rt_service As String, _
+                        ByRef rt_serviced_wbk As Workbook) As Variant
+' --------------------------------------------------------------------------
+' Ensures the requested service (rt_service) is able to run or returns the
+' reason why not. The function returns:
+' AppErr(1): CompMan's current configuration does not support the requested
+'            service, i.e. either the 'Synchronization-Folder' for the
+'            'Synchronization' service is invalid or the 'Servicing-Folder'
+'            for all other services is invalid.
+' AppErr(2): The servicing Workbook is the available Add-in but the Add-in
+'            is currently paused.
+'            It requires the CompMan Workbook (mCompManClient.COMPMAN_DEVLP)
+'            to turn the Add-in to a status continued. When the CompMan
+'            Workbook (mCompManClient.COMPMAN_DEVLP) is open, it will provide
+'            the service provided it is not also the serviced Workbook.
+' ----------------------------------------------------------------------------
+    Const PROC = "RunTest"
+    
+    On Error GoTo eh
+    
+    Select Case True
+        Case rt_service = mCompManClient.SRVC_UPDATE_OUTDATED _
+         And mMe.IsDevInstnc _
+         And ((mAddin.IsOpen And mAddin.Paused) Or Not mAddin.IsOpen)
+            RunTest = AppErr(3)
+        
+        Case rt_service = mCompManClient.SRVC_SYNCHRONIZE _
+         And (Not wsConfig.FolderSyncTargetIsValid Or Not wsConfig.FolderSyncArchiveIsValid)
+            RunTest = AppErr(1) ' The preconditions for the VB-Project Synchronization Service are not met
+                    
+        Case (rt_service = mCompManClient.SRVC_UPDATE_OUTDATED Or rt_service = mCompManClient.SRVC_EXPORT_CHANGED) _
+         And Not wsConfig.FolderDevAndTestIsValid
+            RunTest = AppErr(1) ' The serviced root folder is invalid (not configured or not existing)
+    
+        Case rt_service = mCompManClient.SRVC_SYNCHRONIZE _
+         And Not rt_serviced_wbk.FullName Like wsConfig.FolderSyncTarget & "*"
+            RunTest = AppErr(4)
+        
+        Case Else
+            RunTest = 0
+    End Select
+
+xt: Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function SyncSourceInDevFolder(ByVal ss_serviced As Workbook) As Boolean
+    Stop ' impl pending
+
+End Function
+
+Public Sub SynchronizeVBProjects(ByVal sync_wbk_opened As Workbook)
+' ----------------------------------------------------------------------------
+' Initiates the synchronization of the opened Workbook's (sync_wbk_opened)
+' VB-Project - which is considered the Sync-Target-Workbook - with the
+' VB-Project of the corresponding Sync-Source-Workbook - which is the Workbook
+' with the same name located in CompMan's 'ServicedDecAndTest' folder. The
+' service is performed provided:
+' - the Workbook (sync_wbk_opened) is open/ed from within the configured
+'   'SynchronizeTarget' folder. The Workbook is initially opened by its origin
+'   name but immediately saved as the Sync-Target-Workbook's working copy
+' - a corresponding Workbook (not open!) is located in CompMan's configured
+'   'ServicedDevAndTest' folder
+' - CompMan's synchronization service is available. i.e. the opened Workbook
+'   is able to be served either by the CompMan development instance or by the
+'   Add-in instance
+' ----------------------------------------------------------------------------
+    Const PROC = "SynchronizeVBProjects"
+    
+    Dim cllResultFiles          As Collection
+    Dim sSyncWbTargetWrkngCpy   As String
+    Dim sSyncWbSourceFullName   As String
+    Dim SyncOpenMsg             As TypeMsg
+    Dim wbk                     As Workbook
+    Dim sResult                 As String
+        
+    mService.WbkServiced = sync_wbk_opened
+#If ExecTrace = 1 Then
+    mTrc.LogFile = Replace(sync_wbk_opened.FullName, sync_wbk_opened.name, "Exec.trc")
+#End If
+    mBasic.BoP ErrSrc(PROC)
+    wsService.ClearDataAllServices
+    
+    If mSync.SourceExists(sync_wbk_opened) Then
+        '~~ - Keep records of the full name of all three Workbooks involved in this synchronization
+        '~~   derived from the Workbook opened which may be the Sync-Target-Workbook or the
+        '~~   Sync-Target-Worlkbook's working copy and
+        '~~ - Display an open decision dialog
+        wsService.ServicedWorkbookFullName = mSync.TargetOriginFullName(sync_wbk_opened)
+        wsService.SyncTargetFullNameCopy = mSync.TargetCopyFullName(sync_wbk_opened)
+        mSync.OpenDecision ' Display mode-less open decision dialog
+    Else
+        sync_wbk_opened.Close False
+    End If
+    
+xt: Set Log = Nothing
+    mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
 
 Public Function WbkGetOpen(ByVal go_wbk_full_name As String) As Workbook
 ' ----------------------------------------------------------------------------
@@ -733,7 +647,7 @@ Public Function WbkIsOpen( _
         WbkIsOpen = Err.Number = 0
     Else
         On Error Resume Next
-        io_name = Application.Workbooks(io_name).Name
+        io_name = Application.Workbooks(io_name).name
         WbkIsOpen = Err.Number = 0
     End If
 

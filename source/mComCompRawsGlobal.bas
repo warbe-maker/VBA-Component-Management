@@ -26,7 +26,7 @@ Private Const VNAME_RAW_SAVED_REVISION_NUMBER   As String = "RawRevisionNumber"
 Private Const VNAME_RAW_EXP_FILE_FULL_NAME      As String = "RawExpFileFullName"
 
 Public Property Get ComCompsFolder() As String:
-    ComCompsFolder = mConfig.ServicedDevAndTestFolder & "\Common-Components"
+    ComCompsFolder = wsConfig.FolderDevAndTest & "\Common-Components"
 End Property
 
 Public Property Get ComCompsSavedFileFullName() As String
@@ -135,10 +135,24 @@ End Property
 Public Property Let RawSavedRevisionNumber( _
                      Optional ByVal comp_name As String, _
                               ByVal comp_rev_no As String)
+' ------------------------------------------------------------------------------
+' Returns a revision number in the form yy-mm-dd.00. Plus one when an existing
+' revision number is provided (comp_rev-no) or the current date with .01.
+' ------------------------------------------------------------------------------
+                              
     Const PROC = "RawSavedRevisionNumber Let"
     On Error GoTo eh
-    Dim RevDate As String:  RevDate = Split(comp_rev_no, ".")(0)
-    Dim RevNo   As Long:    RevNo = Split(comp_rev_no, ".")(1)
+    Dim RevDate As String
+    Dim RevNo   As Long
+    
+    If comp_rev_no = vbNullString Then
+        RevDate = Format(Now(), "yy-mm-dd")
+        RevNo = 1
+    Else
+        RevDate = Split(comp_rev_no, ".")(0)
+        RevNo = Split(comp_rev_no, ".")(1)
+    End If
+    
     Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_SAVED_REVISION_NUMBER) = RevDate & "." & Format(RevNo, "000")
 
 xt: Exit Property
@@ -171,10 +185,10 @@ Private Property Let Value( _
            Optional ByVal pp_section As String, _
            Optional ByVal pp_value_name As String, _
                     ByVal pp_value As Variant)
-' --------------------------------------------------
-' Write the value (pp_value) named (pp_value_name)
-' into the file ComCompsSavedFileFullName.
-' --------------------------------------------------
+' ------------------------------------------------------------------------------
+' Write the value (pp_value) named (pp_value_name) into the file
+' ComCompsSavedFileFullName.
+' ------------------------------------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh

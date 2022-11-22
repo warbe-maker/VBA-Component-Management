@@ -129,7 +129,7 @@ Public Property Get DefaultLogSpec() As String
 ' folder which means that Excel will allways open the file as an Addin which is
 ' absolutely useless.
 ' ----------------------------------------------------------------------------
-    DefaultLogSpec = Replace(ActiveWorkbook.FullName, ActiveWorkbook.Name, "Exec.trc")
+    DefaultLogSpec = Replace(ActiveWorkbook.FullName, ActiveWorkbook.name, "Exec.trc")
 End Property
 Private Property Get DIR_BEGIN_CODE() As String:            DIR_BEGIN_CODE = DIR_BEGIN_ID:                  End Property
 
@@ -636,7 +636,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     

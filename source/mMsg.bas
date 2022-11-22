@@ -117,7 +117,7 @@ Public Type TypeMsgText
 End Type
 
 Public Type TypeMsgSect:    Label As TypeMsgLabel:  Text As TypeMsgText:    End Type
-Public Type TypeMsg:        Section(1 To 4) As TypeMsgSect:                 End Type
+Public Type TypeMsg:        Section(1 To 5) As TypeMsgSect:                 End Type
 
 Public Enum enStartupPosition     ' ---------------------------
     enManual = 0                  ' Used to position the
@@ -803,11 +803,11 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mMsg." & sProc
 End Function
 
-Private Function GetPanesIndex(ByVal Rng As Range) As Integer
+Private Function GetPanesIndex(ByVal rng As Range) As Integer
     Dim sR As Long:          sR = ActiveWindow.SplitRow
     Dim sc As Long:          sc = ActiveWindow.SplitColumn
-    Dim r As Long:            r = Rng.row
-    Dim c As Long:            c = Rng.Column
+    Dim r As Long:            r = rng.row
+    Dim c As Long:            c = rng.Column
     Dim Index As Integer: Index = 1
 
     Select Case True
@@ -1207,7 +1207,7 @@ Private Sub ShowAtRange(ByVal sar_form As Object, _
     ConvertPixelsToPoints PosLeft, PosTop, PosLeft, PosTop
 
     With sar_form
-       .StartupPosition = 0
+       .StartUpPosition = 0
        .Left = PosLeft
        .Top = PosTop
     End With

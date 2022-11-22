@@ -73,13 +73,15 @@ End Function
 Public Sub ClearLinksToSource(ByVal cls_wsh_source As Worksheet, _
                               ByVal cls_wsh_target As Worksheet)
 ' -----------------------------------------------------------------------------
-' Required when a new Worksheet is copied from the Sync-Source-Workbook to the
-' Sync-Target-Workbook.
+' Required when a new Worksheet is copied/cloned from the Sync-Source-Workbook
+' to the Sync-Target-Workbook.
 ' 1. Retrieves all links in the provided Workbook (sync_wbk_target) and breaks
 '    them, i.e. in all used formulas
 ' 2. Retrieves all Names referring to a range in the Sync-Source-Workbook
-'    (sync_wbk_source) and removes it from the ReferneceTo property
-' 3. Clear back-links to the Sync-Source-Workbook (sync_wbk_source) in Shape's
+'    (sync_wbk_source) and removes the refer-back from the ReferedTo property
+' 3. Removes all Names referring back to the Sync-Source-Workbook to another
+'    but the source sheet (cls_wsh_source)
+' 4. Clear back-links to the Sync-Source-Workbook (sync_wbk_source) in Shape's
 '    OnAction property
 ' -----------------------------------------------------------------------------
     Const PROC = "ClearLinksToSource"
@@ -90,47 +92,52 @@ Public Sub ClearLinksToSource(ByVal cls_wsh_source As Worksheet, _
     Dim nme         As Name
     Dim wsh         As Worksheet
     Dim shp         As Shape
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
     Dim sRefersTo   As String
     Dim sOnAction   As String
     
-    Set wbkTarget = cls_wsh_target.Parent
-    Set wbkSource = cls_wsh_source.Parent
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     
-    aLinks = wbkTarget.LinkSources(xlExcelLinks)
+    aLinks = mSync.TargetCopy.LinkSources(xlExcelLinks)
     If Not IsEmpty(aLinks) Then
         For Each v In aLinks
+            Debug.Print "Back-Link: " & v
             Log.ServicedItem = cls_wsh_target
-            wbkTarget.BreakLink v, xlLinkTypeExcelLinks
+            mSync.TargetCopy.BreakLink v, xlLinkTypeExcelLinks
             DoEvents
             Log.Entry = "(Back)Link to '" & Split(v, "\")(UBound(Split(v, "\"))) & "' cleared"
         Next v
     End If
         
     '~~ Clear Link to source Workbook in Range-Names
-    For Each nme In wbkTarget.Names
-        If InStr(nme.RefersTo, wbkSource.Name) <> 0 Then
+    For Each nme In mSync.TargetCopy.Names
+        If InStr(nme.RefersTo, mSync.Source.Name) <> 0 Then
             Log.ServicedItem = cls_wsh_target
             sRefersTo = nme.RefersTo
-            nme.RefersTo = Replace(nme.RefersTo, "[" & wbkSource.Name & "]", vbNullString)
-            Log.Entry = "Referring back to source removed (RefersTo '" & sRefersTo & "' changed to '" & nme.RefersTo & "')"
+            If InStr(nme.RefersTo, "[" & mSync.Source.Name & "]") <> 0 Then
+                If InStr(nme.RefersTo, "]" & cls_wsh_source.Name & "!") <> 0 Then
+                    '~~ Names which had just been copied from the Sync-Source-Workbook allong with the cloning of the source sheet
+                    '~~ are nor handled by this sheet synchronization but with the subsequent Names synchronization - in order
+                    '~~ to enable full control of them.
+                    nme.Delete
+                Else
+                    nme.RefersTo = Replace(nme.RefersTo, "[" & mSync.Source.Name & "]", vbNullString)
+                    Log.Entry = "Referring back to source removed (RefersTo '" & sRefersTo & "' changed to '" & nme.RefersTo & "')"
+                End If
+            End If
         End If
     Next nme
-'    wsService.ClearLinksDone = True
     
     '~~ Clear Link to source in any shapes OnAction property
-    For Each wsh In wbkTarget.Sheets
+    For Each wsh In mSync.TargetCopy.Sheets
         Log.ServicedItem = wsh
         For Each shp In wsh.Shapes
             On Error Resume Next
             sOnAction = shp.OnAction
             If Err.Number = 0 Then ' shape has an OnAction property
-                If InStr(sOnAction, wbkSource.Name) <> 0 Then
+                If InStr(sOnAction, mSync.Source.Name) <> 0 Then
                     Log.ServicedItem = wsh
-                    shp.OnAction = Replace(sOnAction, wbkSource.Name, wbkTarget.Name)
-                    Log.Entry = "Referring basck to source component removed (OnAction changed from '" & sOnAction & "' to '" & shp.OnAction & "'"
+                    shp.OnAction = Replace(sOnAction, mSync.Source.Name, mSync.TargetCopy.Name)
+                    Log.Entry = "Back-Link to source removed (OnAction changed from '" & sOnAction & "' to '" & shp.OnAction & "'"
                 End If
             End If
         Next shp
@@ -146,25 +153,21 @@ End Sub
 
 Public Sub CollectAllItems()
 ' ------------------------------------------------------------------------------
-' Writes the potentially synched Worsheets Name to the wsSync sheet.
+' Keeps a record (the Name) of all Worsheets potentially involved in the
+' synchronization in the wsSync sheet.
 ' ------------------------------------------------------------------------------
     Const PROC = "CollectAllItems"
     
     Dim dct         As New Dictionary
     Dim v           As Variant
-    Dim wbkSource   As Workbook
-    Dim wbkTarget   As Workbook
     Dim wsh         As Worksheet
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    
-    For Each wsh In wbkSource.Worksheets
+    For Each wsh In mSync.Source.Worksheets
         If Not dct.Exists(wsh.Name & wsh.CodeName) _
         Then mDct.DctAdd dct, ItemSyncName(wsh), vbNullString, order_bykey, seq_ascending, sense_casesensitive
     Next wsh
-    For Each wsh In wbkTarget.Worksheets
+    For Each wsh In mSync.TargetCopy.Worksheets
         If Not dct.Exists(wsh.Name & wsh.CodeName) _
         Then mDct.DctAdd dct, ItemSyncName(wsh), vbNullString, order_bykey, seq_ascending, sense_casesensitive
     Next wsh
@@ -184,6 +187,69 @@ Private Function ItemSyncName(ByVal wsh As Worksheet) As String
     ItemSyncName = wsh.Name & " (" & wsh.CodeName & ") in " & wsh.Parent.Name
 End Function
 
+Public Function CollectOwnedByProject() As Dictionary
+' -----------------------------------------------------------------------------
+' Returns a collection of those Worksheets in the Sync-Source-Workbook which
+' either arte hidden or protected with no unlocked ranges and thus are regarded
+' "owned by the VB-Project" because the user is unable by intention to change
+' anything. Sheets regarded "owned by the VB-Project" are synchronized in total
+' by default. I.e. the sheet is deleted and re-cloned.
+' -----------------------------------------------------------------------------
+    Const PROC = "CollectOwnedByProject"
+    
+    On Error GoTo eh
+    Dim wshSource   As Worksheet
+    Dim dct         As New Dictionary
+    Dim v           As Variant
+    
+    mSync.MonitorStep "Collecting Worksheets owned by the VB-Project"
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
+    
+    For Each wshSource In mSync.Source.Sheets
+        If IsOwnedByProject(wshSource) Then
+            mDct.DctAdd dct, ItemSyncName(wshSource), vbNullString, order_bykey, seq_ascending, sense_casesensitive
+        End If
+    Next wshSource
+       
+    If wsSync.WshNumberOwnedByProject = 0 Then
+        '~~ Write not yet registered items to wsSync sheet
+        For Each v In dct
+            wsSync.WshItemOwnedByProject(v) = True
+        Next v
+    End If
+
+xt: Set CollectOwnedByProject = dct
+    Set dct = Nothing
+    Exit Function
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function IsOwnedByProject(ByVal obp_wsh As Worksheet) As Boolean
+    Debug.Print obp_wsh.Name
+    IsOwnedByProject = obp_wsh.ProtectContents And Not HasUnlockedRange(obp_wsh) _
+                    Or Not obp_wsh.Visible
+    If IsOwnedByProject Then Debug.Print obp_wsh.Name & " is owned by project"
+End Function
+
+Private Function HasUnlockedRange(ByVal hur_wsh As Worksheet) As Boolean
+' -----------------------------------------------------------------------------
+' Returns TRUE when the sheet (hur_wsg) has any unlocked range - which means
+' that the user is able to change a value.
+' -----------------------------------------------------------------------------
+    Dim rng As Range
+    
+    For Each rng In hur_wsh.UsedRange.Cells
+        If rng.Locked = False Then
+            HasUnlockedRange = True
+            Exit Function
+        End If
+    Next rng
+    
+End Function
 Public Function CollectChanged() As Dictionary
 ' -----------------------------------------------------------------------------
 ' Returns a collection of those Worksheets in the Sync-Source-Workbook which do
@@ -194,19 +260,15 @@ Public Function CollectChanged() As Dictionary
     On Error GoTo eh
     Dim wshSource   As Worksheet
     Dim dct         As New Dictionary
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
     Dim v           As Variant
     Dim wshTarget   As Worksheet
     Dim sChanged    As String
     
     mSync.MonitorStep "Collecting Worksheets the Name or CodeName has changed"
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     
-    For Each wshSource In wbkSource.Sheets
-        If HasChanged(wshSource, wbkTarget, wshTarget) Then
+    For Each wshSource In mSync.Source.Sheets
+        If HasChanged(wshSource, mSync.TargetCopy, wshTarget) Then
             sChanged = "  changed to  " & ItemSyncName(wshSource)
             mDct.DctAdd dct, ItemSyncName(wshTarget), sChanged, order_bykey, seq_ascending, sense_casesensitive
         End If
@@ -240,17 +302,13 @@ Public Function CollectNew() As Dictionary
     On Error GoTo eh
     Dim wshSource   As Worksheet
     Dim dct         As New Dictionary
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
     Dim v           As Variant
     
     mSync.MonitorStep "Collecting Worksheets which are new"
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
         
-    For Each wshSource In wbkSource.Sheets
-        If IsNew(wshSource, wbkTarget) Then
+    For Each wshSource In mSync.Source.Sheets
+        If IsNew(wshSource, mSync.TargetCopy) Then
             Log.ServicedItem = wshSource
             mDct.DctAdd dct, ItemSyncName(wshSource), vbNullString, order_bykey, seq_ascending, sense_casesensitive
         End If
@@ -283,18 +341,14 @@ Public Function CollectObsolete() As Dictionary
     
     On Error GoTo eh
     Dim dct         As New Dictionary
-    Dim wbkSource   As Workbook
-    Dim wbkTarget   As Workbook
     Dim wshTarget   As Worksheet
     Dim v           As Variant
     
     mSync.MonitorStep "Collecting Worksheets which are obsolete"
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     
-    For Each wshTarget In wbkTarget.Sheets
-        If IsObsolete(wshTarget, wbkSource) Then
+    For Each wshTarget In mSync.TargetCopy.Sheets
+        If IsObsolete(wshTarget, mSync.Source) Then
             '~~ The sheet exists in the Sync-Target-Workbook
             '~~ neither under its Name nor under its CodeName
             Log.ServicedItem = wshTarget
@@ -375,6 +429,141 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
+Private Sub SyncObsolete(ByRef so_log As clsLog)
+' ------------------------------------------------------------------------------
+' Synchronize obsolete Worksheets
+' ------------------------------------------------------------------------------
+    Dim wsh         As Worksheet
+    Dim sSheetName  As String
+    
+    For Each wsh In mSync.TargetCopy.Worksheets
+        If IsObsolete(wsh, mSync.Source) Then
+            so_log.ServicedItem = wsh
+            Application.DisplayAlerts = False
+            sSheetName = ItemSyncName(wsh)
+            wsh.Delete
+            Application.DisplayAlerts = True
+            so_log.Entry = "Obsolete (deleted)"
+            wsSync.WshItemObsoleteDone(sSheetName) = True
+        End If
+    Next wsh
+
+End Sub
+
+Private Sub SyncNew(ByRef so_log As clsLog)
+' ------------------------------------------------------------------------------
+' Synchronize new and changed Worksheets and synchronize the concerned Names'
+' properties.
+' ------------------------------------------------------------------------------
+    Const PROC = "SyncNew"
+    
+    On Error GoTo eh
+    Dim nmeTarget As Name
+    Dim wbkSource As Workbook
+    Dim wbkTarget As Workbook
+    Dim wshSource As Worksheet
+    Dim wshTarget As Worksheet
+    Dim nmeSource As Name
+    
+    Set wbkTarget = mSync.TargetCopy
+    Set wbkSource = mSync.Source
+    
+    For Each wshSource In wbkSource.Worksheets
+        Select Case True
+            Case HasChanged(wshSource, wbkTarget, wshTarget)
+                ' Synchronize Name or CodeName
+                SyncSheetsNames wshSource, wshTarget
+            Case IsNew(wshSource, wbkTarget)
+                ' Synchronize new
+                CloneSheetToTargetWorkbook wshSource, wbkTarget, wshTarget
+                ClearLinksToSource wshSource, wshTarget
+                '~~ Synchronize RefersTo and the Scope of all Names which refer to a range in
+                '~~ the cloned/added Worksheet with those of the corresponding Name in the Sync-Source-Workbook
+                For Each nmeTarget In wbkTarget.Names
+                    CorrespName nmeTarget.Name, wbkSource, nmeSource
+                    If Not nmeSource Is Nothing Then
+                        If nmeSource.RefersTo <> nmeTarget.RefersTo _
+                        Or mName.Scope(nmeTarget) <> mName.Scope(nmeSource) Then
+                            Debug.Print "nmeTarget.Name = " & nmeTarget.Name & ", nmeTarget.RefersTo = " & nmeTarget.RefersTo
+                            mSyncNames.Properties p_nme_source:=nmeSource _
+                                                 , p_nme_target:=nmeTarget
+                        End If
+                    End If
+                Next nmeTarget
+        End Select
+        
+    Next wshSource
+             
+    mSyncSheets.SyncOrder
+    wsSync.WshSyncDone = True
+
+xt: Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+
+Private Sub SyncOwnedByProject(ByRef so_log As clsLog)
+' ------------------------------------------------------------------------------
+' Synchronize "owned-by-the-VB-Project Worksheets by removing and re-cloning
+' them.
+' ------------------------------------------------------------------------------
+    Const PROC = "SyncOwnedByProject"
+    
+    On Error GoTo eh
+    Dim nmeTarget As Name
+    Dim wbkSource As Workbook
+    Dim wbkTarget As Workbook
+    Dim wshSource As Worksheet
+    Dim wshTarget As Worksheet
+    Dim nmeSource As Name
+    
+    Set wbkTarget = mSync.TargetCopy
+    Set wbkSource = mSync.Source
+    
+    For Each wshSource In wbkSource.Worksheets
+        If IsOwnedByProject(wshSource) Then
+            '~~ Remove the existing if any
+            If mWsh.Exists(wbkTarget, wshSource, wshTarget) Then
+                wshTarget.Delete
+            End If
+            ' Re-Synchronize new
+            CloneSheetToTargetWorkbook wshSource, wbkTarget, wshTarget
+            ClearLinksToSource wshSource, wshTarget
+            '~~ Synchronize RefersTo and the Scope of all Names which refer to a range in
+            '~~ the cloned/added Worksheet with those of the corresponding Name in the Sync-Source-Workbook
+            For Each nmeTarget In wbkTarget.Names
+                Set nmeSource = CorrespName(nmeTarget.Name, wbkSource)
+                If nmeSource.RefersTo <> nmeTarget.RefersTo _
+                Or mName.Scope(nmeTarget) <> mName.Scope(nmeSource) Then
+                    Debug.Print "nmeTarget.Name = " & nmeTarget.Name & ", nmeTarget.RefersTo = " & nmeTarget.RefersTo
+                    mSyncNames.Properties p_nme_source:=nmeSource _
+                                        , p_nme_target:=nmeTarget
+                End If
+            Next nmeTarget
+        End If
+    Next wshSource
+             
+xt: Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+
+
+
+
+
+
+
+
+
 Public Sub SyncAllSheets()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Synchronizes all Sheets by
@@ -383,44 +572,20 @@ Public Sub SyncAllSheets()
     Const PROC = "SyncAllSheets"
     
     On Error GoTo eh
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
     Dim wshSource   As Worksheet
     Dim wshTarget   As Worksheet
     Dim sSheetName  As String
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
 
-    '~~ Synchronize obsolete Worksheets
-    For Each wshTarget In wbkTarget.Worksheets
-        If IsObsolete(wshTarget, wbkSource) Then
-            Log.ServicedItem = wshTarget
-            Application.DisplayAlerts = False
-            sSheetName = ItemSyncName(wshTarget)
-            wshTarget.Delete
-            Application.DisplayAlerts = True
-            Log.Entry = "Obsolete (deleted)"
-            wsSync.WshItemObsoleteDone(sSheetName) = True
-        End If
-    Next wshTarget
-
-    '~~ Synchronize new and changed Worksheets
-    For Each wshSource In wbkSource.Worksheets
-        Select Case True
-            Case IsNew(wshSource, wbkTarget)
-                CopySourceSheetToTargetWorkbook wshSource, wbkTarget, wshTarget
-                ClearLinksToSource wshSource, wshTarget
-            Case HasChanged(wshSource, wbkTarget, wshTarget)
-                SyncSheetsNames wshSource, wshTarget
-        End Select
-    Next wshSource
-            
+    SyncObsolete Log        ' Synchronize obsolete Worksheets
+    SyncNew Log             ' Synchronize new and changed Worksheets
+    SyncOwnedByProject Log  ' Synchronize sheets regarded "owned-by-the-VB-Project"
+    
     mSyncSheets.SyncOrder
     wsSync.WshSyncDone = True
-    
+
     '~~ Re-display the synchronization dialog for still to be synchronized items
     UnloadSyncMessage TITLE_SYNC_SHEETS
     mSync.RunSync
@@ -434,25 +599,48 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub CopySourceSheetToTargetWorkbook(ByVal sync_wsh_source As Worksheet, _
-                                           ByVal sync_wbk_target As Workbook, _
-                                           ByRef sync_wsh_target As Worksheet)
+Private Function SheetIsOwnedByProject(ByVal obp_wsh As Worksheet) As Boolean
+' -----------------------------------------------------------------------------
+' Returns TRUE when the worksheet (obp_wsh) is protected and does not have any
+' unprotected input cells.
+' -----------------------------------------------------------------------------
+    Dim rng As Range
+    
+    If obp_wsh.ProtectContents Then
+        For Each rng In obp_wsh.UsedRange
+            If Not rng.Locked Then GoTo xt
+        Next rng
+        SheetIsOwnedByProject = True
+    End If
+xt: Exit Function
+
+End Function
+
+Public Sub CloneSheetToTargetWorkbook(ByVal sync_wsh_source As Worksheet, _
+                                      ByVal sync_wbk_target As Workbook, _
+                                      ByRef sync_wsh_target As Worksheet)
 ' -----------------------------------------------------------------------------
 ' Copies the sheet (sync_wsh_source) from the Sync-Source-Workbook to the
 ' Sync-Target-Workbook and returns the target sheet as object.
 ' -----------------------------------------------------------------------------
-    Const PROC = "CopySourceSheetToTargetWorkbook"
+    Const PROC = "CloneSheetToTargetWorkbook"
     
     On Error GoTo eh
-    Dim wbkSource As Workbook
+    Dim wbkSource   As Workbook
+    Dim wshTarget   As Workbook
+    Dim cll         As New Collection
     
     Set wbkSource = sync_wsh_source.Parent
     mService.EstablishServiceLog sync_wbk_target, mCompManClient.SRVC_SYNCHRONIZE
     
     Log.ServicedItem = sync_wsh_source
+    If Exists(mSync.TargetCopy, sync_wsh_source.Name, , wshTarget) Then
+        wshTarget.Delete
+    End If
     sync_wsh_source.Copy After:=sync_wbk_target.Sheets(sync_wbk_target.Worksheets.Count)
     Set sync_wsh_target = sync_wbk_target.Sheets(sync_wbk_target.Worksheets.Count)
-    Log.Entry = "Copied to Sync-Target-Workbook"
+    mSyncNames.NamesInScope sync_wsh_target
+    Log.Entry = "Owned by VB-Project re-cloned to Sync-Target-Workbook"
     wsSync.WshItemNewDone(ItemSyncName(sync_wsh_source)) = True
        
 xt: Exit Sub
@@ -489,14 +677,11 @@ Public Sub SyncSheetsNames(ByVal sn_wsh_source As Worksheet, _
     Const PROC = "SyncSheetsNames"
 
     On Error GoTo eh
-    Dim wbkTarget       As Workbook
     Dim vbcTarget       As VBComponent
     Dim TargetCodeName  As String
     Dim TargetName      As String
     
-    Set wbkTarget = sn_wsh_target.Parent
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
-    
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     If sn_wsh_target.Name <> sn_wsh_source.Name Then
         '~~ Synchronize Worsheet Names
         TargetName = sn_wsh_target.Name
@@ -507,7 +692,7 @@ Public Sub SyncSheetsNames(ByVal sn_wsh_source As Worksheet, _
     ElseIf sn_wsh_target.CodeName <> sn_wsh_source.CodeName Then
         '~~ Synchronize Worsheet CodeNames
         TargetCodeName = sn_wsh_target.CodeName
-        For Each vbcTarget In wbkTarget.VBProject.VBComponents
+        For Each vbcTarget In mSync.TargetCopy.VBProject.VBComponents
             If vbcTarget.Name = TargetCodeName Then
                 Log.ServicedItem = sn_wsh_target
                 vbcTarget.Name = sn_wsh_source.CodeName
@@ -576,6 +761,7 @@ Private Function HasChanged(ByVal hc_wsh As Worksheet, _
             Or (.CodeName = hc_wsh.CodeName And .Name <> hc_wsh.Name) Then
                 HasChanged = True
                 Set hc_wsh_result = wsh
+                Debug.Print wsh.Name & " changed!"
                 Exit For
             End If
         End With
@@ -617,7 +803,8 @@ End Function
 
 Public Sub Sync(ByRef sync_new As Dictionary, _
                 ByRef sync_obsolete As Dictionary, _
-                ByRef sync_changed As Dictionary)
+                ByRef sync_changed As Dictionary, _
+                ByRef sync_owned_by_project As Dictionary)
 ' ------------------------------------------------------------------------------
 ' Called by mSync.RunSync provided there are (still) any outstanding Sheet
 ' synchronizations to be done. Displays them in a mode-less dialog for being
@@ -630,21 +817,17 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     Dim cllButtons  As New Collection
     Dim fSync       As fMsg
     Dim Msg         As TypeMsg
-    Dim wbkSource   As Workbook
-    Dim wbkTarget   As Workbook
     Dim v           As Variant
     
     mBasic.BoP ErrSrc(PROC)
     If sync_obsolete.Count + sync_new.Count + sync_changed.Count = 0 Then GoTo xt
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
     
     '~~ There's at least one Worksheet in need of synchronization
     wsService.SyncDialogTitle = TITLE_SYNC_SHEETS
     Set fSync = mMsg.MsgInstance(TITLE_SYNC_SHEETS)
     With Msg.Section(1)
         .Label.Text = "Obsolete Worksheet(s):"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.MonoSpaced = True
         For Each v In sync_obsolete
             .Text.Text = .Text.Text & vbLf & v
@@ -653,7 +836,7 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     End With
     With Msg.Section(2)
         .Label.Text = "New Worksheet(s):"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.MonoSpaced = True
         For Each v In sync_new
             .Text.Text = .Text.Text & vbLf & v
@@ -661,8 +844,8 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
         .Text.Text = Replace(.Text.Text, vbLf, vbNullString, 1, 1)
     End With
     With Msg.Section(3)
-        .Label.Text = "Worksheet(s) the Name or CodeName has changed:"
-        .Label.FontColor = rgbBlue
+        .Label.Text = "Name (CodeName) changed:"
+        .Label.FontColor = rgbDarkGreen
         .Text.MonoSpaced = True
         For Each v In sync_changed
             .Text.Text = .Text.Text & vbLf & v & sync_changed(v)
@@ -670,10 +853,21 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
         .Text.Text = Replace(.Text.Text, vbLf, vbNullString, 1, 1)
     End With
     With Msg.Section(4)
-        .Label.Text = "About Worksheets synchronization:"
-        .Label.FontColor = rgbBlue
-        .Text.Text = "Synchronizing Worksheets is one of the tasks of the CompMan's Synchronization service. " & _
-                     "This dialog is displayed because there are Worksheets which require synchronization."
+        .Label.Text = "Worksheet(s) owned, fully controlled repsectively, by the VB-Project:"
+        .Label.FontColor = rgbDarkGreen
+        .Text.MonoSpaced = True
+        For Each v In sync_owned_by_project
+            .Text.Text = .Text.Text & vbLf & v
+        Next v
+        .Text.Text = Replace(.Text.Text, vbLf, vbNullString, 1, 1)
+    End With
+    With Msg.Section(5)
+        With .Label
+            .Text = "See: README chapter ""Worksheet Synchronization"""
+            .FontColor = rgbBlue
+            .OpenWhenClicked = README_URL & README_SYNC_CHAPTER
+        End With
+        .Text.Text = "The chapter provides additional information"
     End With
         
     '~~ Prepare a Command-Buttonn with an Application.Run action for the synchronization of all Worksheets
@@ -713,16 +907,11 @@ Public Sub SyncOrder()
     Dim j           As Long
     Dim wshSource   As Worksheet
     Dim wshTarget   As Worksheet
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
-    
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-   
-    For i = 1 To wbkSource.Worksheets.Count
-        Set wshSource = wbkSource.Worksheets(i)
+       
+    For i = 1 To mSync.Source.Worksheets.Count
+        Set wshSource = mSync.Source.Worksheets(i)
         j = i
-        With wbkTarget
+        With mSync.TargetCopy
             Set wshTarget = .Worksheets(j)
             While wshTarget.Name <> wshSource.Name
                 .Worksheets(j).Move After:=.Worksheets(.Worksheets.Count)

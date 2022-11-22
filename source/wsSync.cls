@@ -9,223 +9,239 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
 
-Private Property Get KindColDone() As Range:                    Set KindColDone = Me.Range("colKindDone").EntireColumn:                             End Property
-Private Property Get ItemsColAll() As Range:                    Set ItemsColAll = Me.Range("colItemsAll").EntireColumn:                             End Property
-Private Property Get ItemsColChanged() As Range:                Set ItemsColChanged = Me.Range("colItemsChanged").EntireColumn:                     End Property
-Private Property Get ItemsColChangedDone() As Range:            Set ItemsColChangedDone = Me.Range("colItemsChangedDone").EntireColumn:             End Property
-Private Property Get ItemsColChangedFailed() As Range:          Set ItemsColChangedFailed = Me.Range("colItemsChangedFailed").EntireColumn:         End Property
-Private Property Get ItemsColNew() As Range:                    Set ItemsColNew = Me.Range("colItemsNew").EntireColumn:                             End Property
-Private Property Get ItemsColNewDone() As Range:                Set ItemsColNewDone = Me.Range("colItemsNewDone").EntireColumn:                     End Property
-Private Property Get ItemsColNewFailed() As Range:              Set ItemsColNewFailed = Me.Range("colItemsNewFailed").EntireColumn:                 End Property
-Private Property Get ItemsColObsolete() As Range:               Set ItemsColObsolete = Me.Range("colItemsObsolete").EntireColumn:                   End Property
-Private Property Get ItemsColObsoleteDone() As Range:           Set ItemsColObsoleteDone = Me.Range("colItemsObsoleteDone").EntireColumn:           End Property
-Private Property Get ItemsColObsoleteFailed() As Range:         Set ItemsColObsoleteFailed = Me.Range("colItemsObsoleteFailed").EntireColumn:       End Property
-Public Property Get ItemsColPrprtys() As Range:                 Set ItemsColPrprtys = Me.Range("colShpPrprtys").EntireColumn:                       End Property
-Public Property Get ItemsColPrprtysSyncExamples() As Range:     Set ItemsColPrprtysSyncExamples = Me.Range("colShpPrprtysSyncExamples").EntireColumn: End Property
+Private Property Get KindColDone() As Range:                        Set KindColDone = Me.Range("colKindDone").EntireColumn:                                         End Property
+Private Property Get ItemsColAll() As Range:                        Set ItemsColAll = Me.Range("colItemsAll").EntireColumn:                                         End Property
 
-Private Property Get KindOfSynchedItems() As Range:             Set KindOfSynchedItems = Me.Range("colSynchedItem").EntireColumn:                   End Property
-Private Property Get NumbersAndNamesCols() As Range:            Set NumbersAndNamesCols = Me.Range("colsNumbersAndNames").EntireColumn:             End Property
+Private Property Get ItemsColChanged() As Range:                    Set ItemsColChanged = Me.Range("colItemsChanged").EntireColumn:                                 End Property
+Private Property Get ItemsColChangedDone() As Range:                Set ItemsColChangedDone = Me.Range("colItemsChangedDone").EntireColumn:                         End Property
+Private Property Get ItemsColChangedFailed() As Range:              Set ItemsColChangedFailed = Me.Range("colItemsChangedFailed").EntireColumn:                     End Property
+Private Property Get ItemsColNew() As Range:                        Set ItemsColNew = Me.Range("colItemsNew").EntireColumn:                                         End Property
+Private Property Get ItemsColNewDone() As Range:                    Set ItemsColNewDone = Me.Range("colItemsNewDone").EntireColumn:                                 End Property
+Private Property Get ItemsColNewFailed() As Range:                  Set ItemsColNewFailed = Me.Range("colItemsNewFailed").EntireColumn:                             End Property
+Private Property Get ItemsColObsolete() As Range:                   Set ItemsColObsolete = Me.Range("colItemsObsolete").EntireColumn:                               End Property
+Private Property Get ItemsColObsoleteDone() As Range:               Set ItemsColObsoleteDone = Me.Range("colItemsObsoleteDone").EntireColumn:                       End Property
+Private Property Get ItemsColObsoleteFailed() As Range:             Set ItemsColObsoleteFailed = Me.Range("colItemsObsoleteFailed").EntireColumn:                   End Property
+Private Property Get ItemsColOwnedByProject() As Range:             Set ItemsColOwnedByProject = Me.Range("colItemsOwnedByProject").EntireColumn:                   End Property
+Private Property Get ItemsColOwnedByProjectDone() As Range:         Set ItemsColOwnedByProjectDone = Me.Range("colItemsOwnedByProjectDone").EntireColumn:           End Property
+Private Property Get ItemsColOwnedByProjectFailed() As Range:       Set ItemsColOwnedByProjectFailed = Me.Range("colItemsOwnedByProjectFailed").EntireColumn:       End Property
+Public Property Get ItemsColPrprtys() As Range:                     Set ItemsColPrprtys = Me.Range("colShpPrprtys").EntireColumn:                                   End Property
+Public Property Get ItemsColPrprtysSyncExamples() As Range:         Set ItemsColPrprtysSyncExamples = Me.Range("colShpPrprtysSyncExamples").EntireColumn:           End Property
 
-Public Property Let NmeSyncDone(ByVal b As Boolean):            Intersect(KindColDone, NmeNumberRow).Value = CBoolString(b):                        End Property
-Public Property Get NmeSyncDone() As Boolean:                   NmeSyncDone = CStringBool(Intersect(KindColDone, NmeNumberRow).Value):              End Property
-Private Property Get NmeNameChanged() As Range:                 Set NmeNameChanged = Intersect(NmeNameTopRow, ItemsColChanged):                     End Property
-Private Property Get NmeNameChangedDone() As Range:             Set NmeNameChangedDone = Intersect(NmeNameTopRow, ItemsColChangedDone):             End Property
-Private Property Get NmeNameChangedFailed() As Range:           Set NmeNameChangedFailed = Intersect(NmeNameTopRow, ItemsColChangedFailed):         End Property
-Private Property Get NmeNameNew() As Range:                     Set NmeNameNew = Intersect(NmeNameTopRow, ItemsColNew):                             End Property
-Private Property Get NmeNameNewDone() As Range:                 Set NmeNameNewDone = Intersect(NmeNameTopRow, ItemsColNewDone):                     End Property
-Private Property Get NmeNameNewFailed() As Range:               Set NmeNameNewFailed = Intersect(NmeNameTopRow, ItemsColNewFailed):                 End Property
-Private Property Get NmeNameObsolete() As Range:                Set NmeNameObsolete = Intersect(NmeNameTopRow, ItemsColObsolete):                   End Property
-Private Property Get NmeNameObsoleteDone() As Range:            Set NmeNameObsoleteDone = Intersect(NmeNameTopRow, ItemsColObsoleteDone):           End Property
-Private Property Get NmeNameObsoleteFailed() As Range:          Set NmeNameObsoleteFailed = Intersect(NmeNameTopRow, ItemsColObsoleteFailed):       End Property
-Private Property Get NmeNameTopRow() As Range:                  Set NmeNameTopRow = NmeNumberRow.Offset(1, 0).EntireRow:                            End Property
-Private Property Get NmeNumberRow() As Range:                   Set NmeNumberRow = Me.Range("rowNmeFigures").EntireRow:                             End Property
-Private Property Let NmeNumberAll(ByVal l As Long):             Intersect(ItemsColAll, NmeNumberRow).Value = l:                                     End Property
-Public Property Get NmeNumberAll() As Long:                     NmeNumberAll = Intersect(ItemsColAll, NmeNumberRow).Value:                          End Property
-Public Property Get NmeNumberChanged() As Long:                 NmeNumberChanged = Intersect(ItemsColChanged, NmeNumberRow).Value:                  End Property
-Public Property Get NmeNumberChangedDone() As Long:             NmeNumberChangedDone = Intersect(ItemsColChangedDone, NmeNumberRow).Value:          End Property
-Public Property Get NmeNumberChangedFailed() As Long:           NmeNumberChangedFailed = Intersect(ItemsColChangedFailed, NmeNumberRow).Value:      End Property
-Public Property Get NmeNumberNew() As Long:                     NmeNumberNew = Intersect(ItemsColNew, NmeNumberRow).Value:                          End Property
-Public Property Get NmeNumberNewDone() As Long:                 NmeNumberNewDone = Intersect(ItemsColNewDone, NmeNumberRow).Value:                  End Property
-Public Property Get NmeNumberNewFailed() As Long:               NmeNumberNewFailed = Intersect(ItemsColNewFailed, NmeNumberRow).Value:              End Property
-Public Property Get NmeNumberObsolete() As Long:                NmeNumberObsolete = Intersect(ItemsColObsolete, NmeNumberRow).Value:                End Property
-Public Property Get NmeNumberObsoleteDone() As Long:            NmeNumberObsoleteDone = Intersect(ItemsColObsoleteDone, NmeNumberRow).Value:        End Property
-Public Property Get NmeNumberObsoleteFailed() As Long:          NmeNumberObsoleteFailed = Intersect(ItemsColObsoleteFailed, NmeNumberRow).Value:    End Property
-Public Property Let NmeNumberChanged(ByVal l As Long):          Intersect(ItemsColChanged, NmeNumberRow).Value = l:                                 End Property
-Public Property Let NmeNumberChangedDone(ByVal l As Long):      Intersect(ItemsColChangedDone, NmeNumberRow).Value = l:                             End Property
-Public Property Let NmeNumberChangedFailed(ByVal l As Long):    Intersect(ItemsColChangedFailed, NmeNumberRow).Value = l:                           End Property
-Public Property Let NmeNumberNew(ByVal l As Long):              Intersect(ItemsColNew, NmeNumberRow).Value = l:                                     End Property
-Public Property Let NmeNumberNewDone(ByVal l As Long):          Intersect(ItemsColNewDone, NmeNumberRow).Value = l:                                 End Property
-Public Property Let NmeNumberNewFailed(ByVal l As Long):        Intersect(ItemsColNewFailed, NmeNumberRow).Value = l:                               End Property
-Public Property Let NmeNumberObsolete(ByVal l As Long):         Intersect(ItemsColObsolete, NmeNumberRow).Value = l:                                End Property
-Public Property Let NmeNumberObsoleteDone(ByVal l As Long):     Intersect(ItemsColObsoleteDone, NmeNumberRow).Value = l:                            End Property
-Public Property Let NmeNumberObsoleteFailed(ByVal l As Long):   Intersect(ItemsColObsoleteFailed, NmeNumberRow).Value = l:                          End Property
+Private Property Get KindOfSynchedItems() As Range:                 Set KindOfSynchedItems = Me.Range("colSynchedItem").EntireColumn:                               End Property
+Private Property Get NumbersAndNamesCols() As Range:                Set NumbersAndNamesCols = Me.Range("colsNumbersAndNames").EntireColumn:                         End Property
 
-Public Property Let RefSyncDone(ByVal b As Boolean):            Intersect(KindColDone, RefNumberRow).Value = CBoolString(b):                          End Property
-Public Property Get RefSyncDone() As Boolean:                   RefSyncDone = CStringBool(Intersect(KindColDone, RefNumberRow).Value):                    End Property
-Private Property Get RefNameNew() As Range:                     Set RefNameNew = Intersect(RefNameTopRow, ItemsColNew):                             End Property
-Private Property Get RefNameNewDone() As Range:                 Set RefNameNewDone = Intersect(RefNameTopRow, ItemsColNewDone):                     End Property
-Private Property Get RefNameNewFailed() As Range:               Set RefNameNewFailed = Intersect(RefNameTopRow, ItemsColNewFailed):                 End Property
-Private Property Get RefNameObsolete() As Range:                Set RefNameObsolete = Intersect(RefNameTopRow, ItemsColObsolete):                   End Property
-Private Property Get RefNameObsoleteDone() As Range:            Set RefNameObsoleteDone = Intersect(RefNameTopRow, ItemsColObsoleteDone):           End Property
-Private Property Get RefNameObsoleteFailed() As Range:          Set RefNameObsoleteFailed = Intersect(RefNameTopRow, ItemsColObsoleteFailed):       End Property
-Private Property Get RefNameTopRow() As Range:                  Set RefNameTopRow = RefNumberRow.Offset(1, 0).EntireRow:                            End Property
-Private Property Get RefNumberRow() As Range:                   Set RefNumberRow = Me.Range("rowRefFigures").EntireRow:                             End Property
-Private Property Get RefNumberAll() As Long:                    RefNumberAll = Intersect(ItemsColAll, RefNumberRow).Value:                          End Property
-Private Property Let RefNumberAll(ByVal l As Long):             Intersect(ItemsColAll, RefNumberRow).Value = l:                                     End Property
-Public Property Get RefNumberNew() As Long:                     RefNumberNew = Intersect(ItemsColNew, RefNumberRow).Value:                          End Property
-Public Property Get RefNumberNewDone() As Long:                 RefNumberNewDone = Intersect(ItemsColNewDone, RefNumberRow).Value:                  End Property
-Public Property Get RefNumberNewFailed() As Long:               RefNumberNewFailed = Intersect(ItemsColNewFailed, RefNumberRow).Value:              End Property
-Public Property Get RefNumberObsolete() As Long:                RefNumberObsolete = Intersect(ItemsColObsolete, RefNumberRow).Value:                End Property
-Public Property Get RefNumberObsoleteDone() As Long:            RefNumberObsoleteDone = Intersect(ItemsColObsoleteDone, RefNumberRow).Value:        End Property
-Public Property Get RefNumberObsoleteFailed() As Long:          RefNumberObsoleteFailed = Intersect(ItemsColObsoleteFailed, RefNumberRow).Value:    End Property
-Public Property Let RefNumberNew(ByVal l As Long):              Intersect(ItemsColNew, RefNumberRow).Value = l:                                     End Property
-Public Property Let RefNumberNewDone(ByVal l As Long):          Intersect(ItemsColNewDone, RefNumberRow).Value = l:                                 End Property
-Public Property Let RefNumberNewFailed(ByVal l As Long):        Intersect(ItemsColNewFailed, RefNumberRow).Value = l:                               End Property
-Public Property Let RefNumberObsolete(ByVal l As Long):         Intersect(ItemsColObsolete, RefNumberRow).Value = l:                                End Property
-Public Property Let RefNumberObsoleteDone(ByVal l As Long):     Intersect(ItemsColObsoleteDone, RefNumberRow).Value = l:                            End Property
-Public Property Let RefNumberObsoleteFailed(ByVal l As Long):   Intersect(ItemsColObsoleteFailed, RefNumberRow).Value = l:                          End Property
+Private Property Get NmeNameChanged() As Range:                     Set NmeNameChanged = Intersect(NmeNameTopRow, ItemsColChanged):                                 End Property
+Private Property Get NmeNameChangedDone() As Range:                 Set NmeNameChangedDone = Intersect(NmeNameTopRow, ItemsColChangedDone):                         End Property
+Private Property Get NmeNameChangedFailed() As Range:               Set NmeNameChangedFailed = Intersect(NmeNameTopRow, ItemsColChangedFailed):                     End Property
+Private Property Get NmeNameNew() As Range:                         Set NmeNameNew = Intersect(NmeNameTopRow, ItemsColNew):                                         End Property
+Private Property Get NmeNameNewDone() As Range:                     Set NmeNameNewDone = Intersect(NmeNameTopRow, ItemsColNewDone):                                 End Property
+Private Property Get NmeNameNewFailed() As Range:                   Set NmeNameNewFailed = Intersect(NmeNameTopRow, ItemsColNewFailed):                             End Property
+Private Property Get NmeNameObsolete() As Range:                    Set NmeNameObsolete = Intersect(NmeNameTopRow, ItemsColObsolete):                               End Property
+Private Property Get NmeNameObsoleteDone() As Range:                Set NmeNameObsoleteDone = Intersect(NmeNameTopRow, ItemsColObsoleteDone):                       End Property
+Private Property Get NmeNameObsoleteFailed() As Range:              Set NmeNameObsoleteFailed = Intersect(NmeNameTopRow, ItemsColObsoleteFailed):                   End Property
+Private Property Get NmeNameTopRow() As Range:                      Set NmeNameTopRow = NmeNumberRow.Offset(1, 0).EntireRow:                                        End Property
+Private Property Get NmeNumberRow() As Range:                       Set NmeNumberRow = Me.Range("rowNmeFigures").EntireRow:                                         End Property
+Private Property Get NmeOwnedByProject() As Range:                  Set NmeOwnedByProject = Intersect(NmeNameTopRow, ItemsColChanged):                              End Property
+Private Property Get NmeOwnedByProjectDone() As Range:              Set NmeOwnedByProjectDone = Intersect(NmeNameTopRow, ItemsColChangedDone):                      End Property
+Private Property Get NmeOwnedByProjectFailed() As Range:            Set NmeOwnedByProjectFailed = Intersect(NmeNameTopRow, ItemsColChangedFailed):                  End Property
+Private Property Let NmeNumberAll(ByVal l As Long):                 Intersect(ItemsColAll, NmeNumberRow).Value = l:                                                 End Property
+Public Property Get NmeNumberAll() As Long:                         NmeNumberAll = Intersect(ItemsColAll, NmeNumberRow).Value:                                      End Property
+Public Property Get NmeNumberChanged() As Long:                     NmeNumberChanged = Intersect(ItemsColChanged, NmeNumberRow).Value:                              End Property
+Public Property Get NmeNumberChangedDone() As Long:                 NmeNumberChangedDone = Intersect(ItemsColChangedDone, NmeNumberRow).Value:                      End Property
+Public Property Get NmeNumberChangedFailed() As Long:               NmeNumberChangedFailed = Intersect(ItemsColChangedFailed, NmeNumberRow).Value:                  End Property
+Public Property Get NmeNumberNew() As Long:                         NmeNumberNew = Intersect(ItemsColNew, NmeNumberRow).Value:                                      End Property
+Public Property Get NmeNumberNewDone() As Long:                     NmeNumberNewDone = Intersect(ItemsColNewDone, NmeNumberRow).Value:                              End Property
+Public Property Get NmeNumberNewFailed() As Long:                   NmeNumberNewFailed = Intersect(ItemsColNewFailed, NmeNumberRow).Value:                          End Property
+Public Property Get NmeNumberObsolete() As Long:                    NmeNumberObsolete = Intersect(ItemsColObsolete, NmeNumberRow).Value:                            End Property
+Public Property Get NmeNumberObsoleteDone() As Long:                NmeNumberObsoleteDone = Intersect(ItemsColObsoleteDone, NmeNumberRow).Value:                    End Property
+Public Property Get NmeNumberObsoleteFailed() As Long:              NmeNumberObsoleteFailed = Intersect(ItemsColObsoleteFailed, NmeNumberRow).Value:                End Property
+Public Property Get NmeSyncDone() As Boolean:                       NmeSyncDone = CStringBool(Intersect(KindColDone, NmeNumberRow).Value):                          End Property
+Public Property Let NmeNumberChanged(ByVal l As Long):              Intersect(ItemsColChanged, NmeNumberRow).Value = l:                                             End Property
+Public Property Let NmeNumberChangedDone(ByVal l As Long):          Intersect(ItemsColChangedDone, NmeNumberRow).Value = l:                                         End Property
+Public Property Let NmeNumberChangedFailed(ByVal l As Long):        Intersect(ItemsColChangedFailed, NmeNumberRow).Value = l:                                       End Property
+Public Property Let NmeNumberNew(ByVal l As Long):                  Intersect(ItemsColNew, NmeNumberRow).Value = l:                                                 End Property
+Public Property Let NmeNumberNewDone(ByVal l As Long):              Intersect(ItemsColNewDone, NmeNumberRow).Value = l:                                             End Property
+Public Property Let NmeNumberNewFailed(ByVal l As Long):            Intersect(ItemsColNewFailed, NmeNumberRow).Value = l:                                           End Property
+Public Property Let NmeNumberObsolete(ByVal l As Long):             Intersect(ItemsColObsolete, NmeNumberRow).Value = l:                                            End Property
+Public Property Let NmeNumberObsoleteDone(ByVal l As Long):         Intersect(ItemsColObsoleteDone, NmeNumberRow).Value = l:                                        End Property
+Public Property Let NmeNumberObsoleteFailed(ByVal l As Long):       Intersect(ItemsColObsoleteFailed, NmeNumberRow).Value = l:                                      End Property
+Public Property Let NmeSyncDone(ByVal b As Boolean):                Intersect(KindColDone, NmeNumberRow).Value = CBoolString(b):                                    End Property
 
-Public Property Let RngSyncDone(ByVal b As Boolean):            Intersect(KindColDone, RngNumberRow).Value = CBoolString(b):                          End Property
-Public Property Get RngSyncDone() As Boolean:                   RngSyncDone = CStringBool(Intersect(KindColDone, RngNumberRow).Value):                    End Property
-Private Property Get RngNameChanged() As Range:                 Set RngNameChanged = Intersect(RngNameTopRow, ItemsColChanged):                     End Property
-Private Property Get RngNameChangedDone() As Range:             Set RngNameChangedDone = Intersect(RngNameTopRow, ItemsColChangedDone):             End Property
-Private Property Get RngNameChangedFailed() As Range:           Set RngNameChangedFailed = Intersect(RngNameTopRow, ItemsColChangedFailed):         End Property
-Private Property Get RngNameNew() As Range:                     Set RngNameNew = Intersect(RngNameTopRow, ItemsColNew):                             End Property
-Private Property Get RngNameNewDone() As Range:                 Set RngNameNewDone = Intersect(RngNameTopRow, ItemsColNewDone):                     End Property
-Private Property Get RngNameNewFailed() As Range:               Set RngNameNewFailed = Intersect(RngNameTopRow, ItemsColNewFailed):                 End Property
-Private Property Get RngNameObsolete() As Range:                Set RngNameObsolete = Intersect(RngNameTopRow, ItemsColObsolete):                   End Property
-Private Property Get RngNameObsoleteDone() As Range:            Set RngNameObsoleteDone = Intersect(RngNameTopRow, ItemsColObsoleteDone):           End Property
-Private Property Get RngNameObsoleteFailed() As Range:          Set RngNameObsoleteFailed = Intersect(RngNameTopRow, ItemsColObsoleteFailed):       End Property
-Private Property Get RngNameTopRow() As Range:                  Set RngNameTopRow = RngNumberRow.Offset(1, 0).EntireRow:                            End Property
-Private Property Get RngNumberAll() As Long:                    RngNumberAll = Intersect(ItemsColAll, RngNumberRow).Value:                          End Property
-Private Property Get RngNumberRow() As Range:                   Set RngNumberRow = Me.Range("rowRngFigures").EntireRow:                             End Property
-Private Property Let RngNumberAll(ByVal l As Long):             Intersect(ItemsColAll, RngNumberRow).Value = l:                                     End Property
-Public Property Get RngNumberChanged() As Long:                 RngNumberChanged = Intersect(ItemsColChanged, RngNumberRow).Value:                  End Property
-Public Property Get RngNumberChangedDone() As Long:             RngNumberChangedDone = Intersect(ItemsColChangedDone, RngNumberRow).Value:          End Property
-Public Property Get RngNumberChangedFailed() As Long:           RngNumberChangedFailed = Intersect(ItemsColChangedFailed, RngNumberRow).Value:      End Property
-Public Property Get RngNumberNew() As Long:                     RngNumberNew = Intersect(ItemsColNew, RngNumberRow).Value:                          End Property
-Public Property Get RngNumberNewDone() As Long:                 RngNumberNewDone = Intersect(ItemsColNewDone, RngNumberRow).Value:                  End Property
-Public Property Get RngNumberNewFailed() As Long:               RngNumberNewFailed = Intersect(ItemsColNewFailed, RngNumberRow).Value:              End Property
-Public Property Get RngNumberObsolete() As Long:                RngNumberObsolete = Intersect(ItemsColObsolete, RngNumberRow).Value:                End Property
-Public Property Get RngNumberObsoleteDone() As Long:            RngNumberObsoleteDone = Intersect(ItemsColObsoleteDone, RngNumberRow).Value:        End Property
-Public Property Get RngNumberObsoleteFailed() As Long:          RngNumberObsoleteFailed = Intersect(ItemsColObsoleteFailed, RngNumberRow).Value:    End Property
-Public Property Let RngNumberChanged(ByVal l As Long):          Intersect(ItemsColChanged, RngNumberRow).Value = l:                                 End Property
-Public Property Let RngNumberChangedDone(ByVal l As Long):      Intersect(ItemsColChangedDone, RngNumberRow).Value = l:                             End Property
-Public Property Let RngNumberChangedFailed(ByVal l As Long):    Intersect(ItemsColChangedFailed, RngNumberRow).Value = l:                           End Property
-Public Property Let RngNumberNew(ByVal l As Long):              Intersect(ItemsColNew, RngNumberRow).Value = l:                                     End Property
-Public Property Let RngNumberNewDone(ByVal l As Long):          Intersect(ItemsColNewDone, RngNumberRow).Value = l:                                 End Property
-Public Property Let RngNumberNewFailed(ByVal l As Long):        Intersect(ItemsColNewFailed, RngNumberRow).Value = l:                               End Property
-Public Property Let RngNumberObsolete(ByVal l As Long):         Intersect(ItemsColObsolete, RngNumberRow).Value = l:                                End Property
-Public Property Let RngNumberObsoleteDone(ByVal l As Long):     Intersect(ItemsColObsoleteDone, RngNumberRow).Value = l:                            End Property
-Public Property Let RngNumberObsoleteFailed(ByVal l As Long):   Intersect(ItemsColObsoleteFailed, RngNumberRow).Value = l:                          End Property
+Private Property Get RefNameNew() As Range:                         Set RefNameNew = Intersect(RefNameTopRow, ItemsColNew):                                         End Property
+Private Property Get RefNameNewDone() As Range:                     Set RefNameNewDone = Intersect(RefNameTopRow, ItemsColNewDone):                                 End Property
+Private Property Get RefNameNewFailed() As Range:                   Set RefNameNewFailed = Intersect(RefNameTopRow, ItemsColNewFailed):                             End Property
+Private Property Get RefNameObsolete() As Range:                    Set RefNameObsolete = Intersect(RefNameTopRow, ItemsColObsolete):                               End Property
+Private Property Get RefNameObsoleteDone() As Range:                Set RefNameObsoleteDone = Intersect(RefNameTopRow, ItemsColObsoleteDone):                       End Property
+Private Property Get RefNameObsoleteFailed() As Range:              Set RefNameObsoleteFailed = Intersect(RefNameTopRow, ItemsColObsoleteFailed):                   End Property
+Private Property Get RefNameTopRow() As Range:                      Set RefNameTopRow = RefNumberRow.Offset(1, 0).EntireRow:                                        End Property
+Private Property Get RefNumberAll() As Long:                        RefNumberAll = Intersect(ItemsColAll, RefNumberRow).Value:                                      End Property
+Private Property Get RefNumberRow() As Range:                       Set RefNumberRow = Me.Range("rowRefFigures").EntireRow:                                         End Property
+Private Property Let RefNumberAll(ByVal l As Long):                 Intersect(ItemsColAll, RefNumberRow).Value = l:                                                 End Property
+Public Property Get RefNumberNew() As Long:                         RefNumberNew = Intersect(ItemsColNew, RefNumberRow).Value:                                      End Property
+Public Property Get RefNumberNewDone() As Long:                     RefNumberNewDone = Intersect(ItemsColNewDone, RefNumberRow).Value:                              End Property
+Public Property Get RefNumberNewFailed() As Long:                   RefNumberNewFailed = Intersect(ItemsColNewFailed, RefNumberRow).Value:                          End Property
+Public Property Get RefNumberObsolete() As Long:                    RefNumberObsolete = Intersect(ItemsColObsolete, RefNumberRow).Value:                            End Property
+Public Property Get RefNumberObsoleteDone() As Long:                RefNumberObsoleteDone = Intersect(ItemsColObsoleteDone, RefNumberRow).Value:                    End Property
+Public Property Get RefNumberObsoleteFailed() As Long:              RefNumberObsoleteFailed = Intersect(ItemsColObsoleteFailed, RefNumberRow).Value:                End Property
+Public Property Get RefSyncDone() As Boolean:                       RefSyncDone = CStringBool(Intersect(KindColDone, RefNumberRow).Value):                          End Property
+Public Property Let RefNumberNew(ByVal l As Long):                  Intersect(ItemsColNew, RefNumberRow).Value = l:                                                 End Property
+Public Property Let RefNumberNewDone(ByVal l As Long):              Intersect(ItemsColNewDone, RefNumberRow).Value = l:                                             End Property
+Public Property Let RefNumberNewFailed(ByVal l As Long):            Intersect(ItemsColNewFailed, RefNumberRow).Value = l:                                           End Property
+Public Property Let RefNumberObsolete(ByVal l As Long):             Intersect(ItemsColObsolete, RefNumberRow).Value = l:                                            End Property
+Public Property Let RefNumberObsoleteDone(ByVal l As Long):         Intersect(ItemsColObsoleteDone, RefNumberRow).Value = l:                                        End Property
+Public Property Let RefNumberObsoleteFailed(ByVal l As Long):       Intersect(ItemsColObsoleteFailed, RefNumberRow).Value = l:                                      End Property
+Public Property Let RefSyncDone(ByVal b As Boolean):                Intersect(KindColDone, RefNumberRow).Value = CBoolString(b):                                    End Property
 
-Public Property Let ShpSyncDone(ByVal b As Boolean):            Intersect(KindColDone, ShpNumberRow).Value = CBoolString(b):                          End Property
-Public Property Get ShpSyncDone() As Boolean:                   ShpSyncDone = CStringBool(Intersect(KindColDone, ShpNumberRow).Value):                    End Property
-Private Property Get ShpNameChanged() As Range:                 Set ShpNameChanged = Intersect(ShpNameTopRow, ItemsColChanged):                     End Property
-Private Property Get ShpNameChangedDone() As Range:             Set ShpNameChangedDone = Intersect(ShpNameTopRow, ItemsColChangedDone):             End Property
-Private Property Get ShpNameChangedFailed() As Range:           Set ShpNameChangedFailed = Intersect(ShpNameTopRow, ItemsColChangedFailed):         End Property
-Private Property Get ShpNameNew() As Range:                     Set ShpNameNew = Intersect(ShpNameTopRow, ItemsColNew):                             End Property
-Private Property Get ShpNameNewDone() As Range:                 Set ShpNameNewDone = Intersect(ShpNameTopRow, ItemsColNewDone):                     End Property
-Private Property Get ShpNameNewFailed() As Range:               Set ShpNameNewFailed = Intersect(ShpNameTopRow, ItemsColNewFailed):                 End Property
-Private Property Get ShpNameObsolete() As Range:                Set ShpNameObsolete = Intersect(ShpNameTopRow, ItemsColObsolete):                   End Property
-Private Property Get ShpNameObsoleteDone() As Range:            Set ShpNameObsoleteDone = Intersect(ShpNameTopRow, ItemsColObsoleteDone):           End Property
-Private Property Get ShpNameObsoleteFailed() As Range:          Set ShpNameObsoleteFailed = Intersect(ShpNameTopRow, ItemsColObsoleteFailed):       End Property
-Private Property Get ShpNamePrprtys() As Range:                 Set ShpNamePrprtys = Intersect(ShpNameTopRow, ItemsColPrprtys):                     End Property
-Private Property Get ShpNamePrprtysSyncExamples() As Range:     Set ShpNamePrprtysSyncExamples = Intersect(ShpNameTopRow, ItemsColPrprtysSyncExamples):  End Property
-Private Property Get ShpNameTopRow() As Range:                  Set ShpNameTopRow = ShpNumberRow.Offset(1, 0).EntireRow:                            End Property
-Private Property Let ShpNumberAll(ByVal l As Long):             Me.Range("celShpItemsTotal").Value = l:                                             End Property
-Public Property Get ShpNumberChanged() As Long:                 ShpNumberChanged = Me.Range("celShpItemsChanged").Value:                            End Property
-Public Property Get ShpNumberChangedDone() As Long:             ShpNumberChangedDone = Me.Range("celShpItemsChangedDone").Value:                    End Property
-Public Property Get ShpNumberChangedFailed() As Long:           ShpNumberChangedFailed = Me.Range("celShpItemsChangedFailed").Value:                End Property
-Public Property Get ShpNumberNew() As Long:                     ShpNumberNew = Me.Range("celShpItemsNew").Value:                                    End Property
-Public Property Get ShpNumberNewDone() As Long:                 ShpNumberNewDone = Me.Range("celShpItemsNewDone").Value:                            End Property
-Public Property Get ShpNumberNewFailed() As Long:               ShpNumberNewFailed = Me.Range("celShpItemsNewFailed").Value:                        End Property
-Public Property Get ShpNumberObsolete() As Long:                ShpNumberObsolete = Me.Range("celShpItemsObsolete").Value:                          End Property
-Public Property Get ShpNumberObsoleteDone() As Long:            ShpNumberObsoleteDone = Me.Range("celShpItemsObsoleteDone").Value:                  End Property
-Public Property Get ShpNumberObsoleteFailed() As Long:          ShpNumberObsoleteFailed = Me.Range("celShpItemsObsoleteFailed").Value:              End Property
-Public Property Get ShpNumberPrprtys() As Long:                 ShpNumberPrprtys = Intersect(ItemsColPrprtys, ShpNumberRow).Value:                  End Property
-Public Property Get ShpNumberPrprtysSyncExamples() As Long:     ShpNumberPrprtysSyncExamples = Intersect(ItemsColPrprtysSyncExamples, ShpNumberRow).Value:   End Property
-Public Property Get ShpNumberRow() As Range:                    Set ShpNumberRow = Me.Range("rowShpFigures").EntireRow:                             End Property
-Public Property Get ShpNumberAll() As Long:                     ShpNumberAll = Me.Range("celShpItemsTotal").Value:                                  End Property
-Public Property Let ShpNumberChanged(ByVal l As Long):          Me.Range("celShpItemsChanged").Value = l:                                           End Property
-Public Property Let ShpNumberChangedDone(ByVal l As Long):      Me.Range("celShpItemsChangedDone").Value = l:                                       End Property
-Public Property Let ShpNumberChangedFailed(ByVal l As Long):    Me.Range("celShpItemsChangedFailed").Value = l:                                     End Property
-Public Property Let ShpNumberNew(ByVal l As Long):              Me.Range("celShpItemsNew").Value = l:                                               End Property
-Public Property Let ShpNumberNewDone(ByVal l As Long):          Me.Range("celShpItemsNewDone").Value = l:                                           End Property
-Public Property Let ShpNumberNewFailed(ByVal l As Long):        Me.Range("celShpItemsNewFailed").Value = l:                                         End Property
-Public Property Let ShpNumberObsolete(ByVal l As Long):         Me.Range("celShpItemsObsolete").Value = l:                                          End Property
-Public Property Let ShpNumberObsoleteDone(ByVal l As Long):     Me.Range("celShpItemsObsoleteDone").Value = l:                                      End Property
-Public Property Let ShpNumberObsoleteFailed(ByVal l As Long):   Me.Range("celShpItemsObsoleteFailed").Value = l:                                    End Property
-Public Property Let ShpNumberPrprtys(ByVal l As Long):          Intersect(ItemsColPrprtys, ShpNumberRow).Value = l:                                 End Property
-Public Property Let ShpNumberPrprtysSyncExamples(ByVal l As Long): Intersect(ItemsColPrprtysSyncExamples, ShpNumberRow).Value = l:                  End Property
+Private Property Get RngNameChanged() As Range:                     Set RngNameChanged = Intersect(RngNameTopRow, ItemsColChanged):                                 End Property
+Private Property Get RngNameChangedDone() As Range:                 Set RngNameChangedDone = Intersect(RngNameTopRow, ItemsColChangedDone):                         End Property
+Private Property Get RngNameChangedFailed() As Range:               Set RngNameChangedFailed = Intersect(RngNameTopRow, ItemsColChangedFailed):                     End Property
+Private Property Get RngNameNew() As Range:                         Set RngNameNew = Intersect(RngNameTopRow, ItemsColNew):                                         End Property
+Private Property Get RngNameNewDone() As Range:                     Set RngNameNewDone = Intersect(RngNameTopRow, ItemsColNewDone):                                 End Property
+Private Property Get RngNameNewFailed() As Range:                   Set RngNameNewFailed = Intersect(RngNameTopRow, ItemsColNewFailed):                             End Property
+Private Property Get RngNameObsolete() As Range:                    Set RngNameObsolete = Intersect(RngNameTopRow, ItemsColObsolete):                               End Property
+Private Property Get RngNameObsoleteDone() As Range:                Set RngNameObsoleteDone = Intersect(RngNameTopRow, ItemsColObsoleteDone):                       End Property
+Private Property Get RngNameObsoleteFailed() As Range:              Set RngNameObsoleteFailed = Intersect(RngNameTopRow, ItemsColObsoleteFailed):                   End Property
+Private Property Get RngNameTopRow() As Range:                      Set RngNameTopRow = RngNumberRow.Offset(1, 0).EntireRow:                                        End Property
+Private Property Get RngNumberAll() As Long:                        RngNumberAll = Intersect(ItemsColAll, RngNumberRow).Value:                                      End Property
+Private Property Get RngNumberRow() As Range:                       Set RngNumberRow = Me.Range("rowRngFigures").EntireRow:                                         End Property
+Private Property Let RngNumberAll(ByVal l As Long):                 Intersect(ItemsColAll, RngNumberRow).Value = l:                                                 End Property
+Public Property Get RngNumberChanged() As Long:                     RngNumberChanged = Intersect(ItemsColChanged, RngNumberRow).Value:                              End Property
+Public Property Get RngNumberChangedDone() As Long:                 RngNumberChangedDone = Intersect(ItemsColChangedDone, RngNumberRow).Value:                      End Property
+Public Property Get RngNumberChangedFailed() As Long:               RngNumberChangedFailed = Intersect(ItemsColChangedFailed, RngNumberRow).Value:                  End Property
+Public Property Get RngNumberNew() As Long:                         RngNumberNew = Intersect(ItemsColNew, RngNumberRow).Value:                                      End Property
+Public Property Get RngNumberNewDone() As Long:                     RngNumberNewDone = Intersect(ItemsColNewDone, RngNumberRow).Value:                              End Property
+Public Property Get RngNumberNewFailed() As Long:                   RngNumberNewFailed = Intersect(ItemsColNewFailed, RngNumberRow).Value:                          End Property
+Public Property Get RngNumberObsolete() As Long:                    RngNumberObsolete = Intersect(ItemsColObsolete, RngNumberRow).Value:                            End Property
+Public Property Get RngNumberObsoleteDone() As Long:                RngNumberObsoleteDone = Intersect(ItemsColObsoleteDone, RngNumberRow).Value:                    End Property
+Public Property Get RngNumberObsoleteFailed() As Long:              RngNumberObsoleteFailed = Intersect(ItemsColObsoleteFailed, RngNumberRow).Value:                End Property
+Public Property Get RngSyncDone() As Boolean:                       RngSyncDone = CStringBool(Intersect(KindColDone, RngNumberRow).Value):                          End Property
+Public Property Let RngNumberChanged(ByVal l As Long):              Intersect(ItemsColChanged, RngNumberRow).Value = l:                                             End Property
+Public Property Let RngNumberChangedDone(ByVal l As Long):          Intersect(ItemsColChangedDone, RngNumberRow).Value = l:                                         End Property
+Public Property Let RngNumberChangedFailed(ByVal l As Long):        Intersect(ItemsColChangedFailed, RngNumberRow).Value = l:                                       End Property
+Public Property Let RngNumberNew(ByVal l As Long):                  Intersect(ItemsColNew, RngNumberRow).Value = l:                                                 End Property
+Public Property Let RngNumberNewDone(ByVal l As Long):              Intersect(ItemsColNewDone, RngNumberRow).Value = l:                                             End Property
+Public Property Let RngNumberNewFailed(ByVal l As Long):            Intersect(ItemsColNewFailed, RngNumberRow).Value = l:                                           End Property
+Public Property Let RngNumberObsolete(ByVal l As Long):             Intersect(ItemsColObsolete, RngNumberRow).Value = l:                                            End Property
+Public Property Let RngNumberObsoleteDone(ByVal l As Long):         Intersect(ItemsColObsoleteDone, RngNumberRow).Value = l:                                        End Property
+Public Property Let RngNumberObsoleteFailed(ByVal l As Long):       Intersect(ItemsColObsoleteFailed, RngNumberRow).Value = l:                                      End Property
+Public Property Let RngSyncDone(ByVal b As Boolean):                Intersect(KindColDone, RngNumberRow).Value = CBoolString(b):                                    End Property
 
-Public Property Let VbcSyncDone(ByVal b As Boolean):            Intersect(KindColDone, VbcNumberRow).Value = CBoolString(b):                        End Property
-Public Property Get VbcSyncDone() As Boolean:                   VbcSyncDone = CStringBool(Intersect(KindColDone, VbcNumberRow).Value):              End Property
-Private Property Get VbcNameChanged() As Range:                 Set VbcNameChanged = Intersect(VbcNameTopRow, ItemsColChanged):                     End Property
-Private Property Get VbcNameChangedDone() As Range:             Set VbcNameChangedDone = Intersect(VbcNameTopRow, ItemsColChangedDone):             End Property
-Private Property Get VbcNameChangedFailed() As Range:           Set VbcNameChangedFailed = Intersect(VbcNameTopRow, ItemsColChangedFailed):         End Property
-Private Property Get VbcNameNew() As Range:                     Set VbcNameNew = Intersect(VbcNameTopRow, ItemsColNew):                             End Property
-Private Property Get VbcNameNewDone() As Range:                 Set VbcNameNewDone = Intersect(VbcNameTopRow, ItemsColNewDone):                     End Property
-Private Property Get VbcNameNewFailed() As Range:               Set VbcNameNewFailed = Intersect(VbcNameTopRow, ItemsColNewFailed):                 End Property
-Private Property Get VbcNameObsolete() As Range:                Set VbcNameObsolete = Intersect(VbcNameTopRow, ItemsColObsolete):                   End Property
-Private Property Get VbcNameObsoleteDone() As Range:            Set VbcNameObsoleteDone = Intersect(VbcNameTopRow, ItemsColObsoleteDone):           End Property
-Private Property Get VbcNameObsoleteFailed() As Range:          Set VbcNameObsoleteFailed = Intersect(VbcNameTopRow, ItemsColObsoleteFailed):       End Property
-Private Property Get VbcNameTopRow() As Range:                  Set VbcNameTopRow = VbcNumberRow.Offset(1, 0).EntireRow:                            End Property
-Private Property Get VbcNumberRow() As Range:                   Set VbcNumberRow = Me.Range("rowVbcFigures").EntireRow:                             End Property
-Private Property Get VbcNumberAll() As Long:                    VbcNumberAll = Intersect(ItemsColAll, VbcNumberRow).Value:                          End Property
-Private Property Let VbcNumberAll(ByVal l As Long):             Intersect(ItemsColAll, VbcNumberRow).Value = l:                                     End Property
-Public Property Get VbcNumberChanged() As Long:                 VbcNumberChanged = Intersect(ItemsColChanged, VbcNumberRow).Value:                  End Property
-Public Property Get VbcNumberChangedDone() As Long:             VbcNumberChangedDone = Intersect(ItemsColChangedDone, VbcNumberRow).Value:          End Property
-Public Property Get VbcNumberChangedFailed() As Long:           VbcNumberChangedFailed = Intersect(ItemsColChangedFailed, VbcNumberRow).Value:      End Property
-Public Property Get VbcNumberNew() As Long:                     VbcNumberNew = Intersect(ItemsColNew, VbcNumberRow).Value:                          End Property
-Public Property Get VbcNumberNewDone() As Long:                 VbcNumberNewDone = Intersect(ItemsColNewDone, VbcNumberRow).Value:                  End Property
-Public Property Get VbcNumberNewFailed() As Long:               VbcNumberNewFailed = Intersect(ItemsColNewFailed, VbcNumberRow).Value:              End Property
-Public Property Get VbcNumberObsolete() As Long:                VbcNumberObsolete = Intersect(ItemsColObsolete, VbcNumberRow).Value:                End Property
-Public Property Get VbcNumberObsoleteDone() As Long:            VbcNumberObsoleteDone = Intersect(ItemsColObsoleteDone, VbcNumberRow).Value:        End Property
-Public Property Get VbcNumberObsoleteFailed() As Long:          VbcNumberObsoleteFailed = Intersect(ItemsColObsoleteFailed, VbcNumberRow).Value:    End Property
-Public Property Let VbcNumberChanged(ByVal l As Long):          Intersect(ItemsColChanged, VbcNumberRow).Value = l:                                 End Property
-Public Property Let VbcNumberChangedDone(ByVal l As Long):      Intersect(ItemsColChangedDone, VbcNumberRow).Value = l:                             End Property
-Public Property Let VbcNumberChangedFailed(ByVal l As Long):    Intersect(ItemsColChangedFailed, VbcNumberRow).Value = l:                           End Property
-Public Property Let VbcNumberNew(ByVal l As Long):              Intersect(ItemsColNew, VbcNumberRow).Value = l:                                     End Property
-Public Property Let VbcNumberNewDone(ByVal l As Long):          Intersect(ItemsColNewDone, VbcNumberRow).Value = l:                                 End Property
-Public Property Let VbcNumberNewFailed(ByVal l As Long):        Intersect(ItemsColNewFailed, VbcNumberRow).Value = l:                               End Property
-Public Property Let VbcNumberObsolete(ByVal l As Long):         Intersect(ItemsColObsolete, VbcNumberRow).Value = l:                                End Property
-Public Property Let VbcNumberObsoleteDone(ByVal l As Long):     Intersect(ItemsColObsoleteDone, VbcNumberRow).Value = l:                            End Property
-Public Property Let VbcNumberObsoleteFailed(ByVal l As Long):   Intersect(ItemsColObsoleteFailed, VbcNumberRow).Value = l:                          End Property
+Private Property Get ShpNameChanged() As Range:                     Set ShpNameChanged = Intersect(ShpNameTopRow, ItemsColChanged):                                 End Property
+Private Property Get ShpNameChangedDone() As Range:                 Set ShpNameChangedDone = Intersect(ShpNameTopRow, ItemsColChangedDone):                         End Property
+Private Property Get ShpNameChangedFailed() As Range:               Set ShpNameChangedFailed = Intersect(ShpNameTopRow, ItemsColChangedFailed):                     End Property
+Private Property Get ShpNameNew() As Range:                         Set ShpNameNew = Intersect(ShpNameTopRow, ItemsColNew):                                         End Property
+Private Property Get ShpNameNewDone() As Range:                     Set ShpNameNewDone = Intersect(ShpNameTopRow, ItemsColNewDone):                                 End Property
+Private Property Get ShpNameNewFailed() As Range:                   Set ShpNameNewFailed = Intersect(ShpNameTopRow, ItemsColNewFailed):                             End Property
+Private Property Get ShpNameObsolete() As Range:                    Set ShpNameObsolete = Intersect(ShpNameTopRow, ItemsColObsolete):                               End Property
+Private Property Get ShpNameObsoleteDone() As Range:                Set ShpNameObsoleteDone = Intersect(ShpNameTopRow, ItemsColObsoleteDone):                       End Property
+Private Property Get ShpNameObsoleteFailed() As Range:              Set ShpNameObsoleteFailed = Intersect(ShpNameTopRow, ItemsColObsoleteFailed):                   End Property
+Private Property Get ShpNamePrprtys() As Range:                     Set ShpNamePrprtys = Intersect(ShpNameTopRow, ItemsColPrprtys):                                 End Property
+Private Property Get ShpNamePrprtysSyncExamples() As Range:         Set ShpNamePrprtysSyncExamples = Intersect(ShpNameTopRow, ItemsColPrprtysSyncExamples):         End Property
+Private Property Get ShpNameTopRow() As Range:                      Set ShpNameTopRow = ShpNumberRow.Offset(1, 0).EntireRow:                                        End Property
+Private Property Let ShpNumberAll(ByVal l As Long):                 Me.Range("celShpItemsTotal").Value = l:                                                         End Property
+Public Property Get ShpNumberAll() As Long:                         ShpNumberAll = Me.Range("celShpItemsTotal").Value:                                              End Property
+Public Property Get ShpNumberChanged() As Long:                     ShpNumberChanged = Me.Range("celShpItemsChanged").Value:                                        End Property
+Public Property Get ShpNumberChangedDone() As Long:                 ShpNumberChangedDone = Me.Range("celShpItemsChangedDone").Value:                                End Property
+Public Property Get ShpNumberChangedFailed() As Long:               ShpNumberChangedFailed = Me.Range("celShpItemsChangedFailed").Value:                            End Property
+Public Property Get ShpNumberNew() As Long:                         ShpNumberNew = Me.Range("celShpItemsNew").Value:                                                End Property
+Public Property Get ShpNumberNewDone() As Long:                     ShpNumberNewDone = Me.Range("celShpItemsNewDone").Value:                                        End Property
+Public Property Get ShpNumberNewFailed() As Long:                   ShpNumberNewFailed = Me.Range("celShpItemsNewFailed").Value:                                    End Property
+Public Property Get ShpNumberObsolete() As Long:                    ShpNumberObsolete = Me.Range("celShpItemsObsolete").Value:                                      End Property
+Public Property Get ShpNumberObsoleteDone() As Long:                ShpNumberObsoleteDone = Me.Range("celShpItemsObsoleteDone").Value:                              End Property
+Public Property Get ShpNumberObsoleteFailed() As Long:              ShpNumberObsoleteFailed = Me.Range("celShpItemsObsoleteFailed").Value:                          End Property
+Public Property Get ShpNumberPrprtys() As Long:                     ShpNumberPrprtys = Intersect(ItemsColPrprtys, ShpNumberRow).Value:                              End Property
+Public Property Get ShpNumberPrprtysSyncExamples() As Long:         ShpNumberPrprtysSyncExamples = Intersect(ItemsColPrprtysSyncExamples, ShpNumberRow).Value:      End Property
+Public Property Get ShpNumberRow() As Range:                        Set ShpNumberRow = Me.Range("rowShpFigures").EntireRow:                                         End Property
+Public Property Get ShpSyncDone() As Boolean:                       ShpSyncDone = CStringBool(Intersect(KindColDone, ShpNumberRow).Value):                          End Property
+Public Property Let ShpNumberChanged(ByVal l As Long):              Me.Range("celShpItemsChanged").Value = l:                                                       End Property
+Public Property Let ShpNumberChangedDone(ByVal l As Long):          Me.Range("celShpItemsChangedDone").Value = l:                                                   End Property
+Public Property Let ShpNumberChangedFailed(ByVal l As Long):        Me.Range("celShpItemsChangedFailed").Value = l:                                                 End Property
+Public Property Let ShpNumberNew(ByVal l As Long):                  Me.Range("celShpItemsNew").Value = l:                                                           End Property
+Public Property Let ShpNumberNewDone(ByVal l As Long):              Me.Range("celShpItemsNewDone").Value = l:                                                       End Property
+Public Property Let ShpNumberNewFailed(ByVal l As Long):            Me.Range("celShpItemsNewFailed").Value = l:                                                     End Property
+Public Property Let ShpNumberObsolete(ByVal l As Long):             Me.Range("celShpItemsObsolete").Value = l:                                                      End Property
+Public Property Let ShpNumberObsoleteDone(ByVal l As Long):         Me.Range("celShpItemsObsoleteDone").Value = l:                                                  End Property
+Public Property Let ShpNumberObsoleteFailed(ByVal l As Long):       Me.Range("celShpItemsObsoleteFailed").Value = l:                                                End Property
+Public Property Let ShpNumberPrprtys(ByVal l As Long):              Intersect(ItemsColPrprtys, ShpNumberRow).Value = l:                                             End Property
+Public Property Let ShpNumberPrprtysSyncExamples(ByVal l As Long):  Intersect(ItemsColPrprtysSyncExamples, ShpNumberRow).Value = l:                                 End Property
+Public Property Let ShpSyncDone(ByVal b As Boolean):                Intersect(KindColDone, ShpNumberRow).Value = CBoolString(b):                                    End Property
 
-Public Property Let WshSyncDone(ByVal b As Boolean):            Intersect(KindColDone, WshNumberRow).Value = CBoolString(b):                          End Property
-Public Property Get WshSyncDone() As Boolean:                   WshSyncDone = CStringBool(Intersect(KindColDone, WshNumberRow).Value):                    End Property
-Private Property Get WshNameChanged() As Range:                 Set WshNameChanged = Intersect(WshNameTopRow, ItemsColChanged):                     End Property
-Private Property Get WshNameChangedDone() As Range:             Set WshNameChangedDone = Intersect(WshNameTopRow, ItemsColChangedDone):             End Property
-Private Property Get WshNameChangedFailed() As Range:           Set WshNameChangedFailed = Intersect(WshNameTopRow, ItemsColChangedFailed):         End Property
-Private Property Get WshNameNew() As Range:                     Set WshNameNew = Intersect(WshNameTopRow, ItemsColNew):                             End Property
-Private Property Get WshNameNewDone() As Range:                 Set WshNameNewDone = Intersect(WshNameTopRow, ItemsColNewDone):                     End Property
-Private Property Get WshNameNewFailed() As Range:               Set WshNameNewFailed = Intersect(WshNameTopRow, ItemsColNewFailed):                 End Property
-Private Property Get WshNameObsolete() As Range:                Set WshNameObsolete = Intersect(WshNameTopRow, ItemsColObsolete):                   End Property
-Private Property Get WshNameObsoleteDone() As Range:            Set WshNameObsoleteDone = Intersect(WshNameTopRow, ItemsColObsoleteDone):           End Property
-Private Property Get WshNameObsoleteFailed() As Range:          Set WshNameObsoleteFailed = Intersect(WshNameTopRow, ItemsColObsoleteFailed):       End Property
-Private Property Get WshNameTopRow() As Range:                  Set WshNameTopRow = WshNumberRow.Offset(1, 0).EntireRow:                            End Property
-Private Property Get WshNumberRow() As Range:                   Set WshNumberRow = Me.Range("rowWshFigures").EntireRow:                             End Property
-Private Property Get WshNumberAll() As Long:                    WshNumberAll = Intersect(ItemsColAll, WshNumberRow).Value:                          End Property
-Private Property Let WshNumberAll(ByVal l As Long):             Intersect(ItemsColAll, WshNumberRow).Value = l:                                     End Property
-Public Property Get WshNumberChanged() As Long:                 WshNumberChanged = Intersect(ItemsColChanged, WshNumberRow).Value:                  End Property
-Public Property Get WshNumberChangedDone() As Long:             WshNumberChangedDone = Intersect(ItemsColChangedDone, WshNumberRow).Value:          End Property
-Public Property Get WshNumberChangedFailed() As Long:           WshNumberChangedFailed = Intersect(ItemsColChangedFailed, WshNumberRow).Value:      End Property
-Public Property Get WshNumberNew() As Long:                     WshNumberNew = Intersect(ItemsColNew, WshNumberRow).Value:                          End Property
-Public Property Get WshNumberNewDone() As Long:                 WshNumberNewDone = Intersect(ItemsColNewDone, WshNumberRow).Value:                  End Property
-Public Property Get WshNumberNewFailed() As Long:               WshNumberNewFailed = Intersect(ItemsColNewFailed, WshNumberRow).Value:              End Property
-Public Property Get WshNumberObsolete() As Long:                WshNumberObsolete = Intersect(ItemsColObsolete, WshNumberRow).Value:                End Property
-Public Property Get WshNumberObsoleteDone() As Long:            WshNumberObsoleteDone = Intersect(ItemsColObsoleteDone, WshNumberRow).Value:        End Property
-Public Property Get WshNumberObsoleteFailed() As Long:          WshNumberObsoleteFailed = Intersect(ItemsColObsoleteFailed, WshNumberRow).Value:    End Property
-Public Property Let WshNumberChanged(ByVal l As Long):          Intersect(ItemsColChanged, WshNumberRow).Value = l:                                 End Property
-Public Property Let WshNumberChangedDone(ByVal l As Long):      Intersect(ItemsColChangedDone, WshNumberRow).Value = l:                             End Property
-Public Property Let WshNumberChangedFailed(ByVal l As Long):    Intersect(ItemsColChangedFailed, WshNumberRow).Value = l:                           End Property
-Public Property Let WshNumberNew(ByVal l As Long):              Intersect(ItemsColNew, WshNumberRow).Value = l:                                     End Property
-Public Property Let WshNumberNewDone(ByVal l As Long):          Intersect(ItemsColNewDone, WshNumberRow).Value = l:                                 End Property
-Public Property Let WshNumberNewFailed(ByVal l As Long):        Intersect(ItemsColNewFailed, WshNumberRow).Value = l:                               End Property
-Public Property Let WshNumberObsolete(ByVal l As Long):         Intersect(ItemsColObsolete, WshNumberRow).Value = l:                                End Property
-Public Property Let WshNumberObsoleteDone(ByVal l As Long):     Intersect(ItemsColObsoleteDone, WshNumberRow).Value = l:                            End Property
-Public Property Let WshNumberObsoleteFailed(ByVal l As Long):   Intersect(ItemsColObsoleteFailed, WshNumberRow).Value = l:                          End Property
+Private Property Get VbcNameChanged() As Range:                     Set VbcNameChanged = Intersect(VbcNameTopRow, ItemsColChanged):                                 End Property
+Private Property Get VbcNameChangedDone() As Range:                 Set VbcNameChangedDone = Intersect(VbcNameTopRow, ItemsColChangedDone):                         End Property
+Private Property Get VbcNameChangedFailed() As Range:               Set VbcNameChangedFailed = Intersect(VbcNameTopRow, ItemsColChangedFailed):                     End Property
+Private Property Get VbcNameNew() As Range:                         Set VbcNameNew = Intersect(VbcNameTopRow, ItemsColNew):                                         End Property
+Private Property Get VbcNameNewDone() As Range:                     Set VbcNameNewDone = Intersect(VbcNameTopRow, ItemsColNewDone):                                 End Property
+Private Property Get VbcNameNewFailed() As Range:                   Set VbcNameNewFailed = Intersect(VbcNameTopRow, ItemsColNewFailed):                             End Property
+Private Property Get VbcNameObsolete() As Range:                    Set VbcNameObsolete = Intersect(VbcNameTopRow, ItemsColObsolete):                               End Property
+Private Property Get VbcNameObsoleteDone() As Range:                Set VbcNameObsoleteDone = Intersect(VbcNameTopRow, ItemsColObsoleteDone):                       End Property
+Private Property Get VbcNameObsoleteFailed() As Range:              Set VbcNameObsoleteFailed = Intersect(VbcNameTopRow, ItemsColObsoleteFailed):                   End Property
+Private Property Get VbcNameTopRow() As Range:                      Set VbcNameTopRow = VbcNumberRow.Offset(1, 0).EntireRow:                                        End Property
+Private Property Get VbcNumberAll() As Long:                        VbcNumberAll = Intersect(ItemsColAll, VbcNumberRow).Value:                                      End Property
+Private Property Get VbcNumberRow() As Range:                       Set VbcNumberRow = Me.Range("rowVbcFigures").EntireRow:                                         End Property
+Private Property Let VbcNumberAll(ByVal l As Long):                 Intersect(ItemsColAll, VbcNumberRow).Value = l:                                                 End Property
+Public Property Get VbcNumberChanged() As Long:                     VbcNumberChanged = Intersect(ItemsColChanged, VbcNumberRow).Value:                              End Property
+Public Property Get VbcNumberChangedDone() As Long:                 VbcNumberChangedDone = Intersect(ItemsColChangedDone, VbcNumberRow).Value:                      End Property
+Public Property Get VbcNumberChangedFailed() As Long:               VbcNumberChangedFailed = Intersect(ItemsColChangedFailed, VbcNumberRow).Value:                  End Property
+Public Property Get VbcNumberNew() As Long:                         VbcNumberNew = Intersect(ItemsColNew, VbcNumberRow).Value:                                      End Property
+Public Property Get VbcNumberNewDone() As Long:                     VbcNumberNewDone = Intersect(ItemsColNewDone, VbcNumberRow).Value:                              End Property
+Public Property Get VbcNumberNewFailed() As Long:                   VbcNumberNewFailed = Intersect(ItemsColNewFailed, VbcNumberRow).Value:                          End Property
+Public Property Get VbcNumberObsolete() As Long:                    VbcNumberObsolete = Intersect(ItemsColObsolete, VbcNumberRow).Value:                            End Property
+Public Property Get VbcNumberObsoleteDone() As Long:                VbcNumberObsoleteDone = Intersect(ItemsColObsoleteDone, VbcNumberRow).Value:                    End Property
+Public Property Get VbcNumberObsoleteFailed() As Long:              VbcNumberObsoleteFailed = Intersect(ItemsColObsoleteFailed, VbcNumberRow).Value:                End Property
+Public Property Get VbcSyncDone() As Boolean:                       VbcSyncDone = CStringBool(Intersect(KindColDone, VbcNumberRow).Value):                          End Property
+Public Property Let VbcNumberChanged(ByVal l As Long):              Intersect(ItemsColChanged, VbcNumberRow).Value = l:                                             End Property
+Public Property Let VbcNumberChangedDone(ByVal l As Long):          Intersect(ItemsColChangedDone, VbcNumberRow).Value = l:                                         End Property
+Public Property Let VbcNumberChangedFailed(ByVal l As Long):        Intersect(ItemsColChangedFailed, VbcNumberRow).Value = l:                                       End Property
+Public Property Let VbcNumberNew(ByVal l As Long):                  Intersect(ItemsColNew, VbcNumberRow).Value = l:                                                 End Property
+Public Property Let VbcNumberNewDone(ByVal l As Long):              Intersect(ItemsColNewDone, VbcNumberRow).Value = l:                                             End Property
+Public Property Let VbcNumberNewFailed(ByVal l As Long):            Intersect(ItemsColNewFailed, VbcNumberRow).Value = l:                                           End Property
+Public Property Let VbcNumberObsolete(ByVal l As Long):             Intersect(ItemsColObsolete, VbcNumberRow).Value = l:                                            End Property
+Public Property Let VbcNumberObsoleteDone(ByVal l As Long):         Intersect(ItemsColObsoleteDone, VbcNumberRow).Value = l:                                        End Property
+Public Property Let VbcNumberObsoleteFailed(ByVal l As Long):       Intersect(ItemsColObsoleteFailed, VbcNumberRow).Value = l:                                      End Property
+Public Property Let VbcSyncDone(ByVal b As Boolean):                Intersect(KindColDone, VbcNumberRow).Value = CBoolString(b):                                    End Property
+
+Private Property Get WshNameChanged() As Range:                     Set WshNameChanged = Intersect(WshNameTopRow, ItemsColChanged):                                 End Property
+Private Property Get WshNameChangedDone() As Range:                 Set WshNameChangedDone = Intersect(WshNameTopRow, ItemsColChangedDone):                         End Property
+Private Property Get WshNameChangedFailed() As Range:               Set WshNameChangedFailed = Intersect(WshNameTopRow, ItemsColChangedFailed):                     End Property
+Private Property Get WshNameNew() As Range:                         Set WshNameNew = Intersect(WshNameTopRow, ItemsColNew):                                         End Property
+Private Property Get WshNameNewDone() As Range:                     Set WshNameNewDone = Intersect(WshNameTopRow, ItemsColNewDone):                                 End Property
+Private Property Get WshNameNewFailed() As Range:                   Set WshNameNewFailed = Intersect(WshNameTopRow, ItemsColNewFailed):                             End Property
+Private Property Get WshNameObsolete() As Range:                    Set WshNameObsolete = Intersect(WshNameTopRow, ItemsColObsolete):                               End Property
+Private Property Get WshNameObsoleteDone() As Range:                Set WshNameObsoleteDone = Intersect(WshNameTopRow, ItemsColObsoleteDone):                       End Property
+Private Property Get WshNameObsoleteFailed() As Range:              Set WshNameObsoleteFailed = Intersect(WshNameTopRow, ItemsColObsoleteFailed):                   End Property
+Private Property Get WshNameTopRow() As Range:                      Set WshNameTopRow = WshNumberRow.Offset(1, 0).EntireRow:                                        End Property
+Private Property Get WshNumberAll() As Long:                        WshNumberAll = Intersect(ItemsColAll, WshNumberRow).Value:                                      End Property
+Private Property Get WshNumberRow() As Range:                       Set WshNumberRow = Me.Range("rowWshFigures").EntireRow:                                         End Property
+Private Property Get WshOwnedByProject() As Range:                  Set WshOwnedByProject = Intersect(WshNameTopRow, ItemsColOwnedByProject):                       End Property
+Private Property Get WshOwnedByProjectDone() As Range:              Set WshOwnedByProjectDone = Intersect(WshNameTopRow, ItemsColOwnedByProjectDone):               End Property
+Private Property Get WshOwnedByProjectFailed() As Range:            Set WshOwnedByProjectFailed = Intersect(WshNameTopRow, ItemsColOwnedByProjectFailed):           End Property
+Private Property Let WshNumberAll(ByVal l As Long):                 Intersect(ItemsColAll, WshNumberRow).Value = l:                                                 End Property
+Public Property Get WshNumberChanged() As Long:                     WshNumberChanged = Intersect(ItemsColChanged, WshNumberRow).Value:                              End Property
+Public Property Get WshNumberChangedDone() As Long:                 WshNumberChangedDone = Intersect(ItemsColChangedDone, WshNumberRow).Value:                      End Property
+Public Property Get WshNumberChangedFailed() As Long:               WshNumberChangedFailed = Intersect(ItemsColChangedFailed, WshNumberRow).Value:                  End Property
+Public Property Get WshNumberNew() As Long:                         WshNumberNew = Intersect(ItemsColNew, WshNumberRow).Value:                                      End Property
+Public Property Get WshNumberNewDone() As Long:                     WshNumberNewDone = Intersect(ItemsColNewDone, WshNumberRow).Value:                              End Property
+Public Property Get WshNumberNewFailed() As Long:                   WshNumberNewFailed = Intersect(ItemsColNewFailed, WshNumberRow).Value:                          End Property
+Public Property Get WshNumberObsolete() As Long:                    WshNumberObsolete = Intersect(ItemsColObsolete, WshNumberRow).Value:                            End Property
+Public Property Get WshNumberObsoleteDone() As Long:                WshNumberObsoleteDone = Intersect(ItemsColObsoleteDone, WshNumberRow).Value:                    End Property
+Public Property Get WshNumberObsoleteFailed() As Long:              WshNumberObsoleteFailed = Intersect(ItemsColObsoleteFailed, WshNumberRow).Value:                End Property
+Public Property Get WshNumberOwnedByProject() As Long:              WshNumberOwnedByProject = Intersect(ItemsColOwnedByProject, WshNumberRow).Value:                End Property
+Public Property Get WshNumberOwnedByProjectDone() As Long:          WshNumberOwnedByProjectDone = Intersect(ItemsColOwnedByProjectDone, WshNumberRow).Value:        End Property
+Public Property Get WshNumberOwnedByProjectFailed() As Long:        WshNumberOwnedByProjectFailed = Intersect(ItemsColOwnedByProjectFailed, WshNumberRow).Value:    End Property
+Public Property Get WshSyncDone() As Boolean:                       WshSyncDone = CStringBool(Intersect(KindColDone, WshNumberRow).Value):                          End Property
+Public Property Let WshNumberChanged(ByVal l As Long):              Intersect(ItemsColChanged, WshNumberRow).Value = l:                                             End Property
+Public Property Let WshNumberChangedDone(ByVal l As Long):          Intersect(ItemsColChangedDone, WshNumberRow).Value = l:                                         End Property
+Public Property Let WshNumberChangedFailed(ByVal l As Long):        Intersect(ItemsColChangedFailed, WshNumberRow).Value = l:                                       End Property
+Public Property Let WshNumberNew(ByVal l As Long):                  Intersect(ItemsColNew, WshNumberRow).Value = l:                                                 End Property
+Public Property Let WshNumberNewDone(ByVal l As Long):              Intersect(ItemsColNewDone, WshNumberRow).Value = l:                                             End Property
+Public Property Let WshNumberNewFailed(ByVal l As Long):            Intersect(ItemsColNewFailed, WshNumberRow).Value = l:                                           End Property
+Public Property Let WshNumberObsolete(ByVal l As Long):             Intersect(ItemsColObsolete, WshNumberRow).Value = l:                                            End Property
+Public Property Let WshNumberObsoleteDone(ByVal l As Long):         Intersect(ItemsColObsoleteDone, WshNumberRow).Value = l:                                        End Property
+Public Property Let WshNumberObsoleteFailed(ByVal l As Long):       Intersect(ItemsColObsoleteFailed, WshNumberRow).Value = l:                                      End Property
+Public Property Let WshNumberOwnedByProject(ByVal l As Long):       Intersect(ItemsColOwnedByProject, WshNumberRow).Value = l:                                      End Property
+Public Property Let WshNumberOwnedByProjectDone(ByVal l As Long):   Intersect(ItemsColOwnedByProjectDone, WshNumberRow).Value = l:                                  End Property
+Public Property Let WshNumberOwnedByProjectFailed(ByVal l As Long): Intersect(ItemsColOwnedByProjectFailed, WshNumberRow).Value = l:                                End Property
+Public Property Let WshSyncDone(ByVal b As Boolean):                Intersect(KindColDone, WshNumberRow).Value = CBoolString(b):                                    End Property
 
 Public Property Get NmeItemAll(Optional ByVal s As String) As Boolean
     NmeItemAll = NameFound(NmeNumberAll, Intersect(ItemsColAll, NmeNumberRow), s)
@@ -307,25 +323,6 @@ Public Property Let NmeItemChangedFailed(Optional ByVal s As String, ByVal b As 
     NmeNumberChangedFailed = NmeNumberChangedFailed + 1
 End Property
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Public Property Get RefItemAll(Optional ByVal s As String) As Boolean
     RefItemAll = NameFound(RefNumberAll, Intersect(ItemsColAll, RefNumberRow), s)
 End Property
@@ -381,7 +378,6 @@ Public Property Let RefItemObsoleteFailed(Optional ByVal s As String, ByVal b As
     AddItem Intersect(ItemsColObsoleteFailed, RefNameObsoleteFailed.Offset(RefNumberObsoleteFailed, 0)), s
     RefNumberObsoleteFailed = RefNumberObsoleteFailed + 1
 End Property
-
 
 Public Property Get ShpItemAll(Optional ByVal s As String) As Boolean
     ShpItemAll = NameFound(ShpNumberAll, Intersect(ItemsColAll, ShpNumberRow), s)
@@ -479,7 +475,6 @@ Public Property Let ShpPrprtysSyncExample(Optional ByVal s As String, ByVal b As
     ShpNumberPrprtysSyncExamples = ShpNumberPrprtysSyncExamples + 1
 End Property
 
-
 Public Property Get VbcItemAll(Optional ByVal s As String) As Boolean
     VbcItemAll = NameFound(VbcNumberAll, Intersect(ItemsColAll, VbcNumberRow), s)
 End Property
@@ -487,7 +482,6 @@ Public Property Let VbcItemAll(Optional ByVal s As String, ByVal b As Boolean)
     AddItem Intersect(ItemsColAll, VbcNameTopRow.Offset(VbcNumberAll, 0)), s
     VbcNumberAll = VbcNumberAll + 1
 End Property
-
 
 Public Property Get VbcItemChanged(Optional ByVal s As String) As Boolean
     VbcItemChanged = NameFound(VbcNumberChanged, VbcNameChanged, s)
@@ -742,6 +736,34 @@ Public Property Let WshItemChangedFailed(Optional ByVal s As String, ByVal b As 
     AddItem Intersect(ItemsColChangedFailed, WshNameChangedFailed.Offset(WshNumberChangedFailed, 0)), s
     WshNumberChangedFailed = WshNumberChangedFailed + 1
 End Property
+
+Public Property Get WshItemOwnedByProject(Optional ByVal s As String) As Boolean
+    WshItemOwnedByProject = NameFound(WshNumberOwnedByProject, Intersect(ItemsColOwnedByProject, WshNumberRow), s)
+End Property
+Public Property Let WshItemOwnedByProject(Optional ByVal s As String, ByVal b As Boolean)
+    AddItem Intersect(ItemsColOwnedByProject, WshOwnedByProject.Offset(WshNumberOwnedByProject, 0)), s
+    WshNumberOwnedByProject = WshNumberOwnedByProject + 1
+End Property
+
+Public Property Get WshItemOwnedByProjectDone(Optional ByVal s As String) As Boolean
+    WshItemOwnedByProjectDone = NameFound(WshNumberOwnedByProjectDone, Intersect(ItemsColOwnedByProjectDone, WshNumberRow), s)
+End Property
+Public Property Let WshItemOwnedByProjectDone(Optional ByVal s As String, ByVal b As Boolean)
+    AddItem Intersect(ItemsColOwnedByProjectDone, WshOwnedByProjectDone.Offset(WshNumberOwnedByProjectDone, 0)), s
+    WshNumberOwnedByProjectDone = WshNumberOwnedByProjectDone + 1
+End Property
+
+Public Property Get WshItemOwnedByProjectFailed(Optional ByVal s As String) As Boolean
+    WshItemOwnedByProjectFailed = NameFound(WshNumberOwnedByProjectFailed, Intersect(ItemsColOwnedByProjectFailed, WshNumberRow), s)
+End Property
+Public Property Let WshItemOwnedByProjectFailed(Optional ByVal s As String, ByVal b As Boolean)
+    AddItem Intersect(ItemsColOwnedByProjectFailed, WshOwnedByProjectFailed.Offset(WshNumberOwnedByProjectFailed, 0)), s
+    WshNumberOwnedByProjectFailed = WshNumberOwnedByProjectFailed + 1
+End Property
+
+
+
+
 
 
 

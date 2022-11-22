@@ -121,7 +121,6 @@ Public Property Get Value( _
         ' Debug.Print "KEY_READ denied for '" & rString & "'"
     End If
     Value = CreateObject("WScript.Shell").RegRead(rString)
-'    Debug.Print "Read value from '" & rString & "' successful"
 
 xt: Exit Property
 
@@ -589,7 +588,6 @@ Public Function Exists(ByVal reg_key As String, _
     Exists = False
     On Error GoTo xt
     '~~ To have reg_key interpreted as key it has to end with a \.
-    Debug.Print "rString = " & rString
     CreateObject("WScript.Shell").RegRead rString ' reg_key & reg_value_name
     Exists = True
 
@@ -823,7 +821,7 @@ Public Function Values(ByVal reg_key As String) As Dictionary
     Dim dataLen         As Long
     Dim handle          As Long
     Dim Index           As Long
-    Dim name            As String
+    Dim sName           As String
     Dim ValueNameLength As Long
     Dim resLong         As Long
     Dim resString       As String
@@ -844,22 +842,22 @@ Public Function Values(ByVal reg_key As String) As Dictionary
     
     Do
         ValueNameLength = 260           ' this is the max length for a key name
-        name = Space$(ValueNameLength)
+        sName = Space$(ValueNameLength)
         '~~ prepare the receiving buffer for the value
         dataLen = 4096
         ReDim resBinary(0 To dataLen - 1) As Byte
         
         '~~ Read the value's name and data
-        RetVal = RegEnumValue(HKey, Index, name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
+        RetVal = RegEnumValue(HKey, Index, sName, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
         
         '~~ Enlarge the buffer if more space is required
         If RetVal = ERROR_MORE_DATA Then
             ReDim resBinary(0 To dataLen - 1) As Byte
-            RetVal = RegEnumValue(HKey, Index, name, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
+            RetVal = RegEnumValue(HKey, Index, sName, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
         End If
         
         If RetVal Then Exit Do                      ' exit the loop if any other error (typically, no more values)
-        ValueName = Left$(name, ValueNameLength)    ' retrieve the value's name
+        ValueName = Left$(sName, ValueNameLength)    ' retrieve the value's name
         
         '~~ Return a value corresponding to the value type
         Select Case valueType

@@ -976,14 +976,12 @@ Public Sub SyncProperties(ByRef sp_dct_sync_asserted As Dictionary, _
     Const PROC = "SyncProperties"
 
     On Error GoTo eh
-    Dim wbkTarget   As Workbook
     Dim vTarget     As Variant
     Dim vSource     As Variant
     
     mBasic.BoP ErrSrc(PROC)
     Set dctDueSyncAssert = New Dictionary
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     
 '    Set shpSource = sp_shp_source
     Set wshSource = shpSource.Parent

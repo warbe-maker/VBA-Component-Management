@@ -22,19 +22,15 @@ Public Sub CollectAllItems()
     On Error GoTo eh
     Dim dct         As New Dictionary
     Dim ref         As Reference
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
     Dim v           As Variant
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
     
-    For Each ref In wbkSource.VBProject.References
+    For Each ref In mSync.Source.VBProject.References
         If Not dct.Exists(ref.Description) _
         Then mDct.DctAdd dct, ref.Description, ref, order_bykey, seq_ascending, sense_casesensitive
     Next ref
-    For Each ref In wbkTarget.VBProject.References
+    For Each ref In mSync.TargetCopy.VBProject.References
         If Not dct.Exists(ref.Description) _
         Then mDct.DctAdd dct, ref.Description, ref, order_bykey, seq_ascending, sense_casesensitive
     Next ref
@@ -68,15 +64,10 @@ Public Function CollectNew() As Dictionary
     Dim ref         As Reference
     Dim cll         As Collection
     Dim dct         As New Dictionary
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
     Dim v           As Variant
     
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-
-    For Each ref In wbkSource.VBProject.References
-        If Not Exists(wbkTarget, ref) Then
+    For Each ref In mSync.Source.VBProject.References
+        If Not mRef.Exists(mSync.TargetCopy, ref) Then
             Log.ServicedItem = ref
             Set cll = New Collection
             cll.Add ref.Description & vbLf & vbLf & "Add"  ' 1. The button caption
@@ -120,15 +111,10 @@ Public Function CollectObsolete() As Dictionary
     Dim ref         As Reference
     Dim cll         As Collection
     Dim dct         As New Dictionary
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
     Dim v           As Variant
     
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    
-    For Each ref In wbkTarget.VBProject.References
-        If Not Exists(wbkSource, ref) Then
+    For Each ref In mSync.TargetCopy.VBProject.References
+        If Not mRef.Exists(mSync.Source, ref) Then
             Log.ServicedItem = ref
             Set cll = New Collection
             cll.Add ref.Description & vbLf & vbLf & "Remove"   ' 1. The button's caption
@@ -176,49 +162,17 @@ Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSyncRefs." & s
 End Function
 
-Private Function Exists(ByRef xst_wbk As Workbook, _
-                        ByVal xst_ref As Variant, _
-               Optional ByRef xst_ref_result As Reference = Nothing) As Boolean
-' ------------------------------------------------------------------------------
-' Returns TRUE when the Reference (xst_ref) - which might be a Reference object
-' or a string - exists in the VB-Project of the Workbook (xst_wbk). When a string
-' is provided the reference exists when the string is equal to the Name argument
-' or it is LIKE the Description argument of any Reference. The existing
-' Refwerence is returned as object (xst_ref_result).
-' ------------------------------------------------------------------------------
-    Dim ref As Reference
-    
-    For Each ref In xst_wbk.VBProject.References
-        If TypeName(xst_ref) = "Reference" Then
-            Exists = ref.Name = xst_ref.Name
-        ElseIf TypeName(xst_ref) = "String" Then
-            Exists = ref.Name = xst_ref Or ref.Description Like xst_ref
-        End If
-        If Exists Then
-            Set xst_ref_result = ref
-            Exit Function
-        End If
-    Next ref
-
-End Function
-
 Public Sub RunAdd(ByVal sync_ref As Reference)
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Adds the Reference (sync_ref) to
 ' the provided Workbook (sync_wbk_target).
 ' ------------------------------------------------------------------------------
     
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
-    
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
-    
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     Log.ServicedItem = sync_ref
     
     On Error Resume Next
-    wbkTarget.VBProject.References.AddFromGuid sync_ref.GUID, sync_ref.Major, sync_ref.Minor
+    mSync.TargetCopy.VBProject.References.AddFromGuid sync_ref.GUID, sync_ref.Major, sync_ref.Minor
     If Err.Number = 0 Then
         Log.Entry = "Added!"
         wsSync.RefItemNewDone(sync_ref.Description) = True
@@ -241,19 +195,15 @@ Public Sub SyncAllReferences()
     
     On Error GoTo eh
     Dim ref As Reference
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
     Dim RefDesc     As String
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     
     '~~ Remove obsolete References
-    With wbkTarget.VBProject
+    With mSync.TargetCopy.VBProject
         For Each ref In .References
-            If Not Exists(wbkSource, ref) Then
+            If Not mRef.Exists(mSync.Source, ref) Then
                 Log.ServicedItem = ref
                 RefDesc = ref.Description
                 On Error Resume Next
@@ -270,12 +220,12 @@ Public Sub SyncAllReferences()
     End With
 
     '~~ Add new References
-    With wbkSource.VBProject
+    With mSync.Source.VBProject
         For Each ref In .References
-            If Not Exists(wbkTarget, ref) Then
+            If Not mRef.Exists(mSync.TargetCopy, ref) Then
                 Log.ServicedItem = ref
                 On Error Resume Next
-                wbkTarget.VBProject.References.AddFromGuid ref.GUID, ref.Major, ref.Minor
+                mSync.TargetCopy.VBProject.References.AddFromGuid ref.GUID, ref.Major, ref.Minor
                 If Err.Number = 0 Then
                     Log.Entry = "Added"
                     wsSync.RefItemNewDone(ref.Description) = True
@@ -307,15 +257,11 @@ Public Sub RunRemove(ByVal sync_ref As Reference)
 ' from the provided Workbook (rr_wbk_target).
 ' ------------------------------------------------------------------------------
     Dim ref As Reference
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
     Dim RefDesc     As String
     
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     
-    With wbkTarget.VBProject
+    With mSync.TargetCopy.VBProject
         For Each ref In .References
             If ref.Name = sync_ref.Name Then
                 Log.ServicedItem = ref
@@ -352,20 +298,16 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     Dim Msg         As TypeMsg
     Dim cllButtons  As New Collection
     Dim AppRunArgs  As New Dictionary
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
     Dim v           As Variant
     
     mBasic.BoP ErrSrc(PROC)
     If sync_obsolete.Count + sync_new.Count = 0 Then GoTo xt
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
 
     wsService.SyncDialogTitle = TITLE_SYNC_REFS
     Set fSync = mMsg.MsgInstance(TITLE_SYNC_REFS)
     With Msg.Section(1)
         .Label.Text = "Reference(s) obsolete:"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.MonoSpaced = True
         For Each v In sync_obsolete
             .Text.Text = .Text.Text & vbLf & v
@@ -374,7 +316,7 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     End With
     With Msg.Section(2)
         .Label.Text = "Reference(s) new:"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.MonoSpaced = True
         For Each v In sync_new
             .Text.Text = .Text.Text & vbLf & v
@@ -383,9 +325,17 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     End With
     With Msg.Section(3)
         .Label.Text = "About:"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.Text = "Synchronizing References is one of the tasks of the CompMan's Synchronization service. " & _
                      "This dialog is displayed because there is at least one Reference which requires synchronization."
+    End With
+    With Msg.Section(5)
+        With .Label
+            .Text = "See: Using the Synchronization Service"
+            .FontColor = rgbBlue
+            .OpenWhenClicked = mCompMan.README_URL & mSync.README_SYNC_CHAPTER
+        End With
+        .Text.Text = "The chapter 'Using the Synchronization Service' will provide additional information"
     End With
         
     '~~ Prepare a Command-Buttonn with an Application.Run action for the synchronization of all References

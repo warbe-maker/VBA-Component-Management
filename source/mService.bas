@@ -1,23 +1,31 @@
 Attribute VB_Name = "mService"
 Option Explicit
 
-Public Serviced As Workbook     ' The  s e r v i c e d  Workbook throughout all services
+Private wbk As Workbook
 
-' ---------------------------------------------------------------------------
-' Interfaces to the wsService Worksheet
-' ---------------------------------------------------------------------------
-Private Property Get WsValue(Optional ByVal v_value_name As Variant) As Variant
-    WsValue = mWbk.Value(v_ws:=wsService, v_name:=v_value_name)
+Public Property Get WbkServiced() As Workbook
+    Dim s   As String
+    Dim fso As New FileSystemObject
+    
+    On Error Resume Next
+    s = wbk.name
+    If Err.Number <> 0 Then
+        Set wbk = Application.Workbooks(fso.GetFileName(wsService.ServicedWorkbookFullName))
+    End If
+    Set WbkServiced = wbk
+    Set fso = Nothing
+    
 End Property
 
-Private Property Let WsValue(Optional ByVal v_value_name As Variant, _
-                                      ByVal v_value As Variant)
-    mWbk.Value(v_ws:=wsService, v_name:=v_value_name) = v_value
+Public Property Get LogFileFullName()
+
 End Property
+
+Public Property Let WbkServiced(ByVal ws_wbk As Workbook):    Set wbk = ws_wbk:      End Property
 
 Public Sub AddAscByKey(ByRef add_dct As Dictionary, _
-                        ByVal add_key As Variant, _
-                        ByVal add_item As Variant)
+                       ByVal add_key As Variant, _
+                       ByVal add_item As Variant)
 ' ------------------------------------------------------------------------------------
 ' Adds to the Dictionary (add_dct) an item (add_item) in ascending order by the key
 ' (add_key). When the key is an object with no Name property an error is raisede.
@@ -70,7 +78,7 @@ Public Sub AddAscByKey(ByRef add_dct As Dictionary, _
         '~~ and the add_key already exists the add_item is updated
         If bOrderByKey And Not bStayWithFirst Then
             If .Exists(add_key) Then
-                If VarType(add_item) = vbObject Then Set .item(add_key) = add_item Else .item(add_key) = add_item
+                If VarType(add_item) = vbObject Then Set .Item(add_key) = add_item Else .Item(add_key) = add_item
                 GoTo xt
             End If
         End If
@@ -80,14 +88,14 @@ Public Sub AddAscByKey(ByRef add_dct As Dictionary, _
     If bOrderByKey Then
         If VarType(add_key) = vbObject Then
             On Error Resume Next
-            add_key.Name = add_key.Name
+            add_key.name = add_key.name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
         End If
     ElseIf bOrderByItem Then
         If VarType(add_item) = vbObject Then
             On Error Resume Next
-            add_item.Name = add_item.Name
+            add_item.name = add_item.name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
         End If
@@ -114,9 +122,9 @@ Public Sub AddAscByKey(ByRef add_dct As Dictionary, _
     
     For Each vKeyExisting In add_dct
         
-        If VarType(add_dct.item(vKeyExisting)) = vbObject _
-        Then Set vItemExisting = add_dct.item(vKeyExisting) _
-        Else vItemExisting = add_dct.item(vKeyExisting)
+        If VarType(add_dct.Item(vKeyExisting)) = vbObject _
+        Then Set vItemExisting = add_dct.Item(vKeyExisting) _
+        Else vItemExisting = add_dct.Item(vKeyExisting)
         
         With dctTemp
             If bDone Then
@@ -160,7 +168,7 @@ Private Function AddAscByKeyValue(ByVal add_key As Variant) As Variant
 ' ----------------------------------------------------------------------------
     If VarType(add_key) = vbObject Then
         On Error Resume Next ' the object may not have a Name property
-        AddAscByKeyValue = add_key.Name
+        AddAscByKeyValue = add_key.name
         If Err.Number <> 0 Then Set AddAscByKeyValue = add_key
     Else
         AddAscByKeyValue = add_key
@@ -181,7 +189,7 @@ Public Function AllComps(ByVal ac_wbk As Workbook, _
     Set AllComps = New Dictionary
     For Each vbc In ac_wbk.VBProject.VBComponents
         Log.ServicedItem = vbc
-        AddAscByKey AllComps, vbc.Name, vbc
+        AddAscByKey AllComps, vbc.name, vbc
         lDone = lDone + 1
         mService.DsplyStatus _
         mService.Progress(p_service:=ac_service _
@@ -210,26 +218,6 @@ Private Function CodeModuleIsEmpty(ByRef vbc As VBComponent) As Boolean
     End With
 End Function
 
-Public Sub CompManAddinContinue()
-' -------------------------------------------
-' Continues the paused CompMan Addin Services
-' -------------------------------------------
-    If mMe.IsDevInstnc Then
-        mConfig.AddinPaused = False
-        mMe.DisplayStatus
-    End If
-End Sub
-
-Public Sub CompManAddinPause()
-' -------------------------------------------
-' Continues the paused CompMan Addin Services
-' -------------------------------------------
-    If mMe.IsDevInstnc Then
-        mConfig.AddinPaused = True
-        mMe.DisplayStatus
-    End If
-End Sub
-
 Public Function Denied() As Boolean
 ' --------------------------------------------------------------------------
 ' Returns TRUE when all preconditions for a service execution are fulfilled.
@@ -239,16 +227,16 @@ Public Function Denied() As Boolean
     On Error GoTo eh
     Dim sStatus As String
         
-    If mMe.IsAddinInstnc And mMe.CompManAddinIsPaused Then
-        '~~ When the service is about to be provided by the Addin but the Addin is currently paused
+    If mMe.IsAddinInstnc And mAddin.Paused Then
+        '~~ When the service is about to be provided by the Add-in but the Add-in is currently paused
         '~~ another try with the serviced provided by the open Development instance may do the job.
-        sStatus = "The CompMan Addin is currently paused. Open the development instance and retry."
+        sStatus = "The CompMan Add-in is currently paused. Open the development instance and retry."
     ElseIf WbkIsRestoredBySystem Then
         sStatus = "Service denied! Workbook appears restored by the system!"
-    ElseIf mConfig.AddinPaused And mMe.IsAddinInstnc And Log.Service Like mCompManClient.SRVC_UPDATE_OUTDATED & "*" Then
+    ElseIf mAddin.Paused And mMe.IsAddinInstnc And Log.Service Like mCompManClient.SRVC_UPDATE_OUTDATED & "*" Then
         '~~ Note: The CompMan development instance is able to export its modified components but requires the
-        '~~       Addin to upodate its outdated Used Common Components
-        sStatus = "Service denied! The CompMan Addin is currently paused!"
+        '~~       Add-in to update its outdated Used Common Components
+        sStatus = "Service denied! The CompMan Add-in is currently paused!"
     ElseIf FolderNotVbProjectExclusive Then
         sStatus = "Service denied! The Workbook is not the only one in its parent folder!"
     ElseIf Not mCompMan.WinMergeIsInstalled Then
@@ -362,7 +350,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -444,9 +432,6 @@ Public Function ExpFilesDiffDisplay( _
 '       displayed.
 ' ----------------------------------------------------------------------------
     Const PROC                          As String = "ExpFilesDiffDisplay"
-    Const WINMERGE_SETTINGS_BASE_KEY    As String = "HKEY_CURRENT_USER\SOFTWARE\Thingamahoochie\WinMerge\Settings\"
-    Const WINMERGE_BLANK_LINES          As String = "IgnoreBlankLines"
-    Const WINMERGE_IGNORE_CASE          As String = "IgnoreCase"
     
     On Error GoTo eh
     Dim waitOnReturn        As Boolean: waitOnReturn = True
@@ -459,44 +444,35 @@ Public Function ExpFilesDiffDisplay( _
     
     If Not AppIsInstalled("WinMerge") _
     Then Err.Raise Number:=AppErr(1) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
     If Not fso.FileExists(fd_exp_file_left_full_name) _
     Then Err.Raise Number:=AppErr(2) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fd_exp_file_left_full_name & """ does not exist!"
     
     If Not fso.FileExists(fd_exp_file_right_full_name) _
     Then Err.Raise Number:=AppErr(3) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fd_exp_file_right_full_name & """ does not exist!"
-    
-    '~~ Save WinMerge configuration items and set them for CompMan
-    sIgnoreBlankLines = mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_BLANK_LINES)
-    sIgnoreCase = mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_IGNORE_CASE)
-    mReg.Value(WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_BLANK_LINES) = "1"
-    mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_IGNORE_CASE) = "1"
-    
+        
     '~~ Prepare command line
-    sCommand = "WinMergeU /e" & _
+    sCommand = "WinMergeU " & _
+               """" & fd_exp_file_left_full_name & """" & " " & _
+               """" & fd_exp_file_right_full_name & """" & _
+               " /e " & _
                " /dl " & DQUOTE & fd_exp_file_left_title & DQUOTE & _
                " /dr " & DQUOTE & fd_exp_file_right_title & DQUOTE & " " & _
-               """" & fd_exp_file_left_full_name & """" & " " & _
-               """" & fd_exp_file_right_full_name & """" ' & sIniFile doesn't work
+               " /inifile " & """" & ThisWorkbook.Path & "\WinMerge.ini" & """"
 
-    
     '~~ Execute command line
     Set wshShell = CreateObject("WScript.Shell")
     With wshShell
         ExpFilesDiffDisplay = .Run(Command:=sCommand, windowStyle:=windowStyle, waitOnReturn:=waitOnReturn)
     End With
         
-    '~~ Restore WinMerge configuration items
-    mReg.Value(WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_BLANK_LINES) = sIgnoreBlankLines
-    mReg.Value(reg_key:=WINMERGE_SETTINGS_BASE_KEY, reg_value_name:=WINMERGE_IGNORE_CASE) = sIgnoreCase
-
 xt: Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -506,32 +482,19 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub ExportChangedComponents(ByVal hosted As String)
-' -----------------------------------------------------------
-' Exclusively called by mCompMan.ExportChangedComponents,
-' triggered by the Before_Save event.
-' - Any VBComponent the code has changed (temporary
-'   Export-File differs from the current Export-File or no
-'   Export-File exists) exported
-' - Outdated Export-Files (components no longer existing) are
-'   removed
-' - Modified 'Clone-Components' require a confirmation by the
-'   user.
-'
-' Note: For the case the Export-Folder may have changed any
-'       Export-File found within the Workbook-Folder outside
-'       the specified Export-Folder is removed.
-' Attention: This procedure is called exclusively by
-'            mCompMan.UpdateOutdatedCommonComponents! When called directly
-'            by the user, e.g. via the 'Imediate Window' an
-'            error will be raised because an 'mService.Serviced'
-'            Workbook is not set.
-' --------------------------------------------------------------
+' ------------------------------------------------------------------------------
+' Exclusively called by mCompMan.ExportChangedComponents, triggered by the
+' Before_Save event.
+' Attention: When called directly by the user, e.g. via the 'Imediate Window' an
+'            error will be raised because an 'mService.WbkServiced' Workbook is
+'            not set.
+' ------------------------------------------------------------------------------
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
     
     mBasic.BoP ErrSrc(PROC)
-    If mService.Serviced Is Nothing _
+    If mService.WbkServiced Is Nothing _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                                  "(it may have been called directly via the 'Immediate Window'"
     If mService.Denied Then GoTo xt
@@ -654,9 +617,9 @@ Private Function FolderNotVbProjectExclusive() As Boolean
     Dim fso As New FileSystemObject
     Dim fl  As File
     
-    For Each fl In fso.GetFolder(mService.Serviced.Path).Files
+    For Each fl In fso.GetFolder(mService.WbkServiced.Path).Files
         If VBA.Left$(fso.GetFileName(fl.Path), 2) = "~$" Then GoTo next_fl
-        If VBA.StrComp(fl.Path, mService.Serviced.FullName, vbTextCompare) <> 0 Then
+        If VBA.StrComp(fl.Path, mService.WbkServiced.FullName, vbTextCompare) <> 0 Then
             Select Case fso.GetExtensionName(fl.Path)
                 Case "xlsm", "xlam", "xlsb" ' may contain macros, a VB-Project repsectively
                     FolderNotVbProjectExclusive = True
@@ -742,9 +705,9 @@ Public Sub RemoveTempRenamed()
     Dim vbc As VBComponent
     
     mBasic.BoP ErrSrc(PROC)
-    With mService.Serviced.VBProject
+    With mService.WbkServiced.VBProject
         For Each vbc In .VBComponents
-            If mService.IsRenamedByCompMan(vbc.Name) Then
+            If mService.IsRenamedByCompMan(vbc.name) Then
                 .VBComponents.Remove vbc
             End If
         Next vbc
@@ -759,29 +722,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub SaveWbk(ByRef rs_wbk As Workbook)
-    Const PROC = "SaveWbk"
-    
-    On Error GoTo eh
-    mBasic.BoP ErrSrc(PROC)
-    
-    Application.EnableEvents = False
-    '~~ This is the action where the update process may lead to the effect that Excel closes the Workbook
-    '~~ without having deleted the renamed components!
-    mBasic.TimedDoEvents (ErrSrc(PROC))
-    rs_wbk.Save
-    mBasic.TimedDoEvents (ErrSrc(PROC))
-    Application.EnableEvents = True
-
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
 Private Function SelectServicedWrkbk(ByVal gs_service As String) As Workbook
     Dim fl As File
     
@@ -791,151 +731,6 @@ Private Function SelectServicedWrkbk(ByVal gs_service As String) As Workbook
     Then Set SelectServicedWrkbk = mCompMan.WbkGetOpen(fl.Path) _
     Else: Set SelectServicedWrkbk = Nothing
 
-End Function
-
-Private Function SyncSourceAndTargetSelected( _
-                     Optional ByRef sync_wbk_target As Workbook = Nothing, _
-                     Optional ByVal sync_source_wbk_name As String = vbNullString, _
-                     Optional ByRef sync_source_wbk As Workbook = Nothing, _
-                     Optional ByVal sync_confirm_info As Boolean = False) As Boolean
-' ---------------------------------------------------------------------------
-' Returns True when the Sync-Target_VB-Project and the Sync-Source-VB-Project
-' are valid. When bc_sync_confirm_info is True a confirmation dialog is
-' displayed. The dialog is also displayed when function is called with
-' invalid arguments.
-' ---------------------------------------------------------------------------
-    Const PROC                  As String = "SyncSourceAndTargetSelected"
-    Const TARGET_PROJECT        As String = "Target-Workbook/VBProject"
-    Const SOURCE_PROJECT        As String = "Source-Workbook/VBProject"
-    
-    On Error GoTo eh
-    Dim bWbSource               As Boolean
-    Dim bWbTarget               As Boolean
-    Dim Buttons                 As Collection
-    Dim fl                      As File
-    Dim fso                     As New FileSystemObject
-    Dim sBttnSourceTargetCnfrmd As String
-    Dim sBttnSourceProject      As String
-    Dim sBttnTargetProject      As String
-    Dim sBttnTerminate          As String
-    Dim sMsg                    As TypeMsg
-    Dim sReply                  As String
-    Dim sWbSource               As String ' either a full name or a registered raw project's basename
-    Dim sWbTarget               As String
-    
-    sBttnSourceTargetCnfrmd = "Selected Source- and" & vbLf & _
-                            "Target-Workbook/VBProject" & vbLf & _
-                            "Confirmed"
-    sBttnTargetProject = "Select/change the" & vbLf & vbLf & TARGET_PROJECT & vbLf & " "
-    sBttnSourceProject = "Configure/change the" & vbLf & vbLf & SOURCE_PROJECT & vbLf & " "
-    sBttnTerminate = "Terminate providing a " & vbLf & _
-                     "Source- and Target-Workbook/VBProject"
-    
-    If Not sync_wbk_target Is Nothing Then sWbTarget = sync_wbk_target.FullName
-    sWbSource = sync_source_wbk_name
-    
-    While (Not bWbTarget Or Not bWbSource) Or (sync_confirm_info And sReply <> sBttnSourceTargetCnfrmd)
-        If sWbTarget = vbNullString Then
-            sWbTarget = "n o t  p r o v i d e d !"
-        ElseIf Not fso.FileExists(sWbTarget) Then
-            sWbSource = sWbSource & ": i n v a l i d ! (does not exist)"
-        Else
-            sWbTarget = Split(sWbTarget, ": ")(0)
-            bWbTarget = True
-        End If
-        
-        If sWbSource = vbNullString Then
-            sWbSource = "n o t  p r o v i d e d !"
-        ElseIf Not fso.FileExists(sWbSource) Then
-            sWbSource = sWbSource & ": i n v a l i d ! (does not exist)"
-        Else
-            sWbSource = Split(sWbSource, ": ")(0)
-            bWbSource = True
-        End If
-    
-        If bWbSource And bWbTarget And Not sync_confirm_info Then GoTo xt
-        
-        With sMsg
-            .Section(1).Label.Text = TARGET_PROJECT & ":"
-            .Section(1).Text.Text = sWbTarget
-            .Section(1).Text.MonoSpaced = True
-            .Section(2).Label.Text = SOURCE_PROJECT & ":"
-            .Section(2).Text.Text = sWbSource
-            .Section(2).Text.MonoSpaced = True
-            
-            If sync_confirm_info _
-            Then .Section(3).Text.Text = "Please confirm the above current 'Basic CompMan Configuration'." _
-            Else: .Section(3).Text.Text = "Please provide/complete the 'Basic CompMan Configuration'."
-            
-            .Section(3).Text.Text = .Section(3).Text.Text & vbLf & vbLf & _
-                                "Attention!" & vbLf & _
-                                "1. The '" & TARGET_PROJECT & "' must not be identical with the '" & SOURCE_PROJECT & "' and the two Workbooks must not have the same name." & vbLf & _
-                                "2. Both VB-Projects/Workbook must exclusively reside in their parent Workbook" & vbLf & _
-                                "3. Both Workbook folders must be subfolders of the configured '" & FOLDER_SERVICED & "'."
-
-        End With
-        
-        '~~ Buttons preparation
-        If Not bWbTarget Or Not bWbSource _
-        Then Set Buttons = mMsg.Buttons(sBttnSourceProject, sBttnTargetProject, vbLf, sBttnTerminate) _
-        Else: Set Buttons = mMsg.Buttons(sBttnSourceTargetCnfrmd, vbLf, sBttnSourceProject, sBttnTargetProject)
-        
-        If Not mMsg.IsValidMsgButtonsArg(Buttons) Then Stop
-        sReply = mMsg.Dsply(dsply_title:="Basic configuration of the Component Management (CompMan Addin)" _
-                          , dsply_msg:=sMsg _
-                          , dsply_buttons:=Buttons _
-                           )
-        Select Case sReply
-            Case sBttnTargetProject
-                Do
-                    If mFso.FilePicked(p_title:="Select the '" & TARGET_PROJECT & " to be synchronized with the '" & SOURCE_PROJECT & "'" _
-                                  , p_filters:="Excel Workbook,*.xl*" _
-                                  , p_file:=fl) _
-                    Then
-                        sWbTarget = fl.Path
-                        Exit Do
-                    End If
-                Loop
-                sync_confirm_info = True
-                '~~ The change of the VB-Clone-Project may have made the VB-Raw-Project valid when formerly invalid
-                sWbSource = Split(sWbSource, ": ")(0)
-            Case sBttnSourceProject
-                Do
-                    If mFso.FilePicked(p_title:="Select the '" & SOURCE_PROJECT & " as the synchronization source for the '" & TARGET_PROJECT & "'" _
-                                  , p_filters:="Excel Workbook,*.xl*" _
-                                  , p_file:=fl) _
-                    Then
-                        sWbSource = fl.Path
-                        Exit Do
-                    End If
-                Loop
-                sync_confirm_info = True
-                '~~ The change of the VB-Raw-Project may have become valid when formerly invalid
-                sWbTarget = Split(sWbTarget, ": ")(0)
-            
-            Case sBttnSourceTargetCnfrmd: sync_confirm_info = False
-            Case sBttnTerminate: GoTo xt
-                
-        End Select
-        
-    Wend ' Loop until the confirmed or configured basic configuration is correct
-    
-xt: If bWbTarget Then
-       Set sync_wbk_target = mCompMan.WbkGetOpen(sWbTarget)
-    End If
-    If bWbSource Then
-        Application.EnableEvents = False
-        Set sync_source_wbk = mCompMan.WbkGetOpen(sWbSource)
-        Application.EnableEvents = True
-        sync_source_wbk_name = fso.GetBaseName(sWbSource)
-    End If
-    SyncSourceAndTargetSelected = bWbTarget And bWbSource
-    Exit Function
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
 End Function
 
 Private Function UsedCommonComponents(ByRef cl_wbk As Workbook) As Dictionary
@@ -958,11 +753,11 @@ Private Function UsedCommonComponents(ByRef cl_wbk As Workbook) As Dictionary
         Set Comp = New clsComp
         With Comp
             Set .Wrkbk = cl_wbk
-            .CompName = vbc.Name
+            .CompName = vbc.name
             Log.ServicedItem = .VBComp
             If .KindOfComp = enCommCompUsed Then
                 If .Changed Then
-                    dct.Add vbc, vbc.Name
+                    dct.Add vbc, vbc.name
                 Else
                     Log.Entry = "Code un-changed."
                 End If
@@ -985,6 +780,31 @@ End Function
 
 Private Function WbkIsRestoredBySystem() As Boolean
     WbkIsRestoredBySystem = InStr(ActiveWindow.Caption, "(") <> 0 _
-                         Or InStr(mService.Serviced.FullName, "(") <> 0
+                         Or InStr(mService.WbkServiced.FullName, "(") <> 0
 End Function
+
+Public Sub WbkSave(ByRef s_wbk As Workbook)
+    Const PROC = "WbkSave"
+    
+    On Error GoTo eh
+    
+    mBasic.BoP ErrSrc(PROC)
+    If s_wbk.Saved Then GoTo xt
+    
+    '~~ This save may cause the Excel application is closed,
+    '~~ specifically when the save is performed immediately after a code update !!!
+    mBasic.TimedDoEvents (ErrSrc(PROC))
+    Application.EnableEvents = False
+    s_wbk.Save
+    Application.EnableEvents = True
+    mBasic.TimedDoEvents (ErrSrc(PROC))
+
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
 

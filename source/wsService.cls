@@ -9,54 +9,95 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
 
-Public Property Get MaxLenVbcName() As String:                          MaxLenVbcName = Me.Range("celMaxLenVbcName").Value:                             End Property
+Public Property Get CommonComponentsOutdated() As Long:                 CommonComponentsOutdated = Me.Range("celCommonComponentsOutdated").Value:           End Property
 
-Public Property Let MaxLenVbcName(ByVal s As String):                   Me.Range("celMaxLenVbcName").Value = s:                                         End Property
+Public Property Let CommonComponentsOutdated(ByVal l As Long):          Me.Range("celCommonComponentsOutdated").Value = l:                                  End Property
 
-Public Property Get MaxLenShapeName() As String:                        MaxLenShapeName = Me.Range("celMaxLenShapeName").Value:                         End Property
+Public Property Get CommonComponentsUpdated() As Long:                  CommonComponentsUpdated = Me.Range("celCommonComponentsUpdated").Value:             End Property
 
-Public Property Let MaxLenShapeName(ByVal s As String):                 Me.Range("celMaxLenShapeName").Value = s:                                       End Property
+Public Property Let CommonComponentsUpdated(ByVal l As Long):           Me.Range("celCommonComponentsUpdated").Value = l:                                   End Property
 
-Public Property Get MaxLenName() As String:                             MaxLenName = Me.Range("celMaxLenName").Value:                                   End Property
+Public Property Get CommonComponentsUsed() As Long:                     CommonComponentsUsed = Me.Range("celCommonComponentsUsed").Value:                   End Property
 
-Public Property Let MaxLenName(ByVal s As String):                      Me.Range("celMaxLenName").Value = s:                                            End Property
+Public Property Let CommonComponentsUsed(ByVal l As Long):              Me.Range("celCommonComponentsUsed").Value = l:                                      End Property
 
-Public Property Get MaxLenRefTo() As String:                            MaxLenRefTo = Me.Range("celMaxLenRefTo").Value:                                 End Property
+Public Property Get CurrentServiceName() As String:                     CurrentServiceName = Me.Range("celCurrentServiceName").Value:                       End Property
 
-Public Property Let MaxLenRefTo(ByVal s As String):                     Me.Range("celMaxLenRefTo").Value = s:                                           End Property
+Public Property Let CurrentServiceName(ByVal s As String):              Me.Range("celCurrentServiceName").Value = s:                                        End Property
 
-Public Property Get CurrentServiceName() As String:                     CurrentServiceName = Me.Range("celCurrentServiceName").Value:                   End Property
+Public Property Get LogFileFullName() As String:                        LogFileFullName = Me.Range("celLogFileFullName").Value:                             End Property
 
-Public Property Let CurrentServiceName(ByVal s As String):              Me.Range("celCurrentServiceName").Value = s:                                    End Property
+Public Property Let LogFileFullName(ByVal s As String):                 Me.Range("celLogFileFullName").Value = s:                                           End Property
 
-Public Property Get ServicedItemsMaxLenName() As Long:                  ServicedItemsMaxLenName = Me.Range("celServicedItemsMaxLenName").Value:         End Property
+Public Property Get MaxLenName() As String:                             MaxLenName = Me.Range("celMaxLenName").Value:                                       End Property
 
-Public Property Let ServicedItemsMaxLenName(ByVal l As Long):           Me.Range("celServicedItemsMaxLenName").Value = l:                               End Property
+Public Property Let MaxLenName(ByVal s As String):                      Me.Range("celMaxLenName").Value = s:                                                End Property
 
-Public Property Get ServicedItemsMaxLenType() As Long:                  ServicedItemsMaxLenType = Me.Range("celServicedItemsMaxLenType").Value:         End Property
+Public Property Get MaxLenRefTo() As String:                            MaxLenRefTo = Me.Range("celMaxLenRefTo").Value:                                     End Property
 
-Public Property Let ServicedItemsMaxLenType(ByVal l As Long):           Me.Range("celServicedItemsMaxLenType").Value = l:                               End Property
+Public Property Let MaxLenRefTo(ByVal s As String):                     Me.Range("celMaxLenRefTo").Value = s:                                               End Property
 
-Public Property Get SyncDialogLeft() As Single:                         SyncDialogLeft = Me.Range("celSyncDialogLeft").Value:                           End Property
+Public Property Get MaxLenShapeName() As String:                        MaxLenShapeName = Me.Range("celMaxLenShapeName").Value:                             End Property
 
-Public Property Let SyncDialogLeft(ByVal si As Single):                 Me.Range("celSyncDialogLeft").Value = si:                                       End Property
+Public Property Let MaxLenShapeName(ByVal s As String):                 Me.Range("celMaxLenShapeName").Value = s:                                           End Property
 
-Public Property Get SyncDialogTitle() As String:                        SyncDialogTitle = Me.Range("celSyncDialogTitle").Value:                         End Property
+Public Property Get MaxLenVbcName() As String:                          MaxLenVbcName = Me.Range("celMaxLenVbcName").Value:                                 End Property
 
-Public Property Let SyncDialogTitle(ByVal s As String):                 Me.Range("celSyncDialogTitle").Value = s:                                       End Property
+Public Property Let MaxLenVbcName(ByVal s As String):                   Me.Range("celMaxLenVbcName").Value = s:                                             End Property
 
-Public Property Get SyncDialogTop() As Single:                          SyncDialogTop = Me.Range("celSyncDialogTop").Value:                             End Property
+Public Property Get ServicedItemsMaxLenName() As Long:                  ServicedItemsMaxLenName = Me.Range("celServicedItemsMaxLenName").Value:             End Property
 
-Public Property Let SyncDialogTop(ByVal si As Single):                  Me.Range("celSyncDialogTop").Value = si:                                        End Property
+Public Property Let ServicedItemsMaxLenName(ByVal l As Long):           Me.Range("celServicedItemsMaxLenName").Value = l:                                   End Property
 
-Public Property Get SyncSourceWorkbookName() As String:                 SyncSourceWorkbookName = Me.Range("celSyncSourceWorkbookName").Value:           End Property
+Public Property Get ServicedItemsMaxLenType() As Long:                  ServicedItemsMaxLenType = Me.Range("celServicedItemsMaxLenType").Value:             End Property
 
-Public Property Let SyncSourceWorkbookName(ByVal s As String):          Me.Range("celSyncSourceWorkbookName").Value = s:                                End Property
+Public Property Let ServicedItemsMaxLenType(ByVal l As Long):           Me.Range("celServicedItemsMaxLenType").Value = l:                                   End Property
 
-Public Property Get SyncTargetOrigin() As String:                       SyncTargetOrigin = Me.Range("celSyncTargetOriginWorkbookFullName").Value:       End Property
+Public Property Get ServicedWorkbookFullName() As String:               ServicedWorkbookFullName = Me.Range("celServicedWorkbookFullName").Value:           End Property
 
-Public Property Let SyncTargetOrigin(ByVal s As String):                Me.Range("celSyncTargetOriginWorkbookFullName").Value = s:                      End Property
+Public Property Let ServicedWorkbookFullName(ByVal s As String):        Me.Range("celServicedWorkbookFullName").Value = s:                                  End Property
 
-Public Property Get SyncTargetWorkbookName() As String:                 SyncTargetWorkbookName = Me.Range("celSyncTargetWorkbookName").Value:           End Property
+Public Property Get SyncDialogLeft() As Single:                         SyncDialogLeft = Me.Range("celSyncDialogLeft").Value:                               End Property
 
-Public Property Let SyncTargetWorkbookName(ByVal s As String):          Me.Range("celSyncTargetWorkbookName").Value = s:                                End Property
+Public Property Let SyncDialogLeft(ByVal si As Single):                 Me.Range("celSyncDialogLeft").Value = si:                                           End Property
+
+Public Property Get SyncDialogTitle() As String:                        SyncDialogTitle = Me.Range("celSyncDialogTitle").Value:                             End Property
+
+Public Property Let SyncDialogTitle(ByVal s As String):                 Me.Range("celSyncDialogTitle").Value = s:                                           End Property
+
+Public Property Get SyncDialogTop() As Single:                          SyncDialogTop = Me.Range("celSyncDialogTop").Value:                                 End Property
+
+Public Property Let SyncDialogTop(ByVal si As Single):                  Me.Range("celSyncDialogTop").Value = si:                                            End Property
+
+Public Property Get SyncSourceFullName() As String:                     SyncSourceFullName = Me.Range("celSyncSourceFullName").Value:                       End Property
+
+Public Property Let SyncSourceFullName(ByVal s As String):              Me.Range("celSyncSourceFullName").Value = s:                                        End Property
+
+Public Property Get SyncTargetFullNameCopy() As String:                 SyncTargetFullNameCopy = Me.Range("celSyncTargetFullNameCopy").Value:               End Property
+
+Public Property Let SyncTargetFullNameCopy(ByVal s As String):          Me.Range("celSyncTargetFullNameCopy").Value = s:                                    End Property
+
+Public Sub ClearDataAllServices()
+    With Me
+        .Range("celServicedWorkbookFullName").ClearContents
+        .Range("celServicedItemsMaxLenName").Value = 0
+        .Range("celServicedItemsMaxLenType").Value = 0
+        .Range("celMaxLenVbcName").Value = 0
+    End With
+End Sub
+
+Public Sub ClearDataSynchService()
+
+End Sub
+
+Public Sub ClearDataUpdateService()
+    With Me
+        .Range("celCommonComponentsUsed").Value = 0
+        .Range("celCommonComponentsOutdated").Value = 0
+        .Range("celCommonComponentsUpdated").Value = 0
+    End With
+End Sub
+
+Public Sub ClearExport()
+
+End Sub

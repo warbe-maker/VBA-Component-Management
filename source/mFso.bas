@@ -26,6 +26,12 @@ Option Compare Text
 ' - FileTxt           Get Returns the content of a text file as text
 '                         string
 '                     Let Writes a string to a file - optionally appended
+' - RenameSubFolders      Renames all folders and sub-folders in a provided
+'                         path from a given old to a given new name.
+' - SortCutTargetPath Get Returns a provided shortcut's target path
+'                         Let Creates a shortcut at a provided location with a
+'                         provided path
+'
 '
 ' Public PrivateProfile file services:
 ' ------------------------------------
@@ -270,6 +276,94 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
+Public Property Get FilePrivProfValue( _
+           Optional ByVal pp_file As Variant, _
+           Optional ByVal pp_section As String, _
+           Optional ByVal pp_value_name As String, _
+           Optional ByRef pp_file_result As String) As Variant
+' ----------------------------------------------------------------------------
+' PrivateProfile file service. Reads a value with a specific name from a
+' section from a file organized: [section]
+'                                <value-name>=<value>
+' ----------------------------------------------------------------------------
+    Const PROC  As String = "FilePrivProfValueGet"
+    
+    On Error GoTo eh
+    Dim lResult As Long
+    Dim sRetVal As String
+    Dim vValue  As Variant
+    Dim fl      As String
+    
+    If FilePrivProf(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+    
+    sRetVal = String(32767, 0)
+    lResult = GetPrivateProfileString( _
+                                      lpg_ApplicationName:=pp_section _
+                                    , lpg_KeyName:=pp_value_name _
+                                    , lpg_Default:="" _
+                                    , lpg_ReturnedString:=sRetVal _
+                                    , nSize:=Len(sRetVal) _
+                                    , lpg_FileName:=fl _
+                                     )
+    vValue = Left$(sRetVal, lResult)
+    FilePrivProfValue = vValue
+    
+xt: Exit Property
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Property
+
+Public Property Let FilePrivProfValue( _
+           Optional ByVal pp_file As Variant, _
+           Optional ByVal pp_section As String, _
+           Optional ByVal pp_value_name As String, _
+           Optional ByRef pp_file_result As String, _
+                    ByVal pp_value As Variant)
+' ----------------------------------------------------------------------------
+' PrivateProfile file service. Writes a value under a given name
+' (pp_value_name) into a section (pp_section) in a file (pp_file) organized:
+' [section]
+' <value-name>=<value>
+' ----------------------------------------------------------------------------
+    Const PROC = "FilePrivProfValueLet"
+        
+    On Error GoTo eh
+    Dim lChars  As Long
+    Dim sValue  As String
+    Dim fl      As String
+    
+    If FilePrivProf(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+    
+    Select Case VarType(pp_value)
+        Case vbBoolean: sValue = VBA.CStr(VBA.CLng(pp_value))
+        Case Else:      sValue = pp_value
+    End Select
+    
+    lChars = WritePrivateProfileString(lpw_ApplicationName:=pp_section _
+                                     , lpw_KeyName:=pp_value_name _
+                                     , lpw_String:=sValue _
+                                     , lpw_FileName:=fl)
+    If lChars = 0 Then
+        MsgBox "System error when writing property" & vbLf & _
+               "Section    = '" & pp_section & "'" & vbLf & _
+               "Value name = '" & pp_value_name & "'" & vbLf & _
+               "Value      = '" & CStr(pp_value) & "'" & vbLf & _
+               "Value file = '" & pp_file & "'"
+    End If
+    
+xt: Exit Property
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Property
+
                             
 Public Property Get FilePrivProvSections(Optional ByVal pp_file As Variant, _
                                          Optional ByVal pp_sections As Variant = vbNullString, _
@@ -350,7 +444,7 @@ Public Property Let FilePrivProvSections(Optional ByVal pp_file As Variant, _
             mFso.FilePrivProfValue(pp_file:=fl _
                       , pp_section:=sSection _
                       , pp_value_name:=sName _
-                       ) = dctValues.item(vN)
+                       ) = dctValues.Item(vN)
         Next vN
     Next vS
     
@@ -360,16 +454,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Property
-
-Private Property Get SplitStr(ByRef s As String)
-' ------------------------------------------------------------------------------
-' Returns the split string in string (s) used by VBA.Split() to turn the string
-' into an array.
-' ------------------------------------------------------------------------------
-    If InStr(s, vbCrLf) <> 0 Then SplitStr = vbCrLf _
-    Else If InStr(s, vbLf) <> 0 Then SplitStr = vbLf _
-    Else If InStr(s, vbCr) <> 0 Then SplitStr = vbCr
 End Property
 
 Public Property Get FileTemp(Optional ByVal tmp_path As String = vbNullString, _
@@ -485,92 +569,44 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get FilePrivProfValue( _
-           Optional ByVal pp_file As Variant, _
-           Optional ByVal pp_section As String, _
-           Optional ByVal pp_value_name As String, _
-           Optional ByRef pp_file_result As String) As Variant
-' ----------------------------------------------------------------------------
-' PrivateProfile file service. Reads a value with a specific name from a
-' section from a file organized: [section]
-'                                <value-name>=<value>
-' ----------------------------------------------------------------------------
-    Const PROC  As String = "FilePrivProfValueGet"
+Public Property Get ShortCutTargetPath(Optional ByVal sc_shortcut As String) As String
     
-    On Error GoTo eh
-    Dim lResult As Long
-    Dim sRetVal As String
-    Dim vValue  As Variant
-    Dim fl      As String
+    Dim oShell      As IWshShell3
+    Dim oShortcut   As IWshShortcut
     
-    If FilePrivProf(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
-    
-    sRetVal = String(32767, 0)
-    lResult = GetPrivateProfileString( _
-                                      lpg_ApplicationName:=pp_section _
-                                    , lpg_KeyName:=pp_value_name _
-                                    , lpg_Default:="" _
-                                    , lpg_ReturnedString:=sRetVal _
-                                    , nSize:=Len(sRetVal) _
-                                    , lpg_FileName:=fl _
-                                     )
-    vValue = Left$(sRetVal, lResult)
-    FilePrivProfValue = vValue
-    
-xt: Exit Property
+    Set oShell = CreateObject("Wscript.shell")
+    Set oShortcut = oShell.CreateShortcut(sc_shortcut)
+    ShortCutTargetPath = oShortcut.TargetPath
+    Set oShell = Nothing
+    Set oShortcut = Nothing
 
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
 End Property
 
-Public Property Let FilePrivProfValue( _
-           Optional ByVal pp_file As Variant, _
-           Optional ByVal pp_section As String, _
-           Optional ByVal pp_value_name As String, _
-           Optional ByRef pp_file_result As String, _
-                    ByVal pp_value As Variant)
-' ----------------------------------------------------------------------------
-' PrivateProfile file service. Writes a value under a given name
-' (pp_value_name) into a section (pp_section) in a file (pp_file) organized:
-' [section]
-' <value-name>=<value>
-' ----------------------------------------------------------------------------
-    Const PROC = "FilePrivProfValueLet"
-        
-    On Error GoTo eh
-    Dim lChars  As Long
-    Dim sValue  As String
-    Dim fl      As String
+Public Property Let ShortCutTargetPath(Optional ByVal sc_shortcut As String, _
+                                                ByVal sc_target As String)
     
-    If FilePrivProf(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
+    Dim oShell      As IWshShell3
+    Dim oShortcut   As IWshShortcut
     
-    Select Case VarType(pp_value)
-        Case vbBoolean: sValue = VBA.CStr(VBA.CLng(pp_value))
-        Case Else:      sValue = pp_value
-    End Select
-    
-    lChars = WritePrivateProfileString(lpw_ApplicationName:=pp_section _
-                                     , lpw_KeyName:=pp_value_name _
-                                     , lpw_String:=sValue _
-                                     , lpw_FileName:=fl)
-    If lChars = 0 Then
-        MsgBox "System error when writing property" & vbLf & _
-               "Section    = '" & pp_section & "'" & vbLf & _
-               "Value name = '" & pp_value_name & "'" & vbLf & _
-               "Value      = '" & CStr(pp_value) & "'" & vbLf & _
-               "Value file = '" & pp_file & "'"
-    End If
-    
-xt: Exit Property
+    Set oShell = CreateObject("Wscript.shell")
+    Set oShortcut = oShell.CreateShortcut(sc_shortcut)
+    With oShortcut
+        .TargetPath = sc_target
+        .Save
+    End With
+    Set oShell = Nothing
+    Set oShortcut = Nothing
 
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
+End Property
+
+Private Property Get SplitStr(ByRef s As String)
+' ------------------------------------------------------------------------------
+' Returns the split string in string (s) used by VBA.Split() to turn the string
+' into an array.
+' ------------------------------------------------------------------------------
+    If InStr(s, vbCrLf) <> 0 Then SplitStr = vbCrLf _
+    Else If InStr(s, vbLf) <> 0 Then SplitStr = vbLf _
+    Else If InStr(s, vbCr) <> 0 Then SplitStr = vbCr
 End Property
 
 Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
@@ -629,7 +665,7 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
         '~~ and the add_key already exists the add_item is updated
         If bOrderByKey And Not bStayWithFirst Then
             If .Exists(add_key) Then
-                If VarType(add_item) = vbObject Then Set .item(add_key) = add_item Else .item(add_key) = add_item
+                If VarType(add_item) = vbObject Then Set .Item(add_key) = add_item Else .Item(add_key) = add_item
                 GoTo xt
             End If
         End If
@@ -673,9 +709,9 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
     
     For Each vKeyExisting In add_dct
         
-        If VarType(add_dct.item(vKeyExisting)) = vbObject _
-        Then Set vItemExisting = add_dct.item(vKeyExisting) _
-        Else vItemExisting = add_dct.item(vKeyExisting)
+        If VarType(add_dct.Item(vKeyExisting)) = vbObject _
+        Then Set vItemExisting = add_dct.Item(vKeyExisting) _
+        Else vItemExisting = add_dct.Item(vKeyExisting)
         
         With dctTemp
             If bDone Then
@@ -900,6 +936,346 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Function DiffItem( _
+                    ByVal di_line As Long, _
+                    ByVal di_file_left As String, _
+                    ByVal di_file_right As String, _
+           Optional ByVal di_line_left As String = vbNullString, _
+           Optional ByVal di_line_right As String = vbNullString) As String
+' --------------------------------------------------------------------
+'
+' --------------------------------------------------------------------
+    Dim sFileLeft   As String
+    Dim sFileRight  As String
+    Dim i           As Long
+    
+    For i = 1 To Min(Len(di_file_left), Len(di_file_right))
+        If VBA.Mid$(di_file_left, i, 1) <> VBA.Mid$(di_file_right, i, 1) _
+        Then Exit For
+    Next i
+    i = i - 2
+    sFileLeft = "..." & VBA.Right$(di_file_left, Len(di_file_left) - i) & "Line " & Format(di_line, "0000") & ": "
+    sFileRight = "..." & VBA.Right$(di_file_right, Len(di_file_right) - i) & "Line " & Format(di_line, "0000") & ": "
+    
+    DiffItem = sFileLeft & "'" & di_line_left & "'" & vbLf & sFileRight & "'" & di_line_right & "'"
+
+End Function
+
+Private Function ElementOfIndex(ByVal a As Variant, _
+                                ByVal i As Long) As Long
+' ------------------------------------------------------
+' Returns the element number of index (i) in array (a).
+' ------------------------------------------------------
+    
+    Dim ia  As Long
+    
+    For ia = LBound(a) To i
+        ElementOfIndex = ElementOfIndex + 1
+    Next ia
+    
+End Function
+
+Private Function ErrMsg(ByVal err_source As String, _
+               Optional ByVal err_no As Long = 0, _
+               Optional ByVal err_dscrptn As String = vbNullString, _
+               Optional ByVal err_line As Long = 0) As Variant
+' ------------------------------------------------------------------------------
+' Universal error message display service including a debugging option active
+' when the Conditional Compile Argument 'Debugging = 1' and an optional
+' additional "About the error:" section displaying text connected to an error
+' message by two vertical bars (||).
+'
+' A copy of this function is used in each procedure with an error handling
+' (On error Goto eh).
+'
+' The function considers the Common VBA Error Handling Component (ErH) which
+' may be installed (Conditional Compile Argument 'ErHComp = 1') and/or the
+' Common VBA Message Display Component (mMsg) installed (Conditional Compile
+' Argument 'MsgComp = 1'). Only when none of the two is installed the error
+' message is displayed by means of the VBA.MsgBox.
+'
+' Usage: Example with the Conditional Compile Argument 'Debugging = 1'
+'
+'        Private/Public <procedure-name>
+'            Const PROC = "<procedure-name>"
+'
+'            On Error Goto eh
+'            ....
+'        xt: Exit Sub/Function/Property
+'
+'        eh: Select Case ErrMsg(ErrSrc(PROC))
+'               Case vbResume:  Stop: Resume
+'               Case Else:      GoTo xt
+'            End Select
+'        End Sub/Function/Property
+'
+'        The above may appear a lot of code lines but will be a godsend in case
+'        of an error!
+'
+' Uses:  - For programmed application errors (Err.Raise AppErr(n), ....) the
+'          function AppErr will be used which turns the positive number into a
+'          negative one. The error message will regard a negative error number
+'          as an 'Application Error' and will use AppErr to turn it back for
+'          the message into its original positive number. Together with the
+'          ErrSrc there will be no need to maintain numerous different error
+'          numbers for a VB-Project.
+'        - The caller provides the source of the error through the module
+'          specific function ErrSrc(PROC) which adds the module name to the
+'          procedure name.
+'
+' W. Rauschenberger Berlin, Nov 2021
+' ------------------------------------------------------------------------------
+#If ErHComp = 1 Then
+    '~~ ------------------------------------------------------------------------
+    '~~ When the Common VBA Error Handling Component (mErH) is installed in the
+    '~~ VB-Project (which includes the mMsg component) the mErh.ErrMsg service
+    '~~ is preferred since it provides some enhanced features like a path to the
+    '~~ error.
+    '~~ ------------------------------------------------------------------------
+    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line)
+    GoTo xt
+#ElseIf MsgComp = 1 Then
+    '~~ ------------------------------------------------------------------------
+    '~~ When only the Common Message Services Component (mMsg) is installed but
+    '~~ not the mErH component the mMsg.ErrMsg service is preferred since it
+    '~~ provides an enhanced layout and other features.
+    '~~ ------------------------------------------------------------------------
+    ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line)
+    GoTo xt
+#End If
+    '~~ -------------------------------------------------------------------
+    '~~ When neither the mMsg nor the mErH component is installed the error
+    '~~ message is displayed by means of the VBA.MsgBox
+    '~~ -------------------------------------------------------------------
+    Dim ErrBttns    As Variant
+    Dim ErrAtLine   As String
+    Dim ErrDesc     As String
+    Dim ErrLine     As Long
+    Dim ErrNo       As Long
+    Dim ErrSrc      As String
+    Dim ErrText     As String
+    Dim ErrTitle    As String
+    Dim ErrType     As String
+    Dim ErrAbout    As String
+        
+    '~~ Obtain error information from the Err object for any argument not provided
+    If err_no = 0 Then err_no = Err.Number
+    If err_line = 0 Then ErrLine = Erl
+    If err_source = vbNullString Then err_source = Err.source
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
+    
+    If InStr(err_dscrptn, "||") <> 0 Then
+        ErrDesc = Split(err_dscrptn, "||")(0)
+        ErrAbout = Split(err_dscrptn, "||")(1)
+    Else
+        ErrDesc = err_dscrptn
+    End If
+    
+    '~~ Determine the type of error
+    Select Case err_no
+        Case Is < 0
+            ErrNo = AppErr(err_no)
+            ErrType = "Application Error "
+        Case Else
+            ErrNo = err_no
+            If (InStr(1, err_dscrptn, "DAO") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC Teradata Driver") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC") <> 0 _
+            Or InStr(1, err_dscrptn, "Oracle") <> 0) _
+            Then ErrType = "Database Error " _
+            Else: ErrType = "VB Runtime Error "
+    End Select
+    
+    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
+    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
+    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
+       
+    ErrText = "Error: " & vbLf & _
+              ErrDesc & vbLf & vbLf & _
+              "Source: " & vbLf & _
+              err_source & ErrAtLine
+    If ErrAbout <> vbNullString _
+    Then ErrText = ErrText & vbLf & vbLf & _
+                  "About: " & vbLf & _
+                  ErrAbout
+    
+#If Debugging Then
+    ErrBttns = vbYesNo
+    ErrText = ErrText & vbLf & vbLf & _
+              "Debugging:" & vbLf & _
+              "Yes    = Resume Error Line" & vbLf & _
+              "No     = Terminate"
+#Else
+    ErrBttns = vbCritical
+#End If
+    
+    ErrMsg = MsgBox(Title:=ErrTitle _
+                  , Prompt:=ErrText _
+                  , Buttons:=ErrBttns)
+xt: Exit Function
+
+End Function
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "mFso." & sProc
+End Function
+
+Public Function Exists(Optional ByVal ex_folder As String = vbNullString, _
+                       Optional ByVal ex_file As String = vbNullString, _
+                       Optional ByVal ex_section As String = vbNullString, _
+                       Optional ByVal ex_value_name As String = vbNullString, _
+                       Optional ByRef ex_result_folder As folder = Nothing, _
+                       Optional ByRef ex_result_files As Collection = Nothing) As Boolean
+' ----------------------------------------------------------------------------
+' Universal File System Objects existence check whereby the existence check
+' depend on the provided arguments. The function returns TRUE when:
+'
+' Argument provided | TRUE condition (despite the fact not vbNullString)
+' ------------------| --------------------------------------------------------
+' ex_folder         | The folder exists, no ex_file provided
+' ex_file           | When no ex_folder had been provided the provided ex_file
+'                   | exists. When an ex_folder had been provided at least one
+'                   | or more ex_file meet the LIKE criteria and ex_section is
+'                   | not provided
+' ex_section        | Exactly one file had been passed the existenc check, the
+'                   | provided section exists and no ex_value_name is provided.
+' ex_value_name     | The provided value-name exists - in the existing section
+'                   | in the one and only existing file.
+' ----------------------------------------------------------------------------
+    Const PROC  As String = "Exists"
+    
+    On Error GoTo eh
+    Dim sTest           As String
+    Dim sFile           As String
+    Dim fo              As folder   ' Folder
+    Dim sfo             As folder   ' Sub-Folder
+    Dim fl              As File
+    Dim queue           As Collection
+    Dim fso             As New FileSystemObject
+    Dim FolderExists    As Boolean
+    Dim FileExists      As Boolean
+    Dim SectionExists   As Boolean
+    Dim ValueNameExists As Boolean
+    Dim sFolder         As String
+    
+    Set ex_result_files = New Collection
+
+    With fso
+        If Not ex_folder = vbNullString Then
+            '~~ Folder existence check
+            If Not .FolderExists(ex_folder) Then GoTo xt
+            Set ex_result_folder = .GetFolder(ex_folder)
+            If ex_file = vbNullString Then
+                '~~ When no ex_file is provided, that's it
+                Exists = True
+                GoTo xt
+            End If
+        End If
+        
+        If ex_file <> vbNullString And ex_folder <> vbNullString Then
+            '~~ For the existing folder an ex_file argument had been provided
+            '~~ This is interpreted as a "Like" existence check is due which
+            '~~ by default includes all subfolders
+            sFile = ex_file
+            Set fo = .GetFolder(ex_folder)
+            Set queue = New Collection
+            queue.Add fo
+
+            Do While queue.Count > 0
+                Set fo = queue(queue.Count)
+                queue.Remove queue.Count ' dequeue the processed subfolder
+                For Each sfo In fo.SubFolders
+                    queue.Add sfo ' enqueue (collect) all subfolders
+                Next sfo
+                For Each fl In fo.Files
+                    If VBA.Left$(fl.Name, 1) <> "~" _
+                    And fl.Name Like ex_file Then
+                        '~~ The file in the (sub-)folder meets the search criteria
+                        '~~ In case the ex_file does not contain any "LIKE"-wise characters
+                        '~~ only one file may meet the criteria
+                        ex_result_files.Add fl
+                        Exists = True
+                     End If
+                Next fl
+            Loop
+            If ex_result_files.Count <> 1 Then
+                '~~ None of the files in any (sub-)folder matched with ex_file
+                '~~ or more than one file matched
+                GoTo xt
+            End If
+        ElseIf ex_file <> vbNullString And ex_folder = vbNullString Then
+            If Not .FileExists(ex_file) Then GoTo xt
+            ex_result_files.Add .GetFile(ex_file)
+            If ex_section = vbNullString Then
+                '~~ When no section is provided, that's it
+                Exists = True
+                GoTo xt
+            End If
+        End If
+        
+        '~~ At this point either a provided folder together with a provided file matched exactly one existing file
+        '~~ or a specified file's existence had been proved
+        If ex_section <> vbNullString Then
+            If Not mFso.FilePrivProfSectionExists(pp_file:=ex_file, pp_section:=ex_section) Then GoTo xt
+            If ex_value_name = vbNullString Then
+                '~~ When no ex_value_name is provided, that's it
+                Exists = True
+            Else
+                Exists = mFso.FilePrivProfValueExists(pp_file:=ex_file, pp_section:=ex_section, pp_value_name:=ex_value_name)
+            End If
+        End If
+    End With
+        
+xt: Set fso = Nothing
+    Exit Function
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function FileCompareByFc(ByVal fc_file1 As String, fc_file2 As String)
+' ----------------------------------------------------------------------------
+'
+' ----------------------------------------------------------------------------
+    Const PROC = "FileCompareByFc"
+    
+    On Error GoTo eh
+    Dim waitOnReturn    As Boolean: waitOnReturn = True
+    Dim windowStyle     As Integer: windowStyle = 1
+    Dim sCommand        As String
+    Dim fso             As New FileSystemObject
+    Dim wshShell        As Object
+    
+    If Not fso.FileExists(fc_file1) _
+    Then Err.Raise Number:=AppErr(2) _
+                 , source:=ErrSrc(PROC) _
+                 , Description:="The file """ & fc_file1 & """ does not exist!"
+    
+    If Not fso.FileExists(fc_file2) _
+    Then Err.Raise Number:=AppErr(3) _
+                 , source:=ErrSrc(PROC) _
+                 , Description:="The file """ & fc_file2 & """ does not exist!"
+    
+    sCommand = "Fc /C /W " & _
+               """" & fc_file1 & """" & " " & _
+               """" & fc_file2 & """"
+    
+    Set wshShell = CreateObject("WScript.Shell")
+    With wshShell
+        FileCompareByFc = .Run(Command:=sCommand, windowStyle:=windowStyle, waitOnReturn:=waitOnReturn)
+    End With
+        
+xt: Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
 Public Function FileCompareByWinMerge(ByVal fc_file_left As String, _
                         ByVal fc_left_title As String, _
                         ByVal fc_file_right As String, _
@@ -919,18 +1295,18 @@ Public Function FileCompareByWinMerge(ByVal fc_file_left As String, _
     
     If Not AppIsInstalled("WinMerge") _
     Then Err.Raise Number:=AppErr(1) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
     If Not fso.FileExists(fc_file_left) _
     Then Err.Raise Number:=AppErr(2) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file_left & """ does not exist!"
     
     If Not fso.FileExists(fc_file_right) _
     Then Err.Raise Number:=AppErr(3) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file_right & """ does not exist!"
     
     sCommand = "WinMergeU /e" & _
@@ -1101,306 +1477,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function DiffItem( _
-                    ByVal di_line As Long, _
-                    ByVal di_file_left As String, _
-                    ByVal di_file_right As String, _
-           Optional ByVal di_line_left As String = vbNullString, _
-           Optional ByVal di_line_right As String = vbNullString) As String
-' --------------------------------------------------------------------
-'
-' --------------------------------------------------------------------
-    Dim sFileLeft   As String
-    Dim sFileRight  As String
-    Dim i           As Long
-    
-    For i = 1 To Min(Len(di_file_left), Len(di_file_right))
-        If VBA.Mid$(di_file_left, i, 1) <> VBA.Mid$(di_file_right, i, 1) _
-        Then Exit For
-    Next i
-    i = i - 2
-    sFileLeft = "..." & VBA.Right$(di_file_left, Len(di_file_left) - i) & "Line " & Format(di_line, "0000") & ": "
-    sFileRight = "..." & VBA.Right$(di_file_right, Len(di_file_right) - i) & "Line " & Format(di_line, "0000") & ": "
-    
-    DiffItem = sFileLeft & "'" & di_line_left & "'" & vbLf & sFileRight & "'" & di_line_right & "'"
-
-End Function
-
-Private Function ElementOfIndex(ByVal a As Variant, _
-                                ByVal i As Long) As Long
-' ------------------------------------------------------
-' Returns the element number of index (i) in array (a).
-' ------------------------------------------------------
-    
-    Dim ia  As Long
-    
-    For ia = LBound(a) To i
-        ElementOfIndex = ElementOfIndex + 1
-    Next ia
-    
-End Function
-
-Private Function ErrMsg(ByVal err_source As String, _
-               Optional ByVal err_no As Long = 0, _
-               Optional ByVal err_dscrptn As String = vbNullString, _
-               Optional ByVal err_line As Long = 0) As Variant
-' ------------------------------------------------------------------------------
-' Universal error message display service including a debugging option active
-' when the Conditional Compile Argument 'Debugging = 1' and an optional
-' additional "About the error:" section displaying text connected to an error
-' message by two vertical bars (||).
-'
-' A copy of this function is used in each procedure with an error handling
-' (On error Goto eh).
-'
-' The function considers the Common VBA Error Handling Component (ErH) which
-' may be installed (Conditional Compile Argument 'ErHComp = 1') and/or the
-' Common VBA Message Display Component (mMsg) installed (Conditional Compile
-' Argument 'MsgComp = 1'). Only when none of the two is installed the error
-' message is displayed by means of the VBA.MsgBox.
-'
-' Usage: Example with the Conditional Compile Argument 'Debugging = 1'
-'
-'        Private/Public <procedure-name>
-'            Const PROC = "<procedure-name>"
-'
-'            On Error Goto eh
-'            ....
-'        xt: Exit Sub/Function/Property
-'
-'        eh: Select Case ErrMsg(ErrSrc(PROC))
-'               Case vbResume:  Stop: Resume
-'               Case Else:      GoTo xt
-'            End Select
-'        End Sub/Function/Property
-'
-'        The above may appear a lot of code lines but will be a godsend in case
-'        of an error!
-'
-' Uses:  - For programmed application errors (Err.Raise AppErr(n), ....) the
-'          function AppErr will be used which turns the positive number into a
-'          negative one. The error message will regard a negative error number
-'          as an 'Application Error' and will use AppErr to turn it back for
-'          the message into its original positive number. Together with the
-'          ErrSrc there will be no need to maintain numerous different error
-'          numbers for a VB-Project.
-'        - The caller provides the source of the error through the module
-'          specific function ErrSrc(PROC) which adds the module name to the
-'          procedure name.
-'
-' W. Rauschenberger Berlin, Nov 2021
-' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
-    '~~ ------------------------------------------------------------------------
-    '~~ When the Common VBA Error Handling Component (mErH) is installed in the
-    '~~ VB-Project (which includes the mMsg component) the mErh.ErrMsg service
-    '~~ is preferred since it provides some enhanced features like a path to the
-    '~~ error.
-    '~~ ------------------------------------------------------------------------
-    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line)
-    GoTo xt
-#ElseIf MsgComp = 1 Then
-    '~~ ------------------------------------------------------------------------
-    '~~ When only the Common Message Services Component (mMsg) is installed but
-    '~~ not the mErH component the mMsg.ErrMsg service is preferred since it
-    '~~ provides an enhanced layout and other features.
-    '~~ ------------------------------------------------------------------------
-    ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line)
-    GoTo xt
-#End If
-    '~~ -------------------------------------------------------------------
-    '~~ When neither the mMsg nor the mErH component is installed the error
-    '~~ message is displayed by means of the VBA.MsgBox
-    '~~ -------------------------------------------------------------------
-    Dim ErrBttns    As Variant
-    Dim ErrAtLine   As String
-    Dim ErrDesc     As String
-    Dim ErrLine     As Long
-    Dim ErrNo       As Long
-    Dim ErrSrc      As String
-    Dim ErrText     As String
-    Dim ErrTitle    As String
-    Dim ErrType     As String
-    Dim ErrAbout    As String
-        
-    '~~ Obtain error information from the Err object for any argument not provided
-    If err_no = 0 Then err_no = Err.Number
-    If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
-    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
-    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
-    
-    If InStr(err_dscrptn, "||") <> 0 Then
-        ErrDesc = Split(err_dscrptn, "||")(0)
-        ErrAbout = Split(err_dscrptn, "||")(1)
-    Else
-        ErrDesc = err_dscrptn
-    End If
-    
-    '~~ Determine the type of error
-    Select Case err_no
-        Case Is < 0
-            ErrNo = AppErr(err_no)
-            ErrType = "Application Error "
-        Case Else
-            ErrNo = err_no
-            If (InStr(1, err_dscrptn, "DAO") <> 0 _
-            Or InStr(1, err_dscrptn, "ODBC Teradata Driver") <> 0 _
-            Or InStr(1, err_dscrptn, "ODBC") <> 0 _
-            Or InStr(1, err_dscrptn, "Oracle") <> 0) _
-            Then ErrType = "Database Error " _
-            Else: ErrType = "VB Runtime Error "
-    End Select
-    
-    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
-    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
-    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
-       
-    ErrText = "Error: " & vbLf & _
-              ErrDesc & vbLf & vbLf & _
-              "Source: " & vbLf & _
-              err_source & ErrAtLine
-    If ErrAbout <> vbNullString _
-    Then ErrText = ErrText & vbLf & vbLf & _
-                  "About: " & vbLf & _
-                  ErrAbout
-    
-#If Debugging Then
-    ErrBttns = vbYesNo
-    ErrText = ErrText & vbLf & vbLf & _
-              "Debugging:" & vbLf & _
-              "Yes    = Resume Error Line" & vbLf & _
-              "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
-    
-    ErrMsg = MsgBox(Title:=ErrTitle _
-                  , Prompt:=ErrText _
-                  , Buttons:=ErrBttns)
-xt: Exit Function
-
-End Function
-
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mFso." & sProc
-End Function
-
-Public Function Exists(Optional ByVal ex_folder As String = vbNullString, _
-                       Optional ByVal ex_file As String = vbNullString, _
-                       Optional ByVal ex_section As String = vbNullString, _
-                       Optional ByVal ex_value_name As String = vbNullString, _
-                       Optional ByRef ex_result_folder As Folder = Nothing, _
-                       Optional ByRef ex_result_files As Collection = Nothing) As Boolean
-' ----------------------------------------------------------------------------
-' Universal File System Objects existence check whereby the existence check
-' depend on the provided arguments. The function returns TRUE when:
-'
-' Argument provided | TRUE condition (despite the fact not vbNullString)
-' ------------------| --------------------------------------------------------
-' ex_folder         | The folder exists, no ex_file provided
-' ex_file           | When no ex_folder had been provided the provided ex_file
-'                   | exists. When an ex_folder had been provided at least one
-'                   | or more ex_file meet the LIKE criteria and ex_section is
-'                   | not provided
-' ex_section        | Exactly one file had been passed the existenc check, the
-'                   | provided section exists and no ex_value_name is provided.
-' ex_value_name     | The provided value-name exists - in the existing section
-'                   | in the one and only existing file.
-' ----------------------------------------------------------------------------
-    Const PROC  As String = "Exists"
-    
-    On Error GoTo eh
-    Dim sTest           As String
-    Dim sFile           As String
-    Dim fo              As Folder   ' Folder
-    Dim sfo             As Folder   ' Sub-Folder
-    Dim fl              As File
-    Dim queue           As Collection
-    Dim fso             As New FileSystemObject
-    Dim FolderExists    As Boolean
-    Dim FileExists      As Boolean
-    Dim SectionExists   As Boolean
-    Dim ValueNameExists As Boolean
-    Dim sFolder         As String
-    
-    Set ex_result_files = New Collection
-
-    With fso
-        If Not ex_folder = vbNullString Then
-            '~~ Folder existence check
-            If Not .FolderExists(ex_folder) Then GoTo xt
-            Set ex_result_folder = .GetFolder(ex_folder)
-            If ex_file = vbNullString Then
-                '~~ When no ex_file is provided, that's it
-                Exists = True
-                GoTo xt
-            End If
-        End If
-        
-        If ex_file <> vbNullString And ex_folder <> vbNullString Then
-            '~~ For the existing folder an ex_file argument had been provided
-            '~~ This is interpreted as a "Like" existence check is due which
-            '~~ by default includes all subfolders
-            sFile = ex_file
-            Set fo = .GetFolder(ex_folder)
-            Set queue = New Collection
-            queue.Add fo
-
-            Do While queue.Count > 0
-                Set fo = queue(queue.Count)
-                queue.Remove queue.Count ' dequeue the processed subfolder
-                For Each sfo In fo.SubFolders
-                    queue.Add sfo ' enqueue (collect) all subfolders
-                Next sfo
-                For Each fl In fo.Files
-                    If VBA.Left$(fl.Name, 1) <> "~" _
-                    And fl.Name Like ex_file Then
-                        '~~ The file in the (sub-)folder meets the search criteria
-                        '~~ In case the ex_file does not contain any "LIKE"-wise characters
-                        '~~ only one file may meet the criteria
-                        ex_result_files.Add fl
-                        Exists = True
-                     End If
-                Next fl
-            Loop
-            If ex_result_files.Count <> 1 Then
-                '~~ None of the files in any (sub-)folder matched with ex_file
-                '~~ or more than one file matched
-                GoTo xt
-            End If
-        ElseIf ex_file <> vbNullString And ex_folder = vbNullString Then
-            If Not .FileExists(ex_file) Then GoTo xt
-            ex_result_files.Add .GetFile(ex_file)
-            If ex_section = vbNullString Then
-                '~~ When no section is provided, that's it
-                Exists = True
-                GoTo xt
-            End If
-        End If
-        
-        '~~ At this point either a provided folder together with a provided file matched exactly one existing file
-        '~~ or a specified file's existence had been proved
-        If ex_section <> vbNullString Then
-            If Not mFso.FilePrivProfSectionExists(pp_file:=ex_file, pp_section:=ex_section) Then GoTo xt
-            If ex_value_name = vbNullString Then
-                '~~ When no ex_value_name is provided, that's it
-                Exists = True
-            Else
-                Exists = mFso.FilePrivProfValueExists(pp_file:=ex_file, pp_section:=ex_section, pp_value_name:=ex_value_name)
-            End If
-        End If
-    End With
-        
-xt: Set fso = Nothing
-    Exit Function
-    
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
 Public Function FileExtension(ByVal fe_file As Variant)
 
     With New FileSystemObject
@@ -1411,155 +1487,6 @@ Public Function FileExtension(ByVal fe_file As Variant)
         End If
     End With
 
-End Function
-
-Private Function FileCompareByFc(ByVal fc_file1 As String, fc_file2 As String)
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Const PROC = "FileCompareByFc"
-    
-    On Error GoTo eh
-    Dim waitOnReturn    As Boolean: waitOnReturn = True
-    Dim windowStyle     As Integer: windowStyle = 1
-    Dim sCommand        As String
-    Dim fso             As New FileSystemObject
-    Dim wshShell        As Object
-    
-    If Not fso.FileExists(fc_file1) _
-    Then Err.Raise Number:=AppErr(2) _
-                 , Source:=ErrSrc(PROC) _
-                 , Description:="The file """ & fc_file1 & """ does not exist!"
-    
-    If Not fso.FileExists(fc_file2) _
-    Then Err.Raise Number:=AppErr(3) _
-                 , Source:=ErrSrc(PROC) _
-                 , Description:="The file """ & fc_file2 & """ does not exist!"
-    
-    sCommand = "Fc /C /W " & _
-               """" & fc_file1 & """" & " " & _
-               """" & fc_file2 & """"
-    
-    Set wshShell = CreateObject("WScript.Shell")
-    With wshShell
-        FileCompareByFc = .Run(Command:=sCommand, windowStyle:=windowStyle, waitOnReturn:=waitOnReturn)
-    End With
-        
-xt: Exit Function
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Public Function Folders(Optional ByVal fo_spec As String = vbNullString, _
-                        Optional ByVal fo_subfolders As Boolean = False, _
-                        Optional ByRef fo_result As String) As Collection
-' ----------------------------------------------------------------------------
-' Returns all folders in a folder (fo_spec) - optionally including all
-' sub-folders (fo_subfolders = True) - as folder objects in ascending order.
-' When no folder (fo_spec) is provided a folder selection dialog request one.
-' When the provided folder does not exist or no folder is selected the
-' the function returns with an empty collection. The provided or selected
-' folder is returned (fo_result).
-' ----------------------------------------------------------------------------
-    Static cll      As Collection
-    Static queue    As Collection   ' FiFo queue for folders with sub-folders
-    Static Stack    As Collection   ' LiFo stack for recursive calls
-    Static foStart  As Folder
-    Dim aFolders()  As Variant
-    Dim fl          As File
-    Dim flStart     As Folder
-    Dim fo1         As Folder
-    Dim fo2         As Folder
-    Dim fso         As New FileSystemObject
-    Dim i           As Long
-    Dim j           As Long
-    Dim s           As String
-    Dim v           As Variant
-    
-    If cll Is Nothing Then Set cll = New Collection
-    If queue Is Nothing Then Set queue = New Collection
-    If Stack Is Nothing Then Set Stack = New Collection
-    
-    If queue.Count = 0 Then
-        '~~ Provide the folder to start with - when not provided by fo_spec via a selection dialog
-        If fo_spec <> vbNullString Then
-            If Not fso.FolderExists(fo_spec) Then
-                fo_result = fo_spec
-                GoTo xt
-            End If
-            Set fo1 = fso.GetFolder(fo_spec)
-        Else
-            Application.DisplayAlerts = False
-            With Application.FileDialog(msoFileDialogFolderPicker)
-                .Title = "Please select the desired folder!"
-                .InitialFileName = CurDir
-                .AllowMultiSelect = False
-                If .Show <> -1 Then GoTo xt
-                Set fo1 = fso.GetFolder(.SelectedItems(1))
-            End With
-        End If
-        Set foStart = fo1
-    Else
-        '~~ When recursively called (Queue.Count <> 0) take first sub-folder queued
-        Set fo1 = queue(1)
-    End If
-    
-    For Each fo2 In fo1.SubFolders
-        cll.Add fo2
-        If fo1.SubFolders.Count <> 0 And fo_subfolders Then
-            queue.Add fo2
-        End If
-    Next fo2
-    Stack.Add cll ' stack result in preparation for the function being called resursively
-    
-    If queue.Count > 0 Then
-        Debug.Print "Remove " & queue(1).Path & " from stack (" & queue.Count - 1 & " still in queue)"
-        queue.Remove 1
-    End If
-    If queue.Count > 0 Then
-        Folders queue(1).Path ' recursive call for each folder with subfolders
-    End If
-    
-xt: Set fso = Nothing
-    If Stack.Count > 0 Then
-        Set cll = Stack(Stack.Count)
-        Stack.Remove Stack.Count
-    End If
-    If Stack.Count = 0 Then
-        If cll.Count > 0 Then
-            '~~ Unload cll to array, when fo_subfolders = False only those with a ParentFolder foStart
-            ReDim aFolders(cll.Count - 1)
-            For Each v In cll
-                aFolders(i) = v
-                i = i + 1
-            Next v
-            
-            '~~ Sort array from A to Z
-            For i = LBound(aFolders) To UBound(aFolders)
-                For j = i + 1 To UBound(aFolders)
-                    If UCase(aFolders(i)) > UCase(aFolders(j)) Then
-                        s = aFolders(j)
-                        aFolders(j) = aFolders(i)
-                        aFolders(i) = s
-                    End If
-                Next j
-            Next i
-            
-            '~~ Transfer array as folder objects to collection
-            Set cll = New Collection
-            For i = LBound(aFolders) To UBound(aFolders)
-                Set fo1 = fso.GetFolder(aFolders(i))
-                cll.Add fo1
-            Next i
-        End If
-        Set Folders = cll
-        If Not foStart Is Nothing Then fo_result = foStart.Path
-    End If
-    Set cll = Nothing
-    
 End Function
 
 Public Function FileGet(ByVal fg_path As String) As File
@@ -1606,114 +1533,6 @@ Public Function FileIsValidName(ivf_name As String) As Boolean
 xt: Set fso = Nothing
     Exit Function
  
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Public Function FolderIsValidName(ivf_name As String) As Boolean
-' ----------------------------------------------------------------------------
-' Returns TRUE when the provided argument is a vaslid folder name.
-' ----------------------------------------------------------------------------
-    Const PROC = "IsValidFileOrFolderName"
-    
-    On Error GoTo eh
-    Dim a() As String
-    Dim i   As Long
-    Dim v   As Variant
-    Dim fo  As String
-    Dim fso As New FileSystemObject
-    
-    With CreateObject("VBScript.RegExp")
-        .Pattern = "^(?!(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.[^.]*)?$)[^<>:""/\\|?*\x00-\x1F]*[^<>:""/\\|?*\x00-\x1F\ .]$"
-        FolderIsValidName = Not .Test(ivf_name)
-    End With
-    
-    If FolderIsValidName Then
-        '~~ Let's prove the above by a 'brute force method':
-        '~~ Checking each element of the argument whether it can be created as folder
-        '~~ is the final assertion.
-        a = Split(ivf_name, "\")
-        With fso
-            For Each v In a
-                '~~ Check each element of the path (except the drive spec) whether it can be created as a file
-                If InStr(v, ":") = 0 Then ' exclude the drive spec
-                    fo = .GetSpecialFolder(2) & "\" & v
-                    On Error Resume Next
-                    .CreateFolder fo
-                    FolderIsValidName = Err.Number = 0
-                    If Not FolderIsValidName Then GoTo xt
-                    On Error GoTo eh
-                    If .FolderExists(fo) Then
-                        .DeleteFolder fo
-                    End If
-                End If
-            Next v
-        End With
-    End If
-    
-xt: Set fso = Nothing
-    Exit Function
- 
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Private Function Min(ParamArray va() As Variant) As Variant
-' --------------------------------------------------------
-' Returns the minimum (smallest) of all provided values.
-' --------------------------------------------------------
-    Dim v As Variant
-    
-    Min = va(LBound(va)): If LBound(va) = UBound(va) Then Exit Function
-    For Each v In va
-        If v < Min Then Min = v
-    Next v
-    
-End Function
-
-Private Function NamesInArg(Optional ByVal v As Variant = Nothing) As Collection
-' ----------------------------------------------------------------------------
-' Returns the provided argument (v) as Collection of string items whereby (v)
-' may be: not provided, a comma delimited string, a Dictionary, or a
-' Collection of string items.
-' ----------------------------------------------------------------------------
-    Const PROC = "NamesInArg"
-    
-    On Error GoTo eh
-    Dim cll     As New Collection
-    Dim dct     As Dictionary
-    Dim VNAME   As Variant
-    
-    Select Case VarType(v)
-        Case vbObject
-            Select Case TypeName(v)
-                Case "Dictionary"
-                    Set dct = v
-                    For Each v In dct
-                        cll.Add dct.item(v)
-                    Next v
-                Case "Collection"
-                    Set cll = v
-                Case Else: GoTo xt ' likely Nothing
-            End Select
-        Case vbString
-            If v <> vbNullString Then
-                For Each VNAME In Split(v, ",")
-                    cll.Add VBA.Trim$(v)
-                Next VNAME
-            End If
-        Case Is >= vbArray
-        Case Else
-            Err.Raise AppErr(1), ErrSrc(PROC), "The argument is neither a string, an arry, a Collecton, or a Dictionary!"
-    End Select
-            
-xt: Set NamesInArg = cll
-    Exit Function
-
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
@@ -2041,51 +1860,6 @@ End Sub
 '    End Select
 'End Function
 
-Public Function FilesSearch(ByVal fs_root As String, _
-              Optional ByVal fs_mask As String = "*", _
-              Optional ByVal fs_in_subfolders As Boolean = True, _
-              Optional ByVal fs_stop_after As Long = 100) As Collection
-' ---------------------------------------------------------------------
-' Returns a collection of all file names which meet the criteria:
-' - in any subfolder of the root (fs_root)
-' - meeting the wildcard comparison (fs_file_mask)
-' ---------------------------------------------------------------------
-    Const PROC = "FilesSearch"
-    
-    On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim fo      As Folder
-    Dim sfo     As Folder
-    Dim fl      As File
-    Dim queue   As New Collection
-
-    Set FilesSearch = New Collection
-    If Right(fs_root, 1) = "\" Then fs_root = Left(fs_root, Len(fs_root) - 1)
-    If Not fso.FolderExists(fs_root) Then GoTo xt
-    queue.Add fso.GetFolder(fs_root)
-
-    Do While queue.Count > 0
-        Set fo = queue(queue.Count)
-        queue.Remove queue.Count ' dequeue the processed subfolder
-        For Each sfo In fo.SubFolders
-            queue.Add sfo ' enqueue (collect) all subfolders
-        Next sfo
-        For Each fl In fo.Files
-            If VBA.Left$(fl.Name, 1) <> "~" _
-            And fl.Name Like fs_mask _
-            Then FilesSearch.Add fl
-        Next fl
-    Loop
-
-xt: Set fso = Nothing
-    Exit Function
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
                  
 Public Function FilePrivProfSectionExists(ByVal pp_file As Variant, _
                               ByVal pp_section As String, _
@@ -2154,6 +1928,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Function
+
 Public Sub FilePrivProfSectionsCopy(ByVal pp_source As String, _
                         ByVal pp_target As String, _
                Optional ByVal pp_sections As Variant = Nothing, _
@@ -2195,31 +1970,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-Private Function ShellRun(sCmd As String) As String
-' ----------------------------------------------------------------------------
-' Run a shell command, returning the output as a string.
-' ----------------------------------------------------------------------------
-    Dim oShell As Object
-    Set oShell = CreateObject("WScript.Shell")
-
-    'run command
-    Dim oExec As Object
-    Dim oOutput As Object
-    Set oExec = oShell.Exec(sCmd)
-    Set oOutput = oExec.StdOut
-
-    'handle the results as they are written to and read from the StdOut object
-    Dim s As String
-    Dim sLine As String
-    While Not oOutput.AtEndOfStream
-        sLine = oOutput.ReadLine
-        If sLine <> "" Then s = s & sLine & vbCrLf
-    Wend
-
-    ShellRun = s
-
-End Function
 
 Public Function FilePrivProfValueExists(ByVal pp_file As Variant, _
                             ByVal pp_value_name As String, _
@@ -2372,5 +2122,331 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Function
+
+Public Function FilesSearch(ByVal fs_root As String, _
+              Optional ByVal fs_mask As String = "*", _
+              Optional ByVal fs_in_subfolders As Boolean = True, _
+              Optional ByVal fs_stop_after As Long = 100) As Collection
+' ---------------------------------------------------------------------
+' Returns a collection of all file names which meet the criteria:
+' - in any subfolder of the root (fs_root)
+' - meeting the wildcard comparison (fs_file_mask)
+' ---------------------------------------------------------------------
+    Const PROC = "FilesSearch"
+    
+    On Error GoTo eh
+    Dim fso     As New FileSystemObject
+    Dim fo      As folder
+    Dim sfo     As folder
+    Dim fl      As File
+    Dim queue   As New Collection
+
+    Set FilesSearch = New Collection
+    If Right(fs_root, 1) = "\" Then fs_root = Left(fs_root, Len(fs_root) - 1)
+    If Not fso.FolderExists(fs_root) Then GoTo xt
+    queue.Add fso.GetFolder(fs_root)
+
+    Do While queue.Count > 0
+        Set fo = queue(queue.Count)
+        queue.Remove queue.Count ' dequeue the processed subfolder
+        For Each sfo In fo.SubFolders
+            queue.Add sfo ' enqueue (collect) all subfolders
+        Next sfo
+        For Each fl In fo.Files
+            If VBA.Left$(fl.Name, 1) <> "~" _
+            And fl.Name Like fs_mask _
+            Then FilesSearch.Add fl
+        Next fl
+    Loop
+
+xt: Set fso = Nothing
+    Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Public Function FolderIsValidName(ivf_name As String) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the provided argument is a vaslid folder name.
+' ----------------------------------------------------------------------------
+    Const PROC = "IsValidFileOrFolderName"
+    
+    On Error GoTo eh
+    Dim a() As String
+    Dim i   As Long
+    Dim v   As Variant
+    Dim fo  As String
+    Dim fso As New FileSystemObject
+    
+    With CreateObject("VBScript.RegExp")
+        .Pattern = "^(?!(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.[^.]*)?$)[^<>:""/\\|?*\x00-\x1F]*[^<>:""/\\|?*\x00-\x1F\ .]$"
+        FolderIsValidName = Not .Test(ivf_name)
+    End With
+    
+    If FolderIsValidName Then
+        '~~ Let's prove the above by a 'brute force method':
+        '~~ Checking each element of the argument whether it can be created as folder
+        '~~ is the final assertion.
+        a = Split(ivf_name, "\")
+        With fso
+            For Each v In a
+                '~~ Check each element of the path (except the drive spec) whether it can be created as a file
+                If InStr(v, ":") = 0 Then ' exclude the drive spec
+                    fo = .GetSpecialFolder(2) & "\" & v
+                    On Error Resume Next
+                    .CreateFolder fo
+                    FolderIsValidName = Err.Number = 0
+                    If Not FolderIsValidName Then GoTo xt
+                    On Error GoTo eh
+                    If .FolderExists(fo) Then
+                        .DeleteFolder fo
+                    End If
+                End If
+            Next v
+        End With
+    End If
+    
+xt: Set fso = Nothing
+    Exit Function
+ 
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Public Function Folders(Optional ByVal fo_spec As String = vbNullString, _
+                        Optional ByVal fo_subfolders As Boolean = False, _
+                        Optional ByRef fo_result As String) As Collection
+' ----------------------------------------------------------------------------
+' Returns all folders in a folder (fo_spec) - optionally including all
+' sub-folders (fo_subfolders = True) - as folder objects in ascending order.
+' When no folder (fo_spec) is provided a folder selection dialog request one.
+' When the provided folder does not exist or no folder is selected the
+' the function returns with an empty collection. The provided or selected
+' folder is returned (fo_result).
+' ----------------------------------------------------------------------------
+    Static cll      As Collection
+    Static queue    As Collection   ' FiFo queue for folders with sub-folders
+    Static Stack    As Collection   ' LiFo stack for recursive calls
+    Static foStart  As folder
+    Dim aFolders()  As Variant
+    Dim fl          As File
+    Dim flStart     As folder
+    Dim fo1         As folder
+    Dim fo2         As folder
+    Dim fso         As New FileSystemObject
+    Dim i           As Long
+    Dim j           As Long
+    Dim s           As String
+    Dim v           As Variant
+    
+    If cll Is Nothing Then Set cll = New Collection
+    If queue Is Nothing Then Set queue = New Collection
+    If Stack Is Nothing Then Set Stack = New Collection
+    
+    If queue.Count = 0 Then
+        '~~ Provide the folder to start with - when not provided by fo_spec via a selection dialog
+        If fo_spec <> vbNullString Then
+            If Not fso.FolderExists(fo_spec) Then
+                fo_result = fo_spec
+                GoTo xt
+            End If
+            Set fo1 = fso.GetFolder(fo_spec)
+        Else
+            Application.DisplayAlerts = False
+            With Application.FileDialog(msoFileDialogFolderPicker)
+                .Title = "Please select the desired folder!"
+                .InitialFileName = CurDir
+                .AllowMultiSelect = False
+                If .Show <> -1 Then GoTo xt
+                Set fo1 = fso.GetFolder(.SelectedItems(1))
+            End With
+        End If
+        Set foStart = fo1
+    Else
+        '~~ When recursively called (Queue.Count <> 0) take first sub-folder queued
+        Set fo1 = queue(1)
+    End If
+    
+    For Each fo2 In fo1.SubFolders
+        cll.Add fo2
+        If fo1.SubFolders.Count <> 0 And fo_subfolders Then
+            queue.Add fo2
+        End If
+    Next fo2
+    Stack.Add cll ' stack result in preparation for the function being called resursively
+    
+    If queue.Count > 0 Then
+        Debug.Print "Remove " & queue(1).Path & " from stack (" & queue.Count - 1 & " still in queue)"
+        queue.Remove 1
+    End If
+    If queue.Count > 0 Then
+        Folders queue(1).Path ' recursive call for each folder with subfolders
+    End If
+    
+xt: Set fso = Nothing
+    If Stack.Count > 0 Then
+        Set cll = Stack(Stack.Count)
+        Stack.Remove Stack.Count
+    End If
+    If Stack.Count = 0 Then
+        If cll.Count > 0 Then
+            '~~ Unload cll to array, when fo_subfolders = False only those with a ParentFolder foStart
+            ReDim aFolders(cll.Count - 1)
+            For Each v In cll
+                aFolders(i) = v
+                i = i + 1
+            Next v
+            
+            '~~ Sort array from A to Z
+            For i = LBound(aFolders) To UBound(aFolders)
+                For j = i + 1 To UBound(aFolders)
+                    If UCase(aFolders(i)) > UCase(aFolders(j)) Then
+                        s = aFolders(j)
+                        aFolders(j) = aFolders(i)
+                        aFolders(i) = s
+                    End If
+                Next j
+            Next i
+            
+            '~~ Transfer array as folder objects to collection
+            Set cll = New Collection
+            For i = LBound(aFolders) To UBound(aFolders)
+                Set fo1 = fso.GetFolder(aFolders(i))
+                cll.Add fo1
+            Next i
+        End If
+        Set Folders = cll
+        If Not foStart Is Nothing Then fo_result = foStart.Path
+    End If
+    Set cll = Nothing
+    
+End Function
+
+Private Function Min(ParamArray va() As Variant) As Variant
+' --------------------------------------------------------
+' Returns the minimum (smallest) of all provided values.
+' --------------------------------------------------------
+    Dim v As Variant
+    
+    Min = va(LBound(va)): If LBound(va) = UBound(va) Then Exit Function
+    For Each v In va
+        If v < Min Then Min = v
+    Next v
+    
+End Function
+
+Private Function NamesInArg(Optional ByVal v As Variant = Nothing) As Collection
+' ----------------------------------------------------------------------------
+' Returns the provided argument (v) as Collection of string items whereby (v)
+' may be: not provided, a comma delimited string, a Dictionary, or a
+' Collection of string items.
+' ----------------------------------------------------------------------------
+    Const PROC = "NamesInArg"
+    
+    On Error GoTo eh
+    Dim cll     As New Collection
+    Dim dct     As Dictionary
+    Dim VNAME   As Variant
+    
+    Select Case VarType(v)
+        Case vbObject
+            Select Case TypeName(v)
+                Case "Dictionary"
+                    Set dct = v
+                    For Each v In dct
+                        cll.Add dct.Item(v)
+                    Next v
+                Case "Collection"
+                    Set cll = v
+                Case Else: GoTo xt ' likely Nothing
+            End Select
+        Case vbString
+            If v <> vbNullString Then
+                For Each VNAME In Split(v, ",")
+                    cll.Add VBA.Trim$(v)
+                Next VNAME
+            End If
+        Case Is >= vbArray
+        Case Else
+            Err.Raise AppErr(1), ErrSrc(PROC), "The argument is neither a string, an arry, a Collecton, or a Dictionary!"
+    End Select
+            
+xt: Set NamesInArg = cll
+    Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Public Sub RenameSubFolders(ByVal rsf_path As String, _
+                            ByVal rsf_old_name As String, _
+                            ByVal rsf_new_name As String, _
+                   Optional ByRef rsf_renamed As Collection)
+' ----------------------------------------------------------------------------
+' Rename any sub-folder in the provided path (rsf_path) named (rsf_old_name)
+' to (rsf_new_name). Any subfolders in renamed folders are ignored. Returns
+' all renamed folders as Collection (rsf_renamed).
+' ----------------------------------------------------------------------------
+    Dim fso         As New FileSystemObject
+    Dim fld         As folder
+    Dim fldSub      As folder
+    Dim cllQueue    As Collection
+    Dim cll         As New Collection
+    
+    Set cllQueue = New Collection
+    cllQueue.Add fso.GetFolder(rsf_path)
+
+    Do While cllQueue.Count > 0
+        Set fld = cllQueue(1)
+        cllQueue.Remove 1 'dequeue
+        If fld.Name = rsf_old_name Then
+            fld.Name = rsf_new_name
+            cll.Add fld
+            Debug.Print "Renamed: " & fld.Path
+        Else
+            For Each fldSub In fld.SubFolders
+                cllQueue.Add fldSub 'enqueue
+            Next fldSub
+        End If
+    Loop
+
+xt: Set rsf_renamed = cll
+    Set cll = Nothing
+    Set fso = Nothing
+    Exit Sub
+
+End Sub
+
+Private Function ShellRun(sCmd As String) As String
+' ----------------------------------------------------------------------------
+' Run a shell command, returning the output as a string.
+' ----------------------------------------------------------------------------
+    Dim oShell As Object
+    Set oShell = CreateObject("WScript.Shell")
+
+    'run command
+    Dim oExec As Object
+    Dim oOutput As Object
+    Set oExec = oShell.Exec(sCmd)
+    Set oOutput = oExec.StdOut
+
+    'handle the results as they are written to and read from the StdOut object
+    Dim s As String
+    Dim sLine As String
+    While Not oOutput.AtEndOfStream
+        sLine = oOutput.ReadLine
+        If sLine <> "" Then s = s & sLine & vbCrLf
+    Wend
+
+    ShellRun = s
+
 End Function
 

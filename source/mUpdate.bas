@@ -52,14 +52,13 @@ Public Function UpdateConfirmed(ByRef uo_comp As clsComp) As Boolean
                              "    had been modified within this Workbook/VBProject. This modification will be " & _
                              "reverted with this update. Displaying the difference will be the last chance to " & _
                              "modify the 'Raw Common Component' in its hosting Workbook (" & mComCompRawsGlobal.RawHostWbFullName(sCompName) & ")."
-                .Text.FontColor = rgbRed
             End With
         End If
         With .Section(2)
             .Label.Text = "About this update:"
             .Text.Text = "When the update of the outdated 'Used Common Component'  " & mBasic.Spaced(sCompName) & "  " & _
                          "is skipped the request will be displayed again the next time this Workbook is opened " & _
-                         "(from within the configured 'Serviced Folder' " & mConfig.ServicedDevAndTestFolder & "."
+                         "(from within the configured 'Serviced Folder' " & wsConfig.FolderDevAndTest & "."
         End With
     End With
     

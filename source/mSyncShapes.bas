@@ -77,21 +77,18 @@ Public Sub CollectAllItems()
     Dim v           As Variant
     Dim dctShapes   As New Dictionary
     Dim dctPrprtys  As New Dictionary
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
+    Dim sProgress   As String
     Dim wshTarget   As Worksheet
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
-    
-    wsService.MaxLenShapeName = MaxLenShapeName(wbkTarget, wbkSource)
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
+    wsService.MaxLenShapeName = MaxLenShapeName(mSync.TargetCopy, mSync.Source)
 
-    For Each wsh In wbkSource.Worksheets
-        mSyncSheets.CorrespSheet wsh, wbkTarget, wshTarget
+    For Each wsh In mSync.Source.Worksheets
+        mSyncSheets.CorrespSheet wsh, mSync.TargetCopy, wshTarget
         If Not wshTarget Is Nothing Then
             For Each shp In wsh.Shapes
+                mSync.MonitorStep "Collecting Sheet Shapes " & wsh.Name & sProgress
                 With shp
                     If InStr(.Name, " ") Then
                         Log.ServicedItem = shp
@@ -111,8 +108,10 @@ Public Sub CollectAllItems()
 '                        mSyncShapePrprtys.PropertiesWriteable shp, dctPrprtys
                     End If
                 End With
+                sProgress = sProgress & "."
 ns1:         Next shp
         End If
+        sProgress = vbNullString
     Next wsh
             
     For Each v In dctShapes
@@ -189,16 +188,12 @@ Public Function CollectNew() As Dictionary
     Dim wshTarget       As Worksheet
     Dim v               As Variant
     Dim TargetSheetName As String
-    Dim wbkTarget       As Workbook
-    Dim wbkSource       As Workbook
     Dim sProgress       As String
     
     sProgress = " "
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
     
-    For Each wshSource In wbkSource.Worksheets
-        If Not mSyncSheets.CorrespSheet(wshSource, wbkTarget, wshTarget) Is Nothing Then
+    For Each wshSource In mSync.Source.Worksheets
+        If Not mSyncSheets.CorrespSheet(wshSource, mSync.TargetCopy, wshTarget) Is Nothing Then
             '~~ There is a corresponding sheet with an equal Name or CodeName
             For Each shpSource In wshSource.Shapes
                 mSync.MonitorStep "Collecting Sheet Shapes new" & sProgress
@@ -253,16 +248,12 @@ Public Function CollectObsolete() As Dictionary
     Dim v           As Variant
     Dim wshTarget   As Worksheet
     Dim wshSource   As Worksheet
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
     Dim sProgress   As String
     
     sProgress = " "
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
    
-    For Each wshTarget In wbkTarget.Worksheets
-        If Not mSyncSheets.CorrespSheet(wshTarget, wbkSource, wshSource) Is Nothing Then
+    For Each wshTarget In mSync.TargetCopy.Worksheets
+        If Not mSyncSheets.CorrespSheet(wshTarget, mSync.Source, wshSource) Is Nothing Then
             For Each shpTarget In wshTarget.Shapes
                 mSync.MonitorStep "Collecting Sheet Shapes obsolete" & sProgress
                 If shpTarget.Name Like "Comment *" Then GoTo ns ' next shape
@@ -411,16 +402,11 @@ Public Function Exists(ByVal xst_shp As Variant, _
     
     On Error GoTo eh
     Dim shp             As Shape
-    Dim wbkTarget       As Workbook
-    Dim wbkSource       As Workbook
     Dim sNameWsh        As String
     Dim sNameWshOOB     As String
     Dim sName           As String
     Dim sOOBCodeName    As String
-    
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-                
+                   
     If TypeName(xst_shp) = "Shape" Then
         sName = xst_shp.Name
     Else
@@ -512,8 +498,6 @@ Public Sub SyncAllShapes()
     Const PROC = "SyncAllShapes"
     
     On Error GoTo eh
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
     Dim wshSource   As Worksheet
     Dim wshTarget   As Worksheet
     Dim shpSource   As Shape
@@ -528,14 +512,12 @@ Public Sub SyncAllShapes()
     Then Err.Raise AppErr(1), ErrSrc(PROC), "Shape synchronization cannot be done when there are Worksheet " & _
                                             "synchronizations yet not done!"
     
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     lPropertyMaxLen = mSyncShapePrprtys.PropertyMaxLen
     
     '~~ Synchronize, respectively remove obsolete Shapes
-    For Each wshTarget In wbkTarget.Worksheets
-        mSyncSheets.CorrespSheet wshTarget, wbkSource, wshSource
+    For Each wshTarget In mSync.TargetCopy.Worksheets
+        mSyncSheets.CorrespSheet wshTarget, mSync.Source, wshSource
         If Not wshSource Is Nothing Then
             For Each shpTarget In wshTarget.Shapes
                 If IsObsolete(shpTarget, wshSource) Then
@@ -550,8 +532,8 @@ Public Sub SyncAllShapes()
     Next wshTarget
 
     '~~ Synchronize new Shapes
-    For Each wshSource In wbkSource.Worksheets
-        mSyncSheets.CorrespSheet wshSource, wbkTarget, wshTarget
+    For Each wshSource In mSync.Source.Worksheets
+        mSyncSheets.CorrespSheet wshSource, mSync.TargetCopy, wshTarget
         If Not wshTarget Is Nothing Then
             For Each shpSource In wshSource.Shapes
                 If IsNew(shpSource, wshTarget) Then
@@ -565,8 +547,8 @@ ns:         Next shpSource
     Next wshSource
         
     '~~ Synchronize Shape/OOB Properties
-    For Each wshSource In wbkSource.Worksheets
-        mSyncSheets.CorrespSheet wshSource, wbkTarget, wshTarget
+    For Each wshSource In mSync.Source.Worksheets
+        mSyncSheets.CorrespSheet wshSource, mSync.TargetCopy, wshTarget
         For Each shpSource In wshSource.Shapes
             mSyncShapePrprtys.ShapeSource = shpSource
             mSyncShapePrprtys.ShapeTarget = mSyncShapes.CorrespTargetShape(shpSource, wshTarget)
@@ -631,15 +613,11 @@ Public Sub RunRemove(ByVal sync_shp_target_name As String, _
     
     On Error GoTo eh
     Dim shpTarget   As Shape
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
     Dim wshTarget   As Worksheet
     
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     
-    Set wshTarget = GetSheet(sync_wsh_target_name, wbkTarget)
+    Set wshTarget = GetSheet(sync_wsh_target_name, mSync.TargetCopy)
     Set shpTarget = GetShape(sync_shp_target_name, wshTarget)
     Log.ServicedItem = shpTarget
     shpTarget.Delete
@@ -775,18 +753,14 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     Dim i           As Long
     Dim Msg         As TypeMsg
     Dim v           As Variant
-    Dim wbkTarget   As Workbook
-    Dim wbkSource   As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
     
     wsService.SyncDialogTitle = TITLE_SYNC_SHEET_SHAPES
     Set fSync = mMsg.MsgInstance(TITLE_SYNC_SHEET_SHAPES)
     With Msg.Section(1)
         .Label.Text = "Obsolete Shapes:"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.MonoSpaced = True
         For Each v In sync_obsolete
             .Text.Text = .Text.Text & vbLf & v & sync_obsolete(v)
@@ -795,7 +769,7 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     End With
     With Msg.Section(2)
         .Label.Text = "New Shapes:"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.MonoSpaced = True
         For Each v In sync_new
             .Text.Text = .Text.Text & vbLf & v & sync_new(v)
@@ -804,10 +778,18 @@ Public Sub Sync(ByRef sync_new As Dictionary, _
     End With
     With Msg.Section(3)
         .Label.Text = "About Shape synchronization:"
-        .Label.FontColor = rgbBlue
+        .Label.FontColor = rgbDarkGreen
         .Text.Text = "Properties of the Shape - new or existing - are synchronized when changed. " & vbLf & _
                      "When the Shape is a Type msoOLEControlObject the OOB's properties are synchronized " & _
                      "in addition."
+    End With
+    With Msg.Section(5)
+        With .Label
+            .Text = "See: Using the Synchronization Service"
+            .FontColor = rgbBlue
+            .OpenWhenClicked = mCompMan.README_URL & mSync.README_SYNC_CHAPTER
+        End With
+        .Text.Text = "The chapter 'Using the Synchronization Service' will provide additional information"
     End With
                
     '~~ Prepare a Command-Buttonn with an Application.Run action for the synchronization of all Worksheets
@@ -1049,24 +1031,24 @@ Public Function TypeString(ByVal shp As Shape) As String
     If shp.Type = msoOLEControlObject Then Set oob = shp.OLEFormat.Object
     
     Select Case shp.Type
-        Case mso3DModel:                TypeString = "3dModel"
+'        Case mso3DModel:                TypeString = "3dModel"
         Case msoAutoShape:              TypeString = "AutoShape " & TypeStringAutoShape(shp)
         Case msoCallout:                TypeString = "CallOut"
         Case msoCanvas:                 TypeString = "Canvas"
         Case msoChart:                  TypeString = "Chart"
         Case msoComment:                TypeString = "Comment"
-        Case msoContentApp:             TypeString = "ContentApp"
+'        Case msoContentApp:             TypeString = "ContentApp"
         Case msoDiagram:                TypeString = "Diagram"
         Case msoEmbeddedOLEObject:      TypeString = "EmbeddedOLEObject"
         Case msoFormControl:            TypeString = "FormControl " & TypeStringFormControl(shp)
         Case msoFreeform:               TypeString = "Freeform"
-        Case msoGraphic:                TypeString = "Graphic"
+'        Case msoGraphic:                TypeString = "Graphic"
         Case msoGroup:                  TypeString = "Group"
         Case msoInk:                    TypeString = "Ink"
         Case msoInkComment:             TypeString = "InkComment"
         Case msoLine:                   TypeString = "Line"
-        Case msoLinked3DModel:          TypeString = "Linked3DModel"
-        Case msoLinkedGraphic:          TypeString = "LinkedGraphic"
+'        Case msoLinked3DModel:          TypeString = "Linked3DModel"
+'        Case msoLinkedGraphic:          TypeString = "LinkedGraphic"
         Case msoLinkedOLEObject:        TypeString = "LinkedOLEObject"
         Case msoLinkedPicture:          TypeString = "LinkedPicture"
         Case msoMedia:                  TypeString = "Media"
@@ -1079,7 +1061,7 @@ Public Function TypeString(ByVal shp As Shape) As String
         Case msoTable:                  TypeString = "Table"
         Case msoTextBox:                TypeString = "TextBox"
         Case msoTextEffect:             TypeString = "TextEffect"
-        Case msoWebVideo:               TypeString = "WebVideo"
+'        Case msoWebVideo:               TypeString = "WebVideo"
         Case Else
             Debug.Print "Shape-Type: '" & shp.Type & "' Not implemented"
     End Select

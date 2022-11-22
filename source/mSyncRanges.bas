@@ -8,37 +8,12 @@ Option Explicit
 ' - CollectAllItems
 ' - CollectChanged
 ' - Done
+' - HasNames
 ' - ItemSyncName
 ' - Sync
 ' - SyncAllNamedRanges
 '
 ' ------------------------------------------------------------------------------
-
-Public Function ItemSyncName(ByVal nme As Name) As String
-    ItemSyncName = "'" & nme.RefersTo & " (" & nme.Name & ")"
-End Function
-
-Public Function Done(ByRef sync_changed As Dictionary) As Boolean
-' ----------------------------------------------------------------------------
-' Returns TRUE when there are no more sheet synchronizations outstanding plus
-' the collections of the outstanding items.
-' ----------------------------------------------------------------------------
-    Set sync_changed = mSyncRanges.CollectChanged
-    
-    Done = sync_changed.Count = 0
-    If Done Then mMsg.MsgInstance TITLE_SYNC_RANGES, True
-    
-End Function
-
-Private Function IsRelevantRangeName(ByVal nme As Name) As Boolean
-    IsRelevantRangeName = nme.RefersTo <> vbNullString And nme.Name <> vbNullString
-    If IsRelevantRangeName Then _
-       IsRelevantRangeName = InStr(nme.RefersTo, "=") <> 0 _
-                    And InStr(nme.RefersTo, "!") <> 0 _
-                    And InStr(nme.RefersTo, "$") <> 0 _
-                    And nme.RefersTo <> "=#NAME?" _
-                    And InStr(nme.Name, "_FilterDatabase") = 0
-End Function
 
 Public Sub CollectAllItems()
 ' ------------------------------------------------------------------------------
@@ -48,23 +23,19 @@ Public Sub CollectAllItems()
     
     On Error GoTo eh
     Dim dct         As New Dictionary
-    Dim nme          As Name
+    Dim nme         As Name
     Dim v           As Variant
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
 
-    For Each nme In wbkSource.Names
-        If IsRelevantRangeName(nme) Then
+    For Each nme In mSync.Source.Names
+        If IsValidUserRangeName(nme) Then
             If Not dct.Exists(ItemSyncName(nme)) _
             Then mDct.DctAdd dct, ItemSyncName(nme), nme, order_bykey, seq_ascending, sense_casesensitive
         End If
     Next nme
-    For Each nme In wbkTarget.Names
-        If IsRelevantRangeName(nme) Then
+    For Each nme In mSync.TargetCopy.Names
+        If IsValidUserRangeName(nme) Then
             If Not dct.Exists(ItemSyncName(nme)) _
             Then mDct.DctAdd dct, ItemSyncName(nme), nme, order_bykey, seq_ascending, sense_casesensitive
         End If
@@ -99,7 +70,7 @@ End Sub
 '    Dim RangeName   As String
 '
 '    If wsh_source Is Nothing And wsh_target Is Nothing Then
-'        For Each wsh In wbkSource.Worksheets
+'        For Each wsh In mSync.Source.Worksheets
 '            If mSyncSheets.Exists(se_wbk:=sync_wbk_target _
 '                                , se_wsh_name:=ws.Name _
 '                                , se_wsh_code_name:=ws.CodeName _
@@ -163,7 +134,7 @@ End Sub
 '    Dim RangeName   As String
 '
 '    If wsh_source Is Nothing And wsh_target Is Nothing Then
-'        For Each wsh In wbkSource.Worksheets
+'        For Each wsh In mSync.Source.Worksheets
 '            If mSyncSheets.Exists(se_wbk:=sync_wbk_target _
 '                                , se_wsh_name:=ws.Name _
 '                                , se_wsh_code_name:=ws.CodeName _
@@ -211,22 +182,6 @@ End Sub
 '    End Select
 'End Sub
 
-Private Function IsSyncItem(ByVal nme As Name) As Boolean
-    With wsSync
-        IsSyncItem = .ShpNumberAll > 0 _
-              And .RngItemAll(ItemSyncName(nme))
-    End With
-End Function
-
-Private Function CollectChangedStillRelevant(ByVal nme As Name) As Boolean
-    With wsSync
-        CollectChangedStillRelevant = _
-        IsSyncItem(nme) _
-        And Not .RngItemChangedDone(ItemSyncName(nme)) _
-        And Not .RngItemChangedFailed(ItemSyncName(nme))
-    End With
-End Function
-
 Public Function CollectChanged() As Dictionary
 ' -----------------------------------------------------------------------------
 ' Returns a collection of those named Ranges in the Sync-Source-Workbook of
@@ -236,27 +191,23 @@ Public Function CollectChanged() As Dictionary
     Const PROC = "CollectChanged"
     
     On Error GoTo eh
-    Dim dct             As New Dictionary
-    Dim nme             As Name
-    Dim TargetRange     As Range
-    Dim SourceRange     As Range
-    Dim SourceSheet     As Worksheet
-    Dim wbkTarget       As Workbook
-    Dim wbkSource       As Workbook
-    Dim v               As Variant
-    Dim sProgress       As String
+    Dim dct         As New Dictionary
+    Dim nme         As Name
+    Dim TargetRange As Range
+    Dim SourceRange As Range
+    Dim SourceSheet As Worksheet
+    Dim v           As Variant
+    Dim sProgress   As String
     
     sProgress = " "
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     
-    For Each nme In wbkSource.Names
+    For Each nme In mSync.Source.Names
         mSync.MonitorStep "Collecting Named Ranges which changed"
-        If IsRelevantRangeName(nme) Then
+        If IsValidUserRangeName(nme) Then
             If CollectChangedStillRelevant(nme) Then
-                If Exists(nme, wbkTarget, TargetRange) Then
-                    Set SourceSheet = ReferredSheet(wbkSource, nme)
+                If Exists(nme, mSync.TargetCopy, TargetRange) Then
+                    Set SourceSheet = ReferredSheet(mSync.Source, nme)
                     Set SourceRange = SourceSheet.Range(nme.Name)
                     If PropertiesChanged(nme, SourceSheet, SourceRange, TargetRange) Then
                     '~~ At least one of the range's properties differs bettween source and target
@@ -285,6 +236,27 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
+Private Function CollectChangedStillRelevant(ByVal nme As Name) As Boolean
+    With wsSync
+        CollectChangedStillRelevant = _
+        IsSyncItem(nme) _
+        And Not .RngItemChangedDone(ItemSyncName(nme)) _
+        And Not .RngItemChangedFailed(ItemSyncName(nme))
+    End With
+End Function
+
+Public Function Done(ByRef sync_changed As Dictionary) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when there are no more sheet synchronizations outstanding plus
+' the collections of the outstanding items.
+' ----------------------------------------------------------------------------
+    Set sync_changed = mSyncRanges.CollectChanged
+    
+    Done = sync_changed.Count = 0
+    If Done Then mMsg.MsgInstance TITLE_SYNC_RANGES, True
+    
+End Function
+
 ' ------------------------------------------------------------------------------
 ' Standard Module mSyncRngsFrmt: Synchronize the formating of named ranges.
 ' ------------------------------------------------------------------------------
@@ -309,7 +281,7 @@ Private Function Exists(ByVal ex_nme As Name, _
     Dim wsh  As Worksheet
     
     For Each nme In ex_wbk.Names
-        If nme.Name = ex_nme.Name And IsRelevantRangeName(nme) Then
+        If nme.Name = ex_nme.Name And IsValidUserRangeName(nme) Then
             Exists = True
             Set wsh = ReferredSheet(ex_wbk, nme)
             Set ex_rng_result = wsh.Range(nme.Name)
@@ -323,6 +295,32 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Function
+
+Private Function GetName(ByVal sync_rng_name As String) As Name
+' ------------------------------------------------------------------------------
+' Returns the Name object identified by the Name (sync_rng_name).
+' ------------------------------------------------------------------------------
+    Dim nme          As Name
+    
+    For Each nme In mSync.Source.Names
+        If nme.Name = sync_rng_name Then
+            Set GetName = nme
+            Exit For
+        End If
+    Next nme
+    
+End Function
+
+Private Function IsSyncItem(ByVal nme As Name) As Boolean
+    With wsSync
+        IsSyncItem = .ShpNumberAll > 0 _
+              And .RngItemAll(ItemSyncName(nme))
+    End With
+End Function
+
+Public Function ItemSyncName(ByVal nme As Name) As String
+    ItemSyncName = "'" & nme.RefersTo & " (" & nme.Name & ")"
 End Function
 
 Private Function PropertiesChanged(ByVal sync_nme As Name, _
@@ -400,6 +398,76 @@ Private Function ReferredSheetName(ByVal rs_nme As Name) As String
     ReferredSheetName = Replace(Replace(Split(rs_nme.RefersTo, "!")(0), "=", vbNullString), "'", vbNullString)
 End Function
 
+Public Sub Sync(ByRef sync_changed As Dictionary)
+' ------------------------------------------------------------------------------
+' Called by mSync.RunSync provided there are (still) any outstanding named
+' range synchronizations are to be done. Displays them in a mode-less dialog
+' for being confirmed either one by one or all together at a time.
+' ------------------------------------------------------------------------------
+    Const PROC = "Sync"
+    
+    On Error GoTo eh
+    Dim AppRunArgs  As New Dictionary
+    Dim cll         As Collection
+    Dim cllButtons  As New Collection
+    Dim fSync       As fMsg
+    Dim i           As Long
+    Dim Msg         As TypeMsg
+    Dim SyncsDue    As Long
+    Dim v           As Variant
+                       
+    SyncsDue = sync_changed.Count
+    If SyncsDue = 0 Then GoTo xt
+    
+    '~~ There's at least one Reference still to be synchronized
+    wsService.SyncDialogTitle = TITLE_SYNC_RANGES
+    Set fSync = mMsg.MsgInstance(TITLE_SYNC_RANGES)
+    With Msg.Section(1)
+        .Label.Text = "Named Ranges properties had changed:"
+        .Label.FontColor = rgbDarkGreen
+        .Text.MonoSpaced = True
+        For Each v In sync_changed
+            .Text.Text = .Text.Text & vbLf & v
+        Next v
+    End With
+    
+    With Msg.Section(2)
+        .Label.Text = "About synchronization of Named Ranges:"
+        .Text.Text = "CompMan's 'Named Ranges Synchronization' service is essential for positioning shapes correctly - in case there are any to be synchronized."
+    End With
+    With Msg.Section(5)
+        With .Label
+            .Text = "See: Using the Synchronization Service"
+            .FontColor = rgbBlue
+            .OpenWhenClicked = mCompMan.README_URL & mSync.README_SYNC_CHAPTER
+        End With
+        .Text.Text = "The chapter 'Using the Synchronization Service' will provide additional information"
+    End With
+        
+    '~~ Add an additional 'Synchronize All' button when there is more than one item to be synched
+    Set cllButtons = mMsg.Buttons(cllButtons, SYNC_ALL_BTTN)
+    mMsg.ButtonAppRun AppRunArgs, SYNC_ALL_BTTN _
+                                , ThisWorkbook _
+                                , "mSyncRanges.SyncAllNamedRanges"
+
+    
+    '~~ Display the mode-less dialog for the confirmation which Sheet synchronization to run
+    mMsg.Dsply dsply_title:=TITLE_SYNC_SHEETS _
+             , dsply_msg:=Msg _
+             , dsply_buttons:=cllButtons _
+             , dsply_modeless:=True _
+             , dsply_buttons_app_run:=AppRunArgs _
+             , dsply_width_min:=45 _
+             , dsply_pos:=wsService.SyncDialogTop & ";" & wsService.SyncDialogLeft
+    
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
 Public Sub SyncAllNamedRanges(ByVal sync_wsh_name As String, _
                               ByVal sync_rng_name As String)
 ' ------------------------------------------------------------------------------
@@ -409,17 +477,13 @@ Public Sub SyncAllNamedRanges(ByVal sync_wsh_name As String, _
 ' ------------------------------------------------------------------------------
     Dim rngSource   As Range
     Dim rngTarget   As Range
-    Dim wbkTarget    As Workbook
-    Dim wbkSource    As Workbook
-    Dim wshSource    As Worksheet
-    Dim wshTarget    As Worksheet
+    Dim wshSource   As Worksheet
+    Dim wshTarget   As Worksheet
     
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    mService.EstablishServiceLog wbkTarget, mCompManClient.SRVC_SYNCHRONIZE
+    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
     
-    Set wshSource = wbkSource.Worksheets(sync_wsh_name)
-    Set wshTarget = wbkTarget.Worksheets(sync_wsh_name)
+    Set wshSource = mSync.Source.Worksheets(sync_wsh_name)
+    Set wshTarget = mSync.TargetCopy.Worksheets(sync_wsh_name)
     Set rngSource = wshSource.Range(sync_rng_name)
     Set rngTarget = wshTarget.Range(sync_rng_name)
     
@@ -464,24 +528,6 @@ Public Sub SyncAllNamedRanges(ByVal sync_wsh_name As String, _
 
 End Sub
 
-Private Function GetName(ByVal sync_rng_name As String) As Name
-' ------------------------------------------------------------------------------
-' Returns the Name object identified by the Name (sync_rng_name).
-' ------------------------------------------------------------------------------
-    Dim nme          As Name
-    Dim wbkSource    As Workbook
-    
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-    For Each nme In wbkSource.Names
-        If nme.Name = sync_rng_name Then
-            Set GetName = nme
-            Exit For
-        End If
-    Next nme
-    
-End Function
-
-
 Private Sub SyncRangeProperty(ByVal v_target As Variant, _
                               ByVal v_source As Variant, _
                               ByVal s_property As String)
@@ -502,72 +548,4 @@ Private Sub SyncRangeProperty(ByVal v_target As Variant, _
 xt: On Error GoTo -1
 
 End Sub
-
-Public Sub Sync(ByRef sync_changed As Dictionary)
-' ------------------------------------------------------------------------------
-' Called by mSync.RunSync provided there are (still) any outstanding named
-' range synchronizations are to be done. Displays them in a mode-less dialog
-' for being confirmed either one by one or all together at a time.
-' ------------------------------------------------------------------------------
-    Const PROC = "Sync"
-    
-    On Error GoTo eh
-    Dim AppRunArgs  As New Dictionary
-    Dim cll         As Collection
-    Dim cllButtons  As New Collection
-    Dim fSync       As fMsg
-    Dim i           As Long
-    Dim Msg         As TypeMsg
-    Dim SyncsDue    As Long
-    Dim v           As Variant
-    Dim wbkSource    As Workbook
-    Dim wbkTarget    As Workbook
-    
-    Set wbkTarget = mWbk.GetOpen(wsService.SyncTargetWorkbookName)
-    Set wbkSource = mWbk.GetOpen(wsService.SyncSourceWorkbookName)
-                       
-    SyncsDue = sync_changed.Count
-    If SyncsDue = 0 Then GoTo xt
-    
-    '~~ There's at least one Reference still to be synchronized
-    wsService.SyncDialogTitle = TITLE_SYNC_RANGES
-    Set fSync = mMsg.MsgInstance(TITLE_SYNC_RANGES)
-    With Msg.Section(1)
-        .Label.Text = "Named Ranges properties had changed:"
-        .Label.FontColor = rgbBlue
-        .Text.MonoSpaced = True
-        For Each v In sync_changed
-            .Text.Text = .Text.Text & vbLf & v
-        Next v
-    End With
-    
-    With Msg.Section(2)
-        .Label.Text = "About synchronization of Named Ranges:"
-        .Text.Text = "CompMan's 'Named Ranges Synchronization' service is essential for positioning shapes correctly - in case there are any to be synchronized."
-    End With
-        
-    '~~ Add an additional 'Synchronize All' button when there is more than one item to be synched
-    Set cllButtons = mMsg.Buttons(cllButtons, SYNC_ALL_BTTN)
-    mMsg.ButtonAppRun AppRunArgs, SYNC_ALL_BTTN _
-                                , ThisWorkbook _
-                                , "mSyncRanges.SyncAllNamedRanges"
-
-    
-    '~~ Display the mode-less dialog for the confirmation which Sheet synchronization to run
-    mMsg.Dsply dsply_title:=TITLE_SYNC_SHEETS _
-             , dsply_msg:=Msg _
-             , dsply_buttons:=cllButtons _
-             , dsply_modeless:=True _
-             , dsply_buttons_app_run:=AppRunArgs _
-             , dsply_width_min:=45 _
-             , dsply_pos:=wsService.SyncDialogTop & ";" & wsService.SyncDialogLeft
-    
-xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
 

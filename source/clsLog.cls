@@ -56,9 +56,18 @@ Friend Property Let Entry(ByVal s As String)
     
 End Property
 
-Friend Property Get FileFullName() As String:           FileFullName = sFileFullName:   End Property
+Friend Property Get FileFullName() As String
+' -----------------------------------------------------------------------------------
+' -----------------------------------------------------------------------------------
+    If sFileFullName = vbNullString Then
+        sFileFullName = wsService.LogFileFullName
+    End If
+    FileFullName = sFileFullName
+End Property
 
-Friend Property Let FileFullName(ByVal s As String):    sFileFullName = s:              End Property
+Friend Property Let FileFullName(ByVal s As String)
+    sFileFullName = s
+End Property
 
 Friend Property Get Folder() As String:                 Folder = sFolder:               End Property
 
@@ -104,15 +113,15 @@ Friend Property Let Service(Optional ByVal new_log As Boolean = False, _
     Dim fso         As New FileSystemObject
     
     sNewService = sv_name & " (by "
-    If ThisWorkbook.Name = mMe.CompManAddinName _
-    Then sNewService = sNewService & "Addin" _
-    Else sNewService = sNewService & ThisWorkbook.Name
-    sNewService = sNewService & ") for " & mService.Serviced.Name & ": "
+    If ThisWorkbook.name = mAddin.WbkName _
+    Then sNewService = sNewService & "Add-in" _
+    Else sNewService = sNewService & ThisWorkbook.name
+    sNewService = sNewService & ") for " & mService.WbkServiced.name & ": "
     bNewService = sNewService <> sService
     sService = sNewService
     
     bNewLog = new_log
-    Me.Folder = mService.Serviced.Path
+    Me.Folder = mService.WbkServiced.Path
     
     '~~ In case no specific log-file had been decided a default log-file is determined
     If sFileFullName = vbNullString Then sFileFullName = Me.Folder & "\" & LOG_FILE_NAME
@@ -143,7 +152,8 @@ Friend Property Let Service(Optional ByVal new_log As Boolean = False, _
                      Format$(Now(), "YY-MM-DD hh:mm:ss") & " " & VBA.String$(Len(sService), "-")
     End If
 
-xt: Set fso = Nothing
+xt: wsService.LogFileFullName = sFileFullName
+    Set fso = Nothing
     Exit Property
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -168,7 +178,7 @@ Friend Property Let ServicedItem(ByVal v As Variant)
 ' -----------------------------------------------------------------------------------
     
     Dim vbc As VBComponent
-    Dim nam  As Name
+    Dim nam  As name
     Dim wsh  As Worksheet
     Dim ref As Reference
     Dim shp As Shape
@@ -182,33 +192,33 @@ Friend Property Let ServicedItem(ByVal v As Variant)
     Dim lbl As Label
     Dim img As Image
     Dim cbt As CommandButton
-    Dim rng As Range
+    Dim Rng As Range
     
     Select Case TypeName(v)
         Case "VBComponent":     Set vbc = v:    Select Case vbc.Type
-                                                    Case vbext_ct_ActiveXDesigner:  ServicedItemProperties "ActiveX-Designer", vbc.Name
-                                                    Case vbext_ct_ClassModule:      ServicedItemProperties "Class-Module", vbc.Name
-                                                    Case vbext_ct_MSForm:           ServicedItemProperties "UserForm", vbc.Name
-                                                    Case vbext_ct_StdModule:        ServicedItemProperties "Standard-Module", vbc.Name
+                                                    Case vbext_ct_ActiveXDesigner:  ServicedItemProperties "ActiveX-Designer", vbc.name
+                                                    Case vbext_ct_ClassModule:      ServicedItemProperties "Class-Module", vbc.name
+                                                    Case vbext_ct_MSForm:           ServicedItemProperties "UserForm", vbc.name
+                                                    Case vbext_ct_StdModule:        ServicedItemProperties "Standard-Module", vbc.name
                                                     Case vbext_ct_Document:         If mComp.IsSheetDocMod(vbc) _
-                                                                                    Then ServicedItemProperties "Worksheet", vbc.Name _
-                                                                                    Else ServicedItemProperties "Workbook", vbc.Name
+                                                                                    Then ServicedItemProperties "Worksheet", vbc.name _
+                                                                                    Else ServicedItemProperties "Workbook", vbc.name
                                                 End Select
-        Case "Name":            Set nam = v:    ServicedItemProperties "Name", Replace(nam.Name, nam.Parent.Name & "!", vbNullString) & "(" & nam.RefersTo & ")"
+        Case "Name":            Set nam = v:    ServicedItemProperties "Name", Replace(nam.name, nam.Parent.name & "!", vbNullString) & "(" & nam.RefersTo & ")"
         Case "Reference":       Set ref = v:    ServicedItemProperties TypeName(ref), ref.Description
-        Case "Shape":           Set shp = v:    ServicedItemProperties mSyncShapes.TypeString(shp), shp.Parent.Name & "." & mSyncShapes.ShapeNames(shp)
+        Case "Shape":           Set shp = v:    ServicedItemProperties mSyncShapes.TypeString(shp), shp.Parent.name & "." & mSyncShapes.ShapeNames(shp)
         Case "Worksheet":       Set wsh = v:    ServicedItemProperties "Worksheet", wsh.CodeName
         Case "String":                          ServicedItemProperties Split(v, ";")(0), Split(v, ";")(1)
-        Case "CommandButton":   Set cbt = v:    ServicedItemProperties TypeName(v), v.Name
-        Case "Image":           Set img = v:    ServicedItemProperties TypeName(v), v.Name
-        Case "Label":           Set lbl = v:    ServicedItemProperties TypeName(v), v.Name
-        Case "ListBox":         Set lbx = v:    ServicedItemProperties TypeName(v), v.Name
-        Case "OptionButton":    Set obt = v:    ServicedItemProperties TypeName(v), v.Name
-        Case "ScrollBar":       Set scb = v:    ServicedItemProperties TypeName(v), v.Name
-        Case "SpinButton":      Set sbt = v:    ServicedItemProperties TypeName(v), v.Name
-        Case "TextBox":         Set tbx = v:    ServicedItemProperties TypeName(v), v.Name
-        Case "ToggleButton":    Set tbt = v:    ServicedItemProperties TypeName(v), v.Name
-        Case "Range":           Set rng = v:    ServicedItemProperties TypeName(v), v.Name.Name
+        Case "CommandButton":   Set cbt = v:    ServicedItemProperties TypeName(v), v.name
+        Case "Image":           Set img = v:    ServicedItemProperties TypeName(v), v.name
+        Case "Label":           Set lbl = v:    ServicedItemProperties TypeName(v), v.name
+        Case "ListBox":         Set lbx = v:    ServicedItemProperties TypeName(v), v.name
+        Case "OptionButton":    Set obt = v:    ServicedItemProperties TypeName(v), v.name
+        Case "ScrollBar":       Set scb = v:    ServicedItemProperties TypeName(v), v.name
+        Case "SpinButton":      Set sbt = v:    ServicedItemProperties TypeName(v), v.name
+        Case "TextBox":         Set tbx = v:    ServicedItemProperties TypeName(v), v.name
+        Case "ToggleButton":    Set tbt = v:    ServicedItemProperties TypeName(v), v.name
+        Case "Range":           Set Rng = v:    ServicedItemProperties TypeName(v), v.name.name
         Case Else
             Debug.Print "TypeName '" & TypeName(v) & "' not yet considered as a serviced item"
     End Select

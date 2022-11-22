@@ -30,14 +30,14 @@ Public Function All(Optional ByRef a_stats As clsStats = Nothing) As Dictionary
     Dim vbc     As VBComponent
     Dim Comp    As clsComp
     
-    Set wbk = mService.Serviced
+    Set wbk = mService.WbkServiced
     With wbk.VBProject
         For Each vbc In .VBComponents
             If Not a_stats Is Nothing Then a_stats.Count sic_comps
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = wbk
-                .CompName = vbc.Name
+                .CompName = vbc.name
                 Set .VBComp = vbc
             End With
             mDct.DctAdd add_dct:=All, add_key:=vbc, add_item:=Comp, add_order:=order_bykey
@@ -72,7 +72,7 @@ End Function
 Public Function Outdated(ByVal o_wbk_serviced As Workbook, _
                          Optional ByRef o_stats As clsStats = Nothing) As Dictionary
 ' ----------------------------------------------------------------------------
-' Returns a Dictionary of all VBComponents in the mService.Serviced Workbook's
+' Returns a Dictionary of all VBComponents in the mService.WbkServiced Workbook's
 ' VBProject indicated Used Common Components of which an update is due because
 ' the correspondingthe Raw's code has changed.
 ' The Dictionary has the VBComponent objects as key and the corresponding

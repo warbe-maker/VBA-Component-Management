@@ -19,7 +19,15 @@ Option Explicit
 '                   string
 '
 ' ------------------------------------------------------------------------
-Public Const RENAMED_BY_COMPMAN = "_RenamedByCompMan"
+Public Const RENAMED_BY_COMPMAN = "_RnmdByCompMan"
+
+Public Enum vbcmType                ' Type of VBComponent
+    vbext_ct_StdModule = 1          ' .bas
+    vbext_ct_ClassModule = 2        ' .cls
+    vbext_ct_MSForm = 3             ' .frm
+    vbext_ct_ActiveXDesigner = 11   ' ??
+    vbext_ct_Document = 100         ' .cls
+End Enum
 
 Public Function Exists(ByVal xst_wbk As Workbook, _
                        ByVal xst_vbc_name As String) As Boolean

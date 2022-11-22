@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} fMsg 
-   ClientHeight    =   11598
+   ClientHeight    =   11595
    ClientLeft      =   150
    ClientTop       =   390
    ClientWidth     =   12390
@@ -11,7 +11,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 Option Explicit
 ' -------------------------------------------------------------------------------
 ' UserForm fMsg Provides all means for a message with up to 5 separated text
@@ -60,7 +59,7 @@ Const DFLT_TXT_MONOSPACED_FONT_SIZE As Single = 10              ' Default monosp
 Const DFLT_TXT_PROPSPACED_FONT_NAME As String = "Tahoma"        ' Default proportional spaced font name
 Const DFLT_TXT_PROPSPACED_FONT_SIZE As Single = 10              ' Default proportional spaced font size
 Const HSPACE_BTTN_AREA              As Single = 15              ' Minimum left and right margin for the centered buttons area
-Const HSPACE_BTTNS                As Single = 4               ' Horizontal space between reply buttons
+Const HSPACE_BTTNS                  As Single = 4               ' Horizontal space between reply buttons
 Const HSPACE_LEFT                   As Single = 0               ' Left margin for labels and text boxes
 Const HSPACE_RIGHT                  As Single = 15              ' Horizontal right space for labels and text boxes
 Const HSPACE_LEFTRIGHT_BUTTONS      As Long = 8                 ' The margin before the left most and after the right most button
@@ -247,6 +246,7 @@ Private iSectionsPropSpaced     As Long             ' number of prop. spaced sec
 Private iSectionsMonoSpaced     As Long             ' number of mono-spaced sections setup
 
 Public Property Let ModeLess(ByVal b As Boolean): bModeLess = b:    End Property
+
 Private Sub UserForm_Initialize()
     Const PROC = "UserForm_Initialize"
     
@@ -305,6 +305,9 @@ Private Sub UserForm_Terminate()
     Set dctSectsLabel = Nothing
     Set dctSectsMonoSpaced = Nothing
     Set dctSectsText = Nothing
+    If bModeLess Then
+        Application.EnableEvents = True
+    End If
 End Sub
 
 Public Property Get MonitorIsInitialized() As Boolean: MonitorIsInitialized = Not cllSteps Is Nothing:  End Property
@@ -380,7 +383,7 @@ Private Property Let MonoSpaced( _
                  Optional ByVal var_ctl As Variant, _
                           ByVal b As Boolean)
     If b Then
-        If Not dctMonoSpaced.Exists(var_ctl) Then dctMonoSpaced.Add var_ctl, var_ctl.Name
+        If Not dctMonoSpaced.Exists(var_ctl) Then dctMonoSpaced.Add var_ctl, var_ctl.name
     Else
         If dctMonoSpaced.Exists(var_ctl) Then dctMonoSpaced.Remove var_ctl
     End If
@@ -394,7 +397,7 @@ Private Property Let MonoSpacedTbx( _
                  Optional ByVal tbx As MSForms.TextBox, _
                           ByVal b As Boolean)
     If b Then
-        If Not dctMonoSpacedTbx.Exists(tbx) Then dctMonoSpacedTbx.Add tbx, tbx.Name
+        If Not dctMonoSpacedTbx.Exists(tbx) Then dctMonoSpacedTbx.Add tbx, tbx.name
     Else
         If dctMonoSpacedTbx.Exists(tbx) Then dctMonoSpacedTbx.Remove tbx
     End If
@@ -589,9 +592,7 @@ Public Property Get NoOfDesignedMsgSects() As Long ' -----------------------
     NoOfDesignedMsgSects = lNoOfDesignedMsgSects   ' Global definition !!!!!
 End Property                                       ' -----------------------
 
-Private Property Let NoOfDesignedMsgSects(ByVal l As Long)
-    lNoOfDesignedMsgSects = l
-End Property
+Private Property Let NoOfDesignedMsgSects(ByVal l As Long):  lNoOfDesignedMsgSects = l:                             End Property
 
 Private Property Get PrcntgHeightfrmBttnsArea() As Single
     PrcntgHeightfrmBttnsArea = Round(frmBttnsArea.Height / (frmMsectsArea.Height + frmBttnsArea.Height), 2)
@@ -601,11 +602,9 @@ Private Property Get PrcntgHeightMsgArea() As Single
     PrcntgHeightMsgArea = Round(frmMsectsArea.Height / (frmMsectsArea.Height + frmBttnsArea.Height), 2)
 End Property
 
-'Public Property Get ReplyValue() As Variant:                ReplyValue = vReplyValue:                                   End Property
+Public Property Let ReplyWithIndex(ByVal b As Boolean):     bReplyWithIndex = b:                                    End Property
 
-Public Property Let ReplyWithIndex(ByVal b As Boolean):     bReplyWithIndex = b:                                        End Property
-
-Public Property Let SetupDone(ByVal b As Boolean):          bSetUpDone = b:         End Property
+Public Property Let SetupDone(ByVal b As Boolean):          bSetUpDone = b:                                         End Property
 
 Private Property Get SysFrequency() As Currency
     If TimerSystemFrequency = 0 Then getFrequency TimerSystemFrequency
@@ -704,7 +703,7 @@ Public Function AddControl(ByVal ac_ctl As MSFormControls _
     If ac_in Is Nothing Then
         If Not CtlExists(ac_name) Then
             Set ctl = Me.Controls.Add(bstrProgID:=MSFormsProgID(ac_ctl) _
-                                    , Name:=ac_name _
+                                    , name:=ac_name _
                                     , Visible:=ac_visible)
             Set AddControl = ctl
         End If
@@ -716,12 +715,12 @@ Public Function AddControl(ByVal ac_ctl As MSFormControls _
             If ac_ctl = Frame Then Stop
             If ac_ctl = Frame Then
                 Set frm = ac_in.Controls.Add(bstrProgID:=MSFormsProgID(ac_ctl) _
-                                           , Name:=ac_name _
+                                           , name:=ac_name _
                                            , Visible:=ac_visible)
                 Set AddControl = frm
             Else
                 Set ctl = ac_in.Controls.Add(bstrProgID:=MSFormsProgID(ac_ctl) _
-                                           , Name:=ac_name _
+                                           , name:=ac_name _
                                            , Visible:=ac_visible)
                 Set AddControl = ctl
             End If
@@ -1441,7 +1440,7 @@ End Sub
 Private Function CtlExists(ByVal ce_name As String) As Boolean
     Dim ctl As MSForms.Control
     For Each ctl In Me.Controls
-        If ctl.Name = ce_name Then
+        If ctl.name = ce_name Then
             CtlExists = True
             Exit For
         End If
@@ -1473,7 +1472,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -1621,13 +1620,11 @@ Private Function IsUserForm(ByVal is_obj As Object) As Boolean
       IsUserForm = TypeOf is_obj Is MSForms.UserForm
 End Function
 
-Private Sub laMsgSection1Labe2_Click():     OpenClickedLabelItem 2: End Sub
-
-Private Sub laMsgSection1Labe3_Click():     OpenClickedLabelItem 3: End Sub
-
-Private Sub laMsgSection1Labe4_Click():     OpenClickedLabelItem 4: End Sub
-
 Private Sub laMsgSection1Label_Click():     OpenClickedLabelItem 1: End Sub
+Private Sub laMsgSection2Label_Click():     OpenClickedLabelItem 2: End Sub
+Private Sub laMsgSection3Label_Click():     OpenClickedLabelItem 3: End Sub
+Private Sub laMsgSection4Label_Click():     OpenClickedLabelItem 4: End Sub
+Private Sub laMsgSection5Label_Click():     OpenClickedLabelItem 5: End Sub
 
 Private Sub laMsgSection1Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 1:    End Sub
 
@@ -1636,6 +1633,8 @@ Private Sub laMsgSection2Label_MouseMove(ByVal Button As Integer, ByVal Shift As
 Private Sub laMsgSection3Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 3:    End Sub
 
 Private Sub laMsgSection4Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 4:    End Sub
+
+Private Sub laMsgSection5Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 5:    End Sub
 
 Private Function Max(ParamArray va() As Variant) As Variant
 ' ----------------------------------------------------------------------------
@@ -2186,11 +2185,11 @@ Private Sub OpenClickedLabelItem(ByVal oc_section As Long)
 End Sub
 
 Private Function GetPanesIndex(ByVal Rng As Range) As Integer
-    Dim sR As Long:          sR = ActiveWindow.SplitRow
-    Dim sc As Long:          sc = ActiveWindow.SplitColumn
-    Dim r As Long:            r = Rng.row
-    Dim c As Long:            c = Rng.Column
-    Dim Index As Integer: Index = 1
+    Dim sR As Long:            sR = ActiveWindow.SplitRow
+    Dim sc As Long:            sc = ActiveWindow.SplitColumn
+    Dim r As Long:              r = Rng.row
+    Dim c As Long:              c = Rng.Column
+    Dim Index As Integer:   Index = 1
 
     Select Case True
     Case sR = 0 And sc = 0: Index = 1
@@ -2737,7 +2736,7 @@ Private Sub Setup1_Title(ByVal setup_title As String, _
         With .laMsgTitle
             With .Font
                 .Bold = False
-                .Name = Me.Font.Name
+                .name = Me.Font.name
                 .Size = 8    ' Value which comes to a length close to the length required
             End With
             .Caption = vbNullString
@@ -3009,10 +3008,10 @@ Private Sub SetupMsgSect()
                 .Caption = MsgSectLbl.Text
                 With .Font
                     If MsgSectLbl.MonoSpaced Then
-                        If MsgSectLbl.FontName <> vbNullString Then .Name = MsgSectLbl.FontName Else .Name = DFLT_LBL_MONOSPACED_FONT_NAME
+                        If MsgSectLbl.FontName <> vbNullString Then .name = MsgSectLbl.FontName Else .name = DFLT_LBL_MONOSPACED_FONT_NAME
                         If MsgSectLbl.FontSize <> 0 Then .Size = MsgSectLbl.FontSize Else .Size = DFLT_LBL_MONOSPACED_FONT_SIZE
                     Else
-                        If MsgSectLbl.FontName <> vbNullString Then .Name = MsgSectLbl.FontName Else .Name = DFLT_LBL_PROPSPACED_FONT_NAME
+                        If MsgSectLbl.FontName <> vbNullString Then .name = MsgSectLbl.FontName Else .name = DFLT_LBL_PROPSPACED_FONT_NAME
                         If MsgSectLbl.FontSize <> 0 Then .Size = MsgSectLbl.FontSize Else .Size = DFLT_LBL_PROPSPACED_FONT_SIZE
                     End If
                     If MsgSectLbl.FontItalic Then .Italic = True
@@ -3076,7 +3075,7 @@ Const PROC = "SetupMsgSectMonoSpaced"
   
     With MsectTbx
         With .Font
-            If MsgSectTxt.FontName <> vbNullString Then .Name = MsgSectTxt.FontName Else .Name = DFLT_LBL_MONOSPACED_FONT_NAME
+            If MsgSectTxt.FontName <> vbNullString Then .name = MsgSectTxt.FontName Else .name = DFLT_LBL_MONOSPACED_FONT_NAME
             If MsgSectTxt.FontSize <> 0 Then .Size = MsgSectTxt.FontSize Else .Size = DFLT_LBL_MONOSPACED_FONT_SIZE
             If .Bold <> MsgSectTxt.FontBold Then .Bold = MsgSectTxt.FontBold
             If .Italic <> MsgSectTxt.FontItalic Then .Italic = MsgSectTxt.FontItalic
@@ -3148,7 +3147,7 @@ Private Sub SetupMsgSectPropSpaced(Optional ByVal msg_append As Boolean = False,
     
     With MsectTbx
         With .Font
-            If MsgSectTxt.FontName <> vbNullString Then .Name = MsgSectTxt.FontName Else .Name = DFLT_LBL_PROPSPACED_FONT_NAME
+            If MsgSectTxt.FontName <> vbNullString Then .name = MsgSectTxt.FontName Else .name = DFLT_LBL_PROPSPACED_FONT_NAME
             If MsgSectTxt.FontSize <> 0 Then .Size = MsgSectTxt.FontSize Else .Size = DFLT_LBL_PROPSPACED_FONT_SIZE
             If .Bold <> MsgSectTxt.FontBold Then .Bold = MsgSectTxt.FontBold
             If .Italic <> MsgSectTxt.FontItalic Then .Italic = MsgSectTxt.FontItalic
@@ -3195,14 +3194,14 @@ Private Sub SetupTextFont(ByVal ctl As MSForms.Control, _
         If .Italic <> txt.FontItalic Then .Italic = txt.FontItalic
         If .Underline <> txt.FontUnderline Then .Underline = txt.FontUnderline
         If txt.MonoSpaced Then
-            .Name = DFLT_TXT_MONOSPACED_FONT_NAME
+            .name = DFLT_TXT_MONOSPACED_FONT_NAME
             If txt.FontSize = 0 _
             Then .Size = DFLT_TXT_MONOSPACED_FONT_SIZE _
             Else .Size = txt.FontSize
         Else
             If txt.FontName = vbNullString _
-            Then .Name = DFLT_TXT_PROPSPACED_FONT_NAME _
-            Else .Name = txt.FontName
+            Then .name = DFLT_TXT_PROPSPACED_FONT_NAME _
+            Else .name = txt.FontName
             If txt.FontSize = 0 _
             Then .Size = DFLT_TXT_PROPSPACED_FONT_SIZE _
             Else .Size = txt.FontSize
@@ -3439,7 +3438,7 @@ Private Sub VisualizeSetupStep(ByVal vss_status As String)
             .Top = 10
             .Left = 10
             Application.StatusBar = "Setup step visualization for debug and test: " & vss_status
-            Stop
+'            Stop
         End If
     End With
 End Sub
@@ -3498,7 +3497,7 @@ Private Sub ApplicationRunViaButton(ByVal ar_button As String)
         sKey = Replace(Replace(dctApplicationRunArgs.Keys()(i), vbCrLf, "|"), vbLf, "|")
         If sKey = sButton Then
             Set cll = dctApplicationRunArgs.Items()(i)
-            sService = cll(1).Name & "!" & cll(2)
+            sService = cll(1).name & "!" & cll(2)
             
             Select Case cll.Count
                 Case 2: Application.Run sService                 ' service call without arguments
