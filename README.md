@@ -188,11 +188,15 @@ New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. 
 #### Status of the CompMan Add-in
 | Status             | Meaning |
 |--------------------|---------|
-| configured | A valid, existing [_Add-in folder_](#add-in-folder) is specified |
-| paused     | The Add-in is currently paused. I.e. even when open it is programmatic-ally deactivated |
-| open       | The CompMan Add-in open, it may still be paused however |
-| not open   | The [CompMan.xlsb][1] Workbook is setup as Add-in but the Add-in is yet not open! Excel opens the Add-in only when at least one open Workbook's VB-Project has referenced it. |
-| setup      | The [CompMan.xlsb][1] Workbook is setup as Add-in, i.e. it is available in the configured [_Add-in folder_](#add-in-folder)  |
+| configured         | A valid, existing [_Add-in folder_](#add-in-folder) is specified. CompMan's Add-in instance  may be setup/renewed  |
+| not configured     | No [_Add-in folder_](#add-in-folder) is specified. CompMan's Add-in instance cannot be setup/renewed (the button is not visible) |
+| setup              | CompMan's Add-in instance is setup, i.e. available in the configured [_Add-in folder_](#add-in-folder) |
+| not setup          | CompMan's Add-in instance is not setup, i.e. not available in the configured [_Add-in folder_](#add-in-folder). |
+| paused             | CompMan's Add-in instance is indicated 'currently paused'. I.e. even when open it will  programmatic-ally be ignored |
+| open               | CompMan's Add-in instance is open (it may be paused however) |
+| not open           | CompMan's Add-in instance is not open. It will be opened when setup/renew and when Excel is started because the setup/renew establishes auto-open. |
+| auto-open setup    | With setup/renew the auto-open has implicitly setup/established. |
+| auto&#8209;open&nbsp;not&nbsp;setup| When the [_Add-in folder_](#add-in-folder) is de-configured (no folder is selected when with 'Configure') a setup auto-open is removed |
  
 #### Common Components
 One of the initial intentions for the development of CompMan was to keep _Common&nbspComponent_ up-to-date in all VB-Projects which use them. Thus the export service handles _Raw&nbsp;Common&nbsp;Components_ in a specific way: It registers hosted _Raw&nbsp;Common&nbsp;Components_, it increases a [_Revision Number_](#the-revision-number) with each export and additionally copies the _Export&nbsp;File_ to a _Common Components_ folder which functions as the source for the [_UpdateOutdatedCommonComponents_ service](#the-updateoutdatedcommoncomponents-service) (while the hosting Workbook itself is not in charge with this service.  
