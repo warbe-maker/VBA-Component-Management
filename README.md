@@ -207,14 +207,13 @@ CompMan is pretty much focused on _Common&nbsp;Components_. In order to prevent 
 
 | File                     | Location             | Description               |
 |--------------------------|----------------------|---------------------------|
-| _ComCompsHosted.dat_     | The serviced Workbook's parent folder | PrivateProfile file for the registration of all _Raw&nbsp;Common&nbsp;Components_ hosted in the corresponding Workbook. Content scheme:<small>  `[component-name]`  `RawExpFileFullName=<file-full-name>`  ` RawRevisionNumber=YYYY-MM-DD.000>` |
-| _ComCompsUsed.dat_       | The serviced Workbook's parent folder | Private Profile file for the registration of all _Used&nbsp;Common&nbsp;Components_. Content scheme:<small>  `[component-name]`  `RawRevisionNumber=YYYY-MM-DD.000>` |
-| _ComComps&#8209;RawsSaved.dat_ | [_Common&nbsp;Components_ folder](#common-components-folder) | PrivateProfile file for the registration of all known _Raw&nbsp;Common&nbsp;Components_ |
-| _CompMan.Service.trc_ | The serviced Workbook's parent folder | Execution trace of the performed CompMan service, available only when the _Conditional Compile Argument_ `ExecTrace = 1` is set in the servicing Workbook which is either the CompMan.xlsb Workbook directly or the CompMan.xlam Add-in instance of it. |
-|  _CompMan.Service.log | The serviced Workbook's parent folder | Log file for the executed CompMan services. |
+| _CompMan.dat_     | The serviced Workbook's parent folder | PrivateProfile file for the registration of all  _Hosted&nbsp;Common&nbsp;Components_ and all _Used&nbsp;Common&nbsp;Components_. |
+| _CompMan.Service.trc_ | The serviced Workbook's parent folder | Execution trace of the performed CompMan service, available only when the _Conditional Compile Argument_ `ExecTrace = 1` is set in the servicing Workbook which is either the CompMan.xlsb Workbook directly or the _CompMan.xlam_ Add-in instance of it. |
+|  _CompMan.Service.log_ | The serviced Workbook's parent folder | Log file for the executed CompMan services. |
+| _CommComp.dat_ | The Common Components folder | A PrivateProfile file with sections representing Common Components with various information like the hosting Workbook and the _Revision-Number_ |
 
 #### Multiple computers involved in VB-Project's development/maintenance
-I do use two computers at two locations and prefer not to be bound to one. Some may prefer a network drive others a cloud based service. I prefer GitHub which makes using several computers very comfortable. In any case there is a certain need to prevent updates of used _Common&nbsp;Components_ with outdated hosted/raw versions.
+When the Common Components folder is handled as a Github repository it will be easy to keep an up-to-date clone on various computers. Currently the location of the Common Components folder is fixed and cannot be configured/located on a network.
 
 #### CompMan used as Add-in
 Life is easy when the [CompMan.xls][1] Workbook is open and that's why it is possible to configure an Auto-open for it. Alternatively, CompMan may be setup as Add-in. This setup will also configure an Auto-open for it. Workbooks with [enabled services](#enabling-the-services) will be served by either of the two depending on which one is open.
