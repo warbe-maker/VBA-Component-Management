@@ -27,7 +27,6 @@ Option Explicit
 ' - ExpFileFullName
 ' - ExpFileTempFullName
 ' - ExpFilePath
-' - IsSheet
 ' - IsWorkbk
 ' - KindOfComp
 ' - MaxLenComp
@@ -94,11 +93,11 @@ Private Sub Class_Terminate()
 End Sub
 
 Public Property Get DueModificationWarning() As Boolean
-    DueModificationWarning = mComCompsUsed.DueModificationWarning(sCompName)
+    DueModificationWarning = mCompManDat.DueModificationWarning(sCompName)
 End Property
 
 Public Property Let DueModificationWarning(ByVal b As Boolean)
-    mComCompsUsed.DueModificationWarning(sCompName) = b
+    mCompManDat.DueModificationWarning(sCompName) = b
 End Property
 
 Friend Property Get Changed() As Boolean
@@ -313,31 +312,20 @@ Friend Property Set ExpFile(ByVal fl As File):      Set flExpFile = fl:     End 
 
 Friend Property Get ExpFileExt() As String: ExpFileExt = sExpFileExt:   End Property
 
-'Private Property Get ExpFileExt() As String
-'
-'    If sExpFileExt = vbNullString Then
-'        If vbc Is Nothing Then Set vbc = wbk.VBProject.VBComponents(sCompName)
-'        With Me
-'            Select Case vbc.Type
-'                Case vbext_ct_StdModule:    sExpFileExt = ".bas"
-'                Case vbext_ct_ClassModule:  sExpFileExt = ".cls"
-'                Case vbext_ct_MSForm:       sExpFileExt = ".frm"
-'                Case vbext_ct_Document:     sExpFileExt = ".cls"
-'            End Select
-'        End With
-'    End If
-'    ExpFileExt = sExpFileExt
-'
-'End Property
-
 Friend Property Get ExpFileFullName() As String
-' ------------------------------------------------------------------
-' Will already have been prepared along with 'Property Let CompName'
-' ------------------------------------------------------------------
+' ------------------------------------------------------------------------------
+' Will already have been prepared along with 'Property Let CompName'. However,
+' when the file does not exist it is created by the Export service.
+' ------------------------------------------------------------------------------
     If sExpFileFullName = vbNullString Then
         sExpFileFullName = mExport.ExpFileFolderPath(Me.Wrkbk) & "\" & sCompName & Me.ExpFileExt
     End If
     ExpFileFullName = sExpFileFullName
+    With New FileSystemObject
+        If Not .FileExists(sExpFileFullName) Then
+            Me.VBComp.Export sExpFileFullName
+        End If
+    End With
 End Property
 
 Friend Property Get ExpFilesDiffer() As Boolean
@@ -373,7 +361,7 @@ Friend Property Get RevisionNumbersDiffer() As Boolean
 ' Returns TRUE when the RevisionNumber of the Raw Common Component differs from
 ' the current RevisionNumber of this Used Common Component.
 ' ------------------------------------------------------------------------------
-    RevisionNumbersDiffer = mComCompRawsGlobal.RawSavedRevisionNumber(sCompName) <> mComCompsUsed.RevisionNumber(sCompName)
+    RevisionNumbersDiffer = mCommComps.RawSavedRevisionNumber(sCompName) <> mCompManDat.RevisionNumber(sCompName)
 End Property
 
 
@@ -434,31 +422,37 @@ Friend Property Get KindOfComp() As enKindOfComp
 ' it is still unknown. This property ensures that, when the KindOfComp is
 ' requested for the very first time a Raw class object is established when the
 ' component is a Used Common Component.
+' Attention: For a correct analysis it is mandatory that the services
+'            ManageHostedCommonComponents and ManageUsedCommonComponent had been
+'            executed (which is done by default when the serviced Workbook is
+'            opened and when it is saved.
 ' ------------------------------------------------------------------------------
     Const PROC = "KindOfComp"
     
     On Error GoTo eh
     
     If lKindOfComp = enKindOfComp.enUnknown Then
-        If mComCompRawsGlobal.Exists(sCompName) Then
+        If mCommComps.ExistsRegistered(sCompName) Then
             '~~ The component is registered in the ComComps-Saved.dat as a known Common Component
-            If mComCompRawsGlobal.RawHostWbName(comp_name:=sCompName) = Me.Wrkbk.Name Then
+            If mCommComps.RawHostWbName(comp_name:=sCompName) = Me.Wrkbk.Name Then
                 '~~ When the registered host is this Component's Workbook the component is regarded
                 '~~ the hosted one else it is a Used Common Component
                 lKindOfComp = enCommCompHosted
             Else
-                lKindOfComp = enCommCompUsed
-                '~~ For a Used Common Component a class object for the corresponding Raw is established
-                '~~ which provides all required properties
-                If Raw Is Nothing Then Set Raw = New clsRaw
-                Raw.CompName = sCompName
-                '~~ all the Raw's other properties are derived based on its name through the data
-                '~~ stored in the ComCompsSaved.dat file
+                If Not mCompManDat.CompIsRegistered(Me.CompName, enRegStatePrivate) Then
+                    lKindOfComp = enCommCompUsed
+                    '~~ For a Used Common Component a class object for the corresponding Raw is established
+                    '~~ which provides all required properties
+                    If Raw Is Nothing Then Set Raw = New clsRaw
+                    Raw.CompName = sCompName
+                    '~~ all the Raw's other properties are derived based on its name through the data
+                    '~~ stored in the ComCompsSaved.dat file
+                End If
             End If
         ElseIf lKindOfComp = enKindOfComp.enUnknown Then
             lKindOfComp = enInternal
         End If
-'        Log.Entry = Me.TypeString & " (" & KoCStrng(lKindOfComp) & ")"
+'        mService.Log.Entry = Me.TypeString & " (" & KoCStrng(lKindOfComp) & ")"
     End If
     
 xt: KindOfComp = lKindOfComp
@@ -495,23 +489,28 @@ Public Property Get RawChanged() As Boolean
     Const PROC = "RawChanged"
     
     On Error GoTo eh
-    If Me.RevisionNumber < mComCompRawsGlobal.RawSavedRevisionNumber(sCompName) Then
+    Dim bExcludeExportHeader As Boolean
+    
+    bExcludeExportHeader = Me.TypeString = "UserForm"
+    If Me.RevisionNumber < mCommComps.RawSavedRevisionNumber(sCompName) Then
         '~~ The Revision Number of the Raw Common Component is greater which means that
         '~~ a modification had been exported - and the Revision Number thereby increased
         If Not mService.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
-                              , fd_exp_file_2:=Raw.SavedExpFile) Then
+                              , fd_exp_file_2:=Raw.SavedExpFile _
+                              , fd_ignore_export_header:=bExcludeExportHeader) Then
             '~~ Because the Export File of the Used Common Component is identical
             '~~ with the Export File of the Raw Common Component the Used Common
             '~~ Component must have been updated manually already - e.g. by dragging
             '~~ the component from the hosting Workbook. So just the Revision Number
             '~~ needs to be set equal.
-            mComCompsUsed.RevisionNumber(sCompName) = mComCompRawsGlobal.RawSavedRevisionNumber(sCompName)
+            mCompManDat.RevisionNumber(sCompName) = mCommComps.RawSavedRevisionNumber(sCompName)
         Else
             RawChanged = True
         End If
-    ElseIf Me.RevisionNumber = mComCompRawsGlobal.RawSavedRevisionNumber(sCompName) Then
+    ElseIf Me.RevisionNumber = mCommComps.RawSavedRevisionNumber(sCompName) Then
         If mService.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
-                              , fd_exp_file_2:=Raw.SavedExpFile) Then
+                              , fd_exp_file_2:=Raw.SavedExpFile _
+                              , fd_ignore_export_header:=bExcludeExportHeader) Then
             '~~ it is not the Raw which had changed but the Used Common Component in its Workbook.
             '~~ In order to prevent Used Common Components differ between Workbooks using them
             '~~ and remaining different unrecognized the Raw is indicated changed to enforce
@@ -528,9 +527,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Get RevisionNumber() As String:         RevisionNumber = mComCompsUsed.RevisionNumber(sCompName): End Property
+Friend Property Get RevisionNumber() As String:         RevisionNumber = mCompManDat.RevisionNumber(sCompName): End Property
 
-Friend Property Let RevisionNumber(ByVal s As String):  mComCompsUsed.RevisionNumber(sCompName) = s:              End Property
+Friend Property Let RevisionNumber(ByVal s As String):  mCompManDat.RevisionNumber(sCompName) = s:              End Property
 
 Friend Property Get Service() As String
     If sService = vbNullString Then
@@ -539,9 +538,9 @@ Friend Property Get Service() As String
     Service = sService
 End Property
 
-Friend Property Get sheet() As Worksheet:               Set sheet = wsh:            End Property
+Friend Property Get Sheet() As Worksheet:                   Set Sheet = wsh:            End Property
 
-Friend Property Set sheet(ByRef s_wsh As Worksheet):      Set wsh = s_wsh:               End Property
+Friend Property Set Sheet(ByRef s_wsh As Worksheet):        Set wsh = s_wsh:            End Property
 
 Friend Property Get TypeString() As String
 ' ----------------------------------------
@@ -554,9 +553,12 @@ Friend Property Get TypeString() As String
     End If
 End Property
 
-Friend Property Get VBComp() As VBComponent:    Set VBComp = vbc:   End Property
+Friend Property Get VBComp() As VBComponent:                Set VBComp = vbc:           End Property
 
-Friend Property Set VBComp(ByRef vb_comp As VBComponent):       Set vbc = vb_comp:                      End Property
+Friend Property Set VBComp(ByRef vb_comp As VBComponent)
+    Set vbc = vb_comp
+    If sCompName = vbNullString Then Me.CompName = vb_comp.Name
+End Property
 
 Friend Property Get Wrkbk() As Workbook
     Const PROC = "Wrkbk_Get"
@@ -680,7 +682,17 @@ Private Function ErrSrc(ByVal sProc As String) As String
 End Function
 
 Public Sub Export()
+    Const PROC = "Export"
+    On Error GoTo eh
+    
     Me.VBComp.Export Me.ExpFileFullName
+
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub
 
 

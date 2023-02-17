@@ -42,19 +42,142 @@ Option Private Module
 '
 ' W. Rauschenberger, Berlin Nov 2020
 ' ---------------------------------------------------------------------------
-Public Const COMPMAN_ADMIN_FOLDER_NAME      As String = "\CompManAdmin\"
-Public Const FOLDER_SERVICED                As String = "Serviced-By-CompMan folder"
-Private Const DEVLP_WORKBOOK_EXTENSION      As String = "xlsb"  ' Extension may depend on Excel version
+Public Const COMPMAN_ADMIN_FOLDER_NAME  As String = "\CompManAdmin\"
+Public Const FOLDER_SERVICED            As String = "Serviced-By-CompMan folder"
+Private Const DEVLP_WORKBOOK_EXTENSION  As String = "xlsb"  ' Extension may depend on Excel version
+Private Const DEFAULT_PARENT_FOLDER     As String = "Common-VBA-Excel-Component-Management-Services"
 
+Public CompManRoot              As String
+Public BaseName                 As String
+Public Extension                As String
+Public ServicingEnabled         As Boolean
 Private wbDevlp                 As Workbook
 Private wbkSource               As Workbook                     ' This development instance as the renew source
-Private wbkTarget               As Workbook                     ' The Add-in instance as renew target
 Private bSucceeded              As Boolean
 Private bAllRemoved             As Boolean
 Private dctAddInRefs            As Dictionary
 Private lRenewStep              As Long
 Private sRenewAction            As String
 Private bRenewTerminatedByUser  As Boolean
+
+Public Function AssertedServicingEnabled() As Boolean
+' ---------------------------------------------------------------------------
+' Ensures that the CompMan development instance Workbook is able to function
+' as the servicing instance. Because the Addin is (in case) saved from a
+' servicing enabled Workbook it is enabled by default.
+' ---------------------------------------------------------------------------
+    Dim fso As New FileSystemObject
+    BaseName = fso.GetBaseName(ThisWorkbook.Name)
+    Extension = fso.GetExtensionName(ThisWorkbook.Name)
+    If mMe.IsAddinInstnc Then
+        '~~ Because the Addin is (in case) saved from a servicing enabled Workbook it is enabled by default
+        ServicingEnabled = True
+    Else
+        If Not AssertedOfficeVersion Then GoTo xt
+        If Not AssertedParentFolderStructure Then GoTo xt
+        If Not fso.FileExists(mCompManIni.CompManIniFileFullName) Then
+            wsConfig.SaveToCompManIni
+        Else
+            wsConfig.RestoreFromCompManIni
+        End If
+    End If
+    AssertedServicingEnabled = True
+    
+xt: Exit Function
+
+End Function
+
+Private Function AssertedParentFolderStructure() As Boolean
+' ---------------------------------------------------------------------------
+'
+' ---------------------------------------------------------------------------
+    
+    Dim fso         As New FileSystemObject
+    Dim Msg         As mMsg.TypeMsg
+    Dim BttnGoAhead As String
+    Dim BttnCancel  As String
+    Dim PrntFolder1 As String
+    Dim PrntFolder2 As String
+    Dim PrntFolders As String
+     
+    PrntFolder1 = fso.GetFolder(wsConfig.FolderDevAndTest).Name
+    PrntFolder2 = DEFAULT_PARENT_FOLDER
+    
+    PrntFolders = PrntFolder1 & "\" & PrntFolder2
+    If ThisWorkbook.FullName Like "*" & PrntFolders & "\" & ThisWorkbook.Name Then
+        AssertedParentFolderStructure = True
+        CompManRoot = Replace(ThisWorkbook.Path, PrntFolders, vbNullString)
+        GoTo xt
+    End If
+    
+    BttnGoAhead = "Ok!" & vbLf & vbLf & _
+                  "Go ahead and bring it into" & vbLf & _
+                  "a dedicated folder called" & vbLf & _
+                  BaseName
+    BttnCancel = "Cancel!" & vbLf & vbLf & _
+                 "I'll go an provide this by myself"
+                 
+    With Msg
+        With .Section(1)
+            .Label.FontBold = True
+            .Label.Text = Replace(BttnGoAhead, vbLf, " ")
+            .Text.Text = "A folder structure " & vbLf & _
+                         PrntFolders & vbLf & _
+                         "will be created and the opened Workbook will be saved into the" & vbLf & _
+                         PrntFolder2 & vbLf & _
+                         "folder and closed. Re-opening it from within its new parent folder structure will continue with " & _
+                         "CompMan's self enabling process."
+            
+        End With
+        With .Section(2)
+            .Label.FontBold = True
+            .Label.Text = Replace(BttnCancel, vbLf, " ")
+            .Text.Text = "CompMan will not be available as a Workbook providing any of its services until " & _
+                         "it is opened from within its default folder structure" & vbLf & _
+                         PrntFolders & "."
+        End With
+    End With
+    
+    If mMsg.Dsply(dsply_title:="" _
+                , dsply_msg:=Msg _
+                , dsply_buttons:=mMsg.Buttons(BttnGoAhead, vbLf, BttnCancel)) = BttnGoAhead _
+    Then
+        PrntFolders = Replace(ThisWorkbook.FullName, ThisWorkbook.Name, PrntFolder1)
+        If Not fso.FolderExists(PrntFolders) Then fso.CreateFolder PrntFolders
+        PrntFolders = Replace(ThisWorkbook.FullName, ThisWorkbook.Name, PrntFolder1 & "\" & PrntFolder2)
+        If Not fso.FolderExists(PrntFolders) Then fso.CreateFolder PrntFolders
+        Application.EnableEvents = False
+        ThisWorkbook.SaveAs PrntFolders & "\" & ThisWorkbook.Name
+        AssertedParentFolderStructure = True
+        Application.EnableEvents = True
+        ThisWorkbook.Close False
+    End If
+                        
+xt: Exit Function
+
+End Function
+
+Private Function AssertedOfficeVersion() As Boolean
+' ---------------------------------------------------------------------------
+'
+' ---------------------------------------------------------------------------
+    Dim lVersion As Long
+    
+    lVersion = CLng(Split(Application.Version, ".")(0))
+    AssertedOfficeVersion = True
+    If lVersion < 14 Then
+        AssertedOfficeVersion = MsgBox(Title:="Expected minimum Excel version not installed!" _
+              , Prompt:="'CompMan' had been developed and tested with an Excel version 14.0 and higher. " & _
+                        "Because the available Excel version is '" & Application.Version & "' CompMan " & _
+                        "may not work properly." & vbLf & vbLf & _
+                        "Yes: Go ahead trying if it will work - and if it does " & vbLf & _
+                        "       an eMail to warb@tutanota.com " & vbLf & _
+                        "       would be very much appreaciated. :-))" & vbLf & vbLf & _
+                        "No: Give up. 'CompMan' will nor be able to provide any of its services." _
+              , Buttons:=vbYesNo) = vbYes
+    End If
+
+End Function
 
 Private Property Get ADDIN_FORMAT() As XlFileFormat ' = ... needs adjustment when the above is changed
     ADDIN_FORMAT = xlOpenXMLAddIn
@@ -82,9 +205,7 @@ Private Property Get DEVLP_FORMAT() As XlFileFormat  ' = .xlsb ! may require adj
 End Property
 
 Public Property Get IsAddinInstnc() As Boolean
-    With New FileSystemObject
-        IsAddinInstnc = .GetExtensionName(ThisWorkbook.FullName) = "xlam"
-    End With
+    IsAddinInstnc = Extension = "xlam"
 End Property
 
 Public Property Get IsDevInstnc() As Boolean
@@ -93,21 +214,18 @@ Public Property Get IsDevInstnc() As Boolean
     End With
 End Property
 
-Public Property Get RenewAction(Optional ByVal la_last As Boolean = False) As String
+Public Property Get RenewAction() As String
     RenewAction = sRenewAction
 End Property
 
-Public Property Let RenewAction(Optional ByVal la_last As Boolean = False, _
-                                         ByVal la_action As String)
+Public Property Let RenewAction(ByVal la_action As String)
     lRenewStep = lRenewStep + 1
     sRenewAction = la_action
 End Property
 
-Public Property Let RenewMonitorResult(Optional ByVal la_result_text As String = vbNullString, _
-                                       Optional ByVal la_last As Boolean = False, _
+Public Property Let RenewMonitorResult(Optional ByVal la_last As Boolean = False, _
                                                 ByVal la_result As String)
     wsConfig.MonitorRenewStep rn_result:=la_result _
-                            , rn_action:=la_result_text _
                             , rn_last_step:=la_last
 End Property
 
@@ -149,10 +267,6 @@ Public Function Config(Optional ByVal cfg_silent As Boolean = False, _
     Const PROC = "Config"
 
     On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim cfgAddin    As Boolean
-    Dim cfgSync     As Boolean
-    Dim cfgExpUpdt  As Boolean
     
     If cfg_addin Then Config = wsConfig.FolderDevAndTestIsValid _
                            And wsConfig.FolderExportIsValid _
@@ -253,14 +367,10 @@ End Function
 Private Sub RenewFinalResult(ByVal r_fs As Boolean)
     If r_fs Then
         mMe.RenewAction = "Successful!"
-        RenewMonitorResult(la_last:=True _
-                         , la_result_text:=mBasic.Spaced("Successful!") & "   The Add-in '" & mAddin.WbkName & "' has been renewed by the development instance '" & DevInstncName & "'" _
-                          ) = "Passed"
+        RenewMonitorResult(True) = "Passed"
     Else
         mMe.RenewAction = "Not Successful!"
-        mMe.RenewMonitorResult(la_last:=True _
-                             , la_result_text:="Renewing the Add-in '" & mAddin.WbkName & "' by the development instance '" & DevInstncName & "'  " & mBasic.Spaced("failed!") _
-                              ) = "Failed"
+        mMe.RenewMonitorResult(True) = "Failed"
     End If
 End Sub
 
@@ -292,13 +402,8 @@ Private Sub Renew_03_SaveAndRemoveAddInReferences()
     Const PROC = "Renew_03_SaveAndRemoveAddInReferences"
     
     On Error GoTo eh
-    Dim dct         As Dictionary
-    Dim v           As Variant
-    Dim wb          As Workbook
-    Dim ref         As Reference
     Dim sWbs        As String
     Dim bOneRemoved As Boolean
-    Dim fso         As New FileSystemObject
 
     mMe.RenewAction = "Save and remove references to the Add-in from open Workbooks"
     mAddin.ReferencesRemove dctAddInRefs, sWbs, bOneRemoved, bAllRemoved
@@ -306,7 +411,7 @@ Private Sub Renew_03_SaveAndRemoveAddInReferences()
         sWbs = Left(sWbs, Len(sWbs) - 2)
         mMe.RenewMonitorResult() = "Passed"
     Else
-        mMe.RenewMonitorResult(sRenewAction & vbLf & "None of the open Workbook's VBProject had a 'Reference' to the 'CompMan Add-in'" _
+'        mMe.RenewMonitorResult(sRenewAction & vbLf & "None of the open Workbook's VBProject had a 'Reference' to the 'CompMan Add-in'" _
                           ) = "Passed"
     End If
     
@@ -341,7 +446,7 @@ Private Sub Renew_05_Set_IsAddin_ToFalse()
     Const PROC = "Renew_05_Set_IsAddin_ToFalse"
     
     On Error GoTo eh
-    Dim wbk As Workbook
+    
     mMe.RenewAction = "Set the 'IsAddin' property of the 'CompMan Add-in' to FALSE"
     If mAddin.SetIsAddinToFalse Then
         mMe.RenewMonitorResult() = "Passed"
@@ -478,9 +583,9 @@ Private Function Renew_09_OpenAddinInstncWorkbook() As Boolean
             Set wb = Application.Workbooks.Open(WbkFullName)
             If Err.Number = 0 Then
                 With New FileSystemObject
-                    sBaseAddinName = .GetBaseName(wb.name)
-                    sBaseDevName = .GetBaseName(ThisWorkbook.name)
-                    wb.VBProject.name = sBaseAddinName
+                    sBaseAddinName = .GetBaseName(wb.Name)
+                    sBaseDevName = .GetBaseName(ThisWorkbook.Name)
+                    wb.VBProject.Name = sBaseAddinName
                 End With
                 mMe.RenewMonitorResult() = "Passed"
                 Renew_09_OpenAddinInstncWorkbook = True
@@ -530,7 +635,7 @@ Private Sub Renew_10_RestoreReferencesToAddIn()
     For Each v In dctAddInRefs
         Set wb = v
         wb.VBProject.References.AddFromFile WbkFullName
-        sWbs = wb.name & ", " & sWbs
+        sWbs = wb.Name & ", " & sWbs
         bOneRestored = True
     Next v
     
@@ -538,8 +643,8 @@ Private Sub Renew_10_RestoreReferencesToAddIn()
         sWbs = Left(sWbs, Len(sWbs) - 2)
         mMe.RenewMonitorResult() = "Passed"
     Else
-        mMe.RenewMonitorResult(sRenewAction & vbLf & "Restoring 'References' did not find any saved to restore" _
-                              ) = "Passed"
+'        mMe.RenewMonitorResult(sRenewAction & vbLf & "Restoring 'References' did not find any saved to restore" _
+'                              ) = "Passed"
     End If
     
 xt: Exit Sub
@@ -588,8 +693,7 @@ Public Sub Renew___AddIn()
     '~~ Attempt to turn Add-in to "IsAddin=False" in order to uninstall and subsequently close it
     Renew_05_Set_IsAddin_ToFalse
     If Not Renew_06_CloseCompManAddinWorkbook Then GoTo xt
-
-    
+  
     '~~ Attempt to delete the Add-in Workbook file
     If Not Renew_07_DeleteAddInInstanceWorkbook Then GoTo xt
         
@@ -612,46 +716,6 @@ xt: RenewFinalResult bSucceeded
     Application.EnableEvents = True
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub SaveAddinInstncWorkbookAsDevlp()
-    Const PROC = "SaveAddinInstncWorkbookAsDevlp"
-
-    On Error GoTo eh
-    Dim fso As New FileSystemObject
-    
-    With Application
-        If Not DevInstncWorkbookExists Then
-            '~~ At this point the Development instance Workbook must no longer exist at its location
-            .EnableEvents = False
-            mMe.RenewAction = "Save the 'CompMan Add-in' (" & mAddin.WbkName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")"
-            
-            On Error Resume Next
-            wbAddIn.SaveAs DevInstncFullName, FileFormat:=xlDevlpFormat, ReadOnlyRecommended:=False
-            
-            If Not mCompMan.WbkIsOpen(io_name:=DevInstncName) _
-            Then Stop _
-            Else wbDevlp.VBProject.name = fso.GetBaseName(DevInstncName)
-            
-            If Err.Number <> 0 Then
-                mMe.RenewMonitorResult("Saving the 'CompMan Add-in' (" & mAddin.WbkName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")   " & mBasic.Spaced("failed!") _
-                                      ) = "Failed"
-            Else
-                mMe.RenewMonitorResult() = "Passed"
-            End If
-            .EnableEvents = True
-        Else ' file still exists
-            mMe.RenewMonitorResult("Saving the 'CompMan Add-in' (" & mAddin.WbkName & ") as 'Development-Instance-Workbook' (" & DevInstncName & ")  " & mBasic.Spaced("failed!") _
-                                  ) = "Failed"
-        End If
-    End With
-
-xt: Exit Sub
-
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt

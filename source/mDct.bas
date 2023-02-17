@@ -599,7 +599,10 @@ Public Function DctDiffers(ByVal dd_dct1 As Dictionary, _
         Case dd_diff_items And Not dd_diff_keys
             '~~ A difference is constituted by different items
             For i = 0 To dd_dct1.Count - 1
-                If Differs(dd_dct1.Items()(i), dd_dct2.Items()(i), dd_ignore_items_empty) Then
+                If Differs(v1:=dd_dct1.Items()(i) _
+                         , v2:=dd_dct2.Items()(i) _
+                         , ignore_case:=dd_ignore_case _
+                         , ignore_empty:=dd_ignore_items_empty) Then
                     DctDiffers = True
                     Exit For
                 End If
@@ -608,7 +611,10 @@ Public Function DctDiffers(ByVal dd_dct1 As Dictionary, _
         Case dd_diff_keys And Not dd_diff_items
             '~~ A difference is constituted by different keys
             For i = 0 To dd_dct1.Count - 1
-                If Differs(dd_dct1.Keys()(i), dd_dct2.Keys()(i)) Then
+                If Differs(v1:=dd_dct1.Keys()(i) _
+                         , v2:=dd_dct2.Keys()(i) _
+                         , ignore_case:=dd_ignore_case _
+                         , ignore_empty:=dd_ignore_items_empty) Then
                     DctDiffers = True
                     Exit For
                 End If
@@ -617,8 +623,14 @@ Public Function DctDiffers(ByVal dd_dct1 As Dictionary, _
         Case dd_diff_keys And dd_diff_items
             '~~ A difference is constituted by different keys and different items
             For i = 0 To dd_dct1.Count - 1
-                DctDiffers = Differs(dd_dct1.Keys()(i), dd_dct2.Keys()(i)) _
-                         And Differs(dd_dct1.Items()(i), dd_dct2.Items()(i), dd_ignore_items_empty)
+                DctDiffers = Differs(v1:=dd_dct1.Keys()(i) _
+                                   , v2:=dd_dct2.Keys()(i) _
+                                   , ignore_case:=dd_ignore_case _
+                                   , ignore_empty:=dd_ignore_items_empty) _
+                         And Differs(v1:=dd_dct1.Items()(i) _
+                                   , v2:=dd_dct2.Items()(i) _
+                                   , ignore_case:=dd_ignore_case _
+                                   , ignore_empty:=dd_ignore_items_empty)
                 If DctDiffers Then Exit For
             Next i
     End Select
@@ -683,9 +695,15 @@ Private Function Differs(ByVal v1 As Variant, _
                 Differs = True
             End If
         Case Else
-            Differs = v1 <> v2
+            If ignore_case _
+            Then Differs = StrComp(v1, v2, vbTextCompare) _
+            Else Differs = StrComp(v1, v2, vbBinaryCompare)
+            If Differs Then
+                Debug.Print "Ignore Case = " & CStr(ignore_case)
+                Debug.Print "Differs: " & v1 & vbLf & _
+                            "         " & v2
+            End If
     End Select
-                         
 End Function
 
 Private Function DctAddItemExists( _

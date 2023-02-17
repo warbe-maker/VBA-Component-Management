@@ -37,7 +37,7 @@ Public Function All(Optional ByRef a_stats As clsStats = Nothing) As Dictionary
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = wbk
-                .CompName = vbc.name
+                .CompName = vbc.Name
                 Set .VBComp = vbc
             End With
             mDct.DctAdd add_dct:=All, add_key:=vbc, add_item:=Comp, add_order:=order_bykey
@@ -69,8 +69,7 @@ Public Function Changed(Optional ByRef c_stats As clsStats = Nothing) As Diction
     
 End Function
 
-Public Function Outdated(ByVal o_wbk_serviced As Workbook, _
-                         Optional ByRef o_stats As clsStats = Nothing) As Dictionary
+Public Function Outdated(Optional ByRef o_stats As clsStats = Nothing) As Dictionary
 ' ----------------------------------------------------------------------------
 ' Returns a Dictionary of all VBComponents in the mService.WbkServiced Workbook's
 ' VBProject indicated Used Common Components of which an update is due because

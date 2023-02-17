@@ -12,6 +12,9 @@ Option Compare Text
 '                   provided all cells with a formula containing the provided
 '                   string are returned, else the function ends with TRUE with
 '                   the first found.
+' - FlipStages      Changes the state (a cell's displayed character string) to
+'                   the consequtive string, optionally continued with the first
+'                   when the last is reached.
 ' - FromArray       not yet implemented
 ' - HasNames        Returns a Dictionary with all Names referring to a certain
 '                   range.
@@ -21,11 +24,11 @@ Option Compare Text
 ' - Url Get         Returns the hyperling of a provided range/cell
 ' - UrlLet          Inserts a Hyperlink into a provided range/cell
 '
-' Uses:     No other modules
+' Uses: No other modules
 '
 ' Requires: Reference to "Microsoft Scripting Runtine"
 '
-' W. Rauschenberger, Berlin Oct 2022
+' W. Rauschenberger, Berlin Dec 2022
 ' ------------------------------------------------------------------------------
 
 Public Property Get Url(ByVal u_rng As Range) As String
@@ -42,7 +45,6 @@ Public Property Get Url(ByVal u_rng As Range) As String
     Dim aUrlHost    As Variant
     Dim aUrlPath    As Variant
     Dim i           As Long
-    Dim sRoot       As String
     Dim sPath       As String
     
     Set wbk = u_rng.Parent.Parent
@@ -86,9 +88,79 @@ Public Property Get Url(ByVal u_rng As Range) As String
             End If
         End If
     End If
-    Url = Replace(Url, sSplit, vbNullString, 1, 1)
+    If Left(Url, 1) = sSplit Then Url = Right(Url, Len(Url) - 1)
     
 End Property
+
+Public Sub FlipStages(ByVal fs_cell As Range, _
+                      ByVal fs_round_robin As Boolean, _
+                      ByVal fs_select_next As Variant, _
+                 ParamArray fs_stages() As Variant)
+' ------------------------------------------------------------------------------
+' Changes the character of a cell (the first item in the array) to the one next
+' to the current character, when the last is reached to the first one.
+'
+' Error handling is with the caller!
+' ------------------------------------------------------------------------------
+    Const PROC = "FlipStages"
+    
+    Dim i As Long
+    Dim sCurrent    As String
+    Dim sNext       As String
+    Dim wsh         As Worksheet
+    Dim bEmptyOk    As Boolean
+    Dim celLast     As Range
+    Dim bEvents     As Boolean
+    
+    If fs_cell.Cells.Count <> 1 _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided range is not a single cell!"
+    Set wsh = fs_cell.Parent
+    
+    If UBound(fs_stages) < 1 _
+    Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided argument does not have at least two 'flip-items'!"
+        
+    If Not fs_select_next Is Nothing Then
+        If Not TypeOf fs_select_next Is Range _
+        Then Err.Raise AppErr(3), ErrSrc(PROC), "The provided 'fs_select_next' argument is neither Nothing nor a range object!"
+    End If
+    
+    For i = 0 To UBound(fs_stages)
+        If fs_stages(i) = fs_cell.Value Then
+            If fs_stages(i) = vbNullString Then bEmptyOk = True
+            sCurrent = fs_stages(i)
+            If i = UBound(fs_stages) Then
+                If fs_round_robin _
+                Then sNext = fs_stages(0) _
+                Else sNext = sCurrent
+            Else:    sNext = fs_stages(i + 1)
+            End If
+            Exit For
+        End If
+    Next i
+    If Not bEmptyOk And sCurrent = vbNullString _
+    Then Err.Raise AppErr(3), ErrSrc(PROC), "The cells current value is invalid! (not a known 'stage-value' provided by the fs_stage argument)"
+    
+    If wsh.ProtectContents Then
+        '~~ When the Worksheet is protected allowing to select locked cells
+        wsh.Unprotect
+        fs_cell.Value = sNext
+        wsh.Protect
+    Else
+        fs_cell.Value = sNext
+    End If
+    
+    '~~ De-Select in order to allow a subsequent stage flip
+    bEvents = Application.EnableEvents
+    Application.EnableEvents = False
+    If fs_select_next Is Nothing Then
+        Set celLast = wsh.Cells.SpecialCells(xlCellTypeLastCell)
+        celLast.Offset(1, 1).Select
+    ElseIf TypeOf fs_select_next Is Range Then
+        fs_select_next.Select
+    End If
+    Application.EnableEvents = bEvents
+    
+End Sub
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -191,7 +263,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -258,15 +330,15 @@ Public Function HasName(ByVal hn_rng As Range) As Boolean
 ' ------------------------------------------------------------------------------
 ' Returns TRUE when the range (hn_rng) has a Name.
 ' ------------------------------------------------------------------------------
-    Dim nme As name
+    Dim nme As Name
     Dim s   As String
     
     On Error Resume Next
     Set nme = Nothing ' only including in case you are planning to use this approach in a loop.
-    Set nme = hn_rng.name
+    Set nme = hn_rng.Name
     On Error GoTo xt
     If Not nme Is Nothing Then
-        s = nme.name
+        s = nme.Name
         HasName = True
     End If
     
@@ -301,21 +373,21 @@ Public Function Exists(ByVal e_wbk As Variant, _
     Dim sTest       As String
     Dim wsh         As Worksheet
     Dim wbk         As Workbook
-    Dim Rng         As Range
+    Dim rng         As Range
     Dim wsResult    As Worksheet
 
-    BoP PROC
+    BoP ErrSrc(PROC)
     
     Exists = False
-    Set wbk = mCompMan.WbkGetOpen(e_wbk)   ' raises an error when not open
+    Set wbk = e_wbk   ' raises an error when not open
     
     If TypeName(e_rng) = "Nothing" _
     Then Err.Raise AppErr(2), ErrSrc(PROC), "The Range (parameter e_rng) for the Range's existence check is ""Nothing""!"
     
     If TypeOf e_rng Is Range Then
-        Set Rng = e_rng
+        Set rng = e_rng
         On Error Resume Next
-        sTest = Rng.Address
+        sTest = rng.Address
         Exists = Err.Number = 0
     ElseIf VarType(e_rng) = vbString Then
         If Not SheetExists(wbk, e_wsh, wsResult) _
@@ -326,7 +398,7 @@ Public Function Exists(ByVal e_wbk As Variant, _
         Exists = Err.Number = 0
     End If
             
-xt: EoP PROC
+xt: EoP ErrSrc(PROC)
     Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
@@ -360,7 +432,7 @@ Public Function FoundInFormulas(ByVal fif_str As String, _
     Dim cel As Range
     Dim cll As New Collection
     Dim wsh As Worksheet
-    Dim Rng As Range
+    Dim rng As Range
     
     BoP PROC
     For Each wsh In fif_wbk.Worksheets
@@ -369,9 +441,9 @@ Public Function FoundInFormulas(ByVal fif_str As String, _
         End If
         
         On Error Resume Next
-        Set Rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
+        Set rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
         If Err.Number <> 0 Then GoTo nw
-        For Each cel In Rng
+        For Each cel In rng
             If InStr(1, cel.Formula, fif_str) > 0 Then
                 FoundInFormulas = True
                 If IsMissing(fif_cll) Then
@@ -395,14 +467,14 @@ Public Function HasNames(ByVal hn_rng As Range) As Dictionary
 ' ------------------------------------------------------------------------
 ' Returns a Dictionary with all Names for the range (hn_rng).
 ' ------------------------------------------------------------------------
-    Dim nme As name
+    Dim nme As Name
     Dim dct As New Dictionary
     Dim wbk As Workbook
     
     Set wbk = hn_rng.Parent.Parent
     For Each nme In wbk.Names
-        If nme.RefersTo = hn_rng.name Then
-            dct.Add nme.name, nme.RefersTo
+        If nme.RefersTo = hn_rng.Name Then
+            dct.Add nme.Name, nme.RefersTo
         End If
     Next nme
     
@@ -492,7 +564,7 @@ Private Function SheetExists(ByVal vWb As Variant, _
         GoTo xt
     ElseIf VarType(vWs) = vbString Then
         For Each wsTest In wb.Worksheets
-            If wsTest.name = vWs Then
+            If wsTest.Name = vWs Then
                 SheetExists = True
                 Set wsResult = wsTest
                 GoTo xt
@@ -582,7 +654,7 @@ Public Function WbkGetOpen(ByVal go_wb As Variant, _
     Set wbOpen = Nothing
        
     If mWbk.IsWbObject(go_wb) Then
-        sWbName = go_wb.name
+        sWbName = go_wb.Name
         sWbFullName = go_wb.FullName
     ElseIf mWbk.IsFullName(go_wb) Then
         sWbName = fso.GetFileName(go_wb)
@@ -666,7 +738,7 @@ Private Function WbkIsOpen(ByVal wb As Variant, _
             Set OpenWbk = OpenWbks.Item(WbName)
             '~~ When a Workbook's Name is provided the Workbook is only regarde open when the open
             '~~ Workbook has the same name (i.e. including its extension)
-            If fso.GetFile(OpenWbk.FullName).name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
+            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
     ElseIf mWbk.IsFullName(wb) Then
         WbName = fso.GetFileName(wb)
@@ -675,10 +747,10 @@ Private Function WbkIsOpen(ByVal wb As Variant, _
             Set OpenWbk = OpenWbks.Item(WbName)
             '~~ The provided (wb) specifies an exist Workbook file. This Workbook is regarded open (and returned as opject)
             '~~ when a Workbook with its Name (including the extension!) is open regardless in which location
-            If fso.GetFile(OpenWbk.FullName).name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
+            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
         End If
     ElseIf mWbk.IsWbObject(wb) Then
-        WbName = wb.name
+        WbName = wb.Name
         If Opened.Exists(WbName) Then
             Set OpenWbk = OpenWbks.Item(WbName)
         End If

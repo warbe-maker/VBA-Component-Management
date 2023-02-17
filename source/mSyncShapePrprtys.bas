@@ -276,10 +276,6 @@ Private shpTarget           As Shape        ' module global, set by SyncProperti
 Private shpSource           As Shape        ' module global, set by SyncProperties
 Private wshTarget           As Worksheet    ' module global, set by SyncProperties
 Private wshSource           As Worksheet    ' module global, set by SyncProperties
-Private sPropertyChange     As String       ' provided by SyncPropertyValue
-Private sFailed             As String       ' provided by SyncPropertyValue
-Private vPrprtyValueSource  As Variant
-Private vPrprtyValueTarget  As Variant
 Private dctDueSyncAssert    As Dictionary   ' Properties synched but still pending assertion
 Private enProperty          As enProperties
 
@@ -323,6 +319,70 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
     If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function
+
+Public Sub CollectChanged(ByVal c_shp_source As Shape)
+' ------------------------------------------------------------------------------
+' Collects each changed property as a due synchronization.
+' ------------------------------------------------------------------------------
+    Const PROC = "CollectChanged"
+    
+    On Error GoTo eh
+    Dim enPrprty    As enProperties
+    Dim vTarget     As Variant
+    Dim vSource     As Variant
+    Dim sId         As String
+    
+    mBasic.EoP ErrSrc(PROC)
+    If c_shp_source.Type = msoOLEControlObject Then
+        '~~ Synchronize all properties of the oobTarget with the oobSource
+        Set oobSource = shpSource.OLEFormat.Object
+        
+        If Not mSyncShapes.CorrespondingOOB(shpSource, wshTarget, oobTarget) Is Nothing Then
+            For enProperty = mSyncShapePrprtys.enPropertiesOOBFirst To mSyncShapePrprtys.enPropertiesOOBLast
+                '~~ Loop through all OOB property enumerations
+                sId = SyncId(enProperty, c_shp_source)
+                mService.Log.ServicedItem = PropertyServiced(shpSource, wshTarget)
+                On Error Resume Next
+                vTarget = mSyncShapePrprtys.PropertyValue(enProperty, oobTarget)
+                On Error Resume Next
+                vSource = mSyncShapePrprtys.PropertyValue(enProperty, oobSource)
+                If Err.Number <> 0 Then GoTo np1
+                If vTarget <> vSource Then
+                    mSync.DueSyncLet , PropertyName(enProperty), enSyncActionChangeShapePrprty, , sId
+                End If
+np1:        Next enProperty
+        Else
+            Err.Raise AppErr(1), ErrSrc(PROC), "No corresponding target OOB found for the source Shape " & mSyncShapes.ShapeNames(shpSource)
+        End If
+    Else ' any other type of shape
+        '~~ Synchronize the properties of the shpTarget with the shpSource
+        If Not mSyncShapes.CorrespondingShape(shpSource, wshTarget, shpTarget) Is Nothing Then
+            For enProperty = mSyncShapePrprtys.enPropertiesShapeFirst To mSyncShapePrprtys.enPropertiesShapeLast
+                sId = SyncId(enProperty, c_shp_source)
+                '~~ Loop through all Shape property enumerations
+                On Error Resume Next
+                vTarget = mSyncShapePrprtys.PropertyValue(enProperty, shpTarget)
+                If Err.Number <> 0 Then GoTo np2
+                On Error Resume Next
+                vSource = mSyncShapePrprtys.PropertyValue(enProperty, shpSource)
+                If Err.Number <> 0 Then GoTo np2
+                If vTarget <> vSource Then
+                    mSync.DueSyncLet , PropertyName(enProperty), enSyncActionChangeShapePrprty, , sId
+                End If
+np2:        Next enProperty
+        Else
+            Err.Raise AppErr(1), ErrSrc(PROC), "No corresponding target Shape found for the source Shape " & mSyncShapes.ShapeNames(shpSource)
+        End If
+    End If
+
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
 
 Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSyncShapePrprtys." & s
@@ -605,7 +665,6 @@ Public Function PropertyName(ByVal enProperty As enProperties) As String
 End Function
 
 Private Function PropertyServiced(ByVal spv_shp_source As Shape, _
-                                  ByVal spv_enProperty As enProperties, _
                                   ByVal spv_wsh_target As Worksheet) As String
 ' ------------------------------------------------------------------------------
 '
@@ -619,8 +678,6 @@ Public Function PropertyValue(ByVal sp_enProperty As enProperties, _
 ' Synchronizes the Properties vf the shape (shpSource) with the corresponding
 ' shape in the corresponding target sheet in the Sync-Target-Workbook.
 ' ------------------------------------------------------------------------------
-    Const PROC = "PropertyValue"
-    
     Dim oob As OLEObject
     Dim shp As Shape
     
@@ -892,6 +949,29 @@ Private Function PropertyValueString(ByVal v As Variant) As String
     End Select
 End Function
 
+Private Sub SyncAssertion(ByVal sa_obj_source As Variant, _
+                          ByVal sa_en_property As enProperties, _
+                          ByVal sa_target_value As Variant, _
+                          ByVal sa_source_value As Variant, _
+                          ByRef sa_dct_synched As Dictionary)
+' ------------------------------------------------------------------------------
+' Check whether the Property (sa_en_property) has been synchronized
+' (sa_target_value = sa_source_value checked by SyncPropertyAsserted) and add a
+' corresponding entry to the Dichtionary (sa_dct_synched) with the concerned
+' shape's name as item.
+' ------------------------------------------------------------------------------
+
+    If SyncPropertyAsserted(sa_en_property) Then
+        If Not sa_dct_synched.Exists(PropertyName(sa_en_property)) Then
+            mDct.DctAdd sa_dct_synched, PropertyName(sa_en_property), sa_obj_source.Parent.Name & "." & mSyncShapes.ShapeNames(sa_obj_source), , seq_ascending
+        End If
+        mService.Log.Entry = "Property " & mBasic.Align(PropertyName(sa_en_property), lPropertyMaxLen, AlignLeft, , ".") & ": changed " & PropertyChange(sa_target_value, sa_source_value)
+    Else
+        mService.Log.Entry = "Property " & mBasic.Align(PropertyName(sa_en_property), lPropertyMaxLen, AlignLeft, , ".") & ": assertion failed for change " & PropertyChange(sa_target_value, sa_source_value)
+    End If
+
+End Sub
+
 Public Sub SynchabilityCheckOOB(ByVal sc_property As String, _
                                 ByRef sc_dvt_read_write As Dictionary)
 ' ------------------------------------------------------------------------------
@@ -962,12 +1042,12 @@ Public Sub SynchedCheckOOB(ByVal sc_en_property As enProperties, _
 
 End Sub
 
-Private Function SynchedPropertyKey()
-    SynchedPropertyKey = wshSource.Name & "." & shpSource.Name & "." & PropertyName(enProperty)
+Public Function SyncId(ByVal s_en_property As enProperties, _
+                       ByVal s_shp As Shape)
+    SyncId = mSyncShapes.SyncId(s_shp) & "." & PropertyName(s_en_property)
 End Function
 
-Public Sub SyncProperties(ByRef sp_dct_sync_asserted As Dictionary, _
-                 Optional ByRef sp_change As String)
+Public Sub SyncProperties(ByRef sp_dct_sync_asserted As Dictionary)
 ' ------------------------------------------------------------------------------
 ' Synchronizes all the target Shape's (sp_shp_target) - the target OOB's
 ' respectively - applicable (read/write) properties with the source shape
@@ -981,9 +1061,6 @@ Public Sub SyncProperties(ByRef sp_dct_sync_asserted As Dictionary, _
     
     mBasic.BoP ErrSrc(PROC)
     Set dctDueSyncAssert = New Dictionary
-    mService.EstablishServiceLog mSync.TargetCopy, mCompManClient.SRVC_SYNCHRONIZE
-    
-'    Set shpSource = sp_shp_source
     Set wshSource = shpSource.Parent
     Set wshTarget = shpTarget.Parent
     
@@ -991,10 +1068,10 @@ Public Sub SyncProperties(ByRef sp_dct_sync_asserted As Dictionary, _
         '~~ Synchronize all properties of the oobTarget with the oobSource
         Set oobSource = shpSource.OLEFormat.Object
         
-        If Not mSyncShapes.CorrespTargetOOB(shpSource, wshTarget, oobTarget) Is Nothing Then
+        If Not mSyncShapes.CorrespondingOOB(shpSource, wshTarget, oobTarget) Is Nothing Then
             For enProperty = mSyncShapePrprtys.enPropertiesOOBFirst To mSyncShapePrprtys.enPropertiesOOBLast
                 '~~ Loop through all OOB property enumerations
-                Log.ServicedItem = PropertyServiced(shpSource, enProperty, wshTarget)
+                mService.Log.ServicedItem = PropertyServiced(shpSource, wshTarget)
                 vTarget = mSyncShapePrprtys.PropertyValue(enProperty, oobTarget)
                 vSource = mSyncShapePrprtys.PropertyValue(enProperty, oobSource)
                 If vTarget <> vSource Then
@@ -1007,10 +1084,10 @@ Public Sub SyncProperties(ByRef sp_dct_sync_asserted As Dictionary, _
         End If
     Else ' any other type of shape
         '~~ Synchronize the properties of the shpTarget with the shpSource
-        If Not mSyncShapes.CorrespTargetShape(shpSource, wshTarget, shpTarget) Is Nothing Then
+        If Not mSyncShapes.CorrespondingShape(shpSource, wshTarget, shpTarget) Is Nothing Then
             For enProperty = mSyncShapePrprtys.enPropertiesShapeFirst To mSyncShapePrprtys.enPropertiesShapeLast
                 '~~ Loop through all Shape property enumerations
-                Log.ServicedItem = PropertyServiced(shpSource, enProperty, wshTarget)
+                mService.Log.ServicedItem = PropertyServiced(shpSource, wshTarget)
                 On Error Resume Next
                 vTarget = mSyncShapePrprtys.PropertyValue(enProperty, shpTarget)
                 If Err.Number <> 0 Then GoTo np
@@ -1036,29 +1113,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub SyncAssertion(ByVal sa_obj_source As Variant, _
-                          ByVal sa_en_property As enProperties, _
-                          ByVal sa_target_value As Variant, _
-                          ByVal sa_source_value As Variant, _
-                          ByRef sa_dct_synched As Dictionary)
-' ------------------------------------------------------------------------------
-' Check whether the Property (sa_en_property) has been synchronized
-' (sa_target_value = sa_source_value checked by SyncPropertyAsserted) and add a
-' corresponding entry to the Dichtionary (sa_dct_synched) with the concerned
-' shape's name as item.
-' ------------------------------------------------------------------------------
-
-    If SyncPropertyAsserted(sa_en_property) Then
-        If Not sa_dct_synched.Exists(PropertyName(sa_en_property)) Then
-            mDct.DctAdd sa_dct_synched, PropertyName(sa_en_property), sa_obj_source.Parent.Name & "." & mSyncShapes.ShapeNames(sa_obj_source), , seq_ascending
-        End If
-        Log.Entry = "Property " & mBasic.Align(PropertyName(sa_en_property), lPropertyMaxLen, AlignLeft, , ".") & ": changed " & PropertyChange(sa_target_value, sa_source_value)
-    Else
-        Log.Entry = "Property " & mBasic.Align(PropertyName(sa_en_property), lPropertyMaxLen, AlignLeft, , ".") & ": assertion failed for change " & PropertyChange(sa_target_value, sa_source_value)
-    End If
-
-End Sub
-
 Public Sub SyncProperty(ByVal sp_en_property As enProperties)
 ' ------------------------------------------------------------------------------
 ' Synchronizes the Properties vf the shape (shpSource) with the corresponding
@@ -1066,7 +1120,7 @@ Public Sub SyncProperty(ByVal sp_en_property As enProperties)
 ' Note: oobTarget And oobSource are global for this module and set by
 '       SyncProperties.
 ' ------------------------------------------------------------------------------
-    Const PROC = "SyncProperty"
+    
     If sp_en_property = 202 Then Stop
     With oobTarget
         Select Case sp_en_property

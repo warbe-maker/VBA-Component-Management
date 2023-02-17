@@ -1,25 +1,39 @@
 Attribute VB_Name = "mComp"
 Option Explicit
 ' ------------------------------------------------------------------------
-' Standard-Module mComp
-'                   Elementary services for a VBComponent either provided
-'                   as object or name in in provided Workbbok.
+' Standard-Module mComp: Services for (not only Common) VBComponents.
 '
 ' Public services:
-' - Exists          Returns TRUE when a components name exists in a
-'                   Workbook's VBProject
-' - IsSheetDocMod   Returns TRUE when a provided VBComponent object is of
-'                   a type Document-Module and represents a Worksheet
-' - IsWrkbDocMod    Returns TRUE when a provided VBComponent object is of
-'                   a type Document-Module and represents the Workbook
-' - TempName        Returns a temporary name for a provided
-'                   VBComponent's name which is not already used in
-'                   the provided Workbook/VBProject
-' - TypeString      Returns a provided VBComponent object's type as
-'                   string
+' - CommCompRegStateEnum
+'   Returns a provided CommCompRegStateString as enumerated value
+' - CommCompRegStateString
+'   Returns a provided enumerated CommCompRegStateString as string
+' - Exists
+'   Returns TRUE when a components name exists in a Workbook's VBProject
+' - IsSheetDocMod
+'   Returns TRUE when a provided VBComponent object is of a type
+'   Document-Module and represents a Worksheet
+' - IsWrkbDocMod
+'   Returns TRUE when a provided VBComponent object is of a type
+'   Document-Module and represents the Workbook
+' - ManageHostedCommonComponents
+'
+' - ManageUsedCommonComponent
+'
+' - TempName
+'   Returns a temporary name for a provided VBComponent's name which
+'   is not already used in the provided Workbook/VBProject
+' - TypeString
+'   Returns a provided VBComponent object's type as string
 '
 ' ------------------------------------------------------------------------
 Public Const RENAMED_BY_COMPMAN = "_RnmdByCompMan"
+
+Public Enum enCommCompRegState
+    enRegStateHosted = 1    ' The Common Component is "hosted"
+    enRegStateUsed          ' The Common Component is "used"
+    enRegStatePrivate       ' Not a Common Component (though the name matches)
+End Enum
 
 Public Enum vbcmType                ' Type of VBComponent
     vbext_ct_StdModule = 1          ' .bas
@@ -29,17 +43,25 @@ Public Enum vbcmType                ' Type of VBComponent
     vbext_ct_Document = 100         ' .cls
 End Enum
 
-Public Function Exists(ByVal xst_wbk As Workbook, _
-                       ByVal xst_vbc_name As String) As Boolean
-' ----------------------------------------------------
-' Returns TRUE when the component (comp_name) exists
-' in the Workbook (wbk).
-' -----------------------------------------------------
-    Dim s As String
+Private Function ErrSrc(ByVal es_proc As String) As String
+    ErrSrc = "mComp" & "." & es_proc
+End Function
+
+Public Function Exists(ByVal ex_vbc As Variant, _
+                       ByVal ex_wbk As Workbook, _
+              Optional ByRef ex_vbc_result As VBComponent) As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE and the VBComponent (ex_vbc_result) when the provided VB-
+' Component (ex_vbc) exists in the Workbook's (ex_wbk) VB-Project.
+' ------------------------------------------------------------------------------
     On Error Resume Next
-    s = xst_wbk.VBProject.VBComponents(xst_vbc_name).Name
+    Select Case True
+        Case TypeOf ex_vbc Is VBComponent:  Set ex_vbc_result = ex_wbk.VBProject.VBComponents(ex_vbc.Name)
+        Case VarType(ex_vbc) = vbString:    Set ex_vbc_result = ex_wbk.VBProject.VBComponents(ex_vbc)
+    End Select
     Exists = Err.Number = 0
 End Function
+
 
 Public Function IsSheetDocMod(ByRef is_vbc As VBComponent, _
                      Optional ByRef is_wbk As Workbook = Nothing, _
@@ -74,7 +96,7 @@ End Function
 Public Function TempName(ByVal tn_wbk As Workbook, _
                          ByVal tn_vbc_name As String) As String
 ' ----------------------------------------------------------------------------
-' Returns a yet not existing temporary name for a component (tn_vbc_name).
+' Returns a yet not existing temporary name for a component (tn_t_vbc_name).
 ' ----------------------------------------------------------------------------
     Dim i As Long
     
@@ -87,14 +109,14 @@ Public Function TempName(ByVal tn_wbk As Workbook, _
     Loop
 End Function
 
-Public Function TypeString(ByVal vbc As VBComponent) As String
-    Select Case vbc.Type
+Public Function TypeString(ByVal t_vbc As VBComponent, _
+                           ByVal t_wbk As Workbook) As String
+    Select Case t_vbc.Type
         Case vbext_ct_ActiveXDesigner:  TypeString = "ActiveX-Designer"
         Case vbext_ct_ClassModule:      TypeString = "Class-Module"
-        Case vbext_ct_Document
-            If mComp.IsSheetDocMod(vbc) _
-            Then TypeString = "Document-Module (Worksheet)" _
-            Else TypeString = "Document-Module (Workbook)"
+        Case vbext_ct_Document:         If IsSheetDocMod(t_vbc, t_wbk) _
+                                        Then TypeString = "Document-Module (Worksheet)" _
+                                        Else TypeString = "Document-Module (Workbook)"
         Case vbext_ct_MSForm:           TypeString = "UserForm"
         Case vbext_ct_StdModule:        TypeString = "Standard-Module"
     End Select

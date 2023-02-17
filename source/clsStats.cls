@@ -13,7 +13,6 @@ Option Explicit
 ' CompMan services statistics
 ' ----------------------------------
 Private aCount() As Long
-Private lMaxLen As Long
 
 Public Sub Clear()
     ReDim aCount(0)

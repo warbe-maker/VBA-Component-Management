@@ -9,23 +9,62 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
 
-Private bFolderServicedIsValid              As Boolean
-Private bFolderAddinIsValid                 As Boolean
-Private bFolderExportIsValid                As Boolean
-Private bFolderSyncedIsValid                As Boolean
-Private bFolderSyncArchiveIsValid           As Boolean
-Private bAddinConfigObligatory              As Boolean
-Private bSyncConfigObligatory               As Boolean
-Private bCanceled                           As Boolean
 Private sRenewResult                        As String
 
 Public Property Let AddInStatus(ByVal s As String):                 MaintainMinRowHeight Me.Range("AddInStatus"), s:                End Property
 
 Public Property Let AutoOpenStatus(ByVal s As String):              MaintainMinRowHeight Me.Range("AutoOpenStatus"), s:             End Property
 
+Public Property Let ButtonCaption(Optional ByVal bc_cmb As Button, _
+                                           ByVal bc_caption As String)
+    Dim bProtected  As Boolean
+    Dim wsh         As Worksheet
+    
+    Set wsh = bc_cmb.Parent
+    If wsh.ProtectContents Then
+        bProtected = True
+        wsh.Unprotect
+    End If
+    
+    bc_cmb.Text = bc_caption
+    If bProtected Then wsh.Protect
+
+End Property
+
+Public Property Let ButtonEnabled(Optional ByVal bc_cmb As Button, _
+                                           ByVal bc_enabled As Boolean)
+' ----------------------------------------------------------------------------
+' Because the Enabled property does not what is expected the button is hidden
+' or displayed instead.
+' ----------------------------------------------------------------------------
+    Dim bProtected  As Boolean
+    Dim wsh         As Worksheet
+    
+    Set wsh = bc_cmb.Parent
+    If wsh.ProtectContents Then
+        bProtected = True
+        wsh.Unprotect
+    End If
+                                           
+    With bc_cmb
+        If bc_enabled Then
+            .Visible = True
+            .Font.Color = rgbBlack
+        Else
+            .Visible = False
+            .Font.Color = rgbGrey
+        End If
+    End With
+    
+    If bProtected Then wsh.Protect
+
+End Property
+
 Public Property Let ButtonHelpUrlAddinSetup(ByVal s As String):     UrlButton(Me.Range("ButtonHelpUrlAddinSetup")) = s:             End Property
 
 Public Property Let ButtonHelpUrlPauseContinue(ByVal s As String):  UrlButton(Me.Range("ButtonHelpUrlPauseContinue")) = s:          End Property
+
+Public Property Get ButtonPauseAddIn() As Button:                    Set ButtonPauseAddIn = Me.Buttons("cmbAddInPause"):              End Property
 
 Public Property Get ButtonSetupRenewAddIn() As Button:              Set ButtonSetupRenewAddIn = Me.Buttons("cmbAddInSetup"):        End Property
 
@@ -37,9 +76,19 @@ Public Property Let CompManWrkbkStatusUrl(ByVal s As String):       UrlLabel(Me.
 
 Public Property Let ConfigInfo(ByVal s As String):                  mWsh.Value(Me, "ConfigInfo") = s:                               End Property
 
+Public Property Get FolderAddin() As String:                        FolderAddin = mWsh.Value(Me, "FolderAddin"):                    End Property
+
+Public Property Let FolderAddin(ByVal s As String):                 mWsh.Value(Me, "FolderAddin") = s:                              End Property
+
 Public Property Let FolderAddInInfo(ByVal s As String):             MaintainMinRowHeight Me.Range("FolderAddInInfo"), s:            End Property
 
 Public Property Let FolderAddInUrl(ByVal s As String):              UrlLabel(Me.Range("FolderAddInUrl")) = s:                       End Property
+
+Public Property Get FolderCommonComponentsName() As String:         FolderCommonComponentsName = "Common-Components":               End Property
+
+Public Property Get FolderCommonComponentsPath() As String
+    FolderCommonComponentsPath = wsConfig.FolderDevAndTest & "\" & wsConfig.FolderCommonComponentsName
+End Property
 
 Public Property Get FolderDevAndTest() As String:                   FolderDevAndTest = mWsh.Value(Me, "FolderDevAndTest"):          End Property
 
@@ -81,8 +130,6 @@ Public Property Let FolderSyncTargetInfo(ByVal s As String):        MaintainMinR
 Public Property Let FolderSyncTargetUrl(ByVal s As String):         UrlLabel(Me.Range("FolderSyncTargetUrl")) = s:                  End Property
 
 Private Property Get MonitorAnchor() As Range:                      Set MonitorAnchor = Me.Range("ConfigInfo"):                     End Property
-
-Public Property Get ButtonPauseAddIn() As Button:                    Set ButtonPauseAddIn = Me.Buttons("cmbAddInPause"):              End Property
 
 Public Property Let UrlButton(ByVal url_rng As Range, _
                               ByVal url_chapter As String)
@@ -172,52 +219,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Property Let ButtonEnabled(Optional ByVal bc_cmb As Button, _
-                                           ByVal bc_enabled As Boolean)
-' ----------------------------------------------------------------------------
-' Because the Enabled property does not what is expected the button is hidden
-' or displayed instead.
-' ----------------------------------------------------------------------------
-    Dim bProtected  As Boolean
-    Dim wsh         As Worksheet
-    
-    Set wsh = bc_cmb.Parent
-    If wsh.ProtectContents Then
-        bProtected = True
-        wsh.Unprotect
-    End If
-                                           
-    With bc_cmb
-        If bc_enabled Then
-            .Visible = True
-            .Font.Color = rgbBlack
-        Else
-            .Visible = False
-            .Font.Color = rgbGrey
-        End If
-    End With
-    
-    If bProtected Then wsh.Protect
-
-End Property
-
-Public Property Let ButtonCaption(Optional ByVal bc_cmb As Button, _
-                                           ByVal bc_caption As String)
-    Dim bProtected  As Boolean
-    Dim wsh         As Worksheet
-    
-    Set wsh = bc_cmb.Parent
-    If wsh.ProtectContents Then
-        bProtected = True
-        wsh.Unprotect
-    End If
-    
-    bc_cmb.Text = bc_caption
-    If bProtected Then wsh.Protect
-
-End Property
-
-Public Sub CurrentStatus(Optional ByVal cs_valid = True)
+Public Sub CurrentStatus()
 ' ----------------------------------------------------------------------------
 ' Analysis the status of the CompMan Add-in and the CompMan Workbook.
 ' ----------------------------------------------------------------------------
@@ -249,7 +251,7 @@ Public Sub CurrentStatus(Optional ByVal cs_valid = True)
         If mAddin.IsOpen Then
             .ButtonPauseAddIn.Visible = True
             If mAddin.Paused Then
-                cll.Add "curretly  p a u s e d !"
+                cll.Add "currently  p a u s e d !"
                 Me.ButtonCaption(.ButtonPauseAddIn) = "Continue Add-in"
             Else
                 Me.ButtonCaption(.ButtonPauseAddIn) = "Pause Add-in"
@@ -300,9 +302,9 @@ Public Sub CurrentStatus(Optional ByVal cs_valid = True)
             '~~ Update the shortcut in case the location of the CompMan Workbook has changed
             If ShortCutTargetPath(AutoOpenShortCutCompManWbk) <> ThisWorkbook.FullName _
             Then ShortCutTargetPath(AutoOpenShortCutCompManWbk) = ThisWorkbook.FullName
-            .AutoOpenStatus = "auto-open for " & ThisWorkbook.name & "  s e t u p."
+            .AutoOpenStatus = "auto-open for " & ThisWorkbook.Name & "  s e t u p."
         Else
-            .AutoOpenStatus = "auto-open for " & ThisWorkbook.name & "  n o t  s e t u p !"
+            .AutoOpenStatus = "auto-open for " & ThisWorkbook.Name & "  n o t  s e t u p !"
         End If
         .ButtonHelpUrlAddinSetup = "#setuprenew-add-in"
         .ButtonHelpUrlPauseContinue = "#pausecontinue-add-in"
@@ -356,11 +358,7 @@ Public Sub FolderAddinConfigure()
             End If
         End If
     End With
-    If mAddin.Folder = vbNullString Then
-        CurrentStatus mAddin.FolderOld
-    Else
-        CurrentStatus mAddin.Folder
-    End If
+    wsConfig.CurrentStatus
     
 End Sub
 
@@ -368,13 +366,14 @@ Public Function FolderAddInIsValid() As Boolean
 ' ----------------------------------------------------------------------------
 ' - Returns TRUE when the AddIn folder is configured and valid (i.e. exists)
 ' - Sets status and folder info in accordance with the current status.
+' - Considers that the configured folder does not or no longer exist, in case
+'   the Workbook is opened on a different computer for example.
 ' ----------------------------------------------------------------------------
     Const PROC = "FolderAddInIsValid"
     
     On Error GoTo eh
     Dim fso     As New FileSystemObject
     Dim bValid  As Boolean
-    Dim sStatus As String
     
     With Me
         .FolderAddInUrl = "#the-add-in-folder"
@@ -392,7 +391,13 @@ Public Function FolderAddInIsValid() As Boolean
                     bValid = True
                     bValid = True
                 Else
-                    .FolderAddInInfo = "Invalid! (the folder does not exist)"
+                    mAddin.Folder = vbNullString
+                    .FolderAddInInfo = "Not configured! The former configured folder does not exist and thus had been reset."
+                    
+                    If mAddin.FolderOld <> vbNullString Then
+                        If Not fso.FolderExists(mAddin.FolderOld) Then mAddin.FolderOld = vbNullString
+                    End If
+                    
                     bValid = False
                 End If
             Case mAddin.Folder = vbNullString
@@ -400,7 +405,7 @@ Public Function FolderAddInIsValid() As Boolean
                                    "Folder for the CompMan Add-in instance."
                 bValid = False
         End Select
-        CurrentStatus bValid
+        wsConfig.CurrentStatus
     
         If bValid _
         Then .ButtonSetupRenewAddIn.Visible = True _
@@ -418,7 +423,6 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub FolderDevAndTestClear()
-    Debug.Print "FolderDevAndTestClear clicked!"
     Me.FolderDevAndTest = vbNullString
     Me.FolderDevAndTestIsValid
 End Sub
@@ -430,7 +434,8 @@ End Sub
 Public Function FolderDevAndTestIsValid() As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the current configured Synchronization-Archive-Folder is
-' valid.
+' valid. Considers that the configured folder does not or no longer exist, in
+' case the Workbook is opened on a different computer for example.
 ' ----------------------------------------------------------------------------
     Const PROC = "FolderDevAndTestIsValid"
     
@@ -441,18 +446,22 @@ Public Function FolderDevAndTestIsValid() As Boolean
     With Me
         .FolderDevAndTestUrl = "#the-serviced-development-and-test-folder"
         .CompManWrkbkStatusUrl = "#setup-auto-open-for-the-compman-workbook"
+        
         If .FolderDevAndTest <> vbNullString Then
             If fso.FolderExists(.FolderDevAndTest) Then
                 .FolderDevAndTestInfo = "Folder serviced by CompMan. I.e. CompMan provides its services for Workbooks " & _
-                                          "located in this folder provided they have one or more services enabled."
+                                        "located in this folder provided they have one or more services enabled."
                 If FolderExportIsValid Then .ConfigInfo = vbNullString
                 bValid = True
             Else
-                .FolderDevAndTestInfo = "Invalid! The configured folder does not exist!."
+                .FolderDevAndTestInfo = "Not configured! The former configured folder does not exist and thus has been reset!." & vbLf & _
+                                        "CompMan 's services are  n o t   a v a i l a b l e !" & vbLf & _
+                                        "CompMan only serves Workbooks which are opened from within a configured 'Serviced Development and Test' folder."
+                .FolderDevAndTest = vbNullString
             End If
         Else
             .FolderDevAndTestInfo = "Missing! CompMan's services are  n o t   a v a i l a b l e !" & vbLf & _
-                                      "CompMan only serves Workbooks which are opened from within a configured 'Serviced Development and Test' folder."
+                                    "CompMan only serves Workbooks which are opened from within a configured 'Serviced Development and Test' folder."
         End If
         .ButtonWrkbkAutoOpen.Visible = bValid
     End With
@@ -468,10 +477,8 @@ End Function
 
 Public Sub FolderExportConfigure()
     
-    Dim fso     As New FileSystemObject
     Dim sNew    As String
     Dim sOld    As String
-    Dim fld     As Folder
     
     sOld = wsConfig.FolderExport
     sNew = VBA.InputBox(Prompt:="Enter the name for the folder to which changed components are exported " & _
@@ -520,10 +527,10 @@ End Sub
 Public Sub FolderSyncArchiveConfigure()
     wsConfig.FolderSyncArchive = mBasic.SelectFolder("Select the 'Synchronization Archive' folder for CompMan's 'Synchronize VB-Project' service")
     Me.FolderSyncArchiveIsValid
-    CurrentStatus
+    wsConfig.CurrentStatus
 End Sub
 
-Public Function FolderSyncArchiveIsValid(Optional ByRef iv_info As String) As Boolean
+Public Function FolderSyncArchiveIsValid() As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the current configured Synchronization-Archive-Folder is
 ' valid.
@@ -533,10 +540,21 @@ Public Function FolderSyncArchiveIsValid(Optional ByRef iv_info As String) As Bo
     With Me
         .FolderSyncArchiveUrl = "#the-synchronization-archive-folder"
         If .FolderSyncArchive <> vbNullString Then
-            FolderSyncArchiveIsValid = fso.FolderExists(.FolderSyncTarget)
+            If fso.FolderExists(.FolderSyncTarget) Then
+                FolderSyncArchiveIsValid = True
+            Else
+                .FolderSyncArchive = vbNullString
+                .FolderSyncTargetInfo = "Not configured! The former configured folder does not exist and thus had been reset." & vbLf & _
+                                        "CompMan's 'Synchronize VB-Project' service will not be provided even when a Workbook " & _
+                                        "has it enabled." & vbLf & _
+                                        "Important! The folder must not be a sub-folder of the 'Serviced Development and Test' folder!"
+            End If
         Else
             If .FolderSyncTarget <> vbNullString Then
-                .FolderSyncArchiveInfo = "Invalid! When a Sync-Target-Folder is configured the configuration of a Sync-Archive-Folder is obligatory!"
+                .FolderSyncArchiveInfo = "Not configured! When a Sync-Target-Folder is configured the configuration of a Sync-Archive-Folder is obligatory!"
+            Else
+                .FolderSyncArchiveInfo = "Not configured! When a Sync-Target-Folder is configured becomes Sync-Archive-Folder is obligatory " & _
+                                         "in order to allow CompMan's 'Synchronize VB-Project' service being executed!"
             End If
         End If
         If FolderSyncArchiveIsValid Then
@@ -559,6 +577,8 @@ End Sub
 Public Function FolderSyncTargetIsValid() As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the current configured Synchronization-Folder is valid.
+' Considers that the configured folder does not or no longer exist, in case
+' the Workbook is opened on a different computer for example.
 ' ----------------------------------------------------------------------------
     Dim fso As New FileSystemObject
     
@@ -569,6 +589,12 @@ Public Function FolderSyncTargetIsValid() As Boolean
                 FolderSyncTargetIsValid = True
                 .FolderSyncTargetInfo = "CompMan's folder for the 'Synchronization VB-Project' service. The service is " & _
                                         "provided for any Workbook prepared for the service and opened from within this folder."
+            Else
+                .FolderSyncTarget = vbNullString
+                .FolderSyncTargetInfo = "Not configured! The former configured folder does not exist and thus had been reset." & vbLf & _
+                                        "CompMan's 'Synchronize VB-Project' service will not be provided even when a Workbook " & _
+                                        "has it enabled." & vbLf & _
+                                        "Important! The folder must not be a sub-folder of the 'Serviced Development and Test' folder!"
             End If
         Else
             .FolderSyncTargetInfo = "No 'Synchronization-Target' folder configured. CompMan's 'Synchronize VB-Project' service" & _
@@ -602,26 +628,13 @@ Private Sub MaintainMinRowHeight(ByVal mrh_rng As Range, _
 
 End Sub
 
-Private Function MayBeConfirmed() As Boolean
-    With Me
-        MayBeConfirmed = (bAddinConfigObligatory And FolderAddInIsValid) _
-                      Or (mAddin.Folder <> vbNullString And FolderAddInIsValid) _
-                      And .FolderSyncTargetIsValid _
-                      And .FolderExportIsValid _
-                      And (bSyncConfigObligatory And .FolderSyncTargetIsValid) Or (.FolderSyncTarget <> vbNullString And .FolderSyncTargetIsValid) _
-                      And (bSyncConfigObligatory And FolderSyncArchiveIsValid) Or (.FolderSyncArchive <> vbNullString And FolderSyncArchiveIsValid)
-    End With
-End Function
-
-Public Sub MonitorRenewStep(Optional ByVal rn_action As String = vbNullString, _
-                            Optional ByVal rn_result As String = vbNullString, _
+Public Sub MonitorRenewStep(Optional ByVal rn_result As String = vbNullString, _
                             Optional ByVal rn_last_step As Boolean = False, _
                             Optional ByVal rn_renew_failed As Boolean = False)
 ' ---------------------------------------------------------------
 '
 ' ---------------------------------------------------------------
     Dim Title           As String:      Title = "Establish or renew CompMan as Add-in"
-    Dim Header          As TypeMsgText
     Dim Step            As TypeMsgText
     Dim Footer          As TypeMsgText
     Dim sProgressMsg    As String
@@ -690,7 +703,32 @@ Private Function ProgressMsg(ByVal pm_step As Long, _
     End If
 End Function
 
-Private Sub VerifyConfig()
+Public Sub SaveToCompManIni()
+
+    With Me
+        If mCompManIni.FolderAddin <> .FolderAddin Then mCompManIni.FolderAddin = .FolderAddin
+        If mCompManIni.FolderExport <> .FolderExport Then mCompManIni.FolderExport = .FolderExport
+        If mCompManIni.FolderServicedDevAndTest <> .FolderDevAndTest Then mCompManIni.FolderServicedDevAndTest = .FolderDevAndTest
+        If mCompManIni.FolderServicedSyncArchive <> .FolderSyncArchive Then mCompManIni.FolderServicedSyncArchive = .FolderSyncArchive
+        If mCompManIni.FolderServicedSyncTarget <> .FolderSyncTarget Then mCompManIni.FolderServicedSyncTarget = .FolderSyncTarget
+    End With
+
+End Sub
+
+Public Sub RestoreFromCompManIni()
+
+    With Me
+        If .FolderAddin <> mCompManIni.FolderAddin Then .FolderAddin = mCompManIni.FolderAddin
+        If .FolderExport <> mCompManIni.FolderExport Then .FolderExport = mCompManIni.FolderExport
+        If .FolderDevAndTest <> mCompManIni.FolderServicedDevAndTest Then .FolderDevAndTest = mCompManIni.FolderServicedDevAndTest
+        If .FolderSyncArchive <> mCompManIni.FolderServicedSyncArchive Then .FolderSyncArchive = mCompManIni.FolderServicedSyncArchive
+        If .FolderSyncTarget <> mCompManIni.FolderServicedSyncTarget Then .FolderSyncTarget = mCompManIni.FolderServicedSyncTarget
+    End With
+
+End Sub
+
+
+Public Sub Verify()
     With Me
         .FolderDevAndTestIsValid
         .FolderAddInIsValid
@@ -713,8 +751,7 @@ Private Sub Worksheet_Activate()
         .DisplayVerticalScrollBar = False
         .DisplayHeadings = False
     End With
-    
-    VerifyConfig
+    Me.Range("celParking").Select ' selects a non visible cell
     
 xt: Exit Sub
 
@@ -742,6 +779,17 @@ Private Sub Worksheet_Change(ByVal Target As Range)
             Case .Range("FolderSyncTarget").Address:    .FolderSyncTargetIsValid
             Case .Range("FolderSyncArchive").Address:   .FolderSyncArchiveIsValid
         End Select
+    
+        Select Case Target.Address
+            Case .Range("FolderDevAndTest").Address, _
+                 .Range("FolderExport").Address, _
+                 .Range("FolderAddin").Address, _
+                 .Range("FolderSyncTarget").Address, _
+                 .Range("FolderSyncArchive").Address
+                .SaveToCompManIni
+        End Select
     End With
+
+
 End Sub
 

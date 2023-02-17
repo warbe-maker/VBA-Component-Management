@@ -9,22 +9,36 @@ Private Const TEST_SHEET_TARGET     As String = "Test_A"
 Private Const TEST_SHAPE_TARGET     As String = "CommandButton2_Test_A"
 Private Const TEST_OOB_TARGET       As String = "CommandButtonActiveX_Test_A"
 
-Private oobSource   As OLEObject
-Private oobTarget   As OLEObject
-Private shpSource   As Shape
-Private shpTarget   As Shape
-Private wshSource   As Worksheet
-Private wshTarget   As Worksheet
+Private oobSource                   As OLEObject
+Private oobTarget                   As OLEObject
+Private shpSource                   As Shape
+Private shpTarget                   As Shape
+Private wshSource                   As Worksheet
+Private wshTarget                   As Worksheet
+
+Public wbkSource                    As Workbook
+Public wbkTarget                    As Workbook
 
 Public Property Get TestSyncTargetFullName() As String
     TestSyncTargetFullName = wsConfig.FolderSyncTarget & "\" & "CompManSyncTest\" & TEST_BOOK_SYNC
 End Property
 
+Private Function AppErr(ByVal app_err_no As Long) As Long
+' ------------------------------------------------------------------------------
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
+' ------------------------------------------------------------------------------
+    If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
+End Function
+
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mSyncTest." & sProc
 End Function
 
-Private Sub ListShapes()
+Public Sub ListShapes()
     Dim shp As Shape
     Dim wbk As Workbook
     Dim wsh As Worksheet
@@ -35,7 +49,7 @@ Private Sub ListShapes()
     For Each shp In wsh.Shapes
         Debug.Print mSyncShapes.ShapeNames(shp)
         With shp
-            If .name = "Elbow Connector 3" Then
+            If .Name = "Elbow Connector 3" Then
                 .Visible = True
                 .Top = 50
                 .Left = 50
@@ -49,20 +63,6 @@ Public Sub Test_00_RegressionTest()
 ' ------------------------------------------------------------------------------
 ' Test-Sync-Target-Workbook: <FolderSyncTarget>\CompManSyncTest\CompManSyncTest.xlsb
 ' Test-Sync_Source_Workbook: <FolderDevAndTest>\Common-VBA-Excel-Component-Management-Services\SyncTest\SyncSource\CompManSyncTest.xlsb
-' Sync References:    - Test Obsolete ....:
-'                     - Test New .........:
-' Sync Worksheets:    - New ..............:
-'                     - Name Change ......:
-'                     - CodeName Change ..:
-'                     - Additional Shapes :
-' Sync Names:         - Obsolete
-'                     - New
-'                     - Change
-'                     - Additional
-' Sync VB-Components: - Obsolete .........:
-'                     - New ..............:
-'                     - Changed ..........:
-'
 ' ------------------------------------------------------------------------------
     Const PROC = "Test_00_RegressionTest"
 
@@ -71,7 +71,7 @@ Public Sub Test_00_RegressionTest()
     
     Application.EnableEvents = False
     If mWbk.IsOpen(wsService.SyncSourceFullName, wbk) Then wbk.Close False
-    If mWbk.IsOpen(wsService.ServicedWorkbookFullName(), wbk) Then wbk.Close False
+    If mWbk.IsOpen(wsService.CurrentServicedWorkbookFullName(), wbk) Then wbk.Close False
     If mWbk.IsOpen(TestSyncTargetFullName, wbk) Then wbk.Close False
     Application.EnableEvents = True
     
@@ -112,20 +112,20 @@ Public Sub Test_99_mSyncShapeProperties_Name_Property()
     Test_EnvironmentProvide
         
     '~~ Test 1: Change Shape.Name property (changing the Shape Name changes the OOB's CodeName accordingly!)
-    shpSource.name = "CommandButtonActiveX_Test_A_X"
+    shpSource.Name = "CommandButtonActiveX_Test_A_X"
     Debug.Assert mSyncShapes.ShapeNames(shpSource) = "CommandButtonActiveX_Test_A_X (CommandButtonActiveX_Test_A_X)"
     Debug.Assert mSyncShapes.ShapeNames(oobSource) = "CommandButtonActiveX_Test_A_X (CommandButtonActiveX_Test_A_X)"
     '~~ Undo
-    shpSource.name = "CommandButtonActiveX_Test_A"
+    shpSource.Name = "CommandButtonActiveX_Test_A"
     Debug.Assert mSyncShapes.ShapeNames(shpSource) = "CommandButtonActiveX_Test_A (CommandButtonActiveX_Test_A)"
     Debug.Assert mSyncShapes.ShapeNames(oobSource) = "CommandButtonActiveX_Test_A (CommandButtonActiveX_Test_A)"
     
     '~~ Test 2: Change the OLEObject.Name property  (changing the Code-Name changes the Shape's Name accordingly!)
-    oobSource.name = "cmbActiveX_Test_A"
+    oobSource.Name = "cmbActiveX_Test_A"
     Debug.Assert mSyncShapes.ShapeNames(shpSource) = "cmbActiveX_Test_A (cmbActiveX_Test_A)"
     Debug.Assert mSyncShapes.ShapeNames(oobSource) = "cmbActiveX_Test_A (cmbActiveX_Test_A)"
     '~~ Undo
-    oobSource.name = "CommandButtonActiveX_Test_A"
+    oobSource.Name = "CommandButtonActiveX_Test_A"
     Debug.Assert mSyncShapes.ShapeNames(shpSource) = "CommandButtonActiveX_Test_A (CommandButtonActiveX_Test_A)"
     Debug.Assert mSyncShapes.ShapeNames(oobSource) = "CommandButtonActiveX_Test_A (CommandButtonActiveX_Test_A)"
         
@@ -157,7 +157,7 @@ Public Sub Test_99_mSyncShapeProperties_OOBObjectProperties()
     Application.ScreenUpdating = False
     Test_EnvironmentProvide
     
-    Test_ProvideControls mSync.source, "Test_A"
+    Test_ProvideControls mSync.Source, "Test_A"
             
     mSyncShapePrprtys.ShapeSource = shpSource
     mSyncShapePrprtys.ShapeTarget = shpTarget
@@ -169,7 +169,7 @@ Public Sub Test_99_mSyncShapeProperties_OOBObjectProperties()
     lMaxLen = mSyncShapePrprtys.PropertyMaxLen(mSyncShapePrprtys.enPropertiesOOBFirst, mSyncShapePrprtys.enPropertiesOOBLast)
     
     '~~ Do synch for a specific OOB's properties
-    Debug.Print "Synchronizing the properties for : " & wshTarget.name & "." & ShapeNames(oobTarget)
+    Debug.Print "Synchronizing the properties for : " & wshTarget.Name & "." & ShapeNames(oobTarget)
     For enProperty = mSyncShapePrprtys.enPropertiesOOBFirst To mSyncShapePrprtys.enPropertiesOOBLast
         sProperty = mSyncShapePrprtys.PropertyName(enProperty)
         vTarget = mSyncShapePrprtys.PropertyValue(enProperty, oobTarget)
@@ -179,7 +179,7 @@ Public Sub Test_99_mSyncShapeProperties_OOBObjectProperties()
             If mSyncShapePrprtys.PropertyValue(enProperty, oobTarget) = mSyncShapePrprtys.PropertyValue(enProperty, oobSource) Then
                 If Not dctRW.Exists(sProperty) Then
                     '~~ synchronizability proved
-                    mDct.DctAdd dctRW, sProperty, ": synchronizability proved (example " & wshSource.name & "." & ShapeNames(oobSource) & ")", order_bykey, seq_ascending, sense_casesensitive
+                    mDct.DctAdd dctRW, sProperty, ": synchronizability proved (example " & wshSource.Name & "." & ShapeNames(oobSource) & ")", order_bykey, seq_ascending, sense_casesensitive
                 End If
             Else
                 Debug.Print mBasic.Align(sProperty, lMaxLen, , , ".") & " not changed " & mSyncShapePrprtys.PropertyChange(vTarget, vSource)
@@ -217,19 +217,19 @@ Public Sub Test_99_mSyncShapeProperties_ShapeProperties()
 ' ----------------------------------------------------------------------------
     Const PROC = "Test_99_mSyncShapeProperties_ShapeProperties"
     
-    Dim enProperty      As enProperties
-    Dim lMaxLen         As Long
-    Dim vTarget         As Variant
-    Dim vSource         As Variant
-    Dim sProperty       As String
-    Dim dctRW           As New Dictionary
-    Dim v               As Variant
+    Dim enProperty  As enProperties
+    Dim lMaxLen     As Long
+    Dim vTarget     As Variant
+    Dim vSource     As Variant
+    Dim sProperty   As String
+    Dim dctRW       As New Dictionary
+    Dim v           As Variant
     
     On Error GoTo eh
     Application.ScreenUpdating = False
     Test_EnvironmentProvide
     
-    Test_ProvideControls mSync.source, "Test_A"
+    Test_ProvideControls mSync.Source, "Test_A"
             
     mSyncShapePrprtys.ShapeSource = shpSource
     mSyncShapePrprtys.ShapeTarget = shpTarget
@@ -242,8 +242,8 @@ Public Sub Test_99_mSyncShapeProperties_ShapeProperties()
     
     For Each shpSource In wshSource.Shapes
         If shpSource.Type = msoOLEControlObject Then GoTo ns
-        If mSyncShapes.CorrespTargetShape(shpSource, wshTarget, shpTarget) Is Nothing Then GoTo ns
-        Debug.Print "Synchronizing the properties for : " & mSyncShapes.ItemSyncName(shpSource)
+        If mSyncShapes.CorrespondingShape(shpSource, wshTarget, shpTarget) Is Nothing Then GoTo ns
+        Debug.Print "Synchronizing the properties for : " & mSyncShapes.SyncId(shpSource)
         
         mSyncShapePrprtys.ShapeSource = shpSource
         mSyncShapePrprtys.ShapeTarget = shpTarget
@@ -264,7 +264,7 @@ Public Sub Test_99_mSyncShapeProperties_ShapeProperties()
                     If mSyncShapePrprtys.PropertyValue(enProperty, shpTarget) = mSyncShapePrprtys.PropertyValue(enProperty, shpSource) Then
                         If Not dctRW.Exists(sProperty) Then
                             '~~ synchronizability proved
-                            mDct.DctAdd dctRW, sProperty, ": synchronizability proved (example " & mSyncShapes.ItemSyncName(shpSource) & ")", order_bykey, seq_ascending, sense_casesensitive
+                            mDct.DctAdd dctRW, sProperty, ": synchronizability proved (example " & mSyncShapes.SyncId(shpSource) & ")", order_bykey, seq_ascending, sense_casesensitive
                         End If
                     Else
                         Debug.Print mBasic.Align(sProperty, lMaxLen, , , ".") & ": " & enProperty & " not changed " & mSyncShapePrprtys.PropertyChange(vTarget, vSource) & "  (without error!)"
@@ -334,13 +334,13 @@ Public Sub Test_99_Read_Write_Properties_check()
     Application.ScreenUpdating = False
     Test_EnvironmentProvide
     
-    Test_ProvideControls mSync.source, "Test_A"
+    Test_ProvideControls mSync.Source, "Test_A"
     
     '~~ Get the max property name lenght for Debug.Print and save all names to a Dictionary
     lMaxLen = mBasic.Max(mSyncShapePrprtys.PropertyMaxLen(mSyncShapePrprtys.enPropertiesOOBFirst, mSyncShapePrprtys.enPropertiesShapeLast))
     
     '~~ Do read/write test for all Controls in the Sync-Source-Workbook
-    For Each wsh In mSync.source.Worksheets
+    For Each wsh In mSync.Source.Worksheets
         For Each oob In wsh.OLEObjects
             Set oobTarget = oob
             Set oobSource = oob
@@ -351,7 +351,7 @@ Public Sub Test_99_Read_Write_Properties_check()
                 If Err.Number = 0 Then
                     If Not dctRW.Exists(sProperty) Then
                         '~~ read/write proved
-                        mDct.DctAdd dctRW, sProperty, ": synchronizability proved  (example " & wsh.name & "." & ShapeNames(oob) & ")", order_bykey, seq_ascending, sense_casesensitive
+                        mDct.DctAdd dctRW, sProperty, ": synchronizability proved  (example " & wsh.Name & "." & ShapeNames(oob) & ")", order_bykey, seq_ascending, sense_casesensitive
                     End If
                 End If
             Next enProperty
@@ -368,7 +368,7 @@ Public Sub Test_99_Read_Write_Properties_check()
                 If Err.Number = 0 Then
                     If Not dctRW.Exists(sProperty) Then
                         '~~ read/write proved
-                        mDct.DctAdd dctRW, sProperty, ": synchronizability proved (example " & wsh.name & "." & ShapeNames(shp) & ")", order_bykey, seq_ascending, sense_casesensitive
+                        mDct.DctAdd dctRW, sProperty, ": synchronizability proved (example " & wsh.Name & "." & ShapeNames(shp) & ")", order_bykey, seq_ascending, sense_casesensitive
                     End If
                 End If
             Next enProperty
@@ -411,25 +411,25 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_EnvironmentCleanup()
+Public Sub Test_EnvironmentCleanup()
     Const PROC = "Test_EnvironmentCleanup"
     
     Dim fso         As New FileSystemObject
     Dim wbk         As Workbook
-    Dim sTargetCopy As String
+    Dim sTargetWorkingCopy As String
     
     With fso
-        sTargetCopy = mSync.TargetCopyFullName(TestSyncTargetFullName)
-        If .FileExists(sTargetCopy) Then
-            If mWbk.IsOpen(sTargetCopy, wbk) Then wbk.Close False
-            .DeleteFile sTargetCopy
+        sTargetWorkingCopy = mSync.TargetWorkingCopyFullName(TestSyncTargetFullName)
+        If .FileExists(sTargetWorkingCopy) Then
+            If mWbk.IsOpen(sTargetWorkingCopy, wbk) Then wbk.Close False
+            .DeleteFile sTargetWorkingCopy
         End If
     End With
     
     Application.EnableEvents = False
     On Error Resume Next
-    mSync.TargetCopy.Close False
-    mSync.source.Close False
+    mSync.TargetWorkingCopy.Close False
+    mSync.Source.Close False
     Set wshSource = Nothing
     Set wshTarget = Nothing
     Set shpSource = Nothing
@@ -448,7 +448,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_EnvironmentProvide()
+Public Sub Test_EnvironmentProvide()
     Const PROC = "Test_EnvironmentProvide"
     
     On Error Resume Next
@@ -456,17 +456,82 @@ Private Sub Test_EnvironmentProvide()
     
     On Error GoTo eh
     Application.EnableEvents = False
-    mSync.TargetCopy = mWbk.GetOpen(TestSyncTargetFullName)
+    mSync.TargetWorkingCopy = mWbk.GetOpen(TestSyncTargetFullName)
     Application.EnableEvents = True
 '    mSync.Source = mSync.Target
-    If wshSource Is Nothing Then Set wshSource = mSync.source.Worksheets(TEST_SHEET_SOURCE)
-    If wshTarget Is Nothing Then Set wshTarget = mSync.TargetCopy.Worksheets(TEST_SHEET_TARGET)
+    If wshSource Is Nothing Then Set wshSource = mSync.Source.Worksheets(TEST_SHEET_SOURCE)
+    If wshTarget Is Nothing Then Set wshTarget = mSync.TargetWorkingCopy.Worksheets(TEST_SHEET_TARGET)
     If shpSource Is Nothing Then Set shpSource = wshSource.Shapes(TEST_SHAPE_SOURCE)
     If shpTarget Is Nothing Then Set shpTarget = wshTarget.Shapes(TEST_SHAPE_TARGET)
     If oobSource Is Nothing Then Set oobSource = wshSource.OLEObjects(TEST_OOB_SOURCE)
     If oobTarget Is Nothing Then Set oobTarget = wshTarget.OLEObjects(TEST_OOB_TARGET)
     
 xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Sub SetupOnly()
+    wsSyncTest.SetupTestWorkbooksEstablish False
+    wsSyncTest.Setup "source", False
+    wsSyncTest.Setup "target", False
+End Sub
+
+Public Sub Regression():        TestSync True:          End Sub
+
+Public Sub TestSelectedOnly():  TestSync False:         End Sub
+
+Public Sub TestSync(Optional ByVal t_regression As Boolean = False)
+    Const PROC = "TestSync"
+    
+    On Error GoTo eh
+    
+    wsService.CurrentServiceName = ErrSrc(PROC)
+        
+    mBasic.BoP ErrSrc(PROC)
+    Application.ScreenUpdating = False
+    With wsSyncTest
+        .SetupTestWorkbooksEstablish t_regression
+        .Setup "source", t_regression
+        .wbkSource.Save
+        If t_regression Then .wbkSource.Close ' will be re-opened by the service
+        .Setup "target", t_regression
+    End With
+    
+    If Not t_regression Then
+        mService.Initiate mCompManClient.SRVC_SYNCHRONIZE, wsSyncTest.wbkTarget, False
+        wsSyncTest.wbkSource.Save
+        mSync.Source = mWbk.GetOpen(wsSyncTest.SyncTestSourceFullName)
+        mSync.TargetWorkingCopy = mWbk.GetOpen(wsSyncTest.SyncTestTargetFullName)
+    End If
+    
+    If t_regression Then
+        mSync.Initialize i_sync_refs:=True _
+                       , i_sync_sheets:=True _
+                       , i_sync_names:=True _
+                       , i_sync_shapes:=False _
+                       , i_sync_comps:=True
+    Else
+        mSync.Initialize i_sync_refs:=wsSyncTest.DoSync("Reference") _
+                       , i_sync_sheets:=wsSyncTest.DoSync("Worksheet") _
+                       , i_sync_names:=wsSyncTest.DoSync("Name") _
+                       , i_sync_shapes:=wsSyncTest.DoSync("Shape") _
+                       , i_sync_comps:=wsSyncTest.DoSync("VBComponent")
+    End If
+
+xt: mBasic.EoP ErrSrc(PROC)
+    If t_regression Then
+        '~~ Simmulates the Workbook_Open events's action:
+        '~~ mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED
+        mCompMan.SynchronizeVBProjects wsSyncTest.wbkTarget
+    Else
+        mSync.SyncMode
+        mSync.RunSync
+    End If
+    Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -493,7 +558,7 @@ Private Sub Test_ProvideControls(ByVal tpc_wbk As Workbook, _
     sName = "Line1_Test_A"
     If Not mSyncShapes.Exists(sName, wsh) Then
         With wsh.Shapes.AddLine(10, 10, 250, 250).Line
-            .Parent.name = sName
+            .Parent.Name = sName
             .DashStyle = msoLineDashDotDot
             .ForeColor.RGB = rgbRed
             .BeginArrowheadLength = msoArrowheadShort
@@ -509,7 +574,7 @@ Private Sub Test_ProvideControls(ByVal tpc_wbk As Workbook, _
     sName = "DropDown1_Test_A"
     If Not mSyncShapes.Exists(sName, wsh) Then
         With wsh.Shapes.AddFormControl(Type:=xlDropDown, Left:=10, Top:=10, Width:=100, Height:=10)
-            .name = sName
+            .Name = sName
             With .ControlFormat
                  .DropDownLines = 10
                  .Enabled = True
@@ -522,7 +587,7 @@ Private Sub Test_ProvideControls(ByVal tpc_wbk As Workbook, _
     sName = "ListBox1_Test_A"
     If Not mSyncShapes.Exists(sName, wsh) Then
         With wsh.Shapes.AddFormControl(Type:=xlListBox, Left:=100, Top:=10, Width:=100, Height:=100)
-            .name = sName
+            .Name = sName
             With .ControlFormat
                 .Enabled = False
                 .ListFillRange = wsh.Range("rngDropDownCells").Address
@@ -554,56 +619,5 @@ Public Sub Test_TestEnvironent()
     Test_EnvironmentCleanup
     Test_EnvironmentProvide
     Test_EnvironmentCleanup
-End Sub
-
-Public Sub Test_99_NameScope()
-    
-    Dim nme     As name
-    Dim wsh     As Worksheet
-    Dim dct     As New Dictionary
-    Dim v       As Variant
-    
-    For Each nme In ActiveWorkbook.Names
-        mDct.DctAdd dct, mName.Mere(nme) & mName.SCOPE_DELIM & nme.RefersTo & mName.SCOPE_DELIM & mSyncNames.ScopeName(nme), nme, order_bykey, seq_ascending
-    Next nme
-    For Each wsh In ThisWorkbook.Worksheets
-        For Each nme In wsh.Names
-            mDct.DctAdd dct, mName.Mere(nme) & mName.SCOPE_DELIM & nme.RefersTo & mName.SCOPE_DELIM & mSyncNames.ScopeName(nme), nme, order_bykey, seq_ascending
-        Next nme
-    Next wsh
-    For Each v In dct
-        Debug.Print v
-    Next v
-    Set dct = Nothing
-End Sub
-
-Public Sub Test_99_NameScopes()
-    
-    Dim wbk     As Workbook
-    Dim nme     As name
-    Dim wsh     As Worksheet
-    Dim dctAll  As New Dictionary
-    Dim v1      As Variant
-    Dim v2      As Variant
-    
-    Set wbk = ActiveWorkbook
-    '~~ Collect all
-    For Each nme In wbk.Names
-        mDct.DctAdd dctAll, nme, mName.Mere(nme), order_bykey, seq_ascending
-    Next nme
-'    For Each wsh In wbk.Worksheets
-'        For Each nme In wsh.Names
-'            mDct.DctAdd dctAll, nme, mName.Mere(nme), order_bykey, seq_ascending
-'        Next nme
-'    Next wsh
-    
-    '~~ Provide scopes for all collected
-    For Each v1 In dctAll
-        For Each v2 In Scopes(v1, wbk)
-            Debug.Print mName.Mere(v1) & mName.SCOPE_DELIM & v2.name
-        Next v2
-    Next v1
-    
-    Set dctAll = Nothing
 End Sub
 

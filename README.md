@@ -159,29 +159,24 @@ End Sub
 #### _References_ synchronization
 New References are added and obsolete References are removed.
 #### _VB-Components_ synchronization
-Synchronized are all types of VB-Components:  (_Standard&nbsp;Module_, _Data&nbsp;Module_, _Class&nbsp;Module_, _UserForm_). New components are added, obsolete components are removed, and of changed components the code is updated. |
+Synchronized are all types of VB-Components:  (_Standard&nbsp;Module_, _Data&nbsp;Module_, _Class&nbsp;Module_, _UserForm_). New components are added, obsolete components are removed, and of changed components the code is updated.
 
 #### _Names_ synchronization
-!!! still under development !!!
-Names synchronization is the most delicate of all synchronizations and requires specific attention.
+- In order to provide a full transparent synchronization of Names they are synchronized before the Worksheets are [^2] - which makes it a bit more complex. When a Worksheet's name is about to change the Names synchronization has to deal with an old-named Worksheet while the source Name refers already the new Worksheet name. 
+- When the referred range of a Name has changed this is not synchronize but either skipped or the synchronization process is interrupted in order to synchronize the change in the source Worksheet's layout in the corresponding target Worksheet. In case the 'change' is caused by the fact that a new row/column has been inserted by the Workbook user while the VB-Project has been maintained this issue can just be ignored, i.e. skipped.
+- For a best possible transparent process, multiply named ranges are handled separated by removing all target- and adding all corresponding source-Names.
+- ***Synchronization of obsolete Names:*** A Name is regarded obsolete when it only exists in the Sync-Target-Workbook but not (no longer) in the Sync-Source-Workbook
+- ***Synchronization of new Names:*** A Name is considered new when it (the Name's 'mere name' [^3]) exists in the Sync-Source-Workbook but not in the Sync-Target-Workbook.
+- ***Synchronization of changed Names and/or Scopes:*** A ranges Name and/or its Scope may bee changed in the Sync-Source-Workbook and will accordingly synchronized in the Sync-Target-Workbook. 
+- ***Manual pre-synchronization preparation:*** When a synchronization is intentionally terminated (interrupted respectively) this will only be done in order to manually synchronize a design-change. To support this, the Sync-Source-Workbook and the Sync-Target-Workbook's working copy will be closed and the Sync-Source-Workbook re-opened. In the open dialog "manual pre-synchronization" will be chosen and once done the Workbook closed and re-opened with the option "continue with the ongoing synchronization".  
 
-##### Synchronization of obsolete Names
-A Name is regarded obsolete when it is neither used in any Sync-Source-Workbook Worksheets cell's formula nor in any line of vba code. This may occur to Names which do exist in the Sync-Source-Workbook and the Sync-Target-Workbook. An Name detected obsolete in the Sync-Source-Workbook will be exempted from synchronization, an obsolete Name in the Sync-Target-Workbook will be removed. 
+[^2]: When during the Worksheet synchronization a new sheet is cloned all Names are cloned too which obstructs a transparent Names synchronization.
+[^3]: A Name objects 'mere name' is one without a sheet-name-prefix
 
-##### Synchronization of new Names
-A Name is considered new when the Name's 'mere name' [^2] exists in the Sync-Source-Workbook but not in the Sync-Target-Workbook. However, when a new Name is synchronized it may refer-to the wrong range in the Sync-Target-Workbook which is a potentially serious issue:
-
-While the _Sync-Source-Workbook_ is under development, maintenance, etc., the Workbook of which it is a copy remains "productive". The advantage of this approach, a minimized downtime for the productive Workbook comes with the downside that rows and even columns may be added which may affect the range a Name refers-to. On the other side, sheet-design changes in the Sync-Source-Workbook may add or remove cells/ranges as well. Both will results in a synchronization mess impossible to be sorted out.
-
->The only way out of the dilemma is a [manual pre-synchronization preparation](#manual-pre-synchronization-preparation) flanked by very careful checks before a new Name is added. New inserted or deleted ranges (columns, rows, cells) are not synchronized. When the Workbook's modifications include new and/or inserted ranges these need to be [synchronized manually beforehand](#manual-pre-synchronization-preparation) - which is supported/enabled by the open-decision-dialog displayed when the _Sync-Target-Workbook_ is opened.
->New names with wrong referred range have to be avoided by ****manually establishing the new Name in the Sync-Target-Workbook in a manual pre-synchronization effort****. A corresponding warning is displayed with the synchronization dialog and the pre-synchronization can be made by interrupting the synchronization and continuing it afterwards.
-
-##### Manual pre-synchronization preparation
-When a synchronization dialog is terminated without any action the whole synchronization will be interrupted leaving the Sync-Target-Workbook's working copy open. However it is not recommendable to do the manual work in this open Workbook but rather close it by saving the synchronizations already performed and opening the origin Sync-Target-Workbook again by selection the preparation option from the displayed ope-decision dialog. When the Sync-Target-Workbook is closed and re-opened the option ***Continue ongoing synchronization*** will continue synchronizing the outstanding.   
-
-[^2]: A Name objects 'mere name' is one without a sheet-name-prefix
+##### Non synchronized 'ambigous names'
 
 #### _Sheet-Shape_ synchronization
+Still under construction!
 New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. The Properties of all Shapes are synchronized. However, though largely covered the properties synchronization may still be incomplete. 
 
 ### Other

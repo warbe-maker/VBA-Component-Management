@@ -138,9 +138,9 @@ Public Sub ReferencesRemove(Optional ByRef rr_dct As Dictionary, _
         For Each v In dct
             Set wbk = dct.Item(v)
             For Each ref In wbk.VBProject.References
-                If InStr(ref.name, fso.GetBaseName(mAddin.WbkName)) <> 0 Then
+                If InStr(ref.Name, fso.GetBaseName(mAddin.WbkName)) <> 0 Then
                     rr_dct.Add wbk, ref
-                    rr_wbks = wbk.name & ", " & rr_wbks
+                    rr_wbks = wbk.Name & ", " & rr_wbks
                 End If
             Next ref
         Next v
@@ -174,7 +174,7 @@ Public Function IsOpen(Optional ByRef io_wbk As Workbook) As Boolean
     Dim i As Long
     
     For i = 1 To Application.AddIns2.Count
-        If Application.AddIns2(i).name = mAddin.WbkName Then
+        If Application.AddIns2(i).Name = mAddin.WbkName Then
             On Error Resume Next
             Set io_wbk = Application.Workbooks(mAddin.WbkName)
             IsOpen = Err.Number = 0
@@ -188,12 +188,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Function
-
-Private Function WbkExists() As Boolean
-    Dim fso As New FileSystemObject
-    WbkExists = fso.FileExists(WbkFullName)
-    Set fso = Nothing
 End Function
     
 Public Function WbkRemove(ByVal wr_wbk_full_name As String) As Boolean

@@ -48,7 +48,7 @@ Private Declare PtrSafe Function RegEnumValue Lib "advapi32.dll" Alias "RegEnumV
     lpcbValueName As Long, ByVal lpReserved As Long, lpType As Long, _
     lpData As Any, lpcbData As Long) As Long
 Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (dest As _
-    Any, source As Any, ByVal numBytes As Long)
+    Any, Source As Any, ByVal numBytes As Long)
 
 Private Const HKEY_CURRENT_USER      As Long = &H80000001
 Private Const HKEY_LOCAL_MACHINE     As Long = &H80000002
@@ -265,14 +265,14 @@ Private Sub DctAddAscByKey(ByRef add_dct As Dictionary, _
     If bOrderByKey Then
         If VarType(add_key) = vbObject Then
             On Error Resume Next
-            add_key.name = add_key.name
+            add_key.Name = add_key.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
         End If
     ElseIf bOrderByItem Then
         If VarType(add_item) = vbObject Then
             On Error Resume Next
-            add_item.name = add_item.name
+            add_item.Name = add_item.Name
             If Err.Number <> 0 _
             Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
         End If
@@ -343,7 +343,7 @@ Private Function DctAddOrderValue(ByVal dctkey As Variant) As Variant
 ' When key is an object its name becomes the order value else the key as is.
 ' ----------------------------------------------------------------------------
     If VarType(dctkey) = vbObject _
-    Then DctAddOrderValue = dctkey.name _
+    Then DctAddOrderValue = dctkey.Name _
     Else DctAddOrderValue = dctkey
 End Function
 
@@ -503,7 +503,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     

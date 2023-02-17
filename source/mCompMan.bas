@@ -55,6 +55,9 @@ Option Compare Text
 ' -------------------------------------------------------------------------------
 Public Const MAX_LEN_TYPE                   As Long = 17
 Public Const README_URL                     As String = "https://github.com/warbe-maker/Common-VBA-Excel-Component-Management-Services/blob/master/README.md"
+Public Const README_SYNC_CHAPTER            As String = "?#using-the-synchronization-service"
+Public Const README_SYNC_CHAPTER_NAMES      As String = "?#names-synchronization"
+Public Const README_SYNC_CHAPTER_SHEETS     As String = "?#worksheet-synchronization"
 
 Public Enum enKindOfComp            ' The kind of VBComponent in the sense of CompMan
     enUnknown = 0
@@ -106,8 +109,6 @@ End Enum
 Public lMaxCompLength   As Long
 Public dctHostedRaws    As Dictionary
 Public Stats            As clsStats
-Public Log              As clsLog
-
     
 Public Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
 
@@ -271,7 +272,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -331,30 +332,6 @@ Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mCompMan" & "." & es_proc
 End Function
 
-Public Sub EstablishExecTraceFile(ByVal etl_wbk_serviced As Workbook, _
-                        Optional ByVal etl_append As Boolean = False)
-' --------------------------------------------------------------------------
-' Establishes a trace log file in the serviced Workbook's parent folder
-' provided the Conditional Compile Argument ExecTrace = 1.
-' --------------------------------------------------------------------------
-#If ExecTrace = 1 Then
-    
-    Dim sFile As String
-    sFile = Replace(etl_wbk_serviced.FullName, etl_wbk_serviced.name, "CompMan.Service.trc")
-
-    '~~ Even when etl_append = False: When the file had been createde today etl_append will be set to True
-    With New FileSystemObject
-        If .FileExists(sFile) Then
-            If Format(.GetFile(sFile).DateCreated, "YYYY-MM-DD") = Format(Now(), "YYYY-MM-DD") Then
-                etl_append = True
-            End If
-        End If
-    End With
-    mTrc.LogFile(tl_append:=etl_append) = sFile
-    mTrc.LogTitle = Log.Service
-#End If
-End Sub
-
 Public Sub ExportAll(Optional ByRef ea_wbk_serviced As Workbook = Nothing)
 ' ----------------------------------------------------------------------------
 '
@@ -362,15 +339,10 @@ Public Sub ExportAll(Optional ByRef ea_wbk_serviced As Workbook = Nothing)
     Const PROC = "ExportAll"
     
     On Error GoTo eh
-    
-    If Log Is Nothing Then Set Log = New clsLog
-    Log.Service = "Export All"
-    EstablishExecTraceFile ea_wbk_serviced
-    
+    mService.EstablishExecTraceFile ea_wbk_serviced
+        
     mBasic.BoP ErrSrc(PROC)
-    If ea_wbk_serviced Is Nothing _
-    Then mService.WbkServiced = ActiveWorkbook _
-    Else mService.WbkServiced = ea_wbk_serviced
+    mService.Initiate mCompManClient.SRVC_EXPORT_ALL, ActiveWorkbook
     mExport.All
     
 xt: mBasic.EoP ErrSrc(PROC)
@@ -383,8 +355,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub UpdateOutdatedCommonComponents(ByRef uo_wbk_serviced As Workbook, _
-                                 Optional ByVal uo_hosted As String = vbNullString, _
-                                 Optional ByVal uo_unused As Boolean)
+                                 Optional ByVal uo_hosted As String = vbNullString)
 ' ------------------------------------------------------------------------------
 ' Presents the serviced Workbook's outdated components in a modeless dialog with
 ' two buttons for each component. One button executes Application.Run mRenew.Run
@@ -397,40 +368,18 @@ Public Sub UpdateOutdatedCommonComponents(ByRef uo_wbk_serviced As Workbook, _
     Const PROC = "UpdateOutdatedCommonComponents"
     
     On Error GoTo eh
-    Dim dct         As Dictionary
-    Dim i           As Long
-    Dim wbServiced  As Workbook
-    Dim RawExpFile  As String
-    Dim fUpdate     As fMsg
-    Dim Msg         As TypeMsg
-    Dim sTitle      As String
-    Dim cll         As Collection
-    Dim dctRunArgs  As Dictionary
-    Dim RenewComp   As String
-    Dim Comps       As New clsComps
-    Dim cllBttns    As New Collection
-    Dim sBttn1      As String
-    Dim sBttn2      As String
-    Dim Comp        As clsComp
-    
-    wsService.ClearDataAllServices
-    wsService.ClearDataUpdateService
-    wsService.ServicedWorkbookFullName = uo_wbk_serviced.FullName
-    mService.WbkServiced = uo_wbk_serviced
-    Set Log = New clsLog
-    Log.Service(new_log:=True) = mCompManClient.SRVC_UPDATE_OUTDATED
-    wsService.LogFileFullName = Log.FileFullName
-    wsService.ServicedItemsMaxLenName = 0
-    wsService.ServicedItemsMaxLenType = 0
     EstablishExecTraceFile uo_wbk_serviced
-    mService.DsplyStatus Log.Service
-    mBasic.BoP ErrSrc(PROC)
-    mComCompRawsHosted.Manage uo_hosted
     
-    mOutdated.Display uo_hosted ' Dialog to update/renew one by one
+    mBasic.BoP ErrSrc(PROC)
+    mService.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, uo_wbk_serviced
+    mCommComps.ManageHostedCommonComponents uo_hosted
+    mCommComps.ManageUsedCommonComponents
+    mCommComps.DeRegisterNoLongerExisting uo_hosted
+
+    mChanged.DisplayOutdated uo_hosted ' Dialog to update/renew one by one
                      
 xt: mBasic.EoP ErrSrc(PROC)
-    Set Log = Nothing
+    mService.Terminate
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -460,22 +409,18 @@ Public Function ExportChangedComponents(ByRef ec_wbk_serviced As Workbook, _
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
-    wsService.ClearDataAllServices
-    wsService.ServicedWorkbookFullName = ec_wbk_serviced.FullName
-    mService.WbkServiced = ec_wbk_serviced
-    Set Log = New clsLog
-    Log.Service = mCompManClient.SRVC_EXPORT_CHANGED
-    
     EstablishExecTraceFile ec_wbk_serviced
+        
     mBasic.BoP ErrSrc(PROC)
+    mService.Initiate mCompManClient.SRVC_EXPORT_CHANGED, ec_wbk_serviced
+    If mService.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
     
-    If mService.Denied Then GoTo xt
     mService.ExportChangedComponents ec_hosted
     ExportChangedComponents = True
     ExportChangedComponents = Application.StatusBar
     
-xt: Application.EnableEvents = True
-    mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
+xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
+    Application.EnableEvents = True
     Exit Function
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -503,31 +448,35 @@ Public Function RunTest(ByVal rt_service As String, _
 '            to turn the Add-in to a status continued. When the CompMan
 '            Workbook (mCompManClient.COMPMAN_DEVLP) is open, it will provide
 '            the service provided it is not also the serviced Workbook.
+' AppErr(3): For the Update Outdated service the Addin is not available (not
+'            open or opene but paused).
+' AppErr(4): For the VBProject-Synchronization servicethe CompMan devinstance
+'            Workbook is not open.
 ' ----------------------------------------------------------------------------
     Const PROC = "RunTest"
     
     On Error GoTo eh
     
-    Select Case True
-        Case rt_service = mCompManClient.SRVC_UPDATE_OUTDATED _
-         And mMe.IsDevInstnc _
-         And ((mAddin.IsOpen And mAddin.Paused) Or Not mAddin.IsOpen)
-            RunTest = AppErr(3)
+    RunTest = 0
+    Select Case rt_service
+        Case mCompManClient.SRVC_UPDATE_OUTDATED, mCompManClient.SRVC_EXPORT_CHANGED
+            Select Case True
+                Case Not wsConfig.FolderDevAndTestIsValid:                              RunTest = AppErr(1) ' Configuration for the service is invalid
+                Case Not rt_serviced_wbk.FullName Like wsConfig.FolderDevAndTest & "*": RunTest = AppErr(2) ' Denied because outside configured 'Dev and Test' folder
+                Case rt_service = mCompManClient.SRVC_UPDATE_OUTDATED
+                    If mMe.IsDevInstnc And ((mAddin.IsOpen And mAddin.Paused) Or Not mAddin.IsOpen) Then
+                        RunTest = AppErr(3) ' Denied because serviced is the DevInstance but the Addin is paused or not open
+                    End If
+            End Select
         
-        Case rt_service = mCompManClient.SRVC_SYNCHRONIZE _
-         And (Not wsConfig.FolderSyncTargetIsValid Or Not wsConfig.FolderSyncArchiveIsValid)
-            RunTest = AppErr(1) ' The preconditions for the VB-Project Synchronization Service are not met
-                    
-        Case (rt_service = mCompManClient.SRVC_UPDATE_OUTDATED Or rt_service = mCompManClient.SRVC_EXPORT_CHANGED) _
-         And Not wsConfig.FolderDevAndTestIsValid
-            RunTest = AppErr(1) ' The serviced root folder is invalid (not configured or not existing)
-    
-        Case rt_service = mCompManClient.SRVC_SYNCHRONIZE _
-         And Not rt_serviced_wbk.FullName Like wsConfig.FolderSyncTarget & "*"
-            RunTest = AppErr(4)
-        
-        Case Else
-            RunTest = 0
+        Case mCompManClient.SRVC_SYNCHRONIZE
+            If Not wsConfig.FolderSyncTargetIsValid Or Not wsConfig.FolderSyncArchiveIsValid Then
+                RunTest = AppErr(1) ' Configuration for the service is invalid
+            ElseIf Not rt_serviced_wbk.FullName Like wsConfig.FolderSyncTarget & "*" Then
+                RunTest = AppErr(2) ' Denied because not within configured 'Sync-Target' folder
+            ElseIf Not mMe.IsDevInstnc Then
+                RunTest = AppErr(3)
+            End If
     End Select
 
 xt: Exit Function
@@ -536,11 +485,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Function
-
-Private Function SyncSourceInDevFolder(ByVal ss_serviced As Workbook) As Boolean
-    Stop ' impl pending
-
 End Function
 
 Public Sub SynchronizeVBProjects(ByVal sync_wbk_opened As Workbook)
@@ -560,35 +504,25 @@ Public Sub SynchronizeVBProjects(ByVal sync_wbk_opened As Workbook)
 '   Add-in instance
 ' ----------------------------------------------------------------------------
     Const PROC = "SynchronizeVBProjects"
+            
+    On Error GoTo eh
+    EstablishExecTraceFile sync_wbk_opened
     
-    Dim cllResultFiles          As Collection
-    Dim sSyncWbTargetWrkngCpy   As String
-    Dim sSyncWbSourceFullName   As String
-    Dim SyncOpenMsg             As TypeMsg
-    Dim wbk                     As Workbook
-    Dim sResult                 As String
-        
-    mService.WbkServiced = sync_wbk_opened
-#If ExecTrace = 1 Then
-    mTrc.LogFile = Replace(sync_wbk_opened.FullName, sync_wbk_opened.name, "Exec.trc")
-#End If
     mBasic.BoP ErrSrc(PROC)
-    wsService.ClearDataAllServices
+    mService.Initiate mCompManClient.SRVC_SYNCHRONIZE, sync_wbk_opened
     
     If mSync.SourceExists(sync_wbk_opened) Then
         '~~ - Keep records of the full name of all three Workbooks involved in this synchronization
         '~~   derived from the Workbook opened which may be the Sync-Target-Workbook or the
         '~~   Sync-Target-Worlkbook's working copy and
         '~~ - Display an open decision dialog
-        wsService.ServicedWorkbookFullName = mSync.TargetOriginFullName(sync_wbk_opened)
-        wsService.SyncTargetFullNameCopy = mSync.TargetCopyFullName(sync_wbk_opened)
+        wsService.SyncTargetFullNameCopy = mSync.TargetWorkingCopyFullName(sync_wbk_opened)
         mSync.OpenDecision ' Display mode-less open decision dialog
     Else
         sync_wbk_opened.Close False
     End If
     
-xt: Set Log = Nothing
-    mBasic.EoP ErrSrc(PROC)
+xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -647,7 +581,7 @@ Public Function WbkIsOpen( _
         WbkIsOpen = Err.Number = 0
     Else
         On Error Resume Next
-        io_name = Application.Workbooks(io_name).name
+        io_name = Application.Workbooks(io_name).Name
         WbkIsOpen = Err.Number = 0
     End If
 

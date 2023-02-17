@@ -22,7 +22,6 @@ Private sCompName           As String
 Private sTempFolder         As String
 Private wbRawHost           As Workbook
 Private sRawHostWbFullName  As String
-Private sHostWbPath         As String
 Private sExpFileExt         As String
 Private vbcRaw              As VBComponent
 
@@ -88,7 +87,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get RawHostWbBaseName() As String:      RawHostWbBaseName = mComCompRawsGlobal.RawHostWbBaseName(sCompName):        End Property
+Public Property Get RawHostWbBaseName() As String:      RawHostWbBaseName = mCommComps.RawHostWbBaseName(sCompName):        End Property
 
 Public Property Get RawHostWbFullName() As String
 ' ------------------------------------------------------------------------------
@@ -97,24 +96,24 @@ Public Property Get RawHostWbFullName() As String
 ' this is identical with its FullName
 ' ------------------------------------------------------------------------------
     If sRawHostWbFullName = vbNullString Then
-        sRawHostWbFullName = mComCompRawsGlobal.RawHostWbFullName(sCompName)
+        sRawHostWbFullName = mCommComps.RawHostWbFullName(sCompName)
     End If
     RawHostWbFullName = sRawHostWbFullName
 End Property
 
-Public Property Get RawHostWbName() As String:          RawHostWbName = mComCompRawsGlobal.RawHostWbName(sCompName):                End Property
+Public Property Get RawHostWbName() As String:          RawHostWbName = mCommComps.RawHostWbName(sCompName):                End Property
 
-Public Property Get RevisionNumber() As String:     RevisionNumber = mComCompRawsGlobal.RawSavedRevisionNumber(sCompName):  End Property
+Public Property Get RevisionNumber() As String:     RevisionNumber = mCommComps.RawSavedRevisionNumber(sCompName):  End Property
 
 Public Property Get SavedExpFile() As File
 ' ------------------------------------------------------------------------------
 ' Returns the Raws's Export File which had been saved to the Common Components
 ' folder
 ' ------------------------------------------------------------------------------
-    Set SavedExpFile = fso.GetFile(mComCompRawsGlobal.SavedExpFileFullName(sCompName))
+    Set SavedExpFile = fso.GetFile(mCommComps.SavedExpFileFullName(sCompName))
 End Property
 
-Public Property Get SavedExpFileFullName() As String:   SavedExpFileFullName = mComCompRawsGlobal.SavedExpFileFullName(sCompName):  End Property
+Public Property Get SavedExpFileFullName() As String:   SavedExpFileFullName = mCommComps.SavedExpFileFullName(sCompName):  End Property
 
 Public Property Get VBComp() As VBComponent:        Set VBComp = vbcRaw:                                                    End Property
 

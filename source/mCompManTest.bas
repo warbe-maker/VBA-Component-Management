@@ -17,8 +17,8 @@ Private wbTrgt  As Workbook
 Private vbc     As VBComponent
 Private vbcm    As CodeModule
 
-Private Property Get mRenew_ByImport() As String
-    mRenew_ByImport = mAddin.WbkName & "!mOutdated.RenewByReImport"
+Private Property Get mRenew_ReImport() As String
+    mRenew_ReImport = mAddin.WbkName & "!mChanged.ReImportCommonComponent"
 End Property
 
 Public Sub ClearIW()
@@ -163,10 +163,9 @@ Public Sub Test_Comps_Changed()
     Dim Comp    As New clsComp
     Dim v       As Variant
     Dim dct     As Dictionary
-    Dim Log     As New clsLog
     Dim s       As String
     
-    mService.WbkServiced = ThisWorkbook
+    mService.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, ThisWorkbook
     Set Stats = New clsStats
     
     Set dct = Comps.Changed(Stats)
@@ -183,7 +182,7 @@ Public Sub Test_Comps_Changed()
     End With
     Set Comps = Nothing
     Set Stats = Nothing
-    Set Log = Nothing
+    mService.Terminate
 
 End Sub
 
@@ -193,17 +192,15 @@ Public Sub Test_Comps_Outdated()
     Dim Comp    As New clsComp
     Dim v       As Variant
     Dim dct     As Dictionary
-    Dim Log     As New clsLog
     
-    mService.WbkServiced = ThisWorkbook
-    Set Stats = New clsStats
-    Log.FileFullName = mFso.FileTemp(, ".log")
-    
+    mService.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, ThisWorkbook
+    mService.Log.FileFullName = mFso.FileTemp(, ".log")
+    wsService.CurrentServiceLogFileFullName = mService.Log.FileFullName
     Set dct = Comps.Outdated(mService.WbkServiced)
     For Each v In dct
         Stats.Count sic_used_comm_comps
         Set Comp = dct(v)
-        Log.ServicedItem = Comp.VBComp
+        mService.Log.ServicedItem = Comp.VBComp
         If Comp.RawChanged Then
             Stats.Count sic_comps_changed
             Debug.Print Comp.CompName & " is regarded outdated"
@@ -218,9 +215,9 @@ Public Sub Test_Comps_Outdated()
     Set Comps = Nothing
     Set Stats = Nothing
     With New FileSystemObject
-        If .FileExists(Log.FileFullName) Then .DeleteFile (Log.FileFullName)
+        If .FileExists(mService.Log.FileFullName) Then .DeleteFile (mService.Log.FileFullName)
     End With
-    Set Log = Nothing
+    mService.Terminate
 
 End Sub
 
@@ -230,8 +227,8 @@ Public Sub Test_Log()
     On Error GoTo eh
     Dim fso As New FileSystemObject
     
-    Set Log = New clsLog
-    mService.WbkServiced = ThisWorkbook
+    
+    mService.Initiate PROC, ThisWorkbook
     With Log
         .Service = ErrSrc(PROC)
         .ServicedItem = " <component-name> "
@@ -242,7 +239,7 @@ Public Sub Test_Log()
         If fso.FileExists(.LogFile.Path) Then fso.DeleteFile .LogFile.Path
     End With
     
-xt: Set Log = Nothing
+xt: mService.Terminate
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -293,45 +290,47 @@ Public Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
 ' ------------------------------------------------------------------------------
     Const PROC = "Test_RenewByImport"
     
+    On Error GoTo eh
     Dim Comp        As New clsComp
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
     
+    mBasic.BoP ErrSrc(PROC)
     If mMe.IsDevInstnc Then GoTo xt
     
-    mService.WbkServiced = ThisWorkbook
-    Log.FileFullName = mFso.FileTemp(, ".log")
-    Log.Service = "Renew Component Test"
+    mService.Initiate ErrSrc(PROC), ThisWorkbook
+    mService.Log.Service = "Renew Component Test"
     
     With Comp
         .CompName = rnc_vbc_name
-        Log.ServicedItem = .VBComp
+        mService.Log.ServicedItem = .VBComp
         
         If .Wrkbk Is ActiveWorkbook Then
             Set wbActive = ActiveWorkbook
             Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
-            Log.Entry = "Active Workbook de-activated by creating a temporary Workbook"
+            mService.Log.Entry = "Active Workbook de-activated by creating a temporary Workbook"
         End If
             
-        mOutdated.RenewByReImport rbi_wbk_serviced:=.Wrkbk _
-                                , rbi_vbc_name:=.CompName _
-                                , rbi_exp_file:=rnc_exp_file_full_name
+        mChanged.ReImportCommonComponent rbi_wbk:=.Wrkbk _
+                                                   , rbi_vbc_name:=.CompName _
+                                                   , rbi_exp_file:=rnc_exp_file_full_name
     End With
     
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
-        Log.Entry = "Temporary created Workbook closed without save"
+        mService.Log.Entry = "Temporary created Workbook closed without save"
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry = "De-activated Workbook '" & wbActive.name & "' re-activated"
+            mService.Log.Entry = "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         Else
-            Log.Entry = "Workbook '" & wbActive.name & "' re-activated by closing the temporary created Workbook"
+            mService.Log.Entry = "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set Comp = Nothing
-    Set Log = Nothing
+    mService.Terminate
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -401,7 +400,7 @@ Public Sub Test_RenewByImport_1a_Standard_Module_ExpFile_Remote(ByVal test_vbc_n
                               , p_file:=flExport) _
                 Then sExpFile = flExport.Path
                 For i = 1 To repeat
-                    Application.Run .Wrkbk.name & "!mOutdated.RenewByReImport" _
+                    Application.Run .Wrkbk.Name & "!mChanged.ReImportCommonComponent" _
                                   , .Wrkbk _
                                   , .CompName _
                                   , sExpFile
@@ -449,7 +448,7 @@ Public Sub Test_RenewByImport_1b_Standard_Module_ExpFile_Local(ByVal test_vbc_na
                 .CompName = test_vbc_name
             
                 For i = 1 To repeat
-                    Application.Run mRenew_ByImport _
+                    Application.Run mRenew_ReImport _
                                   , .Wrkbk _
                                   , .CompName _
                                   , .ExpFileFullName
@@ -497,7 +496,7 @@ Private Sub Test_RenewByImport_2_Class_Module_ExpFile_Local(ByVal test_vbc_name 
                 .CompName = test_vbc_name
             
                 For i = 1 To repeat
-                    Application.Run mRenew_ByImport _
+                    Application.Run mRenew_ReImport _
                                   , .Wrkbk _
                                   , .CompName _
                                   , .ExpFileFullName
@@ -548,7 +547,7 @@ Private Sub Test_RenewByImport_3a_UserForm_ExpFile_Local(ByVal test_vbc_name As 
                 '~~ First test with the components origin Export-File
                 '~~ -------------------------------------------------
                 For i = 1 To repeat
-                    Application.Run mRenew_ByImport _
+                    Application.Run mRenew_ReImport _
                                   , .Wrkbk _
                                   , .CompName _
                                   , .ExpFileFullName
@@ -605,7 +604,7 @@ Private Sub Test_RenewByImport_3b_UserForm_ExpFile_Remote(ByVal test_vbc_name As
                               , p_file:=flExport) _
                 Then sExpFile = flExport.Path
                 For i = 1 To repeat
-                    Application.Run mRenew_ByImport _
+                    Application.Run mRenew_ReImport _
                                   , .Wrkbk _
                                   , .CompName _
                                   , sExpFile
@@ -632,7 +631,7 @@ Public Sub Test_UpdateOutdatedCommonComponents()
     Dim AddinService    As String
     Dim AddInStatus     As String
     
-    If mService.Denied Then GoTo xt
+    If mService.Denied(mCompManClient.SRVC_UPDATE_OUTDATED) Then GoTo xt
 
     AddinService = mAddin.WbkName & "!mCompMan.UpdateOutdatedCommonComponents"
     If mAddin.IsOpen Then

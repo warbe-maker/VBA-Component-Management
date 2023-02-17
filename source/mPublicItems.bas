@@ -1,11 +1,16 @@
 Attribute VB_Name = "mPublicItems"
 Option Explicit
 ' ----------------------------------------------------------------------------
+' Standard Module mPublicItems:
+'
+' Public services:
+' - Statistics
+' - Xref
 '
 ' ----------------------------------------------------------------------------
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
-    (ByVal hwnd As Long, _
+    (ByVal hWnd As Long, _
     ByVal lpOperation As String, _
     ByVal lpFile As String, _
     ByVal lpParameters As String, _
@@ -15,8 +20,6 @@ Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
 
 '***App Window Constants***
 Private Const WIN_NORMAL = 1         'Open Normal
-Private Const WIN_MAX = 3            'Open Maximized
-Private Const WIN_MIN = 2            'Open Minimized
 
 '***Error Codes***
 Private Const ERROR_SUCCESS = 32&
@@ -25,7 +28,6 @@ Private Const ERROR_OUT_OF_MEM = 0&
 Private Const ERROR_FILE_NOT_FOUND = 2&
 Private Const ERROR_PATH_NOT_FOUND = 3&
 Private Const ERROR_BAD_FORMAT = 11&
-Private Const vbResumeOk                As Long = 7 ' Buttons value in mMsg.ErrMsg (pass on not supported)
 Private Const vbResume                  As Long = 6 ' return value (equates to vbYes)
 
 Private dctCodeLines                    As Dictionary   ' All lines at first, finally those which refer to at least one public item
@@ -34,7 +36,6 @@ Private dctKindOfComponent              As Dictionary
 Private dctKindOfItem                   As Dictionary
 Private dctLinesReferringToPublicItems  As Dictionary
 Private dctPublicItems                  As Dictionary   ' All Public ... and Friend ...
-Private dctPublicXref                   As Dictionary   ' Public items with the Module.Procedures which refer to them
 Private lLenPublicItems                 As Long
 Private XrefExcluded()                  As Variant
 Private XrefVBProject                   As VBProject
@@ -175,7 +176,7 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
         '~~ and the add_key already exists the add_item is updated
         If bOrderByKey And Not bStayWithFirst Then
             If .Exists(add_key) Then
-                If VarType(add_item) = vbObject Then Set .item(add_key) = add_item Else .item(add_key) = add_item
+                If VarType(add_item) = vbObject Then Set .Item(add_key) = add_item Else .Item(add_key) = add_item
                 GoTo xt
             End If
         End If
@@ -219,9 +220,9 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
     
     For Each vKeyExisting In add_dct
         
-        If VarType(add_dct.item(vKeyExisting)) = vbObject _
-        Then Set vItemExisting = add_dct.item(vKeyExisting) _
-        Else vItemExisting = add_dct.item(vKeyExisting)
+        If VarType(add_dct.Item(vKeyExisting)) = vbObject _
+        Then Set vItemExisting = add_dct.Item(vKeyExisting) _
+        Else vItemExisting = add_dct.Item(vKeyExisting)
         
         With dctTemp
             If bDone Then
@@ -543,7 +544,6 @@ Private Function ErrSrc(ByVal es_proc As String) As String
 End Function
 
 Private Function IsExcluded(ByVal ie_comp As String) As Boolean
-    Dim i   As Long
     Dim v   As Variant
     
     If VBA.IsArray(XrefExcluded) Then
@@ -578,12 +578,12 @@ Private Function IsPublicDeclaration(ByVal ipd_proc As String, _
 ' declaration specifies an instance of a Class Module the retunred item is
 ' <class-module>.<class-instance>
 ' ------------------------------------------------------------------------------
-    Dim sInstance As String
     
     If ipd_proc = vbNullString And LineBeginsWith(ipd_line, "Public ", ipd_item) Then
         IsPublicDeclaration = True
         KindOfItem(ipd_comp & "." & ipd_item) = "V"
     End If
+    
 End Function
 
 Private Function IsPublicEnum(ByVal is_line As String, _
@@ -690,7 +690,6 @@ Private Function CodeLineRefersToPublicItem(ByVal pi_line As String, _
     Dim lStart      As Long   ' start pos
     Dim CharLeft    As String ' left of item char
     Dim CharRight   As String ' right of item char
-    Dim sComp       As String
     Dim sItem       As String
     
     pi_line = " " & pi_line & " "
@@ -734,14 +733,11 @@ Private Sub LinesReferringToPublicItems()
     Const PROC  As String = "LinesReferringToPublicItems"
     
     On Error GoTo eh
-    Dim Items   As String
     Dim sComp   As String
     Dim sItem   As String
     Dim sLine   As String
-    Dim sProc   As String
     Dim v1      As Variant
     Dim v2      As Variant
-    Dim v3      As Variant
     Dim dct     As Dictionary
     Dim dctRefs As Dictionary
     Dim sRefId  As String
@@ -852,7 +848,6 @@ Public Sub Statistics(Optional ByVal xr_object As Variant = vbNullString, _
     On Error GoTo eh
     Dim sFile   As String
     Dim v1      As Variant
-    Dim v2      As Variant
     Dim sItem   As String
     Dim dct     As Dictionary
     Dim sRefers As String
@@ -883,10 +878,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
-
-Private Sub Statistics_Test()
-    Statistics Application.Workbooks("CompMan.xlsb"), "mBasic, mDct, mErH, mMsg, fMsg, mFile, mTrc, mWbk"
 End Sub
 
 Private Sub UnstripComment(ByRef uc_line As String)
@@ -993,17 +984,6 @@ Private Sub References(Optional ByVal xr_object As Variant = vbNullString, _
     Const PROC  As String = "References"
     
     On Error GoTo eh
-    Dim dct     As Dictionary
-    Dim sLine   As String
-    Dim sItem   As String
-    Dim v1      As Variant
-    Dim v2      As Variant
-    Dim sKey    As String
-    Dim sRefers As String
-    Dim i       As Long
-    Dim vcmp    As VBComponent
-    Dim cmod    As CodeModule
-    Dim sFile   As String
         
     '~~ Preliminary preparations
     XrefWbkAndVBP xr_object
@@ -1026,10 +1006,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
-
-Private Sub Xref_Test()
-    Xref Application.Workbooks("CompMan.xlsb"), "mBasic, mDct, mErH, mMsg, fMsg, mFile, mTrc, mWbk"
 End Sub
 
 Private Sub XrefComponents(ByRef total_code_lines As Long)

@@ -1,6 +1,99 @@
 Attribute VB_Name = "mWsh"
 Option Explicit
-Option Private Module
+' ------------------------------------------------------------------------------
+' Standard Module mWsh: Common Worksheet services
+'
+' Public services:
+' - ChangeCodeName
+' - Delete          Provides a 'clean deletion of a Worksheet by removing all
+'                   relevant Name objects beforehand in order th prevent invalid
+'                   Name object reulting from the deletion.
+' - Exists
+' - HasUrl
+' - Url
+' - Value Let/Get   ..
+'
+' W. Rauschenberger, Berlin Dec 2022
+' ------------------------------------------------------------------------------
+Public Enum enExistenceQuality
+    enNameOrCodeName
+    enNameAndCodeName
+End Enum
+
+Public Sub ChangeCodeName(ByVal ccn_wbk As Workbook, _
+                          ByVal ccn_old As String, _
+                          ByVal ccn_new As String, _
+                 Optional ByRef ccn_vbc_renamed As VBComponent)
+' ------------------------------------------------------------------------------
+' Renames the VBComponent identified by the name (ccn_old) to (ccn_new) and
+' returns it (ccn_vbc_renamed).
+' ------------------------------------------------------------------------------
+    Const PROC = "ChangeCodeName"
+    
+    On Error GoTo eh
+    Dim vbc As VBComponent
+    
+    For Each vbc In ccn_wbk.VBProject.VBComponents
+        If vbc.Name = ccn_old Then
+            vbc.Name = ccn_new
+            Set ccn_vbc_renamed = vbc
+            Exit For
+        End If
+    Next vbc
+xt: Exit Sub
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Sub Delete(ByVal d_wsh As Worksheet)
+' ------------------------------------------------------------------------------
+' Provides a 'clean deletion' of a Worksheet by removing all relevant Name
+' objects beforehand in order to prevent invalid Name objects reulting from the
+' deletion
+' ------------------------------------------------------------------------------
+    Const PROC = "Delete"
+    
+    On Error GoTo eh
+    RemoveNames d_wsh
+    d_wsh.Delete
+    
+xt: Exit Sub
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Sub RemoveNames(ByVal rn_wsh As Worksheet)
+' ----------------------------------------------------------------------------
+' Removes all Name objects which either refer to a range of the Worksheet or
+' are scoped to the Worksheet.
+' ----------------------------------------------------------------------------
+    Const PROC = "RemoveNames"
+    
+    On Error GoTo eh
+    Dim wbk As Workbook
+    Dim nme As Name
+    
+    Set wbk = rn_wsh.Parent
+    For Each nme In wbk.Names
+        If InStr(nme.RefersTo, "=" & rn_wsh.Name & "!") <> 0 _
+        Or InStr(nme.Name, rn_wsh.Name & "!") <> 0 Then
+            nme.Delete
+        End If
+    Next nme
+
+xt: Exit Sub
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
 
 Public Property Let Url(Optional ByVal su_wsh As Worksheet, _
                         Optional ByVal su_rng As Range, _
@@ -37,7 +130,7 @@ Public Property Let Url(Optional ByVal su_wsh As Worksheet, _
     End If
     
     With su_rng.Font
-        .name = "Calibri"
+        .Name = "Calibri"
         .Size = url_font_size
         .Strikethrough = False
         .Superscript = False
@@ -74,7 +167,7 @@ Public Property Get Value(Optional ByVal v_wsh As Worksheet, _
         Case Else:      Err.Raise AppErr(1), ErrSrc(PROC), "The argument 'v_name is neither a string (RangeName) nor a Range!"
     End Select
     If Err.Number <> 0 _
-    Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.name & "' has no range with a name '" & v_name & "'!"
+    Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.Name & "' has no range with a name '" & v_name & "'!"
     
 xt: Exit Property
     
@@ -102,7 +195,7 @@ Public Property Let Value(Optional ByVal v_wsh As Worksheet, _
         Case "Range":  Set rng = v_name
     End Select
     If Err.Number <> 0 _
-    Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.name & "' has no range with a name '" & v_name & "'!"
+    Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.Name & "' has no range with a name '" & v_name & "'!"
     
     bProtected = v_wsh.ProtectContents
     
@@ -111,7 +204,7 @@ Public Property Let Value(Optional ByVal v_wsh As Worksheet, _
         On Error Resume Next
         v_wsh.Unprotect
         If Err.Number <> 0 _
-        Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.name & "' is apparently password protected which is not supported by this component's Value service!"
+        Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.Name & "' is apparently password protected which is not supported by this component's Value service!"
         rng.Value = v_value
         If bProtected Then v_wsh.Protect
     Else
@@ -240,7 +333,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -287,59 +380,63 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mWsh" & "." & sProc
 End Function
 
-Public Function Exists(ByVal x_wbk As Variant, _
-                       ByVal x_wsh As Variant, _
+Private Function IsOpen(ByVal i_wbk As Workbook) As Boolean
+    On Error Resume Next
+    IsOpen = i_wbk.Name <> vbNullString
+End Function
+
+Public Function Exists(ByVal x_wbk As Workbook, _
+              Optional ByVal x_wsh As Worksheet = Nothing, _
+              Optional ByVal x_wsh_name As String = vbNullString, _
+              Optional ByVal x_wsh_code_name As String = vbNullString, _
+              Optional ByVal x_quality As enExistenceQuality = enNameOrCodeName, _
               Optional ByRef x_wsh_result As Worksheet) As Boolean
 ' ------------------------------------------------------------------------------
-' Returns TRUE when the Worksheet (x_wsh) - which may be a Worksheet object or a
-' Worksheet's Name or CodeName - exists in the Workbook (x_wbk) either under the
-' Name or the CodeName.
+' Returns TRUE when in the Workbook (x_wbk) depending on what is provided:
+' - a Worksheet named and/or code-named like the provided Worksheet (x_wsh)
+'   exists whereby and/or depends on the requested quality (x_quality) which
+'   defaults to Name or CodeName
+' - a Worksheet named (x_wsh_name) exists
+' - a Worksheet code-named (x_wsh_code-name) exists.
+' When the Workbook is not open the function returns FALSE without notice.
 ' ------------------------------------------------------------------------------
-    Const PROC  As String = "Exists"    ' This procedure's name for the error handling and execution tracking
+    Const PROC = "Exists"
     
     On Error GoTo eh
-    Dim sTest   As String
-    Dim wsTest  As Worksheet
-    Dim wbk     As Workbook
-    Dim wsh     As Worksheet
-    Dim s       As String
+    Dim wsh         As Worksheet
+    Dim bByName     As Boolean
+    Dim bByCodeName As Boolean
     
-    BoP ErrSrc(PROC)
-    Exists = False
-    
-    Select Case True
-        Case TypeName(x_wbk) <> "Workbook": Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook argument (x_wbk) is not an open Workbook's object!"
-        Case TypeName(x_wsh) = "Nothing":   Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet (parameter x_wsh) for the Worksheet's existence check is ""Nothing""!"
-        Case Not TypeOf x_wsh Is Worksheet _
-            And VarType(x_wsh) <> vbString: Err.Raise AppErr(3), ErrSrc(PROC), "The Worksheet (parameter x_wsh) for the Worksheet's existence check is neither a Worksheet object nor a Worksheet's name or modulename!"
-    End Select
-    Set wbk = x_wbk
-    
-    If TypeOf x_wsh Is Worksheet Then
-        '~~ The provided Worksheet object indicates which Name or CodeName a Worksheet in the Workbook (wbk) is checked
-        Set wsh = x_wsh
-        For Each wsTest In wbk.Worksheets
-            If wsTest.name = wsh.name Or wsTest.CodeName = wsh.CodeName Then
-                Exists = True
-                Set x_wsh_result = wsTest
-                GoTo xt
-            End If
-        Next wsTest
-        GoTo xt
-    ElseIf VarType(x_wsh) = vbString Then
-        '~~ The provided string may be a shet's Name or CodeName
-        s = x_wsh
-        For Each wsTest In wbk.Worksheets
-            If wsTest.name = s Or wsTest.CodeName = s Then
-                Exists = True
-                Set x_wsh_result = wsTest
-                GoTo xt
-            End If
-        Next wsTest
+    If Not IsOpen(x_wbk) Then GoTo xt
+    If Not x_wsh Is Nothing Then
+        x_wsh_name = x_wsh.Name
+        x_wsh_code_name = x_wsh.CodeName
     End If
+    bByName = x_wsh_name <> vbNullString
+    bByCodeName = x_wsh_code_name <> vbNullString
+    
+    For Each wsh In x_wbk.Worksheets
+        Select Case True
+            Case bByName And bByCodeName
+                If x_quality = enNameAndCodeName Then
+                    Exists = wsh.Name = x_wsh_name And wsh.CodeName = x_wsh_code_name
+                Else
+                    Exists = wsh.Name = x_wsh_name Or wsh.CodeName = x_wsh_code_name
+                End If
+                Set x_wsh_result = wsh
+                If Exists Then Exit For
+            Case bByCodeName
+                Exists = wsh.CodeName = x_wsh_code_name
+                Set x_wsh_result = wsh
+                If Exists Then Exit For
+            Case bByName
+                Exists = wsh.Name = x_wsh_name
+                Set x_wsh_result = wsh
+                If Exists Then Exit For
+        End Select
+    Next wsh
         
-xt: EoP ErrSrc(PROC)
-    Exit Function
+xt: Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
