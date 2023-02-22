@@ -1354,7 +1354,7 @@ End Sub
 
 Public Function SourceExists(ByVal se_wbk_opened As Workbook) As Boolean
 ' ------------------------------------------------------------------------------
-' When the Sync-Source-Workbook unambigously exists in the Serviced-DevAndTest-
+' When the Sync-Source-Workbook unambigously exists in the Serviced-CompManRoot-
 ' Folder the function returns TRUE and saves the found Workbook's full name to
 ' wsService.SyncSourceFullName, else the function displays a corresponding
 ' message and returns FALSE.
@@ -1365,7 +1365,7 @@ Public Function SourceExists(ByVal se_wbk_opened As Workbook) As Boolean
     Dim MsgTitle        As String
     Dim i               As Long
     
-    mFso.Exists ex_folder:=wsConfig.FolderDevAndTest _
+    mFso.Exists ex_folder:=wsConfig.FolderCompManRoot _
               , ex_file:=Replace(se_wbk_opened.Name, SYNC_TARGET_SUFFIX & ".xls", ".xls") _
               , ex_result_files:=cll
     Select Case cll.Count
@@ -1373,8 +1373,8 @@ Public Function SourceExists(ByVal se_wbk_opened As Workbook) As Boolean
             MsgTitle = "No corresponding Sync-Source-Workbook found!"
             With Msg.Section(1)
                 .Text.Text = "No correponding Sync-Source-Workbook for the opened Sync-Target-Workbook " & _
-                             "(" & se_wbk_opened.Name & ") could be found in the configured 'ServicedDevAndTest' folder " & _
-                             "(" & wsConfig.FolderDevAndTest & ")."
+                             "(" & se_wbk_opened.Name & ") could be found in the configured 'ServicedCompManRoot' folder " & _
+                             "(" & wsConfig.FolderCompManRoot & ")."
             End With
         Case 1
             sSourceFullName = cll(1)
@@ -1383,7 +1383,7 @@ Public Function SourceExists(ByVal se_wbk_opened As Workbook) As Boolean
             With Msg
                 .Section(1).Text.Text = "For the opened Sync-Target-Workbook (" & se_wbk_opened.Name & ") ambigous " & _
                                         "corresponding Sync-Source-Workbooks had been found in the configured " & _
-                                        "'ServicedDevAndTest' folder (" & wsConfig.FolderDevAndTest & "):"
+                                        "'ServicedCompManRoot' folder (" & wsConfig.FolderCompManRoot & "):"
                 With .Section(2).Text
                     .MonoSpaced = True
                     .FontSize = 8
@@ -1393,7 +1393,7 @@ Public Function SourceExists(ByVal se_wbk_opened As Workbook) As Boolean
                     Next i
                 End With
                 .Section(3).Text.Text = "Terminate this synchronization trial, first remove the additional Workbook's or move them outside the " & _
-                             wsConfig.FolderDevAndTest & " folder and re-open the Sync-Target-Workbook."
+                             wsConfig.FolderCompManRoot & " folder and re-open the Sync-Target-Workbook."
             End With
     End Select
             

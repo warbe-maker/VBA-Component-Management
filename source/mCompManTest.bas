@@ -29,7 +29,7 @@ Public Sub ClearIW()
 End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mTest" & "." & sProc
+    ErrSrc = "mCompManTest" & "." & sProc
 End Function
 
 Public Sub Regression()

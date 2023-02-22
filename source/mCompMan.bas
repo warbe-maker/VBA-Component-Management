@@ -461,8 +461,8 @@ Public Function RunTest(ByVal rt_service As String, _
     Select Case rt_service
         Case mCompManClient.SRVC_UPDATE_OUTDATED, mCompManClient.SRVC_EXPORT_CHANGED
             Select Case True
-                Case Not wsConfig.FolderDevAndTestIsValid:                              RunTest = AppErr(1) ' Configuration for the service is invalid
-                Case Not rt_serviced_wbk.FullName Like wsConfig.FolderDevAndTest & "*": RunTest = AppErr(2) ' Denied because outside configured 'Dev and Test' folder
+                Case Not wsConfig.FolderCompManRootIsValid:                              RunTest = AppErr(1) ' Configuration for the service is invalid
+                Case Not rt_serviced_wbk.FullName Like wsConfig.FolderCompManRoot & "*": RunTest = AppErr(2) ' Denied because outside configured 'Dev and Test' folder
                 Case rt_service = mCompManClient.SRVC_UPDATE_OUTDATED
                     If mMe.IsDevInstnc And ((mAddin.IsOpen And mAddin.Paused) Or Not mAddin.IsOpen) Then
                         RunTest = AppErr(3) ' Denied because serviced is the DevInstance but the Addin is paused or not open
@@ -470,8 +470,9 @@ Public Function RunTest(ByVal rt_service As String, _
             End Select
         
         Case mCompManClient.SRVC_SYNCHRONIZE
-            If Not wsConfig.FolderSyncTargetIsValid Or Not wsConfig.FolderSyncArchiveIsValid Then
-                RunTest = AppErr(1) ' Configuration for the service is invalid
+            If Not wsConfig.FolderSyncTargetIsValid Or Not wsConfig.FolderSyncArchiveIsValid _
+            Or wsConfig.FolderSyncTarget = vbNullString Or wsConfig.FolderSyncArchive = vbNullString Then
+                RunTest = AppErr(1) ' Not configured or configuration is invalid
             ElseIf Not rt_serviced_wbk.FullName Like wsConfig.FolderSyncTarget & "*" Then
                 RunTest = AppErr(2) ' Denied because not within configured 'Sync-Target' folder
             ElseIf Not mMe.IsDevInstnc Then
@@ -498,7 +499,7 @@ Public Sub SynchronizeVBProjects(ByVal sync_wbk_opened As Workbook)
 '   'SynchronizeTarget' folder. The Workbook is initially opened by its origin
 '   name but immediately saved as the Sync-Target-Workbook's working copy
 ' - a corresponding Workbook (not open!) is located in CompMan's configured
-'   'ServicedDevAndTest' folder
+'   'ServicedCompManRoot' folder
 ' - CompMan's synchronization service is available. i.e. the opened Workbook
 '   is able to be served either by the CompMan development instance or by the
 '   Add-in instance

@@ -36,32 +36,32 @@ Public Property Get SheetsDone() As Boolean:        SheetsDone = DoneYN(SummaryD
 Public Property Let SheetsDone(ByVal b As Boolean): SummaryDone("Worksheet") = DoneYN(b):                       End Property
 
 Public Property Get SummaryDone(Optional ByVal ds_type As String) As Variant
-    Dim rng As Range
-    For Each rng In Me.Range("rngSummaryType").Cells
-        If rng.Value = ds_type Then
-            If rng.Offset(0, 1).Value = "done" Then SummaryDone = True
+    Dim Rng As Range
+    For Each Rng In Me.Range("rngSummaryType").Cells
+        If Rng.Value = ds_type Then
+            If Rng.Offset(0, 1).Value = "done" Then SummaryDone = True
             Exit For
         End If
-    Next rng
+    Next Rng
 End Property
 
 Public Property Let SummaryDone(Optional ByVal ds_type As String, _
                                          ByVal ds_done As Variant)
-    Dim rng As Range
-    For Each rng In Me.Range("rngSummaryType").Cells
-        If rng.Value = ds_type Then
+    Dim Rng As Range
+    For Each Rng In Me.Range("rngSummaryType").Cells
+        If Rng.Value = ds_type Then
             If VarType(ds_done) = vbBoolean Then
                 If ds_done Then
-                    rng.Offset(0, 1).Value = "done"
+                    Rng.Offset(0, 1).Value = "done"
                 Else
-                    rng.Offset(0, 1).Value = "due"
+                    Rng.Offset(0, 1).Value = "due"
                 End If
             Else
-                rng.Offset(0, 1).Value = ds_done
+                Rng.Offset(0, 1).Value = ds_done
             End If
             Exit For
         End If
-    Next rng
+    Next Rng
     
 End Property
 
@@ -97,7 +97,6 @@ Public Sub Done(ByVal d_prefix As String, _
 '    '~~ Write to log file
 '    If Not d_log_item Is Nothing Then mService.Log.ServicedItem = d_log_item
 '    mService.Log.Entry = d_details
-    
     mBasic.EoP ErrSrc(PROC)
     
 End Sub
@@ -115,7 +114,7 @@ Private Function DoneYN(ByVal v As Variant) As Variant
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "wsSyncLog" & "." & sProc
+    ErrSrc = Me.CodeName & "." & sProc
 End Function
 
 Private Function FirstFreeInCol(ByVal ff_rng As String) As Range
@@ -124,16 +123,16 @@ Private Function FirstFreeInCol(ByVal ff_rng As String) As Range
 ' ----------------------------------------------------------------------------
     Const PROC = "FirstFreeInCol"
     
-    Dim rng As Range
+    Dim Rng As Range
     
     mBasic.BoP ErrSrc(PROC)
     With Me
-        For Each rng In Intersect(.Range(ff_rng).EntireColumn, .Range("rngDone").EntireRow).Cells
-            If rng.Value = vbNullString Then
-                Set FirstFreeInCol = rng
+        For Each Rng In Intersect(.Range(ff_rng).EntireColumn, .Range("rngDone").EntireRow).Cells
+            If Rng.Value = vbNullString Then
+                Set FirstFreeInCol = Rng
                 GoTo xt
             End If
-        Next rng
+        Next Rng
     End With
     
 xt: mBasic.EoP ErrSrc(PROC)

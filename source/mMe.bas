@@ -42,10 +42,10 @@ Option Private Module
 '
 ' W. Rauschenberger, Berlin Nov 2020
 ' ---------------------------------------------------------------------------
-Public Const COMPMAN_ADMIN_FOLDER_NAME  As String = "\CompManAdmin\"
-Public Const FOLDER_SERVICED            As String = "Serviced-By-CompMan folder"
-Private Const DEVLP_WORKBOOK_EXTENSION  As String = "xlsb"  ' Extension may depend on Excel version
-Private Const DEFAULT_PARENT_FOLDER     As String = "Common-VBA-Excel-Component-Management-Services"
+Private Const DEVLP_WORKBOOK_EXTENSION          As String = "xlsb"  ' Extension may depend on Excel version
+Private Const DEFAULT_FOLDER_COMPMAN_PARENT     As String = "Common-VBA-Excel-Component-Management-Services"
+Private Const DEFAULT_FOLDER_COMMON_COMPONENTS  As String = "Common-Components"
+Private Const DEFAULT_FOLDER_COMPMAN_ROOT       As String = "CompManRoot"
 
 Public CompManRoot              As String
 Public BaseName                 As String
@@ -62,11 +62,23 @@ Private bRenewTerminatedByUser  As Boolean
 
 Public Function AssertedServicingEnabled() As Boolean
 ' ---------------------------------------------------------------------------
-' Ensures that the CompMan development instance Workbook is able to function
+' When TRUE is returned either the opened Workbook is the Addin instance or
+' - the Workbook has either been opened the very first time after the very
+'   first download and the default environment has been established - ready
+'   for the Workbook for being re-opened from within it
+' - the Workbook has been opened and the environment conforms with the
+'   current configuration or
+' - the Workbook has been opened from within an environment which has changed
+'   but still meet all the requirements following is asserted:
+' - When the Workbook is the Addin instanceEnsures that the CompMan development instance Workbook is able to function
 ' as the servicing instance. Because the Addin is (in case) saved from a
 ' servicing enabled Workbook it is enabled by default.
 ' ---------------------------------------------------------------------------
+    Const PROC = "AssertedServicingEnabled"
+    
+    On Error GoTo eh
     Dim fso As New FileSystemObject
+    
     BaseName = fso.GetBaseName(ThisWorkbook.Name)
     Extension = fso.GetExtensionName(ThisWorkbook.Name)
     If mMe.IsAddinInstnc Then
@@ -74,87 +86,178 @@ Public Function AssertedServicingEnabled() As Boolean
         ServicingEnabled = True
     Else
         If Not AssertedOfficeVersion Then GoTo xt
-        If Not AssertedParentFolderStructure Then GoTo xt
+        If Not AssertedFilesAndFldrsStructure Then GoTo xt
         If Not fso.FileExists(mCompManIni.CompManIniFileFullName) Then
-            wsConfig.SaveToCompManIni
+            Stop
+            wsConfig.CompManIniSaveConfig
         Else
-            wsConfig.RestoreFromCompManIni
+            wsConfig.CompManIniRestoreConfig
         End If
     End If
     AssertedServicingEnabled = True
     
 xt: Exit Function
 
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
-Private Function AssertedParentFolderStructure() As Boolean
+Private Function AssertedFilesAndFldrsStructure() As Boolean
 ' ---------------------------------------------------------------------------
-'
+' Performed with each open. Ensures that the Workbook is running from within
+' the required files and folders structure.
 ' ---------------------------------------------------------------------------
+    Const PROC = "AssertedFilesAndFldrsStructure"
     
-    Dim fso         As New FileSystemObject
-    Dim Msg         As mMsg.TypeMsg
-    Dim BttnGoAhead As String
-    Dim BttnCancel  As String
-    Dim PrntFolder1 As String
-    Dim PrntFolder2 As String
-    Dim PrntFolders As String
-     
-    PrntFolder1 = fso.GetFolder(wsConfig.FolderDevAndTest).Name
-    PrntFolder2 = DEFAULT_PARENT_FOLDER
-    
-    PrntFolders = PrntFolder1 & "\" & PrntFolder2
-    If ThisWorkbook.FullName Like "*" & PrntFolders & "\" & ThisWorkbook.Name Then
-        AssertedParentFolderStructure = True
-        CompManRoot = Replace(ThisWorkbook.Path, PrntFolders, vbNullString)
+    On Error GoTo eh
+    Dim fso                 As New FileSystemObject
+    Dim Msg                 As mMsg.TypeMsg
+    Dim BttnGoAhead         As String
+    Dim FldrAddin           As String
+    Dim FldrCompManRoot     As String
+    Dim FldrCompManParent   As String
+    Dim FldrCommonComps     As String
+    Dim FldrExport      As String
+        
+    If mCompManIni.Exists Then
+        FldrCompManRoot = fso.GetFolder(ThisWorkbook.Path).ParentFolder.Path
+        FldrAddin = ThisWorkbook.Path & "\" & "Addin"
+        If FldrCompManRoot <> wsConfig.FolderCompManRoot Then
+            With wsConfig
+                '~~ The CompMan-Root-Folder must have been renamed or moved to a different location ...
+                .FolderCompManRoot = FldrCompManRoot
+                mCompManIni.FolderCompManRoot = FldrCompManRoot
+                '~~ ... and this concerns also the Addin folder
+                .FolderAddin = FldrAddin
+                mCompManIni.FolderAddin = FldrAddin
+                '~~ Re-setup any setup auto-open
+                If .AutoOpenAddinIsSetup Then .AutoOpenAddinSetup
+                If .AutoOpenCompManIsSetup Then .AutoOpenCompManSetup
+            End With
+        End If
+        
+        '~~ Note: When a configured Sync-Target-Folder and or the Sync-Archice-Folder had been renamed or moved
+        '         the configuration restored from the CompMan.ini file will become invalid.
+        '~~ Restore the last saved configuration. This ensures that for a subsequently downloaded
+        '~~ CompMan.xlsb Workbook the local configuration is made available again in the wsConfig Worksheet.
+        wsConfig.CompManIniRestoreConfig
+        If wsConfig.Verified Then
+            '~~ Nothing had been changed while the Workbook was closed
+            AssertedFilesAndFldrsStructure = True
+        Else
+            '~~ The configuration is no loger valid. This may be the case when the CompMan root folder
+            '~~ has been renamed or moved to another location
+            AssertedFilesAndFldrsStructure = False
+            wsConfig.Activate
+        End If
+        CompManRoot = fso.GetFolder(ThisWorkbook.Path).ParentFolder.Path
         GoTo xt
     End If
+        
+    '~~ Because no CompMan.ini exists the CompMan Workbook has either been downloaded and opened the
+    '~~ very first time or at least has been opened for the vers first time from this location.
+    '~~ It is thus concluded that there is currently no default environment (folders and files)
+    '~~ and it is now to be setup - provided the user confirms it.
+    FldrCompManRoot = ThisWorkbook.Path & "\" & DEFAULT_FOLDER_COMPMAN_ROOT     ' 1. to be setup
+    FldrCommonComps = FldrCompManRoot & "\" & DEFAULT_FOLDER_COMMON_COMPONENTS  ' 2. to be setup
+    FldrCompManParent = FldrCompManRoot & "\" & DEFAULT_FOLDER_COMPMAN_PARENT   ' 3. to be setup
+    FldrExport = FldrCompManParent & "\" & wsConfig.FolderExport                ' 4. to be setup
+    FldrAddin = FldrCompManParent & "\Addin"                                    ' 5. to be setup
     
     BttnGoAhead = "Ok!" & vbLf & vbLf & _
-                  "Go ahead and bring it into" & vbLf & _
-                  "a dedicated folder called" & vbLf & _
-                  BaseName
-    BttnCancel = "Cancel!" & vbLf & vbLf & _
-                 "I'll go an provide this by myself"
+                  "Go ahead and set it up"
                  
     With Msg
-        With .Section(1)
+        With .Section(1).Text
+            .Text = "CompMan will now setup the below default folder/files environment at the current " & _
+                    "download location, which is essential in order to establish it as a servicing instance. " & _
+                    "Once set up the top level folder may be moved to any other location."
+        End With
+        With .Section(2).Text
+            .MonoSpaced = True
+            .Text = "CompManRoot                             " & vbLf & _
+                    "|                                       " & vbLf & _
+                    "+--Common-Excel-VBA-Component-Management" & vbLf & _
+                    "|  |                                    " & vbLf & _
+                    "|  +---CompMan.xlsb                     " & vbLf & _
+                    "|  +---source                           " & vbLf & _
+                    "|  +---CompMan.ini                      " & vbLf & _
+                    "|                                       " & vbLf & _
+                    "+--Common-Components                    " & vbLf & _
+                    "   |                                    " & vbLf & _
+                    "   +---CompManClient.bas                "
+        End With
+        With .Section(3)
             .Label.FontBold = True
             .Label.Text = Replace(BttnGoAhead, vbLf, " ")
-            .Text.Text = "A folder structure " & vbLf & _
-                         PrntFolders & vbLf & _
-                         "will be created and the opened Workbook will be saved into the" & vbLf & _
-                         PrntFolder2 & vbLf & _
-                         "folder and closed. Re-opening it from within its new parent folder structure will continue with " & _
-                         "CompMan's self enabling process."
-            
+            .Text.Text = "The above files and folders structure will be created and the opened Workbook will be saved into the" & vbLf & _
+                         FldrCompManParent & vbLf & _
+                         "folder and closed. Re-opening it from within its new folder structure will finalize " & _
+                         "CompMan's self setup process."
         End With
-        With .Section(2)
-            .Label.FontBold = True
-            .Label.Text = Replace(BttnCancel, vbLf, " ")
-            .Text.Text = "CompMan will not be available as a Workbook providing any of its services until " & _
-                         "it is opened from within its default folder structure" & vbLf & _
-                         PrntFolders & "."
+        With .Section(4).Text
+            .MonoSpaced = True
+            .Text = "CompManRoot .........................: CompMan's ""serviced"" folder (only Workbooks when opened from within this folder will be serviced)" & vbLf & _
+                    "Common-Excel-VBA-Component-Management: CompMan's dedicated default parent folder (also the name of the public GitHub repository)" & vbLf & _
+                    "CompMan.xlsb ........................: CompMan's (this) ""servicing"" Workbook" & vbLf & _
+                    "source ..............................: Default folder for exported (changed) components, maintained" & vbLf & _
+                    "                                       by CompMan for each serviced Workbook's, the name may may be" & vbLf & _
+                    "                                       re-configured." & vbLf & _
+                    "CompMan.ini .........................: Initialized with the self-setup defaults, subsequently maintained" & vbLf & _
+                    "                                       through ""CompMan's configuration Worksheet""." & vbLf & _
+                    "Common-Components ...................: The default folder for ""Common Components""" & vbLf & _
+                    "CompManClient.bas ...................: The ""Common Component"" hosted by CompMan for being imported" & vbLf & _
+                    "                                       into any Workbook 's VB-Project for being serviced by CompMan." & vbLf & _
+                    "                                       Will be provided the first time the Workbook is saved/closed. "
         End With
     End With
     
-    If mMsg.Dsply(dsply_title:="" _
+    If mMsg.Dsply(dsply_title:="CompMan's self setup (when opened for the very first time after download)" _
                 , dsply_msg:=Msg _
-                , dsply_buttons:=mMsg.Buttons(BttnGoAhead, vbLf, BttnCancel)) = BttnGoAhead _
+                , dsply_buttons:=mMsg.Buttons(BttnGoAhead)) = BttnGoAhead _
     Then
-        PrntFolders = Replace(ThisWorkbook.FullName, ThisWorkbook.Name, PrntFolder1)
-        If Not fso.FolderExists(PrntFolders) Then fso.CreateFolder PrntFolders
-        PrntFolders = Replace(ThisWorkbook.FullName, ThisWorkbook.Name, PrntFolder1 & "\" & PrntFolder2)
-        If Not fso.FolderExists(PrntFolders) Then fso.CreateFolder PrntFolders
+        Stop
+        If Not fso.FolderExists(FldrCompManRoot) Then fso.CreateFolder FldrCompManRoot
+        If Not fso.FolderExists(FldrCommonComps) Then fso.CreateFolder FldrCommonComps
+        If Not fso.FolderExists(FldrCompManParent) Then fso.CreateFolder FldrCompManParent
+        If Not fso.FolderExists(FldrExport) Then fso.CreateFolder FldrExport
+        If Not fso.FolderExists(FldrAddin) Then fso.CreateFolder FldrAddin
+        
+        '~~ Save the initially opened CompMan Workbook to its new setup parent folder
         Application.EnableEvents = False
-        ThisWorkbook.SaveAs PrntFolders & "\" & ThisWorkbook.Name
-        AssertedParentFolderStructure = True
+        With wsConfig
+            .FolderAddin = FldrAddin
+            .FolderCompManRoot = FldrCompManRoot
+            .FolderCommonComponentsPath = FldrCommonComps
+            .FolderSyncArchive = vbNullString
+            .FolderSyncTarget = vbNullString
+            .AutoOpenCompManRemove
+            .AutoOpenAddinRemove
+            If Not .Verified Then Stop
+        End With
+        
+        ThisWorkbook.SaveAs FldrCompManParent & "\" & ThisWorkbook.Name
+        '~~ CompMan's .ini-file
+        wsConfig.CompManIniSaveConfig
+        AssertedFilesAndFldrsStructure = True
         Application.EnableEvents = True
         ThisWorkbook.Close False
     End If
                         
 xt: Exit Function
 
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+    Private Function FolderCompManRootHasMovedToAnotherLocation() As Boolean
+    With New FileSystemObject
+        FolderCompManRootHasMovedToAnotherLocation = wsConfig.FolderCompManRoot <> .GetFolder(ThisWorkbook.Path).ParentFolder.Path
+    End With
 End Function
 
 Private Function AssertedOfficeVersion() As Boolean
@@ -189,7 +292,7 @@ End Property
 
 Public Property Get DevInstncFullName() As String
     Dim fso As New FileSystemObject
-    DevInstncFullName = wsConfig.FolderDevAndTest & DBSLASH _
+    DevInstncFullName = wsConfig.FolderCompManRoot & DBSLASH _
                           & fso.GetBaseName(DevInstncName) & DBSLASH _
                           & DevInstncName
 End Property
@@ -268,16 +371,16 @@ Public Function Config(Optional ByVal cfg_silent As Boolean = False, _
 
     On Error GoTo eh
     
-    If cfg_addin Then Config = wsConfig.FolderDevAndTestIsValid _
+    If cfg_addin Then Config = wsConfig.FolderCompManRootIsValid _
                            And wsConfig.FolderExportIsValid _
                            And wsConfig.FolderAddInIsValid
     
-    If cfg_sync Then Config = wsConfig.FolderDevAndTestIsValid _
+    If cfg_sync Then Config = wsConfig.FolderCompManRootIsValid _
                           And wsConfig.FolderExportIsValid _
                           And wsConfig.FolderSyncTargetIsValid
     
     If cfg_silent Then
-        If Not wsConfig.FolderDevAndTestIsValid _
+        If Not wsConfig.FolderCompManRootIsValid _
         Or Not wsConfig.FolderExportIsValid Then
             wsConfig.ConfigInfo = "At least one essential configuration is still missing!"
             Config = False
@@ -448,11 +551,11 @@ Private Sub Renew_05_Set_IsAddin_ToFalse()
     On Error GoTo eh
     
     mMe.RenewAction = "Set the 'IsAddin' property of the 'CompMan Add-in' to FALSE"
-    If mAddin.SetIsAddinToFalse Then
+    If mAddin.Set_IsAddin_ToFalse Then
         mMe.RenewMonitorResult() = "Passed"
     Else
         mMe.RenewMonitorResult("CompMan's 'Add-in Instance was not open or the 'IsAddin' property was already set to FALSE" _
-                                  ) = "Passed"
+                              ) = "Passed"
     End If
     
 xt: Exit Sub
@@ -610,7 +713,7 @@ Private Sub Renew_11_SetupAutoOpen()
     
     On Error GoTo eh
     mMe.RenewAction = "Setup/maintain auto-open for the 'CompMan Add-in'"
-    wsConfig.AutoOpenCompManAddinSetup
+    wsConfig.AutoOpenAddinSetup
     mMe.RenewMonitorResult() = "Passed"
     
 xt: Exit Sub

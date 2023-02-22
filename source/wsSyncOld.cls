@@ -756,26 +756,14 @@ End Property
 Public Property Get WshItemOwnedByPrjctFailed(Optional ByVal s As String) As Boolean
     WshItemOwnedByPrjctFailed = NameFound(WshNumberOwnedByPrjctFailed, Intersect(ItemsColOwnedByPrjctFailed, WshNumberRow), s)
 End Property
+
 Public Property Let WshItemOwnedByPrjctFailed(Optional ByVal s As String, ByVal b As Boolean)
     AddItem Intersect(ItemsColOwnedByPrjctFailed, WshOwnedByPrjctFailed.Offset(WshNumberOwnedByPrjctFailed, 0)), s
     WshNumberOwnedByPrjctFailed = WshNumberOwnedByPrjctFailed + 1
 End Property
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "wsSyncOld" & "." & sProc
+    ErrSrc = Me.CodeName & "." & sProc
 End Function
 
 Private Function NameFound(ByVal l As Long, _

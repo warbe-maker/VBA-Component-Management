@@ -62,7 +62,7 @@ End Sub
 Public Sub Test_00_RegressionTest()
 ' ------------------------------------------------------------------------------
 ' Test-Sync-Target-Workbook: <FolderSyncTarget>\CompManSyncTest\CompManSyncTest.xlsb
-' Test-Sync_Source_Workbook: <FolderDevAndTest>\Common-VBA-Excel-Component-Management-Services\SyncTest\SyncSource\CompManSyncTest.xlsb
+' Test-Sync_Source_Workbook: <FolderCompManRoot>\Common-VBA-Excel-Component-Management-Services\SyncTest\SyncSource\CompManSyncTest.xlsb
 ' ------------------------------------------------------------------------------
     Const PROC = "Test_00_RegressionTest"
 

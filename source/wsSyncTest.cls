@@ -126,7 +126,7 @@ Public Function DoSync(ByVal d_kind As String) As Boolean
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "wsSyncTest." & sProc
+    ErrSrc = Me.CodeName & "." & sProc
 End Function
 
 Private Sub FlipState(ByVal cel As Range)

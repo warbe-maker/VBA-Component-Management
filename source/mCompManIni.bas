@@ -10,65 +10,44 @@ Option Explicit
 ' wsConfig Worksheet.
 ' ---------------------------------------------------------------------------
 Private Const VNAME_FOLDER_ADDIN                As String = "FolderAddin"
+Private Const VNAME_FOLDER_COMMON_COMPONENTS    As String = "CommonComponentsFolder"
+Private Const VNAME_FOLDER_COMPMAN_ROOT         As String = "FolderCompManRoot"
 Private Const VNAME_FOLDER_EXPORT               As String = "FolderExport"
-Private Const VNAME_FOLDER_SRVCD_DEV_AND_TEST   As String = "FolderServicedDevAndTest"
+Private Const VNAME_FOLDER_SRVCD_COMPMAN_ROOT   As String = "FolderServicedCompManRoot"
 Private Const VNAME_FOLDER_SRVCD_SYNC_ARCHIVE   As String = "FolderServicedSyncArchive"
 Private Const VNAME_FOLDER_SRVCD_SYNC_TARGET    As String = "FolderServicedSyncTarget"
-Private Const VNAME_FOLDER_COMPMAN_ROOT         As String = "FolderCompManRoot"
 
 Public Property Get CompManIniFileFullName() As String
-    Dim wbk As Workbook
-    Set wbk = ThisWorkbook
-    CompManIniFileFullName = Replace(wbk.FullName, wbk.Name, "CompMan.ini")
+    CompManIniFileFullName = Replace(ThisWorkbook.FullName, ThisWorkbook.Name, "CompMan.ini")
 End Property
 
-Public Property Get FolderCompManRoot() As String
-    FolderCompManRoot = Value(VNAME_FOLDER_COMPMAN_ROOT)
-End Property
+Public Property Get FolderAddin() As String:                        FolderAddin = Value(VNAME_FOLDER_ADDIN):                                End Property
 
-Public Property Let FolderCompManRootn(ByVal s As String)
-    Value(VNAME_FOLDER_COMPMAN_ROOT) = s
-End Property
+Public Property Let FolderAddin(ByVal s As String):                 Value(VNAME_FOLDER_ADDIN) = s:                                          End Property
 
-Public Property Get FolderAddin() As String
-    FolderAddin = Value(VNAME_FOLDER_ADDIN)
-End Property
+Public Property Get FolderCommonComponents() As String:             FolderCommonComponents = Value(VNAME_FOLDER_COMMON_COMPONENTS):         End Property
 
-Public Property Let FolderAddin(ByVal s As String)
-    Value(VNAME_FOLDER_ADDIN) = s
-End Property
+Public Property Let FolderCommonComponents(ByVal s As String):      Value(VNAME_FOLDER_COMMON_COMPONENTS) = s:                              End Property
 
-Public Property Get FolderExport() As String
-    FolderExport = Value(VNAME_FOLDER_EXPORT)
-End Property
+Public Property Get FolderCompManRoot() As String:                  FolderCompManRoot = Value(VNAME_FOLDER_COMPMAN_ROOT):                   End Property
 
-Public Property Let FolderExport(ByVal s As String)
-    Value(VNAME_FOLDER_EXPORT) = s
-End Property
+Public Property Let FolderCompManRoot(ByVal s As String):           Value(VNAME_FOLDER_COMPMAN_ROOT) = s:                                   End Property
 
-Public Property Get FolderServicedDevAndTest() As String
-    FolderServicedDevAndTest = Value(VNAME_FOLDER_SRVCD_DEV_AND_TEST)
-End Property
+Public Property Get FolderExport() As String:                       FolderExport = Value(VNAME_FOLDER_EXPORT):                              End Property
 
-Public Property Let FolderServicedDevAndTest(ByVal s As String)
-    Value(VNAME_FOLDER_SRVCD_DEV_AND_TEST) = s
-End Property
+Public Property Let FolderExport(ByVal s As String):                Value(VNAME_FOLDER_EXPORT) = s:                                         End Property
 
-Public Property Get FolderServicedSyncArchive() As String
-    FolderServicedSyncArchive = Value(VNAME_FOLDER_SRVCD_SYNC_ARCHIVE)
-End Property
+Public Property Get FolderServicedCompManRoot() As String:          FolderServicedCompManRoot = Value(VNAME_FOLDER_SRVCD_COMPMAN_ROOT):     End Property
 
-Public Property Let FolderServicedSyncArchive(ByVal s As String)
-    Value(VNAME_FOLDER_SRVCD_SYNC_ARCHIVE) = s
-End Property
+Public Property Let FolderServicedCompManRoot(ByVal s As String):    Value(VNAME_FOLDER_SRVCD_COMPMAN_ROOT) = s:                            End Property
 
-Public Property Get FolderServicedSyncTarget() As String
-    FolderServicedSyncTarget = Value(VNAME_FOLDER_SRVCD_SYNC_TARGET)
-End Property
+Public Property Get FolderServicedSyncArchive() As String:          FolderServicedSyncArchive = Value(VNAME_FOLDER_SRVCD_SYNC_ARCHIVE):     End Property
 
-Public Property Let FolderServicedSyncTarget(ByVal s As String)
-    Value(VNAME_FOLDER_SRVCD_SYNC_TARGET) = s
-End Property
+Public Property Let FolderServicedSyncArchive(ByVal s As String):   Value(VNAME_FOLDER_SRVCD_SYNC_ARCHIVE) = s:                             End Property
+
+Public Property Get FolderServicedSyncTarget() As String:           FolderServicedSyncTarget = Value(VNAME_FOLDER_SRVCD_SYNC_TARGET):       End Property
+
+Public Property Let FolderServicedSyncTarget(ByVal s As String):    Value(VNAME_FOLDER_SRVCD_SYNC_TARGET) = s:                              End Property
 
 Private Property Get Value(Optional ByVal pp_value_name As String) As Variant
 ' ----------------------------------------------------------------------------
@@ -113,6 +92,12 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mCompManDat" & "." & sProc
+    ErrSrc = "mCompManIni" & "." & sProc
+End Function
+
+Public Function Exists() As Boolean
+    With New FileSystemObject
+        Exists = .FileExists(CompManIniFileFullName)
+    End With
 End Function
 

@@ -34,18 +34,6 @@ Public Property Get FolderOld() As String:                     FolderOld = mWsh.
 
 Public Property Let FolderOld(ByVal s As String):               mWsh.Value(wsConfig, "FolderAddinOld") = s:                     End Property
 
-Public Property Get IsSetup() As Boolean
-' ----------------------------------------------------------------------------
-' Returns True when the CompMan-AddIn is configured and exists in the
-' configured folder.
-' ----------------------------------------------------------------------------
-    With New FileSystemObject
-        If mAddin.Folder <> vbNullString _
-        Then IsSetup = .FileExists(mAddin.Folder & "\" & mAddin.WbkName)
-    End With
-
-End Property
-
 Public Property Get Paused() As Boolean
     If mReg.Exists(PAUSED_REG_KEY, PAUSED_REG_VALUE_NAME) _
     Then Paused = CBool(mReg.Value(PAUSED_REG_KEY, PAUSED_REG_VALUE_NAME)) _
@@ -81,7 +69,7 @@ Public Sub Clear(ByVal c_addin_folder_full_name As String)
 ' ----------------------------------------------------------------------------
 
     mAddin.ReferencesRemove
-    mAddin.SetIsAddinToFalse
+    mAddin.Set_IsAddin_ToFalse
     mAddin.WbkClose
     mAddin.WbkRemove c_addin_folder_full_name & "\" & mAddin.WbkName
     mAddin.AutoOpenShortCutRemove
@@ -108,13 +96,15 @@ xt: Application.EnableEvents = True
 
 End Function
 
-Public Function SetIsAddinToFalse() As Boolean
+Public Function Set_IsAddin_ToFalse() As Boolean
     Dim wbk As Workbook
     If mAddin.IsOpen(wbk) Then
         If wbk.IsAddin = True Then
-            SetIsAddinToFalse = True
+            Set_IsAddin_ToFalse = True
             wbk.IsAddin = False
         End If
+    Else
+        Set_IsAddin_ToFalse = True
     End If
 End Function
 

@@ -21,7 +21,7 @@ Option Explicit
 Private Const HOSTED_RAWS = "mCompManClient"
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "wbAddIn" & "." & sProc
+    ErrSrc = Me.CodeName & "." & sProc
 End Function
 
 Private Sub Workbook_AfterSave(ByVal Success As Boolean)
@@ -43,6 +43,12 @@ End Sub
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     If mMe.AssertedServicingEnabled Then
         mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
+        If wsConfig.Verified Then
+            wsConfig.CompManIniSaveConfig
+        Else
+            wsConfig.Activate
+            Cancel = True
+        End If
     End If
 End Sub
 
@@ -81,9 +87,8 @@ Private Sub Workbook_Open()
     
         '~~ Verifying the current configuration ensures a proper configuration
         '~~ status when the Workbook is opened on a different computer but the
-        '~~ one is may have been opened at last.
-        wsConfig.Verify
-        
+        '~~ one it may have been opened at last or when the environment has
+        '~~ been moved to another location.
     End If
     
 xt: Exit Sub

@@ -39,7 +39,7 @@ Public Sub CommonComponents(ByVal cc_wbk As Workbook, _
         sMsg.Section(2).Text.Text = "The selection contains all known 'Raw-Components/Common-Components' which are not already installed " & _
                                 "(i.e. imported). Any components missed may either not be indicated 'hosted' in any Workbook or the Workbook " & _
                                 "does not reside within the configured 'Serviced-Root-Folder'" & vbLf & _
-                                "(currently  " & mBasic.Spaced(wsConfig.FolderDevAndTest) & "  )."
+                                "(currently  " & mBasic.Spaced(wsConfig.FolderCompManRoot) & "  )."
         
         Do
             If Not mMsg.IsValidMsgButtonsArg(cll) Then Stop

@@ -249,7 +249,7 @@ Public Sub DeRegisterNoLongerExisting(ByVal d_hosted As String)
 End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mRaw" & "." & sProc
+    ErrSrc = "mCommComps" & "." & sProc
 End Function
 
 Public Function ExistsAsGlobalCommonComponentExportFile(ByVal ex_vbc As VBComponent) As Boolean
@@ -455,6 +455,7 @@ Private Sub Register(ByVal r_comp_name As String, _
     Set fso = Nothing
 
 End Sub
+
 Public Sub ManageUsedCommonComponents()
 ' ----------------------------------------------------------------------------
 ' Manages the registration of used Common Components, done before change

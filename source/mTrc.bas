@@ -129,7 +129,7 @@ Public Property Get DefaultLogSpec() As String
 ' folder which means that Excel will allways open the file as an Addin which is
 ' absolutely useless.
 ' ----------------------------------------------------------------------------
-    DefaultLogSpec = Replace(ActiveWorkbook.FullName, ActiveWorkbook.name, "Exec.trc")
+    DefaultLogSpec = Replace(ActiveWorkbook.FullName, ActiveWorkbook.Name, "Exec.trc")
 End Property
 Private Property Get DIR_BEGIN_CODE() As String:            DIR_BEGIN_CODE = DIR_BEGIN_ID:                  End Property
 
@@ -274,19 +274,19 @@ Public Property Get LogTxt() As String
     Dim s   As String
        
     If sLogFile <> vbNullString Then
-        With fso
-            Set ts = .OpenTextFile(FileName:=sLogFile, IOMode:=ForReading)
-        End With
-        
-        If Not ts.AtEndOfStream Then
-            s = ts.ReadAll
-            If VBA.Right$(s, 2) = vbCrLf Then
-                s = VBA.Left$(s, Len(s) - 2)
+        If fso.FileExists(sLogFile) Then
+            Set ts = fso.OpenTextFile(FileName:=sLogFile, IOMode:=ForReading)
+            
+            If Not ts.AtEndOfStream Then
+                s = ts.ReadAll
+                If VBA.Right$(s, 2) = vbCrLf Then
+                    s = VBA.Left$(s, Len(s) - 2)
+                End If
+            Else
+                LogTxt = vbNullString
             End If
-        Else
-            LogTxt = vbNullString
+            If LogTxt = vbCrLf Then LogTxt = vbNullString Else LogTxt = s
         End If
-        If LogTxt = vbCrLf Then LogTxt = vbNullString Else LogTxt = s
     End If
     
 xt: Set fso = Nothing
@@ -310,8 +310,10 @@ Private Property Let LogTxt(ByVal tl_string As String)
     Dim oFile   As TextStream
     
     If Not sLogFile = vbNullString Then
-        Set oFile = fso.OpenTextFile(sLogFile, ForAppending)
-        oFile.WriteLine tl_string
+        If fso.FileExists(sLogFile) Then
+            Set oFile = fso.OpenTextFile(sLogFile, ForAppending)
+            oFile.WriteLine tl_string
+        End If
     End If
     
 xt: Set fso = Nothing
@@ -636,7 +638,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     

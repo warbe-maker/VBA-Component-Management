@@ -19,6 +19,7 @@ RawRevisionNumber=2022-12-31.001
 [mTrc]
 KindOfComponent=used
 RawRevisionNumber=2022-07-24.003
+DueModificationWarning=1
 [mReg]
 KindOfComponent=used
 RawRevisionNumber=2022-11-21.001
@@ -38,7 +39,7 @@ RawRevisionNumber=2023-02-17.002
 DueModificationWarning=0
 [clsQ]
 KindOfComponent=used
-RawRevisionNumber=2023-02-08.001
+RawRevisionNumber=2023-02-17.001
 [mWsh]
 KindOfComponent=used
 RawRevisionNumber=2023-02-09.003
