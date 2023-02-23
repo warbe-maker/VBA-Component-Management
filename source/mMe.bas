@@ -88,7 +88,6 @@ Public Function AssertedServicingEnabled() As Boolean
         If Not AssertedOfficeVersion Then GoTo xt
         If Not AssertedFilesAndFldrsStructure Then GoTo xt
         If Not fso.FileExists(mCompManIni.CompManIniFileFullName) Then
-            Stop
             wsConfig.CompManIniSaveConfig
         Else
             wsConfig.CompManIniRestoreConfig
@@ -218,7 +217,6 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
                 , dsply_msg:=Msg _
                 , dsply_buttons:=mMsg.Buttons(BttnGoAhead)) = BttnGoAhead _
     Then
-        Stop
         If Not fso.FolderExists(FldrCompManRoot) Then fso.CreateFolder FldrCompManRoot
         If Not fso.FolderExists(FldrCommonComps) Then fso.CreateFolder FldrCommonComps
         If Not fso.FolderExists(FldrCompManParent) Then fso.CreateFolder FldrCompManParent
@@ -235,7 +233,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
             .FolderSyncTarget = vbNullString
             .AutoOpenCompManRemove
             .AutoOpenAddinRemove
-            If Not .Verified Then Stop
+            If Not .Verified Then .Activate
         End With
         
         ThisWorkbook.SaveAs FldrCompManParent & "\" & ThisWorkbook.Name
