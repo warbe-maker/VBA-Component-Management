@@ -13,8 +13,8 @@ Private Const VNAME_RAW_HOST_FULL_NAME          As String = "RawHostFullName"
 Private Const VNAME_RAW_SAVED_REVISION_NUMBER   As String = "RawRevisionNumber"
 Private Const VNAME_RAW_EXP_FILE_FULL_NAME      As String = "RawExpFileFullName"
 
-Private Property Get ComCompsSavedFileFullName() As String
-    ComCompsSavedFileFullName = wsConfig.FolderCommonComponentsPath & "\CommComps.dat"
+Private Property Get CommCompsDatFileFullName() As String
+    CommCompsDatFileFullName = wsConfig.FolderCommonComponentsPath & "\CommComps.dat"
 End Property
 
 Private Property Get RawExpFileFullName(Optional ByVal comp_name As String) As String
@@ -48,7 +48,7 @@ Public Property Get RawHostWbFullName(Optional ByVal comp_name As String) As Str
 End Property
 
 Public Property Let RawHostWbFullName(Optional ByVal comp_name As String, _
-                                            ByVal hst_full_name As String)
+                                               ByVal hst_full_name As String)
     Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_HOST_FULL_NAME) = hst_full_name
 End Property
 
@@ -145,13 +145,12 @@ Public Property Get SavedExpFileFullName(Optional ByVal comp_name As String) As 
     End With
 End Property
 
-Private Property Get Value( _
-           Optional ByVal pp_section As String, _
-           Optional ByVal pp_value_name As String) As Variant
+Private Property Get Value(Optional ByVal pp_section As String, _
+                           Optional ByVal pp_value_name As String) As Variant
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    Value = mFso.PPvalue(pp_file:=ComCompsSavedFileFullName _
+    Value = mFso.PPvalue(pp_file:=CommCompsDatFileFullName _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -163,18 +162,17 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Private Property Let Value( _
-           Optional ByVal pp_section As String, _
-           Optional ByVal pp_value_name As String, _
-                    ByVal pp_value As Variant)
+Private Property Let Value(Optional ByVal pp_section As String, _
+                           Optional ByVal pp_value_name As String, _
+                                    ByVal pp_value As Variant)
 ' ------------------------------------------------------------------------------
 ' Write the value (pp_value) named (pp_value_name) into the file
-' ComCompsSavedFileFullName.
+' CommCompsDatFileFullName.
 ' ------------------------------------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    mFso.PPvalue(pp_file:=ComCompsSavedFileFullName _
+    mFso.PPvalue(pp_file:=CommCompsDatFileFullName _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -204,7 +202,7 @@ Public Function CommCompRegStateString(ByVal en As enCommCompRegState) As String
 End Function
 
 Public Function Components() As Dictionary
-    Set Components = mFso.PPsectionNames(ComCompsSavedFileFullName)
+    Set Components = mFso.PPsectionNames(CommCompsDatFileFullName)
 End Function
 
 Public Sub DeRegisterNoLongerExisting(ByVal d_hosted As String)
@@ -455,7 +453,6 @@ Private Sub Register(ByVal r_comp_name As String, _
     Set fso = Nothing
 
 End Sub
-
 Public Sub ManageUsedCommonComponents()
 ' ----------------------------------------------------------------------------
 ' Manages the registration of used Common Components, done before change
@@ -536,7 +533,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub Remove(ByVal comp_name As String)
-    mFso.PPremoveSections pp_file:=ComCompsSavedFileFullName _
+    mFso.PPremoveSections pp_file:=CommCompsDatFileFullName _
                                   , pp_sections:=comp_name
 End Sub
 

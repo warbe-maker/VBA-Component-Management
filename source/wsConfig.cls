@@ -13,8 +13,7 @@ Private sRenewResult                        As String
 
 Public Property Get AddinIsSetup() As Boolean
 ' ----------------------------------------------------------------------------
-' Returns True when the CompMan-AddIn is configured and exists in the
-' configured folder.
+' Returns True when the CompMan-Addin exists in its default Addin folder.
 ' ----------------------------------------------------------------------------
     With New FileSystemObject
         If mAddin.Folder <> vbNullString _
@@ -75,7 +74,7 @@ Public Property Let ButtonHelpUrlAddinSetup(ByVal s As String):     UrlButton(Me
 
 Public Property Let ButtonHelpUrlPauseContinue(ByVal s As String):  UrlButton(Me.Range("ButtonHelpUrlPauseContinue")) = s:          End Property
 
-Public Property Get ButtonPauseAddIn() As Button:                    Set ButtonPauseAddIn = Me.Buttons("cmbAddInPause"):              End Property
+Public Property Get ButtonPauseAddIn() As Button:                   Set ButtonPauseAddIn = Me.Buttons("cmbAddInPause"):             End Property
 
 Public Property Get ButtonSetupRenewAddIn() As Button:              Set ButtonSetupRenewAddIn = Me.Buttons("cmbAddInSetup"):        End Property
 
@@ -103,13 +102,13 @@ End Property
 
 Public Property Let FolderCommonComponentsPath(ByVal s As String):  mWsh.Value(Me, "FolderCommonComponents") = s:                   End Property
 
-Public Property Get FolderCompManRoot() As String:                   FolderCompManRoot = mWsh.Value(Me, "FolderCompManRoot"):          End Property
+Public Property Get FolderCompManRoot() As String:                  FolderCompManRoot = mWsh.Value(Me, "FolderCompManRoot"):        End Property
 
-Public Property Let FolderCompManRoot(ByVal s As String):            mWsh.Value(Me, "FolderCompManRoot") = s:                         End Property
+Public Property Let FolderCompManRoot(ByVal s As String):           mWsh.Value(Me, "FolderCompManRoot") = s:                        End Property
 
-Public Property Let FolderCompManRootInfo(ByVal s As String):        MaintainMinRowHeight Me.Range("FolderCompManRootInfo"), s:       End Property
+Public Property Let FolderCompManRootInfo(ByVal s As String):       MaintainMinRowHeight Me.Range("FolderCompManRootInfo"), s:      End Property
 
-Public Property Let FolderCompManRootUrl(ByVal s As String):         UrlLabel(Me.Range("FolderCompManRootUrl")) = s:                  End Property
+Public Property Let FolderCompManRootUrl(ByVal s As String):        UrlLabel(Me.Range("FolderCompManRootUrl")) = s:                 End Property
 
 Public Property Get FolderExport() As String
     If mCompManCfg.Exists Then
@@ -229,7 +228,7 @@ Public Sub AutoOpenCompManFlipFlop()
         AutoOpenCompManSetup
         Me.ButtonCaption(Me.ButtonWrkbkAutoOpen) = "Remove Auto-open"
     End If
-    wsConfig.CurrentStatus
+    Me.Verified
     
 xt: Exit Sub
  
@@ -262,7 +261,7 @@ Public Sub AutoOpenCompManSetup()
         .Description = "AutoOpen CompMan.xlsb"
         .Save
     End With
-
+    
 End Sub
 
 Public Sub CompManCfgRestoreConfig()

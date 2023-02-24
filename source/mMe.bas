@@ -121,21 +121,27 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
     Dim FldrCommonComps     As String
     Dim FldrExport          As String
     Dim lMax                As Long
+    Dim sWrkbkOpened        As String
     
     If mCompManCfg.Exists Then
+        '~~ When a CompMan.cfg file exists the configuration may still have changed
+        '~~ e.g. when the CompManServiced folder has been moved to another location
+        '~~ and/or remnamed. In case the configuration at the "Config" Worksheet
+        '~~ is immediately adjusted accordingly.
         FldrCompManRoot = fso.GetFolder(ThisWorkbook.Path).ParentFolder.Path
-        FldrAddin = ThisWorkbook.Path & "\" & "Addin"
         If FldrCompManRoot <> wsConfig.FolderCompManRoot Then
+            FldrAddin = ThisWorkbook.Path & "\" & "Addin"
+            FldrCommonComps = ThisWorkbook.Path & "\" & wsConfig.FolderCommonComponentsName
+            '~~ The root folder has been moved and/or renamed
             With wsConfig
-                '~~ The CompMan-Root-Folder must have been renamed or moved to a different location ...
-                .FolderCompManRoot = FldrCompManRoot
-                mCompManCfg.FolderCompManRoot = FldrCompManRoot
-                '~~ ... and this concerns also the Addin folder
-                .FolderAddin = FldrAddin
-                mCompManCfg.FolderAddin = FldrAddin
-                '~~ Re-setup any setup auto-open
-                If .AutoOpenAddinIsSetup Then .AutoOpenAddinSetup
-                If .AutoOpenCompManIsSetup Then .AutoOpenCompManSetup
+                .FolderCompManRoot = FldrCompManRoot                    ' adjust the root path and
+                mCompManCfg.FolderCompManRoot = FldrCompManRoot         ' save the change to the CompMan.cfg file
+                .FolderAddin = FldrAddin                                ' adjust the Addin path and
+                mCompManCfg.FolderAddin = FldrAddin                     ' save the change to the CompMan.cfg file
+                .FolderCommonComponentsPath = FldrCommonComps           ' adjust the common components folder
+                If .AutoOpenAddinIsSetup Then .AutoOpenAddinSetup       ' re-setup a setup Addin auto-open
+                If .AutoOpenCompManIsSetup Then .AutoOpenCompManSetup   ' re-setup a setup CompMan.xlsb auto-open
+                
             End With
         End If
         
@@ -172,9 +178,9 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
                  
     With Msg
         With .Section(1).Text
-            .Text = "CompMan will now setup the below default folder/files environment at the current " & _
-                    "download location, which is essential in order to establish it as a servicing instance. " & _
-                    "Once set up the top level folder may be moved to any other location."
+            .Text = "CompMan will now setup the below default files and folder environment at the current " & _
+                    "location. Once set up the Workbook is closed. The setup top level folder may then be " & _
+                    "moved to any other location and also renamed to any desired name."
         End With
         With .Section(2).Text
             .MonoSpaced = True
@@ -255,11 +261,13 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
             If Not .Verified Then .Activate
         End With
         
+        sWrkbkOpened = ThisWorkbook.FullName
         ThisWorkbook.SaveAs FldrCompManParent & "\" & ThisWorkbook.Name
         '~~ CompMan's .cfg-file
         wsConfig.CompManCfgSaveConfig
         AssertedFilesAndFldrsStructure = True
         Application.EnableEvents = True
+        fso.DeleteFile sWrkbkOpened
         ThisWorkbook.Close False
     End If
                         
