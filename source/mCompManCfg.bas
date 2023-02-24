@@ -1,9 +1,9 @@
-Attribute VB_Name = "mCompManIni"
+Attribute VB_Name = "mCompManCfg"
 Option Explicit
 ' ---------------------------------------------------------------------------
-' Standard Module mCompManIni
+' Standard Module mCompManCfg
 ' ---------------------------
-' Maintains the CompMan.ini file, when not existing initially filled with the
+' Maintains the CompMan.cfg file, when not existing initially filled with the
 ' current configuration from the wsConfig Worksheet, when existing the
 ' wsConfig Worksheet is provided with the data from the ini file. The ini
 ' file is maintained along with the change of the configuration in the
@@ -17,8 +17,8 @@ Private Const VNAME_FOLDER_SRVCD_COMPMAN_ROOT   As String = "FolderServicedCompM
 Private Const VNAME_FOLDER_SRVCD_SYNC_ARCHIVE   As String = "FolderServicedSyncArchive"
 Private Const VNAME_FOLDER_SRVCD_SYNC_TARGET    As String = "FolderServicedSyncTarget"
 
-Public Property Get CompManIniFileFullName() As String
-    CompManIniFileFullName = Replace(ThisWorkbook.FullName, ThisWorkbook.Name, "CompMan.ini")
+Public Property Get CompManCfgFileFullName() As String
+    CompManCfgFileFullName = Replace(ThisWorkbook.FullName, ThisWorkbook.Name, "CompMan.cfg")
 End Property
 
 Public Property Get FolderAddin() As String:                        FolderAddin = Value(VNAME_FOLDER_ADDIN):                                End Property
@@ -52,12 +52,12 @@ Public Property Let FolderServicedSyncTarget(ByVal s As String):    Value(VNAME_
 Private Property Get Value(Optional ByVal pp_value_name As String) As Variant
 ' ----------------------------------------------------------------------------
 ' Returns the value named (pp_value_name) from the section (pp_section) in the
-' file CompManIniFileFullName.
+' file CompManCfgFileFullName.
 ' ----------------------------------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    Value = mFso.PPvalue(pp_file:=CompManIniFileFullName _
+    Value = mFso.PPvalue(pp_file:=CompManCfgFileFullName _
                       , pp_section:="Config" _
                       , pp_value_name:=pp_value_name _
                        )
@@ -73,12 +73,12 @@ Private Property Let Value(Optional ByVal pp_value_name As String, _
                                     ByVal pp_value As Variant)
 ' ----------------------------------------------------------------------------
 ' Writes the value (pp_value) under the name (pp_value_name) into the
-' CompManIniFileFullName.
+' CompManCfgFileFullName.
 ' ----------------------------------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    mFso.PPvalue(pp_file:=CompManIniFileFullName _
+    mFso.PPvalue(pp_file:=CompManCfgFileFullName _
               , pp_section:="Config" _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -92,12 +92,12 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mCompManIni" & "." & sProc
+    ErrSrc = "mCompManCfg" & "." & sProc
 End Function
 
 Public Function Exists() As Boolean
     With New FileSystemObject
-        Exists = .FileExists(CompManIniFileFullName)
+        Exists = .FileExists(CompManCfgFileFullName)
     End With
 End Function
 

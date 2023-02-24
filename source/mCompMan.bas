@@ -435,15 +435,15 @@ End Sub
 
 Public Function RunTest(ByVal rt_service As String, _
                         ByRef rt_serviced_wbk As Workbook) As Variant
-' --------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Ensures the requested service (rt_service) is able to run or returns the
 ' reason why not. The function returns:
 ' AppErr(1): CompMan's current configuration does not support the requested
 '            service, i.e. either the 'Synchronization-Folder' for the
 '            'Synchronization' service is invalid or the 'Servicing-Folder'
 '            for all other services is invalid.
-' AppErr(2): The servicing Workbook is the available Add-in but the Add-in
-'            is currently paused.
+' AppErr(2): The servicing Workbook is the available Add-in but the Add-in is
+'            currently paused.
 '            It requires the CompMan Workbook (mCompManClient.COMPMAN_DEVLP)
 '            to turn the Add-in to a status continued. When the CompMan
 '            Workbook (mCompManClient.COMPMAN_DEVLP) is open, it will provide
@@ -470,11 +470,10 @@ Public Function RunTest(ByVal rt_service As String, _
             End Select
         
         Case mCompManClient.SRVC_SYNCHRONIZE
-            If Not wsConfig.FolderSyncTargetIsValid Or Not wsConfig.FolderSyncArchiveIsValid _
-            Or wsConfig.FolderSyncTarget = vbNullString Or wsConfig.FolderSyncArchive = vbNullString Then
-                RunTest = AppErr(1) ' Not configured or configuration is invalid
+            If wsConfig.FolderSyncTarget = vbNullString Or wsConfig.FolderSyncArchive = vbNullString Then
+                RunTest = AppErr(1) ' Not configured
             ElseIf Not rt_serviced_wbk.FullName Like wsConfig.FolderSyncTarget & "*" Then
-                RunTest = AppErr(2) ' Denied because not within configured 'Sync-Target' folder
+                RunTest = AppErr(2) ' Denied because not opened from within the configured 'Sync-Target' folder
             ElseIf Not mMe.IsDevInstnc Then
                 RunTest = AppErr(3)
             End If

@@ -315,7 +315,7 @@ Private Function WbkServicingName(ByVal csa_service As String) As String
         '~~ Display/indicate why the service cannot be provided
         Case ServicedByWrkbkResult = ResultConfigInvalid
             Select Case csa_service
-                Case SRVC_SYNCHRONIZE:      DisplayedServiceStatus = "'" & SRVC_SYNCHRONIZE_DSPLY & "' service denied (a valid configuration is missing)!"
+                Case SRVC_SYNCHRONIZE:      DisplayedServiceStatus = "'" & SRVC_SYNCHRONIZE_DSPLY & "' service denied (no Sync-Target- and or Sync-Archive-Folder configured)!"
                 Case SRVC_UPDATE_OUTDATED:  DisplayedServiceStatus = "'" & SRVC_UPDATE_OUTDATED_DSPLY & "' service denied (a valid configuration is missing)!"
                 Case SRVC_EXPORT_CHANGED:   DisplayedServiceStatus = "'" & SRVC_EXPORT_CHANGED_DSPLY & "' service denied (a valid configuration is missing)!"
             End Select

@@ -112,10 +112,16 @@ Public Property Let FolderCompManRootInfo(ByVal s As String):        MaintainMin
 Public Property Let FolderCompManRootUrl(ByVal s As String):         UrlLabel(Me.Range("FolderCompManRootUrl")) = s:                  End Property
 
 Public Property Get FolderExport() As String
-    If mWsh.Value(Me, "FolderExport") = vbNullString Then
-        mWsh.Value(Me, "FolderExport") = "source"
+    If mCompManCfg.Exists Then
+        If mCompManCfg.FolderExport = vbNullString Then
+            mCompManCfg.FolderExport = "source"
+            FolderExport = "source"
+        Else
+            FolderExport = mCompManCfg.FolderExport
+        End If
+    Else
+        FolderExport = "source"
     End If
-    FolderExport = mWsh.Value(Me, "FolderExport")
 End Property
 
 Public Property Let FolderExport(ByVal s As String):                mWsh.Value(Me, "FolderExport") = s:                             End Property
@@ -259,30 +265,30 @@ Public Sub AutoOpenCompManSetup()
 
 End Sub
 
-Public Sub CompManIniRestoreConfig()
+Public Sub CompManCfgRestoreConfig()
 
     With Me
         Application.EnableEvents = False
-        If .FolderAddin <> mCompManIni.FolderAddin Then .FolderAddin = mCompManIni.FolderAddin
-        If .FolderExport <> mCompManIni.FolderExport Then .FolderExport = mCompManIni.FolderExport
-        If .FolderCompManRoot <> mCompManIni.FolderServicedCompManRoot Then .FolderCompManRoot = mCompManIni.FolderServicedCompManRoot
-        If .FolderSyncArchive <> mCompManIni.FolderServicedSyncArchive Then .FolderSyncArchive = mCompManIni.FolderServicedSyncArchive
-        If .FolderSyncTarget <> mCompManIni.FolderServicedSyncTarget Then .FolderSyncTarget = mCompManIni.FolderServicedSyncTarget
-        If .FolderCommonComponentsPath <> mCompManIni.FolderCommonComponents Then .FolderCommonComponentsPath = mCompManIni.FolderCommonComponents
+        If .FolderAddin <> mCompManCfg.FolderAddin Then .FolderAddin = mCompManCfg.FolderAddin
+        If .FolderExport <> mCompManCfg.FolderExport Then .FolderExport = mCompManCfg.FolderExport
+        If .FolderCompManRoot <> mCompManCfg.FolderServicedCompManRoot Then .FolderCompManRoot = mCompManCfg.FolderServicedCompManRoot
+        If .FolderSyncArchive <> mCompManCfg.FolderServicedSyncArchive Then .FolderSyncArchive = mCompManCfg.FolderServicedSyncArchive
+        If .FolderSyncTarget <> mCompManCfg.FolderServicedSyncTarget Then .FolderSyncTarget = mCompManCfg.FolderServicedSyncTarget
+        If .FolderCommonComponentsPath <> mCompManCfg.FolderCommonComponents Then .FolderCommonComponentsPath = mCompManCfg.FolderCommonComponents
         Application.EnableEvents = True
     End With
 
 End Sub
 
-Public Sub CompManIniSaveConfig()
+Public Sub CompManCfgSaveConfig()
 
     With Me
-        If mCompManIni.FolderAddin <> .FolderAddin Then mCompManIni.FolderAddin = .FolderAddin
-        If mCompManIni.FolderExport <> .FolderExport Then mCompManIni.FolderExport = .FolderExport
-        If mCompManIni.FolderServicedCompManRoot <> .FolderCompManRoot Then mCompManIni.FolderServicedCompManRoot = .FolderCompManRoot
-        If mCompManIni.FolderServicedSyncArchive <> .FolderSyncArchive Then mCompManIni.FolderServicedSyncArchive = .FolderSyncArchive
-        If mCompManIni.FolderServicedSyncTarget <> .FolderSyncTarget Then mCompManIni.FolderServicedSyncTarget = .FolderSyncTarget
-        If mCompManIni.FolderCommonComponents <> .FolderCommonComponentsPath Then mCompManIni.FolderCommonComponents = .FolderCommonComponentsPath
+        If mCompManCfg.FolderAddin <> .FolderAddin Then mCompManCfg.FolderAddin = .FolderAddin
+        If mCompManCfg.FolderExport <> .FolderExport Then mCompManCfg.FolderExport = .FolderExport
+        If mCompManCfg.FolderServicedCompManRoot <> .FolderCompManRoot Then mCompManCfg.FolderServicedCompManRoot = .FolderCompManRoot
+        If mCompManCfg.FolderServicedSyncArchive <> .FolderSyncArchive Then mCompManCfg.FolderServicedSyncArchive = .FolderSyncArchive
+        If mCompManCfg.FolderServicedSyncTarget <> .FolderSyncTarget Then mCompManCfg.FolderServicedSyncTarget = .FolderSyncTarget
+        If mCompManCfg.FolderCommonComponents <> .FolderCommonComponentsPath Then mCompManCfg.FolderCommonComponents = .FolderCommonComponentsPath
     End With
 
 End Sub
@@ -848,7 +854,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
                  .Range("FolderAddin").Address, _
                  .Range("FolderSyncTarget").Address, _
                  .Range("FolderSyncArchive").Address
-                .CompManIniSaveConfig
+                .CompManCfgSaveConfig
         End Select
     End With
 

@@ -42,15 +42,11 @@ Option Private Module
 '
 ' W. Rauschenberger, Berlin Nov 2020
 ' ---------------------------------------------------------------------------
-Private Const DEVLP_WORKBOOK_EXTENSION          As String = "xlsb"  ' Extension may depend on Excel version
-Private Const DEFAULT_FOLDER_COMPMAN_PARENT     As String = "Common-VBA-Excel-Component-Management-Services"
+Private Const DEVLP_WORKBOOK_EXTENSION          As String = "xlsb"              ' Extension may depend on Excel version
+Private Const DEFAULT_FOLDER_COMPMAN_PARENT     As String = "CompMan"
 Private Const DEFAULT_FOLDER_COMMON_COMPONENTS  As String = "Common-Components"
-Private Const DEFAULT_FOLDER_COMPMAN_ROOT       As String = "CompManRoot"
+Private Const DEFAULT_FOLDER_COMPMAN_ROOT       As String = "CompManServiced"
 
-Public CompManRoot              As String
-Public BaseName                 As String
-Public Extension                As String
-Public ServicingEnabled         As Boolean
 Private wbDevlp                 As Workbook
 Private wbkSource               As Workbook                     ' This development instance as the renew source
 Private bSucceeded              As Boolean
@@ -59,6 +55,11 @@ Private dctAddInRefs            As Dictionary
 Private lRenewStep              As Long
 Private sRenewAction            As String
 Private bRenewTerminatedByUser  As Boolean
+
+Public CompManRoot              As String
+Public BaseName                 As String
+Public Extension                As String
+Public ServicingEnabled         As Boolean
 
 Public Function AssertedServicingEnabled() As Boolean
 ' ---------------------------------------------------------------------------
@@ -87,10 +88,10 @@ Public Function AssertedServicingEnabled() As Boolean
     Else
         If Not AssertedOfficeVersion Then GoTo xt
         If Not AssertedFilesAndFldrsStructure Then GoTo xt
-        If Not fso.FileExists(mCompManIni.CompManIniFileFullName) Then
-            wsConfig.CompManIniSaveConfig
+        If Not fso.FileExists(mCompManCfg.CompManCfgFileFullName) Then
+            wsConfig.CompManCfgSaveConfig
         Else
-            wsConfig.CompManIniRestoreConfig
+            wsConfig.CompManCfgRestoreConfig
         End If
     End If
     AssertedServicingEnabled = True
@@ -118,19 +119,20 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
     Dim FldrCompManRoot     As String
     Dim FldrCompManParent   As String
     Dim FldrCommonComps     As String
-    Dim FldrExport      As String
-        
-    If mCompManIni.Exists Then
+    Dim FldrExport          As String
+    Dim lMax                As Long
+    
+    If mCompManCfg.Exists Then
         FldrCompManRoot = fso.GetFolder(ThisWorkbook.Path).ParentFolder.Path
         FldrAddin = ThisWorkbook.Path & "\" & "Addin"
         If FldrCompManRoot <> wsConfig.FolderCompManRoot Then
             With wsConfig
                 '~~ The CompMan-Root-Folder must have been renamed or moved to a different location ...
                 .FolderCompManRoot = FldrCompManRoot
-                mCompManIni.FolderCompManRoot = FldrCompManRoot
+                mCompManCfg.FolderCompManRoot = FldrCompManRoot
                 '~~ ... and this concerns also the Addin folder
                 .FolderAddin = FldrAddin
-                mCompManIni.FolderAddin = FldrAddin
+                mCompManCfg.FolderAddin = FldrAddin
                 '~~ Re-setup any setup auto-open
                 If .AutoOpenAddinIsSetup Then .AutoOpenAddinSetup
                 If .AutoOpenCompManIsSetup Then .AutoOpenCompManSetup
@@ -138,10 +140,10 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
         End If
         
         '~~ Note: When a configured Sync-Target-Folder and or the Sync-Archice-Folder had been renamed or moved
-        '         the configuration restored from the CompMan.ini file will become invalid.
+        '         the configuration restored from the CompMan.cfg file will become invalid.
         '~~ Restore the last saved configuration. This ensures that for a subsequently downloaded
         '~~ CompMan.xlsb Workbook the local configuration is made available again in the wsConfig Worksheet.
-        wsConfig.CompManIniRestoreConfig
+        wsConfig.CompManCfgRestoreConfig
         If wsConfig.Verified Then
             '~~ Nothing had been changed while the Workbook was closed
             AssertedFilesAndFldrsStructure = True
@@ -155,7 +157,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
         GoTo xt
     End If
         
-    '~~ Because no CompMan.ini exists the CompMan Workbook has either been downloaded and opened the
+    '~~ Because no CompMan.cfg exists the CompMan Workbook has either been downloaded and opened the
     '~~ very first time or at least has been opened for the vers first time from this location.
     '~~ It is thus concluded that there is currently no default environment (folders and files)
     '~~ and it is now to be setup - provided the user confirms it.
@@ -176,15 +178,15 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
         End With
         With .Section(2).Text
             .MonoSpaced = True
-            .Text = "CompManRoot                             " & vbLf & _
+            .Text = DEFAULT_FOLDER_COMPMAN_ROOT & vbLf & _
                     "|                                       " & vbLf & _
-                    "+--Common-Excel-VBA-Component-Management" & vbLf & _
+                    "+--" & DEFAULT_FOLDER_COMPMAN_PARENT & vbLf & _
                     "|  |                                    " & vbLf & _
                     "|  +---CompMan.xlsb                     " & vbLf & _
-                    "|  +---source                           " & vbLf & _
-                    "|  +---CompMan.ini                      " & vbLf & _
+                    "|  +---" & wsConfig.FolderExport & vbLf & _
+                    "|  +---CompMan.cfg                      " & vbLf & _
                     "|                                       " & vbLf & _
-                    "+--Common-Components                    " & vbLf & _
+                    "+--" & DEFAULT_FOLDER_COMMON_COMPONENTS & vbLf & _
                     "   |                                    " & vbLf & _
                     "   +---CompManClient.bas                "
         End With
@@ -196,20 +198,37 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
                          "folder and closed. Re-opening it from within its new folder structure will finalize " & _
                          "CompMan's self setup process."
         End With
+        lMax = mBasic.Max(Len(DEFAULT_FOLDER_COMPMAN_ROOT) _
+                        , Len(DEFAULT_FOLDER_COMPMAN_PARENT) _
+                        , Len(ThisWorkbook.Name) _
+                        , Len(wsConfig.FolderExport) _
+                        , Len("CompMan.cfg") _
+                        , Len(DEFAULT_FOLDER_COMMON_COMPONENTS) _
+                        , Len("CompManClient.bas"))
+        
         With .Section(4).Text
             .MonoSpaced = True
-            .Text = "CompManRoot .........................: CompMan's ""serviced"" folder (only Workbooks when opened from within this folder will be serviced)" & vbLf & _
-                    "Common-Excel-VBA-Component-Management: CompMan's dedicated default parent folder (also the name of the public GitHub repository)" & vbLf & _
-                    "CompMan.xlsb ........................: CompMan's (this) ""servicing"" Workbook" & vbLf & _
-                    "source ..............................: Default folder for exported (changed) components, maintained" & vbLf & _
-                    "                                       by CompMan for each serviced Workbook's, the name may may be" & vbLf & _
-                    "                                       re-configured." & vbLf & _
-                    "CompMan.ini .........................: Initialized with the self-setup defaults, subsequently maintained" & vbLf & _
-                    "                                       through ""CompMan's configuration Worksheet""." & vbLf & _
-                    "Common-Components ...................: The default folder for ""Common Components""" & vbLf & _
-                    "CompManClient.bas ...................: The ""Common Component"" hosted by CompMan for being imported" & vbLf & _
-                    "                                       into any Workbook 's VB-Project for being serviced by CompMan." & vbLf & _
-                    "                                       Will be provided the first time the Workbook is saved/closed. "
+            .Text = mBasic.Align(DEFAULT_FOLDER_COMPMAN_ROOT, lMax, AlignLeft, " ", ".") & _
+                                                                                                ": CompMan's ""serviced"" folder (only Workbooks when opened from within this folder will be serviced)" & vbLf & _
+                    mBasic.Align(DEFAULT_FOLDER_COMPMAN_PARENT, lMax, AlignLeft, " ", ".") & _
+                                                                                                ": CompMan's dedicated default parent folder" & vbLf & _
+                    mBasic.Align("CompMan.xlsb", lMax, AlignLeft, " ", ".") & _
+                                                                                                ": CompMan's (this) ""servicing"" Workbook" & vbLf & _
+                    mBasic.Align(wsConfig.FolderExport, lMax, AlignLeft, " ", ".") & _
+                                                                                                ": Default folder for exported (changed) components, maintained by CompMan for each serviced" & vbLf & _
+                    String(lMax, " ") & _
+                                                                                                "  Workbook's. The name may be re-configured." & vbLf & _
+                    mBasic.Align("CompMan.cfg", lMax, AlignLeft, " ", ".") & _
+                                                                                                ": Initialized with the self-setup defaults, subsequently maintained through CompMan's configuration" & vbLf & _
+                    String(lMax, " ") & _
+                                                                                                "  Worksheet """ & wsConfig.Name & """." & vbLf & _
+                    mBasic.Align(DEFAULT_FOLDER_COMMON_COMPONENTS, lMax, AlignLeft, " ", ".") & ": The default folder for ""Common Components""" & vbLf & _
+                    mBasic.Align("CompManClient.bas", lMax, AlignLeft, " ", ".") & _
+                                                                                                ": The ""Common Component"" hosted by CompMan for being imported" & vbLf & _
+                    String(lMax, " ") & _
+                                                                                                "  into any Workbook 's VB-Project for being serviced by CompMan." & vbLf & _
+                    String(lMax, " ") & _
+                                                                                                "  Will be provided the first time the Workbook is saved/closed. "
         End With
     End With
     
@@ -237,8 +256,8 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
         End With
         
         ThisWorkbook.SaveAs FldrCompManParent & "\" & ThisWorkbook.Name
-        '~~ CompMan's .ini-file
-        wsConfig.CompManIniSaveConfig
+        '~~ CompMan's .cfg-file
+        wsConfig.CompManCfgSaveConfig
         AssertedFilesAndFldrsStructure = True
         Application.EnableEvents = True
         ThisWorkbook.Close False

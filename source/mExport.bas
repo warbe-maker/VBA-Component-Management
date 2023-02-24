@@ -1,17 +1,18 @@
 Attribute VB_Name = "mExport"
 Option Explicit
 ' ----------------------------------------------------------------------------
-' Standard-Module mExport
-'
-' Public serviced:
+' Standard-Module mExport: Services specifically for the export of changed or
+' ------------------------ all components.
+' Public services:
 ' - All                 Exports all VBComponentnts whether the code has
 '                       changed or not
 ' - ChangedComponents   Exports all VBComponents of which the code has
 '                       changed, i.e. a temporary Export-File differs from the
 '                       regular Export-File (of the previous code change).
+' - ExpFileFolderPath   .
 '
 ' ----------------------------------------------------------------------------
-Public Const EXPORT_INI_FILE = "Export.ini"
+'Public Const EXPORT_INI_FILE = "Export.ini"
 
 Public Sub All()
 ' ----------------------------------------------------------------------------
@@ -90,14 +91,14 @@ End Function
 
 Public Sub ChangedComponents()
 ' ----------------------------------------------------------------------------
-' Exports all components the code had been modified, detected by the
-' comparison of a temporary export file with last modification's export file.
-' Removes all Export Files of components which do not longer exist or exist in
-' another but the current configured export folder. When a Used Common
-' Component had been modified a due warning message is registered, displayed
-' when the modification is reverted along with the next Workbook open.
-' This se4rvice is exclusively performed/triggered by the Workbook_BeforeSave
-' event.
+' - Exports all components the code had been modified, detected by the com-
+'   parison of a temporary export file with last modification's export file.
+' - Removes all Export Files of which the corresponding component no longer
+'   exist.
+' - Registers a due warning message when a Used Common Component had been
+'   modified in the Workbook which uses but not hosts it.
+' - Forwards (renames) and outdated Export-Folder name to the name currently
+'   configured (Hskpng).
 ' ----------------------------------------------------------------------------
     Const PROC = "ChangedComponents"
     
@@ -332,7 +333,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function AnExportFolderExists(ByVal oef_path As String, _
-                                              ByRef oef_fld As Folder) As Boolean
+                                      ByRef oef_fld As Folder) As Boolean
 ' --------------------------------------------------------------------------
 ' When a folder exists with files *.bas, *.cls, or *.frm the function
 ' returns TRUE and the identified folder (oef_flf).
@@ -363,43 +364,4 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Function
-
-Private Sub RemoveEmptyFolders(ByVal ref_folder As String, _
-                      Optional ByVal ref_sub_folders As Boolean = False)
-' --------------------------------------------------------------------------
-' Removes any empty folder in the folder (ref_folder)
-' --------------------------------------------------------------------------
-    Const PROC = "RemoveEmptyFolders"
-    
-    On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim iFolders    As Long
-    Dim oFolder     As Folder
-    Dim oSubfolder  As Folder
-    
-    ref_folder = Replace(ref_folder & "\", "\\", "\") ' add a possibly missing trailing \
-    Set oFolder = fso.GetFolder(ref_folder)
-    If Not fso.FolderExists(ref_folder) Then GoTo xt
-    
-    For Each oSubfolder In oFolder.SubFolders
-        '~~ Loop through all subfolders
-        iFolders = oSubfolder.SubFolders.Count
-        If oSubfolder.Files.Count = 0 And iFolders = 0 Then
-            '~~ Remove the folder when it has no files and no sub-folders
-            RmDir oSubfolder.Path
-        End If
-        '~~ Recursively repeat if there are any subfolders within the subfolder
-        If ref_sub_folders Then
-            If iFolders <> 0 Then RemoveEmptyFolders (ref_folder & oSubfolder.Name)
-        End If
-    Next
-
-xt: Set fso = Nothing
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
 

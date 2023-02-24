@@ -44,7 +44,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     If mMe.AssertedServicingEnabled Then
         mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
         If wsConfig.Verified Then
-            wsConfig.CompManIniSaveConfig
+            wsConfig.CompManCfgSaveConfig
         Else
             wsConfig.Activate
             Cancel = True
