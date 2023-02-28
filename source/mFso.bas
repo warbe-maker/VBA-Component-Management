@@ -1888,12 +1888,13 @@ Public Function PPsectionNames(Optional ByVal pp_file As Variant, _
     Const PROC = "PPsectionNames"
     
     On Error GoTo eh
-    Dim fso             As New FileSystemObject
     Dim asSections()    As String
+    Dim dct             As New Dictionary
+    Dim fl              As String
+    Dim fso             As New FileSystemObject
     Dim i               As Long
     Dim iLen            As Long
     Dim strBuffer       As String
-    Dim fl              As String
     
     Set PPsectionNames = New Dictionary
     If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
@@ -1913,14 +1914,17 @@ Public Function PPsectionNames(Optional ByVal pp_file As Variant, _
         i = 0
         asSections = Split(strBuffer, vbNullChar)
         For i = LBound(asSections) To UBound(asSections)
-            If Len(asSections(i)) <> 0 _
-            Then AddAscByKey add_dct:=PPsectionNames _
-                           , add_key:=asSections(i) _
-                           , add_item:=asSections(i)
+            If asSections(i) <> vbNullString Then
+                AddAscByKey add_dct:=dct _
+                          , add_key:=asSections(i) _
+                          , add_item:=asSections(i)
+            End If
         Next i
     End If
     
-xt: Exit Function
+xt: Set PPsectionNames = dct
+    Set dct = Nothing
+    Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -2124,9 +2128,9 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Function FilesSearch(ByVal fs_root As String, _
-              Optional ByVal fs_mask As String = "*", _
-              Optional ByVal fs_in_subfolders As Boolean = True, _
-              Optional ByVal fs_stop_after As Long = 100) As Collection
+                   Optional ByVal fs_mask As String = "*", _
+                   Optional ByVal fs_in_subfolders As Boolean = True, _
+                   Optional ByVal fs_stop_after As Long = 100) As Collection
 ' ---------------------------------------------------------------------
 ' Returns a collection of all file names which meet the criteria:
 ' - in any subfolder of the root (fs_root)
