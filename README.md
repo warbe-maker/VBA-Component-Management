@@ -208,6 +208,7 @@ CompManServiced
 |    +---source
 |    +---CompMan.cfg
 |    +---CompMan.xlsb
+|    +---WinMerge.ini
 | 
 +---Common-Components
      |
@@ -215,7 +216,7 @@ CompManServiced
 ```
 ### Files and Folders
 #### The _CompManServiced_ folder
-Default folder serviced by CompMan. Only Workbooks in a subsequent dedicated folder are serviced - provided they are setup for it. The folder may be moved to any location and renamed as well. When opened, the Workbook recognizes the new environment and keeps it in the CompMan.cfg file.
+Default folder serviced by CompMan. Only Workbooks in a subsequent dedicated folder are serviced - provided they are [setup](#enabling-the-services) for it. The folder may be moved to any location and renamed as well. When opened, the Workbook recognizes the new environment and keeps it in the CompMan.cfg file.
 #### The _CompMan_ folder
 Parent folder of the CompMan.xlsb Workbook. The name defaults to the name of CompMan's public GitHub repository and may be changed if desired.|
 #### The _Addin_ folder
@@ -226,6 +227,8 @@ Folder for the Export-Files of changed components exported with each Save event.
 A _PrivateProfile_ file which keeps the current CompMan configuration. It is used with each open and adjusted on the fly if required. The file ensures that each subsequent download of the ComMan.xlsb Workbook works with the configuration saved with the last close of it.
 #### _CompMan.xlsb_
 The Workbook originally opened copied (saved as) into its dedicated parent folder along with the initial setup. Once the opened Workbook has been saved to the new setup location it is deleted.
+#### _WinMerge.ini_
+_***WinMerge***_ is used by CompMan to display code changes, whereby changes of empty code lines and case differences are ignored. To conform with this the _WinMerge.ini_ provides these settings. 
 #### The _Common-Components_ folder
 Default folder where CompMan maintains a copy of the Export-File of _hosted_ _Common&nbsp;Component_. These _Export Files_ function as the source for a serviced Workbook's (possibly) outdated _Used&nbsp;Common&nbsp;Components_.
 #### The _CompManClient.bas_ export file

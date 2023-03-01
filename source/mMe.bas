@@ -87,6 +87,7 @@ Public Function AssertedServicingEnabled() As Boolean
         ServicingEnabled = True
     Else
         If Not AssertedOfficeVersion Then GoTo xt
+        AssertedWinMerge
         If Not AssertedFilesAndFldrsStructure Then GoTo xt
         If Not fso.FileExists(mCompManCfg.CompManCfgFileFullName) Then
             wsConfig.CompManCfgSaveConfig
@@ -191,6 +192,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
                     "|  +---CompMan.xlsb                     " & vbLf & _
                     "|  +---" & wsConfig.FolderExport & vbLf & _
                     "|  +---CompMan.cfg                      " & vbLf & _
+                    "|  +---WinMerge.ini                     " & vbLf & _
                     "|                                       " & vbLf & _
                     "+--" & DEFAULT_FOLDER_COMMON_COMPONENTS & vbLf & _
                     "   |                                    " & vbLf & _
@@ -236,6 +238,11 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
                     String(lMax, " ") & _
                                                                                                 "  Will be provided the first time the Workbook is saved/closed. "
         End With
+        With .Section(5).Label
+            .FontColor = rgbBlue
+            .Text = "See README chapter 'Files and Folders' for more information"
+            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_FILES_AND_FOLDERS
+        End With
     End With
     
     If mMsg.Dsply(dsply_title:="CompMan's self setup (when opened for the very first time after download)" _
@@ -263,6 +270,8 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
         
         sWrkbkOpened = ThisWorkbook.FullName
         ThisWorkbook.SaveAs FldrCompManParent & "\" & ThisWorkbook.Name
+        Stop
+        If Not fso.FileExists(mWinMergeIni.WinMergeIniFullName) Then mWinMergeIni.Setup
         '~~ CompMan's .cfg-file
         wsConfig.CompManCfgSaveConfig
         AssertedFilesAndFldrsStructure = True
@@ -303,6 +312,34 @@ Private Function AssertedOfficeVersion() As Boolean
                         "       would be very much appreaciated. :-))" & vbLf & vbLf & _
                         "No: Give up. 'CompMan' will nor be able to provide any of its services." _
               , Buttons:=vbYesNo) = vbYes
+    End If
+
+End Function
+
+Private Function AssertedWinMerge() As Boolean
+    
+    Dim Msg As mMsg.TypeMsg
+    Dim BttnDownloadEnglish As String
+    Dim BttnDownloadGerman  As String
+    Dim Title               As String
+    
+    Title = "WinMerge is not installed!"
+    AssertedWinMerge = mCompMan.WinMergeIsInstalled
+    
+    If Not AssertedWinMerge Then
+        With Msg.Section(1)
+            .Text.Text = "WinMerge is used by CompMan to display code changes in case an " & _
+                         "update for a used Common Component is due. When WinMerge is not " & _
+                         "installed the service """ & mCompManClient.SRVC_UPDATE_OUTDATED_DSPLY & """ will be denied! " & _
+                         "However, the services """ & mCompManClient.SRVC_EXPORT_CHANGED_DSPLY & """ and " & _
+                         """" & mCompManClient.SRVC_SYNCHRONIZE_DSPLY & """ will be provides when requested."
+        End With
+        With Msg.Section(2).Label
+            .FontColor = rgbBlue
+            .Text = "Download and install the desired language version of WinMerge"
+            .OpenWhenClicked = "https://winmerge.org/downloads/"
+        End With
+        mMsg.Dsply Title, Msg, vbOKOnly
     End If
 
 End Function
@@ -749,6 +786,23 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Sub Renew_12_SetupWinMergeIni()
+    Const PROC = "Renew_12_SetupWinMergeIni"
+    
+    On Error GoTo eh
+    Dim fso As New FileSystemObject
+    If fso.FileExists(mWinMergeIni.WinMergeIniAddinFullName) Then fso.DeleteFile (mWinMergeIni.WinMergeIniAddinFullName)
+    mWinMergeIni.SetupForAddin
+    Set fso = Nothing
+    
+xt: Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
 Private Sub Renew_10_RestoreReferencesToAddIn()
     Const PROC = "Renew_10_RestoreReferencesToAddIn"
     
@@ -835,6 +889,7 @@ Public Sub Renew___AddIn()
     '~~ Re-instate references to the Add-in which had been removed
     Renew_10_RestoreReferencesToAddIn
     Renew_11_SetupAutoOpen
+    Renew_12_SetupWinMergeIni
     
     bSucceeded = True
     

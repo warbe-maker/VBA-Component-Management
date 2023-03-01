@@ -58,6 +58,7 @@ Public Const README_URL                     As String = "https://github.com/warb
 Public Const README_SYNC_CHAPTER            As String = "?#using-the-synchronization-service"
 Public Const README_SYNC_CHAPTER_NAMES      As String = "?#names-synchronization"
 Public Const README_SYNC_CHAPTER_SHEETS     As String = "?#worksheet-synchronization"
+Public Const README_FILES_AND_FOLDERS       As String = "?#files-and-folders"
 
 Public Enum enKindOfComp            ' The kind of VBComponent in the sense of CompMan
     enUnknown = 0

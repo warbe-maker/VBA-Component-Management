@@ -13,7 +13,6 @@ Option Explicit
 ' - ExportChangedComponents
 ' - FilesDiffer
 ' - FilesDifference
-' - Install
 ' - IsRenamedByCompMan
 ' - Progress
 ' - RemoveTempRename
@@ -255,35 +254,44 @@ End Function
 
 Public Function Denied(ByVal d_service As String) As Boolean
 ' --------------------------------------------------------------------------
-' Returns TRUE when all preconditions for a service execution are fulfilled.
+' Returns TRUE when all preconditions for a service (d_service) are met.
 ' --------------------------------------------------------------------------
     Const PROC = "Denied"
     
     On Error GoTo eh
-    Dim sStatus As String
-        
-    If mMe.IsAddinInstnc And mAddin.Paused Then
-        '~~ When the service is about to be provided by the Add-in but the Add-in is currently paused
-        '~~ another try with the serviced provided by the open Development instance may do the job.
-        sStatus = "The CompMan Add-in is currently paused. Open the development instance and retry."
-    ElseIf WbkIsRestoredBySystem Then
-        sStatus = "Service denied! Workbook has apparently been restored by the system and yet not saved under its origin name!"
-    ElseIf mAddin.Paused And mMe.IsAddinInstnc And d_service Like mCompManClient.SRVC_UPDATE_OUTDATED & "*" Then
-        '~~ Note: The CompMan development instance is able to export its modified components but requires the
-        '~~       Add-in to update its outdated Used Common Components
-        sStatus = "Service denied! The CompMan Add-in is currently paused!"
-    ElseIf FolderNotVbProjectExclusive Then
-        sStatus = "Service denied! The Workbook is not the only one in its parent folder!"
-    ElseIf Not mCompMan.WinMergeIsInstalled Then
-        sStatus = "Service denied! WinMerge is required but not installed!"
-    End If
+    Dim sStatus         As String
+    Dim sDeniedService  As String
     
-xt: If sStatus <> vbNullString Then
+    Select Case d_service
+        Case mCompManClient.SRVC_EXPORT_CHANGED:    sDeniedService = "The service """ & mCompManClient.SRVC_EXPORT_CHANGED_DSPLY & """ is denied! "
+        Case mCompManClient.SRVC_SYNCHRONIZE:       sDeniedService = "The service """ & mCompManClient.SRVC_EXPORT_CHANGED_DSPLY & """ is denied! "
+        Case mCompManClient.SRVC_UPDATE_OUTDATED:   sDeniedService = "The service """ & mCompManClient.SRVC_UPDATE_OUTDATED_DSPLY & """ is denied! "
+    End Select
+    Select Case True
+        Case WbkIsRestoredBySystem
+            sStatus = sDeniedService & "The serviced Workbook has apparently been restored by the system and yet not saved under its origin name!"
+        Case mMe.IsAddinInstnc And mAddin.Paused
+            '~~ When the service is about to be provided by the Addin this means that the CompMan.xlsb is not open.
+            '~~ When the Addin is currently paused it requires the CompMan.xlsb to continue it and or to provide
+            '~~ the service.
+            sStatus = sDeniedService & "CompMan Addin is required but currently paused! Open CompMan.xlsb to continue it and re-open CompMan.xlsb to run the service."
+        Case mMe.IsDevInstnc And d_service = mCompManClient.SRVC_UPDATE_OUTDATED And mAddin.Paused
+            '~~ Note: The CompMan development instance is able to export its modified components but requires the
+            '~~       Addin instance to update its own used Common Components when outdated
+            sStatus = sDeniedService & "CompMan Addin is available but currently paused!"
+        Case FolderNotVbProjectExclusive
+            sStatus = sDeniedService & "The Workbook is not the only one in its parent folder!"
+        Case Not mCompMan.WinMergeIsInstalled And d_service = mCompManClient.SRVC_UPDATE_OUTDATED
+            sStatus = sDeniedService & "WinMerge is required but not installed!"
+    End Select
+    
+    If sStatus <> vbNullString Then
         mService.Log.Entry = sStatus
         mService.DsplyStatus sStatus
         Denied = True
     End If
-    Exit Function
+    
+xt: Exit Function
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -509,7 +517,7 @@ Public Function ExpFilesDiffDisplay( _
                " /e " & _
                " /dl " & DQUOTE & fd_exp_file_left_title & DQUOTE & _
                " /dr " & DQUOTE & fd_exp_file_right_title & DQUOTE & " " & _
-               " /inifile " & """" & ThisWorkbook.Path & "\WinMerge.ini" & """"
+               " /inifile " & """" & mWinMergeIni.WinMergeIniFullName & """"
 
     '~~ Execute command line
     Set wshShell = CreateObject("WScript.Shell")
