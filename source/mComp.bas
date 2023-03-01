@@ -16,7 +16,6 @@ Option Explicit
 ' - IsWrkbDocMod
 '   Returns TRUE when a provided VBComponent object is of a type
 '   Document-Module and represents the Workbook
-' - ManageHostedCommonComponents
 '
 ' - ManageUsedCommonComponent
 '

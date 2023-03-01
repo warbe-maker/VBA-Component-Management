@@ -32,22 +32,9 @@ End Sub
 
 Public Property Let CompName(ByVal s As String):        sCompName = s:                                                              End Property
 
-Friend Property Get ExpFileExt() As String
-    
-    If sExpFileExt = vbNullString Then
-        If vbcRaw Is Nothing Then Set vbcRaw = wbRawHost.VBProject.VBComponents(sCompName)
-        With Me
-            Select Case vbcRaw.Type
-                Case vbext_ct_StdModule:    sExpFileExt = ".bas"
-                Case vbext_ct_ClassModule:  sExpFileExt = ".cls"
-                Case vbext_ct_MSForm:       sExpFileExt = ".frm"
-                Case vbext_ct_Document:     sExpFileExt = ".cls"
-            End Select
-        End With
-    End If
-    ExpFileExt = sExpFileExt
+Friend Property Let ExpFileExt(ByVal s As String):      sExpFileExt = s:                                                    End Property
 
-End Property
+Friend Property Get ExpFileExt() As String:             ExpFileExt = sExpFileExt:                                           End Property
 
 Public Property Get ExpFileTemp() As File
 ' ------------------------------------------------------------------------------
@@ -103,7 +90,7 @@ End Property
 
 Public Property Get RawHostWbName() As String:          RawHostWbName = mCommComps.RawHostWbName(sCompName):                End Property
 
-Public Property Get RevisionNumber() As String:     RevisionNumber = mCommComps.RawSavedRevisionNumber(sCompName):  End Property
+Public Property Get RevisionNumber() As String:         RevisionNumber = mCommComps.RevisionNumber(sCompName):              End Property
 
 Public Property Get SavedExpFile() As File
 ' ------------------------------------------------------------------------------
@@ -115,7 +102,7 @@ End Property
 
 Public Property Get SavedExpFileFullName() As String:   SavedExpFileFullName = mCommComps.SavedExpFileFullName(sCompName):  End Property
 
-Public Property Get VBComp() As VBComponent:        Set VBComp = vbcRaw:                                                    End Property
+Public Property Get VBComp() As VBComponent:            Set VBComp = vbcRaw:                                                End Property
 
 Private Sub CleanUpTemps()
     With fso

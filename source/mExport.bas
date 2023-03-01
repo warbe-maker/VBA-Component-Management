@@ -9,10 +9,14 @@ Option Explicit
 ' - ChangedComponents   Exports all VBComponents of which the code has
 '                       changed, i.e. a temporary Export-File differs from the
 '                       regular Export-File (of the previous code change).
-' - ExpFileFolderPath   .
+' - ExpFileFolderPath   Returns a serviced Workbook's path for all Export-
+'                       Files whereby the name of the folder is the current
+'                       configured one (fefaulting  to 'source'). When no
+'                       Export-Folder exists, one is created. In case an
+'                       outdated export folder exists, i.e. one with an
+'                       outdated name, this one is renamed instead.
 '
 ' ----------------------------------------------------------------------------
-'Public Const EXPORT_INI_FILE = "Export.ini"
 
 Public Sub All()
 ' ----------------------------------------------------------------------------
@@ -89,7 +93,7 @@ Public Function AppErr(ByVal app_err_no As Long) As Long
     If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
 End Function
 
-Public Sub ChangedComponents()
+Public Sub ChangedComponents(ByVal c_hosted As String)
 ' ----------------------------------------------------------------------------
 ' - Exports all components the code had been modified, detected by the com-
 '   parison of a temporary export file with last modification's export file.
@@ -122,8 +126,8 @@ Public Sub ChangedComponents()
     If mService.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
     sStatus = mService.CurrentServiceStatusBar
     
-    Hskpng              ' forward outdated export folder and remove obsolete Export files
-    mCompManDat.Hskpng  ' remove obsolete sections in CompMan.dat
+    Hskpng                      ' forward outdated export folder and remove obsolete Export files
+    mCompManDat.Hskpng c_hosted ' remove obsolete sections in CompMan.dat
     
     Set wbk = mService.WbkServiced
     Set dctAll = mService.AllComps(wbk)
@@ -148,6 +152,7 @@ Public Sub ChangedComponents()
                                 .Export
                                 mCompManDat.RawRevisionNumberIncrease v
                                 mCommComps.SaveToCommonComponentsFolder .CompName, .ExpFile, .ExpFileFullName
+                                mCompManDat.RegistrationState(.CompName) = enRegStateHosted
                                 sExported = sExported & vbc.Name & ", "
                                 lExported = lExported + 1
                                 mService.Log.Entry = "Code modified of Hosted Raw Common Component"
@@ -155,6 +160,7 @@ Public Sub ChangedComponents()
                             ElseIf Not mCommComps.SavedExpFileExists(.CompName) Then
                                 mCommComps.SaveToCommonComponentsFolder .CompName, .ExpFile, .ExpFileFullName ' ensure completenes
                                 mService.Log.Entry = "Unchanged Hosted Raw Common Component"
+                                mCompManDat.RegistrationState(.CompName) = enRegStateHosted
                             End If
                         Case enCommCompUsed
                             If .Changed Then

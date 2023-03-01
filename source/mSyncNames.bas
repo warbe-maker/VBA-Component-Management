@@ -315,7 +315,7 @@ Public Sub AppRunMultiple()
     On Error GoTo eh
     Dim i           As Long
     Dim nme         As Name
-    Dim rng         As Range
+    Dim Rng         As Range
     Dim sAddress    As String
     Dim sName       As String
     Dim sSheetName  As String
@@ -326,7 +326,6 @@ Public Sub AppRunMultiple()
     Dim wsh         As Worksheet
     
     mBasic.BoP ErrSrc(PROC)
-    mSync.MessageSavePosition TITLE_SYNC_NAMES ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.Source
     va = Split(AppRunMultipleIdsTarget, ",")
@@ -355,7 +354,7 @@ Public Sub AppRunMultiple()
         sSheetName = Replace(Split(nme.RefersTo, "!")(0), "=", vbNullString)
         sAddress = Split(nme.RefersTo, "!")(1)
         Set wsh = wbkTarget.Worksheets(sSheetName)
-        Set rng = wsh.Range(sAddress)
+        Set Rng = wsh.Range(sAddress)
         If mNme.ScopeIsWorkbook(nme) Then
             Set vScope = wbkTarget
         ElseIf mNme.ScopeIsWorkSheet(nme, sSheetName) Then
@@ -363,7 +362,7 @@ Public Sub AppRunMultiple()
         End If
         
         mNme.Create c_name:=sName _
-                  , c_rng:=rng _
+                  , c_rng:=Rng _
                   , c_scope:=vScope _
                   , c_nme:=nme
             
@@ -402,7 +401,7 @@ Public Sub AppRunNew()
     On Error GoTo eh
     Dim nme         As Name
     Dim nmeTarget   As Name
-    Dim rng         As Range
+    Dim Rng         As Range
     Dim sAddress    As String
     Dim sName       As String
     Dim sSheetName  As String
@@ -414,7 +413,7 @@ Public Sub AppRunNew()
     Dim i           As Long
     
     mBasic.BoP ErrSrc(PROC)
-    mSync.MessageSavePosition TITLE_SYNC_NAMES ' for the next display
+    mSync.MessageUnload TITLE_SYNC_NAMES ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.Source
     va = Split(AppRunNewIds(enSyncObjectKindName), ",")
@@ -435,7 +434,7 @@ Public Sub AppRunNew()
                                 , c_quality:=enCorrespondingSheetsQuality.enOrNameCodeName _
                                 , c_wsh_result:=wsh
         
-        Set rng = wsh.Range(sAddress)
+        Set Rng = wsh.Range(sAddress)
         If mNme.ScopeIsWorkbook(nme) Then
             Set vScope = wbkTarget
         ElseIf mNme.ScopeIsWorkSheet(nme, sSheetName) Then
@@ -443,7 +442,7 @@ Public Sub AppRunNew()
         End If
         
         mNme.Create c_name:=sName _
-                  , c_rng:=rng _
+                  , c_rng:=Rng _
                   , c_scope:=vScope _
                   , c_nme:=nmeTarget
             
@@ -481,7 +480,7 @@ Public Sub AppRunObsolete()
     Dim wbkTarget   As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    mSync.MessageSavePosition TITLE_SYNC_NAMES ' for the next display
+    mSync.MessageUnload TITLE_SYNC_NAMES ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
     va = Split(mSync.AppRunObsoleteIds(enSyncObjectKindName), ",")
     mService.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionRemoveObsolete, 0)
@@ -1746,7 +1745,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=wsService.SyncDialogTop & ";" & wsService.SyncDialogLeft
+                 , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
         DoEvents
     End If
      

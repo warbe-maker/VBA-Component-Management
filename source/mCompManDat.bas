@@ -37,10 +37,14 @@ Private Property Get CompManDatFileFullName() As String
     
 End Property
 
-Public Sub Register(ByVal comp_name As String, _
-                    ByVal comp_reg_state As enCommCompRegState)
+Public Property Let RegistrationState(Optional ByVal comp_name As String, _
+                                               ByVal comp_reg_state As enCommCompRegState)
     CompRegState(comp_name) = comp_reg_state
-End Sub
+End Property
+
+Public Property Get RegistrationState(Optional ByVal comp_name As String) As enCommCompRegState
+    RegistrationState = CompRegState(comp_name)
+End Property
 
 Public Function CommCompUsedIsKnown(ByVal comp_name As String) As Boolean
     CommCompUsedIsKnown = ComponentsRegistered(enRegStateUsed).Exists(comp_name)
@@ -151,9 +155,9 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCompManDat" & "." & sProc
 End Function
 
-Public Function CompIsRegistered(ByVal raw_comp_name As String, ByVal comp_reg_state As enCommCompRegState) As Boolean
-    CompIsRegistered = CompRegState(raw_comp_name) = comp_reg_state
-End Function
+'Public Function CompIsRegistered(ByVal raw_comp_name As String, ByVal comp_reg_state As enCommCompRegState) As Boolean
+'    CompIsRegistered = CompRegState(raw_comp_name) = comp_reg_state
+'End Function
 
 Private Function MaxRawLenght() As Long
 ' -----------------------------------------------
@@ -181,6 +185,13 @@ Private Sub Remove(ByVal comp_name As String)
                                   , pp_sections:=comp_name
 End Sub
 
+Public Function RevisionNumberInitial() As String
+' ----------------------------------------------------------------------------
+' Returns an initial revision number in the form: YYYY-MM-DD.001
+' ----------------------------------------------------------------------------
+    RevisionNumberInitial = Format(Now(), "YYYY-MM-DD") & ".001"
+End Function
+
 Public Sub RawRevisionNumberIncrease(ByVal comp_name As String)
 ' ----------------------------------------------------------------------------
 ' Increases the revision number by one starting with 1 for a new day.
@@ -197,7 +208,7 @@ Public Sub RawRevisionNumberIncrease(ByVal comp_name As String)
         Then RevNo = 1 _
         Else: RevNo = RevNo + 1
     End If
-    Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_RAW_REVISION_NUMBER) = Format(Now(), "YYYY-MM-DD") & "." & Format(RevNo, "000")
+    RawRevisionNumber(comp_name) = Format(Now(), "YYYY-MM-DD") & "." & Format(RevNo, "000")
 
 End Sub
 
@@ -239,7 +250,7 @@ Public Sub RemoveComponent(ByVal r_comp_name As String)
     mFso.PPremoveSections pp_file:=CompManDatFileFullName, pp_sections:=r_comp_name
 End Sub
 
-Public Sub Hskpng()
+Public Sub Hskpng(ByVal h_hosted As String)
 ' ------------------------------------------------------------------------------
 ' Removes obsolete sections which are those neither representing an existing
 ' VBComponent no another valid section's Name.
@@ -248,7 +259,8 @@ Public Sub Hskpng()
     
     On Error GoTo eh
     mBasic.BoP ErrSrc(PROC)
-    HskpngRemoveObsoleteSections
+    HskpngRemoveObsoleteSections h_hosted
+    HskpngHosted h_hosted
 
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -259,7 +271,27 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub HskpngRemoveObsoleteSections()
+Private Sub HskpngHosted(ByVal h_hosted As String)
+    
+    Dim dctHosted   As Dictionary
+    Dim wbk         As Workbook
+    Dim v           As Variant
+    
+    Set wbk = mService.WbkServiced
+    Set dctHosted = mCommComps.Hosted(h_hosted)
+    
+    For Each v In dctHosted
+        If mComp.Exists(v, wbk) Then
+            If mCompManDat.RegistrationState(v) <> enRegStateHosted _
+            Then mCompManDat.RegistrationState(v) = enRegStateHosted
+        Else
+            mCompManDat.RemoveComponent v
+        End If
+    Next v
+    
+End Sub
+
+Public Sub HskpngRemoveObsoleteSections(ByVal h_hosted As String)
 ' ------------------------------------------------------------------------------
 ' Remove sections representing VBComponents no longer existing and those with an
 ' invalid name.
@@ -269,14 +301,16 @@ Public Sub HskpngRemoveObsoleteSections()
     On Error GoTo eh
     Dim v   As Variant
     Dim wbk As Workbook
+    Dim dctHosted   As Dictionary
     
+    Set dctHosted = mCommComps.Hosted(h_hosted)
     Set wbk = mService.WbkServiced
     For Each v In mCompManDat.Components
         If HskpngSectionIsInvalid(v, wbk) Then
             mCompManDat.RemoveComponent v
         End If
     Next v
-    
+        
 xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

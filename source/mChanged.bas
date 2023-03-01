@@ -294,158 +294,30 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub ReImportCommonComponent(ByRef rbi_wbk As Workbook, _
-                                   ByVal rbi_vbc_name As String, _
-                                   ByVal rbi_exp_file As String, _
-                          Optional ByVal rbi_hosted As String = vbNullString)
+Public Sub ReImportCommonComponent(ByRef r_wbk As Workbook, _
+                                   ByVal r_vbc_name As String, _
+                                   ByVal r_exp_file As String, _
+                          Optional ByVal r_hosted As String = vbNullString)
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by a CommonButton of the message displaying all
-' still outdated Common Coponents. Updates/renews the Workbook's (rbi_wbk)
-' VBComponent (rbi_vbc_name) by re-importing the export file (rbi_exp_file).
+' still outdated Common Coponents. Updates/renews the Workbook's (r_wbk)
+' VBComponent (r_vbc_name) by re-importing the export file (r_exp_file).
 ' from the Common Components folder.
-' When a 'Common Component is updated/renewed (rbi_common_component = True) the
-' service again calls is called again to redisplay still outstanding to be updated outdated
+' When a 'Common Component is updated/renewed (r_common_component = True) the
+' service re-calls the display of the still outstanding to be updated outdated
 ' 'Common Components'.
-'
-' Preconditions (not evaluated by the service):
-' - rbi_wbk is an open Workbook
-' - rbi_vbc_name is a components in its VB-Project
-' - rbi_exp_file_full-Name is a file in the "Common Components" folder
 '
 ' W. Rauschenberger Berlin, May 2022
 ' ------------------------------------------------------------------------------
     Const PROC              As String = "ReImportCommonComponent"
-    Const MONITORED_STEPS   As Long = 11
-    Const MONITOR_POS       As String = "20;400"
     
     On Error GoTo eh
-    Dim sTempName       As String
-    Dim fso             As New FileSystemObject
-    Dim Comp            As clsComp
-    Dim TmpWbk          As Workbook
-    Dim KoC             As Long
-    Dim MonitorFooter   As TypeMsgText
-    Dim MonitorStep     As TypeMsgText
-    Dim MonitorTitle    As String
-    Dim Step            As Long
+    mUpdate.ByReImport b_wbk_target:=r_wbk _
+                     , b_vbc_name:=r_vbc_name _
+                     , b_exp_file:=r_exp_file
     
-    mBasic.BoP ErrSrc(PROC)
-    MonitorTitle = "Update an outdated component"
-    MonitorFooter.FontColor = rgbDarkGreen
-    MonitorFooter.FontSize = 9
-    mMsg.MsgInstance MonitorTitle, True ' close any previous monitor window
-    mMsg.MsgInstance MonitorTitle       ' establish a new monitor window
-    MonitorStep.MonoSpaced = True
-    MonitorStep.FontSize = 9
-    mService.Log.Service(True) = mCompManClient.SRVC_UPDATE_OUTDATED ' new log file when older 1 day
-    
-    '~~ Save the serviced Workbook when yet not saved (initialize the monitor window)
-    If Not rbi_wbk.Saved Then
-        Step = Step + 1
-        MonitorStep.Text = Step & ". Save serviced Workbook '" & rbi_wbk.Name & "'"
-        mMsg.Monitor mon_title:=MonitorTitle _
-                   , mon_text:=MonitorStep _
-                   , mon_steps_displayed:=MONITORED_STEPS _
-                   , mon_width_min:=70 _
-                   , mon_pos:=MONITOR_POS
-'        mService.WbkSave rbi_wbk
-    End If
-    
-    Set Comp = New clsComp
-    With Comp
-        Set .Wrkbk = rbi_wbk
-        .CompName = rbi_vbc_name
-        mService.Log.ServicedItem = .VBComp
-    End With
-    mService.EstablishExecTraceFile rbi_wbk
-    
-    '~~ Create and activate a hidden Workbook
-    '~~ Because this may not be the first step the monitor initialization values are provided.
-    '~~ They are ignored by the service when the monitor window is already initialized
-    Step = Step + 1
-    MonitorStep.Text = Step & ". Activate a hidden temporary Workbook."
-    mMsg.Monitor mon_title:=MonitorTitle _
-               , mon_text:=MonitorStep _
-               , mon_steps_displayed:=MONITORED_STEPS _
-               , mon_width_min:=70 _
-               , mon_pos:=MONITOR_POS
-    Set TmpWbk = TempWbkHidden()
-    TmpWbk.Activate
-              
-    With rbi_wbk.VBProject
-        If mComp.Exists(ex_wbk:=rbi_wbk, ex_vbc:=rbi_vbc_name) Then
-        
-            '~~ Rename an already existing component
-            sTempName = mComp.TempName(tn_wbk:=rbi_wbk, tn_vbc_name:=rbi_vbc_name)
-            Step = Step + 1
-            MonitorStep.Text = Step & ". Rename the component '" & rbi_vbc_name & "' to '" & sTempName & "'."
-            mMsg.Monitor MonitorTitle, MonitorStep
-            .VBComponents(rbi_vbc_name).Name = sTempName
-            
-            '~~ Outcomment the renamed component's code
-            Step = Step + 1
-            MonitorStep.Text = Step & ". Outcomment all code lines in the renamed component."
-            mMsg.Monitor MonitorTitle, MonitorStep
-            OutCommentCodeInRenamedComponent rbi_wbk, sTempName ' this had made it much less "reliablele"
-            mBasic.TimedDoEvents ErrSrc(PROC)
-            
-            '~~ Remove the renamed component (postponed thought)
-            Step = Step + 1
-            MonitorStep.Text = Step & ". Remove the renamed component."
-            mMsg.Monitor MonitorTitle, MonitorStep
-            .VBComponents.Remove .VBComponents(sTempName) ' will not take place until process has ended!
-            
-        End If
-        
-        '~~ (Re-)import the component
-        Step = Step + 1
-        MonitorStep.Text = Step & ". (Re-) import the Export File of the up-to-date version of the component."
-        mMsg.Monitor MonitorTitle, MonitorStep
-        .VBComponents.Import rbi_exp_file
-        mService.Log.Entry = "'" & rbi_vbc_name & "' (re-)imported from '" & rbi_exp_file & "'"
-                
-        '~~ Export the re-newed Used Common Component
-        Step = Step + 1
-        MonitorStep.Text = Step & ". Export the (re-)imported component."
-        mMsg.Monitor MonitorTitle, MonitorStep
-        Set Comp = New clsComp
-        With Comp
-            Set Comp.Wrkbk = rbi_wbk
-            .CompName = rbi_vbc_name
-        End With
-        .VBComponents(rbi_vbc_name).Export Comp.ExpFileFullName
-        
-        '~~ Remove the activated hidden Workbook and re-activate the serviced Workbook
-        Step = Step + 1
-        MonitorStep.Text = Step & ". Remove the temporary activated and re-activate the serviced Workbook."
-        mMsg.Monitor MonitorTitle, MonitorStep
-        TempWbkHiddenRemove TmpWbk
-        rbi_wbk.Activate
-  
-        '~~ Set the updated component's RevisionNumber = the RevisionNumber of the re-imported component's Export file
-        Step = Step + 1
-        MonitorStep.Text = Step & ". Update the updated VBComponent's revision number."
-        mMsg.Monitor MonitorTitle, MonitorStep
-        With Comp
-            Set Comp.Wrkbk = rbi_wbk
-            .CompName = rbi_vbc_name
-            KoC = .KindOfComp ' this establishes the .Raw instance
-            mService.Log.Entry = "VBComponent renewed/updated by (re-)import of the Raw's Export File (" & .Raw.SavedExpFileFullName & ")"
-            .RevisionNumber = .Raw.RevisionNumber
-            .DueModificationWarning = False
-            .Export
-        End With
-
-        '~~ Re-call the update service in order to display still outdated components if any
-        MonitorFooter.Text = "Outdated component '" & rbi_vbc_name & "' successfully updated."
-        mMsg.MonitorFooter MonitorTitle, MonitorFooter
-        wsService.CommonComponentsUpdated = wsService.CommonComponentsUpdated + 1
-        
-    End With
-    
-xt: Set fso = Nothing
-    mBasic.EoP ErrSrc(PROC)
-    mChanged.DisplayOutdated rbi_hosted ' display still outdated commen components mode-less
+xt: mBasic.EoP ErrSrc(PROC)
+    mChanged.DisplayOutdated r_hosted ' display still outdated commen components mode-less
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -573,9 +445,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-
-
 
 Private Function TempWbkHidden() As Workbook
     Dim app As Excel.Application

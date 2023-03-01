@@ -837,10 +837,13 @@ Public Sub Renew___AddIn()
     Renew_11_SetupAutoOpen
     
     bSucceeded = True
-    wsConfig.Activate
     
 xt: RenewFinalResult bSucceeded
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    wsService.Activate
     wsConfig.CurrentStatus
+    wsConfig.Activate
     Application.EnableEvents = True
     Exit Sub
     

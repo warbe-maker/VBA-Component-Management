@@ -61,18 +61,6 @@ Public Property Get SyncComponents() As Boolean:                        SyncComp
 
 Public Property Let SyncComponents(ByVal b As Boolean):                 Me.Range("celSyncComponents").Value = BtoYN(b):                                         End Property
 
-Public Property Get SyncDialogLeft() As Single:                         SyncDialogLeft = Me.Range("celSyncDialogLeft").Value:                                   End Property
-
-Public Property Let SyncDialogLeft(ByVal si As Single):                 Me.Range("celSyncDialogLeft").Value = si:                                               End Property
-
-Public Property Get SyncDialogTitle() As String:                        SyncDialogTitle = Me.Range("celSyncDialogTitle").Value:                                 End Property
-
-Public Property Let SyncDialogTitle(ByVal s As String):                 Me.Range("celSyncDialogTitle").Value = s:                                               End Property
-
-Public Property Get SyncDialogTop() As Single:                          SyncDialogTop = Me.Range("celSyncDialogTop").Value:                                     End Property
-
-Public Property Let SyncDialogTop(ByVal si As Single):                  Me.Range("celSyncDialogTop").Value = si:                                                End Property
-
 Public Property Get SyncNames() As Boolean:                             SyncNames = CBool(Me.Range("celSyncNames").Value):                                      End Property
 
 Public Property Let SyncNames(ByVal b As Boolean):                      Me.Range("celSyncNames").Value = CLng(b):                                               End Property
@@ -125,6 +113,3 @@ Public Sub ClearDataUpdateService()
     End With
 End Sub
 
-Public Sub ClearExport()
-
-End Sub

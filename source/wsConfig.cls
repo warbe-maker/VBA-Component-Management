@@ -21,9 +21,9 @@ Public Property Get AddinIsSetup() As Boolean
     End With
 End Property
 
-Public Property Let AddInStatus(ByVal s As String):                 MaintainMinRowHeight Me.Range("AddInStatus"), s:                End Property
+Public Property Let AddInStatus(ByVal s As String):                 MaintainMinRowHeight Me.Range("AddInStatus"), s:                        End Property
 
-Public Property Let AutoOpenStatus(ByVal s As String):              MaintainMinRowHeight Me.Range("AutoOpenStatus"), s:             End Property
+Public Property Let AutoOpenStatus(ByVal s As String):              MaintainMinRowHeight Me.Range("AutoOpenStatus"), s:                     End Property
 
 Public Property Let ButtonCaption(Optional ByVal bc_cmb As Button, _
                                            ByVal bc_caption As String)
@@ -70,45 +70,47 @@ Public Property Let ButtonEnabled(Optional ByVal bc_cmb As Button, _
 
 End Property
 
-Public Property Let ButtonHelpUrlAddinSetup(ByVal s As String):     UrlButton(Me.Range("ButtonHelpUrlAddinSetup")) = s:             End Property
+Public Property Let ButtonHelpUrlAddinSetup(ByVal s As String):     UrlButton(Me.Range("ButtonHelpUrlAddinSetup")) = s:                     End Property
 
-Public Property Let ButtonHelpUrlPauseContinue(ByVal s As String):  UrlButton(Me.Range("ButtonHelpUrlPauseContinue")) = s:          End Property
+Public Property Let ButtonHelpUrlPauseContinue(ByVal s As String):  UrlButton(Me.Range("ButtonHelpUrlPauseContinue")) = s:                  End Property
 
-Public Property Get ButtonPauseAddIn() As Button:                   Set ButtonPauseAddIn = Me.Buttons("cmbAddInPause"):             End Property
+Public Property Get ButtonPauseAddIn() As Button:                   Set ButtonPauseAddIn = Me.Buttons("cmbAddInPause"):                     End Property
 
-Public Property Get ButtonSetupRenewAddIn() As Button:              Set ButtonSetupRenewAddIn = Me.Buttons("cmbAddInSetup"):        End Property
+Public Property Get ButtonSetupRenewAddIn() As Button:              Set ButtonSetupRenewAddIn = Me.Buttons("cmbAddInSetup"):                End Property
 
-Public Property Get ButtonWrkbkAutoOpen() As Button:                Set ButtonWrkbkAutoOpen = Me.Buttons("cmbWrkbkAutoOpen"):       End Property
+Public Property Get ButtonWrkbkAutoOpen() As Button:                Set ButtonWrkbkAutoOpen = Me.Buttons("cmbWrkbkAutoOpen"):               End Property
 
-Public Property Let CompManAddInStatusUrl(ByVal s As String):       UrlLabel(Me.Range("CompManAddInStatusUrl")) = s:                End Property
+Public Property Let CompManAddInStatusUrl(ByVal s As String):       UrlLabel(Me.Range("CompManAddInStatusUrl")) = s:                        End Property
 
-Public Property Let CompManWrkbkStatusUrl(ByVal s As String):       UrlLabel(Me.Range("CompManWrkbkStatusUrl")) = s:                End Property
+Public Property Let CompManWrkbkStatusUrl(ByVal s As String):       UrlLabel(Me.Range("CompManWrkbkStatusUrl")) = s:                        End Property
 
-Public Property Let ConfigInfo(ByVal s As String):                  mWsh.Value(Me, "ConfigInfo") = s:                               End Property
+Public Property Let ConfigInfo(ByVal s As String):                  mWsh.Value(Me, "ConfigInfo") = s:                                       End Property
 
-Public Property Get FolderAddin() As String:                        FolderAddin = mWsh.Value(Me, "FolderAddin"):                    End Property
+Public Property Get FolderAddin() As String:                        FolderAddin = mWsh.Value(Me, "FolderAddin"):                            End Property
 
-Public Property Let FolderAddin(ByVal s As String):                 mWsh.Value(Me, "FolderAddin") = s:                              End Property
+Public Property Let FolderAddin(ByVal s As String):                 mWsh.Value(Me, "FolderAddin") = s:                                      End Property
 
-Public Property Let FolderAddInInfo(ByVal s As String):             MaintainMinRowHeight Me.Range("FolderAddInInfo"), s:            End Property
+Public Property Let FolderAddInInfo(ByVal s As String):             MaintainMinRowHeight Me.Range("FolderAddInInfo"), s:                    End Property
 
-Public Property Let FolderAddInUrl(ByVal s As String):              UrlLabel(Me.Range("FolderAddInUrl")) = s:                       End Property
+Public Property Let FolderAddInUrl(ByVal s As String):              UrlLabel(Me.Range("FolderAddInUrl")) = s:                               End Property
 
-Public Property Get FolderCommonComponentsName() As String:         FolderCommonComponentsName = "Common-Components":               End Property
-
-Public Property Get FolderCommonComponentsPath() As String
-    FolderCommonComponentsPath = wsConfig.FolderCompManRoot & "\" & wsConfig.FolderCommonComponentsName
+Public Property Get FolderCommonComponentsName() As String
+    Dim fso As New FileSystemObject
+    FolderCommonComponentsName = fso.GetFolder(FolderCommonComponentsPath).Name
+    Set fso = Nothing
 End Property
 
-Public Property Let FolderCommonComponentsPath(ByVal s As String):  mWsh.Value(Me, "FolderCommonComponents") = s:                   End Property
+Public Property Get FolderCommonComponentsPath() As String:         FolderCommonComponentsPath = mWsh.Value(Me, "FolderCommonComponents"):  End Property
 
-Public Property Get FolderCompManRoot() As String:                  FolderCompManRoot = mWsh.Value(Me, "FolderCompManRoot"):        End Property
+Public Property Let FolderCommonComponentsPath(ByVal s As String):  mWsh.Value(Me, "FolderCommonComponents") = s:                           End Property
 
-Public Property Let FolderCompManRoot(ByVal s As String):           mWsh.Value(Me, "FolderCompManRoot") = s:                        End Property
+Public Property Get FolderCompManRoot() As String:                  FolderCompManRoot = mWsh.Value(Me, "FolderCompManRoot"):                End Property
 
-Public Property Let FolderCompManRootInfo(ByVal s As String):       MaintainMinRowHeight Me.Range("FolderCompManRootInfo"), s:      End Property
+Public Property Let FolderCompManRoot(ByVal s As String):           mWsh.Value(Me, "FolderCompManRoot") = s:                                End Property
 
-Public Property Let FolderCompManRootUrl(ByVal s As String):        UrlLabel(Me.Range("FolderCompManRootUrl")) = s:                 End Property
+Public Property Let FolderCompManRootInfo(ByVal s As String):       MaintainMinRowHeight Me.Range("FolderCompManRootInfo"), s:              End Property
+
+Public Property Let FolderCompManRootUrl(ByVal s As String):        UrlLabel(Me.Range("FolderCompManRootUrl")) = s:                         End Property
 
 Public Property Get FolderExport() As String
     If mCompManCfg.Exists Then

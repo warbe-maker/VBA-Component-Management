@@ -103,7 +103,7 @@ Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=wsService.SyncDialogTop & ";" & wsService.SyncDialogLeft
+                 , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
         DoEvents
     End If
 

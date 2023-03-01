@@ -87,7 +87,7 @@ Public Enum siCounter
     sic_oobs_obsolete
     sic_oobs_total
     sic_raw_comm_vbc_changed
-    sic_used_comm_vbc_Outdated
+    sic_used_comm_vbc_outdated
     sic_used_comm_vbc_updated
     sic_refs_new
     sic_refs_obsolete
@@ -107,32 +107,32 @@ Public Enum siCounter
 End Enum
 
 Public lMaxCompLength   As Long
-Public dctHostedRaws    As Dictionary
+'Public dctHostedRaws    As Dictionary
 Public Stats            As clsStats
     
-Public Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
-
-Public Property Let HostedRaws(ByVal hr As Variant)
-' ----------------------------------------------------------------------------
-' Saves the names of the components claimed 'hosted raw components' (hr) to
-' the Dictionary (dctHostedRaws).
-' ----------------------------------------------------------------------------
-    Dim v       As Variant
-    Dim sComp   As String
-    
-    If dctHostedRaws Is Nothing Then
-        Set dctHostedRaws = New Dictionary
-    Else
-        dctHostedRaws.RemoveAll
-    End If
-    For Each v In Split(hr, ",")
-        sComp = Trim$(v)
-        If Not dctHostedRaws.Exists(sComp) Then
-            dctHostedRaws.Add sComp, sComp
-        End If
-    Next v
-    
-End Property
+'Public Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
+'
+'Public Property Let HostedRaws(ByVal hr As Variant)
+'' ----------------------------------------------------------------------------
+'' Saves the names of the components claimed 'hosted raw components' (hr) to
+'' the Dictionary (dctHostedRaws).
+'' ----------------------------------------------------------------------------
+'    Dim v       As Variant
+'    Dim sComp   As String
+'
+'    If dctHostedRaws Is Nothing Then
+'        Set dctHostedRaws = New Dictionary
+'    Else
+'        dctHostedRaws.RemoveAll
+'    End If
+'    For Each v In Split(hr, ",")
+'        sComp = Trim$(v)
+'        If Not dctHostedRaws.Exists(sComp) Then
+'            dctHostedRaws.Add sComp, sComp
+'        End If
+'    Next v
+'
+'End Property
 
 Public Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -354,30 +354,29 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub UpdateOutdatedCommonComponents(ByRef uo_wbk_serviced As Workbook, _
-                                 Optional ByVal uo_hosted As String = vbNullString)
+Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
+                                 Optional ByVal u_hosted As String = vbNullString)
 ' ------------------------------------------------------------------------------
 ' Presents the serviced Workbook's outdated components in a modeless dialog with
 ' two buttons for each component. One button executes Application.Run mRenew.Run
 ' for a component to update it, the other executes Application.Run
 ' mService.ExpFilesDiffDisplay to display the code changes.
-' Note: uo_unused is for backwards compatibility only.
+' Note: u_unused is for backwards compatibility only.
 '
 ' Precondition: The service has been checked by the client to be able to run.
 ' ------------------------------------------------------------------------------
     Const PROC = "UpdateOutdatedCommonComponents"
     
     On Error GoTo eh
-    EstablishExecTraceFile uo_wbk_serviced
+    EstablishExecTraceFile u_wbk_serviced
     
     mBasic.BoP ErrSrc(PROC)
-    mService.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, uo_wbk_serviced
-    mCommComps.ManageHostedCommonComponents uo_hosted
-    mCommComps.ManageUsedCommonComponents
-    mCommComps.DeRegisterNoLongerExisting uo_hosted
-
-    mChanged.DisplayOutdated uo_hosted ' Dialog to update/renew one by one
-                     
+    mService.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, u_wbk_serviced
+    mCommComps.Hskpng u_hosted
+    mCompManDat.Hskpng u_hosted
+    Set mCommComps.Qoutdated = Nothing
+    mCommComps.OutdatedUpdate ' Dialog to update/renew one by one
+    
 xt: mBasic.EoP ErrSrc(PROC)
     mService.Terminate
     Exit Sub
@@ -388,8 +387,8 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function ExportChangedComponents(ByRef ec_wbk_serviced As Workbook, _
-                               Optional ByVal ec_hosted As String = vbNullString) As Variant
+Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
+                               Optional ByVal e_hosted As String = vbNullString) As Variant
 ' ----------------------------------------------------------------------------
 ' Exports any component the code had been modified (UserForm also when the
 ' form has changed) to the configured export folder (defaults to 'source').
@@ -409,13 +408,16 @@ Public Function ExportChangedComponents(ByRef ec_wbk_serviced As Workbook, _
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
-    EstablishExecTraceFile ec_wbk_serviced
+    EstablishExecTraceFile e_wbk_serviced
         
     mBasic.BoP ErrSrc(PROC)
-    mService.Initiate mCompManClient.SRVC_EXPORT_CHANGED, ec_wbk_serviced
+    mService.Initiate mCompManClient.SRVC_EXPORT_CHANGED, e_wbk_serviced
     If mService.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
     
-    mService.ExportChangedComponents ec_hosted
+    mCommComps.Hskpng e_hosted
+    mCompManDat.Hskpng e_hosted
+    
+    mService.ExportChangedComponents e_hosted
     ExportChangedComponents = True
     ExportChangedComponents = Application.StatusBar
     

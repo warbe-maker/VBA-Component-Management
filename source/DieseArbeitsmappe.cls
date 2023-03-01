@@ -84,11 +84,6 @@ Private Sub Workbook_Open()
         '~~ service will be denied.
         mCompManClient.CompManService mCompManClient.SRVC_SYNCHRONIZE
         '~~ ------------------------------------------------------------------
-    
-        '~~ Verifying the current configuration ensures a proper configuration
-        '~~ status when the Workbook is opened on a different computer but the
-        '~~ one it may have been opened at last or when the environment has
-        '~~ been moved to another location.
     End If
     
 xt: Exit Sub

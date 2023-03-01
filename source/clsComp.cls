@@ -361,10 +361,8 @@ Friend Property Get RevisionNumbersDiffer() As Boolean
 ' Returns TRUE when the RevisionNumber of the Raw Common Component differs from
 ' the current RevisionNumber of this Used Common Component.
 ' ------------------------------------------------------------------------------
-    RevisionNumbersDiffer = mCommComps.RawSavedRevisionNumber(sCompName) <> mCompManDat.RevisionNumber(sCompName)
+    RevisionNumbersDiffer = mCommComps.RevisionNumber(sCompName) <> mCompManDat.RevisionNumber(sCompName)
 End Property
-
-
 
 Friend Property Get ExpFileTemp() As File
     With fso
@@ -423,7 +421,7 @@ Friend Property Get KindOfComp() As enKindOfComp
 ' requested for the very first time a Raw class object is established when the
 ' component is a Used Common Component.
 ' Attention: For a correct analysis it is mandatory that the services
-'            ManageHostedCommonComponents and ManageUsedCommonComponent had been
+'            HskpngHosted and ManageUsedCommonComponent had been
 '            executed (which is done by default when the serviced Workbook is
 '            opened and when it is saved.
 ' ------------------------------------------------------------------------------
@@ -439,7 +437,7 @@ Friend Property Get KindOfComp() As enKindOfComp
                 '~~ the hosted one else it is a Used Common Component
                 lKindOfComp = enCommCompHosted
             Else
-                If Not mCompManDat.CompIsRegistered(Me.CompName, enRegStatePrivate) Then
+                If Not mCompManDat.RegistrationState(Me.CompName) = enRegStatePrivate Then
                     lKindOfComp = enCommCompUsed
                     '~~ For a Used Common Component a class object for the corresponding Raw is established
                     '~~ which provides all required properties
@@ -478,7 +476,7 @@ End Property
 
 Public Property Get RawChanged() As Boolean
 ' ----------------------------------------------------------------------------
-' Returns TRUE when the current Used Common Component's corresponding Raw had
+' Returns TRUE when the Used Common Component's (ME's) corresponding Raw had
 ' changed which is indicated by Raw Revision Number greater than the current
 ' Revision Number of the Used Common Component.
 ' Note: When the Used Common Component had already been updated manually via
@@ -492,7 +490,7 @@ Public Property Get RawChanged() As Boolean
     Dim bExcludeExportHeader As Boolean
     
     bExcludeExportHeader = Me.TypeString = "UserForm"
-    If Me.RevisionNumber < mCommComps.RawSavedRevisionNumber(sCompName) Then
+    If Me.RevisionNumber < mCommComps.RevisionNumber(sCompName) Then
         '~~ The Revision Number of the Raw Common Component is greater which means that
         '~~ a modification had been exported - and the Revision Number thereby increased
         If Not mService.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
@@ -503,11 +501,11 @@ Public Property Get RawChanged() As Boolean
             '~~ Component must have been updated manually already - e.g. by dragging
             '~~ the component from the hosting Workbook. So just the Revision Number
             '~~ needs to be set equal.
-            mCompManDat.RevisionNumber(sCompName) = mCommComps.RawSavedRevisionNumber(sCompName)
+            mCompManDat.RevisionNumber(sCompName) = mCommComps.RevisionNumber(sCompName)
         Else
             RawChanged = True
         End If
-    ElseIf Me.RevisionNumber = mCommComps.RawSavedRevisionNumber(sCompName) Then
+    ElseIf Me.RevisionNumber = mCommComps.RevisionNumber(sCompName) Then
         If mService.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
                               , fd_exp_file_2:=Raw.SavedExpFile _
                               , fd_ignore_export_header:=bExcludeExportHeader) Then

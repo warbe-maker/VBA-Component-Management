@@ -377,7 +377,7 @@ Public Sub Sync(ByRef sync_changed As Dictionary)
     If SyncsDue = 0 Then GoTo xt
     
     '~~ There's at least one Reference still to be synchronized
-    wsService.SyncDialogTitle = TITLE_SYNC_RANGES
+    SyncDialogTitle = TITLE_SYNC_RANGES
     Set fSync = mMsg.MsgInstance(TITLE_SYNC_RANGES)
     With Msg.Section(1)
         .Label.Text = "Named Ranges properties had changed:"
@@ -412,7 +412,7 @@ Public Sub Sync(ByRef sync_changed As Dictionary)
              , dsply_modeless:=True _
              , dsply_buttons_app_run:=AppRunArgs _
              , dsply_width_min:=45 _
-             , dsply_pos:=wsService.SyncDialogTop & ";" & wsService.SyncDialogLeft
+             , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
     
 xt: Exit Sub
 

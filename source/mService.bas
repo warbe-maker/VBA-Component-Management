@@ -525,7 +525,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub ExportChangedComponents(ByVal hosted As String)
+Public Sub ExportChangedComponents(ByVal e_hosted As String)
 ' ------------------------------------------------------------------------------
 ' Exclusively called by mCompMan.ExportChangedComponents, triggered by the
 ' Before_Save event.
@@ -541,14 +541,10 @@ Public Sub ExportChangedComponents(ByVal hosted As String)
     If mService.WbkServiced Is Nothing _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                             "(it may have been called directly via the 'Immediate Window'"
-    mCommComps.ManageHostedCommonComponents hosted
-    mCommComps.ManageUsedCommonComponents
-    mCommComps.DeRegisterNoLongerExisting hosted
-
-    mExport.ChangedComponents
-        
-xt: Set dctHostedRaws = Nothing
-    mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
+    mCommComps.Hskpng e_hosted
+    mExport.ChangedComponents e_hosted
+    
+xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

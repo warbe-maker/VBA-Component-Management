@@ -247,7 +247,6 @@ Private Sub AppRunNew()
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.Source
     mSyncNames.AllNames wbkTarget, dctNames
-    mSync.MessageSavePosition TITLE_SYNC_SHEETS ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.Source
     va = Split(AppRunNewIds(enSyncObjectKindWorksheet), ",")
@@ -295,9 +294,6 @@ Private Sub AppRunObsolete()
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.Source
-    
-    mSync.MessageSavePosition TITLE_SYNC_SHEETS ' for the next display
-
     Application.DisplayAlerts = False
     va = Split(AppRunObsoleteIds(enSyncObjectKindWorksheet), ",")
     mService.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionRemoveObsolete, 0)
@@ -897,14 +893,14 @@ Private Function HasUnlockedRange(ByVal hur_wsh As Worksheet) As Boolean
 ' Returns TRUE when the sheet (hur_wsg) has any unlocked range - which means
 ' that the user is able to change a value.
 ' -----------------------------------------------------------------------------
-    Dim rng As Range
+    Dim Rng As Range
     
-    For Each rng In hur_wsh.UsedRange.Cells
-        If rng.Locked = False Then
+    For Each Rng In hur_wsh.UsedRange.Cells
+        If Rng.Locked = False Then
             HasUnlockedRange = True
             Exit Function
         End If
-    Next rng
+    Next Rng
     
 End Function
 
@@ -1090,7 +1086,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=wsService.SyncDialogTop & ";" & wsService.SyncDialogLeft
+                 , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
         DoEvents
     End If
       

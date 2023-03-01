@@ -10,7 +10,7 @@ Option Explicit
 ' - CollectNew      Returns a Collection with all new VBComponents
 ' - CollectObsolete Returns a Collection with all obsolete VBComponents.
 ' - CollectAllItems Writes all relevant items of a kind to the wsSyc Worksheet
-' - AppRunChanged       Called via Application.Run by CommonButton: Synchronizes a
+' - AppRunChanged   Called via Application.Run by CommonButton: Synchronizes a
 '                   code change in a Sync-Source-Workbook's VBComponent with
 '                   the corresponding Sync-Target-Workbook's VBComponent.
 ' - RunDsplyDiff    Called via Application.Run by CommonButton: Displays the
@@ -19,7 +19,7 @@ Option Explicit
 '                   VBComponent.
 ' - RunNew          Called via Application.Run by CommonButton: Adds a
 '                   VBComponent to the provided Workbook's VBProject.
-' - AppRunObsolete       Called via Application.Run by CommonButton: Removes
+' - AppRunObsolete  Called via Application.Run by CommonButton: Removes
 '                   VBComponent from the Sync-Target-Workbook's VBProject.
 ' - Sync            Called by mSync.RunSync when there are still outstanding
 '                   VBComponents to be synchronized.
@@ -186,7 +186,6 @@ Public Sub AppRunChanged()
     mBasic.BoP ErrSrc(PROC)
     Set wbkSource = mSync.Source
     Set wbkTarget = mSync.TargetWorkingCopy
-    mSync.MessageSavePosition TITLE_SYNC_COMPS ' for the next display
     mSync.AppRunInit
     va = Split(AppRunIdsChanged(enSyncObjectKindVBComponent), ",")
     mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionChangeCode, 0)
@@ -198,14 +197,14 @@ Public Sub AppRunChanged()
         Set TargetComp.VBComp = GetComp(wbkTarget, va(i))
         sId = va(i)
         If SourceComp.VBComp.Type <> vbext_ct_MSForm Then
-            mChanged.UpdateByReplacingAllCodeLines sync_vbc_source:=SourceComp.VBComp _
-                                                 , SYNC_TEST_WBK_SOURCE:=wbkSource _
-                                                 , SYNC_TEST_WBK_TARGET:=wbkTarget
+            mUpdate.ByCodeReplace b_source_vbc:=SourceComp.VBComp _
+                                , b_source_wbk:=wbkSource _
+                                , b_target_wbk:=wbkTarget
             wsSyncLog.Done "modified", "VBComponent", sId, "updated", "VBComponent's code lines replaced with code lines of source component"
         Else
-            mChanged.UpdateByReImportSourceExportFile u_wbk_target:=wbkTarget _
-                                                    , u_vbc_name:=SourceComp.VBComp.Name _
-                                                    , u_exp_file:=SourceComp.ExpFileFullName
+            mUpdate.ByReImport b_wbk_target:=wbkTarget _
+                             , b_vbc_name:=SourceComp.VBComp.Name _
+                             , b_exp_file:=SourceComp.ExpFileFullName
             wsSyncLog.Done "modified", "VBComponent", sId, "updated", "VBComponent removed and source VBComponent's ExportFile re-imported"
         End If
         Set TargetComp = Nothing
@@ -248,7 +247,6 @@ Public Sub AppRunNew()
     mBasic.BoP ErrSrc(PROC)
     Set wbkSource = mSync.Source
     Set wbkTarget = mSync.TargetWorkingCopy
-    mSync.MessageSavePosition TITLE_SYNC_COMPS ' for the next display
     va = Split(AppRunNewIds(enSyncObjectKindVBComponent), ",")
     mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionAddNew, 0)
     mSync.AppRunInit
@@ -298,9 +296,9 @@ Public Sub AppRunObsolete()
     Dim sId         As String
     
     mBasic.BoP ErrSrc(PROC)
+    mSync.MessageUnload TITLE_SYNC_COMPS ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.Source
-    mSync.MessageSavePosition TITLE_SYNC_COMPS ' for the next display
     va = Split(AppRunObsoleteIds(enSyncObjectKindVBComponent), ",")
     mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionRemoveObsolete, 0)
     mSync.AppRunInit
@@ -927,7 +925,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=wsService.SyncDialogTop & ";" & wsService.SyncDialogLeft
+                 , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
         DoEvents
     End If
     

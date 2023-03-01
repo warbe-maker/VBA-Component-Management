@@ -63,13 +63,16 @@ Private Const TITLE_SYNC_ALL                As String = "Synchronize the VB-Proj
 Public cllAction                            As Collection
 Public cllComment                           As Collection
 Public cllDirection                         As Collection
+Public cllDueSyncs                          As Collection
 Public cllId                                As Collection
 Public cllKind                              As Collection
-Public cllDueSyncs                          As Collection
 Public cllSequence                          As Collection
+Public DueSyncKindOfObjects                 As New clsQ
 Public lDueSyncs                            As Long
 Public lSyncMode                            As enSyncOption
-Public DueSyncKindOfObjects                 As New clsQ
+Public SyncDialogLeft                       As Long
+Public SyncDialogTop                        As Long
+Public SyncDialogTitle                      As String
 
 Private AbortOpenDialogForPreparationCopy   As String
 Private AbortOpenDlogForPreparationTarget   As String
@@ -310,10 +313,8 @@ End Sub
 
 Public Sub ClearSyncData()
     
-    With wsService
-        If CLng(.SyncDialogLeft) < 5 Then .SyncDialogLeft = 20
-        If CLng(.SyncDialogTop) < 5 Then .SyncDialogTop = 20
-    End With
+    If CLng(SyncDialogLeft) < 5 Then SyncDialogLeft = 20
+    If CLng(SyncDialogTop) < 5 Then SyncDialogTop = 20
     Application.ScreenUpdating = False
     wsSyncLog.Clear
     
@@ -816,23 +817,12 @@ Public Sub Initialize(Optional ByVal i_sync_refs As Boolean = True, _
     
 End Sub
 
-Public Sub MessageSavePosition(ByVal sm_title As String)
-' ----------------------------------------------------------------------------
-' Save current message window position.
-' ----------------------------------------------------------------------------
-    
-    With wsService
-        .SyncDialogTop = mMsg.MsgInstance(sm_title).Top
-        .SyncDialogLeft = mMsg.MsgInstance(sm_title).Left
-    End With
-
-End Sub
-
 Public Sub MessageUnload(ByVal sm_title As String)
 ' ----------------------------------------------------------------------------
 ' Save current message window position and terminate the display of it.
 ' ----------------------------------------------------------------------------
-    MessageSavePosition sm_title
+    SyncDialogTop = mMsg.MsgInstance(sm_title).Top
+    SyncDialogLeft = mMsg.MsgInstance(sm_title).Left
     mMsg.MsgInstance sm_title, True
 End Sub
 
@@ -1007,7 +997,7 @@ Public Sub OpenDecision()
              , dsply_modeless:=True _
              , dsply_buttons_app_run:=AppRunArgs _
              , dsply_width_min:=45 _
-             , dsply_pos:=wsService.SyncDialogTop & ";" & wsService.SyncDialogLeft
+             , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
                             
 xt: Exit Sub
 
@@ -1579,7 +1569,7 @@ Private Sub SyncAll()
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=wsService.SyncDialogTop & ";" & wsService.SyncDialogLeft
+                 , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
         DoEvents
     End If
         

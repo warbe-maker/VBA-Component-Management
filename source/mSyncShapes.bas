@@ -523,11 +523,11 @@ Private Sub CopyShape(ByVal shp_source As Shape, _
 ' sheet at the same cell (row/column) as the source Shape. In case the copy had
 ' failed the returned Shape (shp_target) is Nothing!
 ' ------------------------------------------------------------------------------
-    Dim rng As Range
+    Dim Rng As Range
     
-    Set rng = wsh_target.Cells(shp_source.TopLeftCell.Row, shp_source.TopLeftCell.Column)
+    Set Rng = wsh_target.Cells(shp_source.TopLeftCell.row, shp_source.TopLeftCell.Column)
     shp_source.Copy
-    wsh_target.Paste rng
+    wsh_target.Paste Rng
     Set shp_target = wsh_target.Shapes(wsh_target.Shapes.Count)
     With shp_target
         .Name = shp_source.Name
@@ -1106,7 +1106,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
     
     mSync.MonitorStep "Synchronizing Sheet Shapes"
     MessageUnload TITLE_SYNC_SHAPES
-    wsService.SyncDialogTitle = TITLE_SYNC_SHAPES
+    SyncDialogTitle = TITLE_SYNC_SHAPES
     Set fSync = mMsg.MsgInstance(TITLE_SYNC_SHAPES)
     With Msg.Section(1)
         .Label.Text = "Obsolete Shapes:"
@@ -1152,7 +1152,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
              , dsply_modeless:=True _
              , dsply_buttons_app_run:=AppRunArgs _
              , dsply_width_min:=45 _
-             , dsply_pos:=wsService.SyncDialogTop & ";" & wsService.SyncDialogLeft
+             , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
 
 xt: mBasic.BoP ErrSrc(PROC)
     Exit Sub

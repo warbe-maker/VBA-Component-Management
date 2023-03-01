@@ -311,9 +311,9 @@ Public Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
             mService.Log.Entry = "Active Workbook de-activated by creating a temporary Workbook"
         End If
             
-        mChanged.ReImportCommonComponent rbi_wbk:=.Wrkbk _
-                                                   , rbi_vbc_name:=.CompName _
-                                                   , rbi_exp_file:=rnc_exp_file_full_name
+        mUpdate.ByReImport b_wbk_target:=.Wrkbk _
+                         , b_vbc_name:=.CompName _
+                         , b_exp_file:=rnc_exp_file_full_name
     End With
     
 xt: If Not wbTemp Is Nothing Then

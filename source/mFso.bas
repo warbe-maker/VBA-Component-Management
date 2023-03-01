@@ -276,186 +276,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get PPvalue( _
-           Optional ByVal pp_file As Variant, _
-           Optional ByVal pp_section As String, _
-           Optional ByVal pp_value_name As String, _
-           Optional ByRef pp_file_result As String) As Variant
-' ----------------------------------------------------------------------------
-' PrivateProfile file service. Reads a value with a specific name from a
-' section from a file organized: [section]
-'                                <value-name>=<value>
-' ----------------------------------------------------------------------------
-    Const PROC  As String = "PPvalueGet"
-    
-    On Error GoTo eh
-    Dim lResult As Long
-    Dim sRetVal As String
-    Dim vValue  As Variant
-    Dim fl      As String
-    
-    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
-    
-    sRetVal = String(32767, 0)
-    lResult = GetPrivateProfileString( _
-                                      lpg_ApplicationName:=pp_section _
-                                    , lpg_KeyName:=pp_value_name _
-                                    , lpg_Default:="" _
-                                    , lpg_ReturnedString:=sRetVal _
-                                    , nSize:=Len(sRetVal) _
-                                    , lpg_FileName:=fl _
-                                     )
-    vValue = Left$(sRetVal, lResult)
-    PPvalue = vValue
-    
-xt: Exit Property
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Property
-
-Public Property Let PPvalue( _
-           Optional ByVal pp_file As Variant, _
-           Optional ByVal pp_section As String, _
-           Optional ByVal pp_value_name As String, _
-           Optional ByRef pp_file_result As String, _
-                    ByVal pp_value As Variant)
-' ----------------------------------------------------------------------------
-' PrivateProfile file service. Writes a value under a given name
-' (pp_value_name) into a section (pp_section) in a file (pp_file) organized:
-' [section]
-' <value-name>=<value>
-' ----------------------------------------------------------------------------
-    Const PROC = "PPvalueLet"
-        
-    On Error GoTo eh
-    Dim lChars  As Long
-    Dim sValue  As String
-    Dim fl      As String
-    
-    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
-    
-    Select Case VarType(pp_value)
-        Case vbBoolean: sValue = VBA.CStr(VBA.CLng(pp_value))
-        Case Else:      sValue = pp_value
-    End Select
-    
-    lChars = WritePrivateProfileString(lpw_ApplicationName:=pp_section _
-                                     , lpw_KeyName:=pp_value_name _
-                                     , lpw_String:=sValue _
-                                     , lpw_FileName:=fl)
-    If lChars = 0 Then
-        MsgBox "System error when writing property" & vbLf & _
-               "Section    = '" & pp_section & "'" & vbLf & _
-               "Value name = '" & pp_value_name & "'" & vbLf & _
-               "Value      = '" & CStr(pp_value) & "'" & vbLf & _
-               "Value file = '" & pp_file & "'"
-    End If
-    
-xt: Exit Property
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Property
-
-                            
-Public Property Get FilePrivProvSections(Optional ByVal pp_file As Variant, _
-                                         Optional ByVal pp_sections As Variant = vbNullString, _
-                                         Optional ByRef pp_file_result As String) As Dictionary
-' ----------------------------------------------------------------------------
-' PrivateProfile file service.
-' Returns a Dictionary with named sections (pp_sections) in file (pp_file) -
-' provided as full name string or as file object - whereby each section is a
-' Dictionary with the section name as the key - in ascending
-' order - and a Dictionary of the section's values as item with the value name
-' as key and the value as item.
-' ----------------------------------------------------------------------------
-    Const PROC = "FilePrivProvSections-Get"
-    
-    On Error GoTo eh
-    Dim VNAME   As Variant
-    Dim fl      As String
-    
-    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
-    
-    Set FilePrivProvSections = New Dictionary
-    
-    If pp_sections = vbNullString Then
-        '~~ Return all sections
-        For Each VNAME In mFso.PPsectionNames(fl)
-            AddAscByKey add_dct:=FilePrivProvSections _
-                      , add_key:=VNAME _
-                      , add_item:=mFso.PPvalues(pp_file:=fl, pp_section:=VNAME)
-        Next VNAME
-    Else
-        '~~ Return named sections
-        For Each VNAME In NamesInArg(pp_sections)
-            If mFso.PPsectionExists(pp_file, VNAME) Then
-                AddAscByKey add_dct:=FilePrivProvSections _
-                          , add_key:=VNAME _
-                          , add_item:=mFso.PPvalues(pp_file, VNAME)
-            End If
-        Next VNAME
-    End If
-
-xt: Exit Property
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Property
-
-Public Property Let FilePrivProvSections(Optional ByVal pp_file As Variant, _
-                                         Optional ByVal pp_sections As Variant, _
-                                         Optional ByRef pp_file_result As String, _
-                                                  ByVal pp_dct As Dictionary)
-' ------------------------------------------------------------------------
-' PrivateProfile-File Sections service:
-' Writes the sections provided as Dictionary (pp_dct) to file (pp_file) -
-' provided as full name string or as file object. Existing sections/values
-' are overwritten new sections/values are added.
-' ------------------------------------------------------------------------
-    Const PROC = "FilePrivProvSections-Get"
-    
-    On Error GoTo eh
-    Dim vN          As Variant
-    Dim vS          As Variant
-    Dim dctValues   As Dictionary
-    Dim sSection    As String
-    Dim sName       As String
-    Dim fl          As String
-    
-    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
-    
-    For Each vS In pp_dct
-        sSection = vS
-        Set dctValues = pp_dct(vS)
-        For Each vN In dctValues
-            sName = vN
-            mFso.PPvalue(pp_file:=fl _
-                      , pp_section:=sSection _
-                      , pp_value_name:=sName _
-                       ) = dctValues.Item(vN)
-        Next vN
-    Next vS
-    
-xt: Exit Property
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Property
-
 Public Property Get FileTemp(Optional ByVal tmp_path As String = vbNullString, _
                              Optional ByVal tmp_extension As String = ".tmp") As String
 ' ------------------------------------------------------------------------------
@@ -563,6 +383,197 @@ xt: ts.Close
     Set ts = Nothing
     Exit Property
     
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Property
+             
+Public Property Get PPsections(Optional ByVal pp_file As Variant, _
+                               Optional ByVal pp_sections As Variant = vbNullString, _
+                               Optional ByRef pp_file_result As String) As Dictionary
+' ----------------------------------------------------------------------------
+' PrivateProfile file service.
+' Returns a Dictionary with named sections (pp_sections) in file (pp_file) -
+' provided as full name string or as file object - whereby each section is a
+' Dictionary with the section name as the key - in ascending
+' order - and a Dictionary of the section's values as item with the value name
+' as key and the value as item.
+' ----------------------------------------------------------------------------
+    Const PROC = "PPsections-Get"
+    
+    On Error GoTo eh
+    Dim vName       As Variant
+    Dim fl          As String
+    Dim dct         As New Dictionary
+    Dim dctValues   As Dictionary
+    
+    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+        
+    If pp_sections = vbNullString Then
+        '~~ Return all sections
+        For Each vName In mFso.PPsectionNames(fl)
+            If Not dct.Exists(vName) Then
+                Set dctValues = mFso.PPvalues(pp_file:=fl, pp_section:=vName)
+                AddAscByKey add_dct:=dct _
+                          , add_key:=vName _
+                          , add_item:=dctValues
+            Else
+                Debug.Print "Duplicate section name '" & vName & "' ignored!"
+            End If
+        Next vName
+    Else
+        '~~ Return named sections
+        For Each vName In NamesInArg(pp_sections)
+            If mFso.PPsectionExists(pp_file, vName) Then
+                If Not dct.Exists(vName) Then
+                    Set dctValues = mFso.PPvalues(pp_file, vName)
+                    AddAscByKey add_dct:=dct _
+                              , add_key:=vName _
+                              , add_item:=dctValues
+                Else
+                    Debug.Print "Duplicate section name '" & vName & "' ignored!"
+                End If
+            End If
+        Next vName
+    End If
+
+xt: Set PPsections = dct
+    Set dct = Nothing
+    Exit Property
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Property
+
+Public Property Let PPsections(Optional ByVal pp_file As Variant, _
+                                         Optional ByVal pp_sections As Variant, _
+                                         Optional ByRef pp_file_result As String, _
+                                                  ByVal pp_dct As Dictionary)
+' ------------------------------------------------------------------------
+' PrivateProfile-File Sections service:
+' Writes the sections provided as Dictionary (pp_dct) to file (pp_file) -
+' provided as full name string or as file object. Existing sections/values
+' are overwritten new sections/values are added.
+' ------------------------------------------------------------------------
+    Const PROC = "PPsections-Get"
+    
+    On Error GoTo eh
+    Dim vN          As Variant
+    Dim vS          As Variant
+    Dim dctValues   As Dictionary
+    Dim sSection    As String
+    Dim sName       As String
+    Dim fl          As String
+    
+    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+    
+    For Each vS In pp_dct
+        sSection = vS
+        Set dctValues = pp_dct(vS)
+        For Each vN In dctValues
+            sName = vN
+            mFso.PPvalue(pp_file:=fl _
+                      , pp_section:=sSection _
+                      , pp_value_name:=sName _
+                       ) = dctValues.Item(vN)
+        Next vN
+    Next vS
+    
+xt: Exit Property
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Property
+
+Public Property Get PPvalue( _
+           Optional ByVal pp_file As Variant, _
+           Optional ByVal pp_section As String, _
+           Optional ByVal pp_value_name As String, _
+           Optional ByRef pp_file_result As String) As Variant
+' ----------------------------------------------------------------------------
+' PrivateProfile file service. Reads a value with a specific name from a
+' section from a file organized: [section]
+'                                <value-name>=<value>
+' ----------------------------------------------------------------------------
+    Const PROC  As String = "PPvalueGet"
+    
+    On Error GoTo eh
+    Dim lResult As Long
+    Dim sRetVal As String
+    Dim vValue  As Variant
+    Dim fl      As String
+    
+    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+    
+    sRetVal = String(32767, 0)
+    lResult = GetPrivateProfileString( _
+                                      lpg_ApplicationName:=pp_section _
+                                    , lpg_KeyName:=pp_value_name _
+                                    , lpg_Default:="" _
+                                    , lpg_ReturnedString:=sRetVal _
+                                    , nSize:=Len(sRetVal) _
+                                    , lpg_FileName:=fl _
+                                     )
+    vValue = Left$(sRetVal, lResult)
+    PPvalue = vValue
+    
+xt: Exit Property
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Property
+
+Public Property Let PPvalue( _
+           Optional ByVal pp_file As Variant, _
+           Optional ByVal pp_section As String, _
+           Optional ByVal pp_value_name As String, _
+           Optional ByRef pp_file_result As String, _
+                    ByVal pp_value As Variant)
+' ----------------------------------------------------------------------------
+' PrivateProfile file service. Writes a value under a given name
+' (pp_value_name) into a section (pp_section) in a file (pp_file) organized:
+' [section]
+' <value-name>=<value>
+' ----------------------------------------------------------------------------
+    Const PROC = "PPvalueLet"
+        
+    On Error GoTo eh
+    Dim lChars  As Long
+    Dim sValue  As String
+    Dim fl      As String
+    
+    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+    
+    Select Case VarType(pp_value)
+        Case vbBoolean: sValue = VBA.CStr(VBA.CLng(pp_value))
+        Case Else:      sValue = pp_value
+    End Select
+    
+    lChars = WritePrivateProfileString(lpw_ApplicationName:=pp_section _
+                                     , lpw_KeyName:=pp_value_name _
+                                     , lpw_String:=sValue _
+                                     , lpw_FileName:=fl)
+    If lChars = 0 Then
+        MsgBox "System error when writing property" & vbLf & _
+               "Section    = '" & pp_section & "'" & vbLf & _
+               "Value name = '" & pp_value_name & "'" & vbLf & _
+               "Value      = '" & CStr(pp_value) & "'" & vbLf & _
+               "Value file = '" & pp_file & "'"
+    End If
+    
+xt: Exit Property
+
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
@@ -1647,486 +1658,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function PPfile(ByVal pp_file As Variant, _
-                              ByVal pp_service As String, _
-                              ByRef pp_file_name As String) As String
-' ----------------------------------------------------------------------------
-' PrivateProfile file function. Returns the PrivateProfile file (pp_file) as
-' full file name string (pp_file_name). When no file (pp_file) is provided,
-' i.e. is a vbNullString, a file selection dialog is evoked to select one.
-' When finally there's still no file provided a vbNullString is returned.
-' ----------------------------------------------------------------------------
-    Const PROC = "PPfile"
-    
-    On Error GoTo eh
-    Dim fl  As File
-    
-    If VarType(pp_file) = vbObject Then
-        If pp_file Is Nothing Then
-            If Not mFso.FilePicked(p_title:="Select a PrivateProfile file not provided for the service '" & pp_service & "'" _
-                              , p_init_path:=ThisWorkbook.Path _
-                              , p_filters:="Config files, *.cfg; Init files, *.ini; Application data files, *.dat; All files, *.*" _
-                              , p_file:=fl _
-                               ) _
-            Then GoTo xt
-            pp_file_name = fl.Path
-            PPfile = fl.Path
-        ElseIf TypeName(pp_file) = "File" Then
-            pp_file_name = pp_file.Path
-            PPfile = pp_file.Path
-            GoTo xt
-        End If
-    ElseIf VarType(pp_file) = vbString Then
-        If pp_file = vbNullString Then
-            If Not mFso.FilePicked(p_title:="Select a PrivateProfile file" _
-                              , p_init_path:=ThisWorkbook.Path _
-                              , p_filters:="Config files, *.cfg; Init files, *.ini; Application data files, *.dat; All files, *.*" _
-                              , p_file:=fl _
-                               ) _
-            Then GoTo xt
-            pp_file_name = fl.Path
-            PPfile = fl.Path
-        Else
-            pp_file_name = pp_file
-            PPfile = pp_file
-        End If
-    End If
-
-xt: Exit Function
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Public Sub PPreorg(Optional ByVal pp_file As Variant = Nothing, _
-                   Optional ByRef pp_file_result As String)
-' ----------------------------------------------------------------------------
-' Private-Profile file service. Re-organizes all sections and all value-names
-' therein in ascending order. When no file (pp_file) is provided - either as
-' full name or as file object a file selection dialog is displayed. When
-' finally there's still no file provided the service ends without notice. The
-' processed file is returned (pp_file_result).
-' Restriction: The file must not contain any comment lines other than at the
-'              top of the very first section.
-' ----------------------------------------------------------------------------
-    Const PROC = "PPreorg"
-    
-    On Error GoTo eh
-    Dim vSection    As Variant
-    Dim Section     As String
-    Dim dctSections As Dictionary
-    Dim dctValues   As Dictionary
-    Dim vValue      As Variant
-    Dim fl          As String
-    
-    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
-    
-    Set dctSections = FilePrivProvSections(fl)
-    For Each vSection In dctSections
-        Section = vSection
-        Set dctValues = dctSections(vSection)
-        
-        mFso.PPremoveSections pp_file:=fl, pp_sections:=Section
-        For Each vValue In dctValues
-            mFso.PPvalue(pp_file:=fl, pp_section:=Section, pp_value_name:=vValue) = dctValues(vValue)
-        Next vValue
-    Next vSection
-
-xt: Exit Sub
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Sub PPremoveNames(ByVal pp_file As Variant, _
-                                   ByVal pp_section As String, _
-                                   ByVal pp_value_names As Variant, _
-                          Optional ByRef pp_file_result As String)
-' -----------------------------------------------------------------------------
-' PrivateProfile file service.
-' Removes from the section (pp_section) in the PrivateProfile file (pp_file)
-' a names (pp_value_names) provided either as: comma delimited string,
-' Dictionary with name items, or Collection of names.
-' When no file (pp_file) is provided - either as full name or as file object
-' a file selection dialog is displayed. When finally there's still no file
-' provided the service ends without notice.
-' -----------------------------------------------------------------------------
-    Const PROC = "PPremoveNames"
-    
-    On Error GoTo eh
-    Dim fl  As String
-    Dim v   As Variant
-    
-    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
-    
-    For Each v In NamesInArg(pp_value_names)
-        DeletePrivateProfileKey Section:=pp_section _
-                               , Key:=v _
-                               , Setting:=0 _
-                               , Name:=fl
-    Next v
-
-xt: Exit Sub
-    
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Sub PPremoveSections(ByVal pp_file As Variant, _
-                             Optional ByVal pp_sections As String = vbNullString, _
-                             Optional ByRef pp_file_result As String)
-' ----------------------------------------------------------------------------
-' PrivateProfile file service.
-' Removes the sections (pp_sections) - provided as: comma delimited string,
-' Dictionary with name items, or Collection of names, in file (pp_file) -
-' provided as full name string or as file object.
-' ----------------------------------------------------------------------------
-    Const PROC = "PPremoveSections"
-    
-    On Error GoTo eh
-    Dim fl  As String
-    Dim v   As Variant
-    
-    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
-    
-    For Each v In NamesInArg(pp_sections)
-        DeletePrivateProfileSection Section:=v _
-                                  , NoKey:=0 _
-                                  , NoSetting:=0 _
-                                  , Name:=fl
-    Next v
-    
-xt: Exit Sub
-    
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-'Public Function SelectFile( _
-'            Optional ByVal sel_init_path As String = vbNullString, _
-'            Optional ByVal sel_filters As String = "*.*", _
-'            Optional ByVal sel_filter_name As String = "File", _
-'            Optional ByVal sel_title As String = vbNullString, _
-'            Optional ByRef sel_result As File) As Boolean
-'' --------------------------------------------------------------
-'' When a file had been selected TRUE is returned and the
-'' selected file is returned as File object (sel_result).
-'' --------------------------------------------------------------
-'    Const PROC = "SelectFile"
-'
-'    On Error GoTo eh
-'    Dim fDialog As FileDialog
-'    Dim v       As Variant
-'
-'    Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
-'    With fDialog
-'        .AllowMultiSelect = False
-'        If sel_title = vbNullString _
-'        Then .Title = "Select a(n) " & sel_filter_name _
-'        Else .Title = sel_title
-'        .InitialFileName = sel_init_path
-'        .Filters.Clear
-'        For Each v In Split(sel_filters, ",")
-'            .Filters.Add sel_filter_name, v
-'         Next v
-'
-'        If .Show = -1 Then
-'            '~~ A fie had been selected
-'           With New FileSystemObject
-'            Set sel_result = .GetFile(fDialog.SelectedItems(1))
-'            SelectFile = True
-'           End With
-'        End If
-'        '~~ When no file had been selected the sel_result will be Nothing
-'    End With
-'
-'xt: Exit Function
-'
-'eh: Select Case ErrMsg(ErrSrc(PROC))
-'        Case vbResume:  Stop: Resume
-'        Case Else:      GoTo xt
-'    End Select
-'End Function
-
-                 
-Public Function PPsectionExists(ByVal pp_file As Variant, _
-                              ByVal pp_section As String, _
-                     Optional ByRef pp_file_result As String) As Boolean
-' ----------------------------------------------------------------------------
-' PrivateProfile file service.
-' Returns TRUE when the section (pp_section) exists in file (pp_file) -
-' provided as full name string or as file object.
-' ----------------------------------------------------------------------------
-    Const PROC = "PPsectionExists"
-    
-    Dim fl As String
-    If PPfile(pp_file, ErrSrc(PROC), fl) <> vbNullString Then
-        pp_file_result = fl
-        PPsectionExists = mFso.PPsectionNames(fl).Exists(pp_section)
-    End If
-    
-End Function
-
-Public Function PPsectionNames(Optional ByVal pp_file As Variant, _
-                             Optional ByRef pp_file_result As String) As Dictionary
-' ----------------------------------------------------------------------------
-' PrivateProfile file service.
-' Returns a Dictionary of all section names in file (pp_file) - provided as
-' full name string or as file object - in ascending order.
-' ----------------------------------------------------------------------------
-    Const PROC = "PPsectionNames"
-    
-    On Error GoTo eh
-    Dim asSections()    As String
-    Dim dct             As New Dictionary
-    Dim fl              As String
-    Dim fso             As New FileSystemObject
-    Dim i               As Long
-    Dim iLen            As Long
-    Dim strBuffer       As String
-    
-    Set PPsectionNames = New Dictionary
-    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
-    
-    If Len(mFso.FileTxt(fl)) = 0 Then GoTo xt
-    
-    Do While (iLen = Len(strBuffer) - 2) Or (iLen = 0)
-        If strBuffer = vbNullString _
-        Then strBuffer = Space$(256) _
-        Else strBuffer = String(Len(strBuffer) * 2, 0)
-        iLen = GetPrivateProfileSectionNames(strBuffer, Len(strBuffer), fl)
-    Loop
-    strBuffer = Left$(strBuffer, iLen)
-    
-    If Len(strBuffer) <> 0 Then
-        i = 0
-        asSections = Split(strBuffer, vbNullChar)
-        For i = LBound(asSections) To UBound(asSections)
-            If asSections(i) <> vbNullString Then
-                AddAscByKey add_dct:=dct _
-                          , add_key:=asSections(i) _
-                          , add_item:=asSections(i)
-            End If
-        Next i
-    End If
-    
-xt: Set PPsectionNames = dct
-    Set dct = Nothing
-    Exit Function
-    
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Public Sub PPsectionsCopy(ByVal pp_source As String, _
-                        ByVal pp_target As String, _
-               Optional ByVal pp_sections As Variant = Nothing, _
-               Optional ByVal pp_merge As Boolean = False)
-' ----------------------------------------------------------------------------
-' PrivateProfile file service.
-' Copies sections from file (pp_source) to file (pp_target), when no section
-' names (pp_sections) are provided all. By default (pp_merge) all sections
-' are replaced.
-' ----------------------------------------------------------------------------
-    Const PROC = "PPsectionCopy"
-    
-    On Error GoTo eh
-    Dim fso         As New FileSystemObject
-    Dim dct         As Dictionary
-    Dim VNAME       As Variant
-    Dim vSection    As Variant
-    
-    For Each vSection In NamesInArg(pp_sections)
-        If Not pp_merge Then
-            '~~ Section will be replaced
-            mFso.PPremoveSections pp_file:=pp_target _
-                               , pp_sections:=vSection
-        End If
-        Set dct = mFso.PPvalues(pp_file:=pp_source _
-                            , pp_section:=vSection)
-        For Each VNAME In dct
-            mFso.PPvalue(pp_file:=pp_target _
-                      , pp_section:=vSection _
-                      , pp_value_name:=VNAME) = dct(VNAME)
-        Next VNAME
-     Next vSection
-
-xt: Set dct = Nothing
-    Exit Sub
-    
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Function PPvalueExists(ByVal pp_file As Variant, _
-                            ByVal pp_value_name As String, _
-                            ByVal pp_section As String, _
-                   Optional ByRef pp_file_result As String) As Boolean
-' ----------------------------------------------------------------------------
-' PrivateProfile file service. Returns TRUE when the named value
-' (pp_value_name) exists in the provided section (pp_section) in the file
-' (pp_file) - provided as full name string or file object. When no file is
-' provided a file selection dialog is displayed. When finally there's still no
-' file provided the function returns FALSE without notice.
-' ----------------------------------------------------------------------------
-    Const PROC = "PPvalueExists"
-    
-    Dim fl As String
-    If PPfile(pp_file, ErrSrc(PROC), fl) <> vbNullString Then
-        pp_file_result = fl
-        If mFso.PPsectionExists(pp_file:=fl, pp_section:=pp_section) Then
-            PPvalueExists = mFso.PPvalueNames(fl, pp_section).Exists(pp_value_name)
-        End If
-    End If
-End Function
-
-Public Function PPvalueNames(ByVal pp_file As Variant, _
-                           ByVal pp_section As String, _
-                  Optional ByRef pp_file_result As String) As Dictionary
-' ------------------------------------------------------------------------
-' PrivateProfile file service. Returns a Dictionary of all value names,
-' with the value name as key and the value as item, in ascending order by
-' value name, in the provided section (pp_section) in file (pp_file) -
-' provided either a full name string or as file object.
-' ------------------------------------------------------------------------
-    Const PROC = "PPvalueNames"
-    
-    On Error GoTo eh
-    Dim asNames()   As String
-    Dim dctNames    As New Dictionary
-    Dim i           As Long
-    Dim lResult     As Long
-    Dim sNames      As String
-    Dim strBuffer   As String
-    Dim v           As Variant
-    Dim sSection    As String
-    Dim sName       As String
-    Dim vNames      As Variant
-    Dim fl          As String
-    
-    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
-    
-    Set vNames = NamesInArg(pp_section)
-    If vNames.Count = 0 Then Set vNames = mFso.PPsectionNames(fl)
-    
-    For Each v In vNames
-        sSection = v
-        '~~> Retrieve the names for the provided section
-        strBuffer = Space$(32767)
-        lResult = GetPrivateProfileString(lpg_ApplicationName:=sSection _
-                                        , lpg_KeyName:=vbNullString _
-                                        , lpg_Default:=vbNullString _
-                                        , lpg_ReturnedString:=strBuffer _
-                                        , nSize:=Len(strBuffer) _
-                                        , lpg_FileName:=fl _
-                                         )
-        sNames = Left$(strBuffer, lResult)
-    
-        If sNames <> vbNullString Then                                         ' If there were any names
-            asNames = Split(sNames, vbNullChar)                      ' have them split into an array
-            For i = LBound(asNames) To UBound(asNames)
-                sName = asNames(i)
-                If Len(sName) <> 0 Then
-                    If Not dctNames.Exists(sName) _
-                    Then AddAscByKey add_dct:=dctNames _
-                                   , add_key:=sName _
-                                   , add_item:=mFso.PPvalue(pp_file:=fl _
-                                                         , pp_section:=sSection _
-                                                         , pp_value_name:=sName)
-                End If
-            Next i
-        End If
-    Next v
-        
-    Set PPvalueNames = dctNames
-
-xt: Set dctNames = Nothing
-    Exit Function
-    
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Public Function PPvalues(ByVal pp_file As Variant, _
-                       ByVal pp_section As String, _
-              Optional ByRef pp_file_result As String) As Dictionary
-' ------------------------------------------------------------------------
-' PrivateProfile file service. Returns all values in section (pp_section)
-' in file (pp_file) as Dictionary, with the value name as key and the
-' value as item, with the value names in asscending order. When the
-' provided section does not exist the returned Dictionary is empty.
-' ------------------------------------------------------------------------
-    Const PROC = "PPvalues"
-    
-    On Error GoTo eh
-    Dim asNames()   As String
-    Dim dctNames    As New Dictionary
-    Dim i           As Long
-    Dim lResult     As Long
-    Dim sNames      As String
-    Dim strBuffer   As String
-    Dim sName       As String
-    Dim fl          As String
-    
-    Set PPvalues = New Dictionary ' may remain empty though
-    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
-    pp_file_result = fl
-    
-    If Not PPsectionExists(pp_file, pp_section) Then GoTo xt
-    
-    '~~> Retrieve the names in the provided section
-    strBuffer = Space$(32767)
-    lResult = GetPrivateProfileString(lpg_ApplicationName:=pp_section _
-                                    , lpg_KeyName:=vbNullString _
-                                    , lpg_Default:=vbNullString _
-                                    , lpg_ReturnedString:=strBuffer _
-                                    , nSize:=Len(strBuffer) _
-                                    , lpg_FileName:=fl _
-                                     )
-    sNames = Left$(strBuffer, lResult)
-
-    If sNames <> vbNullString Then                                         ' If there were any names
-        asNames = Split(sNames, vbNullChar)                      ' have them split into an array
-        For i = LBound(asNames) To UBound(asNames)
-            sName = asNames(i)
-            If Len(sName) <> 0 Then
-                If Not dctNames.Exists(sName) _
-                Then AddAscByKey add_dct:=PPvalues _
-                               , add_key:=sName _
-                               , add_item:=mFso.PPvalue(pp_file:=fl _
-                                                     , pp_section:=pp_section _
-                                                     , pp_value_name:=sName)
-            End If
-        Next i
-    End If
-
-xt: Exit Function
-    
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
 Public Function FilesSearch(ByVal fs_root As String, _
                    Optional ByVal fs_mask As String = "*", _
                    Optional ByVal fs_in_subfolders As Boolean = True, _
@@ -2355,7 +1886,7 @@ Private Function NamesInArg(Optional ByVal v As Variant = Nothing) As Collection
     On Error GoTo eh
     Dim cll     As New Collection
     Dim dct     As Dictionary
-    Dim VNAME   As Variant
+    Dim vName   As Variant
     
     Select Case VarType(v)
         Case vbObject
@@ -2371,9 +1902,9 @@ Private Function NamesInArg(Optional ByVal v As Variant = Nothing) As Collection
             End Select
         Case vbString
             If v <> vbNullString Then
-                For Each VNAME In Split(v, ",")
+                For Each vName In Split(v, ",")
                     cll.Add VBA.Trim$(v)
-                Next VNAME
+                Next vName
             End If
         Case Is >= vbArray
         Case Else
@@ -2383,6 +1914,491 @@ Private Function NamesInArg(Optional ByVal v As Variant = Nothing) As Collection
 xt: Set NamesInArg = cll
     Exit Function
 
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function PPfile(ByVal pp_file As Variant, _
+                              ByVal pp_service As String, _
+                              ByRef pp_file_name As String) As String
+' ----------------------------------------------------------------------------
+' PrivateProfile file function. Returns the PrivateProfile file (pp_file) as
+' full file name string (pp_file_name). When no file (pp_file) is provided,
+' i.e. is a vbNullString, a file selection dialog is evoked to select one.
+' When finally there's still no file provided a vbNullString is returned.
+' ----------------------------------------------------------------------------
+    Const PROC = "PPfile"
+    
+    On Error GoTo eh
+    Dim fl  As File
+    
+    If VarType(pp_file) = vbObject Then
+        If pp_file Is Nothing Then
+            If Not mFso.FilePicked(p_title:="Select a PrivateProfile file not provided for the service '" & pp_service & "'" _
+                              , p_init_path:=ThisWorkbook.Path _
+                              , p_filters:="Config files, *.cfg; Init files, *.ini; Application data files, *.dat; All files, *.*" _
+                              , p_file:=fl _
+                               ) _
+            Then GoTo xt
+            pp_file_name = fl.Path
+            PPfile = fl.Path
+        ElseIf TypeName(pp_file) = "File" Then
+            pp_file_name = pp_file.Path
+            PPfile = pp_file.Path
+            GoTo xt
+        End If
+    ElseIf VarType(pp_file) = vbString Then
+        If pp_file = vbNullString Then
+            If Not mFso.FilePicked(p_title:="Select a PrivateProfile file" _
+                              , p_init_path:=ThisWorkbook.Path _
+                              , p_filters:="Config files, *.cfg; Init files, *.ini; Application data files, *.dat; All files, *.*" _
+                              , p_file:=fl _
+                               ) _
+            Then GoTo xt
+            pp_file_name = fl.Path
+            PPfile = fl.Path
+        Else
+            pp_file_name = pp_file
+            PPfile = pp_file
+        End If
+    End If
+
+xt: Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Public Sub PPremoveNames(ByVal pp_file As Variant, _
+                                   ByVal pp_section As String, _
+                                   ByVal pp_value_names As Variant, _
+                          Optional ByRef pp_file_result As String)
+' -----------------------------------------------------------------------------
+' PrivateProfile file service.
+' Removes from the section (pp_section) in the PrivateProfile file (pp_file)
+' a names (pp_value_names) provided either as: comma delimited string,
+' Dictionary with name items, or Collection of names.
+' When no file (pp_file) is provided - either as full name or as file object
+' a file selection dialog is displayed. When finally there's still no file
+' provided the service ends without notice.
+' -----------------------------------------------------------------------------
+    Const PROC = "PPremoveNames"
+    
+    On Error GoTo eh
+    Dim fl  As String
+    Dim v   As Variant
+    
+    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+    
+    For Each v In NamesInArg(pp_value_names)
+        DeletePrivateProfileKey Section:=pp_section _
+                               , Key:=v _
+                               , Setting:=0 _
+                               , Name:=fl
+    Next v
+
+xt: Exit Sub
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Sub PPremoveSections(ByVal pp_file As Variant, _
+                             Optional ByVal pp_sections As String = vbNullString, _
+                             Optional ByRef pp_file_result As String)
+' ----------------------------------------------------------------------------
+' PrivateProfile file service.
+' Removes the sections (pp_sections) - provided as: comma delimited string,
+' Dictionary with name items, or Collection of names, in file (pp_file) -
+' provided as full name string or as file object.
+' ----------------------------------------------------------------------------
+    Const PROC = "PPremoveSections"
+    
+    On Error GoTo eh
+    Dim fl  As String
+    Dim v   As Variant
+    
+    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+    
+    For Each v In NamesInArg(pp_sections)
+        DeletePrivateProfileSection Section:=v _
+                                  , NoKey:=0 _
+                                  , NoSetting:=0 _
+                                  , Name:=fl
+    Next v
+    
+xt: Exit Sub
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+'Public Function SelectFile( _
+'            Optional ByVal sel_init_path As String = vbNullString, _
+'            Optional ByVal sel_filters As String = "*.*", _
+'            Optional ByVal sel_filter_name As String = "File", _
+'            Optional ByVal sel_title As String = vbNullString, _
+'            Optional ByRef sel_result As File) As Boolean
+'' --------------------------------------------------------------
+'' When a file had been selected TRUE is returned and the
+'' selected file is returned as File object (sel_result).
+'' --------------------------------------------------------------
+'    Const PROC = "SelectFile"
+'
+'    On Error GoTo eh
+'    Dim fDialog As FileDialog
+'    Dim v       As Variant
+'
+'    Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
+'    With fDialog
+'        .AllowMultiSelect = False
+'        If sel_title = vbNullString _
+'        Then .Title = "Select a(n) " & sel_filter_name _
+'        Else .Title = sel_title
+'        .InitialFileName = sel_init_path
+'        .Filters.Clear
+'        For Each v In Split(sel_filters, ",")
+'            .Filters.Add sel_filter_name, v
+'         Next v
+'
+'        If .Show = -1 Then
+'            '~~ A fie had been selected
+'           With New FileSystemObject
+'            Set sel_result = .GetFile(fDialog.SelectedItems(1))
+'            SelectFile = True
+'           End With
+'        End If
+'        '~~ When no file had been selected the sel_result will be Nothing
+'    End With
+'
+'xt: Exit Function
+'
+'eh: Select Case ErrMsg(ErrSrc(PROC))
+'        Case vbResume:  Stop: Resume
+'        Case Else:      GoTo xt
+'    End Select
+'End Function
+
+Public Sub PPreorg(Optional ByVal pp_file As Variant = Nothing, _
+                   Optional ByRef pp_file_result As String)
+' ----------------------------------------------------------------------------
+' Private-Profile file service. Re-organizes all sections and all value-names
+' therein in ascending order. When no file (pp_file) is provided - either as
+' full name or as file object a file selection dialog is displayed. When
+' finally there's still no file provided the service ends without notice. The
+' processed file is returned (pp_file_result).
+' Restriction: The file must not contain any comment lines other than at the
+'              top of the very first section.
+' ----------------------------------------------------------------------------
+    Const PROC = "PPreorg"
+    
+    On Error GoTo eh
+    Dim vSection    As Variant
+    Dim Section     As String
+    Dim dctSections As Dictionary
+    Dim dctValues   As Dictionary
+    Dim vValue      As Variant
+    Dim fl          As String
+    
+    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+    
+    Set dctSections = PPsections(fl)
+    For Each vSection In dctSections
+        Section = vSection
+        Set dctValues = dctSections(vSection)
+        
+        mFso.PPremoveSections pp_file:=fl, pp_sections:=Section
+        For Each vValue In dctValues
+            mFso.PPvalue(pp_file:=fl, pp_section:=Section, pp_value_name:=vValue) = dctValues(vValue)
+        Next vValue
+    Next vSection
+
+xt: Exit Sub
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+                 
+Public Function PPsectionExists(ByVal pp_file As Variant, _
+                              ByVal pp_section As String, _
+                     Optional ByRef pp_file_result As String) As Boolean
+' ----------------------------------------------------------------------------
+' PrivateProfile file service.
+' Returns TRUE when the section (pp_section) exists in file (pp_file) -
+' provided as full name string or as file object.
+' ----------------------------------------------------------------------------
+    Const PROC = "PPsectionExists"
+    
+    Dim fl As String
+    If PPfile(pp_file, ErrSrc(PROC), fl) <> vbNullString Then
+        pp_file_result = fl
+        PPsectionExists = mFso.PPsectionNames(fl).Exists(pp_section)
+    End If
+    
+End Function
+
+Public Function PPsectionNames(Optional ByVal pp_file As Variant, _
+                             Optional ByRef pp_file_result As String) As Dictionary
+' ----------------------------------------------------------------------------
+' PrivateProfile file service.
+' Returns a Dictionary of all section names in file (pp_file) - provided as
+' full name string or as file object - in ascending order.
+' ----------------------------------------------------------------------------
+    Const PROC = "PPsectionNames"
+    
+    On Error GoTo eh
+    Dim asSections()    As String
+    Dim dct             As New Dictionary
+    Dim fl              As String
+    Dim fso             As New FileSystemObject
+    Dim i               As Long
+    Dim iLen            As Long
+    Dim strBuffer       As String
+    
+    Set PPsectionNames = New Dictionary
+    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+    
+    If Len(mFso.FileTxt(fl)) = 0 Then GoTo xt
+    
+    Do While (iLen = Len(strBuffer) - 2) Or (iLen = 0)
+        If strBuffer = vbNullString _
+        Then strBuffer = Space$(256) _
+        Else strBuffer = String(Len(strBuffer) * 2, 0)
+        iLen = GetPrivateProfileSectionNames(strBuffer, Len(strBuffer), fl)
+    Loop
+    strBuffer = Left$(strBuffer, iLen)
+    
+    If Len(strBuffer) <> 0 Then
+        i = 0
+        asSections = Split(strBuffer, vbNullChar)
+        For i = LBound(asSections) To UBound(asSections)
+            If asSections(i) <> vbNullString Then
+                AddAscByKey add_dct:=dct _
+                          , add_key:=asSections(i) _
+                          , add_item:=asSections(i)
+            End If
+        Next i
+    End If
+    
+xt: Set PPsectionNames = dct
+    Set dct = Nothing
+    Exit Function
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Public Sub PPsectionsCopy(ByVal pp_source As String, _
+                        ByVal pp_target As String, _
+               Optional ByVal pp_sections As Variant = Nothing, _
+               Optional ByVal pp_merge As Boolean = False)
+' ----------------------------------------------------------------------------
+' PrivateProfile file service.
+' Copies sections from file (pp_source) to file (pp_target), when no section
+' names (pp_sections) are provided all. By default (pp_merge) all sections
+' are replaced.
+' ----------------------------------------------------------------------------
+    Const PROC = "PPsectionCopy"
+    
+    On Error GoTo eh
+    Dim fso         As New FileSystemObject
+    Dim dct         As Dictionary
+    Dim vName       As Variant
+    Dim vSection    As Variant
+    
+    For Each vSection In NamesInArg(pp_sections)
+        If Not pp_merge Then
+            '~~ Section will be replaced
+            mFso.PPremoveSections pp_file:=pp_target _
+                               , pp_sections:=vSection
+        End If
+        Set dct = mFso.PPvalues(pp_file:=pp_source _
+                            , pp_section:=vSection)
+        For Each vName In dct
+            mFso.PPvalue(pp_file:=pp_target _
+                      , pp_section:=vSection _
+                      , pp_value_name:=vName) = dct(vName)
+        Next vName
+     Next vSection
+
+xt: Set dct = Nothing
+    Exit Sub
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Function PPvalueExists(ByVal pp_file As Variant, _
+                            ByVal pp_value_name As String, _
+                            ByVal pp_section As String, _
+                   Optional ByRef pp_file_result As String) As Boolean
+' ----------------------------------------------------------------------------
+' PrivateProfile file service. Returns TRUE when the named value
+' (pp_value_name) exists in the provided section (pp_section) in the file
+' (pp_file) - provided as full name string or file object. When no file is
+' provided a file selection dialog is displayed. When finally there's still no
+' file provided the function returns FALSE without notice.
+' ----------------------------------------------------------------------------
+    Const PROC = "PPvalueExists"
+    
+    Dim fl As String
+    If PPfile(pp_file, ErrSrc(PROC), fl) <> vbNullString Then
+        pp_file_result = fl
+        If mFso.PPsectionExists(pp_file:=fl, pp_section:=pp_section) Then
+            PPvalueExists = mFso.PPvalueNames(fl, pp_section).Exists(pp_value_name)
+        End If
+    End If
+End Function
+
+Public Function PPvalueNames(ByVal pp_file As Variant, _
+                           ByVal pp_section As String, _
+                  Optional ByRef pp_file_result As String) As Dictionary
+' ------------------------------------------------------------------------
+' PrivateProfile file service. Returns a Dictionary of all value names,
+' with the value name as key and the value as item, in ascending order by
+' value name, in the provided section (pp_section) in file (pp_file) -
+' provided either a full name string or as file object.
+' ------------------------------------------------------------------------
+    Const PROC = "PPvalueNames"
+    
+    On Error GoTo eh
+    Dim asNames()   As String
+    Dim dctNames    As New Dictionary
+    Dim i           As Long
+    Dim lResult     As Long
+    Dim sNames      As String
+    Dim strBuffer   As String
+    Dim v           As Variant
+    Dim sSection    As String
+    Dim sName       As String
+    Dim vNames      As Variant
+    Dim fl          As String
+    
+    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+    
+    Set vNames = NamesInArg(pp_section)
+    If vNames.Count = 0 Then Set vNames = mFso.PPsectionNames(fl)
+    
+    For Each v In vNames
+        sSection = v
+        '~~> Retrieve the names for the provided section
+        strBuffer = Space$(32767)
+        lResult = GetPrivateProfileString(lpg_ApplicationName:=sSection _
+                                        , lpg_KeyName:=vbNullString _
+                                        , lpg_Default:=vbNullString _
+                                        , lpg_ReturnedString:=strBuffer _
+                                        , nSize:=Len(strBuffer) _
+                                        , lpg_FileName:=fl _
+                                         )
+        sNames = Left$(strBuffer, lResult)
+    
+        If sNames <> vbNullString Then                                         ' If there were any names
+            asNames = Split(sNames, vbNullChar)                      ' have them split into an array
+            For i = LBound(asNames) To UBound(asNames)
+                sName = asNames(i)
+                If Len(sName) <> 0 Then
+                    If Not dctNames.Exists(sName) _
+                    Then AddAscByKey add_dct:=dctNames _
+                                   , add_key:=sName _
+                                   , add_item:=mFso.PPvalue(pp_file:=fl _
+                                                         , pp_section:=sSection _
+                                                         , pp_value_name:=sName)
+                End If
+            Next i
+        End If
+    Next v
+        
+    Set PPvalueNames = dctNames
+
+xt: Set dctNames = Nothing
+    Exit Function
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Public Function PPvalues(ByVal pp_file As Variant, _
+                       ByVal pp_section As String, _
+              Optional ByRef pp_file_result As String) As Dictionary
+' ------------------------------------------------------------------------
+' PrivateProfile file service. Returns all values in section (pp_section)
+' in file (pp_file) as Dictionary, with the value name as key and the
+' value as item, with the value names in asscending order. When the
+' provided section does not exist the returned Dictionary is empty.
+' ------------------------------------------------------------------------
+    Const PROC = "PPvalues"
+    
+    On Error GoTo eh
+    Dim asNames()   As String
+    Dim i           As Long
+    Dim lResult     As Long
+    Dim sNames      As String
+    Dim strBuffer   As String
+    Dim sName       As String
+    Dim fl          As String
+    Dim dct         As New Dictionary
+    
+    Set PPvalues = New Dictionary ' may remain empty though
+    If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
+    pp_file_result = fl
+    
+    If Not PPsectionExists(pp_file, pp_section) Then GoTo xt
+    
+    '~~> Retrieve the names in the provided section
+    strBuffer = Space$(32767)
+    lResult = GetPrivateProfileString(lpg_ApplicationName:=pp_section _
+                                    , lpg_KeyName:=vbNullString _
+                                    , lpg_Default:=vbNullString _
+                                    , lpg_ReturnedString:=strBuffer _
+                                    , nSize:=Len(strBuffer) _
+                                    , lpg_FileName:=fl _
+                                     )
+    sNames = Left$(strBuffer, lResult)
+
+    If sNames <> vbNullString Then                                         ' If there were any names
+        asNames = Split(sNames, vbNullChar)                      ' have them split into an array
+        For i = LBound(asNames) To UBound(asNames)
+            sName = asNames(i)
+            If Len(sName) <> 0 Then
+                If Not dct.Exists(sName) Then
+                    AddAscByKey add_dct:=dct _
+                              , add_key:=sName _
+                              , add_item:=mFso.PPvalue(pp_file:=fl _
+                                                     , pp_section:=pp_section _
+                                                     , pp_value_name:=sName)
+                Else
+                    Debug.Print "Duplicate Name '" & sName & "' in section '" & pp_section & "' ignored!"
+                End If
+            End If
+        Next i
+    End If
+
+xt: Set PPvalues = dct
+    Set dct = Nothing
+    Exit Function
+    
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
