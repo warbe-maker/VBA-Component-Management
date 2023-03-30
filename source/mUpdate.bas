@@ -81,8 +81,6 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
 ' W. Rauschenberger Berlin, Jan 2023
 ' ------------------------------------------------------------------------------
     Const PROC              As String = "ByReImport"
-    Const MONITORED_STEPS   As Long = 11
-    Const MONITOR_POS       As String = "20;400"
     
     On Error GoTo eh
     Dim sTempName       As String
@@ -102,15 +100,10 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
     '~~ Create and activate a hidden Workbook
     '~~ Because this may not be the first step the monitor initialization values are provided.
     '~~ They are ignored by the service when the monitor window is already initialized
-    If b_monitor Then
-        lStep = lStep + 1
-        tMonitorStep.Text = lStep & ". Activate a hidden temporary Workbook."
-        mMsg.Monitor mon_title:=sMonitorTitle _
-                   , mon_text:=tMonitorStep _
-                   , mon_steps_displayed:=MONITORED_STEPS _
-                   , mon_width_min:=70 _
-                   , mon_pos:=MONITOR_POS
-    End If
+    MonitorFirstStep m_step:=lStep _
+                   , m_step_txt:="Activate a hidden temporary Workbook." _
+                   , m_title:=sMonitorTitle _
+                   , m_monitor:=b_monitor
     Set TmpWbk = TempWbkHidden()
     TmpWbk.Activate
               
@@ -243,6 +236,7 @@ End Sub
 
 Private Sub MonitorFirstStep(ByRef m_step As Long, _
                              ByVal m_step_txt As String, _
+                             ByVal m_title As String, _
                     Optional ByVal m_monitor As Boolean = False)
 ' ------------------------------------------------------------------------------
 '
@@ -250,7 +244,7 @@ Private Sub MonitorFirstStep(ByRef m_step As Long, _
     If m_monitor Then
         m_step = m_step + 1
         tMonitorStep.Text = m_step & ". " & m_step_txt
-        mMsg.Monitor mon_title:=sMonitorTitle _
+        mMsg.Monitor mon_title:=m_title _
                    , mon_text:=tMonitorStep _
                    , mon_steps_displayed:=MONITORED_STEPS _
                    , mon_width_min:=70 _

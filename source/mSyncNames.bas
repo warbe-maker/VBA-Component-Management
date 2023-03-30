@@ -20,26 +20,15 @@ Private dctMultipleSource   As Dictionary
 Private dctMultipleTarget   As Dictionary
 Private lMultiply           As Long
 
-Public Enum enCorrespondingNamesQuality
+Private Enum enCorrespondingNamesQuality
     '~~ All possible qualities of Names corresponding of which only some may be used
-    enName              ' Only the Name is equal
-    enRef               ' Only the RefersTo is equal
-    enScope             ' Only the Scope is equal
     enAndNameRefScope   ' Equal Name, RefersTo, and Scope
-    enAndNameRef        ' Equal Name and RefersTo
-                        ' When the compared Workbooks are different the RefersTo property will refer to the
-                        ' corresponding sheet, which is one the Names are yet not synchronized (but the
-                        ' CodeNames will be equal however, which identifies the same sheet.
-    enAndNameScope      ' Equal Name and Scope
-    enAndRefScope       ' Equal RefersTo and Scope
-    enOrNameRefScope    ' Either Name, RefersTo, or Scope is equal
     enOrNameRef         ' Either Name or RefersTo is equal
-    enOrNameScope       ' Either Name or Scope is equal
-    enOrRefScope        ' Either RefersTo or Scope is equal
 End Enum
 
 Public Property Get KnownChanged(Optional ByVal k_nme_id As String, _
                                  Optional ByVal k_nme_item As Variant) As Boolean
+    k_nme_item = k_nme_item
     If Not dctKnownChanged Is Nothing Then
         KnownChanged = dctKnownChanged.Exists(k_nme_id)
     End If
@@ -61,13 +50,13 @@ Private Property Let KnownInSync(Optional ByVal k_nme_id As String, _
     If b Then mSync.CollectKnown dctKnownInSync, k_nme_id
 End Property
 
-Public Property Get KnownMultiple(Optional ByVal k_nme_id As String) As Boolean
+Private Property Get KnownMultiple(Optional ByVal k_nme_id As String) As Boolean
     If Not dctKnownMultiple Is Nothing _
     Then KnownMultiple = dctKnownMultiple.Exists(k_nme_id)
 End Property
 
-Public Property Let KnownMultiple(Optional ByVal k_nme_id As String, _
-                                           ByVal b As Boolean)
+Private Property Let KnownMultiple(Optional ByVal k_nme_id As String, _
+                                            ByVal b As Boolean)
     If b Then
         If Not dctKnownMultiple.Exists(k_nme_id) Then dctKnownMultiple.Add k_nme_id, k_nme_id
     End If
@@ -75,6 +64,7 @@ End Property
 
 Public Property Get KnownNew(Optional ByVal k_nme_id As String, _
                              Optional ByVal k_item As Variant) As Boolean
+    k_item = k_item
     If Not dctKnownNew Is Nothing _
     Then KnownNew = dctKnownNew.Exists(k_nme_id)
 End Property
@@ -87,6 +77,7 @@ End Property
 
 Public Property Get KnownObsolete(Optional ByVal k_nme_id As String, _
                                   Optional ByVal k_item As Variant) As Boolean
+    k_item = k_item
     If Not dctKnownObsolete Is Nothing Then _
     KnownObsolete = dctKnownObsolete.Exists(k_nme_id)
 End Property
@@ -215,7 +206,7 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
     If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
 End Function
 
-Public Sub AppRunChanged()
+Private Sub AppRunChanged()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Changes the Name property of the
 ' Name object in the Sync-Target-Workbook which refers to the Name's (rc_nme)
@@ -244,7 +235,7 @@ Public Sub AppRunChanged()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     sIdsSource = AppRunChangedIdsSource
     sIdsTarget = AppRunChangedIdsTarget
     vSource = Split(sIdsSource, ",")
@@ -269,14 +260,14 @@ Public Sub AppRunChanged()
         mNme.ChangeProperties p_target_nme:=nmeTarget _
                             , p_final_name:=MereName(nmeSource) _
                             , p_final_rng:=CorrespondingRange(nmeSource, wbkSource, wbkTarget) _
-                            , p_final_scope:=CorrespondingScope(nmeSource, wbkSource, wbkTarget) _
+                            , p_final_scope:=CorrespondingScope(nmeSource, wbkTarget) _
                             , p_name_changed:=bName _
                             , p_scope_changed:=bScope
         
         With wsSyncLog
-            If bName Then .Done "change", "Name", sIdTarget, "changed", "Name changed from " & sOldName & " to " & nmeTarget.Name, nmeTarget
-            If bRange Then .Done "change", "Name", sIdTarget, "changed", "Range changed from " & sOldRange & " to " & nmeTarget.RefersTo, nmeTarget
-            If bScope Then .Done "change", "Name", sIdTarget, "changed", "Scope changed from " & sOldScope & " to " & mNme.ScopeName(nmeTarget), nmeTarget
+            If bName Then .Done "change", "Name", sIdTarget, "changed", "Name changed from " & sOldName & " to " & nmeTarget.Name
+            If bRange Then .Done "change", "Name", sIdTarget, "changed", "Range changed from " & sOldRange & " to " & nmeTarget.RefersTo
+            If bScope Then .Done "change", "Name", sIdTarget, "changed", "Scope changed from " & sOldScope & " to " & mNme.ScopeName(nmeTarget)
         End With
         mService.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionChanged, i + 1)
     Next i
@@ -285,7 +276,7 @@ Public Sub AppRunChanged()
     
 xt: mBasic.EoP ErrSrc(PROC)
     If lSyncMode <> SyncSummarized Then
-        MessageUnload TITLE_SYNC_NAMES
+        mService.MessageUnload TITLE_SYNC_NAMES
         mSync.RunSync
     End If
     Exit Sub
@@ -304,7 +295,7 @@ Private Function AppRunChangedIdsTarget() As String
     AppRunChangedIdsTarget = DueSyncIdsByAction(enSyncObjectKindName, enSyncActionChanged, "from")
 End Function
 
-Public Sub AppRunMultiple()
+Private Sub AppRunMultiple()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Removes all target Names identi-
 ' fied by their SyncId (ra_nme_target_ids) and replace them by adding the source
@@ -327,7 +318,7 @@ Public Sub AppRunMultiple()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     va = Split(AppRunMultipleIdsTarget, ",")
     mService.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleRemove, 0)
     mSync.AppRunInit
@@ -366,13 +357,13 @@ Public Sub AppRunMultiple()
                   , c_scope:=vScope _
                   , c_nme:=nme
             
-        wsSyncLog.Done "multiple", "Name", va(i), "new ambiguity added", "New! Multiply added to Sync-Target-Workbook (working copy)", nme
+        wsSyncLog.Done "multiple", "Name", va(i), "new ambiguity added", "New! Multiply added to Sync-Target-Workbook (working copy)"
         mService.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleAdd, i + 1)
     Next i
     dctKnownMultiple.RemoveAll ' indicates that all ambiguities had been done
     mSync.AppRunTerminate
     
-xt: MessageUnload TITLE_SYNC_NAMES
+xt: mService.MessageUnload TITLE_SYNC_NAMES
     mBasic.BoP ErrSrc(PROC)
     Exit Sub
 
@@ -390,7 +381,7 @@ Private Function AppRunMultipleIdsTarget() As String
     AppRunMultipleIdsTarget = DueSyncIdsByAction(enSyncObjectKindName, enSyncActionMultipleTarget)
 End Function
 
-Public Sub AppRunNew()
+Private Sub AppRunNew()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Adds a Name object to the
 ' Sync-Target-Workbook with the name (ra_name) referring to
@@ -413,9 +404,9 @@ Public Sub AppRunNew()
     Dim i           As Long
     
     mBasic.BoP ErrSrc(PROC)
-    mSync.MessageUnload TITLE_SYNC_NAMES ' for the next display
+    mService.MessageUnload TITLE_SYNC_NAMES ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     va = Split(AppRunNewIds(enSyncObjectKindName), ",")
     mService.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionAddNew, 0)
     AppRunInit
@@ -446,7 +437,7 @@ Public Sub AppRunNew()
                   , c_scope:=vScope _
                   , c_nme:=nmeTarget
             
-        wsSyncLog.Done "new", "Name", va(i), "added", "New! Added to Sync-Target-Workbook (working copy)", nmeTarget
+        wsSyncLog.Done "new", "Name", va(i), "added", "New! Added to Sync-Target-Workbook (working copy)"
         mService.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionAddNew, i + 1)
     Next i
     dctKnownNew.RemoveAll ' indicates that all new Names had been added
@@ -454,7 +445,7 @@ Public Sub AppRunNew()
     
 xt: mBasic.EoP ErrSrc(PROC)
     If lSyncMode <> SyncSummarized Then
-        MessageUnload TITLE_SYNC_NAMES
+        mService.MessageUnload TITLE_SYNC_NAMES
         mSync.RunSync
     End If
     Exit Sub
@@ -465,7 +456,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub AppRunObsolete()
+Private Sub AppRunObsolete()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Removes the Name objects identi-
 ' fied via a comma separated string if ids (rr_nme_ids) from the Sync-Target-
@@ -480,7 +471,7 @@ Public Sub AppRunObsolete()
     Dim wbkTarget   As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    mSync.MessageUnload TITLE_SYNC_NAMES ' for the next display
+    mService.MessageUnload TITLE_SYNC_NAMES ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
     va = Split(mSync.AppRunObsoleteIds(enSyncObjectKindName), ",")
     mService.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionRemoveObsolete, 0)
@@ -500,7 +491,7 @@ Public Sub AppRunObsolete()
     dctKnownObsolete.RemoveAll ' indicates that all removals had been done
     mSync.AppRunTerminate
     
-xt: MessageUnload TITLE_SYNC_NAMES
+xt: mService.MessageUnload TITLE_SYNC_NAMES
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -536,7 +527,7 @@ Public Sub AppRunSyncAll()
 
 xt: mBasic.EoP ErrSrc(PROC)
     If lSyncMode <> SyncSummarized Then
-        MessageUnload TITLE_SYNC_NAMES
+        mService.MessageUnload TITLE_SYNC_NAMES
         mSync.RunSync
     End If
     Exit Sub
@@ -611,7 +602,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                         Else
                             KnownSkppdSource(sIdSource) = True
                             KnownSkppdTarget(SyncId(nmeTarget)) = True
-                            wsSyncLog.Done "change", "Name", SyncId(nmeTarget), "skipped", "Referred Range change from " & nmeTarget.RefersTo & " to " & nmeSource.RefersTo & " skipped", nmeSource
+                            wsSyncLog.Done "change", "Name", SyncId(nmeTarget), "skipped", "Referred Range change from " & nmeTarget.RefersTo & " to " & nmeSource.RefersTo & " skipped"
                        End If
                     End If
                 End If
@@ -781,7 +772,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function Collected(ByVal c_action As enSyncAction) As Long
+Private Function Collected(ByVal c_action As enSyncAction) As Long
     Select Case True
         Case mSync.SyncActionIsChange(c_action):    Collected = dctKnownChanged.Count
         Case c_action = enSyncActionRemoveObsolete: Collected = dctKnownObsolete.Count
@@ -831,9 +822,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub CollectKnown(ByRef c_dct As Dictionary, _
-                        ByVal c_id As String, _
-               Optional ByVal c_v As Variant = Nothing)
+Private Sub CollectKnown(ByRef c_dct As Dictionary, _
+                         ByVal c_id As String, _
+                Optional ByVal c_v As Variant = Nothing)
 ' ------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------
@@ -898,18 +889,18 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function Corresponding(ByVal c_nme As Name, _
-                              ByVal c_quality As enCorrespondingNamesQuality, _
-                     Optional ByVal c_wbk_source As Workbook = Nothing, _
-                     Optional ByVal c_wbk_target As Workbook = Nothing, _
-                     Optional ByRef c_dct_source As Dictionary, _
-                     Optional ByRef c_dct_target As Dictionary, _
-                     Optional ByRef c_name_differs As Boolean, _
-                     Optional ByRef c_refto_differs As Boolean, _
-                     Optional ByRef c_scope_differs As Boolean, _
-                     Optional ByRef c_none_differs As Boolean, _
-                     Optional ByRef c_nme_corresponding_target As Name, _
-                     Optional ByRef c_nme_corresponding_source As Name) As String
+Private Function Corresponding(ByVal c_nme As Name, _
+                               ByVal c_quality As enCorrespondingNamesQuality, _
+                      Optional ByVal c_wbk_source As Workbook = Nothing, _
+                      Optional ByVal c_wbk_target As Workbook = Nothing, _
+                      Optional ByRef c_dct_source As Dictionary, _
+                      Optional ByRef c_dct_target As Dictionary, _
+                      Optional ByRef c_name_differs As Boolean, _
+                      Optional ByRef c_refto_differs As Boolean, _
+                      Optional ByRef c_scope_differs As Boolean, _
+                      Optional ByRef c_none_differs As Boolean, _
+                      Optional ByRef c_nme_corresponding_target As Name, _
+                      Optional ByRef c_nme_corresponding_source As Name) As String
 ' ------------------------------------------------------------------------
 ' Returns all Names in the Sync-Source-Workbook (c_wbk_source) - when
 ' provided - and in the Sync-Target-Workbook (c_wbk_target) - when
@@ -984,30 +975,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Function
-
-Public Function CorrespondingName(ByVal c_nme_name As String, _
-                                  ByVal c_wbk As Workbook, _
-                         Optional ByRef c_nme_result As Name) As Name
-' -----------------------------------------------------------------------------
-' Returns the Name object of the corresponding Name in the Workbook (c_wbk).
-' When there is no corresponding Name in the Workbook (cn-wb) the function
-' returns Nothing.
-' -----------------------------------------------------------------------------
-    Const PROC = "CorrespondingName"
-    
-    Dim nme As Name
-    
-    mBasic.BoP ErrSrc(PROC)
-    For Each nme In c_wbk.Names
-        If mNme.MereName(nme) = c_nme_name Then
-            Set CorrespondingName = nme
-            Set c_nme_result = nme
-            Exit For
-        End If
-    Next nme
-    mBasic.EoP ErrSrc(PROC)
-    
 End Function
 
 Private Function CorrespondingNames(ByVal c_nme As Name, _
@@ -1108,7 +1075,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function CorrespondingScope(ByVal c_nme_source As Name, _
-                                    ByVal c_wbk_source As Workbook, _
                                     ByVal c_wbk_target As Workbook) As Variant
 ' ------------------------------------------------------------------------------
 ' Returns a target range which corresponds to the source range by considering
@@ -1635,8 +1601,7 @@ Private Function SyncId(ByVal s_nme As Name) As String
 End Function
 
 Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
-                    ByVal s_wbk_target As Workbook, _
-           Optional ByVal s_terminated As Boolean = False)
+                    ByVal s_wbk_target As Workbook)
 ' ----------------------------------------------------------------------------
 ' Displays a dialog to perform all required action to synchronize the Names
 ' of the Sync-Target-Workbook with thos in the Sync-source-Workbook
@@ -1745,7 +1710,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
+                 , dsply_pos:=DialogTop & ";" & DialogLeft
         DoEvents
     End If
      

@@ -17,22 +17,11 @@ Private wbTrgt  As Workbook
 Private vbc     As VBComponent
 Private vbcm    As CodeModule
 
-Private Property Get mRenew_ReImport() As String
-    mRenew_ReImport = mAddin.WbkName & "!mChanged.ReImportCommonComponent"
-End Property
-
-Public Sub ClearIW()
-    Application.VBE.Windows("Direktbereich").SetFocus
-        If Application.VBE.ActiveWindow.Caption = "Direktbereich" And Application.VBE.ActiveWindow.Visible Then
-        Application.SendKeys "^a {DEL} {HOME}"
-    End If
-End Sub
-
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCompManTest" & "." & sProc
 End Function
 
-Public Sub Regression()
+Private Sub Regression()
 ' -----------------------------------------------------------------
 '
 ' -----------------------------------------------------------------
@@ -47,7 +36,7 @@ Public Sub Regression()
     
 End Sub
 
-Public Sub RemoveTestCodeChange(Optional ByVal exp_file As String = vbNullString, _
+Private Sub RemoveTestCodeChange(Optional ByVal exp_file As String = vbNullString, _
                                 Optional ByRef vbc As VBComponent = Nothing)
 ' ------------------------------------------------------------------
 ' Removes a code line from the provided VBComponent (vbc) which has
@@ -89,7 +78,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_01_KindOfComp()
+Private Sub Test_01_KindOfComp()
     Const PROC = "Test_01_KindOfComp"
 
     Dim wbk     As Workbook
@@ -105,7 +94,7 @@ Public Sub Test_01_KindOfComp()
     With Comp
         Set .Wrkbk = wbk
         Set .VBComp = wbk.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = enKindOfComp.enCommCompUsed
+        Debug.Assert .KindOfComp() = mCompMan.enCommCompUsed
     End With
 
     sComp = "fMsg"
@@ -114,7 +103,7 @@ Public Sub Test_01_KindOfComp()
     With Comp
         Set .Wrkbk = wbk
         Set .VBComp = wbk.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = enCommCompUsed
+        Debug.Assert .KindOfComp() = mCompMan.enCommCompUsed
     End With
     
     sComp = "mTest"
@@ -123,7 +112,7 @@ Public Sub Test_01_KindOfComp()
     With Comp
         Set .Wrkbk = wbk
         Set .VBComp = wbk.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = enInternal
+        Debug.Assert .KindOfComp() = mCompMan.enInternal
     End With
     
 xt: wbk.Close SaveChanges:=False
@@ -137,91 +126,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_10_ExportChangedComponents()
-    Const PROC = "Test_ExportChangedComponents"
-    
-    mBasic.BoP ErrSrc(PROC)
-    mCompMan.ExportChangedComponents ThisWorkbook
-    mBasic.EoP ErrSrc(PROC)
-    
-End Sub
-
-Public Sub Test_Config()
-
-    '~~ 1. Basic configuration
-    mMe.Config
-    '~~ 2. Add-in configuration
-    mMe.Config cfg_addin:=True
-    '~~ 3. Synchronization configuration
-    mMe.Config cfg_sync:=True
-    
-End Sub
-
-Public Sub Test_Comps_Changed()
-    
-    Dim Comps   As New clsComps
-    Dim Comp    As New clsComp
-    Dim v       As Variant
-    Dim dct     As Dictionary
-    Dim s       As String
-    
-    mService.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, ThisWorkbook
-    Set Stats = New clsStats
-    
-    Set dct = Comps.Changed(Stats)
-    For Each v In dct
-        Stats.Count sic_used_comm_comps
-        Set Comp = dct(v)
-        s = s & Comp.CompName & ", "
-        Set Comp = Nothing
-    Next v
-    
-    With Stats
-        Debug.Print .Total(sic_comps_total) & " Components"
-        Debug.Print .Total(sic_comps_changed) & " Changed (" & Left(s, Len(s) - 2) & ")"
-    End With
-    Set Comps = Nothing
-    Set Stats = Nothing
-    mService.Terminate
-
-End Sub
-
-Public Sub Test_Comps_Outdated()
-    
-    Dim Comps   As New clsComps
-    Dim Comp    As New clsComp
-    Dim v       As Variant
-    Dim dct     As Dictionary
-    
-    mService.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, ThisWorkbook
-    mService.Log.FileFullName = mFso.FileTemp(, ".log")
-    wsService.CurrentServiceLogFileFullName = mService.Log.FileFullName
-    Set dct = Comps.Outdated(mService.WbkServiced)
-    For Each v In dct
-        Stats.Count sic_used_comm_comps
-        Set Comp = dct(v)
-        mService.Log.ServicedItem = Comp.VBComp
-        If Comp.RawChanged Then
-            Stats.Count sic_comps_changed
-            Debug.Print Comp.CompName & " is regarded outdated"
-        End If
-        Set Comp = Nothing
-    Next v
-    
-    Debug.Print mFso.FileTxt(Log.LogFile)
-    Debug.Print Stats.Total(sic_comps_total) & " Components"
-    Debug.Print Stats.Total(sic_comps_changed) & " Outdated"
-        
-    Set Comps = Nothing
-    Set Stats = Nothing
-    With New FileSystemObject
-        If .FileExists(mService.Log.FileFullName) Then .DeleteFile (mService.Log.FileFullName)
-    End With
-    mService.Terminate
-
-End Sub
-
-Public Sub Test_Log()
+Private Sub Test_Log()
     Const PROC = "Test_Log"
     
     On Error GoTo eh
@@ -248,39 +153,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_Path()
-
-    With New FileSystemObject
-        Debug.Print .GetFile(mFso.FileTemp()).Path
-    End With
-End Sub
-
-Public Sub Test_Refs()
-    
-    Dim ref As Reference
-
-    For Each ref In ThisWorkbook.VBProject.References
-        With ref
-            If InStr(.Description, "Applications Extensibility") <> 0 Then
-                Debug.Print .Description
-                Debug.Print .GUID
-                Debug.Print "Major=" & .Major
-                Debug.Print "Minor=" & .Minor
-                Debug.Print TypeName(.GUID)
-            End If
-            If InStr(.Description, "Scripting Runtime") <> 0 Then
-                Debug.Print .Description
-                Debug.Print .GUID
-                Debug.Print "Major=" & .Major
-                Debug.Print "Minor=" & .Minor
-                Debug.Print TypeName(.GUID)
-            End If
-        End With
-    Next ref
-    
-End Sub
-
-Public Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
+Private Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
                               ByVal rnc_vbc_name As String)
 ' ------------------------------------------------------------------------------
 ' This test procedure is exclusively initiated within the
@@ -339,292 +212,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Test_RenewByImport_0_Regression()
-    Const PROC = ""
-    
-    On Error GoTo eh
-    If mMe.IsAddinInstnc Then Exit Sub
-    
-    mBasic.EoP ErrSrc(PROC)
-'    Test_RenewByImport_1a_Standard_Module_ExpFile_Remote "mFso", repeat:=1
-'    Test_RenewByImport_1b_Standard_Module_ExpFile_Local "mFso", repeat:=1
-'    Test_RenewByImport_2_Class_Module_ExpFile_Local "clsLog", repeat:=2
-'    Test_RenewByImport_3a_UserForm_ExpFile_Local "fMsg", repeat:=1
-    Test_RenewByImport_3b_UserForm_ExpFile_Remote "fMsg", repeat:=1
-
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Sub Test_RenewByImport_1a_Standard_Module_ExpFile_Remote(ByVal test_vbc_name As String, _
-                                                       Optional ByVal repeat As Long = 1)
-' ----------------------------------------------------------------------------
-' This is a kind of "burn-in" test in order to prove that a Standard Module
-' can be renewed by the re-import of an Export-File.
-' The test asserts that a Workbook is able to renew its own VBA code provided
-' it is not active when it is done.
-' ----------------------------------------------------------------------------
-    Const PROC          As String = "Test_RenewByImport_1a_UserForm_ExpFile_Remote"
-    
-    On Error GoTo eh
-    Dim Comp        As New clsComp
-    Dim i           As Long
-    Dim sExpFile    As String
-    Dim flExport    As File
-    
-    If mMe.IsAddinInstnc Then Exit Sub
-    If mMe.IsDevInstnc Then
-        If mAddin.IsOpen Then
-            ' ---------------------------------
-            '~~ Arguments for the Run:
-            '~~ rc_exp_file_full_name As String
-            '~~ rc_vbc_name As String
-            '~~ rc_wbk As Workbook
-            '~~ -------------------------------
-            mBasic.BoP ErrSrc(PROC)
-            With Comp
-                Set .Wrkbk = ThisWorkbook
-                .CompName = test_vbc_name
-                            
-                '~~ ------------------------------------------------------
-                '~~ Second test with the selection of a remote Export-File
-                '~~ ------------------------------------------------------
-                If mFso.FilePicked(p_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
-                              , p_init_path:=mExport.ExpFileFolderPath(.Wrkbk) _
-                              , p_filters:="Export File,*." & Comp.ExpFileExt _
-                              , p_file:=flExport) _
-                Then sExpFile = flExport.Path
-                For i = 1 To repeat
-                    Application.Run .Wrkbk.Name & "!mChanged.ReImportCommonComponent" _
-                                  , .Wrkbk _
-                                  , .CompName _
-                                  , sExpFile
-                Next i
-            End With
-            mBasic.EoP ErrSrc(PROC)
-        End If
-    End If
-    
-xt: Set Comp = Nothing
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Sub Test_RenewByImport_1b_Standard_Module_ExpFile_Local(ByVal test_vbc_name As String, _
-                                                      Optional ByVal repeat As Long = 1)
-' ----------------------------------------------------------------------------
-' This is a kind of "burn-in" test in order to prove that a Standard Module
-' can be renewed by the re-import of an Export-File.
-' The test asserts that a Workbook is able to renew its own VBA code provided
-' it is not active when it is done.
-' ----------------------------------------------------------------------------
-    Const PROC = "Test_RenewByImport_1b_Standard_Module_ExpFile_Local"
-    
-    On Error GoTo eh
-    Dim Comp    As New clsComp
-    Dim i       As Long
-    
-    If mMe.IsAddinInstnc Then Exit Sub
-    If mMe.IsDevInstnc Then
-        If mAddin.IsOpen Then
-            ' ---------------------------------
-            '~~ Arguments for the Run:
-            '~~ rc_exp_file_full_name As String
-            '~~ rc_vbc_name As String
-            '~~ rc_wbk As Workbook
-            '~~ -------------------------------
-            mBasic.BoP ErrSrc(PROC)
-            With Comp
-                Set .Wrkbk = ThisWorkbook
-                .CompName = test_vbc_name
-            
-                For i = 1 To repeat
-                    Application.Run mRenew_ReImport _
-                                  , .Wrkbk _
-                                  , .CompName _
-                                  , .ExpFileFullName
-                Next i
-            End With
-            mBasic.EoP ErrSrc(PROC)
-        End If
-    End If
-    
-xt: Set Comp = Nothing
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub Test_RenewByImport_2_Class_Module_ExpFile_Local(ByVal test_vbc_name As String, _
-                                                   Optional ByVal repeat As Long = 1)
-' ----------------------------------------------------------------------------
-' This is a kind of "burn-in" test in order to prove that a Standard Module
-' can be renewed by the re-import of an Export-File.
-' The test asserts that a Workbook is able to renew its own VBA code provided
-' it is not active when it is done.
-' ----------------------------------------------------------------------------
-    Const PROC = "Test_RenewByImport_2_Class_Module_ExpFile_Local"
-    
-    On Error GoTo eh
-    Dim Comp    As New clsComp
-    Dim i       As Long
-    
-    If mMe.IsAddinInstnc Then Exit Sub
-    If mMe.IsDevInstnc Then
-        If mAddin.IsOpen Then
-            ' ---------------------------------
-            '~~ Arguments for the Run:
-            '~~ rc_exp_file_full_name As String
-            '~~ rc_vbc_name As String
-            '~~ rc_wbk As Workbook
-            '~~ -------------------------------
-            mBasic.BoP ErrSrc(PROC)
-            With Comp
-                Set .Wrkbk = ThisWorkbook
-                .CompName = test_vbc_name
-            
-                For i = 1 To repeat
-                    Application.Run mRenew_ReImport _
-                                  , .Wrkbk _
-                                  , .CompName _
-                                  , .ExpFileFullName
-                Next i
-            End With
-            mBasic.EoP ErrSrc(PROC)
-        End If
-    End If
-    
-xt: Set Comp = Nothing
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub Test_RenewByImport_3a_UserForm_ExpFile_Local(ByVal test_vbc_name As String, _
-                                                Optional ByVal repeat As Long = 1)
-' ----------------------------------------------------------------------------
-' This is a kind of "burn-in" test in order to prove that a Standard Module
-' can be renewed by the re-import of an Export-File.
-' The test asserts that a Workbook is able to renew its own VBA code provided
-' it is not active when it is done.
-' ----------------------------------------------------------------------------
-    Const PROC          As String = "Test_RenewByImport_3a_UserForm_ExpFile_Local"
-    
-    On Error GoTo eh
-    Dim Comp    As New clsComp
-    Dim i       As Long
-    
-    If mMe.IsAddinInstnc Then Exit Sub
-    If mMe.IsDevInstnc Then
-        If mAddin.IsOpen Then
-            ' ---------------------------------
-            '~~ Arguments for the Run:
-            '~~ rc_exp_file_full_name As String
-            '~~ rc_vbc_name As String
-            '~~ rc_wbk As Workbook
-            '~~ -------------------------------
-            mBasic.BoP ErrSrc(PROC)
-            With Comp
-                Set .Wrkbk = ThisWorkbook
-                .CompName = test_vbc_name
-            
-                '~~ -------------------------------------------------
-                '~~ First test with the components origin Export-File
-                '~~ -------------------------------------------------
-                For i = 1 To repeat
-                    Application.Run mRenew_ReImport _
-                                  , .Wrkbk _
-                                  , .CompName _
-                                  , .ExpFileFullName
-                Next i
-            End With
-        End If
-    End If
-    
-xt: Set Comp = Nothing
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub Test_RenewByImport_3b_UserForm_ExpFile_Remote(ByVal test_vbc_name As String, _
-                                                 Optional ByVal repeat As Long = 1)
-' ----------------------------------------------------------------------------
-' This is a kind of "burn-in" test in order to prove that a Standard Module
-' can be renewed by the re-import of an Export-File.
-' The test asserts that a Workbook is able to renew its own VBA code provided
-' it is not active when it is done.
-' ----------------------------------------------------------------------------
-    Const PROC          As String = "Test_RenewByImport_3b_UserForm_ExpFile_Remote"
-    
-    On Error GoTo eh
-    Dim Comp        As New clsComp
-    Dim i           As Long
-    Dim sExpFile    As String
-    Dim flExport    As File
-    
-    If mMe.IsAddinInstnc Then Exit Sub
-    If mMe.IsDevInstnc Then
-        If mAddin.IsOpen Then
-            ' ---------------------------------
-            '~~ Arguments for the Run:
-            '~~ rc_exp_file_full_name As String
-            '~~ rc_vbc_name As String
-            '~~ rc_wbk As Workbook
-            '~~ -------------------------------
-            mBasic.BoP ErrSrc(PROC)
-            With Comp
-                Set .Wrkbk = ThisWorkbook
-                .CompName = test_vbc_name
-                            
-                '~~ ------------------------------------------------------
-                '~~ Second test with the selection of a remote Export-File
-                '~~ ------------------------------------------------------
-                If mFso.FilePicked(p_title:="Select an Export-File for the renewal of the component '" & .CompName & "'!" _
-                              , p_init_path:=mExport.ExpFileFolderPath(.Wrkbk) _
-                              , p_filters:="UserForm, *." & Comp.ExpFileExt _
-                              , p_file:=flExport) _
-                Then sExpFile = flExport.Path
-                For i = 1 To repeat
-                    Application.Run mRenew_ReImport _
-                                  , .Wrkbk _
-                                  , .CompName _
-                                  , sExpFile
-                Next i
-            End With
-            mBasic.EoP ErrSrc(PROC)
-        End If
-    End If
-    
-xt: Set Comp = Nothing
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-
-Public Sub Test_UpdateOutdatedCommonComponents()
+Private Sub Test_UpdateOutdatedCommonComponents()
     Const PROC  As String = "Test_UpdateOutdatedCommonComponents"
     
     On Error GoTo eh
@@ -667,24 +255,5 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
-
-Public Sub Test_WinMerge()
-
-    Dim sF1 As String
-    Dim sF2 As String
-    Dim f1  As File
-    Dim f2  As File
-    
-    mFso.FilePicked p_file:=f1
-    mFso.FilePicked p_file:=f2
-    sF1 = f1.Path
-    sF2 = f2.Path
-    
-    mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=sF1 _
-                                   , fd_exp_file_right_full_name:=sF2 _
-                                   , fd_exp_file_left_title:=sF1 _
-                                   , fd_exp_file_right_title:=sF2
-
 End Sub
 

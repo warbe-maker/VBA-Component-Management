@@ -82,7 +82,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function AppErr(ByVal app_err_no As Long) As Long
+Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ----------------------------------------------------------------------------
 ' Ensures that a programmed (i.e. an application) error numbers never conflicts
 ' with the number of a VB runtime error. Thr function returns a given positive
@@ -146,7 +146,7 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                     mService.Log.ServicedItem = vbc
                     Set .VBComp = vbc
                     Select Case .KindOfComp
-                        Case enCommCompHosted
+                        Case mCompMan.enCommCompHosted
                             If .Changed Then
                                 mService.Log.Entry = "Hosted Raw Common Component code modified"
                                 .Export
@@ -162,7 +162,7 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                                 mService.Log.Entry = "Unchanged Hosted Raw Common Component"
                                 mCompManDat.RegistrationState(.CompName) = enRegStateHosted
                             End If
-                        Case enCommCompUsed
+                        Case mCompMan.enCommCompUsed
                             If .Changed Then
                                 '~~ A warning will be displayed when the modification is about to be reverted
                                 '~~ when the component is updated at Workbook open

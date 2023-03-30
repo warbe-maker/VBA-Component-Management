@@ -6,21 +6,16 @@ Option Explicit
 '                             Sync-Source-Workbook VB-Components.
 ' Public services:
 ' - AllDone         Returns TRUE when all VBComponents are in sync.
-' - CollectChanged  Returns a Collection with all changed VBComponents
-' - CollectNew      Returns a Collection with all new VBComponents
-' - CollectObsolete Returns a Collection with all obsolete VBComponents.
-' - CollectAllItems Writes all relevant items of a kind to the wsSyc Worksheet
 ' - AppRunChanged   Called via Application.Run by CommonButton: Synchronizes a
 '                   code change in a Sync-Source-Workbook's VBComponent with
 '                   the corresponding Sync-Target-Workbook's VBComponent.
-' - RunDsplyDiff    Called via Application.Run by CommonButton: Displays the
-'                   code changes in a Sync-Source-Workbook's VBComponent
-'                   compared with the corresponding Sync-Target-Workbook's
-'                   VBComponent.
-' - RunNew          Called via Application.Run by CommonButton: Adds a
-'                   VBComponent to the provided Workbook's VBProject.
 ' - AppRunObsolete  Called via Application.Run by CommonButton: Removes
 '                   VBComponent from the Sync-Target-Workbook's VBProject.
+' - CollectChanged  Returns a Collection with all changed VBComponents
+' - CollectNew      Returns a Collection with all new VBComponents
+' - CollectObsolete Returns a Collection with all obsolete VBComponents.
+' - RunNew          Called via Application.Run by CommonButton: Adds a
+'                   VBComponent to the provided Workbook's VBProject.
 ' - Sync            Called by mSync.RunSync when there are still outstanding
 '                   VBComponents to be synchronized.
 '
@@ -149,13 +144,13 @@ Public Sub AppRunSyncAll()
     On Error GoTo eh
     
     mBasic.BoP ErrSrc(PROC)
-    If dctKnownChanged.Count > 0 Then AppRunChanged     ' Synchronize changed VB-Components
-    If dctKnownNew.Count > 0 Then AppRunNew             ' Synchronize new VB-Components
-    If dctKnownObsolete.Count > 0 Then AppRunObsolete   ' Synchronize obsolete VB-Components
+    If dctKnownChanged.Count > 0 Then mSyncComps.AppRunChanged     ' Synchronize changed VB-Components
+    If dctKnownNew.Count > 0 Then mSyncComps.AppRunNew             ' Synchronize new VB-Components
+    If dctKnownObsolete.Count > 0 Then mSyncComps.AppRunObsolete   ' Synchronize obsolete VB-Components
 
 xt: mBasic.EoP ErrSrc(PROC)
     If lSyncMode <> SyncSummarized Then
-        MessageUnload TITLE_SYNC_COMPS
+        mService.MessageUnload TITLE_SYNC_COMPS
         mSync.RunSync
     End If
     Exit Sub
@@ -166,7 +161,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub AppRunChanged()
+Private Sub AppRunChanged()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Synchronizes a code change in the
 ' VBComponent (sync_vbc) in the Sync-Source-Workbook with the
@@ -184,7 +179,7 @@ Public Sub AppRunChanged()
     Dim sId         As String
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     Set wbkTarget = mSync.TargetWorkingCopy
     mSync.AppRunInit
     va = Split(AppRunIdsChanged(enSyncObjectKindVBComponent), ",")
@@ -215,7 +210,7 @@ Public Sub AppRunChanged()
     dctKnownChanged.RemoveAll
     mSync.AppRunTerminate
     
-xt: MessageUnload TITLE_SYNC_COMPS
+xt: mService.MessageUnload TITLE_SYNC_COMPS
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -229,7 +224,7 @@ Private Function AppRunIdsChanged(ByVal a_kind As enSyncKindOfObject) As String
     AppRunIdsChanged = DueSyncIdsByAction(a_kind, enSyncActionChanged)
 End Function
 
-Public Sub AppRunNew()
+Private Sub AppRunNew()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Adds the VBComponent (sync_vbc)
 ' to the provided Workbook's (sync_wbk_target) VBProject.
@@ -245,7 +240,7 @@ Public Sub AppRunNew()
     Dim sId         As String
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     Set wbkTarget = mSync.TargetWorkingCopy
     va = Split(AppRunNewIds(enSyncObjectKindVBComponent), ",")
     mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionAddNew, 0)
@@ -269,7 +264,7 @@ Public Sub AppRunNew()
     dctKnownNew.RemoveAll
     mSync.AppRunTerminate
     
-xt: MessageUnload TITLE_SYNC_COMPS
+xt: mService.MessageUnload TITLE_SYNC_COMPS
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -278,9 +273,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-                           
-Public Sub AppRunObsolete()
+                     
+Private Sub AppRunObsolete()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Removes the VBComponent (sync_vbc)
 ' from the provided Sync-Target-Workbook's VBProject.
@@ -296,9 +290,9 @@ Public Sub AppRunObsolete()
     Dim sId         As String
     
     mBasic.BoP ErrSrc(PROC)
-    mSync.MessageUnload TITLE_SYNC_COMPS ' for the next display
+    mService.MessageUnload TITLE_SYNC_COMPS ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     va = Split(AppRunObsoleteIds(enSyncObjectKindVBComponent), ",")
     mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionRemoveObsolete, 0)
     mSync.AppRunInit
@@ -312,7 +306,7 @@ Public Sub AppRunObsolete()
     Next i
     dctKnownObsolete.RemoveAll
     
-xt: MessageUnload TITLE_SYNC_COMPS
+xt: mService.MessageUnload TITLE_SYNC_COMPS
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
@@ -348,8 +342,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub Collect(ByVal c_wbk_source As Workbook, _
-                   ByVal c_wbk_target As Workbook, _
-          Optional ByRef c_terminated As Boolean = False)
+                   ByVal c_wbk_target As Workbook)
 ' ------------------------------------------------------------------------------
 ' Collects obsolete, new and code changed VB-Components.
 ' ------------------------------------------------------------------------------
@@ -412,7 +405,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     Else
                         '~~ When the component type is Document-Module it may be a Workbook component which (still)
                         '~~ has a different name or a Worksheet which still has a different name or does not exist
-                        If IsSheetDocMod(vbcSource, c_wbk_source, wshSource) Then
+                        If mComp.IsSheetDocMod(vbcSource, c_wbk_source, wshSource) Then
                             If Not mWsh.Exists(x_wbk:=c_wbk_target, x_wsh:=wshSource, x_wsh_result:=wshTarget) Then
                                 '~~ The apparently new VBComponent which will be synchronized
                                 '~~ along with the yet not done Worksheet synchronization where
@@ -466,63 +459,6 @@ Private Function IsWrkbkDocMod(ByVal i_vbc As VBComponent, _
 ' ------------------------------------------------------------------------------
     IsWrkbkDocMod = i_vbc.Type = vbext_ct_Document And i_vbc.Name = i_wbk.CodeName
 End Function
-
-Private Function IsSheetDocMod(ByVal i_vbc As VBComponent, _
-                               ByVal i_wbk As Workbook, _
-                      Optional ByRef i_wsh As Worksheet) As Boolean
-' ------------------------------------------------------------------------------
-' When the VBComponent (vbc) represents a Worksheet the function returns TRUE
-' and the corresponding Worksheet (i_wsh).
-' ------------------------------------------------------------------------------
-    Dim wsh As Worksheet
-    
-    IsSheetDocMod = i_vbc.Type = vbext_ct_Document And i_vbc.Name <> i_wbk.CodeName
-    If IsSheetDocMod Then
-        Debug.Print "i_vbc.Name: " & i_vbc.Name
-        For Each wsh In i_wbk.Worksheets
-            Debug.Print "wsh.CodeName: " & wsh.CodeName
-            If wsh.CodeName = i_vbc.Name Then
-                Set i_wsh = wsh
-                Exit For
-            End If
-        Next wsh
-    End If
-    
-End Function
-
-Public Sub CollectAllItems()
-' ------------------------------------------------------------------------------
-' Returns the number of VBComponents involved in synchronization.
-' ------------------------------------------------------------------------------
-    Const PROC = "CollectAllItems"
-    
-    Dim dct         As New Dictionary
-    Dim vbc         As VBComponent
-    Dim lMaxLen     As Long
-    Dim wbkSource   As Workbook:    Set wbkSource = mSync.Source
-    Dim wbkTarget   As Workbook:    Set wbkTarget = mSync.TargetWorkingCopy
-    
-    mBasic.BoP ErrSrc(PROC)
-    
-    For Each vbc In wbkTarget.VBProject.VBComponents
-        lMaxLen = mBasic.Max(lMaxLen, Len(vbc.Name))
-    Next vbc
-    For Each vbc In wbkSource.VBProject.VBComponents
-        lMaxLen = mBasic.Max(lMaxLen, Len(vbc.Name))
-    Next vbc
-    wsService.MaxLenVbcName = lMaxLen
-    
-    For Each vbc In wbkTarget.VBProject.VBComponents
-        If Not dct.Exists(vbc.Name) Then mDct.DctAdd dct, SyncId(vbc, wbkTarget), vbc, , seq_ascending
-    Next vbc
-    For Each vbc In wbkSource.VBProject.VBComponents
-        If Not dct.Exists(vbc.Name) Then mDct.DctAdd dct, SyncId(vbc, wbkSource), vbc, , seq_ascending
-    Next vbc
-    
-    Set dct = Nothing
-    mBasic.EoP ErrSrc(PROC)
-
-End Sub
 
 Private Function CollectInSync(ByVal c_wbk_source As Workbook, _
                                ByVal c_wbk_target As Workbook) As Long
@@ -584,21 +520,18 @@ Private Function Corresponding(ByVal c_this_vbc As VBComponent, _
     Dim sCorrespondingSheet     As String
     Dim sCorrespondingSource    As String:  sCorrespondingSource = "0"
     Dim sCorrespondingTarget    As String:  sCorrespondingTarget = "0"
-    Dim sId                     As String
     Dim vbc                     As VBComponent
     Dim wbkOpposite             As Workbook
     Dim wbkSource               As Workbook
     Dim wbkTarget               As Workbook
     Dim wshThis                 As Worksheet
     Dim wshOpposite             As Worksheet
-    Dim wshThisVbc              As Worksheet
-    Dim vbcOpposite             As VBComponent
     Dim bThisIsSource           As Boolean
     Dim bThisIsTarget           As Boolean
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
 
     Debug.Print wbkTarget.CodeName
     Debug.Print wbkSource.CodeName
@@ -613,7 +546,7 @@ Private Function Corresponding(ByVal c_this_vbc As VBComponent, _
         Set wbkOpposite = c_that_wbk
     End If
     
-    If IsSheetDocMod(c_this_vbc, c_this_wbk, wshThis) Then
+    If mComp.IsSheetDocMod(c_this_vbc, c_this_wbk, wshThis) Then
         '~~ Obtain the VBComponent's corresponding Worksheet in the opposite Workbook
         sCorrespondingSheet = mSyncSheets.Corresponding(c_wsh:=wshThis _
                                                       , c_wbk:=wbkOpposite _
@@ -755,13 +688,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-'Private Sub GetWbkComp(ByVal g_wbk As Workbook, _
-'                       ByRef g_vbc As VBComponent)
-'' ------------------------------------------------------------------------------
-'' Retunrs the Workbook VBComponent.
-'' ------------------------------------------------------------------------------
-'    Set g_vbc = g_wbk.VBProject.VBComponents(g_wbk.CodeName)
-'End Sub
 Public Sub Initialize()
     Set dctKnownInSync = Nothing
     Set dctKnownChanged = Nothing
@@ -771,7 +697,7 @@ Public Sub Initialize()
     Set dctKnownSkppdTarget = Nothing
 End Sub
 
-Public Function Collected(ByVal c_action As enSyncAction) As Long
+Private Function Collected(ByVal c_action As enSyncAction) As Long
     Select Case True
         Case mSync.SyncActionIsChange(c_action):    Collected = dctKnownChanged.Count
         Case c_action = enSyncActionRemoveObsolete: Collected = dctKnownObsolete.Count
@@ -793,43 +719,8 @@ Private Function KnownTarget(ByVal k_id As String) As Boolean
                Or KnownSkppdTarget(k_id)
 End Function
 
-Public Sub RunDsplyDiff(ByVal sync_vbc_name As String)
-' ------------------------------------------------------------------------------
-' Called via Application.Run by CommonButton. Displays the code changes of the
-' VBComponent (sync_vbc_name) in the Sync-Source-Workbook compared with the
-' corresponding component in the Sync-Target-Workbook.
-' ------------------------------------------------------------------------------
-    Const PROC = "RunDsplyDiff"
-    
-    On Error GoTo eh
-    Dim SourceComp  As clsComp
-    Dim TargetComp  As clsComp
-    
-    Set SourceComp = New clsComp
-    With SourceComp
-        Set .Wrkbk = mSync.Source
-        .CompName = sync_vbc_name
-    End With
-    Set TargetComp = New clsComp
-    With TargetComp
-        Set .Wrkbk = mSync.TargetWorkingCopy
-        .CompName = sync_vbc_name
-    End With
-    mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=TargetComp.ExpFileFullName _
-                               , fd_exp_file_right_full_name:=SourceComp.ExpFileFullName _
-                               , fd_exp_file_left_title:="Outdated (in-use) Component: '" & TargetComp.ExpFileFullName & "'" _
-                               , fd_exp_file_right_title:="Current (modified, up-to-date) Component: '" & SourceComp.ExpFileFullName & "'"
-                       
-xt: Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Function SyncId(ByVal s_vbc As VBComponent, _
-                       ByVal s_wbk As Workbook) As String
+Private Function SyncId(ByVal s_vbc As VBComponent, _
+                        ByVal s_wbk As Workbook) As String
 ' ------------------------------------------------------------------------------
 ' Returns a VBComponent-Name used as id throughout VBComponent synchronization.
 ' ------------------------------------------------------------------------------
@@ -837,8 +728,7 @@ Public Function SyncId(ByVal s_vbc As VBComponent, _
 End Function
 
 Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
-                    ByVal s_wbk_target As Workbook, _
-           Optional ByVal s_terminated As Boolean = False)
+                    ByVal s_wbk_target As Workbook)
 ' ----------------------------------------------------------------------------
 ' Displays a dialog to perform all required action to synchronize the VB-
 ' Components in the Sync-Target-Workbook with those in the Sync-Source-
@@ -925,7 +815,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
+                 , dsply_pos:=DialogTop & ";" & DialogLeft
         DoEvents
     End If
     

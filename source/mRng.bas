@@ -263,7 +263,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -373,7 +373,7 @@ Public Function Exists(ByVal e_wbk As Variant, _
     Dim sTest       As String
     Dim wsh         As Worksheet
     Dim wbk         As Workbook
-    Dim rng         As Range
+    Dim Rng         As Range
     Dim wsResult    As Worksheet
 
     BoP ErrSrc(PROC)
@@ -385,9 +385,9 @@ Public Function Exists(ByVal e_wbk As Variant, _
     Then Err.Raise AppErr(2), ErrSrc(PROC), "The Range (parameter e_rng) for the Range's existence check is ""Nothing""!"
     
     If TypeOf e_rng Is Range Then
-        Set rng = e_rng
+        Set Rng = e_rng
         On Error Resume Next
-        sTest = rng.Address
+        sTest = Rng.Address
         Exists = Err.Number = 0
     ElseIf VarType(e_rng) = vbString Then
         If Not SheetExists(wbk, e_wsh, wsResult) _
@@ -432,7 +432,7 @@ Public Function FoundInFormulas(ByVal fif_str As String, _
     Dim cel As Range
     Dim cll As New Collection
     Dim wsh As Worksheet
-    Dim rng As Range
+    Dim Rng As Range
     
     BoP PROC
     For Each wsh In fif_wbk.Worksheets
@@ -441,9 +441,9 @@ Public Function FoundInFormulas(ByVal fif_str As String, _
         End If
         
         On Error Resume Next
-        Set rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
+        Set Rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
         If Err.Number <> 0 Then GoTo nw
-        For Each cel In rng
+        For Each cel In Rng
             If InStr(1, cel.Formula, fif_str) > 0 Then
                 FoundInFormulas = True
                 If IsMissing(fif_cll) Then

@@ -13,9 +13,9 @@ Public Property Get CommonComponentsOutdated() As Long:                 CommonCo
 
 Public Property Let CommonComponentsOutdated(ByVal l As Long):          Me.Range("celCommonComponentsOutdated").Value = l:                                      End Property
 
-Public Property Get CommonComponentsUpdated() As Long:                  CommonComponentsUpdated = Me.Range("celCommonComponentsUpdated").Value:                 End Property
+Private Property Get CommonComponentsUpdated() As Long:                  CommonComponentsUpdated = Me.Range("celCommonComponentsUpdated").Value:                 End Property
 
-Public Property Let CommonComponentsUpdated(ByVal l As Long):           Me.Range("celCommonComponentsUpdated").Value = l:                                       End Property
+Private Property Let CommonComponentsUpdated(ByVal l As Long):           Me.Range("celCommonComponentsUpdated").Value = l:                                       End Property
 
 Public Property Get CommonComponentsUsed() As Long:                     CommonComponentsUsed = Me.Range("celCommonComponentsUsed").Value:                       End Property
 
@@ -33,9 +33,9 @@ Public Property Get CurrentServiceName() As String:                     CurrentS
 
 Public Property Let CurrentServiceName(ByVal s As String):              Me.Range("celCurrentServiceName").Value = s:                                            End Property
 
-Public Property Get MaxLenSheetSyncId() As Long:                        MaxLenSheetSyncId = Me.Range("celMaxLenSheetSyncId").Value:                             End Property
+Private Property Get MaxLenSheetSyncId() As Long:                       MaxLenSheetSyncId = Me.Range("celMaxLenSheetSyncId").Value:                             End Property
 
-Public Property Let MaxLenSheetSyncId(ByVal l As Long):                 Me.Range("celMaxLenSheetSyncId").Value = l:                                             End Property
+Private Property Let MaxLenSheetSyncId(ByVal l As Long):                Me.Range("celMaxLenSheetSyncId").Value = l:                                             End Property
 
 Public Property Get MaxLenNameSyncId() As Long:                         MaxLenNameSyncId = Me.Range("celMaxLenNameSyncId").Value:                               End Property
 
@@ -45,9 +45,9 @@ Public Property Get MaxLenShapeSyncId() As Long:                        MaxLenSh
 
 Public Property Let MaxLenShapeSyncId(ByVal l As Long):                 Me.Range("celMaxLenShapeSyncId").Value = l:                                             End Property
 
-Public Property Get MaxLenVbcName() As Long:                            MaxLenVbcName = Me.Range("celMaxLenVbcName").Value:                                     End Property
+Private Property Get MaxLenVbcName() As Long:                           MaxLenVbcName = Me.Range("celMaxLenVbcName").Value:                                     End Property
 
-Public Property Let MaxLenVbcName(ByVal l As Long):                     Me.Range("celMaxLenVbcName").Value = l:                                                 End Property
+Private Property Let MaxLenVbcName(ByVal l As Long):                    Me.Range("celMaxLenVbcName").Value = l:                                                 End Property
 
 Public Property Get ServicedItemsMaxLenName() As Long:                  ServicedItemsMaxLenName = Me.Range("celServicedItemsMaxLenName").Value:                 End Property
 
@@ -88,28 +88,23 @@ Public Property Let SyncWorksheets(ByVal b As Boolean):                 Me.Range
 Private Function BtoYN(ByVal b As Boolean) As String
     If b Then BtoYN = "Yes" Else BtoYN = "No"
 End Function
+
 Public Sub ClearDataAllServices()
-    With Me
-        .CurrentServicedWorkbookFullName = vbNullString
-        .ServicedItemsMaxLenName = 0
-        .ServicedItemsMaxLenType = 0
-    End With
+    CurrentServicedWorkbookFullName = vbNullString
+    ServicedItemsMaxLenName = 0
+    ServicedItemsMaxLenType = 0
 End Sub
 
 Public Sub ClearDataSynchService()
-    With Me
-        .MaxLenNameSyncId = 0
-        .MaxLenSheetSyncId = 0
-        .MaxLenVbcName = 0
-    End With
+    MaxLenNameSyncId = 0
+    MaxLenSheetSyncId = 0
+    MaxLenVbcName = 0
 End Sub
 
 Public Sub ClearDataUpdateService()
-    With Me
-        .CommonComponentsUsed = 0
-        .CommonComponentsOutdated = 0
-        .CommonComponentsUpdated = 0
-        .MaxLenVbcName = 0
-    End With
+    CommonComponentsUsed = 0
+    CommonComponentsOutdated = 0
+    CommonComponentsUpdated = 0
+    MaxLenVbcName = 0
 End Sub
 

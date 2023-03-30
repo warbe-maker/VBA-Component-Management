@@ -14,18 +14,13 @@ Option Explicit
 ' ----------------------------------
 Private aCount() As Long
 
-Public Sub Clear()
+Private Sub Clear()
     ReDim aCount(0)
     aCount(0) = 0
 End Sub
 
-Public Property Get Total(Optional ByVal sic As siCounter) As Long
-    If UBound(aCount) < sic Then Total = 0 Else Total = aCount(sic)
-End Property
-
-Public Sub Count( _
-  Optional ByVal c_sic As siCounter, _
-  Optional ByVal c_value As Long = 1)
+Public Sub Count(Optional ByVal c_sic As siCounter, _
+                  Optional ByVal c_value As Long = 1)
 ' -------------------------------------------------------------
 ' Adds the (value) to the array aCount under the index (c_sic).
 ' -------------------------------------------------------------

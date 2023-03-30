@@ -288,12 +288,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-    Private Function FolderCompManRootHasMovedToAnotherLocation() As Boolean
-    With New FileSystemObject
-        FolderCompManRootHasMovedToAnotherLocation = wsConfig.FolderCompManRoot <> .GetFolder(ThisWorkbook.Path).ParentFolder.Path
-    End With
-End Function
-
 Private Function AssertedOfficeVersion() As Boolean
 ' ---------------------------------------------------------------------------
 '
@@ -319,8 +313,6 @@ End Function
 Private Function AssertedWinMerge() As Boolean
     
     Dim Msg As mMsg.TypeMsg
-    Dim BttnDownloadEnglish As String
-    Dim BttnDownloadGerman  As String
     Dim Title               As String
     
     Title = "WinMerge is not installed!"
@@ -359,7 +351,7 @@ Public Property Get DevInstncFullName() As String
                           & DevInstncName
 End Property
 
-Public Property Get DevInstncName() As String
+Private Property Get DevInstncName() As String
     With New FileSystemObject
         DevInstncName = .GetBaseName(ThisWorkbook.FullName) & "." & DEVLP_WORKBOOK_EXTENSION
     End With
@@ -388,7 +380,7 @@ Public Property Let RenewAction(ByVal la_action As String)
     sRenewAction = la_action
 End Property
 
-Public Property Let RenewMonitorResult(Optional ByVal la_last As Boolean = False, _
+Private Property Let RenewMonitorResult(Optional ByVal la_last As Boolean = False, _
                                                 ByVal la_result As String)
     wsConfig.MonitorRenewStep rn_result:=la_result _
                             , rn_last_step:=la_last
@@ -404,11 +396,7 @@ Public Property Let RenewTerminatedByUser(ByVal b As Boolean)
     bRenewTerminatedByUser = b
 End Property
 
-Public Property Get xlAddInFormat() As Long:            xlAddInFormat = ADDIN_FORMAT:                                       End Property
-
-Public Property Get xlDevlpFormat() As Long:            xlDevlpFormat = DEVLP_FORMAT:                                       End Property
-
-Public Sub CompManConfig()
+Private Sub CompManConfig()
 ' ----------------------------------------------------------------------------
 ' Invoked by the corresponding button in the wsAddin (Manage CompMan addin)
 ' Worksheet.
@@ -416,7 +404,7 @@ Public Sub CompManConfig()
     mMe.Config cfg_silent:=False, cfg_addin:=False, cfg_sync:=False
 End Sub
 
-Public Function Config(Optional ByVal cfg_silent As Boolean = False, _
+Private Function Config(Optional ByVal cfg_silent As Boolean = False, _
                        Optional ByVal cfg_addin As Boolean = False, _
                        Optional ByVal cfg_sync As Boolean = False) As Boolean
 ' ----------------------------------------------------------------------------
@@ -519,11 +507,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-Private Function DevInstncWorkbookExists() As Boolean
-Dim fso As New FileSystemObject
-    DevInstncWorkbookExists = fso.FileExists(DevInstncFullName)
-End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mMe" & "." & sProc
@@ -707,7 +690,7 @@ Private Function Renew_08_SaveDevInstncWorkbookAsAddin() As Boolean
             '~~ At this point the Add-in must no longer exist at its location
             .EnableEvents = False
             On Error Resume Next
-            wbkSource.SaveAs WbkFullName, FileFormat:=xlAddInFormat
+            wbkSource.SaveAs WbkFullName, FileFormat:=ADDIN_FORMAT
             Renew_08_SaveDevInstncWorkbookAsAddin = Err.Number = 0
             If Not Renew_08_SaveDevInstncWorkbookAsAddin Then
                 mMe.RenewMonitorResult("Save Development instance as Add-in instance  " & mBasic.Spaced("failed!") _

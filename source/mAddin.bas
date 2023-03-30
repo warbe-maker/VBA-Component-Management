@@ -52,17 +52,6 @@ Public Property Get WbkName() As String
     End With
 End Property
 
-Public Sub AddinFlipStatus()
-    If mMe.IsDevInstnc Then
-        If mAddin.Paused Then
-            mAddin.Paused = False
-        Else
-            mAddin.Paused = True
-        End If
-        wsConfig.CurrentStatus
-    End If
-End Sub
-
 Public Sub Clear(ByVal c_addin_folder_full_name As String)
 ' ----------------------------------------------------------------------------
 ' Clears all items concerning the Add-in despite the Add-in folder.

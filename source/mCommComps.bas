@@ -48,7 +48,7 @@ Public Property Get RawHostWbBaseName(Optional ByVal comp_name As String) As Str
     RawHostWbBaseName = Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_HOST_BASE_NAME)
 End Property
 
-Public Property Let RawHostWbBaseName(Optional ByVal comp_name As String, _
+Private Property Let RawHostWbBaseName(Optional ByVal comp_name As String, _
                                             ByVal host_wbk_base_name As String)
     Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_HOST_BASE_NAME) = host_wbk_base_name
 End Property
@@ -57,8 +57,8 @@ Public Property Get RawHostWbFullName(Optional ByVal comp_name As String) As Str
     RawHostWbFullName = Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_HOST_FULL_NAME)
 End Property
 
-Public Property Let RawHostWbFullName(Optional ByVal comp_name As String, _
-                                               ByVal hst_full_name As String)
+Private Property Let RawHostWbFullName(Optional ByVal comp_name As String, _
+                                                ByVal hst_full_name As String)
     Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_HOST_FULL_NAME) = hst_full_name
 End Property
 
@@ -87,8 +87,6 @@ Public Property Let RevisionNumber(Optional ByVal comp_name As String, _
     Const PROC = "RevisionNumber Let"
     
     On Error GoTo eh
-    Dim RevDate As String
-    Dim RevNo   As Long
     
     If comp_rev_no = vbNullString Then
         Value(pp_section:=comp_name, pp_value_name:=VNAME_RAW_SAVED_REVISION_NUMBER) = mCompManDat.RevisionNumberInitial
@@ -104,7 +102,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get SavedExpFile(Optional ByVal comp_name) As File
+Private Property Get SavedExpFile(Optional ByVal comp_name) As File
     Const PROC = "SavedExpFile Get"
     
     On Error GoTo eh
@@ -130,7 +128,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Let SavedExpFile(Optional ByVal comp_name, _
+Private Property Let SavedExpFile(Optional ByVal comp_name, _
                                           ByVal comp_exp_file As File)
 ' ---------------------------------------------------------------------------
 ' Copies the Raw Export File from its host Workbook location to the Common
@@ -194,8 +192,8 @@ End Property
 Public Function CommCompRegStateEnum(ByVal s As String) As enCommCompRegState
     Select Case s
         Case "hosted":  CommCompRegStateEnum = enRegStateHosted
-        Case "used":    CommCompRegStateEnum = enRegStateUsed
-        Case "private": CommCompRegStateEnum = enRegStatePrivate
+        Case "used":    CommCompRegStateEnum = mComp.enRegStateUsed
+        Case "private": CommCompRegStateEnum = mComp.enRegStatePrivate
     End Select
 End Function
 
@@ -207,7 +205,7 @@ Public Function CommCompRegStateString(ByVal en As enCommCompRegState) As String
     End Select
 End Function
 
-Public Function Components() As Dictionary
+Private Function Components() As Dictionary
     Set Components = mFso.PPsectionNames(CommCompsDatFileFullName)
 End Function
 
@@ -215,7 +213,7 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCommComps" & "." & sProc
 End Function
 
-Public Function ExistsAsGlobalCommonComponentExportFile(ByVal ex_vbc As VBComponent) As Boolean
+Private Function ExistsAsGlobalCommonComponentExportFile(ByVal ex_vbc As VBComponent) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the VBComponent's (ex_vbc) Export-File exists in the
 ' global Common-Components-Folder.
@@ -269,7 +267,7 @@ Public Sub Hskpng(ByVal h_hosted As String)
     HskpngRemoveObsoleteComponents h_hosted
     HskpngAddMissingComponents
     mCommComps.HskpngHosted h_hosted
-    mCommComps.HskpngUsed h_hosted
+    mCommComps.HskpngUsed
     mCommComps.Reorg
     
 xt: mBasic.EoP ErrSrc(PROC)
@@ -305,11 +303,11 @@ Private Sub HskpngAddMissingComponents()
                 Case "bas", "frm", "cls"
                     sCompName = .GetBaseName(fle.Path)
                     If Not dct.Exists(sCompName) Then
-                        mCommComps.RawExpFileFullName(sCompName) = vbNullString
-                        mCommComps.RawHostWbBaseName(sCompName) = vbNullString
-                        mCommComps.RawHostWbFullName(sCompName) = vbNullString
-                        mCommComps.RawHostWbName(sCompName) = vbNullString
-                        mCommComps.RevisionNumber(sCompName) = mCompManDat.RevisionNumberInitial
+                        RawExpFileFullName(sCompName) = vbNullString
+                        RawHostWbBaseName(sCompName) = vbNullString
+                        RawHostWbFullName(sCompName) = vbNullString
+                        RawHostWbName(sCompName) = vbNullString
+                        RevisionNumber(sCompName) = mCompManDat.RevisionNumberInitial
                     End If
             End Select
         Next fle
@@ -319,11 +317,7 @@ Private Sub HskpngAddMissingComponents()
     Set dct = Nothing
 End Sub
 
-Private Sub HskpngRemoveComponent(ByVal h_comp_name As String)
-    mFso.PPremoveSections pp_file:=CommCompsDatFileFullName, pp_sections:=h_comp_name
-End Sub
-
-Public Sub HskpngRemoveObsoleteComponents(ByVal h_hosted As String)
+Private Sub HskpngRemoveObsoleteComponents(ByVal h_hosted As String)
 ' ------------------------------------------------------------------------------
 ' Remove in the PrivateProfile file CommComps.dat:
 ' - Sections representing VBComponents for which an Export-File does not exist
@@ -385,7 +379,7 @@ Private Sub RemoveSection(ByVal s As String)
     mFso.PPremoveSections CommCompsDatFileFullName, s
 End Sub
 
-Public Function InconsitencyWarning(ByVal exp_file_full_name, _
+Private Function InconsitencyWarning(ByVal exp_file_full_name, _
                                     ByVal saved_exp_file_full_name, _
                                     ByVal sri_diff_message) As Boolean
 ' ----------------------------------------------------------------------------
@@ -450,7 +444,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub HskpngHosted(ByVal m_hosted As String)
+Private Sub HskpngHosted(ByVal m_hosted As String)
 ' ----------------------------------------------------------------------------
 ' - Registers the Workbook as 'Raw-Host' when it hosts at least one Common
 '   Component
@@ -549,7 +543,7 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub HskpngUsed(ByVal m_hosted As String)
+Private Sub HskpngUsed()
 ' ----------------------------------------------------------------------------
 ' Manages the registration of used Common Components, done before change
 ' components are exported and used changed Common Components are updated.
@@ -607,7 +601,7 @@ Public Sub HskpngUsed(ByVal m_hosted As String)
 
 End Sub
 
-Public Function MaxRawLenght() As Long
+Private Function MaxRawLenght() As Long
 ' -----------------------------------------------
 ' Returns the max length of a raw componen's name
 ' -----------------------------------------------
@@ -638,10 +632,7 @@ Public Sub OutdatedUpdate()
     Const PROC = "OutdatedUpdate"
     
     On Error GoTo eh
-    Dim Comp As clsComp
-    
     If Qoutdated Is Nothing Then OutdatedUpdateCollect
-    
     If Not Qoutdated.IsEmpty Then
         OutdatedUpdateChoice
     End If
@@ -738,14 +729,13 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub OutdatedUpdateChoiceDsplyDiffs()
+Private Sub OutdatedUpdateChoiceDsplyDiffs()
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
     Const PROC = "OutdatedUpdateChoiceDsplyDiffs"
     
     On Error GoTo eh
-    Dim wbk     As Workbook
     Dim Comp    As clsComp
     
     mBasic.BoP ErrSrc(PROC)
@@ -756,8 +746,6 @@ Public Sub OutdatedUpdateChoiceDsplyDiffs()
     Set Comp = Nothing
     
 xt: mBasic.EoP ErrSrc(PROC)
-'    MessageUnload UpdateDialogTitle
-'    mCommComps.OutdatedUpdate
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -766,22 +754,20 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub OutdatedUpdateChoiceSkipForever(ByVal u_comp_name)
+Private Sub OutdatedUpdateChoiceSkipForever(ByVal u_comp_name)
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
     Const PROC = "OutdatedUpdateChoiceSkipForever"
     
     On Error GoTo eh
-    Dim wbk     As Workbook
-    Dim Comp    As clsComp
     
     mBasic.BoP ErrSrc(PROC)
     mCompManDat.RegistrationState(u_comp_name) = enRegStatePrivate
     Qoutdated.DeQueue
     
 xt: mBasic.EoP ErrSrc(PROC)
-    MessageUnload UpdateDialogTitle
+    mService.MessageUnload UpdateDialogTitle
     mCommComps.OutdatedUpdate
     Exit Sub
 
@@ -791,21 +777,19 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub OutdatedUpdateChoiceSkipForNow()
+Private Sub OutdatedUpdateChoiceSkipForNow()
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
     Const PROC = "OutdatedUpdateChoiceSkipForNow"
     
     On Error GoTo eh
-    Dim wbk     As Workbook
-    Dim Comp    As clsComp
     
     mBasic.BoP ErrSrc(PROC)
     Qoutdated.DeQueue
     
 xt: mBasic.EoP ErrSrc(PROC)
-    MessageUnload UpdateDialogTitle
+    mService.MessageUnload UpdateDialogTitle
     mCommComps.OutdatedUpdate
     Exit Sub
 
@@ -815,7 +799,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub OutdatedUpdateChoiceUpdate(ByVal u_comp_name As String)
+Private Sub OutdatedUpdateChoiceUpdate(ByVal u_comp_name As String)
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
@@ -842,7 +826,7 @@ Public Sub OutdatedUpdateChoiceUpdate(ByVal u_comp_name As String)
     Set Comp = Nothing
     
 xt: mBasic.EoP ErrSrc(PROC)
-    MessageUnload UpdateDialogTitle
+    mService.MessageUnload UpdateDialogTitle
     mCommComps.OutdatedUpdate
     Exit Sub
 
@@ -852,7 +836,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub OutdatedUpdateCollect()
+Private Sub OutdatedUpdateCollect()
 ' ------------------------------------------------------------------------------
 ' Collects all outdated Used Common Components and enqueues them in Qoutdated.
 ' ------------------------------------------------------------------------------
@@ -864,7 +848,6 @@ Public Sub OutdatedUpdateCollect()
     Dim vbc         As VBComponent
     Dim fso         As New FileSystemObject
     Dim sOutdated   As String
-    Dim v           As Variant
     Dim Comp        As clsComp
     Dim lAll        As Long
     Dim lRemaining  As Long
@@ -886,7 +869,7 @@ Public Sub OutdatedUpdateCollect()
                 Set .Wrkbk = wbk
                 .CompName = vbc.Name
                 Set .VBComp = vbc
-                If .KindOfComp = enCommCompUsed Then
+                If .KindOfComp = mCompMan.enCommCompUsed Then
                     lUsed = lUsed + 1
                     If .Outdated Then
                         Qoutdated.EnQueue Comp
@@ -932,15 +915,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub OutdatedUpdateUnload(ByVal sm_title As String)
-' ----------------------------------------------------------------------------
-' Save current message window position and terminate the display of it.
-' ----------------------------------------------------------------------------
-    UpdateDialogTop = mMsg.MsgInstance(sm_title).Top
-    UpdateDialogLeft = mMsg.MsgInstance(sm_title).Left
-    mMsg.MsgInstance sm_title, True
-End Sub
-
 Private Sub Register(ByVal r_comp_name As String, _
                      ByVal r_exp_file As String)
     Dim fso As New FileSystemObject
@@ -953,11 +927,6 @@ Private Sub Register(ByVal r_comp_name As String, _
     RawExpFileFullName(r_comp_name) = r_exp_file
     Set fso = Nothing
 
-End Sub
-
-Public Sub Remove(ByVal comp_name As String)
-    mFso.PPremoveSections pp_file:=CommCompsDatFileFullName _
-                                  , pp_sections:=comp_name
 End Sub
 
 Public Function SavedExpFileExists(ByVal comp_name As String) As Boolean
@@ -999,7 +968,7 @@ Public Sub SaveToCommonComponentsFolder(ByVal stgf_comp_name As String, _
     Set fso = Nothing
 End Sub
 
-Public Sub Reorg()
+Private Sub Reorg()
     mFso.PPreorg CommCompsDatFileFullName
 End Sub
 

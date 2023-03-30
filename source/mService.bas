@@ -14,6 +14,7 @@ Option Explicit
 ' - FilesDiffer
 ' - FilesDifference
 ' - IsRenamedByCompMan
+' - MessageUnload
 ' - Progress
 ' - RemoveTempRename
 ' - WbkSave
@@ -21,10 +22,12 @@ Option Explicit
 ' Public Properties:
 ' - WbkServiced
 ' ------------------------------------------------------------------------------------
-Public Const LOG_FILE_NAME = "CompMan.Services.log" ' Default log file name
+Public Const LOG_FILE_NAME  As String = "CompMan.Services.log" ' Default log file name
+Public DialogLeft           As Long
+Public DialogTop            As Long
 
-Private wbk As Workbook
-Private cLog    As clsLog
+Private wbk                 As Workbook
+Private cLog                As clsLog
 
 Public Sub Terminate()
     Set cLog = Nothing
@@ -63,7 +66,7 @@ Public Property Let WbkServiced(ByVal ws_wbk As Workbook)
 
 End Property
 
-Public Sub AddAscByKey(ByRef add_dct As Dictionary, _
+Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
                        ByVal add_key As Variant, _
                        ByVal add_item As Variant)
 ' ------------------------------------------------------------------------------------
@@ -234,7 +237,7 @@ Public Function AllComps(ByVal ac_wbk As Workbook) As Dictionary
 
 End Function
 
-Public Function AppErr(ByVal app_err_no As Long) As Long
+Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
 ' Ensures that a programmed (i.e. an application) error numbers never conflicts
 ' with the number of a VB runtime error. Thr function returns a given positive
@@ -412,7 +415,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -496,18 +499,18 @@ Public Function ExpFilesDiffDisplay( _
     
     If Not AppIsInstalled("WinMerge") _
     Then Err.Raise Number:=AppErr(1) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
     If Not fso.FileExists(fd_exp_file_left_full_name) _
     Then Err.Raise Number:=AppErr(2) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fd_exp_file_left_full_name & """ does not exist!"
     
     If Not fso.FileExists(fd_exp_file_right_full_name) _
     Then Err.Raise Number:=AppErr(3) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fd_exp_file_right_full_name & """ does not exist!"
         
     '~~ Prepare command line
@@ -797,27 +800,6 @@ next_fl:
 
 End Function
 
-Public Sub Install(ByVal in_wbk As Workbook, _
-          Optional ByVal in_comp As String = vbNullString)
-' ------------------------------------------------------------------------------
-' Adds the VBComponent (in_comp) to the VB-Project of the Workbook (in_wbk).
-' ------------------------------------------------------------------------------
-    Const PROC = "Install"
-    
-    On Error GoTo eh
-    
-    mBasic.BoP ErrSrc(PROC)
-    mInstall.CommonComponents in_wbk, in_comp
-
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
 Public Function IsRenamedByCompMan(ByVal comp_name As String) As Boolean
 ' ------------------------------------------------------------------------------
 ' Returns True when the component's name indicates that it is one which had been
@@ -898,78 +880,17 @@ Private Function SelectServicedWrkbk(ByVal gs_service As String) As Workbook
 
 End Function
 
-Private Function CollectOutdatedCommonComps(ByRef cl_wbk As Workbook) As Dictionary
-' ---------------------------------------------------------------------------
-' Returns a Dictionary of all Used Common Components with its VBComponent
-' object as key and its name as item.
-' ---------------------------------------------------------------------------
-    Const PROC = "CollectOutdatedCommonComps"
-    
-    On Error GoTo eh
-    Dim vbc     As VBComponent
-    Dim dct     As New Dictionary
-    Dim fso     As New FileSystemObject
-    Dim Comp    As clsComp
-    Dim RawComp As clsRaw
-    
-    mBasic.BoP ErrSrc(PROC)
-        
-    For Each vbc In cl_wbk.VBProject.VBComponents
-        Set Comp = New clsComp
-        With Comp
-            Set .Wrkbk = cl_wbk
-            .CompName = vbc.Name
-            mService.Log.ServicedItem = .VBComp
-            If .KindOfComp = enCommCompUsed Then
-                If .Changed Then
-                    dct.Add vbc, vbc.Name
-                Else
-                    mService.Log.Entry = "Code un-changed."
-                End If
-            End If
-        End With
-        Set Comp = Nothing
-        Set RawComp = Nothing
-    Next vbc
-
-xt: mBasic.EoP ErrSrc(PROC)
-    Set CollectOutdatedCommonComps = dct
-    Set fso = Nothing
-    Exit Function
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
+Public Sub MessageUnload(ByVal sm_title As String)
+' ----------------------------------------------------------------------------
+' Save current message window position and terminate the display of it.
+' ----------------------------------------------------------------------------
+    DialogTop = mMsg.MsgInstance(sm_title).Top
+    DialogLeft = mMsg.MsgInstance(sm_title).Left
+    mMsg.MsgInstance sm_title, True
+End Sub
 
 Private Function WbkIsRestoredBySystem() As Boolean
     WbkIsRestoredBySystem = InStr(ActiveWindow.Caption, "(") <> 0 _
                          Or InStr(mService.WbkServiced.FullName, "(") <> 0
 End Function
-
-Public Sub WbkSave(ByRef s_wbk As Workbook)
-    Const PROC = "WbkSave"
-    
-    On Error GoTo eh
-    
-    mBasic.BoP ErrSrc(PROC)
-    If s_wbk.Saved Then GoTo xt
-    
-    '~~ This save may cause the Excel application is closed,
-    '~~ specifically when the save is performed immediately after a code update !!!
-    mBasic.TimedDoEvents (ErrSrc(PROC))
-    Application.EnableEvents = False
-    s_wbk.Save
-    Application.EnableEvents = True
-    mBasic.TimedDoEvents (ErrSrc(PROC))
-
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
 

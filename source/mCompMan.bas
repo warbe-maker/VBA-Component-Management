@@ -53,11 +53,9 @@ Option Compare Text
 '
 ' W. Rauschenberger Berlin August 2019
 ' -------------------------------------------------------------------------------
-Public Const MAX_LEN_TYPE                   As Long = 17
 Public Const README_URL                     As String = "https://github.com/warbe-maker/Common-VBA-Excel-Component-Management-Services/blob/master/README.md"
 Public Const README_SYNC_CHAPTER            As String = "?#using-the-synchronization-service"
 Public Const README_SYNC_CHAPTER_NAMES      As String = "?#names-synchronization"
-Public Const README_SYNC_CHAPTER_SHEETS     As String = "?#worksheet-synchronization"
 Public Const README_FILES_AND_FOLDERS       As String = "?#files-and-folders"
 
 Public Enum enKindOfComp            ' The kind of VBComponent in the sense of CompMan
@@ -68,74 +66,14 @@ Public Enum enKindOfComp            ' The kind of VBComponent in the sense of Co
 End Enum
 
 Public Enum siCounter
-    sic_clone_changed
-    sic_used_comm_comps
-    sic_cols_new
-    sic_cols_obsolete
     sic_comps
     sic_comps_changed
-    sic_comps_total
-    sic_named_ranges
-    sic_named_ranges_total
-    sic_names_new
-    sic_names_obsolete
-    sic_names_total
-    sic_non_doc_mods_code
-    sic_non_doc_mod_new
-    sic_non_doc_mod_obsolete
-    sic_non_doc_mod_total
-    sic_oobs_new
-    sic_oobs_obsolete
-    sic_oobs_total
-    sic_raw_comm_vbc_changed
     sic_used_comm_vbc_outdated
-    sic_used_comm_vbc_updated
-    sic_refs_new
-    sic_refs_obsolete
-    sic_refs_total
-    sic_rows_new
-    sic_rows_obsolete
-    sic_sheet_controls_new
-    sic_sheet_controls_obsolete
-    sic_sheet_controls_total
-    sic_shape_properties
-    sic_sheets_code
-    sic_sheets_codename
-    sic_sheets_name
-    sic_sheets_new
-    sic_sheets_obsolete
-    sic_sheets_total
 End Enum
 
 Public lMaxCompLength   As Long
-'Public dctHostedRaws    As Dictionary
-Public Stats            As clsStats
     
-'Public Property Get HostedRaws() As Variant:           Set HostedRaws = dctHostedRaws:                 End Property
-'
-'Public Property Let HostedRaws(ByVal hr As Variant)
-'' ----------------------------------------------------------------------------
-'' Saves the names of the components claimed 'hosted raw components' (hr) to
-'' the Dictionary (dctHostedRaws).
-'' ----------------------------------------------------------------------------
-'    Dim v       As Variant
-'    Dim sComp   As String
-'
-'    If dctHostedRaws Is Nothing Then
-'        Set dctHostedRaws = New Dictionary
-'    Else
-'        dctHostedRaws.RemoveAll
-'    End If
-'    For Each v In Split(hr, ",")
-'        sComp = Trim$(v)
-'        If Not dctHostedRaws.Exists(sComp) Then
-'            dctHostedRaws.Add sComp, sComp
-'        End If
-'    Next v
-'
-'End Property
-
-Public Function AppErr(ByVal app_err_no As Long) As Long
+Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
 ' Ensures that a programmed (i.e. an application) error numbers never conflicts
 ' with the number of a VB runtime error. Thr function returns a given positive
@@ -145,47 +83,6 @@ Public Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
     If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
 End Function
-
-Public Sub DisplayChanges(Optional ByVal fl_1 As String = vbNullString, _
-                          Optional ByVal fl_2 As String = vbNullString)
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Const PROC = "DisplayChanges"
-    
-    On Error GoTo eh
-    Dim fl  As File
-    Dim fso As New FileSystemObject
-    
-    If fl_1 = vbNullString Then
-        mFso.FilePicked p_title:="Select the file regarded 'before the change' (displayed at the left)!" _
-                      , p_file:=fl
-        If Not fl Is Nothing Then fl_1 = fl.Path
-    End If
-    
-    If fl_2 = vbNullString Then
-        mFso.FilePicked p_title:="Select the file regarded 'the changed one' (displayed at the right)!" _
-                   , p_file:=fl
-        If Not fl Is Nothing Then fl_2 = fl.Path
-    End If
-    
-    If Not fso.FileExists(fl_1) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "No valid file specification provided with argument fl_1 or no fiie selected for fl_1!"
-    If Not fso.FileExists(fl_2) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "No valid file specification provided with argument fl_2 or no fiie selected for fl_2!"
-                            
-    mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=fl_1 _
-                                   , fd_exp_file_left_title:=fl_1 & " ( b e f o r e  the changes)" _
-                                   , fd_exp_file_right_full_name:=fl_2 _
-                                   , fd_exp_file_right_title:=fl_2 & " ( a f t e r  the changes)"
-
-xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
 
 Private Function ErrMsg(ByVal err_source As String, _
                Optional ByVal err_no As Long = 0, _
@@ -273,7 +170,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -432,10 +329,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub Install()
-    mService.Install ActiveWorkbook
-End Sub
-
 Public Function RunTest(ByVal rt_service As String, _
                         ByRef rt_serviced_wbk As Workbook) As Variant
 ' ----------------------------------------------------------------------------
@@ -560,9 +453,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function WbkIsOpen( _
-           Optional ByVal io_name As String = vbNullString, _
-           Optional ByVal io_full_name As String) As Boolean
+Private Function WbkIsOpen(Optional ByVal io_name As String = vbNullString, _
+                           Optional ByVal io_full_name As String) As Boolean
 ' ----------------------------------------------------------------------------
 ' When the full name is provided the check spans all Excel instances else only
 ' the current one.

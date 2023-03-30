@@ -18,9 +18,9 @@ Private sTestItem       As String
 Private sTestedByTheWay As String
 
 Friend Property Let TestedByTheWay(ByVal btw As String):    sTestedByTheWay = btw:              End Property
-Friend Property Get Details() As String:                    Details = sDetails:                 End Property
+Friend Property Get details() As String:                    details = sDetails:                 End Property
 
-Friend Property Let Details(ByVal s As String):             sDetails = s:                       End Property
+Friend Property Let details(ByVal s As String):             sDetails = s:                       End Property
 
 Friend Property Get FAILED() As String:                     FAILED = "failed!":                 End Property
 
@@ -46,27 +46,3 @@ Friend Property Get TestResult() As String:                 TestResult = sTestRe
 
 Friend Property Let TestResult(ByVal s As String):          sTestResult = s:                    End Property
 
-Public Function Evaluated(ByVal eval_result As Variant) As String
-' ---------------------------------------------------------------
-' Returns TRUE when the evaluation of the test result is positiv.
-' ---------------------------------------------------------------
-    
-    If eval_result = vResultExpected Then
-        sTestResult = Me.PASSED
-        Evaluated = Me.PASSED
-    Else
-        sTestResult = Me.FAILED
-        Evaluated = Me.FAILED
-    End If
-    If bRegression Then Me.Log
-
-End Function
-
-Public Sub Log()
-    Debug.Print "Test procedure   : " & sTestProcedure & vbLf & _
-                "Test item        : " & sTestItem
-    If sTestedByTheWay <> vbNullString Then _
-    Debug.Print "Tested by-the-way: " & sTestedByTheWay
-    Debug.Print "Test detail      : " & sDetails & vbLf & _
-                "Test result      : " & sTestResult
-End Sub

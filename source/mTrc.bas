@@ -90,6 +90,26 @@ Private Enum enTraceInfo
     enPosItmArgs
 End Enum
 
+Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
+    Alias "ShellExecuteA" _
+    (ByVal hWnd As Long, _
+    ByVal lpOperation As String, _
+    ByVal lpFile As String, _
+    ByVal lpParameters As String, _
+    ByVal lpDirectory As String, _
+    ByVal nShowCmd As Long) _
+    As Long
+'***App Window Constants***
+Private Const WIN_NORMAL = 1         'Open Normal
+
+'***Error Codes***
+Private Const ERROR_SUCCESS = 32&
+Private Const ERROR_NO_ASSOC = 31&
+Private Const ERROR_OUT_OF_MEM = 0&
+Private Const ERROR_FILE_NOT_FOUND = 2&
+Private Const ERROR_PATH_NOT_FOUND = 3&
+Private Const ERROR_BAD_FORMAT = 11&
+
 Private Declare PtrSafe Function getFrequency Lib "kernel32" _
 Alias "QueryPerformanceFrequency" (cySysFrequency As Currency) As Long
 Private Declare PtrSafe Function getTickCount Lib "kernel32" _
@@ -340,6 +360,47 @@ Private Property Let NtryTcksOvrhdNtry(Optional ByRef trc_entry As Collection, B
     trc_entry.Add cy, "TON"
 End Property
 
+Private Function ShellRun(ByVal oue_string As String, _
+                 Optional ByVal oue_show_how As Long = WIN_NORMAL) As String
+' ----------------------------------------------------------------------------
+' Opens a folder, email-app, url, or even an Access instance.
+'
+' Usage Examples: - Open a folder:  ShellRun("C:\TEMP\")
+'                 - Call Email app: ShellRun("mailto:user@tutanota.com")
+'                 - Open URL:       ShellRun("http://.......")
+'                 - Unknown:        ShellRun("C:\TEMP\Test") (will call
+'                                   "Open With" dialog)
+'                 - Open Access DB: ShellRun("I:\mdbs\xxxxxx.mdb")
+' Copyright:      This code was originally written by Dev Ashish. It is not to
+'                 be altered or distributed, except as part of an application.
+'                 You are free to use it in any application, provided the
+'                 copyright notice is left unchanged.
+' Courtesy of:    Dev Ashish
+' ----------------------------------------------------------------------------
+
+    Dim lRet            As Long
+    Dim varTaskID       As Variant
+    Dim stRet           As String
+    Dim hWndAccessApp   As Long
+    
+    '~~ First try ShellExecute
+    lRet = apiShellExecute(hWndAccessApp, vbNullString, oue_string, vbNullString, vbNullString, oue_show_how)
+    
+    Select Case True
+        Case lRet = ERROR_OUT_OF_MEM:       stRet = "Execution failed: Out of Memory/Resources!"
+        Case lRet = ERROR_FILE_NOT_FOUND:   stRet = "Execution failed: File not found!"
+        Case lRet = ERROR_PATH_NOT_FOUND:   stRet = "Execution failed: Path not found!"
+        Case lRet = ERROR_BAD_FORMAT:       stRet = "Execution failed: Bad File Format!"
+        Case lRet = ERROR_NO_ASSOC          ' Try the OpenWith dialog
+            varTaskID = Shell("rundll32.exe shell32.dll,OpenAs_RunDLL " & oue_string, WIN_NORMAL)
+            lRet = (varTaskID <> 0)
+        Case lRet > ERROR_SUCCESS:          lRet = -1
+    End Select
+    
+    ShellRun = lRet & IIf(stRet = vbNullString, vbNullString, ", " & stRet)
+
+End Function
+
 Private Property Get SplitStr(ByRef s As String)
 ' ----------------------------------------------------------------------------
 ' Returns the split string in string (s) used by VBA.Split() to turn the
@@ -447,19 +508,9 @@ End Sub
 
 Public Sub Dsply()
 ' ----------------------------------------------------------------------------
-' Display service, available only when the mMsg component is installed.
+' Display service using ShellRun to open the Logfile.
 ' ----------------------------------------------------------------------------
-#If MsgComp = 1 Or ErHComp = 1 Then
-    mMsg.Box Prompt:=LogTxt() _
-           , Title:="Trasce log provided by the Common VBA Execution Trace Service (displayed by mTrc.Dsply)" _
-           , box_monospaced:=True
-#Else
-    VBA.MsgBox "The mMsg.Box service is not available and the VBA.MsgBox is inappropriate " & _
-               "to display a file's content." & vbLf & _
-               "Either the Common VBA Message Service is not installed or it is installed " & _
-               "but neither of the Conditional Compile Arguments MsgComp, ErHComp is set to 1." & vbLf & vbLf & _
-               "The display of the trace result will be done by any text file viewer."
-#End If
+    ShellRun LogFile, WIN_NORMAL
 End Sub
 
 Private Function DsplyArgName(ByVal s As String) As Boolean
@@ -638,7 +689,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     

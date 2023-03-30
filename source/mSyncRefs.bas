@@ -33,8 +33,7 @@ Private Function ErrSrc(ByVal s As String) As String
 End Function
 
 Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
-                    ByVal c_wbk_target As Workbook, _
-           Optional ByVal s_terminated As Boolean = False)
+                    ByVal c_wbk_target As Workbook)
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
@@ -103,7 +102,7 @@ Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
+                 , dsply_pos:=DialogTop & ";" & DialogLeft
         DoEvents
     End If
 
@@ -128,8 +127,7 @@ Private Function DueCollect(ByVal d_c As String) As Boolean
 End Function
 
 Public Sub Collect(ByVal c_wbk_source As Workbook, _
-                   ByVal c_wbk_target As Workbook, _
-          Optional ByRef c_terminated As Boolean = False)
+                   ByVal c_wbk_target As Workbook)
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
@@ -193,7 +191,7 @@ Public Sub AppRunSyncAll()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
 
     '~~ Remove obsolete References
     With mSync.TargetWorkingCopy.VBProject
@@ -213,15 +211,15 @@ Public Sub AppRunSyncAll()
     End With
 
     '~~ Add new References
-    With mSync.Source.VBProject
+    With mSync.source.VBProject
         For Each ref In .References
             If Not mRef.Exists(mSync.TargetWorkingCopy, ref) Then
                 On Error Resume Next
                 mSync.TargetWorkingCopy.VBProject.References.AddFromGuid ref.GUID, ref.Major, ref.Minor
                 If Err.Number = 0 Then
-                    wsSyncLog.Done "new", "Reference", ref.Description, "added", "Added", ref
+                    wsSyncLog.Done "new", "Reference", ref.Description, "added", "Added"
                 Else
-                    wsSyncLog.Done "new", "Reference", ref.Description, "add failed!", "Add failed! (" & Err.Description & ")", ref
+                    wsSyncLog.Done "new", "Reference", ref.Description, "add failed!", "Add failed! (" & Err.Description & ")"
                 End If
             End If
         Next ref
@@ -231,7 +229,7 @@ Public Sub AppRunSyncAll()
     
 xt: mBasic.EoP ErrSrc(PROC)
     If lSyncMode <> SyncSummarized Then
-        MessageUnload TITLE_SYNC_REFS
+        mService.MessageUnload TITLE_SYNC_REFS
         mSync.RunSync
     End If
     Exit Sub
@@ -312,7 +310,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function Collected(ByVal c_action As enSyncAction) As Long
+Private Function Collected(ByVal c_action As enSyncAction) As Long
     Select Case True
         Case c_action = enSyncActionRemoveObsolete: Collected = dctKnownObsolete.Count
         Case c_action = enSyncActionAddNew:         Collected = dctKnownNew.Count

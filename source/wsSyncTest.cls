@@ -74,7 +74,7 @@ Private Property Get ItemScope(ByVal i_wbk As Workbook) As Variant
     Else Set ItemScope = i_wbk.Worksheets(s)
 End Property
 
-Public Property Get SheetName() As String
+Private Property Get SheetName() As String
     SheetName = Intersect(rngRow.EntireRow, Me.Range("colSheetName").EntireColumn).Value
 End Property
 
@@ -82,27 +82,27 @@ Private Property Get SourceOrTarget() As String
     SourceOrTarget = Intersect(rngRow.EntireRow, Me.Range("colItemSourceOrTarget").EntireColumn).Value
 End Property
 
-Public Property Get SyncTestSource() As Workbook:                               Set SyncTestSource = wbkSyncTestSource:                                     End Property
+Private Property Get SyncTestSource() As Workbook:                               Set SyncTestSource = wbkSyncTestSource:                                     End Property
 
-Public Property Let SyncTestSource(ByVal wbk As Workbook):                      Set wbkSyncTestSource = wbk:                                                End Property
+Private Property Let SyncTestSource(ByVal wbk As Workbook):                      Set wbkSyncTestSource = wbk:                                                End Property
 
-Public Property Get SyncTestSourceFullName() As String:                         SyncTestSourceFullName = sSyncTestSourceFullName:                           End Property
+Public Property Get SyncTestSourceFullName() As String:                          SyncTestSourceFullName = sSyncTestSourceFullName:                           End Property
 
-Public Property Let SyncTestSourceFullName(ByVal s As String):                  sSyncTestSourceFullName = s:                                                End Property
+Private Property Let SyncTestSourceFullName(ByVal s As String):                  sSyncTestSourceFullName = s:                                                End Property
 
-Public Property Get SyncTestTarget() As Workbook:                               Set SyncTestTarget = wbkSyncTestTarget:                                     End Property
+Private Property Get SyncTestTarget() As Workbook:                               Set SyncTestTarget = wbkSyncTestTarget:                                     End Property
 
-Public Property Let SyncTestTarget(ByVal wbk As Workbook):                      Set wbkSyncTestTarget = wbk:                                                End Property
+Private Property Let SyncTestTarget(ByVal wbk As Workbook):                      Set wbkSyncTestTarget = wbk:                                                End Property
 
-Public Property Get SyncTestTargetFullName() As String:                         SyncTestTargetFullName = sSyncTestTargetFullName:                           End Property
+Public Property Get SyncTestTargetFullName() As String:                          SyncTestTargetFullName = sSyncTestTargetFullName:                           End Property
 
-Public Property Let SyncTestTargetFullName(ByVal s As String):                  sSyncTestTargetFullName = s:                                                End Property
+Private Property Let SyncTestTargetFullName(ByVal s As String):                  sSyncTestTargetFullName = s:                                                End Property
 
 Private Property Get TestSetupData() As Range
     Set TestSetupData = Intersect(Me.Range("colsTestData").EntireColumn, Me.Range("rwsTestData"), Me.UsedRange.EntireRow)
 End Property
 
-Public Function AppErr(ByVal app_err_no As Long) As Long
+Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ----------------------------------------------------------------------------
 ' Ensures that a programmed (i.e. an application) error numbers never conflicts
 ' with the number of a VB runtime error. Thr function returns a given positive
@@ -182,8 +182,7 @@ Public Sub Setup(ByVal s_source_or_target As String, _
                                                 , c_name:=ItemName _
                                                 , c_type:=ItemCompType _
                                                 , c_from_file:=ItemFromFile _
-                                                , c_wbk:=wbk _
-                                                , c_comment:=ItemComment
+                                                , c_wbk:=wbk
                                                 
                     Case "Worksheet":   SetupSheet s_name:=ItemName _
                                                  , s_code_name:=ItemCodeName _
@@ -209,8 +208,7 @@ Private Sub SetupComp(ByVal c_source_or_target As String, _
                       ByVal c_name As String, _
                       ByVal c_type As String, _
                       ByVal c_from_file As String, _
-                      ByVal c_wbk As Workbook, _
-                      ByVal c_comment As String)
+                      ByVal c_wbk As Workbook)
 ' ----------------------------------------------------------------------------
 ' Creates a VBComponent named (c_name) of type (c_type) in the Workbook
 ' (c_wbk) with the content (c_from_file).
@@ -235,7 +233,7 @@ Private Sub SetupComp(ByVal c_source_or_target As String, _
                 Select Case c_type
                     Case "Document Module (Worksheet)" _
                        , "Document Module (Workbook)"
-                                                        SetupCompDocMod c_wbk, c_name, c_type, sFromFile, vbc
+                                                        SetupCompDocMod s_wbk:=c_wbk, s_comp_name:=c_name, s_comp_type:=c_type, s_vbc:=vbc
                     Case "Standard Module":             Set vbc = .Add(vbext_ct_StdModule)
                     Case "Class Module":                Set vbc = .Add(vbext_ct_ClassModule)
                     Case "UserForm":                    Set vbc = .Add(vbext_ct_MSForm)
@@ -263,7 +261,6 @@ End Sub
 Private Sub SetupCompDocMod(ByVal s_wbk As Workbook, _
                             ByVal s_comp_name As String, _
                             ByVal s_comp_type As String, _
-                            ByVal s_from_file As String, _
                             ByRef s_vbc As VBComponent)
 ' ------------------------------------------------------------------------
 '
@@ -338,11 +335,11 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function SetupName(ByVal n_name As String, _
-                          ByVal n_rng As Range, _
-                          ByVal n_scope As Variant, _
-                 Optional ByVal n_comment As String = vbNullString, _
-                 Optional ByRef n_nme As Name) As Name
+Private Function SetupName(ByVal n_name As String, _
+                           ByVal n_rng As Range, _
+                           ByVal n_scope As Variant, _
+                  Optional ByVal n_comment As String = vbNullString, _
+                  Optional ByRef n_nme As Name) As Name
 ' ------------------------------------------------------------------------
 ' Returns a Name object, optionally (n_nme), with the provided properties
 ' and the provided scope (n_scope).
@@ -387,8 +384,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub SetupReference(ByVal r_name As String, _
-                          ByVal r_wbk As Workbook)
+Private Sub SetupReference(ByVal r_name As String, _
+                           ByVal r_wbk As Workbook)
 ' ------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------
@@ -414,13 +411,13 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function SetupSheet(ByVal s_name As String, _
-                           ByVal s_code_name As String, _
-                           ByVal s_wbk As Workbook, _
-                           ByVal s_source_or_target As String, _
-                           ByRef s_first_source As Boolean, _
-                           ByRef s_first_target As Boolean, _
-                  Optional ByVal s_comment As String = vbNullString) As Worksheet
+Private Function SetupSheet(ByVal s_name As String, _
+                            ByVal s_code_name As String, _
+                            ByVal s_wbk As Workbook, _
+                            ByVal s_source_or_target As String, _
+                            ByRef s_first_source As Boolean, _
+                            ByRef s_first_target As Boolean, _
+                   Optional ByVal s_comment As String = vbNullString) As Worksheet
 ' ------------------------------------------------------------------------
 ' Returns a Name object, optionally (s_nme), with the provided properties
 ' and the provided scope (s_scope).
@@ -468,8 +465,7 @@ End Function
 
 Private Sub SetupTestWorkbooksCleanup(ByVal s_sync_source As String, _
                                         ByVal s_sync_target As String, _
-                               Optional ByVal s_sync_target_copy As String = vbNullString, _
-                               Optional ByVal s_regression As Boolean = False)
+                               Optional ByVal s_sync_target_copy As String = vbNullString)
 ' ------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------
@@ -552,28 +548,26 @@ Public Sub SetupTestWorkbooksEstablish(Optional ByVal s_regression As Boolean = 
     
     SetupTestWorkbooksCleanup sSourceFullName, sTargetFullName, sTrgtCpyFullName
     
-    With wsSyncTest
-        '~~ Create and save source Workbook
-        .SyncTestSource = Application.Workbooks.Add
-        .SyncTestSource.SaveAs FileName:=sSourceFullName _
-                             , FileFormat:=xlExcel12
-        .SyncTestSourceFullName = .SyncTestSource.FullName
-        If s_regression Then .SyncTestSource.Close True
-        
-        '~~ Create and save target Workbook
-        .SyncTestTarget = Application.Workbooks.Add
-        .SyncTestTarget.SaveAs FileName:=sTargetFullName _
-                             , FileFormat:=xlExcel12
-        .SyncTestTargetFullName = .SyncTestTarget.FullName
-        If s_regression Then .SyncTestTarget.Close True
-        
-        '~~ Replaces the mService.Initiate which is inappropriate for individual and regression tests
-        If Not s_regression Then
-            wsService.SyncSourceFullName = .SyncTestSource.FullName
-            wsService.SyncTargetFullNameCopy = .SyncTestTarget.FullName
-            wsService.CurrentServicedWorkbookFullName = .SyncTestTarget.FullName
-        End If
-    End With
+    '~~ Create and save source Workbook
+    SyncTestSource = Application.Workbooks.Add
+    SyncTestSource.SaveAs FileName:=sSourceFullName _
+                         , FileFormat:=xlExcel12
+    SyncTestSourceFullName = SyncTestSource.FullName
+    If s_regression Then SyncTestSource.Close True
+    
+    '~~ Create and save target Workbook
+    SyncTestTarget = Application.Workbooks.Add
+    SyncTestTarget.SaveAs FileName:=sTargetFullName _
+                         , FileFormat:=xlExcel12
+    SyncTestTargetFullName = SyncTestTarget.FullName
+    If s_regression Then SyncTestTarget.Close True
+    
+    '~~ Replaces the mService.Initiate which is inappropriate for individual and regression tests
+    If Not s_regression Then
+        wsService.SyncSourceFullName = SyncTestSource.FullName
+        wsService.SyncTargetFullNameCopy = SyncTestTarget.FullName
+        wsService.CurrentServicedWorkbookFullName = SyncTestTarget.FullName
+    End If
         
 xt: Set fso = Nothing
     Exit Sub

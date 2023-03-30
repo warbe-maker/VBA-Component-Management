@@ -9,31 +9,31 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
 
-Public Property Get CompsDone() As Boolean:         CompsDone = DoneYN(SummaryDone("VBComponent")):            End Property
+Private Property Get CompsDone() As Boolean:         CompsDone = DoneYN(SummaryDone("VBComponent")):            End Property
 
-Public Property Let CompsDone(ByVal b As Boolean):  SummaryDone("VBComponent") = DoneYN(b):                    End Property
+Private Property Let CompsDone(ByVal b As Boolean):  SummaryDone("VBComponent") = DoneYN(b):                    End Property
 
-Public Property Get NamesAdded() As Long:           NamesAdded = Me.Range("celNamesAdded").Value:               End Property
+Private Property Get NamesAdded() As Long:           NamesAdded = Me.Range("celNamesAdded").Value:               End Property
 
-Public Property Get NamesChanged() As Long:         NamesChanged = Me.Range("celNamesChanged").Value:           End Property
+Private Property Get NamesChanged() As Long:         NamesChanged = Me.Range("celNamesChanged").Value:           End Property
 
-Public Property Get NamesDone() As Boolean:         NamesDone = DoneYN(SummaryDone("Name")):                    End Property
+Private Property Get NamesDone() As Boolean:         NamesDone = DoneYN(SummaryDone("Name")):                    End Property
 
-Public Property Let NamesDone(ByVal b As Boolean):  SummaryDone("Name") = DoneYN(b):                            End Property
+Private Property Let NamesDone(ByVal b As Boolean):  SummaryDone("Name") = DoneYN(b):                            End Property
 
-Public Property Get NamesRemoved() As Long:         NamesRemoved = Me.Range("celNamesRemoved").Value:           End Property
+Private Property Get NamesRemoved() As Long:         NamesRemoved = Me.Range("celNamesRemoved").Value:           End Property
 
 Public Property Get RefsDone() As Boolean:          RefsDone = DoneYN(SummaryDone("Reference")):                End Property
 
 Public Property Let RefsDone(ByVal b As Boolean):   SummaryDone("Reference") = DoneYN(b):                       End Property
 
-Public Property Get ShapesDone() As Boolean:        ShapesDone = DoneYN(SummaryDone("Shape")):                  End Property
+Private Property Get ShapesDone() As Boolean:        ShapesDone = DoneYN(SummaryDone("Shape")):                  End Property
 
-Public Property Let ShapesDone(ByVal b As Boolean): SummaryDone("Shape") = DoneYN(b):                           End Property
+Private Property Let ShapesDone(ByVal b As Boolean): SummaryDone("Shape") = DoneYN(b):                           End Property
 
-Public Property Get SheetsDone() As Boolean:        SheetsDone = DoneYN(SummaryDone("Worksheet")):              End Property
+Private Property Get SheetsDone() As Boolean:        SheetsDone = DoneYN(SummaryDone("Worksheet")):              End Property
 
-Public Property Let SheetsDone(ByVal b As Boolean): SummaryDone("Worksheet") = DoneYN(b):                       End Property
+Private Property Let SheetsDone(ByVal b As Boolean): SummaryDone("Worksheet") = DoneYN(b):                       End Property
 
 Public Property Get SummaryDone(Optional ByVal ds_type As String) As Variant
     Dim Rng As Range
@@ -78,8 +78,7 @@ Public Sub Done(ByVal d_prefix As String, _
                 ByVal d_type As String, _
                 ByVal d_item As String, _
                 ByVal d_action As String, _
-       Optional ByVal d_details As String = vbNullString, _
-       Optional ByVal d_log_item As Variant = Nothing)
+       Optional ByVal d_details As String = vbNullString)
 ' ----------------------------------------------------------------------------
 ' Write a done synchronization.
 ' ----------------------------------------------------------------------------
@@ -139,13 +138,6 @@ xt: mBasic.EoP ErrSrc(PROC)
     Exit Function
 
 End Function
-
-Public Sub SummaryDoneShapeProperties(ByVal sp_property As String)
-    With FirstFreeInCol("rngShapePropertiesUpdated")
-        .Value = sp_property
-        .EntireColumn.AutoFit
-    End With
-End Sub
 
 Private Sub Worksheet_Activate()
     Me.Range("rngLogDetails").EntireColumn.AutoFit

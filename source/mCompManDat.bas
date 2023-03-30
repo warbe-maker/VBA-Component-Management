@@ -139,12 +139,12 @@ Private Function ComponentsRegistered(ByVal c_reg_state As enCommCompRegState) A
 End Function
 
 Private Property Get CompRegState(Optional ByVal comp_name As String) As enCommCompRegState
-    CompRegState = CommCompRegStateEnum(Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_REG_STAT_OF_COMPONENT))
+    CompRegState = mCommComps.CommCompRegStateEnum(Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_REG_STAT_OF_COMPONENT))
 End Property
 
 Private Property Let CompRegState(Optional ByVal comp_name As String, _
                                            ByVal comp_reg_state As enCommCompRegState)
-    Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_REG_STAT_OF_COMPONENT) = CommCompRegStateString(comp_reg_state)
+    Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_REG_STAT_OF_COMPONENT) = mCommComps.CommCompRegStateString(comp_reg_state)
 End Property
 
 Public Function Components() As Dictionary
@@ -179,11 +179,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Function
-
-Private Sub Remove(ByVal comp_name As String)
-    mFso.PPremoveSections pp_file:=CompManDatFileFullName _
-                                  , pp_sections:=comp_name
-End Sub
 
 Public Function RevisionNumberInitial() As String
 ' ----------------------------------------------------------------------------
@@ -291,7 +286,7 @@ Private Sub HskpngHosted(ByVal h_hosted As String)
     
 End Sub
 
-Public Sub HskpngRemoveObsoleteSections(ByVal h_hosted As String)
+Private Sub HskpngRemoveObsoleteSections(ByVal h_hosted As String)
 ' ------------------------------------------------------------------------------
 ' Remove sections representing VBComponents no longer existing and those with an
 ' invalid name.
@@ -333,6 +328,3 @@ Private Function HskpngSectionIsInvalid(ByVal h_section As String, _
     End Select
 End Function
 
-Public Sub Reorg()
-    mFso.PPreorg CompManDatFileFullName
-End Sub

@@ -241,7 +241,7 @@ Public Sub ButtonAppRun(ByRef bar_dct As Dictionary, _
     For Each v In bar_arguments
         If TypeName(v) = "Error" Then
             Err.Raise Number:=AppErr(1) _
-                    , Source:=ErrSrc(PROC) _
+                    , source:=ErrSrc(PROC) _
                     , Description:="The ParamArray argument (bar_arguments) contains empty elements but empty elements " & _
                                    "are not supported/possible!" & "||" & _
                                    "Application.Run supports only positional but not named arguments. When only some of " & _
@@ -711,7 +711,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_number = 0 Then err_number = Err.Number
     If err_line = 0 Then err_line = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
         

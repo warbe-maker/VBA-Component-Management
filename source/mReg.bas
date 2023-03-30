@@ -48,7 +48,7 @@ Private Declare PtrSafe Function RegEnumValue Lib "advapi32.dll" Alias "RegEnumV
     lpcbValueName As Long, ByVal lpReserved As Long, lpType As Long, _
     lpData As Any, lpcbData As Long) As Long
 Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (dest As _
-    Any, Source As Any, ByVal numBytes As Long)
+    Any, source As Any, ByVal numBytes As Long)
 
 Private Const HKEY_CURRENT_USER      As Long = &H80000001
 Private Const HKEY_LOCAL_MACHINE     As Long = &H80000002
@@ -179,7 +179,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Function AppErr(ByVal app_err_no As Long) As Long
+Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
 ' Ensures that a programmed (i.e. an application) error numbers never conflicts
 ' with the number of a VB runtime error. Thr function returns a given positive
@@ -503,7 +503,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     

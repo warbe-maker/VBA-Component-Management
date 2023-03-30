@@ -34,18 +34,6 @@ Public Enum enCommCompRegState
     enRegStatePrivate       ' Not a Common Component (though the name matches)
 End Enum
 
-Public Enum vbcmType                ' Type of VBComponent
-    vbext_ct_StdModule = 1          ' .bas
-    vbext_ct_ClassModule = 2        ' .cls
-    vbext_ct_MSForm = 3             ' .frm
-    vbext_ct_ActiveXDesigner = 11   ' ??
-    vbext_ct_Document = 100         ' .cls
-End Enum
-
-Private Function ErrSrc(ByVal es_proc As String) As String
-    ErrSrc = "mComp" & "." & es_proc
-End Function
-
 Public Function Exists(ByVal ex_vbc As Variant, _
                        ByVal ex_wbk As Workbook, _
               Optional ByRef ex_vbc_result As VBComponent) As Boolean
@@ -61,35 +49,27 @@ Public Function Exists(ByVal ex_vbc As Variant, _
     Exists = Err.Number = 0
 End Function
 
-
-Public Function IsSheetDocMod(ByRef is_vbc As VBComponent, _
-                     Optional ByRef is_wbk As Workbook = Nothing, _
-                     Optional ByRef is_wsh_name As String = vbNullString) As Boolean
-' ------------------------------------------------------------------------
-' Returns TRUE when the Component (vbc) is the Worksheet object. When the
-' optional Workbook (wbk) is provided, the sheet's Name is returned
-' (sh_name).
-' ------------------------------------------------------------------------
+Public Function IsSheetDocMod(ByVal i_vbc As VBComponent, _
+                              ByVal i_wbk As Workbook, _
+                     Optional ByRef i_wsh As Worksheet) As Boolean
+' ------------------------------------------------------------------------------
+' When the VBComponent (vbc) represents a Worksheet the function returns TRUE
+' and the corresponding Worksheet (i_wsh).
+' ------------------------------------------------------------------------------
     Dim wsh As Worksheet
-    
-    IsSheetDocMod = is_vbc.Type = vbext_ct_Document And Not mComp.IsWrkbkDocMod(is_vbc)
-    If Not is_wbk Is Nothing Then
-        For Each wsh In is_wbk.Worksheets
-            If wsh.CodeName = is_vbc.Name Then
-                is_wsh_name = wsh.Name
+
+    IsSheetDocMod = i_vbc.Type = vbext_ct_Document And i_vbc.Name <> i_wbk.CodeName
+    If IsSheetDocMod Then
+        Debug.Print "i_vbc.Name: " & i_vbc.Name
+        For Each wsh In i_wbk.Worksheets
+            Debug.Print "wsh.CodeName: " & wsh.CodeName
+            If wsh.CodeName = i_vbc.Name Then
+                Set i_wsh = wsh
                 Exit For
             End If
         Next wsh
     End If
-End Function
 
-Public Function IsWrkbkDocMod(ByRef vbc As VBComponent) As Boolean
-    
-    Dim bSigned As Boolean
-    On Error Resume Next
-    bSigned = vbc.Properties("VBASigned").Value
-    IsWrkbkDocMod = Err.Number = 0
-    
 End Function
 
 Public Function TempName(ByVal tn_wbk As Workbook, _

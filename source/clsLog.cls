@@ -70,10 +70,6 @@ Friend Property Let FileFullName(ByVal s As String)
     sFileFullName = s
 End Property
 
-'Friend Property Get Folder() As String:                 Folder = sFolder:               End Property
-'
-'Friend Property Let Folder(ByVal s As String):          sFolder = s:                    End Property
-
 Friend Property Get LogFile() As File
 ' -----------------------------------------------------------------------------------
 ' Returns the log file as file object
@@ -181,7 +177,7 @@ Friend Property Let ServicedItem(ByVal v As Variant)
     Dim lbl As Label
     Dim img As Image
     Dim cbt As CommandButton
-    Dim rng As Range
+    Dim Rng As Range
     
     Select Case TypeName(v)
         Case "VBComponent":     Set vbc = v:    Select Case vbc.Type
@@ -189,7 +185,7 @@ Friend Property Let ServicedItem(ByVal v As Variant)
                                                     Case vbext_ct_ClassModule:      ServicedItemProperties "Class-Module", vbc.Name
                                                     Case vbext_ct_MSForm:           ServicedItemProperties "UserForm", vbc.Name
                                                     Case vbext_ct_StdModule:        ServicedItemProperties "Standard-Module", vbc.Name
-                                                    Case vbext_ct_Document:         If IsSheetDocMod(vbc, mService.WbkServiced) _
+                                                    Case vbext_ct_Document:         If mComp.IsSheetDocMod(vbc, mService.WbkServiced) _
                                                                                     Then ServicedItemProperties "Worksheet", vbc.Name _
                                                                                     Else ServicedItemProperties "Workbook", vbc.Name
                                                 End Select
@@ -207,7 +203,7 @@ Friend Property Let ServicedItem(ByVal v As Variant)
         Case "SpinButton":      Set sbt = v:    ServicedItemProperties TypeName(v), v.Name
         Case "TextBox":         Set tbx = v:    ServicedItemProperties TypeName(v), v.Name
         Case "ToggleButton":    Set tbt = v:    ServicedItemProperties TypeName(v), v.Name
-        Case "Range":           Set rng = v:    ServicedItemProperties TypeName(v), v.Name.Name
+        Case "Range":           Set Rng = v:    ServicedItemProperties TypeName(v), v.Name.Name
         Case Else
             Debug.Print "TypeName '" & TypeName(v) & "' not yet considered as a serviced item"
     End Select

@@ -5,7 +5,7 @@ Option Explicit
 ' ------------------------------------------------------------------------------
 Public lPropertyMaxLen  As Long
 
-Public Enum enProperties
+Private Enum enProperties
     ' -----------------------------------------------------------------
     ' Enumeration of all read/write properties of Shapes and OLEObjects
     ' -----------------------------------------------------------------
@@ -279,19 +279,19 @@ Private wshSource           As Worksheet    ' module global, set by SyncProperti
 Private dctDueSyncAssert    As Dictionary   ' Properties synched but still pending assertion
 Private enProperty          As enProperties
 
-Public Property Get enPropertiesOOBFirst() As enProperties:     enPropertiesOOBFirst = enOOBAAAAAAAA + 1:           End Property
+Private Property Get enPropertiesOOBFirst() As enProperties:     enPropertiesOOBFirst = enOOBAAAAAAAA + 1:           End Property
 
-Public Property Get enPropertiesOOBLast() As enProperties:      enPropertiesOOBLast = enOOBZZZZZZZZZZZZZ - 1:       End Property
+Private Property Get enPropertiesOOBLast() As enProperties:      enPropertiesOOBLast = enOOBZZZZZZZZZZZZZ - 1:       End Property
 
-Public Property Get enPropertiesShapeFirst() As enProperties:   enPropertiesShapeFirst = enShapeAAAAAAAAAAA + 1:    End Property
+Private Property Get enPropertiesShapeFirst() As enProperties:   enPropertiesShapeFirst = enShapeAAAAAAAAAAA + 1:    End Property
 
-Public Property Get enPropertiesShapeLast() As enProperties:    enPropertiesShapeLast = enShapeZZZZZZZZZZZZZZ - 1:  End Property
+Private Property Get enPropertiesShapeLast() As enProperties:    enPropertiesShapeLast = enShapeZZZZZZZZZZZZZZ - 1:  End Property
 
-Public Property Let OLEObjectSource(ByVal oob As OLEObject):    Set oobSource = oob:    End Property
+Private Property Let OLEObjectSource(ByVal oob As OLEObject):    Set oobSource = oob:    End Property
 
-Public Property Let OLEObjectTarget(ByVal oob As OLEObject):    Set oobTarget = oob:    End Property
+Private Property Let OLEObjectTarget(ByVal oob As OLEObject):    Set oobTarget = oob:    End Property
 
-Public Property Get PropertyMaxLen(Optional ByVal en_from As enProperties = -1, _
+Private Property Get PropertyMaxLen(Optional ByVal en_from As enProperties = -1, _
                                    Optional ByVal en_to As enProperties = -1) As Long
     If en_from = -1 Then en_from = enPropertiesOOBFirst
     If en_to = -1 Then en_to = enPropertiesShapeLast
@@ -305,9 +305,9 @@ Public Property Let ShapeSource(ByVal shp As Shape):            Set shpSource = 
 
 Public Property Let ShapeTarget(ByVal shp As Shape):            Set shpTarget = shp:    End Property
 
-Public Property Let SheetSource(ByVal wsh As Worksheet):        Set wshSource = wsh:    End Property
+Private Property Let SheetSource(ByVal wsh As Worksheet):       Set wshSource = wsh:    End Property
 
-Public Property Let SheetTarget(ByVal wsh As Worksheet):        Set wshTarget = wsh:    End Property
+Private Property Let SheetTarget(ByVal wsh As Worksheet):       Set wshTarget = wsh:    End Property
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -327,7 +327,6 @@ Public Sub CollectChanged(ByVal c_shp_source As Shape)
     Const PROC = "CollectChanged"
     
     On Error GoTo eh
-    Dim enPrprty    As enProperties
     Dim vTarget     As Variant
     Dim vSource     As Variant
     Dim sId         As String
@@ -389,12 +388,12 @@ Private Function ErrSrc(ByVal s As String) As String
 End Function
 
                                                            
-Public Function PropertyChange(ByVal pc_target As Variant, _
+Private Function PropertyChange(ByVal pc_target As Variant, _
                                 ByVal pc_source As Variant) As String
     PropertyChange = " from >" & PropertyValueString(pc_target) & "< to >" & PropertyValueString(pc_source) & "<"
 End Function
 
-Public Function PropertyName(ByVal enProperty As enProperties) As String
+Private Function PropertyName(ByVal enProperty As enProperties) As String
 ' ------------------------------------------------------------------------
 ' Returns the name of the Property (enProperty). Used for logging.
 ' ------------------------------------------------------------------------
@@ -672,8 +671,8 @@ Private Function PropertyServiced(ByVal spv_shp_source As Shape, _
     PropertyServiced = mSyncShapes.TypeString(spv_shp_source) & ";" & spv_wsh_target.Name & "." & ShapeNames(spv_shp_source)
 End Function
 
-Public Function PropertyValue(ByVal sp_enProperty As enProperties, _
-                              ByVal sp_obj As Variant) As String
+Private Function PropertyValue(ByVal sp_enProperty As enProperties, _
+                               ByVal sp_obj As Variant) As String
 ' ------------------------------------------------------------------------------
 ' Synchronizes the Properties vf the shape (shpSource) with the corresponding
 ' shape in the corresponding target sheet in the Sync-Target-Workbook.
@@ -972,8 +971,8 @@ Private Sub SyncAssertion(ByVal sa_obj_source As Variant, _
 
 End Sub
 
-Public Sub SynchabilityCheckOOB(ByVal sc_property As String, _
-                                ByRef sc_dvt_read_write As Dictionary)
+Private Sub SynchabilityCheckOOB(ByVal sc_property As String, _
+                                 ByRef sc_dvt_read_write As Dictionary)
 ' ------------------------------------------------------------------------------
 ' Check r/w for the current property and if yes add a corresponding entry to the
 ' Dictionary (sc_dvt_read_write).
@@ -994,9 +993,9 @@ Public Sub SynchabilityCheckOOB(ByVal sc_property As String, _
 
 End Sub
 
-Public Sub SynchabilityCheckShape(ByVal sc_en_property As enProperties, _
-                                  ByVal sc_property As String, _
-                                  ByRef sc_dvt_read_write As Dictionary)
+Private Sub SynchabilityCheckShape(ByVal sc_en_property As enProperties, _
+                                   ByVal sc_property As String, _
+                                   ByRef sc_dvt_read_write As Dictionary)
 ' ------------------------------------------------------------------------------
 ' Check r/w for the current property and if yes add a corresponding entry to the
 ' Dictionary (sc_dvt_read_write).
@@ -1017,10 +1016,10 @@ Public Sub SynchabilityCheckShape(ByVal sc_en_property As enProperties, _
 
 End Sub
 
-Public Sub SynchedCheckOOB(ByVal sc_en_property As enProperties, _
-                           ByVal sc_property As String, _
-                           ByVal sc_property_max_len As Long, _
-                           ByRef sc_dct_synched As Dictionary)
+Private Sub SynchedCheckOOB(ByVal sc_en_property As enProperties, _
+                            ByVal sc_property As String, _
+                            ByVal sc_property_max_len As Long, _
+                            ByRef sc_dct_synched As Dictionary)
 ' ------------------------------------------------------------------------------
 ' Check whether the current property (sc_en_property) has been synchronized and
 ' add a corresponding entry to the Dictionary (sc_dct_synched).
@@ -1042,8 +1041,8 @@ Public Sub SynchedCheckOOB(ByVal sc_en_property As enProperties, _
 
 End Sub
 
-Public Function SyncId(ByVal s_en_property As enProperties, _
-                       ByVal s_shp As Shape)
+Private Function SyncId(ByVal s_en_property As enProperties, _
+                        ByVal s_shp As Shape)
     SyncId = mSyncShapes.SyncId(s_shp) & "." & PropertyName(s_en_property)
 End Function
 
@@ -1113,7 +1112,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub SyncProperty(ByVal sp_en_property As enProperties)
+Private Sub SyncProperty(ByVal sp_en_property As enProperties)
 ' ------------------------------------------------------------------------------
 ' Synchronizes the Properties vf the shape (shpSource) with the corresponding
 ' shape in the corresponding target sheet in the Sync-Target-Workbook.
@@ -1371,7 +1370,7 @@ Public Sub SyncProperty(ByVal sp_en_property As enProperties)
     
 End Sub
 
-Public Function SyncPropertyAsserted(ByVal sp_enProperty As enProperties) As Boolean
+Private Function SyncPropertyAsserted(ByVal sp_enProperty As enProperties) As Boolean
 ' ------------------------------------------------------------------------------
 ' Synchronizes the Properties vf the shape (shpSource) with the corresponding
 ' shape in the corresponding target sheet in the Sync-Target-Workbook.

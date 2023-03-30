@@ -1072,7 +1072,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -1262,12 +1262,12 @@ Private Function FileCompareByFc(ByVal fc_file1 As String, fc_file2 As String)
     
     If Not fso.FileExists(fc_file1) _
     Then Err.Raise Number:=AppErr(2) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file1 & """ does not exist!"
     
     If Not fso.FileExists(fc_file2) _
     Then Err.Raise Number:=AppErr(3) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file2 & """ does not exist!"
     
     sCommand = "Fc /C /W " & _
@@ -1306,18 +1306,18 @@ Public Function FileCompareByWinMerge(ByVal fc_file_left As String, _
     
     If Not AppIsInstalled("WinMerge") _
     Then Err.Raise Number:=AppErr(1) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
     If Not fso.FileExists(fc_file_left) _
     Then Err.Raise Number:=AppErr(2) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file_left & """ does not exist!"
     
     If Not fso.FileExists(fc_file_right) _
     Then Err.Raise Number:=AppErr(3) _
-                 , Source:=ErrSrc(PROC) _
+                 , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fc_file_right & """ does not exist!"
     
     sCommand = "WinMergeU /e" & _

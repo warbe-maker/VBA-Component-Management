@@ -13,7 +13,7 @@ Private dctKnownNew         As Dictionary
 Private dctKnownObsolete    As Dictionary
 Private dctKnownChanged     As Dictionary
 
-Public Enum enCorrespondingShapesQuality
+Private Enum enCorrespondingShapesQuality
     enOrAny
     enAndAll
 End Enum
@@ -80,7 +80,7 @@ Public Sub AppRunSyncAll()
 
 xt: mBasic.EoP ErrSrc(PROC)
     If lSyncMode <> SyncSummarized Then
-        MessageUnload TITLE_SYNC_SHAPES
+        mService.MessageUnload TITLE_SYNC_SHAPES
         mSync.RunSync
     End If
     Exit Sub
@@ -175,7 +175,7 @@ End Sub
 '    Next v
 '
 '    '~~ Re-display the synchronization dialog for still to be synchronized items
-'    MessageUnload TITLE_SYNC_SHAPES
+'    mService.MessageUnload TITLE_SYNC_SHAPES
 '    mSync.RunSync
 '
 'xt: mBasic.EoP ErrSrc(PROC)
@@ -187,7 +187,7 @@ End Sub
 '    End Select
 'End Sub
 
-Public Sub AppRunChanged()
+Private Sub AppRunChanged()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Synchronizes all Sheets Shapes by
 ' removing obsolete, adding new, and changing the properties when changed.
@@ -202,11 +202,10 @@ Public Sub AppRunChanged()
     Dim wshTarget   As Worksheet
     Dim shpSource   As Shape
     Dim shpTarget   As Shape
-    Dim sShapeName  As String
     Dim dctPrprtys  As New Dictionary
     Dim vSource     As Variant
     Dim vTarget     As Variant
-    Dim sPrgrss   As String
+    Dim sPrgrss     As String
     Dim i           As Long
     
     mBasic.BoP ErrSrc(PROC)
@@ -214,7 +213,7 @@ Public Sub AppRunChanged()
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The precondition of done Worksheet synchronizations is not met!"
             
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     vSource = Split(AppRunChangedIdsSource, ",")
     vTarget = Split(AppRunChangedIdsTarget, ",")
     sPrgrss = "Synchronizing Worksheets > Changed Name or CodeName " & String(UBound(vSource), ".")
@@ -229,7 +228,7 @@ Public Sub AppRunChanged()
     Next i
     dctKnownChanged.RemoveAll ' indicates done
         
-xt: MessageUnload TITLE_SYNC_SHAPES
+xt: mService.MessageUnload TITLE_SYNC_SHAPES
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
@@ -249,7 +248,7 @@ Private Function AppRunChangedIdsTarget() As String
     If Right(AppRunChangedIdsTarget, 1) = "," Then AppRunChangedIdsTarget = Left(AppRunChangedIdsTarget, Len(AppRunChangedIdsTarget) - 1)
 End Function
 
-Public Sub AppRunNew()
+Private Sub AppRunNew()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Synchronizes all Sheets Shapes by
 ' removing obsolete, adding new, and changing the properties when changed.
@@ -263,15 +262,12 @@ Public Sub AppRunNew()
     Dim wshSource   As Worksheet
     Dim wshTarget   As Worksheet
     Dim shpSource   As Shape
-    Dim shpTarget   As Shape
-    Dim sShapeName  As String
-    Dim dctPrprtys  As New Dictionary
     Dim v           As Variant
     Dim i           As Long
         
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     v = Split(mSync.AppRunNewIds(enSyncObjectKindShape), ",")
     mService.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepSyncing, enSyncActionAddNew, 0)
     
@@ -286,7 +282,7 @@ Public Sub AppRunNew()
     Next i
     dctKnownNew.RemoveAll ' indicates done
         
-xt: MessageUnload TITLE_SYNC_SHAPES
+xt: mService.MessageUnload TITLE_SYNC_SHAPES
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
@@ -296,7 +292,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub AppRunObsolete()
+Private Sub AppRunObsolete()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Removes a shape (sync_shp_target)
 ' identified by its Name property, from a Worksheet (sync_wsh_target).
@@ -312,7 +308,7 @@ Public Sub AppRunObsolete()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     v = Split(mSync.AppRunObsoleteIds(enSyncObjectKindShape), ",")
     sPrgrss = "Synchronizing Shapes > Obsolete " & String(UBound(v) + 1, ".")
     mService.DsplyStatus sPrgrss
@@ -334,7 +330,7 @@ Public Sub AppRunObsolete()
     Next i
     dctKnownObsolete.RemoveAll ' indicates done
 
-xt: MessageUnload TITLE_SYNC_SHAPES
+xt: mService.MessageUnload TITLE_SYNC_SHAPES
     mBasic.BoP ErrSrc(PROC)
     Exit Sub
     
@@ -345,8 +341,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub Collect(ByVal c_wbk_source As Workbook, _
-                   ByVal c_wbk_target As Workbook, _
-          Optional ByRef c_terminated As Boolean = False)
+                   ByVal c_wbk_target As Workbook)
 ' ------------------------------------------------------------------------------
 ' Returns a collection of all those sheet controls at least on property has
 ' changed.
@@ -354,7 +349,6 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     Const PROC = "CollectObsolete"
     
     On Error GoTo eh
-    Dim ShapeId     As String
     Dim shpTarget   As Shape
     Dim shpSource   As Shape
     Dim wshTarget   As Worksheet
@@ -435,11 +429,11 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Function Collected(ByVal c_action As enSyncAction) As Long
-'    Select Case True
-'        Case mSync.SyncActionIsChange(c_action):    Collected = dctKnownChanged.Count
-'        Case c_action = enSyncActionRemoveObsolete: Collected = dctKnownObsolete.Count
-'        Case c_action = enSyncActionAddNew:         Collected = dctKnownNew.Count
-'    End Select
+    Select Case True
+        Case mSync.SyncActionIsChange(c_action):    Collected = dctKnownChanged.Count
+        Case c_action = enSyncActionRemoveObsolete: Collected = dctKnownObsolete.Count
+        Case c_action = enSyncActionAddNew:         Collected = dctKnownNew.Count
+    End Select
 End Function
 
 Private Function GetShapesCount(ByVal c_wbk As Workbook) As Long
@@ -617,8 +611,6 @@ Public Function AllDone(ByVal d_wbk_source As Workbook, _
     
     On Error GoTo eh
     Dim lInSync         As Long
-    Dim lSkippedSource  As Long
-    Dim lSkippedTarget  As Long
     Dim lTarget         As Long
     Dim lSource         As Long
     Dim wsh             As Worksheet
@@ -687,10 +679,8 @@ Private Function CollectInSync(ByVal c_wbk_source As Workbook, _
     Dim dctTarget       As Dictionary
 
     Dim shpSource       As Shape
-    Dim shpTarget       As Shape
     Dim sIdSource       As String
     Dim wshSource       As Worksheet
-    Dim wshTarget       As Worksheet
     
     mBasic.BoP ErrSrc(PROC)
     Set dctKnownInSync = Nothing
@@ -724,19 +714,15 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-
-Public Function Corresponding(ByVal c_shp As Shape, _
-                              ByVal c_quality As enCorrespondingShapesQuality, _
-                     Optional ByVal c_wbk_source As Workbook = Nothing, _
-                     Optional ByVal c_wbk_target As Workbook = Nothing, _
-                     Optional ByRef c_dct_source As Dictionary, _
-                     Optional ByRef c_dct_target As Dictionary, _
-                     Optional ByRef c_name_differs As Boolean, _
-                     Optional ByRef c_refto_differs As Boolean, _
-                     Optional ByRef c_scope_differs As Boolean, _
-                     Optional ByRef c_none_differs As Boolean, _
-                     Optional ByRef c_shp_corresponding_target As Shape, _
-                     Optional ByRef c_shp_corresponding_source As Shape) As String
+Private Function Corresponding(ByVal c_shp As Shape, _
+                               ByVal c_quality As enCorrespondingShapesQuality, _
+                      Optional ByVal c_wbk_source As Workbook = Nothing, _
+                      Optional ByVal c_wbk_target As Workbook = Nothing, _
+                      Optional ByRef c_dct_source As Dictionary, _
+                      Optional ByRef c_dct_target As Dictionary, _
+                      Optional ByRef c_none_differs As Boolean, _
+                      Optional ByRef c_shp_corresponding_target As Shape, _
+                      Optional ByRef c_shp_corresponding_source As Shape) As String
 ' ------------------------------------------------------------------------
 ' Returns all Shapes in the Sync-Source-Workbook (c_wbk_source) - when
 ' provided - and in the Sync-Target-Workbook (c_wbk_target) - when
@@ -812,7 +798,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Function
-
 
 Private Function CorrespondingShapes(ByVal c_shp As Shape, _
                                      ByVal c_in As Variant, _
@@ -1036,9 +1021,9 @@ Private Function RunRemoveAsserted(ByVal sync_shp_name As String, _
 
 End Function
 
-Public Function ShapeName(ByVal sn_shp As Shape, _
-                          ByRef sn_shp_name As String, _
-                          ByRef sn_oob_code_name As String) As String
+Private Function ShapeName(ByVal sn_shp As Shape, _
+                           ByRef sn_shp_name As String, _
+                           ByRef sn_oob_code_name As String) As String
 ' ------------------------------------------------------------------------------
 ' Returns the Name of a Shape object (sn-shp_name). In case the Shape is a type
 ' msoOLEControlObject the OOB-Object Name is returned (sn_shp_oob), else a
@@ -1084,9 +1069,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
-                    ByVal s_wbk_target As Workbook, _
-           Optional ByVal s_terminated As Boolean = False)
+Public Sub SyncKind()
 ' ------------------------------------------------------------------------------
 ' Called by mSync.RunSync: Collects to be synchronized Sheet Controls and
 ' displays them in a mode-less dialog for being confirmed one by one.
@@ -1105,8 +1088,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
     mBasic.BoP ErrSrc(PROC)
     
     mSync.MonitorStep "Synchronizing Sheet Shapes"
-    MessageUnload TITLE_SYNC_SHAPES
-    SyncDialogTitle = TITLE_SYNC_SHAPES
+    mService.MessageUnload TITLE_SYNC_SHAPES
     Set fSync = mMsg.MsgInstance(TITLE_SYNC_SHAPES)
     With Msg.Section(1)
         .Label.Text = "Obsolete Shapes:"
@@ -1152,7 +1134,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
              , dsply_modeless:=True _
              , dsply_buttons_app_run:=AppRunArgs _
              , dsply_width_min:=45 _
-             , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
+             , dsply_pos:=DialogTop & ";" & DialogLeft
 
 xt: mBasic.BoP ErrSrc(PROC)
     Exit Sub

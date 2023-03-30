@@ -9,7 +9,6 @@ Option Explicit
 ' - ClearSyncData
 ' - Finalize
 ' - Initialize
-' - MessageUnload
 ' - MonitorStep
 ' - OpenDecision                 .
 ' - OpnDcsnPreparationTarget     .
@@ -35,25 +34,14 @@ Option Explicit
 '
 ' W. Rauschenberger, Berlin Dec 2022
 ' ----------------------------------------------------------------------------
-Public Const APP_RUN_ARG_BUTTON_CAPTION     As Long = 1
-Public Const APP_RUN_ARG_SERVICE            As Long = 3
-Public Const APP_RUN_ARG_SERVICE_ARG1       As Long = 4
-Public Const APP_RUN_ARG_SERVICE_ARG2       As Long = 5
-Public Const APP_RUN_ARG_SERVICE_ARG3       As Long = 6
-Public Const APP_RUN_ARG_SERVICING_WORKBOOK As Long = 2
 Public Const SYNC_ALL_BTTN                  As String = "Synchronize"                               ' Identifies the synchronization dialog
 Public Const SYNC_TARGET_SUFFIX             As String = "_TargetWorkingCopy"                        ' suffix for the sync target working copy
 Public Const SYNC_ACTION_REMOVE_OBSOLETE    As String = "Remove obsolete"
 Public Const SYNC_ACTION_ADD_NEW            As String = "Add new"
-Public Const SYNC_ACTION_CHANGE             As String = "Changed"
 Public Const SYNC_ACTION_CHANGE_CODE        As String = "Change Code "
-Public Const SYNC_ACTION_CHANGE_SHP_PRPRTY  As String = "Change Property "
 Public Const SYNC_ACTION_CHANGE_NAME        As String = "Change Name "
 Public Const SYNC_ACTION_CHANGE_CODENAME    As String = "Change CodeName "
 Public Const SYNC_ACTION_CHANGE_SCOPE       As String = "Change Scope "
-Public Const SYNC_ACTION_CHANGE_NAME_SCOPE  As String = "Change Name and Scope "
-Public Const SYNC_ACTION_CHANGE_REFTO       As String = "Change RefersTo "
-Public Const SYNC_ACTION_CHANGE_REFTO_SCOPE As String = "Change RefersTo and Scope "
 Public Const SYNC_ACTION_MULTIPLE_SOURCE    As String = "Multiple source "
 Public Const SYNC_ACTION_MULTIPLE_TARGET    As String = "Multiple target "
 Public Const SYNC_ACTION_OWNED_BY_PROJECT   As String = "Owned by VB-Project"
@@ -63,19 +51,14 @@ Private Const TITLE_SYNC_ALL                As String = "Synchronize the VB-Proj
 Public cllAction                            As Collection
 Public cllComment                           As Collection
 Public cllDirection                         As Collection
-Public cllDueSyncs                          As Collection
 Public cllId                                As Collection
 Public cllKind                              As Collection
-Public cllSequence                          As Collection
 Public DueSyncKindOfObjects                 As New clsQ
-Public lDueSyncs                            As Long
 Public lSyncMode                            As enSyncOption
-Public SyncDialogLeft                       As Long
-Public SyncDialogTop                        As Long
-Public SyncDialogTitle                      As String
 
 Private AbortOpenDialogForPreparationCopy   As String
 Private AbortOpenDlogForPreparationTarget   As String
+Private cllDueSyncs                         As Collection
 Private ContinueOpenWithTargetSynchronztn   As String
 Private ContinueSyncOpenWorkingCopy         As String
 Private ContinueSyncWithExstngWorkingCopy   As String
@@ -124,13 +107,7 @@ Public Enum enSyncOption
     SyncByKind
 End Enum
 
-Public Enum SyncMode
-    Count = 1
-    Confirm = 2
-    Synchronize = 3
-End Enum
-
-Public Property Get Source() As Workbook
+Public Property Get source() As Workbook
     Dim s As String
     
     On Error Resume Next
@@ -138,11 +115,11 @@ Public Property Get Source() As Workbook
     If Err.Number <> 0 Then
         Set wbkSyncSource = mWbk.GetOpen(wsService.SyncSourceFullName)
     End If
-    Set Source = wbkSyncSource
+    Set source = wbkSyncSource
 
 End Property
 
-Public Property Let Source(ByVal wbk As Workbook)
+Public Property Let source(ByVal wbk As Workbook)
     Set wbkSyncSource = wbk
     wsService.SyncSourceFullName = wbk.FullName
 End Property
@@ -208,9 +185,9 @@ Private Function AllDueSyncs(ByRef a_refs As Boolean, _
     Wend
     AllDueSyncs = s
 
-xt: Exit Function
+xt:   Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:   Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -243,7 +220,7 @@ Private Function AllDueSyncsDone(ByVal a_wbk_source As Workbook, _
     End If
     AllDueSyncsDone = True
 
-xt: mBasic.EoP ErrSrc(PROC)
+xt:   mBasic.EoP ErrSrc(PROC)
     Exit Function
 
 End Function
@@ -277,13 +254,12 @@ Private Sub AppRunSyncAll()
     On Error GoTo eh
     Dim wbkSource   As Workbook
     Dim wbkTarget   As Workbook
-    Dim en          As enSyncKindOfObject
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     Set wbkTarget = mSync.TargetWorkingCopy
     mService.WbkServiced = wbkTarget
-    MessageUnload TITLE_SYNC_ALL ' allow watching the sync log
+    mService.MessageUnload TITLE_SYNC_ALL ' allow watching the sync log
     
     If DueSyncKindOfObjects.IsQueued(enSyncObjectKindReference) Then
         mSyncRefs.AppRunSyncAll
@@ -301,20 +277,20 @@ Private Sub AppRunSyncAll()
         mSyncComps.AppRunSyncAll
     End If
     
-xt: mBasic.EoP ErrSrc(PROC)
+xt:   mBasic.EoP ErrSrc(PROC)
     mSync.RunSync
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:   Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Sub
 
-Public Sub ClearSyncData()
+Private Sub ClearSyncData()
     
-    If CLng(SyncDialogLeft) < 5 Then SyncDialogLeft = 20
-    If CLng(SyncDialogTop) < 5 Then SyncDialogTop = 20
+    If CLng(DialogLeft) < 5 Then DialogLeft = 20
+    If CLng(DialogTop) < 5 Then DialogTop = 20
     Application.ScreenUpdating = False
     wsSyncLog.Clear
     
@@ -336,7 +312,7 @@ Private Sub CollectAll(ByVal c_wbk_source As Workbook, _
     If DueSyncKindOfObjects.IsQueued(enSyncObjectKindVBComponent) Then mSyncComps.Collect c_wbk_source, c_wbk_target:         If c_terminated Then GoTo xt
     mBasic.EoP ErrSrc(PROC)
 
-xt: Exit Sub
+xt:  Exit Sub
 End Sub
 
 Private Sub CollectDueKind(ByVal c_wbk_source As Workbook, _
@@ -349,11 +325,11 @@ Private Sub CollectDueKind(ByVal c_wbk_source As Workbook, _
     
     mBasic.BoP ErrSrc(PROC)
     Select Case True
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindReference):   mSyncRefs.Collect c_wbk_source, c_wbk_target, c_terminated
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindWorksheet): mSyncSheets.Collect c_wbk_source, c_wbk_target, c_terminated
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindReference):   mSyncRefs.Collect c_wbk_source, c_wbk_target
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindWorksheet): mSyncSheets.Collect c_wbk_source, c_wbk_target
         Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindName):  mSyncNames.Collect c_wbk_source, c_wbk_target, c_terminated
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindShape): mSyncShapes.Collect c_wbk_source, c_wbk_target, c_terminated
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindVBComponent):  mSyncComps.Collect c_wbk_source, c_wbk_target, c_terminated
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindShape): mSyncShapes.Collect c_wbk_source, c_wbk_target
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindVBComponent):  mSyncComps.Collect c_wbk_source, c_wbk_target
     End Select
     mBasic.EoP ErrSrc(PROC)
     
@@ -361,16 +337,9 @@ End Sub
 
 Private Function Collected(ByVal c_kind As enSyncKindOfObject, _
                            ByVal c_action As enSyncAction) As Long
-' ------------------------------------------------------------------------------
-'
-' ------------------------------------------------------------------------------
-    Select Case c_kind
-        Case enSyncObjectKindVBComponent:   Collected = mSyncComps.Collected(c_action)
-        Case enSyncObjectKindName:          Collected = mSyncNames.Collected(c_action)
-        Case enSyncObjectKindReference:     Collected = mSyncRefs.Collected(c_action)
-        Case enSyncObjectKindShape:         Collected = mSyncShapes.Collected(c_action)
-        Case enSyncObjectKindWorksheet:     Collected = mSyncSheets.Collected(c_action)
-    End Select
+    c_kind = c_kind
+    c_action = c_action
+    
 End Function
 
 Public Sub CollectKnown(ByRef c_dct As Dictionary, _
@@ -387,7 +356,7 @@ Public Sub CollectKnown(ByRef c_dct As Dictionary, _
     End If
 End Sub
 
-Public Function DueSyncGet(ByVal d_index As Long, _
+Private Function DueSyncGet(ByVal d_index As Long, _
                   Optional ByRef d_sequence As String, _
                   Optional ByRef d_kind As enSyncKindOfObject, _
                   Optional ByRef d_action As enSyncAction, _
@@ -406,10 +375,11 @@ Public Function DueSyncGet(ByVal d_index As Long, _
     Static lMaxLenIdPart1   As Long
     Static lMaxLenIdPart2   As Long
     Dim cll                 As Collection
-    Dim sNbsp               As String:  sNbsp = NonBreakingSpace
+    Dim sNbsp               As String
     Dim v                   As Variant
     Dim s                   As String
     
+    sNbsp = NonBreakingSpace
     If d_index = 1 Then DueSyncMaxLenghts lMaxLenKind, lMaxLenAction, lMaxLenDir, lMaxLenIdPart1, lMaxLenIdPart2
     
     Set cll = cllDueSyncs(d_index)
@@ -428,10 +398,10 @@ Public Function DueSyncGet(ByVal d_index As Long, _
     If UBound(v) >= 1 Then s = s & mBasic.Align(v(1), lMaxLenIdPart2, AlignLeft) & "  "
     If UBound(v) >= 2 Then s = s & v(2)
 
-xt: DueSyncGet = s
+xt:  DueSyncGet = s
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -558,9 +528,9 @@ Public Sub DueSyncLet(Optional ByVal d_sequence As String = vbNullString, _
             End Select
     End Select
 
-xt: Exit Sub
+xt:  Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -610,9 +580,9 @@ Private Sub DueSyncMaxLenghts(ByRef d_max_length_kind As Long, _
         If UBound(v) >= 1 Then d_max_length_id_part2 = mBasic.Max(d_max_length_id_part2, Len(v(1)))
     Next i
     
-xt: Exit Sub
+xt:  Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -654,13 +624,13 @@ Public Function DueSyncs(ByVal d_kind As enSyncKindOfObject, _
         If Trim(sDirection) = vbNullString Or Trim(sDirection) = "from" Then d_number = d_number + 1
         s = s & LineBreak & sDueSync
         LineBreak = vbLf
-nx: Next i
+nx:  Next i
     
-xt: DueSyncs = s
+xt:  DueSyncs = s
     mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -670,7 +640,7 @@ Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSync." & s
 End Function
 
-Public Sub Finalize()
+Private Sub Finalize()
 ' ------------------------------------------------------------------------------
 ' Displays a finalization dialog including a synchronization summary. When the
 ' finalization is confirmed the Sync-Target-Workbook's working copy is saved
@@ -689,7 +659,7 @@ Public Sub Finalize()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     
     Set MsgButtons = mMsg.Buttons(BTTN_FINALIZE, vbLf, BTTN_ABORT)
     With MsgText
@@ -738,10 +708,10 @@ Public Sub Finalize()
     End Select
     Application.StatusBar = vbNullString
     
-xt: mBasic.EoP ErrSrc(PROC)
+xt:  mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -815,15 +785,6 @@ Public Sub Initialize(Optional ByVal i_sync_refs As Boolean = True, _
         wsSyncLog.SummaryDone("VBComponent") = "'-"
     End If
     
-End Sub
-
-Public Sub MessageUnload(ByVal sm_title As String)
-' ----------------------------------------------------------------------------
-' Save current message window position and terminate the display of it.
-' ----------------------------------------------------------------------------
-    SyncDialogTop = mMsg.MsgInstance(sm_title).Top
-    SyncDialogLeft = mMsg.MsgInstance(sm_title).Left
-    mMsg.MsgInstance sm_title, True
 End Sub
 
 Public Sub MonitorStep(ByVal ms_text As String)
@@ -997,11 +958,11 @@ Public Sub OpenDecision()
              , dsply_modeless:=True _
              , dsply_buttons_app_run:=AppRunArgs _
              , dsply_width_min:=45 _
-             , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
+             , dsply_pos:=DialogTop & ";" & DialogLeft
                             
-xt: Exit Sub
+xt:  Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1015,7 +976,7 @@ Private Function OpenedIsTargetWorkingCopy() As Boolean
     OpenedIsTargetWorkingCopy = ActiveWorkbook.Name Like "*" & SYNC_TARGET_SUFFIX & ".*"
 End Function
 
-Public Sub OpnDcsnPreparationTarget()
+Private Sub OpnDcsnPreparationTarget()
 ' ------------------------------------------------------------------------------
 ' When the Sync-Target-Workbook had been opened it simply will remain open.
 ' When the Sync-Target-Workbook's working copy had been opend:
@@ -1047,7 +1008,7 @@ Public Sub OpnDcsnPreparationTarget()
 
 End Sub
 
-Public Sub OpnDcsnReSyncFromScratch()
+Private Sub OpnDcsnReSyncFromScratch()
 ' ------------------------------------------------------------------------------
 ' Resynchronizer the opened Sync-Target-Workbook although a working copy already
 ' exists.
@@ -1067,16 +1028,16 @@ Public Sub OpnDcsnReSyncFromScratch()
     mSync.SyncMode
     mSync.RunSync
 
-xt: mBasic.EoP ErrSrc(PROC)
+xt:  mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Sub
 
-Public Sub OpnDcsnSyncOpenWorkingCopy()
+Private Sub OpnDcsnSyncOpenWorkingCopy()
 ' ------------------------------------------------------------------------------
 ' A Sync-Target-Workbook's working copy has directly been opened
 ' ------------------------------------------------------------------------------
@@ -1098,16 +1059,16 @@ Public Sub OpnDcsnSyncOpenWorkingCopy()
     mSync.SyncMode
     mSync.RunSync
 
-xt: mBasic.EoP ErrSrc(PROC)
+xt:  mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Sub
 
-Public Sub OpnDcsnTargetSync()
+Private Sub OpnDcsnTargetSync()
 ' ------------------------------------------------------------------------------
 ' Syncronize the opened Sync-Target-Workbook.
 ' ------------------------------------------------------------------------------
@@ -1125,10 +1086,10 @@ Public Sub OpnDcsnTargetSync()
     mSync.SyncMode
     mSync.RunSync
 
-xt: mBasic.EoP ErrSrc(PROC)
+xt:  mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1159,7 +1120,6 @@ Public Function Progress(ByVal p_kind As enSyncKindOfObject, _
     Static lCountChanged    As Long
     Static lCountMultiple   As Long
     Dim lOf                 As Long
-    Dim enSubAction         As enSyncAction
     Dim sStepDetails        As String
     
     mBasic.BoP ErrSrc(PROC)
@@ -1200,10 +1160,10 @@ Public Function Progress(ByVal p_kind As enSyncKindOfObject, _
     Wend
     Progress = SyncStepString(p_sync_step) & " " & SyncKindString(enKind) & " " & sStepDetails
     
-xt: mBasic.EoP ErrSrc(PROC)
+xt:  mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1225,15 +1185,15 @@ Private Function ProgressOf(ByVal p_kind As enSyncKindOfObject, _
     Select Case p_sync_step
         Case enSyncStepCollecting
             Select Case p_kind
-                Case enSyncObjectKindName:          lOfSource = mSync.Source.Names.Count
+                Case enSyncObjectKindName:          lOfSource = mSync.source.Names.Count
                                                     lOfTarget = mSync.TargetWorkingCopy.Names.Count
-                Case enSyncObjectKindWorksheet:     lOfSource = mSync.Source.Worksheets.Count
+                Case enSyncObjectKindWorksheet:     lOfSource = mSync.source.Worksheets.Count
                                                     lOfTarget = mSync.TargetWorkingCopy.Worksheets.Count
-                Case enSyncObjectKindVBComponent:   lOfSource = mSync.Source.VBProject.VBComponents.Count
+                Case enSyncObjectKindVBComponent:   lOfSource = mSync.source.VBProject.VBComponents.Count
                                                     lOfTarget = mSync.TargetWorkingCopy.VBProject.VBComponents.Count
-                Case enSyncObjectKindReference:     lOfSource = mSync.Source.VBProject.References.Count
+                Case enSyncObjectKindReference:     lOfSource = mSync.source.VBProject.References.Count
                                                     lOfTarget = mSync.TargetWorkingCopy.VBProject.References.Count
-                Case enSyncObjectKindShape:         lOfSource = mSyncShapes.NoOfShapes(mSync.Source)
+                Case enSyncObjectKindShape:         lOfSource = mSyncShapes.NoOfShapes(mSync.source)
                                                     lOfTarget = mSyncShapes.NoOfShapes(mSync.TargetWorkingCopy)
             End Select
             
@@ -1250,10 +1210,10 @@ Private Function ProgressOf(ByVal p_kind As enSyncKindOfObject, _
         ProgressOf = ProgressOf / 2
     End If
     
-xt: mBasic.EoP ErrSrc(PROC)
+xt:  mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1272,10 +1232,9 @@ Public Sub RunSync()
     Dim bTerminated As Boolean
     Dim wbkSource   As Workbook
     Dim wbkTarget   As Workbook
-    Dim en          As enSyncKindOfObject
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkSource = mSync.Source
+    Set wbkSource = mSync.source
     Set wbkTarget = mSync.TargetWorkingCopy
     
     mService.WbkServiced = wbkTarget
@@ -1298,10 +1257,10 @@ Public Sub RunSync()
         SyncAll
     End If
     
-xt: mBasic.EoP ErrSrc(PROC)
+xt:  mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1569,14 +1528,14 @@ Private Sub SyncAll()
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=SyncDialogTop & ";" & SyncDialogLeft
+                 , dsply_pos:=DialogTop & ";" & DialogLeft
         DoEvents
     End If
         
-xt: mBasic.EoP ErrSrc(PROC)
+xt:  mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1589,16 +1548,16 @@ Private Sub SyncKind(ByVal s_wbk_source As Workbook, _
 ' Synchronizes the next still due kind of synchronization object.
 ' ------------------------------------------------------------------------------
     Select Case True
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindReference):   mSyncRefs.SyncKind s_wbk_source, s_wbk_target, s_teminated
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindName):  mSyncNames.SyncKind s_wbk_source, s_wbk_target, s_teminated
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindWorksheet): mSyncSheets.SyncKind s_wbk_source, s_wbk_target, s_teminated
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindShape): mSyncShapes.SyncKind s_wbk_source, s_wbk_target, s_teminated
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindVBComponent):  mSyncComps.SyncKind s_wbk_source, s_wbk_target, s_teminated
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindReference):   mSyncRefs.SyncKind s_wbk_source, s_wbk_target
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindName):  mSyncNames.SyncKind s_wbk_source, s_wbk_target
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindWorksheet): mSyncSheets.SyncKind s_wbk_source, s_wbk_target
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindShape): mSyncShapes.SyncKind
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindVBComponent):  mSyncComps.SyncKind s_wbk_source, s_wbk_target
     End Select
     
 End Sub
 
-Public Function SyncKindString(ByVal en As enSyncKindOfObject) As String
+Private Function SyncKindString(ByVal en As enSyncKindOfObject) As String
     Select Case en
         Case enSyncObjectKindVBComponent:    SyncKindString = "VBComponent"
         Case enSyncObjectKindName:    SyncKindString = "Name"
@@ -1607,7 +1566,6 @@ Public Function SyncKindString(ByVal en As enSyncKindOfObject) As String
         Case enSyncObjectKindWorksheet:   SyncKindString = "Worksheet"
     End Select
 End Function
-
                              
 Public Sub SyncMode()
     
@@ -1645,18 +1603,18 @@ Public Sub SyncMode()
     
 End Sub
 
-Public Function SyncStepString(ByVal en As enSyncStep) As String
+Private Function SyncStepString(ByVal en As enSyncStep) As String
     Select Case en
         Case enSyncStepCollecting:   SyncStepString = "Collecting"
         Case enSyncStepSyncing:      SyncStepString = "Syncing"
     End Select
 End Function
 
-Public Sub SyncTerminate()
+Private Sub SyncTerminate()
     MsgBox "Synchronization teminated"
 End Sub
 
-Public Sub TargetArchive()
+Private Sub TargetArchive()
 ' ------------------------------------------------------------------------------
 ' Archives the opened Sync-Target-Workbook under the archiving name
 ' <workbook-base-name>-yy-mm-dd-nn.<extension> in a dedicated folder named
@@ -1695,7 +1653,7 @@ Public Sub TargetArchive()
     
 End Sub
 
-Public Sub TargetClearExportFiles()
+Private Sub TargetClearExportFiles()
     Dim fso             As New FileSystemObject
     Dim sFolder         As String
     Dim sTargetFullName As String
@@ -1709,7 +1667,7 @@ Public Sub TargetClearExportFiles()
     
 End Sub
 
-Public Sub TargetClose()
+Private Sub TargetClose()
 ' ------------------------------------------------------------------------------
 ' Closes an open Sync-Target-Workbook by considering possible changes made.
 ' ------------------------------------------------------------------------------
@@ -1764,11 +1722,11 @@ Public Sub TargetClose()
     End If
 End Sub
 
-Public Sub TargetOpen()
+Private Sub TargetOpen()
     Set wbkSyncTarget = mWbk.GetOpen(wsService.CurrentServicedWorkbookFullName)
 End Sub
 
-Public Function TargetOriginFullName(ByVal tofn_wbk As Variant) As String
+Private Function TargetOriginFullName(ByVal tofn_wbk As Variant) As String
 ' ----------------------------------------------------------------------------
 ' Returns the Sync-Target-Workbook's full name derived from the provided
 ' argument (tofn_wbk) which may be a Workbook object or a string and
@@ -1787,7 +1745,7 @@ Public Function TargetOriginFullName(ByVal tofn_wbk As Variant) As String
 
 End Function
 
-Public Sub TargetWorkingCopyClose()
+Private Sub TargetWorkingCopyClose()
 ' ------------------------------------------------------------------------------
 ' Closes a still open Sync-Target-Workbook's working copy by considering
 ' possible synchronizations or manual changes made.
@@ -1848,7 +1806,7 @@ Public Sub TargetWorkingCopyClose()
     End If
 End Sub
 
-Public Function TargetWorkingCopyDelete() As Boolean
+Private Function TargetWorkingCopyDelete() As Boolean
     Dim fso                 As New FileSystemObject
     Dim sTargetWorkingCopyFullName As String
     
@@ -1893,7 +1851,7 @@ Private Function TargetWorkingCopyIsOpened() As Boolean
     TargetWorkingCopyIsOpened = ActiveWorkbook.Name Like "*" & SYNC_TARGET_SUFFIX & ".*"
 End Function
 
-Public Sub TargetWorkingCopyOpen(Optional ByVal tco_new As Boolean = True, _
+Private Sub TargetWorkingCopyOpen(Optional ByVal tco_new As Boolean = True, _
                           Optional ByRef tco_wbk_result As Workbook)
 ' ----------------------------------------------------------------------------
 ' Establish a Sync-Target-Workbook's working copy, i.e. a copy of the
@@ -1933,7 +1891,7 @@ Public Sub TargetWorkingCopyOpen(Optional ByVal tco_new As Boolean = True, _
         Application.EnableEvents = True
     End If
     
-xt: Set fso = Nothing
+xt:  Set fso = Nothing
     
 End Sub
 

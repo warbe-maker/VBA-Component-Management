@@ -42,7 +42,6 @@ Option Explicit
 '
 ' Services:
 ' - CompType
-' - DsplyAllChanges
 ' - Export
 ' - RemoteSheetExists
 ' - ReplaceRawWithClone
@@ -57,7 +56,6 @@ Private sExpFileExt         As String
 Private sExpFileFullName    As String       ' Full filespec for the Export-File of CompName
 Private sExpFilePath        As String       ' Folder for the Export-File of CompName
 Private sTmpFolder          As String       ' Folder for a temporary Export File
-Private sTmpExpFileFullName As String
 Private sWrkbkBaseName      As String       ' Common Component host Workbook's base name
 Private sWrkbkFullName      As String       ' Common Component host Workbook's full name
 Private vbc                 As VBComponent  ' VBComponent managed by this Class Module
@@ -429,16 +427,16 @@ Friend Property Get KindOfComp() As enKindOfComp
     
     On Error GoTo eh
     
-    If lKindOfComp = enKindOfComp.enUnknown Then
+    If lKindOfComp = mCompMan.enUnknown Then
         If mCommComps.ExistsRegistered(sCompName) Then
             '~~ The component is registered in the ComComps-Saved.dat as a known Common Component
             If mCommComps.RawHostWbName(comp_name:=sCompName) = Me.Wrkbk.Name Then
                 '~~ When the registered host is this Component's Workbook the component is regarded
                 '~~ the hosted one else it is a Used Common Component
-                lKindOfComp = enCommCompHosted
+                lKindOfComp = mCompMan.enCommCompHosted
             Else
                 If Not mCompManDat.RegistrationState(Me.CompName) = enRegStatePrivate Then
-                    lKindOfComp = enCommCompUsed
+                    lKindOfComp = mCompMan.enCommCompUsed
                     '~~ For a Used Common Component a class object for the corresponding Raw is established
                     '~~ which provides all required properties
                     If Raw Is Nothing Then Set Raw = New clsRaw
@@ -447,8 +445,8 @@ Friend Property Get KindOfComp() As enKindOfComp
                     '~~ stored in the ComCompsSaved.dat file
                 End If
             End If
-        ElseIf lKindOfComp = enKindOfComp.enUnknown Then
-            lKindOfComp = enInternal
+        ElseIf lKindOfComp = mCompMan.enUnknown Then
+            lKindOfComp = mCompMan.enInternal
         End If
 '        mService.Log.Entry = Me.TypeString & " (" & KoCStrng(lKindOfComp) & ")"
     End If
@@ -470,11 +468,11 @@ Friend Property Get Outdated() As Boolean
 ' the corresponding Raw Common Component's code has changed.
 ' ------------------------------------------------------------------------------
     With Me
-        If .KindOfComp = enCommCompUsed Then Outdated = .RawChanged
+        If .KindOfComp = mCompMan.enCommCompUsed Then Outdated = RawChanged
     End With
 End Property
 
-Public Property Get RawChanged() As Boolean
+Private Property Get RawChanged() As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the Used Common Component's (ME's) corresponding Raw had
 ' changed which is indicated by Raw Revision Number greater than the current
@@ -638,42 +636,6 @@ Private Function DebugComp() As String
     Then DebugComp = sCompName & " " & String(lMaxCompLength - Len(sCompName), ".") & ": " _
     Else DebugComp = sCompName & " : "
 End Function
-
-Public Sub DsplyAllChanges()
-' ------------------------------------------------------------------------------
-' Displays the code differences between a clone's and the raw's Export-File.
-' ------------------------------------------------------------------------------
-    Const PROC = "DsplyAllChanges"
-    
-    On Error GoTo eh
-    Dim sMsg As TypeMsg
-    
-    If Me.Changed Then
-        mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=sTmpExpFileFullName _
-                                   , fd_exp_file_right_full_name:=Me.ExpFileFullName _
-                                   , fd_exp_file_left_title:="Clone (used) Common Component: '" & sTmpExpFileFullName & "'" _
-                                   , fd_exp_file_right_title:="Raw (hosted) Common Component: '" & Me.ExpFileFullName & "'"
-    Else
-        sMsg.Section(1).Text.Text = "The Export Files of the component '" & Me.CompName & "'"
-        sMsg.Section(2).Text.Text = "Temp Export:    " & sTmpExpFileFullName & vbLf & _
-                                "Current Exüort: " & Me.ExpFileFullName
-        sMsg.Section(2).Text.MonoSpaced = True
-        sMsg.Section(3).Text.Text = "are identical. The clone component has thus not changed."
-        sMsg.Section(4).Label.Text = "Please note!"
-        sMsg.Section(4).Text.Text = "Empty code lines and case differences are ignored when they are the only difference."
-        
-'        If Not mMsg.IsValidMsgButtonsArg(dsply_buttons) Then Stop
-        mMsg.Dsply dsply_title:="Display of code changes failed!" _
-                 , dsply_msg:=sMsg
-    End If
-    
-xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsComp" & "." & sProc

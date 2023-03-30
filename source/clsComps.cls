@@ -19,7 +19,7 @@ Private Sub Class_Terminate()
     Set dctChanged = Nothing
 End Sub
 
-Public Function All(Optional ByRef a_stats As clsStats = Nothing) As Dictionary
+Private Function All(Optional ByRef a_stats As clsStats = Nothing) As Dictionary
 ' ----------------------------------------------------------------------------
 ' Returns a Dictionary with all VBComponent objects as key and the
 ' corresponding clsComp objects as item.
@@ -33,7 +33,7 @@ Public Function All(Optional ByRef a_stats As clsStats = Nothing) As Dictionary
     Set wbk = mService.WbkServiced
     With wbk.VBProject
         For Each vbc In .VBComponents
-            If Not a_stats Is Nothing Then a_stats.Count sic_comps
+            If Not a_stats Is Nothing Then a_stats.Count mCompMan.sic_comps
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = wbk
@@ -46,7 +46,7 @@ Public Function All(Optional ByRef a_stats As clsStats = Nothing) As Dictionary
     
 End Function
 
-Public Function Changed(Optional ByRef c_stats As clsStats = Nothing) As Dictionary
+Private Function Changed(Optional ByRef c_stats As clsStats = Nothing) As Dictionary
 ' ----------------------------------------------------------------------------
 ' Returns a Dictionary all components of which the code has been modified.
 ' The Dictionary has the VBComponent objects as key and the corresponding
@@ -57,19 +57,19 @@ Public Function Changed(Optional ByRef c_stats As clsStats = Nothing) As Diction
     Dim v       As Variant
     Dim dct     As Dictionary
     
-    Set dct = Me.All(c_stats)
+    Set dct = All(c_stats)
     For Each v In dct
         Set Comp = dct(v)
         If Not Comp.Changed Then
             dct.Remove v
         End If
     Next v
-    If Not c_stats Is Nothing Then c_stats.Count sic_comps_changed, dct.Count
+    If Not c_stats Is Nothing Then c_stats.Count mCompMan.sic_comps_changed, dct.Count
     Set Changed = dct
     
 End Function
 
-Public Function Outdated(Optional ByRef o_stats As clsStats = Nothing) As Dictionary
+Private Function Outdated(Optional ByRef o_stats As clsStats = Nothing) As Dictionary
 ' ----------------------------------------------------------------------------
 ' Returns a Dictionary of all VBComponents in the mService.WbkServiced Workbook's
 ' VBProject indicated Used Common Components of which an update is due because
@@ -86,18 +86,18 @@ Public Function Outdated(Optional ByRef o_stats As clsStats = Nothing) As Dictio
     Dim dct     As Dictionary
     Dim v       As Variant
     
-    Set dct = Me.All
+    Set dct = All
     For Each v In dct
         Set Comp = dct(v)
         With Comp
-            If Not .KindOfComp = enCommCompUsed Then
+            If Not .KindOfComp = mCompMan.enCommCompUsed Then
                 dct.Remove v
             ElseIf Not .Outdated Then
                 dct.Remove v
             End If
         End With
     Next v
-    If Not o_stats Is Nothing Then o_stats.Count sic_used_comm_vbc_Outdated, dct.Count
+    If Not o_stats Is Nothing Then o_stats.Count mCompMan.sic_used_comm_vbc_outdated, dct.Count
     
 xt: Set Outdated = dct
     Exit Function
