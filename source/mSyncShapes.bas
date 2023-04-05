@@ -259,12 +259,14 @@ Private Sub AppRunNew()
     Const PROC = "AppRunNew"
     
     On Error GoTo eh
-    Dim wshSource   As Worksheet
-    Dim wshTarget   As Worksheet
+    Dim i           As Long
     Dim shpSource   As Shape
     Dim v           As Variant
-    Dim i           As Long
-        
+    Dim wbkSource   As Workbook
+    Dim wbkTarget   As Workbook
+    Dim wshSource   As Worksheet
+    Dim wshTarget   As Worksheet
+    
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.source
@@ -304,7 +306,9 @@ Private Sub AppRunObsolete()
     Dim wshTarget   As Worksheet
     Dim v           As Variant
     Dim i           As Long
-    Dim sPrgrss   As String
+    Dim sPrgrss     As String
+    Dim wbkSource   As Workbook
+    Dim wbkTarget   As Workbook
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
@@ -355,6 +359,8 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     Dim wshSource   As Worksheet
     Dim lCount      As Long
     Dim sId         As String
+    Dim wbkSource   As Workbook
+    Dim wbkTarget   As Workbook
     
     mBasic.BoP ErrSrc(PROC)
     If mSyncShapes.AllDone(c_wbk_source, c_wbk_target) Then GoTo xt

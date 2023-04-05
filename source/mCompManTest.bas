@@ -23,101 +23,23 @@ End Function
 
 Private Sub Regression()
 ' -----------------------------------------------------------------
-'
+' Test of all Public CompMan services.
+' Note: Test of "UpdateOutdatedCommonComponents" is still pending
+'       since it requires the setup of a Test-Workbook very similar
+'       to those setup for the "SynchronizeVBProjects" test
 ' -----------------------------------------------------------------
     Const PROC = "Regression"
     
+    On Error GoTo eh
     Set cTest = New clsTestService
     cTest.Regression = True
-    
     mBasic.BoP ErrSrc(PROC)
-    Test_01_KindOfComp
-    mErH.EoP ErrSrc(PROC)
     
-End Sub
-
-Private Sub RemoveTestCodeChange(Optional ByVal exp_file As String = vbNullString, _
-                                Optional ByRef vbc As VBComponent = Nothing)
-' ------------------------------------------------------------------
-' Removes a code line from the provided VBComponent (vbc) which has
-' been added for test purpose.
-' Used to reset the test environment to its initial state
-' ------------------------------------------------------------------
-    Const PROC = "RemoveTestCodeChange"
+    mCompManTest.Test_ExportChanged
+    mSyncTest.TestSync cTest.Regression
     
-    On Error GoTo eh
-    Dim Comp   As clsComp
-    
-    If exp_file <> vbNullString Then
-        With New FileSystemObject
-            If .FileExists(exp_file) Then .DeleteFile exp_file
-        End With
-    End If
-    
-    If Not vbc Is Nothing Then
-        With vbc.CodeModule
-            If .Lines(1, 1) = TEST_CHANGE Then .DeleteLines 1, 1
-            While Len(.Lines(1, 1)) = 0
-                .DeleteLines 1.1
-            Wend
-        End With
-    End If
-    
-    If Not Comp Is Nothing Then Set Comp = Nothing
-    If Not vbcm Is Nothing Then Set vbcm = Nothing
-    If Not vbc Is Nothing Then Set vbc = Nothing
-    On Error Resume Next: wbTest.Close SaveChanges:=False
-    On Error Resume Next: wbSrc.Close SaveChanges:=False
-    On Error Resume Next: wbTrgt.Close SaveChanges:=False
-
-xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub Test_01_KindOfComp()
-    Const PROC = "Test_01_KindOfComp"
-
-    Dim wbk     As Workbook
-    Dim fso     As New FileSystemObject
-    Dim Comp    As clsComp
-    Dim sComp   As String
-    
-    Set wbk = mCompMan.WbkGetOpen(fso.GetParentFolderName(ThisWorkbook.Path) & "\File\File.xlsb")
-
-    sComp = "mFso"
-    Set Comp = Nothing
-    Set Comp = New clsComp
-    With Comp
-        Set .Wrkbk = wbk
-        Set .VBComp = wbk.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = mCompMan.enCommCompUsed
-    End With
-
-    sComp = "fMsg"
-    Set Comp = Nothing
-    Set Comp = New clsComp
-    With Comp
-        Set .Wrkbk = wbk
-        Set .VBComp = wbk.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = mCompMan.enCommCompUsed
-    End With
-    
-    sComp = "mTest"
-    Set Comp = Nothing
-    Set Comp = New clsComp
-    With Comp
-        Set .Wrkbk = wbk
-        Set .VBComp = wbk.VBProject.VBComponents(sComp)
-        Debug.Assert .KindOfComp() = mCompMan.enInternal
-    End With
-    
-xt: wbk.Close SaveChanges:=False
-    Set Comp = Nothing
-    Set fso = Nothing
+xt: mBasic.EoP ErrSrc(PROC)
+    mTrc.Dsply
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -147,6 +69,28 @@ Private Sub Test_Log()
 xt: mService.Terminate
     Exit Sub
     
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Sub Test_ExportChanged()
+    Const PROC = "Test_ExportChanged"
+    
+    On Error GoTo eh
+    Dim Comp        As New clsComp
+    Dim wbActive    As Workbook
+    
+    mBasic.BoP ErrSrc(PROC)
+   
+    mService.Initiate ErrSrc(PROC), ThisWorkbook
+    mService.Log.Service = "Export Changed Components Test"
+    mCompMan.ExportChangedComponents ThisWorkbook, "mCompManClient"
+
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt

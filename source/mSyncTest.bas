@@ -1,23 +1,22 @@
 Attribute VB_Name = "mSyncTest"
 Option Explicit
 
-Private Const TEST_BOOK_SYNC        As String = "CompManSyncTest.xlsb"
-Private Const TEST_SHEET_SOURCE     As String = "Test_A"
-Private Const TEST_SHAPE_SOURCE     As String = "CommandButton2_Test_A"
-Private Const TEST_OOB_SOURCE       As String = "CommandButtonActiveX_Test_A"
-Private Const TEST_SHEET_TARGET     As String = "Test_A"
-Private Const TEST_SHAPE_TARGET     As String = "CommandButton2_Test_A"
-Private Const TEST_OOB_TARGET       As String = "CommandButtonActiveX_Test_A"
+Private Const TEST_BOOK_SYNC    As String = "CompManSyncTest.xlsb"
+Private Const TEST_SHEET_SOURCE As String = "Test_A"
+Private Const TEST_SHAPE_SOURCE As String = "CommandButton2_Test_A"
+Private Const TEST_OOB_SOURCE   As String = "CommandButtonActiveX_Test_A"
+Private Const TEST_SHEET_TARGET As String = "Test_A"
+Private Const TEST_SHAPE_TARGET As String = "CommandButton2_Test_A"
+Private Const TEST_OOB_TARGET   As String = "CommandButtonActiveX_Test_A"
 
-Private oobSource                   As OLEObject
-Private oobTarget                   As OLEObject
-Private shpSource                   As Shape
-Private shpTarget                   As Shape
-Private wshSource                   As Worksheet
-Private wshTarget                   As Worksheet
-
-Public wbkSource                    As Workbook
-Public wbkTarget                    As Workbook
+Private oobSource               As OLEObject
+Private oobTarget               As OLEObject
+Private shpSource               As Shape
+Private shpTarget               As Shape
+Private wbkSource               As Workbook
+Private wbkTarget               As Workbook
+Private wshSource               As Worksheet
+Private wshTarget               As Worksheet
 
 Private Property Get TestSyncTargetFullName() As String
     TestSyncTargetFullName = wsConfig.FolderSyncTarget & "\" & "CompManSyncTest\" & TEST_BOOK_SYNC
@@ -37,47 +36,6 @@ End Function
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mSyncTest." & sProc
 End Function
-
-Private Sub Test_00_RegressionTest()
-' ------------------------------------------------------------------------------
-' Test-Sync-Target-Workbook: <FolderSyncTarget>\CompManSyncTest\CompManSyncTest.xlsb
-' Test-Sync_Source_Workbook: <FolderCompManRoot>\Common-VBA-Excel-Component-Management-Services\SyncTest\SyncSource\CompManSyncTest.xlsb
-' ------------------------------------------------------------------------------
-    Const PROC = "Test_00_RegressionTest"
-
-    On Error Resume Next
-    Dim wbk As Workbook
-    
-    Application.EnableEvents = False
-    If mWbk.IsOpen(wsService.SyncSourceFullName, wbk) Then wbk.Close False
-    If mWbk.IsOpen(wsService.CurrentServicedWorkbookFullName(), wbk) Then wbk.Close False
-    If mWbk.IsOpen(TestSyncTargetFullName, wbk) Then wbk.Close False
-    Application.EnableEvents = True
-    
-    Test_00_RegressionTest_AssertSyncTargetRegressionTestPreparation
-    Test_00_RegressionTest_AssertSyncSourceRegressionTestPreparation
-    
-    On Error GoTo eh
-    mBasic.BoP ErrSrc(PROC)
-    mWbk.GetOpen TestSyncTargetFullName ' regular initiation of the synchronization
-    
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-    
-Private Sub Test_00_RegressionTest_AssertSyncSourceRegressionTestPreparation()
-
-End Sub
-
-Private Sub Test_00_RegressionTest_AssertSyncTargetRegressionTestPreparation()
-
-End Sub
 
 Private Sub Test_99_mSyncShapeProperties_Name_Property()
 ' ----------------------------------------------------------------------------
@@ -198,11 +156,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Regression():        TestSync True:          End Sub
+Private Sub TestSelectedOnly(): TestSync False:         End Sub
 
-Private Sub TestSelectedOnly():  TestSync False:         End Sub
-
-Private Sub TestSync(Optional ByVal t_regression As Boolean = False)
+Public Sub TestSync(Optional ByVal t_regression As Boolean = False)
     Const PROC = "TestSync"
     
     On Error GoTo eh

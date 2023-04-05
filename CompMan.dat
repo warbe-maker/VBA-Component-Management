@@ -5,15 +5,12 @@ KindOfComponent=used
 RawRevisionNumber=2023-02-17.001
 [fMsg]
 KindOfComponent=used
-RawRevisionNumber=2022-12-31.001
+RawRevisionNumber=2023-03-30.002
+DueModificationWarning=1
 [mBasic]
 KindOfComponent=used
 RawRevisionNumber=2023-01-24.002
 DueModificationWarning=1
-[mCompManClient]
-KindOfComponent=hosted
-RawExpFileFullName=D:\Ablage\Excel VBA\DevAndTest\Common-VBA-Excel-Component-Management-Services\source\mCompManClient.bas
-RawRevisionNumber=2023-03-29.002
 [mDct]
 KindOfComponent=used
 RawRevisionNumber=2022-12-12.004
@@ -28,7 +25,7 @@ KindOfComponent=used
 RawRevisionNumber=2023-03-01.001
 [mMsg]
 KindOfComponent=used
-RawRevisionNumber=2023-02-14.001
+RawRevisionNumber=2023-03-30.001
 DueModificationWarning=1
 [mNme]
 KindOfComponent=used
@@ -52,3 +49,7 @@ RawRevisionNumber=2022-10-26.001
 [mWsh]
 KindOfComponent=used
 RawRevisionNumber=2023-02-09.003
+[mCompManClient]
+KindOfComponent=hosted
+RawExpFileFullName=D:\Ablage\Excel VBA\DevAndTest\Common-VBA-Excel-Component-Management-Services\source\mCompManClient.bas
+RawRevisionNumber=2023-04-05.001

@@ -47,19 +47,19 @@ Private Const DEFAULT_FOLDER_COMPMAN_PARENT     As String = "CompMan"
 Private Const DEFAULT_FOLDER_COMMON_COMPONENTS  As String = "Common-Components"
 Private Const DEFAULT_FOLDER_COMPMAN_ROOT       As String = "CompManServiced"
 
+Private bAllRemoved             As Boolean
+Private bRenewTerminatedByUser  As Boolean
+Private bSucceeded              As Boolean
+Private CompManRoot             As String
+Private dctAddInRefs            As Dictionary
+Private Extension               As String
+Private lRenewStep              As Long
+Private ServicingEnabled        As Boolean
+Private sRenewAction            As String
 Private wbDevlp                 As Workbook
 Private wbkSource               As Workbook                     ' This development instance as the renew source
-Private bSucceeded              As Boolean
-Private bAllRemoved             As Boolean
-Private dctAddInRefs            As Dictionary
-Private lRenewStep              As Long
-Private sRenewAction            As String
-Private bRenewTerminatedByUser  As Boolean
 
-Public CompManRoot              As String
 Public BaseName                 As String
-Public Extension                As String
-Public ServicingEnabled         As Boolean
 
 Public Function AssertedServicingEnabled() As Boolean
 ' ---------------------------------------------------------------------------

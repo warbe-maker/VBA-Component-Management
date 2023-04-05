@@ -52,16 +52,16 @@ Public Property Get WbkName() As String
     End With
 End Property
 
-Public Sub Clear(ByVal c_addin_folder_full_name As String)
+Private Sub Clear(ByVal c_addin_folder_full_name As String)
 ' ----------------------------------------------------------------------------
 ' Clears all items concerning the Add-in despite the Add-in folder.
 ' ----------------------------------------------------------------------------
 
-    mAddin.ReferencesRemove
-    mAddin.Set_IsAddin_ToFalse
-    mAddin.WbkClose
-    mAddin.WbkRemove c_addin_folder_full_name & "\" & mAddin.WbkName
-    mAddin.AutoOpenShortCutRemove
+    ReferencesRemove
+    Set_IsAddin_ToFalse
+    WbkClose
+    WbkRemove c_addin_folder_full_name & "\" & mAddin.WbkName
+    AutoOpenShortCutRemove
     
 End Sub
 

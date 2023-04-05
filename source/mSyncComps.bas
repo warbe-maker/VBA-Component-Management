@@ -236,6 +236,7 @@ Private Sub AppRunNew()
     Dim SourceComp  As clsComp
     Dim va          As Variant
     Dim vbc         As VBComponent
+    Dim wbkSource   As Workbook
     Dim wbkTarget   As Workbook
     Dim sId         As String
     

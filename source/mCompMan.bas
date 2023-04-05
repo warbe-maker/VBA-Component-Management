@@ -230,28 +230,6 @@ Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mCompMan" & "." & es_proc
 End Function
 
-Public Sub ExportAll(Optional ByRef ea_wbk_serviced As Workbook = Nothing)
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Const PROC = "ExportAll"
-    
-    On Error GoTo eh
-    mService.EstablishExecTraceFile ea_wbk_serviced
-        
-    mBasic.BoP ErrSrc(PROC)
-    mService.Initiate mCompManClient.SRVC_EXPORT_ALL, ActiveWorkbook
-    mExport.All
-    
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
 Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
                                  Optional ByVal u_hosted As String = vbNullString)
 ' ------------------------------------------------------------------------------
@@ -492,3 +470,18 @@ Public Function WinMergeIsInstalled() As Boolean
     WinMergeIsInstalled = AppIsInstalled("WinMerge")
 End Function
 
+Private Sub CheckForUnusedPublicItems()
+' ----------------------------------------------------------------
+' Attention! The service requires the VBPUnusedPublic.xlsb
+'            Workbook open. When not open the service terminates
+'            without notice.
+' ----------------------------------------------------------------
+    Const COMPS_EXCLUDED = "clsQ,mRng,fMsg,mBasic,mDct,mErH,mFso,mMsg,mNme,mReg,mTrc,mWbk,mWsh"
+    Const LINES_EXCLUDED = "Select Case ErrMsg(ErrSrc(PROC))" & vbLf & _
+                           "Case vbResume:*Stop:*Resume" & vbLf & _
+                           "Case Else:*GoTo xt"
+    On Error Resume Next
+    '~~ Providing all (optional) arguments saves the Workbook selection dialog and the VBComponents selection dialog
+    Application.Run "VBPUnusedPublic.xlsb!mUnused.Unused", ThisWorkbook, COMPS_EXCLUDED, LINES_EXCLUDED
+
+End Sub
