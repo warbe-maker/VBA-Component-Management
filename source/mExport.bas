@@ -263,7 +263,7 @@ Private Sub Hskpng()
         For Each fl In .GetFolder(sExpFldrCurrentPath).Files
             Select Case .GetExtensionName(fl.Path)
                 Case "bas", "cls", "frm", "frx"
-                    If Not mComp.Exists(ex_vbc:=.GetBaseName(fl), ex_wbk:=mService.WbkServiced) Then
+                    If Not mComp.Exists(.GetBaseName(fl), mService.WbkServiced) Then
                         sExpFileName = .GetFileName(fl.Path)
                         .DeleteFile fl
                         mService.Log.Entry = "Obsolete Export-File '" & sExpFileName & "' deleted (VBComponent no longer exists)"

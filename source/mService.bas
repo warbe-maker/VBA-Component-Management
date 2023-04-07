@@ -271,7 +271,7 @@ Public Function Denied(ByVal d_service As String) As Boolean
         Case mCompManClient.SRVC_UPDATE_OUTDATED:   sDeniedService = "The service """ & mCompManClient.SRVC_UPDATE_OUTDATED_DSPLY & """ is denied! "
     End Select
     Select Case True
-        Case WbkIsRestoredBySystem
+        Case WbkIsOpenedRegular = False
             sStatus = sDeniedService & "The serviced Workbook has apparently been restored by the system and yet not saved under its origin name!"
         Case mMe.IsAddinInstnc And mAddin.Paused
             '~~ When the service is about to be provided by the Addin this means that the CompMan.xlsb is not open.
@@ -889,8 +889,11 @@ Public Sub MessageUnload(ByVal sm_title As String)
     mMsg.MsgInstance sm_title, True
 End Sub
 
-Private Function WbkIsRestoredBySystem() As Boolean
-    WbkIsRestoredBySystem = InStr(ActiveWindow.Caption, "(") <> 0 _
-                         Or InStr(mService.WbkServiced.FullName, "(") <> 0
+Private Function WbkIsOpenedRegular() As Boolean
+' ----------------------------------------------------------------------------
+' Retrurns FALSE when the Workbook had been restored by Excel or opended as
+' a version - which will cause the denial of any service.
+' ----------------------------------------------------------------------------
+    WbkIsOpenedRegular = ActiveWindow.Caption = mService.WbkServiced.Name
 End Function
 
