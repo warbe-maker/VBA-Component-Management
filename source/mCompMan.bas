@@ -248,7 +248,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     
     mBasic.BoP ErrSrc(PROC)
     mService.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, u_wbk_serviced
-    mCommComps.Hskpng u_hosted
+    mHskpng.CommComps u_hosted
     mCompManDat.Hskpng u_hosted
     Set mCommComps.Qoutdated = Nothing
     mCommComps.OutdatedUpdate ' Dialog to update/renew one by one
@@ -290,7 +290,7 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     mService.Initiate mCompManClient.SRVC_EXPORT_CHANGED, e_wbk_serviced
     If mService.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
     
-    mCommComps.Hskpng e_hosted
+    mHskpng.CommComps e_hosted
     mCompManDat.Hskpng e_hosted
     
     mService.ExportChangedComponents e_hosted

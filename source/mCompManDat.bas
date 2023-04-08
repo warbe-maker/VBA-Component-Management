@@ -40,6 +40,8 @@ End Property
 Public Property Let RegistrationState(Optional ByVal comp_name As String, _
                                                ByVal comp_reg_state As enCommCompRegState)
     CompRegState(comp_name) = comp_reg_state
+    mHskpng.ReorgDatFile CompManDatFileFullName
+
 End Property
 
 Public Property Get RegistrationState(Optional ByVal comp_name As String) As enCommCompRegState
@@ -256,6 +258,7 @@ Public Sub Hskpng(ByVal h_hosted As String)
     mBasic.BoP ErrSrc(PROC)
     HskpngRemoveObsoleteSections h_hosted
     HskpngHosted h_hosted
+    mHskpng.ReorgDatFile CompManDatFileFullName
 
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub

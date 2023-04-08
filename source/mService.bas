@@ -552,7 +552,7 @@ Public Sub ExportChangedComponents(ByVal e_hosted As String)
     If mService.WbkServiced Is Nothing _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                             "(it may have been called directly via the 'Immediate Window'"
-    mCommComps.Hskpng e_hosted
+    mHskpng.CommComps e_hosted
     mExport.ChangedComponents e_hosted
     
 xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
