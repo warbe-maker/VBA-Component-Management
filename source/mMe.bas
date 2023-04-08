@@ -271,7 +271,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
         sWrkbkOpened = ThisWorkbook.FullName
         ThisWorkbook.SaveAs FldrCompManParent & "\" & ThisWorkbook.Name
         Stop
-        If Not fso.FileExists(mWinMergeIni.WinMergeIniFullName) Then mWinMergeIni.Setup
+        mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
         '~~ CompMan's .cfg-file
         wsConfig.CompManCfgSaveConfig
         AssertedFilesAndFldrsStructure = True
@@ -333,7 +333,8 @@ Private Function AssertedWinMerge() As Boolean
         End With
         mMsg.Dsply Title, Msg, vbOKOnly
     End If
-
+    mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName ' ensures that the required options are established
+    
 End Function
 
 Private Property Get ADDIN_FORMAT() As XlFileFormat ' = ... needs adjustment when the above is changed
@@ -773,10 +774,12 @@ Private Sub Renew_12_SetupWinMergeIni()
     Const PROC = "Renew_12_SetupWinMergeIni"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
-    If fso.FileExists(mWinMergeIni.WinMergeIniAddinFullName) Then fso.DeleteFile (mWinMergeIni.WinMergeIniAddinFullName)
-    mWinMergeIni.SetupForAddin
-    Set fso = Nothing
+'    Dim fso As New FileSystemObject
+'    If fso.FileExists(mWinMergeIni.WinMergeIniAddinFullName) Then
+'        fso.DeleteFile (mWinMergeIni.WinMergeIniAddinFullName)
+'    End If
+    mWinMergeIni.Setup WinMergeIniAddinFullName
+'    Set fso = Nothing
     
 xt: Exit Sub
     

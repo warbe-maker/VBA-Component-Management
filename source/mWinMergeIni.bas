@@ -19,14 +19,14 @@ Public Property Get WinMergeIniAddinFullName() As String
     WinMergeIniAddinFullName = ThisWorkbook.Path & "\Addin\WinMerge.ini"
 End Property
 
-Public Sub Setup()
+Public Sub Setup(ByVal s_ini_file As String)
+' ----------------------------------------------------------------------------
+' CompMan only writes the required options. When WinMerge is executed for the
+' first time it will write all the remaining properties.
+'
+' ----------------------------------------------------------------------------
     Value(VALUE_NAME_IGNORE_BLANKS, WinMergeIniFullName) = 1
     Value(VALUE_NAME_IGNORE_CASE, WinMergeIniFullName) = 1
-End Sub
-
-Public Sub SetupForAddin()
-    Value(VALUE_NAME_IGNORE_BLANKS, WinMergeIniAddinFullName) = 1
-    Value(VALUE_NAME_IGNORE_CASE, WinMergeIniAddinFullName) = 1
 End Sub
 
 Private Property Let Value(Optional ByVal pp_value_name As String, _
