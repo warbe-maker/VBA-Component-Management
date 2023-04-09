@@ -457,7 +457,7 @@ Public Function FolderCompManRootIsValid() As Boolean
     Dim fso     As New FileSystemObject
     Dim bValid  As Boolean
     
-    FolderCompManRootUrl = "#the-serviced-development-and-test-folder"
+    FolderCompManRootUrl = "#the-compmanserviced-folder"
     CompManWrkbkStatusUrl = "#setup-auto-open-for-the-compman-workbook"
     
     If FolderCompManRoot <> vbNullString Then

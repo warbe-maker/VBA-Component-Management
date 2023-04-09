@@ -48,53 +48,47 @@ Used with the _Workbook\_Open_ event all  _Used&nbsp;Common&nbsp;Components_ are
 
 ### The _Synchronize VB-Project_ service
 The service allows a productive Workbook to remain in use while the VB-Project is developed, modified, maintained, etc., in a copy of it. When all changes had been done the VB-Project of the productive Workbook is synchronized. The benefit: A significant shorter downtime for the productive Workbook. 
-> As with the _Export_ and _Update_ service, this service has no user interface! The service is invoked when the _Sync-Target-Workbook_ (i.e. the temporarily moved productive Workbook) is opened from within the configured _Synchronization Target Folder_. Provided the _Sync-Source-Workbook_ (i.e the copy of the productive Workbook) resides in the [_Serviced Development and Test Folder_](#configuration).
+> As with the _Export_ and _Update_ service, this service has no user interface! The service is invoked when the _Sync-Target-Workbook_ (i.e. the temporarily moved productive Workbook) is opened from within the configured _Synchronization Target Folder_. Provided the _Sync-Source-Workbook_ (i.e the copy of the productive Workbook) resides in the [_CompManServiced_ folder](#files-and-folders).
 
 ## Usage
-### The provision of the CompMan.xlsb as a servicing Workbook instance
-1. Download and open the [CompMan.xlsb][1] Workbook
-2. Confirm the setup of a [default environment](#compmans-default-files-and-folders-environment)
-3. When the Workbook is closed once the default environment has been setup and the Workbook saved into it re-open it from within its parent folder
+### Provision of CompMan as a servicing Workbook instance
+1. Download and open the [CompMan.xlsb][1] Workbook. CompMan will setup its own default environment
+2. Confirm CompMan's self-setup of the [default environment](#compmans-default-files-and-folders-environment). Once the environment has been setup the downloaded and opened Workbook is saved into the [_CompMan_ folder](#files-and-folders) and the downloaded Workbook is removed.
 
-### Subsequent configuration
-The Workbook has a _Config_ worksheet which allows to change/re-configure some of the environment.
+### Possible subsequent configurations and configuration changes
+The [CompMan.xlsb][1] Workbook has a _Config_ worksheet which allows to change/re-configure the following items:
 
-#### The Serviced Synchronization Target Folder
-Folder into which a Workbook for which the _Synchronize VB-Project_ has been [enabled](#enabling-the-synchronization-service), is temporarily moved and opened from there in order to have its VB-Project synchronized with the corresponding (same named) Workbook residing in the configured [_Serviced Development and Test Folder_](#serviced-development-and-test-folder). When the configuration of the folder is terminated, i.e. no folder is selected, the folder becomes 'not configured'.
-#### The Synchronization Archive Folder
-A _Synchronization Archive Folder_ is obligatory when the _Synchronize VB-Project_ service is used. The service will archive a _Sync-Target-Workbook_ before it is synchronized with its corresponding _Sync-Source-Workbook_. When none is selected the folder will be reset to 'not configured'. When the configuration of the folder is terminated, i.e. no folder is selected, the folder becomes 'not configured'. 
-#### Setup Auto-open for the CompMan Workbook
-Once Workbooks with enabled services are frequently opened it may make sense to have the the [CompMan.xlsb][1] Workbook automatically opened when Excel starts. This configuration switches from 'not setup' to 'setup' and vice versa. Note: Also the [CompMan Add-in](#compman-used-as-add-in) will be setup with an Auto-open. And just in case: When the CompMan Workbook is moved to a different location and opened, the setup Auto-open (in the users XLSTART folder) will automatically be updated.
-#### Setup/Renew Add-in
-Sets up or renews the CompMan Add-in. Once the Add-in is setup/renewed it will automatically be opened when Excel starts.
->The command button is only available/visible when a valid [_Add-in Folder_](#the-add-in-folder) is configured.
-#### Pause/Continue Add-in
-Pauses/continues the setup Add-in. This configuration option is only used when the [CompMan.xlsb][1] Workbook is maintained in order to enforce its use even when the Add-in is open/available.
->The command button is only available/visible when a valid [_Add-in Folder_](#the-add-in-folder) is configured.
-
+| Item, means        | Meaning, usage |
+|--------------------|----------------|
+| _CompMan's serviced root folder_ | **Folder** recognized by the CompMan Workbook when opened.|
+| _Export folder_ | **Name** of the folder established and used in any serviced Workbook's parent folder to store the Export-Files of changed (or yet not exported) VBComponents.|
+| _Addin folder | **Folder** where the CompMan Workbook is saved into as Add-in when setup.|
+| _Serviced Synchronization Target Folder_ | **Folder** into which a Workbook (for which the _Synchronize VB-Project_ has been [enabled](#enabling-the-synchronization-service) is temporarily moved and opened in order to have its _VB-Project_ synchronized with the corresponding (same named) Workbook residing within the configured [_CompManServiced_ folder](#files-and-folders). When the configuration of the folder is terminated, i.e. no folder is selected, the folder becomes 'not configured'.|
+| _Synchronization Archive Folder_ | **Folder** obligatory for the _Synchronize VB-Project_ service. The service archives a _Sync-Target-Workbook_ before it is synchronized with its corresponding _Sync-Source-Workbook_. When the folder selection dialog is terminated, i.e. no folder is selected, the folder becomes 'not configured'.|
+| _CompMan-Workbook status_ | CompMan's current status which may be changed by the _Setup Auto-open_/_Remove Auto-open_ **Command Button** |
+| _CompMan Addin status_ | Status provided by the _Setup/Renew Add-in_ **Command Button**. The _Pause/Continue Add-in_ **Command Button** pauses/continue the setup Add-in.|
 
 ### Using the services provided by CompMan.xlsb
 #### Serviced or not serviced
 A Workbook will only be serviced by CompMan provided
-- the opened Workbook has a service [enabled](#services-enabling)
-- a ***servicing CompMan instance*** (the [CompMan.xlsb][1] Workbook and/or the [CompMan Add-in](#compman-used-as-add-in) is open
-- a valid [_Serviced Development and Test Folder_](#serviced-development-and-test-folder) is configured
-- the ***to-be-serviced Workbook*** is opened from within a sub-folder of the configured [_Serviced Development and Test Folder_](#configuration), in case of the _Synchronization service_ from within a sub-folder of the configured _Sync-Target-Folder_.
-- the ***to-be-serviced Workbook*** is the only Workbook in its parent folder (the parent folder may have sub-folders with Workbooks however)
-- WinMerge ([WinMerge English][4], [WinMerge German][5] or any other language version is installed (it is used to display the difference for any components about to be updated by the [_Update_](#enabling-the-update-service)
+1. The opened Workbook has a service [enabled](#services-enabling)
+2. A ***servicing CompMan instance*** (the [CompMan.xlsb][1] Workbook and/or the [CompMan Add-in](#compman-used-as-add-in) is open
+3. The ***to-be-serviced Workbook*** is opened from within a sub-folder of the configured [_CompManServiced_ folder](#files-and-folders), Note: In case of the _Synchronization service_ from within a sub-folder of the configured _Sync-Target-Folder_.
+4. The ***to-be-serviced Workbook*** is the only Workbook in its parent folder (the parent folder may have sub-folders with Workbooks however)
+5. WinMerge ([WinMerge English][4], [WinMerge German][5] or any other language version is installed to display the difference for any components when about to be updated by the [_Update_ service](#enabling-the-update-service)
 
-As a consequence from the above, a productive Workbook must not be used from within the configured [_Serviced Development and Test Folder_](#configuration). When a Workbook with any [enabled](#services-enabling)/prepared service is opened when located elsewhere the user will not be bothered by any means, i.e. will not even recognize CompMan at all - even when open/available.
+>Note: As a consequence from the above, a productive Workbook must not be used from within the configured [_CompManServiced_ folder](#files-and-folders). When a Workbook with any [enabled](#services-enabling)/prepared service is opened when located elsewhere the user will not be bothered by any means, i.e. will not even recognize CompMan at all - even when open/available.
 
-### Enabling the services
->Even when a Workbook has one or more services enabled, the service is denied without notice when [required (pre)conditions](#serviced-or-not-serviced) are not met.
+>Note: Even when a Workbook has one or more services enabled, the service is denied without notice when [required (pre)conditions](#serviced-or-not-serviced) are not met.
+
 #### Enabling the _Export_ service
-The _Export_ service is performed whenever the Workbook is saved from within the configured [_Serviced Development and Test Folder_](#configuration) and all the [preconditions](#serviced-or-not-serviced) are met..
+The _Export_ service is performed whenever the Workbook is saved from within the configured [_CompManServiced_ folder](#files-and-folders) and all the [preconditions](#serviced-or-not-serviced) are met..
 1. Download and import the _[mCompManClient.bas][3]_ which serves as the link to the CompMan services.
 2. Into the Workbook module copy the following:
 ```vb
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     '~~ The below statement has no effect unless this (the Workbook serviced by CompMan) had been
-    '~~ opened from within a sub-folder of the configured 'Serviced Development and Test Folder'.
+    '~~ opened from within a sub-folder of the configured 'CompManServiced' folder.
     '~~ HOSTED_RAWS is a vbNullString constant when the Workbook not hosts any Common Component. 
     mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
 End Sub
@@ -105,13 +99,13 @@ else<br>
 `Private Const HOSTED_RAWS = vbNullstring`
 
 #### Enabling the _Update_ service
-The _Update_ service is performed whenever the Workbook is opened from within the configured [_Serviced Development and Test Folder_](#configuration) folder and all the [preconditions](#serviced-or-not-serviced) are meet.
-1. Download and import the _[mCompManClient.bas][3]_ which serves as the link to the CompMan services.
+The _Update_ service is performed whenever the Workbook is opened from within the configured [_CompManServiced_ folder](#files-and-folders) and all the [preconditions](#serviced-or-not-serviced) are meet.
+1. Download and import the _[mCompManClient.bas][3]_ which serves as the interface to the CompMan services.
 2. Into the Workbook module copy the following:
 ```vb
 Private Sub Workbook_Open()
     '~~ The below statement has no effect unless this (the Workbook serviced by CompMan) had been
-    '~~ opened from within a sub-folder of the configured 'Serviced Development and Test Folder'.
+    '~~ opened from within a sub-folder of the configured 'CompManServiced' folder.
     '~~ HOSTED_RAWS is a vbNullString constant when the Workbook not hosts any Common Component.
     mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, HOSTED_RAWS
 End Sub
@@ -122,8 +116,8 @@ else<br>
 `Private Const HOSTED_RAWS = vbNullstring`
 
 #### Enabling the _Synchronization_ service
-The _Synchronize VB-Project_ service is performed when the Workbook is opened from within the configured [_Serviced Synchronization Target Folder_](#configuration) and all the [preconditions](#serviced-or-not-serviced) are meet
-1. Download and import the _[mCompManClient.bas][3]_ which serves as the link to the CompMan services.
+The _Synchronize VB-Project_ service is performed when the Workbook is opened from within the configured [_Serviced Synchronization Target Folder_](#possible-subsequent-configurations-and-configuration-changes) and all the [preconditions](#serviced-or-not-serviced) are meet
+1. Download and import the _[mCompManClient.bas][3]_ which serves as the interface for the CompMan services.
 2. In the Workbook module copy the following:
 ```vb
 Private Sub Workbook_Open()
@@ -135,13 +129,14 @@ End Sub
 
 ### Using the _Synchronization Service_
 #### Steps
-1. Follow the [Installation](#installation) instructions and [Enabling the _Synchronization_ service](#enabling-the-synchronization-service). 
-2. Copy the productive Workbook into a dedicated folder within the configured [_Serviced Development and Test Folder_](#configuration) and modify the VB-Project as intended while the productive Workbook remains in use!.
-3. When the development/modification has been finished, ****close the Workbook!**** and proceed with the next steps.
-4. Move the productive Workbook to the configured [_Serviced Synchronization Target Folder_](#configuration) and open it. In case this folder has yet not been configured, switch to the open [CompMan.xlsb][1] and use the _CompMan Configuration_ button on the displayed Worksheet. Provided the Workbook had been prepared for it the synchronization will now start.
-4. Open the moved Workbook and follow the synchronization steps. The synchronization will be done on a working copy (name with a suffix _Synced_).
-6. When the synchronization has finished, save the working copy as the new productive Workbook - e.g. by dropping the _Synced_ suffix from the name and moving it back to the "production location" it originates.
-7. When everything has finally turned out perfect the remaining Workbook from step 3 may be removed
+1. Follow the [Installation](#installation) instructions and the [Enabling the _Synchronization_ service](#enabling-the-synchronization-service) instructions. 
+2. Copy the productive Workbook into a dedicated folder under the configured [_CompManServiced_](#files-and-folders) folder
+3. Modify the VB-Project as intended while the productive Workbook remains in use!.
+4. When the development/modification has been finished, ****close the Workbook!**** and proceed with the next steps.
+5. Move the productive Workbook to the configured [_Serviced Synchronization Target Folder_](##possible-subsequent-configurations-and-configuration-changes) and open it. In case this folder has yet not been configured, switch to the open [CompMan.xlsb][1] and use the displayed _Config_ Worksheet.
+6. Open the moved Workbook and follow the synchronization steps. The synchronization will be done on a working copy (name with a suffix _Synced_).
+7. When the synchronization has finished, save the working copy as the new productive Workbook - e.g. by dropping the _Synced_ suffix from the name and moving it back to the "production location" it originates.
+8. When everything has finally turned out perfect the remaining Workbook from step 3 may be removed
 
 #### _Worksheet_ synchronization
 - ***New Worksheets***
@@ -199,7 +194,7 @@ CompMan is pretty much focused on _Common&nbsp;Components_. In order to prevent 
 
 ### CompMan's (default) files and folders environment
 
-```
+```txt
 CompManServiced
 | 
 +---CompMan
@@ -215,24 +210,17 @@ CompManServiced
      +---CompManClient.bas
 ```
 ### Files and Folders
-#### The _CompManServiced_ folder
-Default folder serviced by CompMan. Only Workbooks in a subsequent dedicated folder are serviced - provided they are [setup](#enabling-the-services) for it. The folder may be moved to any location and renamed as well. When opened, the Workbook recognizes the new environment and keeps it in the CompMan.cfg file.
-#### The _CompMan_ folder
-Parent folder of the CompMan.xlsb Workbook. The name defaults to the name of CompMan's public GitHub repository and may be changed if desired.|
-#### The _Addin_ folder
-Folder for the CompMan-Addin (CompMan.xlsa) when setup (see [Subsequent configuration](#subsequent-configuration). <u>The folder name however must not be altered!</u>
-#### The _source_ folder
-Folder for the Export-Files of changed components exported with each Save event. This folder is maintained for each serviced Workbook in the Workbook's dedicated parent folder. The folder name may be changed by means of the _Config_ Worksheet.
-#### The _CompMan.cfg_ file
-A _PrivateProfile_ file which keeps the current CompMan configuration. It is used with each open and adjusted on the fly if required. The file ensures that each subsequent download of the ComMan.xlsb Workbook works with the configuration saved with the last close of it.
-#### _CompMan.xlsb_
-The Workbook originally opened copied (saved as) into its dedicated parent folder along with the initial setup. Once the opened Workbook has been saved to the new setup location it is deleted.
-#### _WinMerge.ini_
-_***WinMerge***_ is used by CompMan to display code changes, whereby changes of empty code lines and case differences are ignored. To conform with this the _WinMerge.ini_ provides these settings. 
-#### The _Common-Components_ folder
-Default folder where CompMan maintains a copy of the Export-File of _hosted_ _Common&nbsp;Component_. These _Export Files_ function as the source for a serviced Workbook's (possibly) outdated _Used&nbsp;Common&nbsp;Components_.
-#### The _CompManClient.bas_ export file
-This is the _Common Component_ hosted by [CompMan.xlsb][1] for being imported, i.e. used, by any to-be-serviced Workbook. 
+| Name              | File, Folder    | Usage                                  |
+|-------------------|--------|--------------------------------------------------|
+| _CompManServiced_ | Folder | Default root folder serviced by CompMan, whereby serviced means that only Workbooks in a subsequent folder are serviced - provided they are [enabled](#enabling-the-services) for them. The folder may be moved to any location and renamed as well. When CompMan is opened it recognizes its environment and keeps a record of it in the _CompMan.cfg_ file.|
+| _CompMan_         | Folder | Parent folder of the [CompMan.xlsb][1] Workbook. The name defaults to the Workbook's base name.|
+| _Addin_           | Folder | Folder for the CompMan-Addin (CompMan.xlsa) when setup. See [Subsequent configuration](#subsequent-configuration). <u>The folder name however must not be altered!</u>|
+| _source_          | Folder | Default folder for the Export-Files of changed components exported with each Save event. This folder is maintained for each serviced Workbook in the Workbook's dedicated parent folder. The folder name may be changed by means of the _Config_ Worksheet.|
+| _CompMan.cfg_     | File | A _PrivateProfile_ file which keeps the current CompMan configuration. It is used with each open and adjusted on the fly if required. The file ensures that each subsequent download of the ComMan.xlsb Workbook works with the configuration saved with the last close of it.|
+| _CompMan.xlsb_    | File | The Workbook originally opened copied (saved as) into its dedicated parent folder along with the initial setup. Once the opened Workbook has been saved to the new setup location it is deleted.|
+| _WinMerge.ini_    | File | Used by CompMan to display code changes by means of _***WinMerge***_. The ini file is used for the WinMerge options: Ignore empty code lines, and ignore case differences.|
+| _Common&#8209;Components_ | Folder | Default folder where CompMan maintains a copy of the Export-File of _hosted_ _Common&nbsp;Component_. These _Export Files_ function as the source for a serviced Workbook's (possibly) outdated _Used&nbsp;Common&nbsp;Components_.|
+| _CompManClient.bas_  | File | This is the _Common Component_ hosted by [CompMan.xlsb][1] for being imported into any to-be-serviced Workbook. See [Enabling the services](#enabling-the-services).| 
 
 #### Other CompMan specific files
 
@@ -241,7 +229,7 @@ This is the _Common Component_ hosted by [CompMan.xlsb][1] for being imported, i
 | _***CompMan.dat***_         | The <u>serviced</u> Workbook's parent folder | PrivateProfile file for the registration of all  _Hosted&nbsp;Common&nbsp;Components_ and all _Used&nbsp;Common&nbsp;Components_. |
 | _***CompMan.Service.trc***_ | The <u>serviced</u> Workbook's parent folder | Execution trace of the performed CompMan service, available only when the VB-Project's _Conditional Compile Argument_ `ExecTrace = 1` is set. |
 |  _***CompMan.Service.log***_| The <u>serviced</u> Workbook's parent folder | Log file for the executed CompMan services.|
-| _***CommComp.dat***_        | The [Common-Components](#the-common-components-folder) folder | A PrivateProfile file with sections representing Common Components with various information like the hosting Workbook and the _[Revision-Number](#the-revision-number)_|
+| _***CommComp.dat***_        | The [Common-Components](#the-common-components-folder) folder | A _PrivateProfile_ file with sections representing Common Components with various information like the hosting Workbook and the _[Revision-Number](#the-revision-number)_ for instance.|
 
 #### Multiple computers involved in VB-Project's development/maintenance
 When the [Common-Components](#files-and-folders) folder is handled/managed as a GitHub repository it will be easy to keep an up-to-date clone on various computers. Currently the location of the [Common-Components](#files-and-folders) folder is fixed and cannot be re-configured/located on a network. However, the whole environment, i.e. the [CompManRoot](#files-and-folders) folder may be moved to/kept at any location.
