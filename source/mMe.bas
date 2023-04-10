@@ -241,7 +241,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
         With .Section(5).Label
             .FontColor = rgbBlue
             .Text = "See README chapter 'Files and Folders' for more information"
-            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_FILES_AND_FOLDERS
+            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_DEFAULT_FILES_AND_FOLDERS
         End With
     End With
     

@@ -53,10 +53,11 @@ Option Compare Text
 '
 ' W. Rauschenberger Berlin August 2019
 ' -------------------------------------------------------------------------------
-Public Const README_URL                     As String = "https://github.com/warbe-maker/Common-VBA-Excel-Component-Management-Services/blob/master/README.md"
-Public Const README_SYNC_CHAPTER            As String = "?#using-the-synchronization-service"
-Public Const README_SYNC_CHAPTER_NAMES      As String = "?#names-synchronization"
-Public Const README_FILES_AND_FOLDERS       As String = "?#files-and-folders"
+Public Const README_URL                         As String = "https://github.com/warbe-maker/Common-VBA-Excel-Component-Management-Services/blob/master/README.md"
+Public Const README_SYNC_CHAPTER                As String = "?#using-the-synchronization-service"
+Public Const README_SYNC_CHAPTER_NAMES          As String = "?#names-synchronization"
+Public Const README_DEFAULT_FILES_AND_FOLDERS   As String = "?#compmans-default-files-and-folders-environment"
+Public Const README_CONFIG_CHANGES              As String = "?#configuration-changes"
 
 Public Enum enKindOfComp            ' The kind of VBComponent in the sense of CompMan
     enUnknown = 0

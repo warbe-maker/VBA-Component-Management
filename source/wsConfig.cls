@@ -142,14 +142,14 @@ Private Property Let FolderSyncTargetUrl(ByVal s As String):         UrlLabel(Me
 Private Property Get MonitorAnchor() As Range:                      Set MonitorAnchor = Me.Range("ConfigInfo"):                     End Property
 
 Private Property Let UrlButton(ByVal url_rng As Range, _
-                              ByVal url_chapter As String)
+                               ByVal url_chapter As String)
                         
     mWsh.Url(Me, url_rng, xlUnderlineStyleNone, 11) = Replace(Replace(mCompMan.README_URL & url_chapter, "##", "#"), "?", vbNullString)
     
 End Property
 
 Private Property Let UrlLabel(ByVal url_rng As Range, _
-                             ByVal url_chapter As String)
+                              ByVal url_chapter As String)
                         
     mWsh.Url(Me, url_rng, xlUnderlineStyleNone, 9) = Replace(Replace(mCompMan.README_URL & url_chapter, "##", "#"), "?", vbNullString)
     
@@ -400,7 +400,7 @@ Public Function FolderAddInIsValid() As Boolean
     Dim fso     As New FileSystemObject
     Dim bValid  As Boolean
     
-    FolderAddInUrl = "#the-add-in-folder"
+    FolderAddInUrl = mCompMan.README_CONFIG_CHANGES
     ButtonHelpUrlAddinSetup = "#setup-auto-open-for-the-compman-workbook"
 
     Select Case True
@@ -457,8 +457,8 @@ Public Function FolderCompManRootIsValid() As Boolean
     Dim fso     As New FileSystemObject
     Dim bValid  As Boolean
     
-    FolderCompManRootUrl = "#the-compmanserviced-folder"
-    CompManWrkbkStatusUrl = "#setup-auto-open-for-the-compman-workbook"
+    FolderCompManRootUrl = mCompMan.README_CONFIG_CHANGES
+    CompManWrkbkStatusUrl = mCompMan.README_CONFIG_CHANGES
     
     If FolderCompManRoot <> vbNullString Then
         If fso.FolderExists(FolderCompManRoot) Then
@@ -520,7 +520,7 @@ Public Function FolderExportIsValid(Optional ByRef iv_info As String) As Boolean
 ' Verification the name of the Export-Folder
 ' ----------------------------------------------------------------------------
     With Me
-        FolderExportUrl = "#the-export-folder"
+        FolderExportUrl = mCompMan.README_CONFIG_CHANGES
         If .FolderExport <> vbNullString Then
             FolderExportInfo = "Current configured name of the folder within a serviced Workbook's dedicated folder " & _
                                 "into which CompMan exports new/modified components. The name may be changed however."
@@ -549,7 +549,7 @@ Private Function FolderSyncArchiveIsValid() As Boolean
     Dim fso As New FileSystemObject
     
     With Me
-        FolderSyncArchiveUrl = "#the-synchronization-archive-folder"
+        FolderSyncArchiveUrl = mCompMan.README_CONFIG_CHANGES
         If FolderSyncArchive <> vbNullString Then
             If fso.FolderExists(FolderSyncTarget) Then
                 FolderSyncArchiveIsValid = True
@@ -592,7 +592,7 @@ Public Function FolderSyncTargetIsValid() As Boolean
     
     With wsConfig
         FolderSyncTargetIsValid = FolderSyncTarget = vbNullString
-        FolderSyncTargetUrl = "#the-serviced-synchronization-target-folder"
+        FolderSyncTargetUrl = mCompMan.README_CONFIG_CHANGES
         If FolderSyncTarget <> vbNullString Then
             If fso.FolderExists(FolderSyncTarget) Then
                 FolderSyncTargetIsValid = True
@@ -720,8 +720,8 @@ Public Function Verified() As Boolean
            And FolderAddInIsValid _
            And FolderSyncTargetIsValid _
            And FolderSyncArchiveIsValid
-    CompManAddInStatusUrl = "#status-of-the-compman-add-in"
-    CompManWrkbkStatusUrl = "#setup-auto-open-for-the-compman-workbook"
+    CompManAddInStatusUrl = mCompMan.README_CONFIG_CHANGES
+    CompManWrkbkStatusUrl = mCompMan.README_CONFIG_CHANGES
 
 End Function
 
