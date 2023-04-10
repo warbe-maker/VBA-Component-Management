@@ -103,8 +103,7 @@ CompManServiced
 |_Common&#8209;Components_ | Default **folder** where CompMan maintains a copy of the Export-File of _hosted_ _Common&nbsp;Component_. These _Export Files_ function as the source for a serviced Workbook's (possibly) outdated _Used&nbsp;Common&nbsp;Components_.|
 |_CompManClient.bas_| Export **file** of the _Common Component_ hosted by [CompMan.xlsb][1] for being imported into any to-be-serviced Workbook. See [Enabling the services](#enabling-the-services-serviced-or-not-serviced).| 
 
-### Configuration changes
-The [CompMan.xlsb][1] Workbook has a _Config_ worksheet which allows to change/re-configure the following items:
+### Configuration changes (CompMan's _Config_ Worksheet)
 
 | Item, means        | Meaning, usage |
 |--------------------|----------------|

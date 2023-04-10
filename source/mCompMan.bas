@@ -57,7 +57,7 @@ Public Const README_URL                         As String = "https://github.com/
 Public Const README_SYNC_CHAPTER                As String = "?#using-the-synchronization-service"
 Public Const README_SYNC_CHAPTER_NAMES          As String = "?#names-synchronization"
 Public Const README_DEFAULT_FILES_AND_FOLDERS   As String = "?#compmans-default-files-and-folders-environment"
-Public Const README_CONFIG_CHANGES              As String = "?#configuration-changes"
+Public Const README_CONFIG_CHANGES              As String = "?#configuration-changes-compmans-config-worksheet"
 
 Public Enum enKindOfComp            ' The kind of VBComponent in the sense of CompMan
     enUnknown = 0
