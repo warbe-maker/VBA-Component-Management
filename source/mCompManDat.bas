@@ -149,7 +149,7 @@ Private Property Let CompRegState(Optional ByVal comp_name As String, _
     Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_REG_STAT_OF_COMPONENT) = mCommComps.CommCompRegStateString(comp_reg_state)
 End Property
 
-Public Function Components() As Dictionary
+Private Function Components() As Dictionary
     Set Components = mFso.PPsectionNames(CompManDatFileFullName)
 End Function
 
