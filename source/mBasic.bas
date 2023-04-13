@@ -36,6 +36,7 @@ Option Explicit
 '                       component where the code has BoP/EoP statements.
 ' - ErrSrc 3)           Unambigous identification of a procedure. Used with
 '                       error message for example
+' - ShellRun            Opens folder, email-app, url, an Access instance, ...
 ' - TimedDoEvents       Performs a DoEvent by taking the elapsed time printed
 '                       in VBE's immediate window
 ' - TimerBegin          Starts a timer (counting system ticks)
@@ -95,6 +96,31 @@ Private Declare PtrSafe Function SetWindowLongPtr _
      ByVal nIndex As LongPtr, _
      ByVal dwNewLong As LongPtr) _
   As LongPtr
+
+Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
+    Alias "ShellExecuteA" _
+    (ByVal hWnd As Long, _
+    ByVal lpOperation As String, _
+    ByVal lpFile As String, _
+    ByVal lpParameters As String, _
+    ByVal lpDirectory As String, _
+    ByVal nShowCmd As Long) _
+    As Long
+
+'***App Window Constants***
+Private Const WIN_NORMAL = 1         'Open Normal
+Private Const WIN_MAX = 3            'Open Maximized
+Private Const WIN_MIN = 2            'Open Minimized
+
+'***Error Codes***
+Private Const ERROR_SUCCESS = 32&
+Private Const ERROR_NO_ASSOC = 31&
+Private Const ERROR_OUT_OF_MEM = 0&
+Private Const ERROR_FILE_NOT_FOUND = 2&
+Private Const ERROR_PATH_NOT_FOUND = 3&
+Private Const ERROR_BAD_FORMAT = 11&
+
+
 
 Private Const WS_THICKFRAME As Long = &H40000
 Private Const GWL_STYLE As Long = -16
@@ -732,7 +758,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -908,6 +934,47 @@ Public Function SelectFolder( _
         End If
     End With
     SelectFolder = sFolder
+
+End Function
+
+Public Function ShellRun(ByVal sr_string As String, _
+                Optional ByVal sr_show_how As Long = WIN_NORMAL) As String
+' ----------------------------------------------------------------------------
+' Opens a folder, email-app, url, or even an Access instance.
+'
+' Usage Examples: - Open a folder:  ShellRun("C:\TEMP\")
+'                 - Call Email app: ShellRun("mailto:user@tutanota.com")
+'                 - Open URL:       ShellRun("http://.......")
+'                 - Unknown:        ShellRun("C:\TEMP\Test") (will call
+'                                   "Open With" dialog)
+'                 - Open Access DB: ShellRun("I:\mdbs\xxxxxx.mdb")
+' Copyright:      This code was originally written by Dev Ashish. It is not to
+'                 be altered or distributed, except as part of an application.
+'                 You are free to use it in any application, provided the
+'                 copyright notice is left unchanged.
+' Courtesy of:    Dev Ashish
+' ----------------------------------------------------------------------------
+
+    Dim lRet            As Long
+    Dim varTaskID       As Variant
+    Dim stRet           As String
+    Dim hWndAccessApp   As Long
+    
+    '~~ First try ShellExecute
+    lRet = apiShellExecute(hWndAccessApp, vbNullString, sr_string, vbNullString, vbNullString, sr_show_how)
+    
+    Select Case True
+        Case lRet = ERROR_OUT_OF_MEM:       stRet = "Execution failed: Out of Memory/Resources!"
+        Case lRet = ERROR_FILE_NOT_FOUND:   stRet = "Execution failed: File not found!"
+        Case lRet = ERROR_PATH_NOT_FOUND:   stRet = "Execution failed: Path not found!"
+        Case lRet = ERROR_BAD_FORMAT:       stRet = "Execution failed: Bad File Format!"
+        Case lRet = ERROR_NO_ASSOC          ' Try the OpenWith dialog
+            varTaskID = Shell("rundll32.exe shell32.dll,OpenAs_RunDLL " & sr_string, WIN_NORMAL)
+            lRet = (varTaskID <> 0)
+        Case lRet > ERROR_SUCCESS:          lRet = -1
+    End Select
+    
+    ShellRun = lRet & IIf(stRet = vbNullString, vbNullString, ", " & stRet)
 
 End Function
 

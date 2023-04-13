@@ -12,6 +12,7 @@ Option Explicit
 '
 ' See https://github.com/warbe-maker/Excel-VB-Components-Management-Services
 ' ----------------------------------------------------------------------
+' --- The below constants must not be changed to Private since they are used byCompMan
 Public Const COMPMAN_DEVLP              As String = "CompMan.xlsb"
 Public Const SRVC_EXPORT_ALL            As String = "ExportAll"
 Public Const SRVC_EXPORT_ALL_DSPLY      As String = "Export All Components"
@@ -21,6 +22,7 @@ Public Const SRVC_SYNCHRONIZE           As String = "SynchronizeVBProjects"
 Public Const SRVC_SYNCHRONIZE_DSPLY     As String = "Synchronize VB-Projects"
 Public Const SRVC_UPDATE_OUTDATED       As String = "UpdateOutdatedCommonComponents"
 Public Const SRVC_UPDATE_OUTDATED_DSPLY As String = "Update Outdated Common Components"
+' --- The above constants must not be changed to Private since they are used byCompMan
 
 Private Const COMPMAN_ADDIN             As String = "CompMan.xlam"
 Private Const vbResume                  As Long = 6 ' return value (equates to vbYes)

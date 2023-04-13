@@ -482,7 +482,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
+    If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -704,12 +704,15 @@ Private Function Differs(ByVal v1 As Variant, _
                             "         " & v2
             End If
     End Select
+    
 End Function
 
 Private Function DctAddItemExists( _
                  ByVal dct As Dictionary, _
                  ByVal dctitem As Variant) As Boolean
-    
+' ------------------------------------------------------------------------------
+'
+' ------------------------------------------------------------------------------
     Dim v As Variant
     DctAddItemExists = False
     
@@ -733,4 +736,52 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mDct." & sProc
 End Function
 
+Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
+' ------------------------------------------------------------------------------
+' Returns the items in a Dictionary (s_dct) sorted by key.
+' ------------------------------------------------------------------------------
+    Const PROC  As String = "KeySort"
+    
+    On Error GoTo eh
+    Dim dct     As New Dictionary
+    Dim vKey    As Variant
+    Dim arr()   As Variant
+    Dim Temp    As Variant
+    Dim Txt     As String
+    Dim i       As Long
+    Dim j       As Long
+    
+    With s_dct
+        ReDim arr(0 To .Count - 1)
+        For i = 0 To .Count - 1
+            arr(i) = .Keys(i)
+        Next i
+    End With
+    
+    '~~ Bubble sort
+    For i = LBound(arr) To UBound(arr) - 1
+        For j = i + 1 To UBound(arr)
+            If arr(i) > arr(j) Then
+                Temp = arr(j)
+                arr(j) = arr(i)
+                arr(i) = Temp
+            End If
+        Next j
+    Next i
+        
+    '~~ Transfer based on sorted keys
+    For i = LBound(arr) To UBound(arr)
+        vKey = arr(i)
+        dct.Add Key:=vKey, Item:=s_dct.Item(vKey)
+    Next i
+    
+xt: Set s_dct = dct
+    Set KeySort = dct
+    Set dct = Nothing
+    Exit Function
 
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
