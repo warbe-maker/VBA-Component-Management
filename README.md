@@ -113,7 +113,8 @@ CompManServiced
 | _Serviced Synchronization Target Folder_ | **Folder** into which a Workbook (for which the _Synchronize VB-Project_ has been [enabled](#enabling-the-services-serviced-or-not-serviced) is temporarily moved and opened in order to have its _VB-Project_ synchronized with the corresponding (same named) Workbook residing in its dedicated folder within the configured [_CompManServiced_ folder](#compmans-default-files-and-folders-environment). When the configuration of the _Serviced Synchronization Target Folder_ is terminated, i.e. no folder is selected, the _Serviced Synchronization Target Folder_ becomes 'not configured'.|
 | _Synchronization Archive Folder_ | **Folder** obligatory for the _Synchronize VB-Project_ service which archives a _Sync-Target-Workbook_ before it is synchronized with its corresponding _Sync-Source-Workbook_. When the _Synchronization Archive Folder_ selection dialog is terminated, i.e. no folder is selected, the _Synchronization Archive Folder_ becomes 'not configured'.|
 | _CompMan-Workbook status_ | CompMan's current status which may be changed by the _Setup Auto-open_/_Remove Auto-open_ **Command Button** |
-| _CompMan Addin status_ | Status provided by the _Setup/Renew Add-in_ **Command Button**. The _Pause/Continue Add-in_ **Command Button** pauses/continue the setup Add-in.|
+| _CompMan Addin status_ | Status provided by the _Provide Add-in/Give up Add-in_ **Command Button**.|
+| _Pause/Continue Add-in_| **Command Button** to temporarily pause and subsequently continue the setup Add-in.|
 
 ## Usage
 ### Enabling the services (serviced or not serviced)
