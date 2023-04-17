@@ -60,9 +60,7 @@ Public Function IsSheetDocMod(ByVal i_vbc As VBComponent, _
 
     IsSheetDocMod = i_vbc.Type = vbext_ct_Document And i_vbc.Name <> i_wbk.CodeName
     If IsSheetDocMod Then
-        Debug.Print "i_vbc.Name: " & i_vbc.Name
         For Each wsh In i_wbk.Worksheets
-            Debug.Print "wsh.CodeName: " & wsh.CodeName
             If wsh.CodeName = i_vbc.Name Then
                 Set i_wsh = wsh
                 Exit For

@@ -82,7 +82,7 @@ Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
             .Text.Text = "Considered new because no corresponding Reference exists in the Sync-Target-Workbook's VBProject."
         End With
     End If
-    mMsg.ButtonAppRun AppRunArgs, Bttn1 _
+    mMsg.BttnAppRun AppRunArgs, Bttn1 _
                                 , ThisWorkbook _
                                 , "mSyncRefs.AppRunSyncAll"
     Set cllButtons = mMsg.Buttons(Bttn1)

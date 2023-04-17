@@ -50,50 +50,52 @@ Option Explicit
 '
 ' W. Rauschenberger Berlin, Mar 2022 (last revision)
 ' --------------------------------------------------------------------------
-Const DFLT_BTTN_MIN_WIDTH           As Single = 70              ' Default minimum reply button width
-Const DFLT_LBL_MONOSPACED_FONT_NAME As String = "Courier New"   ' Default monospaced font name
-Const DFLT_LBL_MONOSPACED_FONT_SIZE As Single = 9               ' Default monospaced font size
-Const DFLT_LBL_PROPSPACED_FONT_NAME As String = "Calibri"       ' Default proportional spaced font name
-Const DFLT_LBL_PROPSPACED_FONT_SIZE As Single = 9               ' Default proportional spaced font size
-Const DFLT_TXT_MONOSPACED_FONT_NAME As String = "Courier New"   ' Default monospaced font name
-Const DFLT_TXT_MONOSPACED_FONT_SIZE As Single = 10              ' Default monospaced font size
-Const DFLT_TXT_PROPSPACED_FONT_NAME As String = "Tahoma"        ' Default proportional spaced font name
-Const DFLT_TXT_PROPSPACED_FONT_SIZE As Single = 10              ' Default proportional spaced font size
-Const HSPACE_BTTN_AREA              As Single = 15              ' Minimum left and right margin for the centered buttons area
-Const HSPACE_BTTNS                  As Single = 4               ' Horizontal space between reply buttons
-Const HSPACE_LEFT                   As Single = 0               ' Left margin for labels and text boxes
-Const HSPACE_RIGHT                  As Single = 15              ' Horizontal right space for labels and text boxes
-Const HSPACE_LEFTRIGHT_BUTTONS      As Long = 8                 ' The margin before the left most and after the right most button
-Const MARGIN_RIGHT_MSG_AREA         As String = 7
-Const NEXT_ROW                      As String = vbLf            ' Reply button row break
-Const SCROLL_V_WIDTH                As Single = 20              ' Additional horizontal space required for a frame with a vertical scrollbar
-Const SCROLL_H_HEIGHT               As Single = 20              ' Additional vertical space required for a frame with a horizontal scroll barr
-Const TEST_WITH_FRAME_BORDERS       As Boolean = False          ' For test purpose only! Display frames with visible border
-Const TEST_WITH_FRAME_CAPTIONS      As Boolean = False          ' For test purpose only! Display frames with their test captions (erased by default)
-Const VSPACE_AREAS                  As Single = 12              ' Vertical space between message area and replies area
-Const VSPACE_BOTTOM                 As Single = 30              ' Space occupied by the title bar
-Const VSPACE_BTTN_ROWS              As Single = 5               ' Vertical space between button rows
-Const VSPACE_LABEL                  As Single = 0               ' Vertical space between the section-label and the following section-text
-Const VSPACE_SECTIONS               As Single = 7               ' Vertical space between displayed message sections
-Const VSPACE_TEXTBOXES              As Single = 18              ' Vertical bottom marging for all textboxes
-Const VSPACE_TOP                    As Single = 2               ' Top position for the first displayed control
-Const VISLZE_BCKCLR_AREA            As Long = &HC0E0FF          ' -------------
-Const VISLZE_BCKCLR_BTTNS_FRM       As Long = &HFFFFC0          ' Backcolors
-Const VISLZE_BCKCLR_BTTNS_ROW_FRM   As Long = &HC0FFC0          ' for the
-Const VISLZE_BCKCLR_MON_STEPS_FRM   As Long = &HFFFFC0          ' visualization
-Const VISLZE_BCKCLR_MSEC_FRM        As Long = &HFFFFC0          ' of the
-Const VISLZE_BCKCLR_MSEC_LBL        As Long = &HC0FFFF          ' controls
-Const VISLZE_BCKCLR_MSEC_TBX        As Long = &H80C0FF          ' during test
-Const VISLZE_BCKCLR_MSEC_TBX_FRM    As Long = &HC0FFC0          ' -------------
+Private Const DFLT_BTTN_MIN_WIDTH           As Single = 70              ' Default minimum reply button width
+Private Const DFLT_LBL_MONOSPACED_FONT_NAME As String = "Courier New"   ' Default monospaced font name
+Private Const DFLT_LBL_MONOSPACED_FONT_SIZE As Single = 9               ' Default monospaced font size
+Private Const DFLT_LBL_PROPSPACED_FONT_NAME As String = "Calibri"       ' Default proportional spaced font name
+Private Const DFLT_LBL_PROPSPACED_FONT_SIZE As Single = 9               ' Default proportional spaced font size
+Private Const DFLT_TXT_MONOSPACED_FONT_NAME As String = "Courier New"   ' Default monospaced font name
+Private Const DFLT_TXT_MONOSPACED_FONT_SIZE As Single = 10              ' Default monospaced font size
+Private Const DFLT_TXT_PROPSPACED_FONT_NAME As String = "Tahoma"        ' Default proportional spaced font name
+Private Const DFLT_TXT_PROPSPACED_FONT_SIZE As Single = 10              ' Default proportional spaced font size
+Private Const HSPACE_BTTN_AREA              As Single = 15              ' Minimum left and right margin for the centered buttons area
+Private Const HSPACE_BTTNS                  As Single = 4               ' Horizontal space between reply buttons
+Private Const HSPACE_LEFT                   As Single = 0               ' Left margin for labels and text boxes
+Private Const HSPACE_RIGHT                  As Single = 15              ' Horizontal right space for labels and text boxes
+Private Const HSPACE_LEFTRIGHT_BUTTONS      As Long = 8                 ' The margin before the left most and after the right most button
+Private Const MARGIN_RIGHT_MSG_AREA         As String = 7
+Private Const NEXT_ROW                      As String = vbLf            ' Reply button row break
+Private Const SCROLL_V_WIDTH                As Single = 20              ' Additional horizontal space required for a frame with a vertical scrollbar
+Private Const SCROLL_H_HEIGHT               As Single = 20              ' Additional vertical space required for a frame with a horizontal scroll barr
+Private Const TEST_WITH_FRAME_BORDERS       As Boolean = False          ' For test purpose only! Display frames with visible border
+Private Const TEST_WITH_FRAME_CAPTIONS      As Boolean = False          ' For test purpose only! Display frames with their test captions (erased by default)
+Private Const VSPACE_AREAS                  As Single = 12              ' Vertical space between message area and replies area
+Private Const VSPACE_BOTTOM                 As Single = 30              ' Space occupied by the title bar
+Private Const VSPACE_BTTN_ROWS              As Single = 5               ' Vertical space between button rows
+Private Const VSPACE_LABEL                  As Single = 0               ' Vertical space between the section-label and the following section-text
+Private Const VSPACE_SECTIONS               As Single = 7               ' Vertical space between displayed message sections
+Private Const VSPACE_TEXTBOXES              As Single = 18              ' Vertical bottom marging for all textboxes
+Private Const VSPACE_TOP                    As Single = 2               ' Top position for the first displayed control
+Private Const VISLZE_BCKCLR_AREA            As Long = &HC0E0FF          ' -------------
+Private Const VISLZE_BCKCLR_BTTNS_FRM       As Long = &HFFFFC0          ' Backcolors
+Private Const VISLZE_BCKCLR_BTTNS_ROW_FRM   As Long = &HC0FFC0          ' for the
+Private Const VISLZE_BCKCLR_MON_STEPS_FRM   As Long = &HFFFFC0          ' visualization
+Private Const VISLZE_BCKCLR_MSEC_FRM        As Long = &HFFFFC0          ' of the
+Private Const VISLZE_BCKCLR_MSEC_LBL        As Long = &HC0FFFF          ' controls
+Private Const VISLZE_BCKCLR_MSEC_TBX        As Long = &H80C0FF          ' during test
+Private Const VISLZE_BCKCLR_MSEC_TBX_FRM    As Long = &HC0FFC0          ' -------------
 
 ' Means to get and calculate the display devices DPI in points
-Const SM_XVIRTUALSCREEN                 As Long = &H4C&
-Const SM_YVIRTUALSCREEN                 As Long = &H4D&
-Const SM_CXVIRTUALSCREEN                As Long = &H4E&
-Const SM_CYVIRTUALSCREEN                As Long = &H4F&
-Const LOGPIXELSX                        As Long = 88
-Const LOGPIXELSY                        As Long = 90
-Const TWIPSPERINCH                      As Long = 1440
+Private Const SM_XVIRTUALSCREEN                 As Long = &H4C&
+Private Const SM_YVIRTUALSCREEN                 As Long = &H4D&
+Private Const SM_CXVIRTUALSCREEN                As Long = &H4E&
+Private Const SM_CYVIRTUALSCREEN                As Long = &H4F&
+Private Const LOGPIXELSX                        As Long = 88
+Private Const LOGPIXELSY                        As Long = 90
+Private Const TWIPSPERINCH                      As Long = 1440
+Private Const WIN_NORMAL                        As Long = 1             ' Shell Open Normal
+
 Private Declare PtrSafe Function GetSystemMetrics32 Lib "user32" Alias "GetSystemMetrics" (ByVal nIndex As Long) As Long
 Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
@@ -350,7 +352,7 @@ Private Property Get FormWidthMaxUsable()
     FormWidthMaxUsable = siMsgWidthMax - 15
 End Property
 
-Private Property Let IndicateFrameCaptions(ByVal b As Boolean):                              bIndicateFrameCaptions = b:                                         End Property
+'Private Property Let IndicateFrameCaptions(ByVal b As Boolean):                              bIndicateFrameCaptions = b:                                         End Property
 
 Private Property Get MaxRowsHeight() As Single:                                             MaxRowsHeight = siMaxButtonHeight + (siVmarginFrames * 2):          End Property
 
@@ -2822,7 +2824,7 @@ Private Sub Setup3_Bttns()
     Bttn.Width = DFLT_BTTN_MIN_WIDTH
     
     For Each v In cllMsgBttns
-        If IsNumeric(v) Then v = mMsg.BttnsArgs(v)
+        If IsNumeric(v) Then v = mMsg.BttnArg(v)
         Select Case v
             Case vbOKOnly, vbOKCancel, vbYesNo, vbRetryCancel, vbYesNoCancel, vbAbortRetryIgnore, vbYesNo, vbResumeOk
                 Setup3_BttnsFromValue v

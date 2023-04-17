@@ -173,35 +173,34 @@ Private Property Get TimerSysCurrentTicks() As Currency:    getTickCount TimerSy
 
 Private Property Get TimerTicksElapsed() As Currency:       TimerTicksElapsed = cyTimerTicksEnd - cyTimerTicksBegin:    End Property
 
-Public Function Align( _
-                ByVal align_s As String, _
-                ByVal align_lngth As Long, _
-       Optional ByVal align_mode As StringAlign = AlignLeft, _
-       Optional ByVal align_margin As String = vbNullString, _
-       Optional ByVal align_fill As String = " ") As String
-' ---------------------------------------------------------
-' Returns a string (align_s) with a lenght (align_lngth)
-' aligned (aligned) filled with characters (align_fill).
-' ---------------------------------------------------------
+Public Function Align(ByVal a_strng As String, _
+                      ByVal a_lngth As Long, _
+             Optional ByVal a_mode As StringAlign = AlignLeft, _
+             Optional ByVal a_margin As String = vbNullString, _
+             Optional ByVal a_fill As String = " ") As String
+' ----------------------------------------------------------------------------
+' Returns a string (a_strng) with a lenght (a_lngth) aligned (a_mode) filled
+' with characters (a_fill).
+' ----------------------------------------------------------------------------
     Dim SpaceLeft       As Long
     Dim LengthRemaining As Long
     
-    Select Case align_mode
+    Select Case a_mode
         Case AlignLeft
-            If Len(align_s & align_margin) >= align_lngth _
-            Then Align = VBA.Left$(align_s & align_margin, align_lngth) _
-            Else Align = align_s & align_margin & VBA.String$(align_lngth - (Len(align_s & align_margin)), align_fill)
+            If Len(a_strng & a_margin) >= a_lngth _
+            Then Align = VBA.Left$(a_strng & a_margin, a_lngth) _
+            Else Align = a_strng & a_margin & VBA.String$(a_lngth - (Len(a_strng & a_margin)), a_fill)
         Case AlignRight
-            If Len(align_margin & align_s) >= align_lngth _
-            Then Align = VBA.Left$(align_margin & align_s, align_lngth) _
-            Else Align = VBA.String$(align_lngth - (Len(align_margin & align_s)), align_fill) & align_margin & align_s
+            If Len(a_margin & a_strng) >= a_lngth _
+            Then Align = VBA.Left$(a_margin & a_strng, a_lngth) _
+            Else Align = VBA.String$(a_lngth - (Len(a_margin & a_strng)), a_fill) & a_margin & a_strng
         Case AlignCentered
-            If Len(align_margin & align_s & align_margin) >= align_lngth Then
-                Align = align_margin & Left$(align_s, align_lngth - (2 * Len(align_margin))) & align_margin
+            If Len(a_margin & a_strng & a_margin) >= a_lngth Then
+                Align = a_margin & Left$(a_strng, a_lngth - (2 * Len(a_margin))) & a_margin
             Else
-                SpaceLeft = Max(1, ((align_lngth - Len(align_s) - (2 * Len(align_margin))) / 2))
-                Align = VBA.String$(SpaceLeft, align_fill) & align_margin & align_s & align_margin & VBA.String$(SpaceLeft, align_fill)
-                Align = VBA.Right$(Align, align_lngth)
+                SpaceLeft = Max(1, ((a_lngth - Len(a_strng) - (2 * Len(a_margin))) / 2))
+                Align = VBA.String$(SpaceLeft, a_fill) & a_margin & a_strng & a_margin & VBA.String$(SpaceLeft, a_fill)
+                Align = VBA.Right$(Align, a_lngth)
             End If
     End Select
 
@@ -314,9 +313,9 @@ Public Function ArrayDiffers(ByVal ad_v1 As Variant, _
                              ByVal ad_v2 As Variant, _
                     Optional ByVal ad_ignore_empty_items As Boolean = False, _
                     Optional ByVal ad_comp_mode As VbCompareMethod = vbTextCompare) As Boolean
-' ----------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Returns TRUE when array (ad_v1) differs from array (ad_v2).
-' ----------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC  As String = "ArrayDiffers"
     
     Dim i       As Long
@@ -395,12 +394,10 @@ Public Function ArrayIsAllocated(arr As Variant) As Boolean
 End Function
 
 Public Function ArrayNoOfDims(arr As Variant) As Integer
-' ------------------------------------------------------
-' Returns the number of dimensions of an array. An un-
-' allocated dynamic array has 0 dimensions. This may as
-' as well be tested by means of ArrayIsAllocated.
-' ------------------------------------------------------
-
+' ----------------------------------------------------------------------------
+' Returns the number of dimensions of an array. An unallocated dynamic array
+' has 0 dimensions. This may as well be tested by means of ArrayIsAllocated.
+' ----------------------------------------------------------------------------
     On Error Resume Next
     Dim Ndx As Integer
     Dim Res As Integer
@@ -494,9 +491,9 @@ End Sub
 Public Sub ArrayToRange(ByVal vArr As Variant, _
                         ByVal r As Range, _
                Optional ByVal bOneCol As Boolean = False)
-' -------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' Copy the content of the Arry (vArr) to the range (r).
-' -------------------------------------------------------
+' ----------------------------------------------------------------------------
     Const PROC = "ArrayToRange"
     
     On Error GoTo eh
@@ -559,11 +556,10 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Function BaseName(ByVal v As Variant) As String
-' -----------------------------------------------------
-' Returns the file name without the extension. v may be
-' a file name a file path (full name) a File object or
-' a Workbook object.
-' -----------------------------------------------------
+' ----------------------------------------------------------------------------
+' Returns the file name (v) without the extension. The argument may be a file
+' name a full file name, a file object or a Workbook object.
+' ----------------------------------------------------------------------------
     Const PROC  As String = "BaseName"
     
     On Error GoTo eh
@@ -657,11 +653,10 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Function ElementOfIndex(ByVal a As Variant, _
-                                ByVal i As Long) As Long
-' ------------------------------------------------------
+                               ByVal i As Long) As Long
+' ----------------------------------------------------------------------------
 ' Returns the element number of index (i) in array (a).
-' ------------------------------------------------------
-    
+' ----------------------------------------------------------------------------
     Dim ia  As Long
     
     For ia = LBound(a) To i
@@ -671,12 +666,12 @@ Public Function ElementOfIndex(ByVal a As Variant, _
 End Function
 
 Public Sub EoC(ByVal eoc_id As String, ParamArray b_arguments() As Variant)
-' ------------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' (E)nd-(o)f-(C)ode id (eoc_id) trace. Procedure to be copied as Private into
 ' any module potentially using the Common VBA Execution Trace Service. Has no
 ' effect when the Conditional Compile Argument is 0 or not set at all.
 ' Note: The end id (eoc_id) has to be identical with the paired BoC statement.
-' ------------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
     Dim s As String: If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
 #If ExecTrace = 1 Then
     mTrc.EoC eoc_id, s
@@ -685,12 +680,12 @@ End Sub
 
 Public Sub EoP(ByVal e_proc As String, _
       Optional ByVal e_inf As String = vbNullString)
-' ------------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
 ' (E)nd-(o)f-(P)rocedure named (e_proc). Procedure to be copied as Private Sub
 ' into any module potentially either using the Common VBA Error Service and/or
-' the Common VBA Execution Trace Service. Has no effect when Conditional Compile
-' Arguments are 0 or not set at all.
-' ------------------------------------------------------------------------------
+' the Common VBA Execution Trace Service. Has no effect when Conditional
+' Compile Arguments are 0 or not set at all.
+' ----------------------------------------------------------------------------
 #If ErHComp = 1 Then
     mErH.EoP e_proc
 #ElseIf ExecTrace = 1 Then
@@ -703,33 +698,23 @@ Public Function ErrMsg(ByVal err_source As String, _
               Optional ByVal err_dscrptn As String = vbNullString, _
               Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Universal error message display service. See:
-' https://warbe-maker.github.io/vba/common/2022/02/15/Personal-and-public-Common-Components.html
+' Universal error message display service which displays a debugging option
+' button when the Conditional Compile Argument 'Debugging = 1', displays an
+' optional additional "About:" section when the err_dscrptn has an additional
+' string concatenated by two vertical bars (||), and displays the error message
+' by means of VBA.MsgBox when neither the Common Component mErH (indicated by
+' the Conditional Compile Argument "ErHComp = 1", nor the Common Component mMsg
+' (idicated by the Conditional Compile Argument "MsgComp = 1") is installed.
 '
-' Basic service:
-' - Displays a debugging option button when the Conditional Compile Argument
-'   'Debugging = 1'
-' - Displays an optional additional "About the error:" section when a string is
-'   concatenated with the error message by two vertical bars (||)
-' - Displays the error message by means of VBA.MsgBox when neither of the
-'   following is installed
+' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
+'               to turn them into a negative and in the error message back into
+'               its origin positive number.
+'       ErrSrc  To provide an unambiguous procedure name by prefixing is with
+'               the module name.
 '
-' Extendend service when other Common Components are installed and indicated via
-' Conditional Compile Arguments:
-' - Invokes mErH.ErrMsg when the Conditional Compile Argument ErHComp = 1
-' - Invokes mMsg.ErrMsg when the Conditional Compile Argument MsgComp = 1 (and
-'   the mErH module is not installed / MsgComp not set)
-'
-' Uses:
-' - AppErr For programmed application errors (Err.Raise AppErr(n), ....) to turn
-'          them into negative and in the error message back into a positive
-'          number.
-' - ErrSrc To provide an unambiguous procedure name by prefixing is with the
-'          module name.
+' W. Rauschenberger Berlin, Apr 2023
 '
 ' See: https://github.com/warbe-maker/Common-VBA-Error-Services
-'
-' W. Rauschenberger Berlin, May 2022
 ' ------------------------------------------------------------------------------' ------------------------------------------------------------------------------
 #If ErHComp = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
@@ -888,7 +873,6 @@ Public Function Min(ParamArray va() As Variant) As Variant
 ' --------------------------------------------------------
 ' Returns the minimum (smallest) of all provided values.
 ' --------------------------------------------------------
-    
     Dim v As Variant
     
     Min = va(LBound(va)): If LBound(va) = UBound(va) Then Exit Function

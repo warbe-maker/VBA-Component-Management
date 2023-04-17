@@ -15,24 +15,23 @@ Private Property Let AddInStatus(ByVal s As String):                 MaintainMin
 
 Private Property Let AutoOpenStatus(ByVal s As String):              MaintainMinRowHeight Me.Range("AutoOpenStatus"), s:                     End Property
 
-Private Property Let ButtonCaption(Optional ByVal bc_cmb As Button, _
-                                           ByVal bc_caption As String)
-    Dim bProtected  As Boolean
-    Dim wsh         As Worksheet
+Public Property Let ButtonCaption(Optional ByVal b_cmb As Button, _
+                                           ByVal b_caption As String)
+    Dim b   As Boolean
     
-    Set wsh = bc_cmb.Parent
-    If wsh.ProtectContents Then
-        bProtected = True
-        wsh.Unprotect
-    End If
-    
-    bc_cmb.Text = bc_caption
-    If bProtected Then wsh.Protect
+    With b_cmb.Parent
+        If .ProtectContents Then
+            b = True
+            .Unprotect
+        End If
+        b_cmb.Text = b_caption
+        If b Then .Protect
+    End With
 
 End Property
 
-Private Property Let ButtonEnabled(Optional ByVal bc_cmb As Button, _
-                                            ByVal bc_enabled As Boolean)
+Private Property Let ButtonEnabled(Optional ByVal b_cmb As Button, _
+                                            ByVal b_enabled As Boolean)
 ' ----------------------------------------------------------------------------
 ' Because the Enabled property does not what is expected the button is hidden
 ' or displayed instead.
@@ -40,14 +39,14 @@ Private Property Let ButtonEnabled(Optional ByVal bc_cmb As Button, _
     Dim bProtected  As Boolean
     Dim wsh         As Worksheet
     
-    Set wsh = bc_cmb.Parent
+    Set wsh = b_cmb.Parent
     If wsh.ProtectContents Then
         bProtected = True
         wsh.Unprotect
     End If
                                            
-    With bc_cmb
-        If bc_enabled Then
+    With b_cmb
+        If b_enabled Then
             .Visible = True
             .Font.Color = rgbBlack
         Else
@@ -60,19 +59,25 @@ Private Property Let ButtonEnabled(Optional ByVal bc_cmb As Button, _
 
 End Property
 
-Private Property Let ButtonHelpUrlAddinSetup(ByVal s As String):     UrlButton(Me.Range("ButtonHelpUrlAddinSetup")) = s:                     End Property
+Private Property Get ButtonAddInProvideGiveUp() As Button:          Set ButtonAddInProvideGiveUp = Me.Buttons("cmbAddInSetUpGiveUp"):       End Property
 
-Private Property Let ButtonHelpUrlPauseContinue(ByVal s As String):  UrlButton(Me.Range("ButtonHelpUrlPauseContinue")) = s:                  End Property
+Private Property Let ButtonHelpUrlAddinSetup(ByVal s As String):    UrlButton(Me.Range("ButtonHelpUrlAddinSetup")) = s:                     End Property
 
-Private Property Get ButtonPauseAddIn() As Button:                   Set ButtonPauseAddIn = Me.Buttons("cmbAddInPause"):                     End Property
+Private Property Let ButtonHelpUrlPauseContinue(ByVal s As String): UrlButton(Me.Range("ButtonHelpUrlPauseContinue")) = s:                  End Property
 
-Private Property Get ButtonSetupRenewAddIn() As Button:              Set ButtonSetupRenewAddIn = Me.Buttons("cmbAddInSetup"):                End Property
+Private Property Get ButtonPauseAddIn() As Button:                  Set ButtonPauseAddIn = Me.Buttons("cmbAddInPause"):                     End Property
 
-Private Property Get ButtonWrkbkAutoOpen() As Button:                Set ButtonWrkbkAutoOpen = Me.Buttons("cmbWrkbkAutoOpen"):               End Property
+Private Property Get ButtonAddInRenew() As Button:                  Set ButtonAddInRenew = Me.Buttons("cmbAddInRenew"):                     End Property
 
-Private Property Let CompManAddInStatusUrl(ByVal s As String):       UrlLabel(Me.Range("CompManAddInStatusUrl")) = s:                        End Property
+Private Property Get ButtonSetupRenewAddIn() As Button:             Set ButtonSetupRenewAddIn = Me.Buttons("cmbAddInRenew"):                End Property
 
-Private Property Let CompManWrkbkStatusUrl(ByVal s As String):       UrlLabel(Me.Range("CompManWrkbkStatusUrl")) = s:                        End Property
+Private Property Get ButtonWrkbkAutoOpen() As Button:               Set ButtonWrkbkAutoOpen = Me.Buttons("cmbWrkbkAutoOpen"):               End Property
+
+Private Property Let CompManAddInStatusUrl(ByVal s As String):      UrlLabel(Me.Range("CompManAddInStatusUrl")) = s:                        End Property
+
+Private Property Let CompManWrkbkStatusUrl(ByVal s As String):      UrlLabel(Me.Range("CompManWrkbkStatusUrl")) = s:                        End Property
+
+Private Property Let CommonComponentsFolderUrl(ByVal s As String):  UrlLabel(Me.Range("CommonComponentsFolderUrl")) = s:                    End Property
 
 Public Property Let ConfigInfo(ByVal s As String):                  mWsh.Value(Me, "ConfigInfo") = s:                                       End Property
 
@@ -202,6 +207,38 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Public Sub CompManAddinProvideGiveUpFlipFlop()
+' ----------------------------------------------------------------------------
+' Called by CommandButton cmbAddInSetUpGiveUp:
+' Flipflops between "Provide Add-in" and "Give-Up add-in".
+' Note: The Renew Add-in button is only visible when the Add-in is provided.
+' ----------------------------------------------------------------------------
+    Const PROC = "AutoOpenCompManFlipFlop"
+    
+    On Error GoTo eh
+    If mMe.IsAddinInstnc Then GoTo xt
+    Application.ScreenUpdating = False
+    If AutoOpenAddinIsSetup Then
+        mAddin.GiveUp
+        ButtonCaption(ButtonAddInProvideGiveUp) = "Provide Add-in"
+        ButtonAddInRenew.Visible = False
+        ButtonPauseAddIn.Visible = False
+    Else
+        mAddin.SetupRenew
+        ButtonCaption(ButtonAddInProvideGiveUp) = "Give up Add-in"
+        ButtonAddInRenew.Visible = True
+        ButtonPauseAddIn.Visible = True
+    End If
+    wsConfig.CurrentStatus
+    
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
 Public Sub AutoOpenCompManFlipFlop()
 ' ----------------------------------------------------------------------------
 ' Called by CommandButton cmbWrkbkAutoOpen:
@@ -294,41 +331,42 @@ Public Sub CurrentStatus()
     Dim i           As Long
     Dim sShortcut   As String
     Dim sAddin      As String
+    Dim sComma      As String
     
     If mMe.IsAddinInstnc Then GoTo xt
-    
-    '~~ CompMan Addin AutoOpen status
-    sShortcut = mAddin.AutoOpenShortCut
-    If fso.FileExists(sShortcut) Then
-        '~~ Update the shortcut in case the location of the Add-in Workbook has changed
-        If ShortCutTargetPath(sShortcut) <> mAddin.WbkFullName _
-        Then ShortCutTargetPath(sShortcut) = mAddin.WbkFullName
-        cll.Add "auto-open setup"
-    Else
-        cll.Add "auto-open not setup"
-    End If
-    
-    '~~ CompMan Addin Paused status
-    If mAddin.IsOpen Then
-        ButtonPauseAddIn.Visible = True
-        If mAddin.Paused Then
-            cll.Add "currently  p a u s e d !"
-            ButtonCaption(ButtonPauseAddIn) = "Continue Add-in"
-        Else
-            ButtonCaption(ButtonPauseAddIn) = "Pause Add-in"
-        End If
-        cll.Add "open"
-    Else
-        cll.Add "not open"
-        ButtonPauseAddIn.Visible = False
-    End If
     
     '~~ CompMan Add-in setup status
     If mAddin.Folder <> vbNullString Then
         If fso.FileExists(mAddin.WbkFullName) Then
-            cll.Add "set up"
+            cll.Add "provided"
+            
+            '~~ CompMan Addin Paused status
+            If mAddin.IsOpen Then
+                ButtonPauseAddIn.Visible = True
+                If mAddin.Paused Then
+                    cll.Add "open but currently  p a u s e d !"
+                    ButtonCaption(ButtonPauseAddIn) = "Continue Add-in"
+                Else
+                    ButtonCaption(ButtonPauseAddIn) = "Pause Add-in"
+                End If
+                cll.Add "open"
+            Else
+                cll.Add "not open"
+                ButtonPauseAddIn.Visible = False
+            End If
+
+            '~~ CompMan Addin AutoOpen status
+            sShortcut = mAddin.AutoOpenShortCut
+            If fso.FileExists(sShortcut) Then
+                '~~ Update the shortcut in case the location of the Add-in Workbook has changed
+                If ShortCutTargetPath(sShortcut) <> mAddin.WbkFullName _
+                Then ShortCutTargetPath(sShortcut) = mAddin.WbkFullName
+                cll.Add "opened when Excel starts"
+            Else
+                cll.Add "auto-open at Excel start not setup"
+            End If
         Else
-            cll.Add "not set up"
+            cll.Add "not provided"
         End If
     Else
         '~~ may have been de-configured
@@ -341,19 +379,11 @@ Public Sub CurrentStatus()
             End If
         End If
     End If
-
-    '~~ CompMan Add-in folder configured status
-    If mAddin.Folder <> vbNullString Then
-        cll.Add "configured"
-        ButtonEnabled(ButtonSetupRenewAddIn) = True
-    Else
-        cll.Add "not configured"
-        ButtonEnabled(ButtonSetupRenewAddIn) = False
-    End If
-    
-    sStatus = cll(cll.Count)
-    For i = cll.Count - 1 To 1 Step -1
-        sStatus = sStatus & ", " & cll(i)
+        
+    sComma = vbNullString
+    For i = 1 To cll.Count
+        sStatus = sStatus & sComma & cll(i)
+        sComma = ", "
     Next i
     AddInStatus = sStatus
     
@@ -367,8 +397,8 @@ Public Sub CurrentStatus()
     Else
         AutoOpenStatus = "auto-open for " & ThisWorkbook.Name & "  n o t  s e t u p !"
     End If
-    ButtonHelpUrlAddinSetup = "#setuprenew-add-in"
-    ButtonHelpUrlPauseContinue = "#pausecontinue-add-in"
+    ButtonHelpUrlAddinSetup = "#configuration-changes-compmans-config-worksheet"
+    ButtonHelpUrlPauseContinue = "#configuration-changes-compmans-config-worksheet"
 
     FolderSyncTargetIsValid
     FolderSyncArchiveIsValid
@@ -459,6 +489,7 @@ Public Function FolderCompManRootIsValid() As Boolean
     
     FolderCompManRootUrl = mCompMan.README_CONFIG_CHANGES
     CompManWrkbkStatusUrl = mCompMan.README_CONFIG_CHANGES
+    CommonComponentsFolderUrl = mCompMan.README_DEFAULT_FILES_AND_FOLDERS
     
     If FolderCompManRoot <> vbNullString Then
         If fso.FolderExists(FolderCompManRoot) Then
@@ -722,7 +753,8 @@ Public Function Verified() As Boolean
            And FolderSyncArchiveIsValid
     CompManAddInStatusUrl = mCompMan.README_CONFIG_CHANGES
     CompManWrkbkStatusUrl = mCompMan.README_CONFIG_CHANGES
-
+    CommonComponentsFolderUrl = mCompMan.README_DEFAULT_FILES_AND_FOLDERS
+    
 End Function
 
 Private Sub Worksheet_Activate()

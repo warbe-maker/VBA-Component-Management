@@ -974,7 +974,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
         End With
     End If
     
-    mMsg.ButtonAppRun AppRunArgs, Bttn1 _
+    mMsg.BttnAppRun AppRunArgs, Bttn1 _
                                 , ThisWorkbook _
                                 , "mSyncSheets.AppRunSyncAll"
     Set cllButtons = mMsg.Buttons(Bttn1)

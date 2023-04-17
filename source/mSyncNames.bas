@@ -1690,7 +1690,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
         
     Bttn1 = "Perform all synchronization actions" & vbLf & "listed above"
     Set cllButtons = mMsg.Buttons(Bttn1)
-    mMsg.ButtonAppRun AppRunArgs, Bttn1 _
+    mMsg.BttnAppRun AppRunArgs, Bttn1 _
                                 , ThisWorkbook _
                                 , "mSyncNames.AppRunSyncAll"
     

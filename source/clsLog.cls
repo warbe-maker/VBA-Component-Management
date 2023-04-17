@@ -102,13 +102,13 @@ Friend Property Let Service(Optional ByVal new_log As Boolean = False, _
     If ThisWorkbook.Name = mAddin.WbkName _
     Then sNewService = sNewService & "Add-in" _
     Else sNewService = sNewService & ThisWorkbook.Name
-    sNewService = sNewService & ") for " & mService.WbkServiced.Name & ": "
+    sNewService = sNewService & ") for " & mService.Serviced.Name & ": "
     bNewService = sNewService <> sService
     sService = sNewService
     
     bNewLog = new_log
     '~~ In case no specific log-file had been decided a default log-file is determined
-    If sFileFullName = vbNullString Then sFileFullName = mService.WbkServiced.Path & "\" & LOG_FILE_NAME
+    If sFileFullName = vbNullString Then sFileFullName = mService.Serviced.Path & "\" & LOG_FILE_NAME
 
     With fso
         If bNewLog And .FileExists(sFileFullName) Then
@@ -185,7 +185,7 @@ Friend Property Let ServicedItem(ByVal v As Variant)
                                                     Case vbext_ct_ClassModule:      ServicedItemProperties "Class-Module", vbc.Name
                                                     Case vbext_ct_MSForm:           ServicedItemProperties "UserForm", vbc.Name
                                                     Case vbext_ct_StdModule:        ServicedItemProperties "Standard-Module", vbc.Name
-                                                    Case vbext_ct_Document:         If mComp.IsSheetDocMod(vbc, mService.WbkServiced) _
+                                                    Case vbext_ct_Document:         If mComp.IsSheetDocMod(vbc, mService.Serviced) _
                                                                                     Then ServicedItemProperties "Worksheet", vbc.Name _
                                                                                     Else ServicedItemProperties "Workbook", vbc.Name
                                                 End Select

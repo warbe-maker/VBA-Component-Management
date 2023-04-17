@@ -45,7 +45,7 @@ Public Sub All()
     If mMe.IsAddinInstnc _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Add-in instance which is impossible for this operation!"
     
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     With wbk.VBProject
         lAll = .VBComponents.Count
         lRemaining = lAll
@@ -54,7 +54,7 @@ Public Sub All()
             If Not mService.IsRenamedByCompMan(vbc.Name) Then
                 Set Comp = New clsComp
                 With Comp
-                    .Wrkbk = mService.WbkServiced
+                    .Wrkbk = mService.Serviced
                     .CompName = vbc.Name
                     '~~ Only export if it is not a component renamed by CompMan which is a left over
                     .Export
@@ -129,7 +129,7 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
     Hskpng                      ' forward outdated export folder and remove obsolete Export files
     mCompManDat.Hskpng c_hosted ' remove obsolete sections in CompMan.dat
     
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     Set dctAll = mService.AllComps(wbk)
     
     With wbk.VBProject
@@ -141,7 +141,7 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
             If Not mService.IsRenamedByCompMan(vbc.Name) Then
                 Set Comp = New clsComp
                 With Comp
-                    Set .Wrkbk = mService.WbkServiced
+                    Set .Wrkbk = mService.Serviced
                     .CompName = vbc.Name
                     mService.Log.ServicedItem = vbc
                     Set .VBComp = vbc
@@ -245,7 +245,7 @@ Private Sub Hskpng()
     Dim sExpFldrRecentPath  As String
     
     '~~ Rename the export folder when the one last used is no longe the one currently configured
-    sExpFldrCurrentPath = mExport.ExpFileFolderPath(mService.WbkServiced)
+    sExpFldrCurrentPath = mExport.ExpFileFolderPath(mService.Serviced)
     sExpFldrCurrentName = wsConfig.FolderExport
     sExpFldrRecentName = mCompManDat.RecentlyUsedExportFolder
     If sExpFldrRecentName = vbNullString Then
@@ -263,7 +263,7 @@ Private Sub Hskpng()
         For Each fl In .GetFolder(sExpFldrCurrentPath).Files
             Select Case .GetExtensionName(fl.Path)
                 Case "bas", "cls", "frm", "frx"
-                    If Not mComp.Exists(.GetBaseName(fl), mService.WbkServiced) Then
+                    If Not mComp.Exists(.GetBaseName(fl), mService.Serviced) Then
                         sExpFileName = .GetFileName(fl.Path)
                         .DeleteFile fl
                         mService.Log.Entry = "Obsolete Export-File '" & sExpFileName & "' deleted (VBComponent no longer exists)"

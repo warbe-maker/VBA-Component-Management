@@ -20,13 +20,13 @@ Option Explicit
 ' - WbkSave
 '
 ' Public Properties:
-' - WbkServiced
+' - Serviced
 ' ------------------------------------------------------------------------------------
 Public Const LOG_FILE_NAME  As String = "CompMan.Services.log" ' Default log file name
 Public DialogLeft           As Long
 Public DialogTop            As Long
 
-Private wbk                 As Workbook
+Private wbkServiced         As Workbook
 Private cLog                As clsLog
 
 Public Sub Terminate()
@@ -46,23 +46,31 @@ Public Property Get Log() As clsLog
     Set Log = cLog
 End Property
 
-Public Property Get WbkServiced() As Workbook
+Public Property Get Serviced() As Workbook
+    Const PROC = "Serviced/Get"
+    
+    On Error Resume Next
     Dim s   As String
     Dim fso As New FileSystemObject
     
-    On Error Resume Next
-    s = wbk.Name
+    s = wbkServiced.Name
     If Err.Number <> 0 Then
-        Set wbk = Application.Workbooks(fso.GetFileName(wsService.CurrentServicedWorkbookFullName))
+        Debug.Print ThisWorkbook.Name & "." & ErrSrc(PROC) & ": A serviced Workbook had yet not been registered"
+        Set wbkServiced = ActiveWorkbook
     End If
-    Set WbkServiced = wbk
+    Set Serviced = wbkServiced
+    If wbkServiced.Name <> ActiveWorkbook.Name _
+    Then Err.Raise AppErr(1), ThisWorkbook.Name & "." & ErrSrc(PROC), "The current serviced Workbook registered is " & wbkServiced.Name & " which is not the active Workbook " & ActiveWorkbook.Name & "!"
     Set fso = Nothing
     
 End Property
 
-Public Property Let WbkServiced(ByVal ws_wbk As Workbook)
-    Set wbk = ws_wbk
-    wsService.CurrentServicedWorkbookFullName = wbk.FullName
+Public Property Let Serviced(ByVal ws_wbk As Workbook)
+    
+    Const PROC = "Serviced/Let"
+    Set wbkServiced = ws_wbk
+    wsService.CurrentServicedWorkbookFullName = wbkServiced.FullName
+    Debug.Print ThisWorkbook.Name & "." & ErrSrc(PROC) & ": '" & ws_wbk.Name & "' registered as serviced Workbook"
 
 End Property
 
@@ -312,7 +320,7 @@ Public Function CurrentServiceStatusBar() As String
     Then CurrentServiceStatusBar = CurrentServiceStatusBar & "Add-in" _
     Else CurrentServiceStatusBar = CurrentServiceStatusBar & ThisWorkbook.Name
     
-    CurrentServiceStatusBar = CurrentServiceStatusBar & ") for " & mService.WbkServiced.Name & ": "
+    CurrentServiceStatusBar = CurrentServiceStatusBar & ") for " & mService.Serviced.Name & ": "
 
 End Function
 
@@ -541,7 +549,7 @@ Public Sub ExportChangedComponents(ByVal e_hosted As String)
 ' Exclusively called by mCompMan.ExportChangedComponents, triggered by the
 ' Before_Save event.
 ' Attention: When called directly by the user, e.g. via the 'Imediate Window' an
-'            error will be raised because an 'mService.WbkServiced' Workbook is
+'            error will be raised because an 'mService.Serviced' Workbook is
 '            not set.
 ' ------------------------------------------------------------------------------
     Const PROC = "ExportChangedComponents"
@@ -549,7 +557,7 @@ Public Sub ExportChangedComponents(ByVal e_hosted As String)
     On Error GoTo eh
     
     mBasic.BoP ErrSrc(PROC)
-    If mService.WbkServiced Is Nothing _
+    If mService.Serviced Is Nothing _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                             "(it may have been called directly via the 'Immediate Window'"
     mHskpng.CommComps e_hosted
@@ -729,7 +737,7 @@ Public Sub Initiate(ByVal ini_service As String, _
     
     mBasic.BoP ErrSrc(PROC)
     wsService.ClearDataAllServices
-    mService.WbkServiced = ini_serviced_wbk
+    mService.Serviced = ini_serviced_wbk
     wsService.CurrentServiceLogFileFullName = ini_serviced_wbk.Path & "\" & LOG_FILE_NAME
     Set cLog = New clsLog
     wsService.CurrentServiceLogFileFullName = Log.FileFullName
@@ -786,9 +794,9 @@ Private Function FolderNotVbProjectExclusive() As Boolean
     Dim fso As New FileSystemObject
     Dim fl  As File
     
-    For Each fl In fso.GetFolder(mService.WbkServiced.Path).Files
+    For Each fl In fso.GetFolder(mService.Serviced.Path).Files
         If VBA.Left$(fso.GetFileName(fl.Path), 2) = "~$" Then GoTo next_fl
-        If VBA.StrComp(fl.Path, mService.WbkServiced.FullName, vbTextCompare) <> 0 Then
+        If VBA.StrComp(fl.Path, mService.Serviced.FullName, vbTextCompare) <> 0 Then
             Select Case fso.GetExtensionName(fl.Path)
                 Case "xlsm", "xlam", "xlsb" ' may contain macros, a VB-Project repsectively
                     FolderNotVbProjectExclusive = True
@@ -852,7 +860,7 @@ Public Sub RemoveTempRenamed()
     Dim vbc As VBComponent
     
     mBasic.BoP ErrSrc(PROC)
-    With mService.WbkServiced.VBProject
+    With mService.Serviced.VBProject
         For Each vbc In .VBComponents
             If mService.IsRenamedByCompMan(vbc.Name) Then
                 .VBComponents.Remove vbc
@@ -894,6 +902,6 @@ Private Function WbkIsOpenedRegular() As Boolean
 ' Retrurns FALSE when the Workbook had been restored by Excel or opended as
 ' a version - which will cause the denial of any service.
 ' ----------------------------------------------------------------------------
-    WbkIsOpenedRegular = ActiveWindow.Caption = mService.WbkServiced.Name
+    WbkIsOpenedRegular = ActiveWindow.Caption = mService.Serviced.Name
 End Function
 

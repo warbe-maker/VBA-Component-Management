@@ -133,7 +133,7 @@ Public Property Get Target() As Workbook
         Set wbkSyncTarget = mWbk.GetOpen(wsService.CurrentServicedWorkbookFullName)
     End If
     Set Target = wbkSyncTarget
-    mService.WbkServiced = wbkSyncTarget
+    mService.Serviced = wbkSyncTarget
     
 End Property
 
@@ -149,7 +149,7 @@ Public Property Get TargetWorkingCopy() As Workbook
         Set wbkSyncTargetWorkingCopy = mWbk.GetOpen(wsService.SyncTargetFullNameCopy)
     End If
     Set TargetWorkingCopy = wbkSyncTargetWorkingCopy
-    mService.WbkServiced = wbkSyncTargetWorkingCopy
+    mService.Serviced = wbkSyncTargetWorkingCopy
     
 End Property
 
@@ -258,7 +258,7 @@ Private Sub AppRunSyncAll()
     mBasic.BoP ErrSrc(PROC)
     Set wbkSource = mSync.source
     Set wbkTarget = mSync.TargetWorkingCopy
-    mService.WbkServiced = wbkTarget
+    mService.Serviced = wbkTarget
     mService.MessageUnload TITLE_SYNC_ALL ' allow watching the sync log
     
     If DueSyncKindOfObjects.IsQueued(enSyncObjectKindReference) Then
@@ -794,7 +794,7 @@ Public Sub MonitorStep(ByVal ms_text As String)
     ActiveWindow.WindowState = xlMaximized
     s = "Synchronization (by " & ThisWorkbook.Name _
                           & ") for " _
-                          & mService.WbkServiced.Name _
+                          & mService.Serviced.Name _
                           & ": " _
                           & ms_text
     Application.StatusBar = vbNullString
@@ -839,10 +839,10 @@ Public Sub OpenDecision()
                                  "will again be archived and the already existing Sync-Target-Workbook's " & _
                                  "working copy will be ignored."
                     Set MsgButtons = mMsg.Buttons(ContinueWithSynchAgainFromScratch)
-                    mMsg.ButtonAppRun AppRunArgs _
-                                    , ContinueWithSynchAgainFromScratch _
-                                    , ThisWorkbook _
-                                    , "mSync.OpnDcsnReSyncFromScratch"
+                    mMsg.BttnAppRun AppRunArgs _
+                                  , ContinueWithSynchAgainFromScratch _
+                                  , ThisWorkbook _
+                                  , "mSync.OpnDcsnReSyncFromScratch"
                 Else
                     '~~ Synchronize
                     .Label.Text = Replace(ContinueOpenWithTargetSynchronztn, vbLf, " ") & ":"
@@ -852,10 +852,10 @@ Public Sub OpenDecision()
                                  "because Source- and Target-Workbook have the same name - the Sync-Target-Workbook " & _
                                  "is saved as Sync-Target-Workbook working copy and this one will be synchronized."
                     Set MsgButtons = mMsg.Buttons(ContinueOpenWithTargetSynchronztn)
-                    mMsg.ButtonAppRun AppRunArgs _
-                                    , ContinueOpenWithTargetSynchronztn _
-                                    , ThisWorkbook _
-                                    , "mSync.OpnDcsnTargetSync"
+                    mMsg.BttnAppRun AppRunArgs _
+                                  , ContinueOpenWithTargetSynchronztn _
+                                  , ThisWorkbook _
+                                  , "mSync.OpnDcsnTargetSync"
                 End If
             End With
             If TargetWorkingCopyExists Then
@@ -872,7 +872,7 @@ Public Sub OpenDecision()
                                      "lost with a re-synchronization from scratch."
                 End With
                 Set MsgButtons = mMsg.Buttons(MsgButtons, vbLf, ContinueSyncWithExstngWorkingCopy)
-                mMsg.ButtonAppRun AppRunArgs _
+                mMsg.BttnAppRun AppRunArgs _
                                 , ContinueSyncWithExstngWorkingCopy _
                                 , ThisWorkbook _
                                 , "mSync.OpnDcsnWithExstngWorkingCopy"
@@ -885,7 +885,7 @@ Public Sub OpenDecision()
                              "closed thereafter and re-opened any other decision may be taken."
             End With
             Set MsgButtons = mMsg.Buttons(MsgButtons, vbLf, AbortOpenDlogForPreparationTarget)
-            mMsg.ButtonAppRun AppRunArgs _
+            mMsg.BttnAppRun AppRunArgs _
                             , AbortOpenDlogForPreparationTarget _
                             , ThisWorkbook _
                             , "mSync.OpnDcsnPreparationTarget"
@@ -904,7 +904,7 @@ Public Sub OpenDecision()
 
             End With
             Set MsgButtons = mMsg.Buttons(ContinueSyncOpenWorkingCopy)
-            mMsg.ButtonAppRun AppRunArgs _
+            mMsg.BttnAppRun AppRunArgs _
                             , ContinueSyncOpenWorkingCopy _
                             , ThisWorkbook _
                             , "mSync.OpnDcsnSyncOpenWorkingCopy"
@@ -922,7 +922,7 @@ Public Sub OpenDecision()
                              "Sync-Target-Workbook's working copy will get lost!"
             End With
             Set MsgButtons = mMsg.Buttons(MsgButtons, vbLf, ContinueWithSynchAgainFromScratch)
-            mMsg.ButtonAppRun AppRunArgs _
+            mMsg.BttnAppRun AppRunArgs _
                             , ContinueWithSynchAgainFromScratch _
                             , ThisWorkbook _
                             , "mSync.OpnDcsnReSyncFromScratch"
@@ -937,7 +937,7 @@ Public Sub OpenDecision()
             End With
             
             Set MsgButtons = mMsg.Buttons(MsgButtons, vbLf, AbortOpenDlogForPreparationTarget)
-            mMsg.ButtonAppRun AppRunArgs _
+            mMsg.BttnAppRun AppRunArgs _
                             , AbortOpenDlogForPreparationTarget _
                             , ThisWorkbook _
                             , "mSync.OpnDcsnPreparationTarget"
@@ -1237,7 +1237,7 @@ Public Sub RunSync()
     Set wbkSource = mSync.source
     Set wbkTarget = mSync.TargetWorkingCopy
     
-    mService.WbkServiced = wbkTarget
+    mService.Serviced = wbkTarget
     Set cllDueSyncs = Nothing: Set cllDueSyncs = New Collection
     
     If AllDueSyncsDone(wbkSource, wbkTarget) Then
@@ -1505,10 +1505,10 @@ Private Sub SyncAll()
     Bttn1 = "Perform all due synchronizations" & vbLf & "listed above"
     Bttn2 = "Terminate this synchronization"
     Set cllButtons = mMsg.Buttons(Bttn1, Bttn2)
-    mMsg.ButtonAppRun AppRunArgs, Bttn1 _
+    mMsg.BttnAppRun AppRunArgs, Bttn1 _
                                 , ThisWorkbook _
                                 , "mSync.AppRunSyncAll"
-    mMsg.ButtonAppRun AppRunArgs, Bttn2 _
+    mMsg.BttnAppRun AppRunArgs, Bttn2 _
                                 , ThisWorkbook _
                                 , "mSync.SyncTerminate"
     

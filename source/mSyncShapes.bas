@@ -1129,7 +1129,7 @@ Public Sub SyncKind()
                
     '~~ Prepare a Command-Buttonn with an Application.Run action for the synchronization of all Worksheets
     Set cllButtons = mMsg.Buttons(cllButtons, SYNC_ALL_BTTN)
-    mMsg.ButtonAppRun AppRunArgs, SYNC_ALL_BTTN _
+    mMsg.BttnAppRun AppRunArgs, SYNC_ALL_BTTN _
                                 , ThisWorkbook _
                                 , "mSyncShapes.AppRunSyncAll"
                

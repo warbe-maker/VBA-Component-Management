@@ -92,7 +92,7 @@ Private Sub CommCompsRemoveObsoleteComponents(ByVal h_hosted As String)
     Dim sExpFile    As String
     
     Set dctHosted = Hosted(h_hosted)
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     sBaseName = fso.GetBaseName(wbk.FullName)
     Set dct = mCommComps.Components
     
@@ -139,7 +139,7 @@ Private Sub CommCompsHostedClear(ByVal c_comp_name As String)
 ' ----------------------------------------------------------------------------
     Dim wbk As Workbook
     
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     
     mCommComps.RawExpFileFullName(c_comp_name) = vbNullString
     mCommComps.RawHostWbBaseName(c_comp_name) = vbNullString
@@ -177,7 +177,7 @@ Private Sub CommCompsUsed()
                   "This is a VBComponent which" & vbLf & _
                   "accidentially has the same name."
     
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     For Each vbc In wbk.VBProject.VBComponents
         If mCommComps.ExistsAsGlobalCommonComponentExportFile(vbc) Then
             If mCommComps.RevisionNumber(vbc.Name) = vbNullString Then
@@ -242,20 +242,20 @@ Private Sub CommCompsHosted(ByVal m_hosted As String)
     Dim dctHosted       As Dictionary
     Dim wbk             As Workbook
     
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     sHostBaseName = fso.GetBaseName(wbk.FullName)
     Set dctHosted = mCommComps.Hosted(m_hosted)
                     
     For Each v In dctHosted
         If Not mComp.Exists(v, wbk) Then
-            MsgBox "The VBComponent " & v & " is claimed hosted by the serviced Workbook " & mService.WbkServiced.Name & _
+            MsgBox "The VBComponent " & v & " is claimed hosted by the serviced Workbook " & mService.Serviced.Name & _
                    " but is not known by the Workbook's VB-Project - and thus will be ignored!" & vbLf & vbLf & _
                    "When the component is no longer hosted or its name has changed the argument needs to be updated accordingly.", _
                    vbOK, "VBComponent " & v & "unkonwn!"
         Else
             Set RawComComp = New clsComp
             With RawComComp
-                Set .Wrkbk = mService.WbkServiced
+                Set .Wrkbk = mService.Serviced
                 .CompName = v
                 If mCompManDat.RegistrationState(v) <> enRegStateHosted Then
                     '~~ Yet not registered as "hosted" as the serviced Workbook claims it
@@ -334,7 +334,7 @@ Private Sub CommCompsNotHosted(ByVal h_hosted As String)
     Dim v           As Variant
     Dim wbk         As Workbook
     
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     Set dctHosted = mCommComps.Hosted(h_hosted)
     Set dctComps = mCommComps.Components
     For Each v In dctComps

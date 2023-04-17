@@ -28,7 +28,7 @@ Private Property Get CompManDatFileFullName() As String
     Dim wbk As Workbook
     Dim fso As New FileSystemObject
     
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     CompManDatFileFullName = Replace(wbk.FullName, wbk.Name, "CompMan.dat")
     If Not fso.FileExists(CompManDatFileFullName) Then
         fso.CreateTextFile CompManDatFileFullName
@@ -275,7 +275,7 @@ Private Sub HskpngHosted(ByVal h_hosted As String)
     Dim wbk         As Workbook
     Dim v           As Variant
     
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     Set dctHosted = mCommComps.Hosted(h_hosted)
     
     For Each v In dctHosted
@@ -302,7 +302,7 @@ Private Sub HskpngRemoveObsoleteSections(ByVal h_hosted As String)
     Dim dctHosted   As Dictionary
     
     Set dctHosted = mCommComps.Hosted(h_hosted)
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     For Each v In mCompManDat.Components
         If HskpngSectionIsInvalid(v, wbk) Then
             mCompManDat.RemoveComponent v

@@ -223,7 +223,7 @@ Public Function ExistsAsGlobalCommonComponentExportFile(ByVal ex_vbc As VBCompon
     Dim Comp    As New clsComp
     
     With Comp
-        Set .Wrkbk = mService.WbkServiced
+        Set .Wrkbk = mService.Serviced
         .CompName = ex_vbc.Name
         sFile = wsConfig.FolderCommonComponentsPath & "\" & ex_vbc.Name & .ExpFileExt
     End With
@@ -297,7 +297,7 @@ Public Function InconsitencyWarning(ByVal exp_file_full_name, _
     End With
         
     Do
-        If Not mMsg.IsValidMsgButtonsArg(cllBttns) Then Stop
+        If Not mMsg.BttnArgsAreValid(cllBttns) Then Stop
         Select Case mMsg.Dsply(dsply_title:="Serious inconsistency warning!" _
                              , dsply_msg:=Msg _
                              , dsply_buttons:=cllBttns _
@@ -414,17 +414,17 @@ Private Sub OutdatedUpdateChoice()
         End With
     End With
     
-    mMsg.ButtonAppRun AppRunArgs, BttnUpdate _
+    mMsg.BttnAppRun AppRunArgs, BttnUpdate _
                                 , ThisWorkbook _
                                 , "mCommComps.OutdatedUpdateChoiceUpdate" _
                                 , Comp.CompName
-    mMsg.ButtonAppRun AppRunArgs, BttnDsplyDiffs _
+    mMsg.BttnAppRun AppRunArgs, BttnDsplyDiffs _
                                 , ThisWorkbook _
                                 , "mCommComps.OutdatedUpdateChoiceDsplyDiffs"
-    mMsg.ButtonAppRun AppRunArgs, BttnSkipForNow _
+    mMsg.BttnAppRun AppRunArgs, BttnSkipForNow _
                                 , ThisWorkbook _
                                 , "mCommComps.OutdatedUpdateChoiceSkipForNow"
-    mMsg.ButtonAppRun AppRunArgs, BttnSkipForever _
+    mMsg.BttnAppRun AppRunArgs, BttnSkipForever _
                                 , ThisWorkbook _
                                 , "mCommComps.OutdatedUpdateChoiceSkipForever" _
                                 , Comp.CompName
@@ -530,7 +530,7 @@ Private Sub OutdatedUpdateChoiceUpdate(ByVal u_comp_name As String)
     
     mBasic.BoP ErrSrc(PROC)
     Qoutdated.First Comp
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     Set Comp = New clsComp
     With Comp
         Set .Wrkbk = wbk
@@ -573,7 +573,7 @@ Private Sub OutdatedUpdateCollect()
     Dim lUsed       As Long
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     Set dctAll = mService.AllComps(wbk)
     Set Qoutdated = New clsQ
     Application.StatusBar = vbNullString
@@ -638,7 +638,7 @@ Public Sub Register(ByVal r_comp_name As String, _
     Dim fso As New FileSystemObject
     Dim wbk As Workbook
     
-    Set wbk = mService.WbkServiced
+    Set wbk = mService.Serviced
     RawHostWbFullName(r_comp_name) = wbk.FullName
     RawHostWbName(r_comp_name) = wbk.Name
     RawHostWbBaseName(r_comp_name) = fso.GetBaseName(wbk.FullName)
@@ -678,9 +678,9 @@ Public Sub SaveToCommonComponentsFolder(ByVal stgf_comp_name As String, _
     End If
 
     mCommComps.RawExpFileFullName(stgf_comp_name) = stgf_exp_file_full_name
-    mCommComps.RawHostWbBaseName(stgf_comp_name) = fso.GetBaseName(mService.WbkServiced.FullName)
-    mCommComps.RawHostWbFullName(stgf_comp_name) = mService.WbkServiced.FullName
-    mCommComps.RawHostWbName(stgf_comp_name) = mService.WbkServiced.Name
+    mCommComps.RawHostWbBaseName(stgf_comp_name) = fso.GetBaseName(mService.Serviced.FullName)
+    mCommComps.RawHostWbFullName(stgf_comp_name) = mService.Serviced.FullName
+    mCommComps.RawHostWbName(stgf_comp_name) = mService.Serviced.Name
     mCommComps.RevisionNumber(stgf_comp_name) = mCompManDat.RawRevisionNumber(stgf_comp_name)
     
     Set fso = Nothing

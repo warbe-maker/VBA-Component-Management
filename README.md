@@ -42,10 +42,10 @@ Also see the [Programmatic-ally updating Excel VBA code][2] post for this subjec
 | Term             | Meaning                  |
 |------------------|------------------------- |
 | _Component_       | Generic term for any kind of _VB-Project-Component_ (_Class Module_,  _Data Module_, _Standard Module_, or _UserForm_  |
-| _Common&nbsp;Component_ | A _VB-Component_ hosted in a Workbook which claims it as the _Raw_ component. This Workbook is dedicated for the development, maintenance and tested of this VB-Component while other Workbooks/VB-Projects are using it as _Clone_ [^1].   |
+| _Common&nbsp;Component_ | A _VB-Component_ [hosted](#the-concept-of-hosted) in a Workbook which claims it as the _Raw_ component. This Workbook is dedicated for the development, maintenance and tested of this VB-Component while other Workbooks/VB-Projects are using it as _Clone_ [^1].   |
 |_Used&nbsp;Common&nbsp;Component_ | The copy of a _Raw&#8209;Component_ in a _Workbook/VP&#8209;Project_ using it. _Clone-Components_ may be automatically kept up-to-date by the _UpdateOutdatedCommonComponents_ service.  The term _clone_ is borrowed from GitHub but has a slightly different meaning because the clone is usually not maintained but the _raw_ |
 | _Procedure_           | Generic term for any _VB-Component's_ (public or private) _Property_, _Sub_, or _Function_ |
-| _Raw&nbsp;Common&nbsp;Component_ | The instance of a _Common&nbsp;Component_ which is regarded the developed, maintained and tested 'original', hosted in a dedicated _Raw&#8209;Host_ Workbook. The term _raw_ is borrowed from GitHub and indicates the original version of something |
+| _Raw&nbsp;Common&nbsp;Component_ | The instance of a _Common&nbsp;Component_ which is regarded the developed, maintained and tested 'original', [hosted](#the-concept-of-hosted) in a dedicated _Raw&#8209;Host_ Workbook. The term _raw_ is borrowed from GitHub and indicates the original version of something |
 | _Raw&#8209;Host_      | The Workbook/_VB-Project_ which hosts the _Raw-Component_ |
 |_Service_             | Generic term for any _Public Property_, _Public Sub_, or _Public Function_ of a _Component_ |
 | _Servicing&nbsp;Workbook_ | The service providing Workbook, either the _[CompMan.xlsb][1]_ Workbook (when it is open) or the _CompMan Add-in_ when it is set up and open. |
@@ -56,6 +56,7 @@ Also see the [Programmatic-ally updating Excel VBA code][2] post for this subjec
 | _Workbook&nbsp;parent&nbsp;folder_ | A folder dedicated to a _Workbook/VB-Project_. Note that an enabled Workbook is only serviced when it is **exclusive** in its parent folder. Other Workbooks may be located in sub-folders however.|
 
 [^1]: The terms _Raw_ and _Clone_ follow [_GitHub_][6] terminology
+[^2]: That's the concept I follow for all my _Common Component_ (many of them used in [CompMan's VB-Project][1]
 
 ## Services
 ### _Export Changed Components_
@@ -100,8 +101,8 @@ CompManServiced
 |_CompMan.cfg_    | ***PrivateProfile*** file which keeps the current CompMan configuration. It is used with each open and adjusted on the fly if required. The file ensures that each subsequent download of the ComMan.xlsb Workbook works with the configuration saved with the last close of it.|
 |_CompMan.xlsb_   | The Workbook **file** originally opened copied (saved as) into its dedicated parent folder along with the initial setup. Once the opened Workbook has been saved to the new setup location it is deleted.|
 |_WinMerge.ini_   | **File** used by CompMan to display code changes by means of _***WinMerge***_ with the options to ignore empty code lines and ignore case differences.|
-|_Common&#8209;Components_ | Default **folder** where CompMan maintains a copy of the Export-File of _hosted_ _Common&nbsp;Component_. These _Export Files_ function as the source for a serviced Workbook's (possibly) outdated _Used&nbsp;Common&nbsp;Components_.|
-|_CompManClient.bas_| Export **file** of the _Common Component_ hosted by [CompMan.xlsb][1] for being imported into any to-be-serviced Workbook. See [Enabling the services](#enabling-the-services-serviced-or-not-serviced).| 
+|_Common&#8209;Components_ | Default **folder** where CompMan maintains a copy of the Export-File of [hosted](#the-concept-of-hosted) _Common&nbsp;Component_. These _Export Files_ function as the source for a serviced Workbook's (possibly) outdated _Used&nbsp;Common&nbsp;Components_. Though primarily maintained by CompMan, the folder may contain any Export File of a VBComponent considered ***Common***. Manually added Export-Files are regarded ***Common Component orphans*** until a Workbook claims it [Hosted](#the-concept-of-hosted) |
+|_CompManClient.bas_| Export **file** of the _Common Component_ [hosted](#the-concept-of-hosted) by [CompMan.xlsb][1] for being imported into any to-be-serviced Workbook. See [Enabling the services](#enabling-the-services-serviced-or-not-serviced).| 
 
 ### Configuration changes (CompMan's _Config_ Worksheet)
 
@@ -232,8 +233,8 @@ New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. 
 | auto&#8209;open&nbsp;not&nbsp;setup| When the [_Add-in folder_](#compmans-default-files-and-folders-environment) is de-configured (no folder is selected when with 'Configure') a setup auto-open is removed |
  
 ### Common Components
-#### The concept of "hosted"
-The idea behind is that it is impractical to provide a complete test environment with in a VB-Project using a component declared common. The consequence: When a used component has a valuable common quality it is copied into a dedicated (hosting) Workbook where it "lives" from then on. The conclusion: A ***true*** Common Component is one hosted, i.e. developed, maintained and (regression) tested in a dedicated Workbook. It looks like an avoidable effort but on the long run it pays off for a professional VB-Project development. See also the blog post [Common VBA Components][7].
+#### The concept of "hosted" Common Components
+A _VB-Component_ considered common for _VB-Projects_ is preferably developed and maintained in a dedicated Workbook last but not least because this allows a dedicated regression test environment . The consequence: When a used component has a valuable common quality it is copied into a dedicated (hosting) Workbook where it "lives" from then on. The conclusion: A ***true*** Common Component is one hosted, i.e. developed, maintained and (regression) tested in a dedicated Workbook. It looks like an avoidable effort but on the long run it pays off for a professional VB-Project development. See also the blog post [Common VBA Components][7].
 #### The service
 The initial intention for the development of CompMan was to keep _Common&nbspComponent_ up-to-date in all VB-Projects using them. To achieve this the _Export Service_ maintains hosted _Raw&nbsp;Common&nbsp;Components_ with a [_Revision Number_](#the-revision-number) as a copy of the _Export&nbsp;File_ in a [Common-Components](#compmans-default-files-and-folders-environment) folder. The _Update-Outdated-Common-Components_ service checks for serviced Workbook whether a _Used&nbsp;Common&nbsp;Component_ is outdated and displays an update dialog, also allowing to display the code difference by means of WinMerge ([WinMerge English][4], [WinMerge German][5].
 
@@ -253,20 +254,17 @@ CompMan is pretty much focused on _Common&nbsp;Components_. In order to prevent 
 ### Multiple computers involved in VB-Project's development/maintenance
 When the [Common-Components](#compmans-default-files-and-folders-environment) folder is handled/managed as a GitHub repository it will be easy to keep an up-to-date clone on various computers. Currently the location of the [Common-Components](#compmans-default-files-and-folders-environment) folder is fixed and cannot be re-configured/located on a network. However, the whole environment, i.e. the [_CompManServiced_ folder](#compmans-default-files-and-folders-environment) folder may be moved to/kept at any location.
 
-### CompMan used as Add-in
-Services may be provided directly by the open [CompMan.xls][1] Workbook which may be configured to auto-open. Alternatively CompMan may be setup as _Addin_ (CompMan.xlsa) which will automatically provide the services when Excel starts - with the differences that the servicing Workbook remains invisible.
-
-### Pausing/continuing the CompMan Add-in
-Use the corresponding command buttons when the Workbook [CompMan.xlsb][1] is open. Pausing the Add-in is only a CompMan development feature. When the Add-in is paused while the [CompMan.xlsb][1] is open CompMan works as if the Add-in were not setup which means the services are directly provided by the open [CompMan.xlsb][1]. When the [CompMan.xlsb][1] Workbook is closed and an Add-in had been setup the Add-in will be _continued_ automatically. This ensures that the Add-in is available for the [CompMan.xlsb][1] Workbook when it is opened again.
-> The _CompMan Add-in_ is the only means which allows to update outdated _Used&nbsp;Common&nbsp;Components_ in the [CompMan.xlsb][1] Workbook. I.e. the development instance of the Add-in.
+### CompMan.xlsb versus CompMan as Add-in
+All services are provided by an open [CompMan.xlsb][1] Workbook even when it is additionally setup as Addin. The Addin only provides the services when the [CompMan.xlsb][1] Workbook is not open. When the Addin is paused and the  [CompMan.xlsb][1] Workbook is not open no services are provided until the [CompMan.xlsb][1] Workbook is not open again, the Addin is continued and the Workbook is closed again. The advantage of the Addin is that it remains invisible. That's all.
+> While any Workbook can use the services either form an open [CompMan.xlsb][1] Workbook ++or++ from the Addin, the [CompMan.xlsb][1] Workbook itself requires the Addin to update any outdated _Used&nbsp;Common&nbsp;Components_.
 
 ## Contribution
 Contribution of any kind is welcome, raising issues specifically.
 
 
-[1]:https://gitcdn.link/cdn/warbe-maker/VBA-Components-Management-Services/master/CompMan.xlsb
+[1]:https://github.com/warbe-maker/VBA-Components-Management-Services/blob/master/CompMan.xlsb?raw=true
 [2]:https://warbe-maker.github.io/2021/02/06/Programatically-updating-Excel-VBA-code.html
-[3]:https://gitcdn.link/cdn/warbe-maker/VBA-Components-Management-Services/master/source/mCompManClient.bas
+[3]:https://github.com/warbe-maker/VBA-Components-Management-Services/blob/master/source/mCompManClient.bas?raw=true
 [4]:https://winmerge.org/downloads/?lang=en
 [5]:https://winmerge.org/downloads/?lang=de
 [6]:https://github.com

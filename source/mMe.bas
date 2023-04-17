@@ -882,9 +882,12 @@ Public Sub Renew___AddIn()
 xt: RenewFinalResult bSucceeded
     Application.EnableEvents = False
     Application.ScreenUpdating = False
+    mService.Serviced.Activate
     wsService.Activate
     wsConfig.CurrentStatus
     wsConfig.Activate
+    DoEvents
+    Application.SendKeys "%{Tab}" ' brings the monitor message to front
     Application.EnableEvents = True
     Exit Sub
     

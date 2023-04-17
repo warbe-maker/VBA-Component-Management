@@ -16,16 +16,6 @@ Public Property Get AutoOpenShortCut()
     AutoOpenShortCut = Environ$("APPDATA") & "\Microsoft\Excel\XLSTART\CompManAddin.lnk"
 End Property
 
-Private Sub AutoOpenShortCutRemove()
-    Dim fso As New FileSystemObject
-    Dim s   As String
-    
-    s = AutoOpenShortCut
-    If fso.FileExists(s) Then fso.DeleteFile s
-    Set fso = Nothing
-    
-End Sub
-
 Public Property Get Folder() As String:                        Folder = mWsh.Value(wsConfig, "FolderAddin"):                    End Property
 
 Public Property Let Folder(ByVal s As String):                 mWsh.Value(wsConfig, "FolderAddin") = s:                         End Property
@@ -52,6 +42,16 @@ Public Property Get WbkName() As String
     End With
 End Property
 
+Private Sub AutoOpenShortCutRemove()
+    Dim fso As New FileSystemObject
+    Dim s   As String
+    
+    s = AutoOpenShortCut
+    If fso.FileExists(s) Then fso.DeleteFile s
+    Set fso = Nothing
+    
+End Sub
+
 Private Sub Clear(ByVal c_addin_folder_full_name As String)
 ' ----------------------------------------------------------------------------
 ' Clears all items concerning the Add-in despite the Add-in folder.
@@ -65,37 +65,68 @@ Private Sub Clear(ByVal c_addin_folder_full_name As String)
     
 End Sub
 
-Public Function WbkClose(Optional ByRef wc_err_desc As String) As Boolean
-    Dim wbk As Workbook
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "mAddin" & "." & sProc
+End Function
+
+Public Function Exists() As Boolean
+    Dim fso As New FileSystemObject
+    Exists = fso.FileExists(mAddin.WbkFullName)
+    Set fso = Nothing
+End Function
+
+Public Sub GiveUp()
+' ----------------------------------------------------------------------------
+' Remove CompMan Addin
+' ----------------------------------------------------------------------------
+    Const PROC = "GiveUp"
     
-    If mAddin.IsOpen(wbk) Then
-        Application.EnableEvents = False
-        On Error Resume Next
-        wbk.Close False
-        If Err.Number <> 0 Then
-            wc_err_desc = Err.Description
-            WbkClose = False
+    On Error GoTo eh
+    mAddin.Set_IsAddin_ToFalse
+    mAddin.WbkClose
+    mAddin.WbkRemove WbkFullName
+    AutoOpenShortCutRemove
+
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Function IsOpen(Optional ByRef io_wbk As Workbook) As Boolean
+    Const PROC = "IsOpen"
+    
+    On Error GoTo eh
+    Dim i As Long
+    
+    For i = 1 To Application.AddIns2.Count
+        If Application.AddIns2(i).Name = mAddin.WbkName Then
+            On Error Resume Next
+            Set io_wbk = Application.Workbooks(mAddin.WbkName)
+            IsOpen = Err.Number = 0
             GoTo xt
         End If
-    End If
-    WbkClose = True ' not open, already closed
+    Next i
+    
+xt: Exit Function
 
-xt: Application.EnableEvents = True
-    Exit Function
-
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
-Public Function Set_IsAddin_ToFalse() As Boolean
-    Dim wbk As Workbook
-    If mAddin.IsOpen(wbk) Then
-        If wbk.IsAddin = True Then
-            Set_IsAddin_ToFalse = True
-            wbk.IsAddin = False
-        End If
-    Else
-        Set_IsAddin_ToFalse = True
-    End If
-End Function
+Public Sub PausedFlipFlop()
+
+    Application.ScreenUpdating = False
+    If Paused _
+    Then Paused = False _
+    Else Paused = True
+    wsConfig.CurrentStatus
+    
+End Sub
 
 Public Sub ReferencesRemove(Optional ByRef rr_dct As Dictionary, _
                             Optional ByRef rr_wbks As String, _
@@ -136,38 +167,45 @@ Public Sub ReferencesRemove(Optional ByRef rr_dct As Dictionary, _
     
 End Sub
 
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mAddin" & "." & sProc
+Public Sub SetupRenew()
+' ----------------------------------------------------------------------------
+' Sets up CompMan as Add-in or, when already set up, renews it.
+' ----------------------------------------------------------------------------
+    mMe.Renew___AddIn
+End Sub
+
+Public Function Set_IsAddin_ToFalse() As Boolean
+    Dim wbk As Workbook
+    If mAddin.IsOpen(wbk) Then
+        If wbk.IsAddin = True Then
+            Set_IsAddin_ToFalse = True
+            wbk.IsAddin = False
+        End If
+    Else
+        Set_IsAddin_ToFalse = True
+    End If
 End Function
 
-Public Function Exists() As Boolean
-    Dim fso As New FileSystemObject
-    Exists = fso.FileExists(mAddin.WbkFullName)
-    Set fso = Nothing
-End Function
-
-Public Function IsOpen(Optional ByRef io_wbk As Workbook) As Boolean
-    Const PROC = "IsOpen"
+Public Function WbkClose(Optional ByRef wc_err_desc As String) As Boolean
+    Dim wbk As Workbook
     
-    On Error GoTo eh
-    Dim i As Long
-    
-    For i = 1 To Application.AddIns2.Count
-        If Application.AddIns2(i).Name = mAddin.WbkName Then
-            On Error Resume Next
-            Set io_wbk = Application.Workbooks(mAddin.WbkName)
-            IsOpen = Err.Number = 0
+    If mAddin.IsOpen(wbk) Then
+        Application.EnableEvents = False
+        On Error Resume Next
+        wbk.Close False
+        If Err.Number <> 0 Then
+            wc_err_desc = Err.Description
+            WbkClose = False
             GoTo xt
         End If
-    Next i
-    
-xt: Exit Function
+    End If
+    WbkClose = True ' not open, already closed
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
+xt: Application.EnableEvents = True
+    Exit Function
+
 End Function
+
     
 Public Function WbkRemove(ByVal wr_wbk_full_name As String) As Boolean
     Dim fso As New FileSystemObject
