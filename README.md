@@ -11,7 +11,7 @@
 * [Installation](#installation)
 	* [Provision of CompMan as a servicing Workbook instance](#provision-of-compman-as-a-servicing-workbook-instance)
 	* [CompMan's default files and folders environment](#compmans-default-files-and-folders-environment)
-	* [Configuration changes](#configuration-changes)
+	* [Configuration changes](##configuration-changes-compmans-config-worksheet)
 * [Usage](#usage)
 	* [Enabling the services (serviced or not serviced)](#enabling-the-services-serviced-or-not-serviced)
 	* [Enabling the Export service](#enabling-the-export-service)
