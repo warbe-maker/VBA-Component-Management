@@ -314,14 +314,14 @@ Private Function WbkServicingName(ByVal csa_service As String) As String
         Case ServicedByWrkbkResult = ResultConfigInvalid
             Select Case csa_service
                 Case SRVC_SYNCHRONIZE:      DisplayedServiceStatus = vbNullString ' "'" & SRVC_SYNCHRONIZE_DSPLY & "' service denied (no Sync-Target- and or Sync-Archive-Folder configured)!"
-                Case SRVC_UPDATE_OUTDATED:  DisplayedServiceStatus = "'" & SRVC_UPDATE_OUTDATED_DSPLY & "' service denied (a valid configuration is missing)!"
-                Case SRVC_EXPORT_CHANGED:   DisplayedServiceStatus = "'" & SRVC_EXPORT_CHANGED_DSPLY & "' service denied (a valid configuration is missing)!"
+                Case SRVC_UPDATE_OUTDATED:  DisplayedServiceStatus = "The enabled/requested '" & SRVC_UPDATE_OUTDATED_DSPLY & "' service had been denied due to an invalid or missing configuration (see Config Worksheet)!"
+                Case SRVC_EXPORT_CHANGED:   DisplayedServiceStatus = "The enabled/requested'" & SRVC_EXPORT_CHANGED_DSPLY & "' service had been denied due to an invalid or missing configuration (see Config Worksheet)!"
             End Select
         Case ServicedByWrkbkResult = ResultOutsideCfgFolder
             Select Case csa_service
-                Case SRVC_SYNCHRONIZE:      Debug.Print "'" & SRVC_SYNCHRONIZE_DSPLY & "' service silently denied! (Workbook has not been opened from within the configured 'Sync-Target-Folder')"
-                Case SRVC_UPDATE_OUTDATED:  Debug.Print "'" & SRVC_EXPORT_CHANGED_DSPLY & "' service silently denied! (Workbook has not been opened from within the configured 'Dev-and-Test-Folder')"
-                Case SRVC_EXPORT_CHANGED:   Debug.Print "'" & SRVC_UPDATE_OUTDATED_DSPLY & "' service silently denied! (Workbook has not been opened from within the configured 'Dev-and-Test-Folder')"
+                Case SRVC_SYNCHRONIZE:      Debug.Print "The enabled/requested '" & SRVC_SYNCHRONIZE_DSPLY & "' service had silently been denied! (Workbook has not been opened from within the configured 'Sync-Target-Folder')"
+                Case SRVC_UPDATE_OUTDATED:  Debug.Print "The enabled/requested '" & SRVC_EXPORT_CHANGED_DSPLY & "' service had silently been denied! (Workbook has not been opened from within the configured 'Dev-and-Test-Folder')"
+                Case SRVC_EXPORT_CHANGED:   Debug.Print "The enabled/requested '" & SRVC_UPDATE_OUTDATED_DSPLY & "' service had silently been denied! (Workbook has not been opened from within the configured 'Dev-and-Test-Folder')"
             End Select
         Case ServicedByWrkbkResult = ResultRequiredAddinNotAvailable
             DisplayedServiceStatus = "The required Add-in is not available for the 'Update' service for the Development-Instance!"
