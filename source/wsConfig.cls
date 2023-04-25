@@ -8,7 +8,11 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
-
+' ----------------------------------------------------------------------------
+' Data Module wsConfig: Keeps a record of all configuration data used
+' ===================== throughout all services.
+'
+' ----------------------------------------------------------------------------
 Private sRenewResult                        As String
 
 Private Property Let AddInStatus(ByVal s As String):                 MaintainMinRowHeight Me.Range("AddInStatus"), s:                        End Property
@@ -103,48 +107,37 @@ Public Property Get FolderCompManRoot() As String:                  FolderCompMa
 
 Public Property Let FolderCompManRoot(ByVal s As String):           mWsh.Value(Me, "FolderCompManRoot") = s:                                End Property
 
-Private Property Let FolderCompManRootInfo(ByVal s As String):       MaintainMinRowHeight Me.Range("FolderCompManRootInfo"), s:              End Property
+Private Property Let FolderCompManRootInfo(ByVal s As String):      MaintainMinRowHeight Me.Range("FolderCompManRootInfo"), s:              End Property
 
-Private Property Let FolderCompManRootUrl(ByVal s As String):        UrlLabel(Me.Range("FolderCompManRootUrl")) = s:                         End Property
+Private Property Let FolderCompManRootUrl(ByVal s As String):       UrlLabel(Me.Range("FolderCompManRootUrl")) = s:                         End Property
 
-Public Property Get FolderExport() As String
-    If mCompManCfg.Exists Then
-        If mCompManCfg.FolderExport = vbNullString Then
-            mCompManCfg.FolderExport = "source"
-            FolderExport = "source"
-        Else
-            FolderExport = mCompManCfg.FolderExport
-        End If
-    Else
-        FolderExport = "source"
-    End If
-End Property
+Public Property Get FolderExport() As String:                       FolderExport = mWsh.Value(Me, "FolderExport"):                          End Property
 
-Private Property Let FolderExport(ByVal s As String):                mWsh.Value(Me, "FolderExport") = s:                             End Property
+Private Property Let FolderExport(ByVal s As String):               mWsh.Value(Me, "FolderExport") = s:                                     End Property
 
-Private Property Get FolderExportInfo() As String:                   FolderExportInfo = mWsh.Value(Me, "FolderExportInfo"):          End Property
+Private Property Get FolderExportInfo() As String:                  FolderExportInfo = mWsh.Value(Me, "FolderExportInfo"):                  End Property
 
-Private Property Let FolderExportInfo(ByVal s As String):            MaintainMinRowHeight Me.Range("FolderExportInfo"), s:           End Property
+Private Property Let FolderExportInfo(ByVal s As String):           MaintainMinRowHeight Me.Range("FolderExportInfo"), s:                   End Property
 
-Private Property Let FolderExportUrl(ByVal s As String):             UrlLabel(Me.Range("FolderExportUrl")) = s:                      End Property
+Private Property Let FolderExportUrl(ByVal s As String):            UrlLabel(Me.Range("FolderExportUrl")) = s:                              End Property
 
-Public Property Get FolderSyncArchive() As String:                  FolderSyncArchive = mWsh.Value(Me, "FolderSyncArchive"):        End Property
+Public Property Get FolderSyncArchive() As String:                  FolderSyncArchive = mWsh.Value(Me, "FolderSyncArchive"):                End Property
 
-Public Property Let FolderSyncArchive(ByVal s As String):           mWsh.Value(Me, "FolderSyncArchive") = s:                        End Property
+Public Property Let FolderSyncArchive(ByVal s As String):           mWsh.Value(Me, "FolderSyncArchive") = s:                                End Property
 
-Private Property Let FolderSyncArchiveInfo(ByVal s As String):       MaintainMinRowHeight Me.Range("FolderSyncArchiveInfo"), s:      End Property
+Private Property Let FolderSyncArchiveInfo(ByVal s As String):      MaintainMinRowHeight Me.Range("FolderSyncArchiveInfo"), s:              End Property
 
-Private Property Let FolderSyncArchiveUrl(ByVal s As String):        UrlLabel(Me.Range("FolderSyncArchiveUrl")) = s:                 End Property
+Private Property Let FolderSyncArchiveUrl(ByVal s As String):       UrlLabel(Me.Range("FolderSyncArchiveUrl")) = s:                         End Property
 
-Public Property Get FolderSyncTarget() As String:                   FolderSyncTarget = mWsh.Value(Me, "FolderSyncTarget"):          End Property
+Public Property Get FolderSyncTarget() As String:                   FolderSyncTarget = mWsh.Value(Me, "FolderSyncTarget"):                  End Property
 
-Public Property Let FolderSyncTarget(ByVal s As String):            mWsh.Value(Me, "FolderSyncTarget") = s:                         End Property
+Public Property Let FolderSyncTarget(ByVal s As String):            mWsh.Value(Me, "FolderSyncTarget") = s:                                 End Property
 
-Private Property Let FolderSyncTargetInfo(ByVal s As String):        MaintainMinRowHeight Me.Range("FolderSyncTargetInfo"), s:       End Property
+Private Property Let FolderSyncTargetInfo(ByVal s As String):       MaintainMinRowHeight Me.Range("FolderSyncTargetInfo"), s:               End Property
 
-Private Property Let FolderSyncTargetUrl(ByVal s As String):         UrlLabel(Me.Range("FolderSyncTargetUrl")) = s:                  End Property
+Private Property Let FolderSyncTargetUrl(ByVal s As String):        UrlLabel(Me.Range("FolderSyncTargetUrl")) = s:                          End Property
 
-Private Property Get MonitorAnchor() As Range:                      Set MonitorAnchor = Me.Range("ConfigInfo"):                     End Property
+Private Property Get MonitorAnchor() As Range:                      Set MonitorAnchor = Me.Range("ConfigInfo"):                             End Property
 
 Private Property Let UrlButton(ByVal url_rng As Range, _
                                ByVal url_chapter As String)
@@ -292,30 +285,6 @@ Public Sub AutoOpenCompManSetup()
         .Save
     End With
     
-End Sub
-
-Public Sub CompManCfgRestoreConfig()
-
-    Application.EnableEvents = False
-    If FolderAddin <> mCompManCfg.FolderAddin Then FolderAddin = mCompManCfg.FolderAddin
-    If FolderExport <> mCompManCfg.FolderExport Then FolderExport = mCompManCfg.FolderExport
-    If FolderCompManRoot <> mCompManCfg.FolderServicedCompManRoot Then FolderCompManRoot = mCompManCfg.FolderServicedCompManRoot
-    If FolderSyncArchive <> mCompManCfg.FolderServicedSyncArchive Then FolderSyncArchive = mCompManCfg.FolderServicedSyncArchive
-    If FolderSyncTarget <> mCompManCfg.FolderServicedSyncTarget Then FolderSyncTarget = mCompManCfg.FolderServicedSyncTarget
-    If FolderCommonComponentsPath <> mCompManCfg.FolderCommonComponents Then FolderCommonComponentsPath = mCompManCfg.FolderCommonComponents
-    Application.EnableEvents = True
-
-End Sub
-
-Public Sub CompManCfgSaveConfig()
-
-    If mCompManCfg.FolderAddin <> FolderAddin Then mCompManCfg.FolderAddin = FolderAddin
-    If mCompManCfg.FolderExport <> FolderExport Then mCompManCfg.FolderExport = FolderExport
-    If mCompManCfg.FolderServicedCompManRoot <> FolderCompManRoot Then mCompManCfg.FolderServicedCompManRoot = FolderCompManRoot
-    If mCompManCfg.FolderServicedSyncArchive <> FolderSyncArchive Then mCompManCfg.FolderServicedSyncArchive = FolderSyncArchive
-    If mCompManCfg.FolderServicedSyncTarget <> FolderSyncTarget Then mCompManCfg.FolderServicedSyncTarget = FolderSyncTarget
-    If mCompManCfg.FolderCommonComponents <> FolderCommonComponentsPath Then mCompManCfg.FolderCommonComponents = FolderCommonComponentsPath
-
 End Sub
 
 Public Sub CurrentStatus()
@@ -805,7 +774,6 @@ Private Sub Worksheet_Change(ByVal Target As Range)
                  .Range("FolderAddin").Address, _
                  .Range("FolderSyncTarget").Address, _
                  .Range("FolderSyncArchive").Address
-                .CompManCfgSaveConfig
         End Select
     End With
 

@@ -44,6 +44,9 @@ Private Sub CommCompsAddMissingComponents()
 '       where it is developed, maintained, and tested - a manually added one
 '       is an orphan until a Workbook claims hosting it.
 ' ------------------------------------------------------------------------------
+    Const PROC = "CommCompsAddMissingComponents"
+    
+    On Error GoTo eh
     Dim fle         As File
     Dim fso         As New FileSystemObject
     Dim dct         As Dictionary
@@ -70,6 +73,13 @@ Private Sub CommCompsAddMissingComponents()
     
     Set fso = Nothing
     Set dct = Nothing
+
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub
 
 Private Sub CommCompsRemoveObsoleteComponents(ByVal h_hosted As String)

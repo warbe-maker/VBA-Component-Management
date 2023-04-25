@@ -41,11 +41,12 @@ Private Sub Workbook_BeforeClose(Cancel As Boolean)
 End Sub
 
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
+' ------------------------------------------------------------------------------
+' Prevents a Workbook with an invalid configuration is saved.
+' ------------------------------------------------------------------------------
     If mMe.AssertedServicingEnabled Then
         mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
-        If wsConfig.Verified Then
-            wsConfig.CompManCfgSaveConfig
-        Else
+        If Not wsConfig.Verified Then
             wsConfig.Activate
             Cancel = True
         End If

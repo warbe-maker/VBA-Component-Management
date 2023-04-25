@@ -50,7 +50,6 @@ Private Const DEFAULT_FOLDER_COMPMAN_ROOT       As String = "CompManServiced"
 Private bAllRemoved             As Boolean
 Private bRenewTerminatedByUser  As Boolean
 Private bSucceeded              As Boolean
-Private CompManRoot             As String
 Private dctAddInRefs            As Dictionary
 Private Extension               As String
 Private lRenewStep              As Long
@@ -65,12 +64,11 @@ Public Function AssertedServicingEnabled() As Boolean
 ' ---------------------------------------------------------------------------
 ' When TRUE is returned either the opened Workbook is the Addin instance or
 ' - the Workbook has either been opened the very first time after the very
-'   first download and the default environment has been established - ready
-'   for the Workbook for being re-opened from within it
+'   first download and the default environment has been established
 ' - the Workbook has been opened and the environment conforms with the
 '   current configuration or
 ' - the Workbook has been opened from within an environment which has changed
-'   but still meet all the requirements following is asserted:
+'   but still meets all the requirements following is asserted:
 ' - When the Workbook is the Addin instanceEnsures that the CompMan development instance Workbook is able to function
 ' as the servicing instance. Because the Addin is (in case) saved from a
 ' servicing enabled Workbook it is enabled by default.
@@ -83,17 +81,16 @@ Public Function AssertedServicingEnabled() As Boolean
     BaseName = fso.GetBaseName(ThisWorkbook.Name)
     Extension = fso.GetExtensionName(ThisWorkbook.Name)
     If mMe.IsAddinInstnc Then
-        '~~ Because the Addin is (in case) saved from a servicing enabled Workbook it is enabled by default
-        ServicingEnabled = True
+        ServicingEnabled = True ' for the Addin servicing is enabled by default
     Else
         If Not AssertedOfficeVersion Then GoTo xt
         AssertedWinMerge
         If Not AssertedFilesAndFldrsStructure Then GoTo xt
-        If Not fso.FileExists(mCompManCfg.CompManCfgFileFullName) Then
-            wsConfig.CompManCfgSaveConfig
-        Else
-            wsConfig.CompManCfgRestoreConfig
-        End If
+'        If Not fso.FileExists(mCompManCfg.CompManCfgFileFullName) Then
+'            wsConfig.CompManCfgSaveConfig
+'        Else
+'            wsConfig.CompManCfgRestoreConfig
+'        End If
     End If
     AssertedServicingEnabled = True
     
@@ -124,24 +121,23 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
     Dim lMax                As Long
     Dim sWrkbkOpened        As String
     
-    If mCompManCfg.Exists Then
-        FldrCompManRoot = fso.GetFolder(ThisWorkbook.Path).ParentFolder.Path
+    FldrCompManRoot = fso.GetFolder(ThisWorkbook.Path).ParentFolder.Path
+    FldrAddin = ThisWorkbook.Path & "\" & "Addin"
+    FldrCommonComps = FldrCompManRoot & "\Common-Components"
+    If fso.FolderExists(FldrAddin) _
+    And fso.FolderExists(FldrCommonComps) Then
+        '~~  The existing folders indicate that CompMan's default environment is already set up
         If FldrCompManRoot <> wsConfig.FolderCompManRoot Then
             '~~ When current CompMan root folder is not the configured one it likely has been moved
             '~~ to another location and/or has been renamed. In this case the configuration at the
             '~~ "Config" Worksheet is immediately adjusted accordingly.
-            FldrAddin = ThisWorkbook.Path & "\" & "Addin"
-            FldrCommonComps = fso.GetFolder(FldrCompManRoot).ParentFolder.Path & "\Common-Components"
             '~~ The root folder has been moved and/or renamed
             With wsConfig
                 .FolderCompManRoot = FldrCompManRoot                    ' adjust the root path and
-                mCompManCfg.FolderCompManRoot = FldrCompManRoot         ' save the change to the CompMan.cfg file
                 .FolderAddin = FldrAddin                                ' adjust the Addin path and
-                mCompManCfg.FolderAddin = FldrAddin                     ' save the change to the CompMan.cfg file
                 .FolderCommonComponentsPath = FldrCommonComps           ' adjust the common components folder
                 If .AutoOpenAddinIsSetup Then .AutoOpenAddinSetup       ' re-setup a setup Addin auto-open
                 If .AutoOpenCompManIsSetup Then .AutoOpenCompManSetup   ' re-setup a setup CompMan.xlsb auto-open
-                
             End With
         End If
         
@@ -149,7 +145,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
         '         the configuration restored from the CompMan.cfg file will become invalid.
         '~~ Restore the last saved configuration. This ensures that for a subsequently downloaded
         '~~ CompMan.xlsb Workbook the local configuration is made available again in the wsConfig Worksheet.
-        wsConfig.CompManCfgRestoreConfig
+'        wsConfig.CompManCfgRestoreConfig
         If wsConfig.Verified Then
             '~~ Nothing had been changed while the Workbook was closed
             AssertedFilesAndFldrsStructure = True
@@ -159,7 +155,6 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
             AssertedFilesAndFldrsStructure = False
             wsConfig.Activate
         End If
-        CompManRoot = fso.GetFolder(ThisWorkbook.Path).ParentFolder.Path
     Else
         '~~ When no CompMan.cfg exists the CompMan Workbook has either been downloaded and opened the
         '~~ very first time or at least has been opened for the very first time from this location.
@@ -266,10 +261,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
             
             sWrkbkOpened = ThisWorkbook.FullName
             ThisWorkbook.SaveAs FldrCompManParent & "\" & ThisWorkbook.Name
-            Stop
             mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
-            '~~ CompMan's .cfg-file
-            wsConfig.CompManCfgSaveConfig
             AssertedFilesAndFldrsStructure = True
             Application.EnableEvents = True
             fso.DeleteFile sWrkbkOpened
