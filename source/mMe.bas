@@ -63,15 +63,13 @@ Public BaseName                 As String
 Public Function AssertedServicingEnabled() As Boolean
 ' ---------------------------------------------------------------------------
 ' When TRUE is returned either the opened Workbook is the Addin instance or
-' - the Workbook has either been opened the very first time after the very
-'   first download and the default environment has been established
-' - the Workbook has been opened and the environment conforms with the
-'   current configuration or
-' - the Workbook has been opened from within an environment which has changed
-'   but still meets all the requirements following is asserted:
-' - When the Workbook is the Addin instanceEnsures that the CompMan development instance Workbook is able to function
-' as the servicing instance. Because the Addin is (in case) saved from a
-' servicing enabled Workbook it is enabled by default.
+' this Workbook is ready for servicing, which means:
+' - The required Office version is installed
+' - The required files and folder structure is set up
+' - WinMerge is installed
+' Note: In case the Workbook is opened at a location the required files and
+'       folder structure is not setup, e.g. after download, it will be setup
+'       by the way.
 ' ---------------------------------------------------------------------------
     Const PROC = "AssertedServicingEnabled"
     
@@ -84,13 +82,8 @@ Public Function AssertedServicingEnabled() As Boolean
         ServicingEnabled = True ' for the Addin servicing is enabled by default
     Else
         If Not AssertedOfficeVersion Then GoTo xt
-        AssertedWinMerge
         If Not AssertedFilesAndFldrsStructure Then GoTo xt
-'        If Not fso.FileExists(mCompManCfg.CompManCfgFileFullName) Then
-'            wsConfig.CompManCfgSaveConfig
-'        Else
-'            wsConfig.CompManCfgRestoreConfig
-'        End If
+        If Not AssertedWinMerge Then GoTo xt
     End If
     AssertedServicingEnabled = True
     
@@ -301,8 +294,9 @@ End Function
 
 Private Function AssertedWinMerge() As Boolean
     
-    Dim Msg As mMsg.TypeMsg
-    Dim Title               As String
+    Dim fso     As New FileSystemObject
+    Dim Msg     As mMsg.TypeMsg
+    Dim Title   As String
     
     Title = "WinMerge is not installed!"
     AssertedWinMerge = mCompMan.WinMergeIsInstalled
@@ -320,9 +314,23 @@ Private Function AssertedWinMerge() As Boolean
             .Text = "Download and install the desired language version of WinMerge"
             .OpenWhenClicked = "https://winmerge.org/downloads/"
         End With
+        With Msg.Section(3)
+            With .Label
+                .FontColor = rgbBlack
+                .Text = "Please note:"
+            End With
+            .Text.Text = "When continued without having downloaded and installed WinMerge CompMan will not be " & _
+                         "able to provide any service but re-displays this message when re-opened!"
+        End With
         mMsg.Dsply Title, Msg, vbOKOnly
+    
+        AssertedWinMerge = mCompMan.WinMergeIsInstalled     ' May have been downloaded and installed along with the displayed message
+        If AssertedWinMerge Then
+            If Not fso.FileExists(mWinMergeIni.WinMergeIniFullName) Then
+                mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName ' ensures that the required options are established
+            End If
+        End If
     End If
-    mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName ' ensures that the required options are established
     
 End Function
 

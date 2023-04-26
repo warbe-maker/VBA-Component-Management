@@ -13,7 +13,7 @@ Option Explicit
 ' ===================== throughout all services.
 '
 ' ----------------------------------------------------------------------------
-Private sRenewResult                        As String
+Private sRenewResult As String
 
 Private Property Let AddInStatus(ByVal s As String):                 MaintainMinRowHeight Me.Range("AddInStatus"), s:                        End Property
 
@@ -336,6 +336,7 @@ Public Sub CurrentStatus()
             End If
         Else
             cll.Add "not provided"
+            ButtonAddInRenew.Visible = False
         End If
     Else
         '~~ may have been de-configured
@@ -727,19 +728,33 @@ Public Function Verified() As Boolean
 End Function
 
 Private Sub Worksheet_Activate()
+    Dim b As Boolean
     
     If mMe.IsAddinInstnc Then GoTo xt
     Me.Verified
     With Application
         .ScreenUpdating = False
         .DisplayFormulaBar = False
+        .EnableEvents = False
     End With
     With ActiveWindow
         .DisplayHorizontalScrollBar = False
         .DisplayVerticalScrollBar = False
         .DisplayHeadings = False
     End With
-    Me.Range("celParking").Select ' selects a non visible cell
+    
+    With Me
+        If .ProtectContents Then
+            b = True
+            .Unprotect
+        End If
+        With .Range("celParking")
+            .Locked = False
+            .Select ' selects a non visible cell
+        End With
+        If b Then .Protect
+    End With
+    Application.EnableEvents = True
     
 xt: Exit Sub
 
