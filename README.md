@@ -80,7 +80,6 @@ CompManServiced
   +---CompMan
   |    +--Addin
   |    +--source
-  |    +--CompMan.cfg
   |    +--CompMan.xlsb
   |    +--WinMerge.ini
   | 
