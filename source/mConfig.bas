@@ -44,7 +44,7 @@ Public Property Get ServicedRootFolderNameCurrent() As String:      ServicedRoot
 
 Private Property Get ServicedRootFolderNameDefault() As String:     ServicedRootFolderNameDefault = fso.GetFile(ThisWorkbook.FullName).ParentFolder & "\" & DEFAULT_FOLDER_COMPMAN_ROOT:    End Property
 
-Private Property Get VBCompManAddinFolderNameCurrent() As String:   VBCompManAddinFolderNameCurrent = CompManParentFolderNameCurrent & "\" & "Addin":                                       End Property
+Public Property Get VBCompManAddinFolderNameCurrent() As String:   VBCompManAddinFolderNameCurrent = CompManParentFolderNameCurrent & "\" & "Addin":                                       End Property
 
 Private Property Get VBCompManAddinFolderNameDefault() As String:   VBCompManAddinFolderNameDefault = CompManParentFolderNameDefault & "\" & "Addin":                                       End Property
 
@@ -55,7 +55,6 @@ Public Sub Adjust()
 ' ----------------------------------------------------------------------------
     With wsConfig
         .FolderCompManRoot = ServicedRootFolderNameCurrent          ' adjust the root path and
-        .FolderAddin = VBCompManAddinFolderNameCurrent              ' adjust the Addin path and
         .FolderCommonComponentsPath = CommonCompsFolderNameCurrent  ' adjust the common components folder
         If .AutoOpenAddinIsSetup Then .AutoOpenAddinSetup           ' re-setup a setup Addin auto-open
         If .AutoOpenCompManIsSetup Then .AutoOpenCompManSetup       ' re-setup a setup CompMan.xlsb auto-open
@@ -184,7 +183,7 @@ Public Sub SetupConfirmed()
         With .Section(4).Label
             .FontColor = rgbBlue
             .Text = "See the corresponding README for how to enable a Workbook for being serviced"
-            .OpenWhenClicked = "https://github.com/warbe-maker/Common-VBA-Excel-Component-Management-Services/blob/master/README.md?#enabling-the-services-serviced-or-not-serviced"
+            .OpenWhenClicked = "https://github.com/warbe-maker/VBCompMan/blob/master/README.md?#enabling-the-services-serviced-or-not-serviced"
         End With
     End With
     mMsg.Dsply dsply_title:="Setup of CompMan's default environment completed!" _
@@ -197,7 +196,7 @@ Public Sub DefaultEnvSetup()
 ' ----------------------------------------------------------------------------
 ' Sets up CompMan's default environment of files and folders
 '
-' See: https://github.com/warbe-maker/Common-VBA-Excel-Component-Management-Services/blob/master/README.md?#compmans-default-files-and-folders-environment
+' See: https://github.com/warbe-maker/VBCompMan/blob/master/README.md?#compmans-default-files-and-folders-environment
 ' ----------------------------------------------------------------------------
     Const PROC = "DefaultEnvSetup"
     
@@ -211,7 +210,6 @@ Public Sub DefaultEnvSetup()
     If Not fso.FolderExists(VBCompManAddinFolderNameDefault) Then fso.CreateFolder VBCompManAddinFolderNameDefault
     
     With wsConfig
-        .FolderAddin = VBCompManAddinFolderNameDefault
         .FolderCompManRoot = ServicedRootFolderNameDefault
         .FolderCommonComponentsPath = mConfig.CommonCompsFolderNameDefault
         .FolderSyncArchive = vbNullString

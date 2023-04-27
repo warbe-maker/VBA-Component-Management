@@ -85,9 +85,9 @@ Private Property Let CommonComponentsFolderUrl(ByVal s As String):  UrlLabel(Me.
 
 Public Property Let ConfigInfo(ByVal s As String):                  mWsh.Value(Me, "ConfigInfo") = s:                                       End Property
 
-Private Property Get FolderAddin() As String:                       FolderAddin = mWsh.Value(Me, "FolderAddin"):                            End Property
-
-Public Property Let FolderAddin(ByVal s As String):                 mWsh.Value(Me, "FolderAddin") = s:                                      End Property
+'Private Property Get FolderAddin() As String:                       FolderAddin = mWsh.Value(Me, "FolderAddin"):                            End Property
+'
+'Public Property Let FolderAddin(ByVal s As String):                 mWsh.Value(Me, "FolderAddin") = s:                                      End Property
 
 Private Property Let FolderAddInInfo(ByVal s As String):            MaintainMinRowHeight Me.Range("FolderAddInInfo"), s:                    End Property
 
@@ -305,51 +305,38 @@ Public Sub CurrentStatus()
     If mMe.IsAddinInstnc Then GoTo xt
     
     '~~ CompMan Add-in setup status
-    If mAddin.Folder <> vbNullString Then
-        If fso.FileExists(mAddin.WbkFullName) Then
-            cll.Add "provided"
-            
-            '~~ CompMan Addin Paused status
-            If mAddin.IsOpen Then
-                ButtonPauseAddIn.Visible = True
-                If mAddin.Paused Then
-                    cll.Add "open but currently  p a u s e d !"
-                    ButtonCaption(ButtonPauseAddIn) = "Continue Add-in"
-                Else
-                    ButtonCaption(ButtonPauseAddIn) = "Pause Add-in"
-                End If
+    If fso.FileExists(mAddin.WbkFullName) Then
+        cll.Add "provided"
+        
+        '~~ CompMan Addin Paused status
+        If mAddin.IsOpen Then
+            ButtonPauseAddIn.Visible = True
+            If mAddin.Paused Then
+                cll.Add "open but currently  p a u s e d !"
+                ButtonCaption(ButtonPauseAddIn) = "Continue Add-in"
+            Else
+                ButtonCaption(ButtonPauseAddIn) = "Pause Add-in"
                 cll.Add "open"
-            Else
-                cll.Add "not open"
-                ButtonPauseAddIn.Visible = False
-            End If
-
-            '~~ CompMan Addin AutoOpen status
-            sShortcut = mAddin.AutoOpenShortCut
-            If fso.FileExists(sShortcut) Then
-                '~~ Update the shortcut in case the location of the Add-in Workbook has changed
-                If ShortCutTargetPath(sShortcut) <> mAddin.WbkFullName _
-                Then ShortCutTargetPath(sShortcut) = mAddin.WbkFullName
-                cll.Add "opened when Excel starts"
-            Else
-                cll.Add "auto-open at Excel start not setup"
             End If
         Else
-            cll.Add "not provided"
-            ButtonAddInRenew.Visible = False
+            cll.Add "not open"
+            ButtonPauseAddIn.Visible = False
+        End If
+
+        '~~ CompMan Addin AutoOpen status
+        sShortcut = mAddin.AutoOpenShortCut
+        If fso.FileExists(sShortcut) Then
+            '~~ Update the shortcut in case the location of the Add-in Workbook has changed
+            If ShortCutTargetPath(sShortcut) <> mAddin.WbkFullName _
+            Then ShortCutTargetPath(sShortcut) = mAddin.WbkFullName
+            cll.Add "opened when Excel starts"
+        Else
+            cll.Add "auto-open at Excel start not setup"
         End If
     Else
-        '~~ may have been de-configured
-        If mAddin.FolderOld <> mAddin.Folder Then
-            sAddin = mAddin.FolderOld & "\" & mAddin.WbkName
-            If fso.FileExists(sAddin) Then
-                cll.Add "still set up in former folder"
-            Else
-                cll.Add "not set up"
-            End If
-        End If
+        cll.Add "not provided"
     End If
-        
+    
     sComma = vbNullString
     For i = 1 To cll.Count
         sStatus = sStatus & sComma & cll(i)
@@ -385,64 +372,6 @@ End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = Me.CodeName & "." & sProc
-End Function
-
-Public Function FolderAddInIsValid() As Boolean
-' ----------------------------------------------------------------------------
-' - Returns TRUE when the AddIn folder is configured and valid (i.e. exists)
-' - Sets status and folder info in accordance with the current status.
-' - Considers that the configured folder does not or no longer exist, in case
-'   the Workbook is opened on a different computer for example.
-' ----------------------------------------------------------------------------
-    Const PROC = "FolderAddInIsValid"
-    
-    On Error GoTo eh
-    Dim fso     As New FileSystemObject
-    Dim bValid  As Boolean
-    
-    FolderAddInUrl = mCompMan.README_CONFIG_CHANGES
-    ButtonHelpUrlAddinSetup = "#setup-auto-open-for-the-compman-workbook"
-
-    Select Case True
-        Case mAddin.Folder = vbNullString
-            FolderAddInInfo = "Not configured! A CompMan Add-in instance cannot be setup " & _
-                               "(an available Add-in will have been removed)."
-            bValid = False
-        Case mAddin.Folder <> vbNullString
-            If fso.FolderExists(mAddin.Folder) Then
-                FolderAddInInfo = "Configured folder for the CompMan Add-in, possibly setup/renewed." & vbLf & _
-                                   "Attention: In case a different folder is selected/established the previous folder becomes obsolete but will not be removed!"
-                bValid = True
-                bValid = True
-            Else
-                mAddin.Folder = vbNullString
-                FolderAddInInfo = "Not configured! The former configured folder does not exist and thus had been reset."
-                
-                If mAddin.FolderOld <> vbNullString Then
-                    If Not fso.FolderExists(mAddin.FolderOld) Then mAddin.FolderOld = vbNullString
-                End If
-                
-                bValid = False
-            End If
-        Case mAddin.Folder = vbNullString
-            FolderAddInInfo = "Not configured! " & vbLf & _
-                               "Folder for the CompMan Add-in instance."
-            bValid = False
-    End Select
-    wsConfig.CurrentStatus
-
-    If bValid _
-    Then ButtonSetupRenewAddIn.Visible = True _
-    Else ButtonSetupRenewAddIn.Visible = False
-    
-xt: FolderAddInIsValid = bValid
-    Set fso = Nothing
-    Exit Function
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
 End Function
 
 Public Function FolderCompManRootIsValid() As Boolean
@@ -718,7 +647,6 @@ Public Function Verified() As Boolean
 ' Returns TRUE when all configured folders are valid.
 ' ----------------------------------------------------------------------------
     Verified = FolderCompManRootIsValid _
-           And FolderAddInIsValid _
            And FolderSyncTargetIsValid _
            And FolderSyncArchiveIsValid
     CompManAddInStatusUrl = mCompMan.README_CONFIG_CHANGES
@@ -728,9 +656,12 @@ Public Function Verified() As Boolean
 End Function
 
 Private Sub Worksheet_Activate()
+    Dim fso As New FileSystemObject
     Dim b As Boolean
     
     If mMe.IsAddinInstnc Then GoTo xt
+    
+    CurrentStatus
     Me.Verified
     With Application
         .ScreenUpdating = False
@@ -764,8 +695,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
 
     With Me
         Select Case Target.Address
-            Case .Range("FolderAddInInfo").Address, _
-                 .Range("FolderCompManRootInfo").Address, _
+            Case .Range("FolderCompManRootInfo").Address, _
                  .Range("FolderExportInfo").Address, _
                  .Range("FolderSyncArchiveInfo").Address, _
                  .Range("FolderSyncTargetInfo").Address, _
@@ -778,7 +708,6 @@ Private Sub Worksheet_Change(ByVal Target As Range)
                     Target.Font.ColorIndex = xlAutomatic
                 End If
             Case .Range("FolderCompManRoot").Address:   FolderCompManRootIsValid
-            Case .Range("FolderAddIn").Address:         FolderAddInIsValid
             Case .Range("FolderSyncTarget").Address:    FolderSyncTargetIsValid
             Case .Range("FolderSyncArchive").Address:   FolderSyncArchiveIsValid
         End Select
@@ -786,7 +715,6 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         Select Case Target.Address
             Case .Range("FolderCompManRoot").Address, _
                  .Range("FolderExport").Address, _
-                 .Range("FolderAddin").Address, _
                  .Range("FolderSyncTarget").Address, _
                  .Range("FolderSyncArchive").Address
         End Select

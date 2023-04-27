@@ -16,14 +16,6 @@ Public Property Get AutoOpenShortCut()
     AutoOpenShortCut = Environ$("APPDATA") & "\Microsoft\Excel\XLSTART\CompManAddin.lnk"
 End Property
 
-Public Property Get Folder() As String:                        Folder = mWsh.Value(wsConfig, "FolderAddin"):                    End Property
-
-Public Property Let Folder(ByVal s As String):                 mWsh.Value(wsConfig, "FolderAddin") = s:                         End Property
-
-Public Property Get FolderOld() As String:                     FolderOld = mWsh.Value(wsConfig, "FolderAddinOld"):              End Property
-
-Public Property Let FolderOld(ByVal s As String):               mWsh.Value(wsConfig, "FolderAddinOld") = s:                     End Property
-
 Public Property Get Paused() As Boolean
     If mReg.Exists(PAUSED_REG_KEY, PAUSED_REG_VALUE_NAME) _
     Then Paused = CBool(mReg.Value(PAUSED_REG_KEY, PAUSED_REG_VALUE_NAME)) _
@@ -33,7 +25,7 @@ End Property
 Public Property Let Paused(ByVal b As Boolean):                mReg.Value(PAUSED_REG_KEY, PAUSED_REG_VALUE_NAME) = b:  End Property
 
 Public Property Get WbkFullName() As String
-    WbkFullName = mAddin.Folder & DBSLASH & WbkName
+    WbkFullName = mConfig.VBCompManAddinFolderNameCurrent & DBSLASH & WbkName
 End Property
 
 Public Property Get WbkName() As String
@@ -100,11 +92,13 @@ Public Function IsOpen(Optional ByRef io_wbk As Workbook) As Boolean
     
     On Error GoTo eh
     Dim i As Long
+    Dim s As String
     
+    s = mAddin.WbkName
     For i = 1 To Application.AddIns2.Count
-        If Application.AddIns2(i).Name = mAddin.WbkName Then
+        If Application.AddIns2(i).Name = s Then
             On Error Resume Next
-            Set io_wbk = Application.Workbooks(mAddin.WbkName)
+            Set io_wbk = Application.Workbooks(s)
             IsOpen = Err.Number = 0
             GoTo xt
         End If
@@ -205,7 +199,6 @@ xt: Application.EnableEvents = True
     Exit Function
 
 End Function
-
     
 Public Function WbkRemove(ByVal wr_wbk_full_name As String) As Boolean
     Dim fso As New FileSystemObject

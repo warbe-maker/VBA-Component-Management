@@ -1,8 +1,8 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} fMsg 
    ClientHeight    =   14805
-   ClientLeft      =   147
-   ClientTop       =   392
+   ClientLeft      =   150
+   ClientTop       =   390
    ClientWidth     =   12390
    OleObjectBlob   =   "fMsg.frx":0000
 End
@@ -129,7 +129,7 @@ End Enum
 
 'Needed for GetCursorInfo
 Private Type POINT
-    X As Long
+    x As Long
     Y As Long
 End Type
 
@@ -1602,14 +1602,14 @@ Private Sub laMsgSection6Label_Click():     OpenClickedLabelItem 6: End Sub
 Private Sub laMsgSection7Label_Click():     OpenClickedLabelItem 7: End Sub
 Private Sub laMsgSection8Label_Click():     OpenClickedLabelItem 8: End Sub
 
-Private Sub laMsgSection1Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 1:    End Sub
-Private Sub laMsgSection2Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 2:    End Sub
-Private Sub laMsgSection3Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 3:    End Sub
-Private Sub laMsgSection4Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 4:    End Sub
-Private Sub laMsgSection5Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 5:    End Sub
-Private Sub laMsgSection6Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 6:    End Sub
-Private Sub laMsgSection7Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 7:    End Sub
-Private Sub laMsgSection8Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 8:    End Sub
+Private Sub laMsgSection1Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 1:    End Sub
+Private Sub laMsgSection2Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 2:    End Sub
+Private Sub laMsgSection3Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 3:    End Sub
+Private Sub laMsgSection4Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 4:    End Sub
+Private Sub laMsgSection5Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 5:    End Sub
+Private Sub laMsgSection6Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 6:    End Sub
+Private Sub laMsgSection7Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 7:    End Sub
+Private Sub laMsgSection8Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 8:    End Sub
 
 Private Function Max(ParamArray va() As Variant) As Variant
 ' ----------------------------------------------------------------------------

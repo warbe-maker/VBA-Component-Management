@@ -295,8 +295,7 @@ Private Function Config(Optional ByVal cfg_silent As Boolean = False, _
     On Error GoTo eh
     
     If cfg_addin Then Config = wsConfig.FolderCompManRootIsValid _
-                           And wsConfig.FolderExportIsValid _
-                           And wsConfig.FolderAddInIsValid
+                           And wsConfig.FolderExportIsValid
     
     If cfg_sync Then Config = wsConfig.FolderCompManRootIsValid _
                           And wsConfig.FolderExportIsValid _
