@@ -448,7 +448,7 @@ Friend Property Get KindOfComp() As enKindOfComp
         ElseIf lKindOfComp = mCompMan.enUnknown Then
             lKindOfComp = mCompMan.enInternal
         End If
-'        mService.Log.Entry = Me.TypeString & " (" & KoCStrng(lKindOfComp) & ")"
+'        Srvc.LogEntry = Me.TypeString & " (" & KoCStrng(lKindOfComp) & ")"
     End If
     
 xt: KindOfComp = lKindOfComp

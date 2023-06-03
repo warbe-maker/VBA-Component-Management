@@ -32,6 +32,31 @@ Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSyncRefs." & s
 End Function
 
+Public Function MaxLenRefId(ByVal ml_wbk_source As Workbook, _
+                            ByVal ml_wbk_target As Workbook) As Long
+    Const PROC = "MaxLenRefId"
+    
+    On Error GoTo eh
+    Dim ref     As Reference
+    
+    For Each ref In mSync.source.VBProject.References
+        MaxLenRefId = Max(MaxLenRefId, Len(SyncId(ref)))
+    Next ref
+    For Each ref In mSync.Target.VBProject.References
+        MaxLenRefId = Max(MaxLenRefId, Len(SyncId(ref)))
+    Next ref
+    
+xt: Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+
+
+
 Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
                     ByVal c_wbk_target As Workbook)
 ' ------------------------------------------------------------------------------
@@ -197,7 +222,7 @@ Public Sub AppRunSyncAll()
     With mSync.TargetWorkingCopy.VBProject
         For Each ref In .References
             If Not mRef.Exists(ref, wbkSource) Then
-                mService.Log.ServicedItem = ref
+                Srvc.ServicedItem = ref
                 RefDesc = ref.Description
                 On Error Resume Next
                 .References.Remove ref

@@ -561,7 +561,6 @@ Private Sub OutdatedUpdateCollect()
     Const PROC = "OutdatedUpdateCollect"
     
     On Error GoTo eh
-    Dim dctAll      As Dictionary
     Dim dctOutdated As New Dictionary
     Dim vbc         As VBComponent
     Dim fso         As New FileSystemObject
@@ -574,7 +573,6 @@ Private Sub OutdatedUpdateCollect()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbk = mService.Serviced
-    Set dctAll = mService.AllComps(wbk)
     Set Qoutdated = New clsQ
     Application.StatusBar = vbNullString
     
@@ -588,10 +586,12 @@ Private Sub OutdatedUpdateCollect()
                 .CompName = vbc.Name
                 Set .VBComp = vbc
                 If .KindOfComp = mCompMan.enCommCompUsed Then
+                    Srvc.ServicedItem = vbc
                     lUsed = lUsed + 1
                     If .Outdated Then
                         Qoutdated.EnQueue Comp
                         sOutdated = .CompName
+                        Srvc.Log.Entry Srvc.ServicedItem, "Common Component is outdated"
                     Else
                         If .RevisionNumber <> .Raw.RevisionNumber Then
                             '~~ When not outdated due ti a code difference the revision numbers ought to be equal
@@ -599,6 +599,7 @@ Private Sub OutdatedUpdateCollect()
                             Debug.Print "Revision-Number raw:  = " & .Raw.RevisionNumber
                             .RevisionNumber = .Raw.RevisionNumber
                         End If
+                        Srvc.Log.Entry Srvc.ServicedItem, "Common Component up-to-date"
                     End If ' .Outdated
                 End If ' Used Common Component
             End With

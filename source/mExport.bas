@@ -18,6 +18,8 @@ Option Explicit
 '
 ' ----------------------------------------------------------------------------
 
+Public dctAllComps As Dictionary
+
 Public Sub All()
 ' ----------------------------------------------------------------------------
 '
@@ -109,7 +111,6 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
     On Error GoTo eh
     Dim Comp        As clsComp
     Dim Comps       As New clsComps
-    Dim dctAll      As Dictionary
     Dim fso         As New FileSystemObject
     Dim lAll        As Long
     Dim lExported   As Long
@@ -130,82 +131,79 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
     mCompManDat.Hskpng c_hosted ' remove obsolete sections in CompMan.dat
     
     Set wbk = mService.Serviced
-    Set dctAll = mService.AllComps(wbk)
     
-    With wbk.VBProject
-        lAll = .VBComponents.Count
-        lRemaining = lAll
-        
-        For Each v In dctAll
-            Set vbc = dctAll(v)
-            If Not mService.IsRenamedByCompMan(vbc.Name) Then
-                Set Comp = New clsComp
-                With Comp
-                    Set .Wrkbk = mService.Serviced
-                    .CompName = vbc.Name
-                    mService.Log.ServicedItem = vbc
-                    Set .VBComp = vbc
-                    Select Case .KindOfComp
-                        Case mCompMan.enCommCompHosted
-                            If .Changed Then
-                                mService.Log.Entry = "Hosted Raw Common Component code modified"
-                                .Export
-                                mCompManDat.RawRevisionNumberIncrease v
-                                mCommComps.SaveToCommonComponentsFolder .CompName, .ExpFile, .ExpFileFullName
-                                mCompManDat.RegistrationState(.CompName) = enRegStateHosted
-                                sExported = sExported & vbc.Name & ", "
-                                lExported = lExported + 1
-                                mService.Log.Entry = "Code modified of Hosted Raw Common Component"
-                                mService.Log.Entry = "Exported, Revision Number increased, Export File copied to 'Common Components Folder'"
-                            ElseIf Not mCommComps.SavedExpFileExists(.CompName) Then
-                                mCommComps.SaveToCommonComponentsFolder .CompName, .ExpFile, .ExpFileFullName ' ensure completenes
-                                mService.Log.Entry = "Unchanged Hosted Raw Common Component"
-                                mCompManDat.RegistrationState(.CompName) = enRegStateHosted
-                            End If
-                        Case mCompMan.enCommCompUsed
-                            If .Changed Then
-                                '~~ A warning will be displayed when the modification is about to be reverted
-                                '~~ when the component is updated at Workbook open
-                                .DueModificationWarning = True
-                                .Export
-                                sExported = sExported & vbc.Name & ", "
-                                lExported = lExported + 1
-                                mService.Log.Entry = "Modified Used Common Component exported (due revert allert registered!)"
-                            Else
-                                mService.Log.Entry = "Unchanged Used Common Component"
-                            End If
-                            
-                            If mCompManDat.CommCompUsedIsKnown(vbc.Name) Then
-                            Else
-                            
-                            End If
+    lAll = dctAllComps.Count
+    lRemaining = lAll
+    
+    For Each v In dctAllComps
+        Set vbc = dctAllComps(v)
+        If Not mService.IsRenamedByCompMan(vbc.Name) Then
+            Set Comp = New clsComp
+            With Comp
+                Set .Wrkbk = mService.Serviced
+                .CompName = vbc.Name
+                Srvc.ServicedItem = vbc
+                Set .VBComp = vbc
+                Select Case .KindOfComp
+                    Case mCompMan.enCommCompHosted
+                        If .Changed Then
+                            Srvc.LogEntry = "Hosted Raw Common Component code modified"
+                            .Export
+                            mCompManDat.RawRevisionNumberIncrease v
+                            mCommComps.SaveToCommonComponentsFolder .CompName, .ExpFile, .ExpFileFullName
+                            mCompManDat.RegistrationState(.CompName) = enRegStateHosted
+                            sExported = sExported & vbc.Name & ", "
+                            lExported = lExported + 1
+                            Srvc.LogEntry = "Code modified of Hosted Raw Common Component"
+                            Srvc.LogEntry = "Exported, Revision Number increased, Export File copied to 'Common Components Folder'"
+                        ElseIf Not mCommComps.SavedExpFileExists(.CompName) Then
+                            mCommComps.SaveToCommonComponentsFolder .CompName, .ExpFile, .ExpFileFullName ' ensure completenes
+                            Srvc.LogEntry = "Unchanged Hosted Raw Common Component"
+                            mCompManDat.RegistrationState(.CompName) = enRegStateHosted
+                        End If
+                    Case mCompMan.enCommCompUsed
+                        If .Changed Then
+                            '~~ A warning will be displayed when the modification is about to be reverted
+                            '~~ when the component is updated at Workbook open
+                            .DueModificationWarning = True
+                            .Export
+                            sExported = sExported & vbc.Name & ", "
+                            lExported = lExported + 1
+                            Srvc.LogEntry = "Modified Used Common Component exported (due revert allert registered!)"
+                        Else
+                            Srvc.LogEntry = "Unchanged used Common Component"
+                        End If
                         
-                        Case Else
-                            If .Changed Then
-                                .Export
-                                sExported = sExported & vbc.Name & ", "
-                                lExported = lExported + 1
-                                mService.Log.Entry = "Modified code exported"
-                            Else
-                               mService.Log.Entry = "Unchanged component"
-                            End If
-                    End Select
-                End With
-                Set Comp = Nothing
-            
-            
-            End If
-            lRemaining = lRemaining - 1
-            mService.DsplyStatus _
-            mService.Progress(p_result:=lExported _
-                            , p_of:=lAll _
-                            , p_op:="exported" _
-                            , p_comps:=sExported _
-                            , p_dots:=lRemaining _
-                             )
-            Set Comps = Nothing
-        Next v
-    End With
+                        If mCompManDat.CommCompUsedIsKnown(vbc.Name) Then
+                        Else
+                        
+                        End If
+                    
+                    Case Else
+                        If .Changed Then
+                            .Export
+                            sExported = sExported & vbc.Name & ", "
+                            lExported = lExported + 1
+                            Srvc.LogEntry = "Modified code exported"
+                        Else
+                           Srvc.LogEntry = "Unchanged local component"
+                        End If
+                End Select
+            End With
+            Set Comp = Nothing
+        
+        
+        End If
+        lRemaining = lRemaining - 1
+        mService.DsplyStatus _
+        mService.Progress(p_result:=lExported _
+                        , p_of:=lAll _
+                        , p_op:="exported" _
+                        , p_comps:=sExported _
+                        , p_dots:=lRemaining _
+                         )
+        Set Comps = Nothing
+    Next v
 
     mService.DsplyStatus _
     mService.Progress(p_result:=lExported _
@@ -266,7 +264,7 @@ Private Sub Hskpng()
                     If Not mComp.Exists(.GetBaseName(fl), mService.Serviced) Then
                         sExpFileName = .GetFileName(fl.Path)
                         .DeleteFile fl
-                        mService.Log.Entry = "Obsolete Export-File '" & sExpFileName & "' deleted (VBComponent no longer exists)"
+                        Srvc.LogEntry = "Obsolete Export-File '" & sExpFileName & "' deleted (VBComponent no longer exists)"
                     End If
             End Select
         Next fl

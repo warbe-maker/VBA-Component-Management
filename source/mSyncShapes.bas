@@ -144,7 +144,7 @@ End Sub
 '                For Each shpSource In wshSource.Shapes
 '                    If IsNew(shpSource, wshTarget) Then
 '                        '~~ Synchronize new Shapes
-'                        mService.Log.ServicedItem = shpSource
+'                        Srvc.ServicedItem = shpSource
 '                        CopyShapeToTarget shpSource, wshTarget
 '                    End If
 '                    '~~ Synchronize the properties which have changed of all Shapes
@@ -319,7 +319,7 @@ Private Sub AppRunObsolete()
     
     For i = LBound(v) To UBound(v)
         Set shpTarget = GetShape(v(i), wbkTarget, wshTarget)
-        mService.Log.ServicedItem = shpTarget
+        Srvc.ServicedItem = shpTarget
         shpTarget.Delete
         If Err.Number = 0 Then
             If RunRemoveAsserted(shpTarget.Name, wshTarget) Then
@@ -479,19 +479,19 @@ End Function
 '                mSync.MonitorStep "Collecting Sheet Shapes " & wsh.Name & sPrgrss
 '                With shp
 '                    If InStr(.Name, " ") Then
-'                        mService.Log.ServicedItem = shp
-'                        mService.Log.Entry = "Will not be synchronized (shape does not have a user specified name)!"
+'                        Srvc.ServicedItem = shp
+'                        Srvc.LogEntry = "Will not be synchronized (shape does not have a user specified name)!"
 '                        Debug.Print "shp.Name: " & SyncId(shp) & " (not synchronized)"
 '                        GoTo ns1  ' Comments are not synced as shapes
 '                    ElseIf .Type = msoComment Then
-'                        mService.Log.ServicedItem = shp
-'                        mService.Log.Entry = "Type of Shape intentionally not synchronized!"
+'                        Srvc.ServicedItem = shp
+'                        Srvc.LogEntry = "Type of Shape intentionally not synchronized!"
 '                        Debug.Print "shp.Name: " & SyncId(shp) & " (not synchronized by intention)"
 '                        GoTo ns1  ' next shape
 '                    End If
 '                    ShapeId = SyncId(shp)
 '                    If Not dctShapes.Exists(ShapeId) Then
-'                        mService.Log.ServicedItem = shp
+'                        Srvc.ServicedItem = shp
 '                        mDct.DctAdd dctShapes, ShapeId, shp, order_bykey, seq_ascending
 ''                        mSyncShapePrprtys.PropertiesWriteable shp, dctPrprtys
 '                    End If

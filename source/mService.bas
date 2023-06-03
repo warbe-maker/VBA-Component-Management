@@ -27,24 +27,15 @@ Public DialogLeft           As Long
 Public DialogTop            As Long
 
 Private wbkServiced         As Workbook
-Private cLog                As clsLog
+Public Srvc                 As clsSrvc
+Public MaxLenServicedItem   As Long
+Public MaxLenServicedType   As Long
 
 Public Sub Terminate()
-    Set cLog = Nothing
+    Set Srvc = Nothing
 End Sub
 
 Public Property Get NonBreakingSpace() As String:  NonBreakingSpace = Chr$(160):   End Property
-
-Public Property Get Log() As clsLog
-' ------------------------------------------------------------------------------------
-' Provides a Log class object with a log file - created when not existing
-' ------------------------------------------------------------------------------------
-    If cLog Is Nothing Then
-        Set cLog = New clsLog
-        cLog.FileFullName = wsService.CurrentServiceLogFileFullName
-    End If
-    Set Log = cLog
-End Property
 
 Public Property Get Serviced() As Workbook
     Const PROC = "Serviced/Get"
@@ -70,7 +61,7 @@ Public Property Let Serviced(ByVal ws_wbk As Workbook)
     Const PROC = "Serviced/Let"
     Set wbkServiced = ws_wbk
     wsService.CurrentServicedWorkbookFullName = wbkServiced.FullName
-    Debug.Print ThisWorkbook.Name & "." & ErrSrc(PROC) & ": '" & ws_wbk.Name & "' registered as serviced Workbook"
+'    Debug.Print ThisWorkbook.Name & "." & ErrSrc(PROC) & ": '" & ws_wbk.Name & "' registered as serviced Workbook"
 
 End Property
 
@@ -229,12 +220,15 @@ Public Function AllComps(ByVal ac_wbk As Workbook) As Dictionary
 ' Returns a Dictionary with all VBComponents in ascending order thereby
 ' calculating the max lengths for vthe log entries.
 ' ---------------------------------------------------------------------------
+    Const PROC = "AllComps"
+    
+    On Error GoTo eh
     Dim vbc     As VBComponent
     Dim lDone   As Long
         
     Set AllComps = New Dictionary
     For Each vbc In ac_wbk.VBProject.VBComponents
-        mService.Log.ServicedItem = vbc
+        Srvc.ServicedItem(MaxLenServicedItem, MaxLenServicedType) = vbc
         AddAscByKey AllComps, vbc.Name, vbc
         lDone = lDone + 1
         mService.DsplyStatus _
@@ -243,6 +237,12 @@ Public Function AllComps(ByVal ac_wbk As Workbook) As Dictionary
                          )
     Next vbc
 
+xt: Exit Function
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
@@ -297,7 +297,7 @@ Public Function Denied(ByVal d_service As String) As Boolean
     End Select
     
     If sStatus <> vbNullString Then
-        mService.Log.Entry = sStatus
+        Srvc.LogEntry = sStatus
         mService.DsplyStatus sStatus
         Denied = True
     End If
@@ -320,14 +320,14 @@ Public Function CurrentServiceStatusBar() As String
     Then CurrentServiceStatusBar = CurrentServiceStatusBar & "Add-in" _
     Else CurrentServiceStatusBar = CurrentServiceStatusBar & ThisWorkbook.Name
     
-    CurrentServiceStatusBar = CurrentServiceStatusBar & ") for " & mService.Serviced.Name & ": "
+    CurrentServiceStatusBar = CurrentServiceStatusBar & ") for " & mService.Serviced.Name
 
 End Function
 
 Public Sub DsplyStatus(ByVal ds_s As String)
     Dim s As String
     
-    s = Trim(CurrentServiceStatusBar & ds_s)
+    s = Trim(CurrentServiceStatusBar & ": " & ds_s)
     If Len(s) > 255 Then s = Left(s, 250) & " ..."
 
     With Application
@@ -521,6 +521,17 @@ Public Function ExpFilesDiffDisplay( _
                  , source:=ErrSrc(PROC) _
                  , Description:="The file """ & fd_exp_file_right_full_name & """ does not exist!"
         
+    '~~ Guarantee an ini-File which meets CompMan's specifics
+    With fso
+        If mMe.IsAddinInstnc Then
+            If .FileExists(mWinMergeIni.WinMergeIniAddinFullName) Then .DeleteFile (mWinMergeIni.WinMergeIniAddinFullName)
+            mWinMergeIni.Setup mWinMergeIni.WinMergeIniAddinFullName
+        Else
+            If .FileExists(mWinMergeIni.WinMergeIniFullName) Then .DeleteFile (mWinMergeIni.WinMergeIniFullName)
+            mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
+        End If
+    End With
+    
     '~~ Prepare command line
     sCommand = "WinMergeU " & _
                """" & fd_exp_file_left_full_name & """" & " " & _
@@ -723,9 +734,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub Initiate(ByVal ini_service As String, _
-                    ByVal ini_serviced_wbk As Workbook, _
-           Optional ByRef ini_ini As Boolean = True)
+Public Sub Initiate(ByVal i_service As String, _
+                    ByVal i_serviced_wbk As Workbook, _
+           Optional ByRef i_ini As Boolean = True)
 ' ------------------------------------------------------------------------------
 ' Provides the initiation for all (regular) services.
 '
@@ -737,24 +748,27 @@ Public Sub Initiate(ByVal ini_service As String, _
     
     mBasic.BoP ErrSrc(PROC)
     wsService.ClearDataAllServices
-    mService.Serviced = ini_serviced_wbk
-    wsService.CurrentServiceLogFileFullName = ini_serviced_wbk.Path & "\" & LOG_FILE_NAME
-    Set cLog = New clsLog
-    wsService.CurrentServiceLogFileFullName = Log.FileFullName
+    mService.Serviced = i_serviced_wbk
+    Set Srvc = New clsSrvc
+    wsService.CurrentServiceLogFileFullName = Srvc.FileFullName
     
-    Select Case ini_service
+    Select Case i_service
         Case mCompManClient.SRVC_EXPORT_ALL:        wsService.CurrentServiceName = SRVC_EXPORT_ALL_DSPLY
         Case mCompManClient.SRVC_EXPORT_CHANGED:    wsService.CurrentServiceName = SRVC_EXPORT_CHANGED_DSPLY
         Case mCompManClient.SRVC_SYNCHRONIZE:       wsService.CurrentServiceName = SRVC_SYNCHRONIZE_DSPLY
                                                     wsService.ClearDataSynchService
                                                     wsSyncLog.Clear
-                                                    If ini_ini Then mSync.Initialize
+                                                    If i_ini Then mSync.Initialize
 
         Case mCompManClient.SRVC_UPDATE_OUTDATED:   wsService.CurrentServiceName = SRVC_UPDATE_OUTDATED_DSPLY
                                                     wsService.ClearDataUpdateService
     End Select
     
-    mService.Log.Service(new_log:=True) = wsService.CurrentServiceName
+    Set dctAllComps = mService.AllComps(i_serviced_wbk)
+    Srvc.Log.Title mService.CurrentServiceStatusBar
+    Srvc.Log.MaxItemLengths mService.MaxLenServicedType, mService.MaxLenServicedItem
+    Srvc.Log.AlignmentItems "|L|L.:|L|"
+
     mService.DsplyStatus vbNullString
 
 xt: mBasic.EoP ErrSrc(PROC)
@@ -785,7 +799,7 @@ Public Sub EstablishExecTraceFile(ByVal etl_wbk_serviced As Workbook, _
             End If
         End If
     End With
-    mTrc.LogFile(tl_append:=etl_append) = sFile
+    mTrc.LogFileFullName(tl_append:=etl_append) = sFile
 #End If
 End Sub
 

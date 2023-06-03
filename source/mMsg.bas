@@ -620,7 +620,7 @@ Public Function Dsply(ByVal dsply_title As String, _
     
     With MsgForm
         .ReplyWithIndex = dsply_button_reply_with_index
-        '~~ Use dimensions when explicitely specified
+        '~~ Use dimensions when explicitly specified
         If dsply_height_max > 0 Then .MsgHeightMax = dsply_height_max   ' percentage of screen height
         If dsply_width_max > 0 Then .MsgWidthMax = dsply_width_max      ' percentage of screen width
         If dsply_width_min > 0 Then .MsgWidthMin = dsply_width_min      ' defaults to 300 pt. the absolute minimum is 200 pt

@@ -129,7 +129,7 @@ End Enum
 
 'Needed for GetCursorInfo
 Private Type POINT
-    x As Long
+    X As Long
     Y As Long
 End Type
 
@@ -1602,14 +1602,14 @@ Private Sub laMsgSection6Label_Click():     OpenClickedLabelItem 6: End Sub
 Private Sub laMsgSection7Label_Click():     OpenClickedLabelItem 7: End Sub
 Private Sub laMsgSection8Label_Click():     OpenClickedLabelItem 8: End Sub
 
-Private Sub laMsgSection1Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 1:    End Sub
-Private Sub laMsgSection2Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 2:    End Sub
-Private Sub laMsgSection3Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 3:    End Sub
-Private Sub laMsgSection4Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 4:    End Sub
-Private Sub laMsgSection5Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 5:    End Sub
-Private Sub laMsgSection6Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 6:    End Sub
-Private Sub laMsgSection7Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 7:    End Sub
-Private Sub laMsgSection8Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 8:    End Sub
+Private Sub laMsgSection1Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 1:    End Sub
+Private Sub laMsgSection2Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 2:    End Sub
+Private Sub laMsgSection3Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 3:    End Sub
+Private Sub laMsgSection4Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 4:    End Sub
+Private Sub laMsgSection5Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 5:    End Sub
+Private Sub laMsgSection6Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 6:    End Sub
+Private Sub laMsgSection7Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 7:    End Sub
+Private Sub laMsgSection8Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 8:    End Sub
 
 Private Function Max(ParamArray va() As Variant) As Variant
 ' ----------------------------------------------------------------------------
@@ -3017,7 +3017,7 @@ Private Sub SetupMsgSectMonoSpaced(Optional ByVal msg_append As Boolean = False,
                                    Optional ByVal msg_append_margin As String = vbNullString, _
                                    Optional ByVal msg_text As String = vbNullString)
 ' ------------------------------------------------------------------------------
-' Setup the current monospaced message section. When a text is explicitely
+' Setup the current monospaced message section. When a text is explicitly
 ' provided (msg_text) the section is setup with this one, else with the MsgText
 ' content. When an explicit text is provided the text either replaces the text,
 ' which the default or the text is appended when (msg_append = True).
@@ -3088,7 +3088,7 @@ Private Sub SetupMsgSectPropSpaced(Optional ByVal msg_append As Boolean = False,
                                    Optional ByVal msg_append_marging As String = vbNullString, _
                                    Optional ByVal msg_text As String = vbNullString)
 ' ------------------------------------------------------------------------------
-' Setup the current proportional spaced section. When a text is explicitely
+' Setup the current proportional spaced section. When a text is explicitly
 ' provided (msg_text) the section is setup with this one, else with the property
 ' MsgText content. When an explicit text is provided the text either replaces
 ' the text, which the default or the text is appended when (msg_appen = True).

@@ -302,7 +302,7 @@ Private Sub AppRunObsolete()
     For i = LBound(va) To UBound(va)
         GetSheet wbkTarget, va(i), wsh
         If Not wsh Is Nothing Then
-            mService.Log.ServicedItem = wsh
+            Srvc.ServicedItem = wsh
             Delete wsh
             wsSyncLog.Done "obsolete", "Worksheet", va(i), "removed", "Obsolete! Removed from Sync-Target-Workbook (working copy)"
         Else
@@ -355,17 +355,17 @@ Private Sub ClearLinksToSource(ByVal cls_wsh_source As Worksheet, _
     aLinks = mSync.TargetWorkingCopy.LinkSources(xlExcelLinks)
     If mBasic.ArrayIsAllocated(aLinks) Then
         For Each v In aLinks
-            mService.Log.ServicedItem = cls_wsh_target
+            Srvc.ServicedItem = cls_wsh_target
             mSync.TargetWorkingCopy.BreakLink v, xlLinkTypeExcelLinks
             DoEvents
-            mService.Log.Entry = "(Back)Link to '" & Split(v, "\")(UBound(Split(v, "\"))) & "' cleared"
+            Srvc.LogEntry = "(Back)Link to '" & Split(v, "\")(UBound(Split(v, "\"))) & "' cleared"
         Next v
     End If
         
     '~~ Clear Link to source Workbook in Range-Names
     For Each nme In mSync.TargetWorkingCopy.Names
         If InStr(nme.RefersTo, mSync.source.Name) <> 0 Then
-            mService.Log.ServicedItem = cls_wsh_target
+            Srvc.ServicedItem = cls_wsh_target
             sRefersTo = nme.RefersTo
             If InStr(nme.RefersTo, "[" & mSync.source.Name & "]") <> 0 Then
                 If InStr(nme.RefersTo, "]" & cls_wsh_source.Name & "!") <> 0 Then
@@ -375,7 +375,7 @@ Private Sub ClearLinksToSource(ByVal cls_wsh_source As Worksheet, _
                     nme.Delete
                 Else
                     nme.RefersTo = Replace(nme.RefersTo, "[" & mSync.source.Name & "]", vbNullString)
-                    mService.Log.Entry = "Referring back to source removed (RefersTo '" & sRefersTo & "' changed to '" & nme.RefersTo & "')"
+                    Srvc.LogEntry = "Referring back to source removed (RefersTo '" & sRefersTo & "' changed to '" & nme.RefersTo & "')"
                 End If
             End If
         End If
@@ -383,15 +383,15 @@ Private Sub ClearLinksToSource(ByVal cls_wsh_source As Worksheet, _
     
     '~~ Clear Link to source in any shapes OnAction property
     For Each wsh In mSync.TargetWorkingCopy.Sheets
-        mService.Log.ServicedItem = wsh
+        Srvc.ServicedItem = wsh
         For Each shp In wsh.Shapes
             On Error Resume Next
             sOnAction = shp.OnAction
             If Err.Number = 0 Then ' shape has an OnAction property
                 If InStr(sOnAction, mSync.source.Name) <> 0 Then
-                    mService.Log.ServicedItem = wsh
+                    Srvc.ServicedItem = wsh
                     shp.OnAction = Replace(sOnAction, mSync.source.Name, mSync.TargetWorkingCopy.Name)
-                    mService.Log.Entry = "Back-Link to source removed (OnAction changed from '" & sOnAction & "' to '" & shp.OnAction & "'"
+                    Srvc.LogEntry = "Back-Link to source removed (OnAction changed from '" & sOnAction & "' to '" & shp.OnAction & "'"
                 End If
             End If
         Next shp
@@ -1038,8 +1038,8 @@ Private Sub SyncOrder(ByVal so_wbk_source As Workbook, _
                     End If
                 Next wshTarget
             End With
-            mService.Log.ServicedItem = wshTarget
-            mService.Log.Entry = "Order in sync!"
+            Srvc.ServicedItem = wshTarget
+            Srvc.LogEntry = "Order in sync!"
         Next i
     End With
     Application.ScreenUpdating = True

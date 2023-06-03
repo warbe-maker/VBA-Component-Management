@@ -94,8 +94,8 @@ Public Sub Done(ByVal d_prefix As String, _
     End With
     
 '    '~~ Write to log file
-'    If Not d_log_item Is Nothing Then mService.Log.ServicedItem = d_log_item
-'    mService.Log.Entry = d_details
+'    If Not d_log_item Is Nothing Then Srvc.ServicedItem = d_log_item
+'    Srvc.LogEntry = d_details
     mBasic.EoP ErrSrc(PROC)
     
 End Sub
