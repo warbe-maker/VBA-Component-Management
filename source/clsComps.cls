@@ -9,9 +9,13 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private dctChanged  As Dictionary
+Private dctChanged          As Dictionary
+Private dctAll              As Dictionary
+Private lMaxLenServicedItem As Long
+Private lMaxLenServicedType As Long
 
 Private Sub Class_Initialize()
+    CollectAll
     Set dctChanged = New Dictionary
 End Sub
 
@@ -19,30 +23,41 @@ Private Sub Class_Terminate()
     Set dctChanged = Nothing
 End Sub
 
-Private Function All(Optional ByRef a_stats As clsStats = Nothing) As Dictionary
+Public Property Get All() As Dictionary:            Set All = dctAll:                           End Property
+
+Public Property Get MaxLenServicedItem() As Long:   MaxLenServicedItem = lMaxLenServicedItem:   End Property
+
+Public Property Get MaxLenServicedType() As Long:   MaxLenServicedType = lMaxLenServicedType:   End Property
+
+Public Function CollectAll(Optional ByRef c_stats As clsStats = Nothing, _
+                           Optional ByVal c_wbk As Workbook = Nothing) As Dictionary
 ' ----------------------------------------------------------------------------
 ' Returns a Dictionary with all VBComponent objects as key and the
 ' corresponding clsComp objects as item.
 ' Note: The mDct.DctAdd service orders the items ascending by key (possible
 '       because the key object has a Name property.
 ' ----------------------------------------------------------------------------
-    Dim wbk     As Workbook
     Dim vbc     As VBComponent
     Dim Comp    As clsComp
     
-    Set wbk = mService.Serviced
-    With wbk.VBProject
+    If c_wbk Is Nothing Then Set c_wbk = ActiveWorkbook
+    Set dctAll = New Dictionary
+    
+    With c_wbk.VBProject
         For Each vbc In .VBComponents
-            If Not a_stats Is Nothing Then a_stats.Count mCompMan.sic_comps
+            If Not c_stats Is Nothing Then c_stats.Count mCompMan.sic_comps
             Set Comp = New clsComp
             With Comp
-                Set .Wrkbk = wbk
+                Set .Wrkbk = c_wbk
                 .CompName = vbc.Name
                 Set .VBComp = vbc
+                lMaxLenServicedItem = Max(lMaxLenServicedItem, Len(.CompName))
+                lMaxLenServicedType = Max(lMaxLenServicedType, Len(.TypeString))
             End With
-            mDct.DctAdd add_dct:=All, add_key:=vbc, add_item:=Comp, add_order:=order_bykey
+            dctAll.Add vbc.Name, Comp
         Next vbc
     End With
+    mDct.KeySort dctAll
     
 End Function
 
@@ -57,7 +72,7 @@ Private Function Changed(Optional ByRef c_stats As clsStats = Nothing) As Dictio
     Dim v       As Variant
     Dim dct     As Dictionary
     
-    Set dct = All(c_stats)
+    Set dct = dctAll(c_stats)
     For Each v In dct
         Set Comp = dct(v)
         If Not Comp.Changed Then
@@ -86,7 +101,7 @@ Private Function Outdated(Optional ByRef o_stats As clsStats = Nothing) As Dicti
     Dim dct     As Dictionary
     Dim v       As Variant
     
-    Set dct = All
+    Set dct = dctAll
     For Each v In dct
         Set Comp = dct(v)
         With Comp

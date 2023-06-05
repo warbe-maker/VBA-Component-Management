@@ -586,12 +586,12 @@ Private Sub OutdatedUpdateCollect()
                 .CompName = vbc.Name
                 Set .VBComp = vbc
                 If .KindOfComp = mCompMan.enCommCompUsed Then
-                    Srvc.ServicedItem = vbc
+                    mService.ServicedItem = vbc
                     lUsed = lUsed + 1
                     If .Outdated Then
                         Qoutdated.EnQueue Comp
                         sOutdated = .CompName
-                        Srvc.Log.Entry Srvc.ServicedItem, "Common Component is outdated"
+                        Log.Entry mService.ServicedItemType, mService.ServicedItemName, "Common Component is outdated"
                     Else
                         If .RevisionNumber <> .Raw.RevisionNumber Then
                             '~~ When not outdated due ti a code difference the revision numbers ought to be equal
@@ -599,7 +599,7 @@ Private Sub OutdatedUpdateCollect()
                             Debug.Print "Revision-Number raw:  = " & .Raw.RevisionNumber
                             .RevisionNumber = .Raw.RevisionNumber
                         End If
-                        Srvc.Log.Entry Srvc.ServicedItem, "Common Component up-to-date"
+                        Log.Entry mService.ServicedItemType, mService.ServicedItemName, "Common Component up-to-date"
                     End If ' .Outdated
                 End If ' Used Common Component
             End With

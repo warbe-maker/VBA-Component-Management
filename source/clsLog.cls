@@ -84,9 +84,6 @@ Private sFileFullName       As String
 Private sFileName           As String
 Private sHeaderLine         As String
 Private sPath               As String
-Private sServicedItem       As String
-Private sServicedItemName   As String
-Private sServicedItemType   As String
 Private sTitleFill          As String
 
 #If Not MsgComp = 1 Then

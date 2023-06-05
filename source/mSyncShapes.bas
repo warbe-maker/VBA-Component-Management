@@ -319,7 +319,7 @@ Private Sub AppRunObsolete()
     
     For i = LBound(v) To UBound(v)
         Set shpTarget = GetShape(v(i), wbkTarget, wshTarget)
-        Srvc.ServicedItem = shpTarget
+        mService.ServicedItem = shpTarget
         shpTarget.Delete
         If Err.Number = 0 Then
             If RunRemoveAsserted(shpTarget.Name, wshTarget) Then
@@ -441,7 +441,7 @@ Public Function Collected(ByVal c_action As enSyncAction) As Long
         Case c_action = enSyncActionAddNew:         Collected = dctKnownNew.Count
     End Select
 End Function
-
+    
 Private Function GetShapesCount(ByVal c_wbk As Workbook) As Long
     Dim wsh As Worksheet
     For Each wsh In c_wbk.Worksheets

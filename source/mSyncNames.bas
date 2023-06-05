@@ -325,9 +325,9 @@ Private Sub AppRunMultiple()
     
     For i = LBound(va) To UBound(va)
         If Exists(va(i), wbkTarget, nme) Then
-            Srvc.ServicedItem = nme
+            mService.ServicedItem = nme
             nme.Delete
-            Srvc.LogEntry = "Obsolete! Multiple Name removed from Sync-Target-Workbook (working copy)"
+            Log.Entry mService.ServicedItemType, mService.ServicedItemName, "Obsolete! Multiple Name removed from Sync-Target-Workbook (working copy)"
             wsSyncLog.Done "multiple", "Name", va(i), "obsolete ambiguity removed"
         End If
         mService.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleRemove, i + 1)
@@ -415,7 +415,7 @@ Private Sub AppRunNew()
         GetName va(i), wbkSource, nme
         If nme Is Nothing _
         Then Err.Raise AppErr(1), ErrSrc(PROC), "A Name identified '" & va(i) & "' does not exist in Workbook '" & wbkSource.Name & "'!"
-        Srvc.ServicedItem = nme
+        mService.ServicedItem = nme
         
         sName = mNme.MereName(nme)
         sSheetName = Replace(Split(nme.RefersTo, "!")(0), "=", vbNullString)
@@ -480,7 +480,7 @@ Private Sub AppRunObsolete()
     For i = LBound(va) To UBound(va)
         GetName va(i), wbkTarget, nme
         If Not nme Is Nothing Then
-            Srvc.ServicedItem = nme
+            mService.ServicedItem = nme
             nme.Delete
             wsSyncLog.Done "obsolete", "Name", va(i), "removed", "Obsolete! Removed from Sync-Target-Workbook (working copy)"
         Else

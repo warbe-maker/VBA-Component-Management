@@ -92,10 +92,6 @@ Public Sub Done(ByVal d_prefix As String, _
         .Offset(0, 2).Value = d_action
         .Offset(0, 3).Value = d_details
     End With
-    
-'    '~~ Write to log file
-'    If Not d_log_item Is Nothing Then Srvc.ServicedItem = d_log_item
-'    Srvc.LogEntry = d_details
     mBasic.EoP ErrSrc(PROC)
     
 End Sub

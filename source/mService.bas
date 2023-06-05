@@ -27,12 +27,14 @@ Public DialogLeft           As Long
 Public DialogTop            As Long
 
 Private wbkServiced         As Workbook
-Public Srvc                 As clsSrvc
-Public MaxLenServicedItem   As Long
-Public MaxLenServicedType   As Long
+Private sServicedItem       As String
+Private sServicedItemName   As String
+Private sServicedItemType   As String
 
 Public Sub Terminate()
     Set Srvc = Nothing
+    Set Log = Nothing
+    Set Comps = Nothing
 End Sub
 
 Public Property Get NonBreakingSpace() As String:  NonBreakingSpace = Chr$(160):   End Property
@@ -215,35 +217,35 @@ Private Function AddAscByKeyValue(ByVal add_key As Variant) As Variant
     End If
 End Function
 
-Public Function AllComps(ByVal ac_wbk As Workbook) As Dictionary
-' ---------------------------------------------------------------------------
-' Returns a Dictionary with all VBComponents in ascending order thereby
-' calculating the max lengths for vthe log entries.
-' ---------------------------------------------------------------------------
-    Const PROC = "AllComps"
-    
-    On Error GoTo eh
-    Dim vbc     As VBComponent
-    Dim lDone   As Long
-        
-    Set AllComps = New Dictionary
-    For Each vbc In ac_wbk.VBProject.VBComponents
-        Srvc.ServicedItem(MaxLenServicedItem, MaxLenServicedType) = vbc
-        AddAscByKey AllComps, vbc.Name, vbc
-        lDone = lDone + 1
-        mService.DsplyStatus _
-        mService.Progress(p_of:=lDone _
-                        , p_dots:=lDone _
-                         )
-    Next vbc
-
-xt: Exit Function
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
+'Public Function AllComps(ByVal ac_wbk As Workbook) As Dictionary
+'' ---------------------------------------------------------------------------
+'' Returns a Dictionary with all VBComponents in ascending order thereby
+'' calculating the max lengths for vthe log entries.
+'' ---------------------------------------------------------------------------
+'    Const PROC = "AllComps"
+'
+'    On Error GoTo eh
+'    Dim vbc     As VBComponent
+'    Dim lDone   As Long
+'
+'    Set AllComps = New Dictionary
+'    For Each vbc In ac_wbk.VBProject.VBComponents
+'        Srvc.ServicedItem(MaxLenServicedItem, MaxLenServicedType) = vbc
+'        AddAscByKey AllComps, vbc.Name, vbc
+'        lDone = lDone + 1
+'        mService.DsplyStatus _
+'        mService.Progress(p_of:=lDone _
+'                        , p_dots:=lDone _
+'                         )
+'    Next vbc
+'
+'xt: Exit Function
+'
+'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+'        Case vbResume:  Stop: Resume
+'        Case Else:      GoTo xt
+'    End Select
+'End Function
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -297,7 +299,7 @@ Public Function Denied(ByVal d_service As String) As Boolean
     End Select
     
     If sStatus <> vbNullString Then
-        Srvc.LogEntry = sStatus
+        Log.Entry sStatus
         mService.DsplyStatus sStatus
         Denied = True
     End If
@@ -734,6 +736,76 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
+Public Property Get ServicedItemType() As String:   ServicedItemType = sServicedItemType: End Property
+Public Property Get ServicedItemName() As String:   ServicedItemName = sServicedItemName: End Property
+
+Public Property Let ServicedItem(Optional ByRef s_max_len_name As Long, _
+                                 Optional ByRef s_max_len_type As Long, _
+                                 Optional ByVal s_type As String, _
+                                          ByVal v As Variant)
+' -----------------------------------------------------------------------------------
+' Determines the serviced item's type and name string for logging and computes the
+' maximum length for both.
+' -----------------------------------------------------------------------------------
+    Const PROC = "ServicedItem-Let"
+
+    On Error GoTo eh
+    Dim vbc As VBComponent
+    Dim nme  As Name
+    Dim wsh  As Worksheet
+    Dim ref As Reference
+    Dim shp As Shape
+    Dim tbt As ToggleButton
+    Dim tbx As TextBox
+    Dim sbt As SpinButton
+    Dim scb As ScrollBar
+    Dim obt As OptionButton
+    Dim lbx As ListBox
+    Dim lbl As Label
+    Dim img As Image
+    Dim cbt As CommandButton
+    Dim Rng As Range
+
+    Select Case TypeName(v)
+        Case "VBComponent":     Set vbc = v:    Select Case vbc.Type
+                                                    Case vbext_ct_ActiveXDesigner:  sServicedItemType = "ActiveX-Designer": sServicedItemName = vbc.Name
+                                                    Case vbext_ct_ClassModule:      sServicedItemType = "Class-Module":     sServicedItemName = vbc.Name
+                                                    Case vbext_ct_MSForm:           sServicedItemType = "UserForm":         sServicedItemName = vbc.Name
+                                                    Case vbext_ct_StdModule:        sServicedItemType = "Standard-Module":  sServicedItemName = vbc.Name
+                                                    Case vbext_ct_Document
+                                                        If mComp.IsSheetDocMod(vbc, mService.Serviced) Then
+                                                                                    sServicedItemType = "Worksheet":        sServicedItemName = vbc.Name
+                                                        Else
+                                                                                    sServicedItemType = "Workbook":         sServicedItemName = vbc.Name
+                                                        End If
+                                                End Select
+        Case "Name":            Set nme = v:                                        sServicedItemType = "Name":             sServicedItemName = Replace(nme.Name, nme.Parent.Name & "!", vbNullString) & "(" & nme.RefersTo & ")"
+        Case "Reference":       Set ref = v:                                        sServicedItemType = TypeName(ref):      sServicedItemName = ref.Description
+        Case "Shape":           Set shp = v:                                        sServicedItemType = s_type:             sServicedItemName = shp.Parent.Name & "." & ShapeNames(shp)
+        Case "Worksheet":       Set wsh = v:                                        sServicedItemType = "Worksheet":        sServicedItemName = wsh.CodeName
+        Case "String":                                                              sServicedItemType = Split(v, ";")(0):   sServicedItemName = Split(v, ";")(1)
+        Case "CommandButton":   Set cbt = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
+        Case "Image":           Set img = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
+        Case "Label":           Set lbl = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
+        Case "ListBox":         Set lbx = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
+        Case "OptionButton":    Set obt = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
+        Case "ScrollBar":       Set scb = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
+        Case "SpinButton":      Set sbt = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
+        Case "TextBox":         Set tbx = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
+        Case "ToggleButton":    Set tbt = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
+        Case "Range":           Set Rng = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name.Name
+        Case Else
+            Debug.Print "TypeName '" & TypeName(v) & "' not yet considered as a serviced item"
+    End Select
+
+xt: Exit Property
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Property
+
 Public Sub Initiate(ByVal i_service As String, _
                     ByVal i_serviced_wbk As Workbook, _
            Optional ByRef i_ini As Boolean = True)
@@ -745,12 +817,27 @@ Public Sub Initiate(ByVal i_service As String, _
     Const PROC = "Initiate"
     
     On Error GoTo eh
+    Dim fso As New FileSystemObject
     
     mBasic.BoP ErrSrc(PROC)
+    Set Log = New clsLog
+    Set Comps = New clsComps
+    
+    If Not i_serviced_wbk Is ActiveWorkbook Then
+        Set dctAllComps = Comps.CollectAll(c_wbk:=i_serviced_wbk)
+    Else
+        Set dctAllComps = Comps.All
+    End If
+
     wsService.ClearDataAllServices
     mService.Serviced = i_serviced_wbk
-    Set Srvc = New clsSrvc
-    wsService.CurrentServiceLogFileFullName = Srvc.FileFullName
+    
+    With Log
+        .FileName = fso.GetBaseName(i_serviced_wbk.Name) & ".Service.log"
+        .MaxItemLengths Comps.MaxLenServicedType, Comps.MaxLenServicedItem
+        .AlignmentItems "|L|L.:|L|"
+        wsService.CurrentServiceLogFileFullName = .FileFullName
+    End With
     
     Select Case i_service
         Case mCompManClient.SRVC_EXPORT_ALL:        wsService.CurrentServiceName = SRVC_EXPORT_ALL_DSPLY
@@ -764,10 +851,7 @@ Public Sub Initiate(ByVal i_service As String, _
                                                     wsService.ClearDataUpdateService
     End Select
     
-    Set dctAllComps = mService.AllComps(i_serviced_wbk)
-    Srvc.Log.Title mService.CurrentServiceStatusBar
-    Srvc.Log.MaxItemLengths mService.MaxLenServicedType, mService.MaxLenServicedItem
-    Srvc.Log.AlignmentItems "|L|L.:|L|"
+    Log.Title mService.CurrentServiceStatusBar
 
     mService.DsplyStatus vbNullString
 

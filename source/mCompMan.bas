@@ -73,7 +73,9 @@ Public Enum siCounter
 End Enum
 
 Public lMaxCompLength   As Long
-    
+Public Log              As clsLog
+Public Comps            As clsComps
+
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
 ' Ensures that a programmed (i.e. an application) error numbers never conflicts

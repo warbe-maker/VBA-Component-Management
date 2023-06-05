@@ -255,7 +255,7 @@ Private Sub AppRunNew()
             Set .Wrkbk = wbkSource
             Set .VBComp = vbc
             wbkTarget.VBProject.VBComponents.Import .ExpFileFullName
-            Srvc.LogEntry = "Added (by import of the ExportFile from the corresponding Sync-Source-Workbook's VBComponent"
+            Log.Entry "Added (by import of the ExportFile from the corresponding Sync-Source-Workbook's VBComponent"
             wsSyncLog.Done "new", "VBComponent", sId, "added"
         End With
         Set SourceComp = Nothing

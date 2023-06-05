@@ -222,7 +222,7 @@ Public Sub AppRunSyncAll()
     With mSync.TargetWorkingCopy.VBProject
         For Each ref In .References
             If Not mRef.Exists(ref, wbkSource) Then
-                Srvc.ServicedItem = ref
+                mService.ServicedItem = ref
                 RefDesc = ref.Description
                 On Error Resume Next
                 .References.Remove ref
