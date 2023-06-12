@@ -162,6 +162,7 @@ Public Sub TestSync(Optional ByVal t_regression As Boolean = False)
     Const PROC = "TestSync"
     
     On Error GoTo eh
+    Set Services = New clsServices
     
     wsService.CurrentServiceName = ErrSrc(PROC)
         
@@ -176,20 +177,23 @@ Public Sub TestSync(Optional ByVal t_regression As Boolean = False)
     End With
     
     If Not t_regression Then
-        mService.Initiate mCompManClient.SRVC_SYNCHRONIZE, wsSyncTest.wbkTarget, False
+        With Services
+            .Initiate mCompManClient.SRVC_SYNCHRONIZE, wsSyncTest.wbkTarget, False
+            
+        End With
         wsSyncTest.wbkSource.Save
         mSync.source = mWbk.GetOpen(wsSyncTest.SyncTestSourceFullName)
         mSync.TargetWorkingCopy = mWbk.GetOpen(wsSyncTest.SyncTestTargetFullName)
     End If
     
     If t_regression Then
-        mSync.Initialize i_sync_refs:=True _
+        mSync.Initiate i_sync_refs:=True _
                        , i_sync_sheets:=True _
                        , i_sync_names:=True _
                        , i_sync_shapes:=False _
                        , i_sync_comps:=True
     Else
-        mSync.Initialize i_sync_refs:=wsSyncTest.DoSync("Reference") _
+        mSync.Initiate i_sync_refs:=wsSyncTest.DoSync("Reference") _
                        , i_sync_sheets:=wsSyncTest.DoSync("Worksheet") _
                        , i_sync_names:=wsSyncTest.DoSync("Name") _
                        , i_sync_shapes:=wsSyncTest.DoSync("Shape") _

@@ -223,7 +223,7 @@ Public Function ExistsAsGlobalCommonComponentExportFile(ByVal ex_vbc As VBCompon
     Dim Comp    As New clsComp
     
     With Comp
-        Set .Wrkbk = mService.Serviced
+        Set .Wrkbk = Services.Serviced
         .CompName = ex_vbc.Name
         sFile = wsConfig.FolderCommonComponentsPath & "\" & ex_vbc.Name & .ExpFileExt
     End With
@@ -303,7 +303,7 @@ Public Function InconsitencyWarning(ByVal exp_file_full_name, _
                              , dsply_buttons:=cllBttns _
                               )
             Case BttnDsply
-                mService.ExpFilesDiffDisplay fd_exp_file_left_full_name:=exp_file_full_name _
+                Services.ExpFilesDiffDisplay fd_exp_file_left_full_name:=exp_file_full_name _
                                                , fd_exp_file_left_title:="Raw Common Component's Export File: (" & exp_file_full_name & ")" _
                                                , fd_exp_file_right_full_name:=saved_exp_file_full_name _
                                                , fd_exp_file_right_title:="Saved Raw's Export File (" & saved_exp_file_full_name & ")"
@@ -341,6 +341,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub OutdatedUpdate()
+
 ' ------------------------------------------------------------------------------
 ' Collects all used outdated Common Components when called for the first time
 ' and displays the first one queued in Qoutdated. The service is re-called until
@@ -353,6 +354,9 @@ Public Sub OutdatedUpdate()
     If Qoutdated Is Nothing Then OutdatedUpdateCollect
     If Not Qoutdated.IsEmpty Then
         OutdatedUpdateChoice
+    Else
+        Services.DsplyProgress "used Common Components updated"
+        Services.LogEntrySummary Application.StatusBar
     End If
     
 xt: Exit Sub
@@ -459,7 +463,7 @@ Private Sub OutdatedUpdateChoiceDsplyDiffs()
     mBasic.BoP ErrSrc(PROC)
     Qoutdated.First Comp
     With Comp
-        mService.ExpFilesDiffDisplay .ExpFileFullName, .Raw.SavedExpFileFullName, "Currently used (" & .ExpFileFullName & ")", "Up-to-date (" & .Raw.SavedExpFileFullName & ")"
+        Services.ExpFilesDiffDisplay .ExpFileFullName, .Raw.SavedExpFileFullName, "Currently used (" & .ExpFileFullName & ")", "Up-to-date (" & .Raw.SavedExpFileFullName & ")"
     End With
     Set Comp = Nothing
     
@@ -483,9 +487,13 @@ Private Sub OutdatedUpdateChoiceSkipForever(ByVal u_comp_name)
     mBasic.BoP ErrSrc(PROC)
     mCompManDat.RegistrationState(u_comp_name) = enRegStatePrivate
     Qoutdated.DeQueue
+    With Services
+        .NoOfItemsIgnored = .NoOfItemsIgnored + 1
+        .LogEntry "Outdated used Commpon Component: Update skipped forever!"
+    End With
     
 xt: mBasic.EoP ErrSrc(PROC)
-    mService.MessageUnload UpdateDialogTitle
+    Services.MessageUnload UpdateDialogTitle
     mCommComps.OutdatedUpdate
     Exit Sub
 
@@ -505,9 +513,13 @@ Private Sub OutdatedUpdateChoiceSkipForNow()
     
     mBasic.BoP ErrSrc(PROC)
     Qoutdated.DeQueue
+    With Services
+        .NoOfItemsIgnored = .NoOfItemsIgnored + 1
+        .LogEntry "Outdated used Commpon Component: Update skipped for now!"
+    End With
     
 xt: mBasic.EoP ErrSrc(PROC)
-    mService.MessageUnload UpdateDialogTitle
+    Services.MessageUnload UpdateDialogTitle
     mCommComps.OutdatedUpdate
     Exit Sub
 
@@ -527,24 +539,33 @@ Private Sub OutdatedUpdateChoiceUpdate(ByVal u_comp_name As String)
     Dim wbk     As Workbook
     Dim Comp    As clsComp
     Dim v       As Variant
+    Dim sFile   As String
     
     mBasic.BoP ErrSrc(PROC)
     Qoutdated.First Comp
-    Set wbk = mService.Serviced
+    Set wbk = Services.Serviced
     Set Comp = New clsComp
     With Comp
         Set .Wrkbk = wbk
         .CompName = u_comp_name
+        Services.ServicedItem = .VBComp
         v = .KindOfComp
+        sFile = .Raw.SavedExpFileFullName
         mUpdate.ByReImport b_wbk_target:=wbk _
                          , b_vbc_name:=u_comp_name _
-                         , b_exp_file:=.Raw.SavedExpFileFullName
+                         , b_exp_file:=sFile
+        With Services
+            .NoOfItemsServiced = .NoOfItemsServiced + 1
+            .NoOfItemsServicedNames = u_comp_name
+            .DsplyProgress "used Common Components updated"
+            .LogEntry "Outdated used Common Component updated by re-import of " & sFile
+        End With
     End With
     Qoutdated.DeQueue
     Set Comp = Nothing
     
 xt: mBasic.EoP ErrSrc(PROC)
-    mService.MessageUnload UpdateDialogTitle
+    Services.MessageUnload UpdateDialogTitle
     mCommComps.OutdatedUpdate
     Exit Sub
 
@@ -561,69 +582,49 @@ Private Sub OutdatedUpdateCollect()
     Const PROC = "OutdatedUpdateCollect"
     
     On Error GoTo eh
-    Dim dctOutdated As New Dictionary
     Dim vbc         As VBComponent
     Dim fso         As New FileSystemObject
-    Dim sOutdated   As String
     Dim Comp        As clsComp
-    Dim lAll        As Long
-    Dim lRemaining  As Long
     Dim wbk         As Workbook
-    Dim lUsed       As Long
+    Dim dct         As Dictionary
+    Dim v           As Variant
+    Dim sName       As String
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbk = mService.Serviced
+    Set wbk = Services.Serviced
     Set Qoutdated = New clsQ
-    Application.StatusBar = vbNullString
+'    Application.StatusBar = vbNullString
+    Set dct = Comps.CommonUsed
     
-    With wbk.VBProject
-        lAll = .VBComponents.Count
-        lRemaining = lAll
-        For Each vbc In .VBComponents
-            Set Comp = New clsComp
-            With Comp
-                Set .Wrkbk = wbk
-                .CompName = vbc.Name
-                Set .VBComp = vbc
-                If .KindOfComp = mCompMan.enCommCompUsed Then
-                    mService.ServicedItem = vbc
-                    lUsed = lUsed + 1
-                    If .Outdated Then
-                        Qoutdated.EnQueue Comp
-                        sOutdated = .CompName
-                        Log.Entry mService.ServicedItemType, mService.ServicedItemName, "Common Component is outdated"
-                    Else
-                        If .RevisionNumber <> .Raw.RevisionNumber Then
-                            '~~ When not outdated due ti a code difference the revision numbers ought to be equal
-                            Debug.Print "Revision-Number used: = " & .RevisionNumber
-                            Debug.Print "Revision-Number raw:  = " & .Raw.RevisionNumber
-                            .RevisionNumber = .Raw.RevisionNumber
-                        End If
-                        Log.Entry mService.ServicedItemType, mService.ServicedItemName, "Common Component up-to-date"
-                    End If ' .Outdated
-                End If ' Used Common Component
-            End With
-            Set Comp = Nothing
-            lRemaining = lRemaining - 1
-            mService.DsplyStatus _
-            "Collect " & mService.Progress(p_result:=Qoutdated.Size _
-                                         , p_of:=lAll _
-                                         , p_op:="outdated used Common Components " _
-                                         , p_comps:=sOutdated _
-                                         , p_dots:=lRemaining _
-                                          )
-        Next vbc
-    End With
-    mService.DsplyStatus _
-    "Collect " & mService.Progress(p_result:=Qoutdated.Size _
-                                 , p_of:=lAll _
-                                 , p_op:="outdated used Common Components" _
-                                 , p_comps:=sOutdated _
-                                  )
+    For Each v In dct
+'        Set vbc = dctAll(v)
+        Set Comp = dct(v)
+        With Comp
+            Services.ServicedItem = .VBComp
+            If .Outdated Then
+                Qoutdated.EnQueue Comp
+                sName = .CompName
+                With Services
+                    .NoOfItemsServicedNames = sName
+                    .NoOfItemsOutdated = Qoutdated.Size
+                    .DsplyProgress "collected Common Components used outdated"
+                End With
+            Else
+                '~~ When not outdated due to a code difference the revision numbers ought to be equal
+                .RevisionNumber = .Raw.RevisionNumber
+                With Services
+                    .NoOfItemsIgnored = .NoOfItemsIgnored + 1
+                    .LogEntry "Used Common Component is up-to-date"
+                End With
+            End If ' .Outdated
+        End With
+        Set Comp = Nothing
+        Services.DsplyProgress "collected Common Components used outdated"
+    Next v
+    Services.DsplyProgress "collected Common Components used outdated"
     
-xt: If wsService.CommonComponentsUsed = 0 Then wsService.CommonComponentsUsed = lUsed
-    If wsService.CommonComponentsOutdated = 0 Then wsService.CommonComponentsOutdated = dctOutdated.Count
-    Set dctOutdated = Nothing
+xt: If wsService.CommonComponentsUsed = 0 Then wsService.CommonComponentsUsed = Services.NoOfItemsCommonUsed
+    If wsService.CommonComponentsOutdated = 0 Then wsService.CommonComponentsOutdated = Qoutdated.Size
     Set fso = Nothing
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -639,7 +640,7 @@ Public Sub Register(ByVal r_comp_name As String, _
     Dim fso As New FileSystemObject
     Dim wbk As Workbook
     
-    Set wbk = mService.Serviced
+    Set wbk = Services.Serviced
     RawHostWbFullName(r_comp_name) = wbk.FullName
     RawHostWbName(r_comp_name) = wbk.Name
     RawHostWbBaseName(r_comp_name) = fso.GetBaseName(wbk.FullName)
@@ -679,9 +680,9 @@ Public Sub SaveToCommonComponentsFolder(ByVal stgf_comp_name As String, _
     End If
 
     mCommComps.RawExpFileFullName(stgf_comp_name) = stgf_exp_file_full_name
-    mCommComps.RawHostWbBaseName(stgf_comp_name) = fso.GetBaseName(mService.Serviced.FullName)
-    mCommComps.RawHostWbFullName(stgf_comp_name) = mService.Serviced.FullName
-    mCommComps.RawHostWbName(stgf_comp_name) = mService.Serviced.Name
+    mCommComps.RawHostWbBaseName(stgf_comp_name) = fso.GetBaseName(Services.Serviced.FullName)
+    mCommComps.RawHostWbFullName(stgf_comp_name) = Services.Serviced.FullName
+    mCommComps.RawHostWbName(stgf_comp_name) = Services.Serviced.Name
     mCommComps.RevisionNumber(stgf_comp_name) = mCompManDat.RawRevisionNumber(stgf_comp_name)
     
     Set fso = Nothing

@@ -150,7 +150,7 @@ Public Sub AppRunSyncAll()
 
 xt: mBasic.EoP ErrSrc(PROC)
     If lSyncMode <> SyncSummarized Then
-        mService.MessageUnload TITLE_SYNC_COMPS
+        Services.MessageUnload TITLE_SYNC_COMPS
         mSync.RunSync
     End If
     Exit Sub
@@ -183,7 +183,7 @@ Private Sub AppRunChanged()
     Set wbkTarget = mSync.TargetWorkingCopy
     mSync.AppRunInit
     va = Split(AppRunIdsChanged(enSyncObjectKindVBComponent), ",")
-    mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionChangeCode, 0)
+    Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionChangeCode, 0)
     
     For i = LBound(va) To UBound(va)
         Set SourceComp.Wrkbk = wbkSource
@@ -204,13 +204,13 @@ Private Sub AppRunChanged()
         End If
         Set TargetComp = Nothing
         Set SourceComp = Nothing
-        mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionChangeCode, i + 1)
+        Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionChangeCode, i + 1)
     Next i
     
     dctKnownChanged.RemoveAll
     mSync.AppRunTerminate
     
-xt: mService.MessageUnload TITLE_SYNC_COMPS
+xt: Services.MessageUnload TITLE_SYNC_COMPS
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -244,7 +244,7 @@ Private Sub AppRunNew()
     Set wbkSource = mSync.source
     Set wbkTarget = mSync.TargetWorkingCopy
     va = Split(AppRunNewIds(enSyncObjectKindVBComponent), ",")
-    mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionAddNew, 0)
+    Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionAddNew, 0)
     mSync.AppRunInit
     
     For i = LBound(va) To UBound(va)
@@ -255,17 +255,16 @@ Private Sub AppRunNew()
             Set .Wrkbk = wbkSource
             Set .VBComp = vbc
             wbkTarget.VBProject.VBComponents.Import .ExpFileFullName
-            Log.Entry "Added (by import of the ExportFile from the corresponding Sync-Source-Workbook's VBComponent"
-            wsSyncLog.Done "new", "VBComponent", sId, "added"
+            wsSyncLog.Done "new", "VBComponent", sId, "added", "by import of Sync-Source-Workbook's corresonding Export-File"
         End With
         Set SourceComp = Nothing
-    mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionAddNew, i + 1)
+    Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionAddNew, i + 1)
     Next i
     
     dctKnownNew.RemoveAll
     mSync.AppRunTerminate
     
-xt: mService.MessageUnload TITLE_SYNC_COMPS
+xt: Services.MessageUnload TITLE_SYNC_COMPS
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -291,11 +290,11 @@ Private Sub AppRunObsolete()
     Dim sId         As String
     
     mBasic.BoP ErrSrc(PROC)
-    mService.MessageUnload TITLE_SYNC_COMPS ' for the next display
+    Services.MessageUnload TITLE_SYNC_COMPS ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.source
     va = Split(AppRunObsoleteIds(enSyncObjectKindVBComponent), ",")
-    mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionRemoveObsolete, 0)
+    Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionRemoveObsolete, 0)
     mSync.AppRunInit
     
     For i = LBound(va) To UBound(va)
@@ -303,11 +302,11 @@ Private Sub AppRunObsolete()
         sId = SyncId(vbc, wbkTarget)
         wbkTarget.VBProject.VBComponents.Remove vbc
         wsSyncLog.Done "obsolete", "VBComponent", sId, "removed"
-        mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionRemoveObsolete, i + 1)
+        Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionRemoveObsolete, i + 1)
     Next i
     dctKnownObsolete.RemoveAll
     
-xt: mService.MessageUnload TITLE_SYNC_COMPS
+xt: Services.MessageUnload TITLE_SYNC_COMPS
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
@@ -364,7 +363,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     
     '~~ Collect VB-Components the code has changed
     If DueCollect("Changed") Then
-        mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionChangeCode, 0)
+        Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionChangeCode, 0)
         For Each vbcSource In c_wbk_source.VBProject.VBComponents
             sId = SyncId(vbcSource, c_wbk_source)
             If Not KnownSource(sId) Then
@@ -387,13 +386,13 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     End If
                 End If
             End If
-            mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionChangeCode, dctKnownChanged.Count)
+            Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionChangeCode, dctKnownChanged.Count)
         Next vbcSource
     End If
 
     '~~ Collect New VB-Components
     If DueCollect("New") Then
-        mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionAddNew, 0)
+        Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionAddNew, 0)
         For Each vbcSource In c_wbk_source.VBProject.VBComponents
             sId = SyncId(vbcSource, c_wbk_source)
             If Not KnownSource(sId) Then
@@ -418,13 +417,13 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     End If
                 End If
             End If
-            mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionAddNew, dctKnownNew.Count)
+            Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionAddNew, dctKnownNew.Count)
         Next vbcSource
     End If
 
     '~~ Collect obsolete VB-Components
     If DueCollect("Obsolete") Then
-        mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionRemoveObsolete, 0)
+        Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionRemoveObsolete, 0)
         For Each vbcTarget In c_wbk_target.VBProject.VBComponents
             sId = SyncId(vbcTarget, c_wbk_target)
             If Not KnownTarget(sId) Then
@@ -440,7 +439,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     End If
                 End If
             End If
-            mService.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownObsolete.Count)
+            Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownObsolete.Count)
         Next vbcTarget
     End If
 
@@ -472,9 +471,6 @@ Private Function CollectInSync(ByVal c_wbk_source As Workbook, _
     Dim vbcSource   As VBComponent
     Dim vbcTarget   As VBComponent
     Dim sIdSource   As String
-    
-    Debug.Print c_wbk_source.CodeName
-    Debug.Print c_wbk_target.CodeName
     
     mBasic.BoP ErrSrc(PROC)
     If dctKnownInSync Is Nothing Then Set dctKnownInSync = New Dictionary
@@ -534,8 +530,8 @@ Private Function Corresponding(ByVal c_this_vbc As VBComponent, _
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.source
 
-    Debug.Print wbkTarget.CodeName
-    Debug.Print wbkSource.CodeName
+'    Debug.Print wbkTarget.CodeName
+'    Debug.Print wbkSource.CodeName
     
     If c_this_wbk Is wbkTarget Then
         bThisIsTarget = True
@@ -816,7 +812,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=DialogTop & ";" & DialogLeft
+                 , dsply_pos:=Services.DialogTop & ";" & Services.DialogLeft
         DoEvents
     End If
     

@@ -223,7 +223,6 @@ Private Sub SetupComp(ByVal c_source_or_target As String, _
     '~~ The file serving as the source-code for the VBComponent to be set up is the
     '~~ dedicated test sync workbook source or target folder
     sFromFile = SetupCompFromFile(c_source_or_target, c_from_file)
-    Debug.Print sFromFile
     
     Select Case fso.GetExtensionName(sFromFile)
         Case "cls", "frm", "bas"
@@ -562,7 +561,7 @@ Public Sub SetupTestWorkbooksEstablish(Optional ByVal s_regression As Boolean = 
     SyncTestTargetFullName = SyncTestTarget.FullName
     If s_regression Then SyncTestTarget.Close True
     
-    '~~ Replaces the mService.Initiate which is inappropriate for individual and regression tests
+    '~~ Replaces the Services.Initiate which is inappropriate for individual and regression tests
     If Not s_regression Then
         wsService.SyncSourceFullName = SyncTestSource.FullName
         wsService.SyncTargetFullNameCopy = SyncTestTarget.FullName

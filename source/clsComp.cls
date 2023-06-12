@@ -122,7 +122,7 @@ Friend Property Get Changed() As Boolean
     If dctChanges Is Nothing Then
         '~~ The difference between the regular and the temporary export file
         '~~ is only provided once
-        Set dctChanges = mService.FilesDifference(fd_exp_file_1:=fso.GetFile(Me.ExpFileTempFullName) _
+        Set dctChanges = mCompMan.Services.FilesDifference(fd_exp_file_1:=fso.GetFile(Me.ExpFileTempFullName) _
                                                 , fd_exp_file_2:=fso.GetFile(Me.ExpFileFullName))
     End If
     Changed = dctChanges.Count <> 0
@@ -331,8 +331,8 @@ Friend Property Get ExpFilesDiffer() As Boolean
 ' Returns TRUE when the Export File of this Used Common Component differs from
 ' the Export File of the corresponding Raw Common Component.
 ' ------------------------------------------------------------------------------
-    ExpFilesDiffer = mService.FilesDiffer(fd_exp_file_1:=Raw.SavedExpFile _
-                                        , fd_exp_file_2:=Me.ExpFile)
+    ExpFilesDiffer = mCompMan.Services.FilesDiffer(fd_exp_file_1:=Raw.SavedExpFile _
+                                                , fd_exp_file_2:=Me.ExpFile)
 End Property
 
 Friend Property Get ExpFileTempAndRawExpFileDiffers() As Boolean
@@ -340,8 +340,8 @@ Friend Property Get ExpFileTempAndRawExpFileDiffers() As Boolean
 ' Returns TRUE when the temporary Export File of this Used Common Component
 ' differs from the Export File of the corresponding Raw Common Component.
 ' ------------------------------------------------------------------------------
-    ExpFileTempAndRawExpFileDiffers = mService.FilesDiffer(fd_exp_file_1:=Raw.SavedExpFile _
-                                                         , fd_exp_file_2:=Me.ExpFileTemp)
+    ExpFileTempAndRawExpFileDiffers = mCompMan.Services.FilesDiffer(fd_exp_file_1:=Raw.SavedExpFile _
+                                                                 , fd_exp_file_2:=Me.ExpFileTemp)
 End Property
 
 Friend Property Get ExpFileTempsDiffer() As Boolean
@@ -350,7 +350,7 @@ Friend Property Get ExpFileTempsDiffer() As Boolean
 ' the temporary Export File of the Raw. This comparison is only possible when
 ' the Raw's host Workbook is accidentially open.
 ' ------------------------------------------------------------------------------
-    ExpFileTempsDiffer = mService.FilesDiffer(fd_exp_file_1:=Raw.ExpFileTemp _
+    ExpFileTempsDiffer = mCompMan.Services.FilesDiffer(fd_exp_file_1:=Raw.ExpFileTemp _
                                             , fd_exp_file_2:=Me.ExpFileTemp)
 End Property
 
@@ -491,9 +491,9 @@ Private Property Get RawChanged() As Boolean
     If Me.RevisionNumber < mCommComps.RevisionNumber(sCompName) Then
         '~~ The Revision Number of the Raw Common Component is greater which means that
         '~~ a modification had been exported - and the Revision Number thereby increased
-        If Not mService.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
-                              , fd_exp_file_2:=Raw.SavedExpFile _
-                              , fd_ignore_export_header:=bExcludeExportHeader) Then
+        If Not mCompMan.Services.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
+                                          , fd_exp_file_2:=Raw.SavedExpFile _
+                                          , fd_ignore_export_header:=bExcludeExportHeader) Then
             '~~ Because the Export File of the Used Common Component is identical
             '~~ with the Export File of the Raw Common Component the Used Common
             '~~ Component must have been updated manually already - e.g. by dragging
@@ -504,9 +504,9 @@ Private Property Get RawChanged() As Boolean
             RawChanged = True
         End If
     ElseIf Me.RevisionNumber = mCommComps.RevisionNumber(sCompName) Then
-        If mService.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
-                              , fd_exp_file_2:=Raw.SavedExpFile _
-                              , fd_ignore_export_header:=bExcludeExportHeader) Then
+        If mCompMan.Services.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
+                                      , fd_exp_file_2:=Raw.SavedExpFile _
+                                      , fd_ignore_export_header:=bExcludeExportHeader) Then
             '~~ it is not the Raw which had changed but the Used Common Component in its Workbook.
             '~~ In order to prevent Used Common Components differ between Workbooks using them
             '~~ and remaining different unrecognized the Raw is indicated changed to enforce
@@ -630,12 +630,6 @@ Private Sub CleanUpTemps()
     End With
     
 End Sub
-
-Private Function DebugComp() As String
-    If lMaxCompLength > 0 _
-    Then DebugComp = sCompName & " " & String(lMaxCompLength - Len(sCompName), ".") & ": " _
-    Else DebugComp = sCompName & " : "
-End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsComp" & "." & sProc

@@ -55,18 +55,18 @@ Private Sub Test_Log()
     Dim fso As New FileSystemObject
     
     
-    mService.Initiate PROC, ThisWorkbook
+    Services.Initiate PROC, ThisWorkbook
     With Log
         .Title ErrSrc(PROC)
-        mService.ServicedItem = " <component-name> "
-        .Entry mService.ServicedItemType, mService.ServicedItemName, "Tested"
+        Services.ServicedItem = " <component-name> "
+        Services.LogEntry "Tested"
         mMsg.Box Title:="Test-Log:" _
                , Prompt:=mFso.FileTxt(ft_file:=.LogFile.Path) _
                , box_monospaced:=True
         If fso.FileExists(.LogFile.Path) Then fso.DeleteFile .LogFile.Path
     End With
     
-xt: mService.Terminate
+xt: Set Services = Nothing
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -84,7 +84,7 @@ Private Sub Test_ExportChanged()
     
     mBasic.BoP ErrSrc(PROC)
    
-    mService.Initiate ErrSrc(PROC), ThisWorkbook
+    Services.Initiate ErrSrc(PROC), ThisWorkbook
     Log.Title "Export Changed Components Test"
     mCompMan.ExportChangedComponents ThisWorkbook, "mCompManClient"
 
@@ -115,12 +115,12 @@ Private Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
     mBasic.BoP ErrSrc(PROC)
     If mMe.IsDevInstnc Then GoTo xt
     
-    mService.Initiate ErrSrc(PROC), ThisWorkbook
+    Services.Initiate ErrSrc(PROC), ThisWorkbook
     Log.Title "Renew Component Test"
     
     With Comp
         .CompName = rnc_vbc_name
-        mService.ServicedItem = .VBComp
+        Services.ServicedItem = .VBComp
         
         If .Wrkbk Is ActiveWorkbook Then
             Set wbActive = ActiveWorkbook
@@ -146,7 +146,7 @@ xt: If Not wbTemp Is Nothing Then
         End If
     End If
     Set Comp = Nothing
-    mService.Terminate
+    Set Services = Nothing
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -163,7 +163,7 @@ Private Sub Test_UpdateOutdatedCommonComponents()
     Dim AddinService    As String
     Dim AddInStatus     As String
     
-    If mService.Denied(mCompManClient.SRVC_UPDATE_OUTDATED) Then GoTo xt
+    If Services.Denied(mCompManClient.SRVC_UPDATE_OUTDATED) Then GoTo xt
 
     AddinService = mAddin.WbkName & "!mCompMan.UpdateOutdatedCommonComponents"
     If mAddin.IsOpen Then

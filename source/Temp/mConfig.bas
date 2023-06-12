@@ -175,7 +175,7 @@ Public Sub SetupConfirmed()
                     " |  +--WinMerge.ini                      " & vbLf & _
                     " |                                       " & vbLf & _
                     " +--" & fso.GetFolder(CommonCompsFolderNameCurrent).Name & vbLf & _
-                    "    +--CompManClient.bas                 "
+                    "    +--mCompManClient.bas                 "
         End With
         .Section(3).Text.Text = "CompMan is now ready for servicing any Workbook with an enabled service. When " & _
                                 "the Workbook has been closed the ""Serviced Root Folder"" (" & _

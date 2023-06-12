@@ -127,7 +127,7 @@ Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=DialogTop & ";" & DialogLeft
+                 , dsply_pos:=Services.DialogTop & ";" & Services.DialogLeft
         DoEvents
     End If
 
@@ -167,7 +167,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     
     '~~ Collect obsolete
     If DueCollect("Obsolete") Then
-        mService.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionRemoveObsolete, 0)
+        Services.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionRemoveObsolete, 0)
         For Each ref In c_wbk_target.VBProject.References
             sId = SyncId(ref)
             If Not KnownInSync(sId) Then
@@ -175,13 +175,13 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     mSync.DueSyncLet , enSyncObjectKindReference, enSyncActionRemoveObsolete, , sId
                 End If
             End If
-            mService.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownObsolete.Count)
+            Services.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownObsolete.Count)
         Next ref
     End If
     
     '~~ Collect new
     If DueCollect("New") Then
-        mService.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionAddNew, 0)
+        Services.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionAddNew, 0)
         For Each ref In c_wbk_source.VBProject.References
             sId = SyncId(ref)
             If Not KnownInSync(sId) Then
@@ -189,7 +189,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     mSync.DueSyncLet , enSyncObjectKindReference, enSyncActionAddNew, , sId
                 End If
             End If
-            mService.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionAddNew, dctKnownNew.Count)
+            Services.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionAddNew, dctKnownNew.Count)
         Next ref
     End If
                    
@@ -222,7 +222,7 @@ Public Sub AppRunSyncAll()
     With mSync.TargetWorkingCopy.VBProject
         For Each ref In .References
             If Not mRef.Exists(ref, wbkSource) Then
-                mService.ServicedItem = ref
+                Services.ServicedItem = ref
                 RefDesc = ref.Description
                 On Error Resume Next
                 .References.Remove ref
@@ -254,7 +254,7 @@ Public Sub AppRunSyncAll()
     
 xt: mBasic.EoP ErrSrc(PROC)
     If lSyncMode <> SyncSummarized Then
-        mService.MessageUnload TITLE_SYNC_REFS
+        Services.MessageUnload TITLE_SYNC_REFS
         mSync.RunSync
     End If
     Exit Sub

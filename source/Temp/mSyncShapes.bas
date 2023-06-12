@@ -80,7 +80,7 @@ Public Sub AppRunSyncAll()
 
 xt: mBasic.EoP ErrSrc(PROC)
     If lSyncMode <> SyncSummarized Then
-        mService.MessageUnload TITLE_SYNC_SHAPES
+        Services.MessageUnload TITLE_SYNC_SHAPES
         mSync.RunSync
     End If
     Exit Sub
@@ -175,7 +175,7 @@ End Sub
 '    Next v
 '
 '    '~~ Re-display the synchronization dialog for still to be synchronized items
-'    mService.MessageUnload TITLE_SYNC_SHAPES
+'    Services.MessageUnload TITLE_SYNC_SHAPES
 '    mSync.RunSync
 '
 'xt: mBasic.EoP ErrSrc(PROC)
@@ -217,7 +217,7 @@ Private Sub AppRunChanged()
     vSource = Split(AppRunChangedIdsSource, ",")
     vTarget = Split(AppRunChangedIdsTarget, ",")
     sPrgrss = "Synchronizing Worksheets > Changed Name or CodeName " & String(UBound(vSource), ".")
-    mService.DsplyStatus sPrgrss
+    Services.DsplyStatus sPrgrss
     
     For i = LBound(vSource) To UBound(vSource)
         Set shpSource = GetShape(vSource(i), wbkSource, wshSource)
@@ -228,7 +228,7 @@ Private Sub AppRunChanged()
     Next i
     dctKnownChanged.RemoveAll ' indicates done
         
-xt: mService.MessageUnload TITLE_SYNC_SHAPES
+xt: Services.MessageUnload TITLE_SYNC_SHAPES
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
@@ -271,7 +271,7 @@ Private Sub AppRunNew()
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.source
     v = Split(mSync.AppRunNewIds(enSyncObjectKindShape), ",")
-    mService.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepSyncing, enSyncActionAddNew, 0)
+    Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepSyncing, enSyncActionAddNew, 0)
     
     For i = LBound(v) To UBound(v)
         Set shpSource = GetShape(v(i), wbkSource, wshSource)
@@ -280,11 +280,11 @@ Private Sub AppRunNew()
                                 , c_quality:=enCorrespondingSheetsQuality.enAndNameCodeName _
                                 , c_wsh_result:=wshTarget
         CopyShapeToTarget shpSource, wshTarget
-        mService.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepSyncing, enSyncActionAddNew, i + 1)
+        Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepSyncing, enSyncActionAddNew, i + 1)
     Next i
     dctKnownNew.RemoveAll ' indicates done
         
-xt: mService.MessageUnload TITLE_SYNC_SHAPES
+xt: Services.MessageUnload TITLE_SYNC_SHAPES
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
@@ -315,11 +315,11 @@ Private Sub AppRunObsolete()
     Set wbkSource = mSync.source
     v = Split(mSync.AppRunObsoleteIds(enSyncObjectKindShape), ",")
     sPrgrss = "Synchronizing Shapes > Obsolete " & String(UBound(v) + 1, ".")
-    mService.DsplyStatus sPrgrss
+    Services.DsplyStatus sPrgrss
     
     For i = LBound(v) To UBound(v)
         Set shpTarget = GetShape(v(i), wbkTarget, wshTarget)
-        mService.ServicedItem = shpTarget
+        Services.ServicedItem = shpTarget
         shpTarget.Delete
         If Err.Number = 0 Then
             If RunRemoveAsserted(shpTarget.Name, wshTarget) Then
@@ -330,11 +330,11 @@ Private Sub AppRunObsolete()
         Else
             wsSyncLog.Done "obsolete", "Shape", SyncId(shpTarget), "failed!", "Remove from Sync-Target_Workbook's working failed!"
         End If
-        mService.DsplyStatus Left(sPrgrss, Len(sPrgrss) - (i + 1))
+        Services.DsplyStatus Left(sPrgrss, Len(sPrgrss) - (i + 1))
     Next i
     dctKnownObsolete.RemoveAll ' indicates done
 
-xt: mService.MessageUnload TITLE_SYNC_SHAPES
+xt: Services.MessageUnload TITLE_SYNC_SHAPES
     mBasic.BoP ErrSrc(PROC)
     Exit Sub
     
@@ -370,7 +370,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     If dctKnownObsolete Is Nothing Then
         Set dctKnownObsolete = New Dictionary
         lCount = GetShapesCount(wbkTarget)
-        mService.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, 0)
+        Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, 0)
         
         For Each wshTarget In c_wbk_target.Worksheets
             mSyncSheets.Corresponding c_wsh:=wshTarget _
@@ -386,7 +386,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                         End If
                     End If
                 End If
-                mService.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownChanged.Count)
+                Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownChanged.Count)
             Next shpTarget
         Next wshTarget
     End If
@@ -395,7 +395,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     If dctKnownNew Is Nothing Then
         Set dctKnownNew = New Dictionary
         lCount = GetShapesCount(wbkSource)
-        mService.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionAddNew, 0)
+        Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionAddNew, 0)
         
         For Each wshSource In c_wbk_source.Worksheets
             mSyncSheets.Corresponding c_wsh:=wshSource _
@@ -409,7 +409,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     '~~ Collect changed
     If dctKnownChanged Is Nothing Then
         Set dctKnownChanged = New Dictionary
-        mService.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, 0)
+        Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, 0)
         
         For Each wshSource In wbkSource.Worksheets
             mSyncSheets.Corresponding c_wsh:=wshSource _
@@ -420,7 +420,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                 If Exists(shpSource, wshTarget, shpTarget) Then
                     mSyncShapePrprtys.CollectChanged shpSource
                 End If
-                mService.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, dctKnownChanged.Count)
+                Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, dctKnownChanged.Count)
             Next shpSource
         Next wshSource
     End If
@@ -558,7 +558,7 @@ Private Sub CopyShapeToTarget(ByVal shp_source As Shape, _
     CopyShape shp_source, wsh_target, shpTarget
     
     If SyncNewAsserted(shp_source, wsh_target) Then
-        wsSyncLog.Done vbNullString, "Shape", sSyncId, "Copied from 'Sync-Source-Workbook'", shpTarget
+        wsSyncLog.Done "new", "Shape", sSyncId, "Copied from 'Sync-Source-Workbook'", shpTarget
     End If
     
 xt: Exit Sub
@@ -1094,7 +1094,7 @@ Public Sub SyncKind()
     mBasic.BoP ErrSrc(PROC)
     
     mSync.MonitorStep "Synchronizing Sheet Shapes"
-    mService.MessageUnload TITLE_SYNC_SHAPES
+    Services.MessageUnload TITLE_SYNC_SHAPES
     Set fSync = mMsg.MsgInstance(TITLE_SYNC_SHAPES)
     With Msg.Section(1)
         .Label.Text = "Obsolete Shapes:"
@@ -1140,7 +1140,7 @@ Public Sub SyncKind()
              , dsply_modeless:=True _
              , dsply_buttons_app_run:=AppRunArgs _
              , dsply_width_min:=45 _
-             , dsply_pos:=DialogTop & ";" & DialogLeft
+             , dsply_pos:=Services.DialogTop & ";" & Services.DialogLeft
 
 xt: mBasic.BoP ErrSrc(PROC)
     Exit Sub

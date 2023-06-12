@@ -47,6 +47,7 @@ Public Sub ByCodeReplace(ByVal b_source_vbc As VBComponent, _
         Set .Wrkbk = b_source_wbk
         Set .VBComp = b_source_vbc
         Set SourceCode = .CodeLines
+        Services.ServicedItem = .VBComp
     End With
     
     With b_target_wbk.VBProject.VBComponents(b_source_vbc.Name).CodeModule
@@ -56,7 +57,8 @@ Public Sub ByCodeReplace(ByVal b_source_vbc As VBComponent, _
             .InsertLines i, SourceCode(v)
         Next v
     End With
-                
+    Services.LogEntry "Updated by code replace"
+        
 xt: Set SourceComp = Nothing
     Exit Sub
 

@@ -74,11 +74,11 @@ Public Sub Clear()
     Me.Range("rngShapePropertiesUpdated").ClearContents
 End Sub
 
-Public Sub Done(ByVal d_prefix As String, _
-                ByVal d_type As String, _
-                ByVal d_item As String, _
-                ByVal d_action As String, _
-       Optional ByVal d_details As String = vbNullString)
+Public Sub Done(Optional ByVal d_prefix As String = " ", _
+                Optional ByVal d_type As String = " ", _
+                Optional ByVal d_item As String = " ", _
+                Optional ByVal d_action As String = " ", _
+                Optional ByVal d_details As String = " ")
 ' ----------------------------------------------------------------------------
 ' Write a done synchronization.
 ' ----------------------------------------------------------------------------
@@ -92,6 +92,7 @@ Public Sub Done(ByVal d_prefix As String, _
         .Offset(0, 2).Value = d_action
         .Offset(0, 3).Value = d_details
     End With
+    Log.Entry d_prefix, d_type, d_item, d_action, d_details
     mBasic.EoP ErrSrc(PROC)
     
 End Sub

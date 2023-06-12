@@ -59,6 +59,11 @@ Public Const README_SYNC_CHAPTER_NAMES          As String = "?#names-synchroniza
 Public Const README_DEFAULT_FILES_AND_FOLDERS   As String = "?#compmans-default-files-and-folders-environment"
 Public Const README_CONFIG_CHANGES              As String = "?#configuration-changes-compmans-config-worksheet"
 
+Public Log                                      As clsLog
+Public SummaryLog                               As clsLog
+Public Comps                                    As clsComps
+Public Services                                 As clsServices
+
 Public Enum enKindOfComp            ' The kind of VBComponent in the sense of CompMan
     enUnknown = 0
     enCommCompHosted = 1
@@ -71,10 +76,6 @@ Public Enum siCounter
     sic_comps_changed
     sic_used_comm_vbc_outdated
 End Enum
-
-Public lMaxCompLength   As Long
-Public Log              As clsLog
-Public Comps            As clsComps
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -239,7 +240,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
 ' Presents the serviced Workbook's outdated components in a modeless dialog with
 ' two buttons for each component. One button executes Application.Run mRenew.Run
 ' for a component to update it, the other executes Application.Run
-' mService.ExpFilesDiffDisplay to display the code changes.
+' Services.ExpFilesDiffDisplay to display the code changes.
 ' Note: u_unused is for backwards compatibility only.
 '
 ' Precondition: The service has been checked by the client to be able to run.
@@ -247,17 +248,20 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     Const PROC = "UpdateOutdatedCommonComponents"
     
     On Error GoTo eh
-    EstablishExecTraceFile u_wbk_serviced
+    Set Services = New clsServices
+    With Services
+        .CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED
+        .EstablishExecTraceFile u_wbk_serviced
+    End With
     
     mBasic.BoP ErrSrc(PROC)
-    mService.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, u_wbk_serviced
+    Services.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, u_wbk_serviced
     mHskpng.CommComps u_hosted
     mCompManDat.Hskpng u_hosted
     Set mCommComps.Qoutdated = Nothing
     mCommComps.OutdatedUpdate ' Dialog to update/renew one by one
     
 xt: mBasic.EoP ErrSrc(PROC)
-    mService.Terminate
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -287,21 +291,28 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
-    EstablishExecTraceFile e_wbk_serviced
-        
+    Set Services = New clsServices
+    With Services
+        .CurrentService = mCompManClient.SRVC_EXPORT_CHANGED
+        .EstablishExecTraceFile e_wbk_serviced
+    End With
+    
     mBasic.BoP ErrSrc(PROC)
-    mService.Initiate mCompManClient.SRVC_EXPORT_CHANGED, e_wbk_serviced
-    If mService.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
+    Services.Initiate mCompManClient.SRVC_EXPORT_CHANGED, e_wbk_serviced
+    If Services.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
     
     mHskpng.CommComps e_hosted
     mCompManDat.Hskpng e_hosted
     
-    mService.ExportChangedComponents e_hosted
+    Services.ExportChangedComponents e_hosted
     ExportChangedComponents = True
     ExportChangedComponents = Application.StatusBar
     
 xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Application.EnableEvents = True
+    Services.LogEntrySummary Application.StatusBar
+    
+    Set Services = Nothing
     Exit Function
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -383,10 +394,14 @@ Public Sub SynchronizeVBProjects(ByVal sync_wbk_opened As Workbook)
     Const PROC = "SynchronizeVBProjects"
             
     On Error GoTo eh
-    EstablishExecTraceFile sync_wbk_opened
+    Set Services = New clsServices
+    With Services
+        .CurrentService = mCompManClient.SRVC_SYNCHRONIZE
+        .EstablishExecTraceFile sync_wbk_opened
+    End With
     
     mBasic.BoP ErrSrc(PROC)
-    mService.Initiate mCompManClient.SRVC_SYNCHRONIZE, sync_wbk_opened
+    Services.Initiate mCompManClient.SRVC_SYNCHRONIZE, sync_wbk_opened
     
     If mSync.SourceExists(sync_wbk_opened) Then
         '~~ - Keep records of the full name of all three Workbooks involved in this synchronization
@@ -400,6 +415,7 @@ Public Sub SynchronizeVBProjects(ByVal sync_wbk_opened As Workbook)
     End If
     
 xt: mBasic.EoP ErrSrc(PROC)
+    Set Services = Nothing
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

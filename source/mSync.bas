@@ -133,7 +133,7 @@ Public Property Get Target() As Workbook
         Set wbkSyncTarget = mWbk.GetOpen(wsService.CurrentServicedWorkbookFullName)
     End If
     Set Target = wbkSyncTarget
-    mService.Serviced = wbkSyncTarget
+    Services.Serviced = wbkSyncTarget
     
 End Property
 
@@ -149,7 +149,7 @@ Public Property Get TargetWorkingCopy() As Workbook
         Set wbkSyncTargetWorkingCopy = mWbk.GetOpen(wsService.SyncTargetFullNameCopy)
     End If
     Set TargetWorkingCopy = wbkSyncTargetWorkingCopy
-    mService.Serviced = wbkSyncTargetWorkingCopy
+    Services.Serviced = wbkSyncTargetWorkingCopy
     
 End Property
 
@@ -258,8 +258,8 @@ Private Sub AppRunSyncAll()
     mBasic.BoP ErrSrc(PROC)
     Set wbkSource = mSync.source
     Set wbkTarget = mSync.TargetWorkingCopy
-    mService.Serviced = wbkTarget
-    mService.MessageUnload TITLE_SYNC_ALL ' allow watching the sync log
+    Services.Serviced = wbkTarget
+    Services.MessageUnload TITLE_SYNC_ALL ' allow watching the sync log
     
     If DueSyncKindOfObjects.IsQueued(enSyncObjectKindReference) Then
         mSyncRefs.AppRunSyncAll
@@ -289,8 +289,8 @@ End Sub
 
 Private Sub ClearSyncData()
     
-    If CLng(DialogLeft) < 5 Then DialogLeft = 20
-    If CLng(DialogTop) < 5 Then DialogTop = 20
+    If CLng(Services.DialogLeft) < 5 Then Services.DialogLeft = 20
+    If CLng(Services.DialogTop) < 5 Then Services.DialogTop = 20
     Application.ScreenUpdating = False
     wsSyncLog.Clear
     
@@ -379,7 +379,7 @@ Private Function DueSyncGet(ByVal d_index As Long, _
     Dim v                   As Variant
     Dim s                   As String
     
-    sNbsp = NonBreakingSpace
+    sNbsp = Services.NonBreakingSpace
     If d_index = 1 Then DueSyncMaxLenghts lMaxLenKind, lMaxLenAction, lMaxLenDir, lMaxLenIdPart1, lMaxLenIdPart2
     
     Set cll = cllDueSyncs(d_index)
@@ -449,7 +449,7 @@ Public Function DueSyncIdsByAction(ByVal d_kind As enSyncKindOfObject, _
         End If
     Next v
     DueSyncIdsByAction = s
-    Debug.Print s
+
 End Function
 
 Private Function DuesyncIdsByThisAction(ByVal d_action_requested As enSyncAction, _
@@ -706,7 +706,7 @@ Private Sub Finalize()
             wbkSource.Close
             mSync.TargetWorkingCopy.Close False
     End Select
-    Application.StatusBar = vbNullString
+'    Application.StatusBar = vbNullString
     
 xt:  mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -721,11 +721,11 @@ Public Sub InitDueSyncs()
     Set cllDueSyncs = Nothing:  Set cllDueSyncs = New Collection
 End Sub
 
-Public Sub Initialize(Optional ByVal i_sync_refs As Boolean = True, _
-                      Optional ByVal i_sync_sheets As Boolean = True, _
-                      Optional ByVal i_sync_names As Boolean = True, _
-                      Optional ByVal i_sync_shapes As Boolean = False, _
-                      Optional ByVal i_sync_comps As Boolean = True)
+Public Sub Initiate(Optional ByVal i_sync_refs As Boolean = True, _
+                    Optional ByVal i_sync_sheets As Boolean = True, _
+                    Optional ByVal i_sync_names As Boolean = True, _
+                    Optional ByVal i_sync_shapes As Boolean = False, _
+                    Optional ByVal i_sync_comps As Boolean = True)
 ' ------------------------------------------------------------------------------
 ' Initializes the service after a Sync-Target-Workbook had been opened.
 ' Cases distinguished:
@@ -739,10 +739,17 @@ Public Sub Initialize(Optional ByVal i_sync_refs As Boolean = True, _
 '   When identical with last performed - and inerrupted
 '                            sync continue it
 ' ------------------------------------------------------------------------------
+    With Log
+        .AlignmentItems "|L|L|L|L|L|"
+        .MaxItemLengths 10, Comps.MaxLenServicedType, 90, 15, 150
+        .Headers "|  Due  | Item | Item | Sync | Comment  |"
+        .Headers "| Sync  | Type | Id   |Result| |"
+    End With
+    
     Set DueSyncKindOfObjects = Nothing
     Set DueSyncKindOfObjects = New clsQ
-    '~~ The sequens in which the enumerated sync objects are queued
-    '~~ determines the sequence in qwhich the synchronizations arte performed.
+    
+    '~~ Determining the sequence in which the synchronizations are performed by enqueing.
     If i_sync_refs Then DueSyncKindOfObjects.EnQueue enSyncObjectKindReference
     If i_sync_sheets Then DueSyncKindOfObjects.EnQueue enSyncObjectKindWorksheet
     If i_sync_names Then DueSyncKindOfObjects.EnQueue enSyncObjectKindName
@@ -794,11 +801,11 @@ Public Sub MonitorStep(ByVal ms_text As String)
     ActiveWindow.WindowState = xlMaximized
     s = "Synchronization (by " & ThisWorkbook.Name _
                           & ") for " _
-                          & mService.Serviced.Name _
+                          & Services.Serviced.Name _
                           & ": " _
                           & ms_text
     Application.StatusBar = vbNullString
-    mService.DsplyStatus s
+    Services.DsplyStatus s
     
 End Sub
 
@@ -958,7 +965,7 @@ Public Sub OpenDecision()
              , dsply_modeless:=True _
              , dsply_buttons_app_run:=AppRunArgs _
              , dsply_width_min:=45 _
-             , dsply_pos:=DialogTop & ";" & DialogLeft
+             , dsply_pos:=Services.DialogTop & ";" & Services.DialogLeft
                             
 xt:  Exit Sub
 
@@ -1237,7 +1244,7 @@ Public Sub RunSync()
     Set wbkSource = mSync.source
     Set wbkTarget = mSync.TargetWorkingCopy
     
-    mService.Serviced = wbkTarget
+    Services.Serviced = wbkTarget
     Set cllDueSyncs = Nothing: Set cllDueSyncs = New Collection
     
     If AllDueSyncsDone(wbkSource, wbkTarget) Then
@@ -1528,7 +1535,7 @@ Private Sub SyncAll()
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
                  , dsply_width_min:=45 _
-                 , dsply_pos:=DialogTop & ";" & DialogLeft
+                 , dsply_pos:=Services.DialogTop & ";" & Services.DialogLeft
         DoEvents
     End If
         
