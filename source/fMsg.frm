@@ -1,8 +1,8 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} fMsg 
    ClientHeight    =   14805
-   ClientLeft      =   150
-   ClientTop       =   390
+   ClientLeft      =   147
+   ClientTop       =   392
    ClientWidth     =   12390
    OleObjectBlob   =   "fMsg.frx":0000
 End

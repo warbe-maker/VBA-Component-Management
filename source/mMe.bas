@@ -706,6 +706,8 @@ Public Sub Renew___AddIn()
     Const PROC = "Renew___AddIn"
     
     On Error GoTo eh
+    Set Services = New clsServices
+    
     lRenewStep = 0
 
     Application.EnableEvents = False
@@ -753,7 +755,7 @@ Public Sub Renew___AddIn()
 xt: RenewFinalResult bSucceeded
     Application.EnableEvents = False
     Application.ScreenUpdating = False
-    mService.Serviced.Activate
+    Services.Serviced.Activate
     wsService.Activate
     wsConfig.CurrentStatus
     wsConfig.Activate

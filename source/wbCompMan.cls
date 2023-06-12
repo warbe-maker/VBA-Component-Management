@@ -85,7 +85,7 @@ Private Sub Workbook_Open()
         '~~ raw (the Sync-Source-Workbook) located in the 'Serviced Dev and
         '~~ Test' folder. When the required preconditions are not met the
         '~~ service will be denied.
-        mCompManClient.CompManService mCompManClient.SRVC_SYNCHRONIZE
+'        mCompManClient.CompManService mCompManClient.SRVC_SYNCHRONIZE
         '~~ ------------------------------------------------------------------
     End If
     

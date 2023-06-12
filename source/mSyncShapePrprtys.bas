@@ -340,7 +340,7 @@ Public Sub CollectChanged(ByVal c_shp_source As Shape)
             For enProperty = mSyncShapePrprtys.enPropertiesOOBFirst To mSyncShapePrprtys.enPropertiesOOBLast
                 '~~ Loop through all OOB property enumerations
                 sId = SyncId(enProperty, c_shp_source)
-                Srvc.ServicedItem = PropertyServiced(shpSource, wshTarget)
+                Services.ServicedItem = PropertyServiced(shpSource, wshTarget)
                 On Error Resume Next
                 vTarget = mSyncShapePrprtys.PropertyValue(enProperty, oobTarget)
                 On Error Resume Next
@@ -964,9 +964,9 @@ Private Sub SyncAssertion(ByVal sa_obj_source As Variant, _
         If Not sa_dct_synched.Exists(PropertyName(sa_en_property)) Then
             mDct.DctAdd sa_dct_synched, PropertyName(sa_en_property), sa_obj_source.Parent.Name & "." & mSyncShapes.ShapeNames(sa_obj_source), , seq_ascending
         End If
-        Srvc.LogEntry = "Property " & mBasic.Align(PropertyName(sa_en_property), lPropertyMaxLen, AlignLeft, , ".") & ": changed " & PropertyChange(sa_target_value, sa_source_value)
+        Log.Entry "change", "Shape-Property", PropertyName(sa_en_property), "changed", PropertyChange(sa_target_value, sa_source_value)
     Else
-        Srvc.LogEntry = "Property " & mBasic.Align(PropertyName(sa_en_property), lPropertyMaxLen, AlignLeft, , ".") & ": assertion failed for change " & PropertyChange(sa_target_value, sa_source_value)
+        Log.Entry "change", "Shape-Property", PropertyName(sa_en_property), "failed", " "
     End If
 
 End Sub
@@ -1070,7 +1070,7 @@ Public Sub SyncProperties(ByRef sp_dct_sync_asserted As Dictionary)
         If Not mSyncShapes.CorrespondingOOB(shpSource, wshTarget, oobTarget) Is Nothing Then
             For enProperty = mSyncShapePrprtys.enPropertiesOOBFirst To mSyncShapePrprtys.enPropertiesOOBLast
                 '~~ Loop through all OOB property enumerations
-                Srvc.ServicedItem = PropertyServiced(shpSource, wshTarget)
+                Services.ServicedItem = PropertyServiced(shpSource, wshTarget)
                 vTarget = mSyncShapePrprtys.PropertyValue(enProperty, oobTarget)
                 vSource = mSyncShapePrprtys.PropertyValue(enProperty, oobSource)
                 If vTarget <> vSource Then
@@ -1086,7 +1086,7 @@ Public Sub SyncProperties(ByRef sp_dct_sync_asserted As Dictionary)
         If Not mSyncShapes.CorrespondingShape(shpSource, wshTarget, shpTarget) Is Nothing Then
             For enProperty = mSyncShapePrprtys.enPropertiesShapeFirst To mSyncShapePrprtys.enPropertiesShapeLast
                 '~~ Loop through all Shape property enumerations
-                Srvc.ServicedItem = PropertyServiced(shpSource, wshTarget)
+                Services.ServicedItem = PropertyServiced(shpSource, wshTarget)
                 On Error Resume Next
                 vTarget = mSyncShapePrprtys.PropertyValue(enProperty, shpTarget)
                 If Err.Number <> 0 Then GoTo np

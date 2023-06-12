@@ -1,7 +1,9 @@
 [_MostRecentExport]
 UsedExportFolder=source
 [clsLog]
-KindOfComponent=private
+DueModificationWarning=1
+KindOfComponent=used
+RawRevisionNumber=2023-06-09.019
 [clsQ]
 KindOfComponent=used
 RawRevisionNumber=2023-02-17.001

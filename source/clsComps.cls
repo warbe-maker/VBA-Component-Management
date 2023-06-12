@@ -9,9 +9,13 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private dctChanged  As Dictionary
+Private dctChanged          As Dictionary
+Private dctAll              As Dictionary
+Private lMaxLenServicedItem As Long
+Private lMaxLenServicedType As Long
 
 Private Sub Class_Initialize()
+    CollectAll
     Set dctChanged = New Dictionary
 End Sub
 
@@ -19,30 +23,47 @@ Private Sub Class_Terminate()
     Set dctChanged = Nothing
 End Sub
 
-Private Function All(Optional ByRef a_stats As clsStats = Nothing) As Dictionary
+Public Property Get All() As Dictionary:            Set All = dctAll:                           End Property
+
+Public Property Get MaxLenServicedItem() As Long:   MaxLenServicedItem = lMaxLenServicedItem:   End Property
+
+Public Property Get MaxLenServicedType() As Long:   MaxLenServicedType = lMaxLenServicedType:   End Property
+
+Public Function CollectAll() As Dictionary
 ' ----------------------------------------------------------------------------
 ' Returns a Dictionary with all VBComponent objects as key and the
 ' corresponding clsComp objects as item.
 ' Note: The mDct.DctAdd service orders the items ascending by key (possible
 '       because the key object has a Name property.
 ' ----------------------------------------------------------------------------
-    Dim wbk     As Workbook
     Dim vbc     As VBComponent
     Dim Comp    As clsComp
+    Dim wbk     As Workbook
     
-    Set wbk = mService.Serviced
+    Set wbk = Services.Serviced
+    If wbk Is Nothing Then
+        Set wbk = ActiveWorkbook
+    End If
+    Set dctAll = New Dictionary
+    
     With wbk.VBProject
         For Each vbc In .VBComponents
-            If Not a_stats Is Nothing Then a_stats.Count mCompMan.sic_comps
             Set Comp = New clsComp
             With Comp
                 Set .Wrkbk = wbk
                 .CompName = vbc.Name
                 Set .VBComp = vbc
+                lMaxLenServicedItem = Max(lMaxLenServicedItem, Len(.CompName))
+                lMaxLenServicedType = Max(lMaxLenServicedType, Len(.TypeString))
             End With
-            mDct.DctAdd add_dct:=All, add_key:=vbc, add_item:=Comp, add_order:=order_bykey
+            dctAll.Add vbc.Name, Comp
+            With Services
+                .NoOfItemsTotal = dctAll.Count
+                .DsplyProgress "collected"
+            End With
         Next vbc
     End With
+    mDct.KeySort dctAll
     
 End Function
 
@@ -57,7 +78,7 @@ Private Function Changed(Optional ByRef c_stats As clsStats = Nothing) As Dictio
     Dim v       As Variant
     Dim dct     As Dictionary
     
-    Set dct = All(c_stats)
+    Set dct = dctAll(c_stats)
     For Each v In dct
         Set Comp = dct(v)
         If Not Comp.Changed Then
@@ -69,15 +90,10 @@ Private Function Changed(Optional ByRef c_stats As clsStats = Nothing) As Dictio
     
 End Function
 
-Private Function Outdated(Optional ByRef o_stats As clsStats = Nothing) As Dictionary
+Public Function CommonUsed() As Dictionary
 ' ----------------------------------------------------------------------------
-' Returns a Dictionary of all VBComponents in the mService.Serviced Workbook's
-' VBProject indicated Used Common Components of which an update is due because
-' the correspondingthe Raw's code has changed.
-' The Dictionary has the VBComponent objects as key and the corresponding
-' clsComp objects as item. The function uses the All Dictionary and removes
-' all items not identified as a Used Common Component of which the correponding
-' Raw Common Component has changed.
+' Returns a Dictionary with those VBComponents (clsComp objects) in the
+' eerviced Workbook which are indicated Used Common Components.
 ' ----------------------------------------------------------------------------
     Const PROC = "Outdated"
     
@@ -85,21 +101,53 @@ Private Function Outdated(Optional ByRef o_stats As clsStats = Nothing) As Dicti
     Dim Comp    As clsComp
     Dim dct     As Dictionary
     Dim v       As Variant
+    Dim vbc     As VBComponent
     
-    Set dct = All
+    Set dct = dctAll
     For Each v In dct
         Set Comp = dct(v)
         With Comp
-            If Not .KindOfComp = mCompMan.enCommCompUsed Then
-                dct.Remove v
-            ElseIf Not .Outdated Then
-                dct.Remove v
-            End If
+            Set vbc = .VBComp
+            Select Case .KindOfComp
+                Case enCommCompUsed
+                    With Services
+                        .ServicedItem = vbc
+                        .NoOfItemsCommonUsed = .NoOfItemsCommonUsed + 1
+                        .LogEntry "Used Common Component"
+                    End With
+                Case enCommCompHosted
+                    dct.Remove v
+                    With Services
+                        .ServicedItem = vbc
+                        .NoOfItemsIgnored = .NoOfItemsIgnored + 1
+                        .DsplyProgress "Hosted Common Component (ignored)"
+                    End With
+                Case Else
+                    If mCompManDat.RegistrationState(.CompName) = enRegStatePrivate Then
+                        dct.Remove v
+                        With Services
+                            .ServicedItem = vbc
+                            .NoOfItemsIgnored = .NoOfItemsIgnored + 1
+                            .DsplyProgress "Named like a Common Component but indicated ""private""! (ignored)"
+                        End With
+                    Else
+                        dct.Remove v
+                        With Services
+                            .ServicedItem = vbc
+                            .NoOfItemsIgnored = .NoOfItemsIgnored + 1
+                            .DsplyProgress "Internal VBComponent (ignored)"
+                        End With
+                    End If
+            End Select
         End With
     Next v
-    If Not o_stats Is Nothing Then o_stats.Count mCompMan.sic_used_comm_vbc_outdated, dct.Count
     
-xt: Set Outdated = dct
+    With Services
+        .NoOfItemsOutdated = dct.Count
+        .DsplyProgress "collected Common Components used"
+    End With
+    
+xt: Set CommonUsed = dct
     Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
