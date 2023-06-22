@@ -109,7 +109,7 @@ Public Property Let Url(Optional ByVal su_wsh As Worksheet, _
     Dim sAddress    As String
     Dim sSubAddress As String
     Dim bProtected  As Boolean
-    Dim Rng         As Range
+    Dim rng         As Range
     
     Application.ScreenUpdating = False
     bProtected = su_wsh.ProtectContents
@@ -186,29 +186,29 @@ Public Property Let Value(Optional ByVal v_wsh As Worksheet, _
 ' ----------------------------------------------------------------------------
     Const PROC = "Value-Let"
     
-    Dim Rng         As Range
+    Dim rng         As Range
     Dim bProtected  As Boolean
     
     On Error Resume Next
     Select Case TypeName(v_name)
-        Case "String": Set Rng = v_wsh.Range(v_name)
-        Case "Range":  Set Rng = v_name
+        Case "String": Set rng = v_wsh.Range(v_name)
+        Case "Range":  Set rng = v_name
     End Select
     If Err.Number <> 0 _
     Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.Name & "' has no range with a name '" & v_name & "'!"
     
     bProtected = v_wsh.ProtectContents
     
-    If bProtected And Rng.Locked Then
+    If bProtected And rng.Locked Then
         '~~ Unprotect is required only when the range is locked and the sheet is protected
         On Error Resume Next
         v_wsh.Unprotect
         If Err.Number <> 0 _
         Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.Name & "' is apparently password protected which is not supported by this component's Value service!"
-        Rng.Value = v_value
+        rng.Value = v_value
         If bProtected Then v_wsh.Protect
     Else
-        Rng.Value = v_value
+        rng.Value = v_value
     End If
     
 xt: Exit Property
@@ -245,63 +245,32 @@ End Function
 ' -----------------------------------------------------------------------------------
 Private Sub BoP(ByVal b_proc As String, ParamArray b_arguments() As Variant)
 ' ------------------------------------------------------------------------------
-' Common 'Begin of Procedure' interface for the 'Common VBA Error Services' and
-' the 'Common VBA Execution Trace Service' (only in case the first one is not
-' installed/activated).
-' Note 1: The services, when installed, are activated by the
-'         | Cond. Comp. Arg.        | Installed component |
-'         |-------------------------|---------------------|
-'         | ErHComp = 1             | mErH                |
-'         | XcTrc_mTrc = 1          | mTrc                |
-'         | XcTrc_clsTrc = 1        | clsTrc              |
-'         I.e. both components are independant from each other!
-' Note 2: This procedure is obligatory for any VB-Component using either the
-'         the 'Common VBA Error Services' and/or the 'Common VBA Execution
-'         Trace Service'.
+' (B)egin-(o)f-(P)rocedure named (b_proc). Procedure to be copied as Private
+' into any module potentially either using the Common VBA Error Service and/or
+' the Common VBA Execution Trace Service. Has no effect when Conditional Compile
+' Arguments are 0 or not set at all.
 ' ------------------------------------------------------------------------------
-    Dim s As String
-    If Not IsMissing(b_arguments) Then s = Join(b_arguments, ";")
-
+    Dim s As String: If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
 #If ErHComp = 1 Then
-    '~~ The error handling will also hand over to the Common VBA Execution Trace
-    '~~ provided one is installed (mTrc/clsTrc) and activated.
     mErH.BoP b_proc, s
-#ElseIf XcTrc_clsTrc = 1 Then
-    '~~ mErH is not installed but the mTrc is
-    Trc.BoP b_proc, s
-#ElseIf XcTrc_mTrc = 1 Then
-    '~~ mErH neither mTrc is installed but clsTrc is
+#ElseIf ExecTrace = 1 Then
     mTrc.BoP b_proc, s
 #End If
-
 End Sub
 
-Private Sub EoP(ByVal e_proc As String, Optional ByVal e_inf As String = vbNullString)
+Private Sub EoP(ByVal e_proc As String, _
+      Optional ByVal e_inf As String = vbNullString)
 ' ------------------------------------------------------------------------------
-' Common 'End of Procedure' interface for the 'Common VBA Error Services' and
-' the 'Common VBA Execution Trace Service' (only in case the first one is not
-' installed/activated).
-' Note 1: The services, when installed, are activated by the
-'         | Cond. Comp. Arg.        | Installed component |
-'         |-------------------------|---------------------|
-'         | ErHComp = 1             | mErH                |
-'         | XcTrc_mTrc = 1          | mTrc                |
-'         | XcTrc_clsTrc = 1        | clsTrc              |
-'         I.e. both components are independant from each other!
-' Note 2: This procedure is obligatory for any VB-Component using either the
-'         the 'Common VBA Error Services' and/or the 'Common VBA Execution
-'         Trace Service'.
+' (E)nd-(o)f-(P)rocedure named (e_proc). Procedure to be copied as Private Sub
+' into any module potentially either using the Common VBA Error Service and/or
+' the Common VBA Execution Trace Service. Has no effect when Conditional Compile
+' Arguments are 0 or not set at all.
 ' ------------------------------------------------------------------------------
 #If ErHComp = 1 Then
-    '~~ The error handling will also hand over to the Common VBA Execution Trace
-    '~~ provided one is installed (mTrc/clsTrc) and activated.
     mErH.EoP e_proc
-#ElseIf XcTrc_clsTrc = 1 Then
-    Trc.EoP e_proc, e_inf
-#ElseIf XcTrc_mTrc = 1 Then
+#ElseIf ExecTrace = 1 Then
     mTrc.EoP e_proc, e_inf
 #End If
-
 End Sub
 
 Private Function ErrMsg(ByVal err_source As String, _

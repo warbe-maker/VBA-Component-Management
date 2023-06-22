@@ -18,7 +18,7 @@ RawRevisionNumber=2023-06-22.001
 [mBasic]
 DueModificationWarning=1
 KindOfComponent=used
-RawRevisionNumber=2023-06-22.003
+RawRevisionNumber=2023-06-22.004
 [mCompManClient]
 KindOfComponent=hosted
 RawExpFileFullName=D:\Ablage\Excel VBA\DevAndTest\Common-VBA-Excel-Component-Management-Services\source\mCompManClient.bas
@@ -50,7 +50,7 @@ RawRevisionNumber=2023-03-06.002
 [mRng]
 DueModificationWarning=1
 KindOfComponent=used
-RawRevisionNumber=2023-02-14.001
+RawRevisionNumber=2023-06-22.002
 [mTrc]
 DueModificationWarning=1
 KindOfComponent=used
@@ -58,7 +58,7 @@ RawRevisionNumber=2023-06-22.001
 [mWbk]
 DueModificationWarning=1
 KindOfComponent=used
-RawRevisionNumber=2022-10-26.001
+RawRevisionNumber=2023-06-22.003
 [mWsh]
 DueModificationWarning=1
 KindOfComponent=used

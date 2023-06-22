@@ -322,65 +322,33 @@ End Sub
 
 Private Sub BoP(ByVal b_proc As String, ParamArray b_arguments() As Variant)
 ' ------------------------------------------------------------------------------
-' Common 'Begin of Procedure' interface for the 'Common VBA Error Services' and
-' the 'Common VBA Execution Trace Service' (only in case the first one is not
-' installed/activated).
-' Note 1: The services, when installed, are activated by the
-'         | Cond. Comp. Arg.        | Installed component |
-'         |-------------------------|---------------------|
-'         | ErHComp = 1             | mErH                |
-'         | XcTrc_mTrc = 1          | mTrc                |
-'         | XcTrc_clsTrc = 1        | clsTrc              |
-'         I.e. both components are independant from each other!
-' Note 2: This procedure is obligatory for any VB-Component using either the
-'         the 'Common VBA Error Services' and/or the 'Common VBA Execution
-'         Trace Service'.
+' (B)egin-(o)f-(P)rocedure named (b_proc). Procedure to be copied as Private
+' into any module potentially either using the Common VBA Error Service and/or
+' the Common VBA Execution Trace Service. Has no effect when Conditional Compile
+' Arguments are 0 or not set at all.
 ' ------------------------------------------------------------------------------
-    Dim s As String
-    If Not IsMissing(b_arguments) Then s = Join(b_arguments, ";")
-
+    Dim s As String: If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
 #If ErHComp = 1 Then
-    '~~ The error handling will also hand over to the Common VBA Execution Trace
-    '~~ provided one is installed (mTrc/clsTrc) and activated.
     mErH.BoP b_proc, s
-#ElseIf XcTrc_clsTrc = 1 Then
-    '~~ mErH is not installed but the mTrc is
-    Trc.BoP b_proc, s
-#ElseIf XcTrc_mTrc = 1 Then
-    '~~ mErH neither mTrc is installed but clsTrc is
+#ElseIf ExecTrace = 1 Then
     mTrc.BoP b_proc, s
 #End If
-
 End Sub
 
-Private Sub EoP(ByVal e_proc As String, Optional ByVal e_inf As String = vbNullString)
+Private Sub EoP(ByVal e_proc As String, _
+      Optional ByVal e_inf As String = vbNullString)
 ' ------------------------------------------------------------------------------
-' Common 'End of Procedure' interface for the 'Common VBA Error Services' and
-' the 'Common VBA Execution Trace Service' (only in case the first one is not
-' installed/activated).
-' Note 1: The services, when installed, are activated by the
-'         | Cond. Comp. Arg.        | Installed component |
-'         |-------------------------|---------------------|
-'         | ErHComp = 1             | mErH                |
-'         | XcTrc_mTrc = 1          | mTrc                |
-'         | XcTrc_clsTrc = 1        | clsTrc              |
-'         I.e. both components are independant from each other!
-' Note 2: This procedure is obligatory for any VB-Component using either the
-'         the 'Common VBA Error Services' and/or the 'Common VBA Execution
-'         Trace Service'.
+' (E)nd-(o)f-(P)rocedure named (e_proc). Procedure to be copied as Private Sub
+' into any module potentially either using the Common VBA Error Service and/or
+' the Common VBA Execution Trace Service. Has no effect when Conditional Compile
+' Arguments are 0 or not set at all.
 ' ------------------------------------------------------------------------------
 #If ErHComp = 1 Then
-    '~~ The error handling will also hand over to the Common VBA Execution Trace
-    '~~ provided one is installed (mTrc/clsTrc) and activated.
     mErH.EoP e_proc
-#ElseIf XcTrc_clsTrc = 1 Then
-    Trc.EoP e_proc, e_inf
-#ElseIf XcTrc_mTrc = 1 Then
+#ElseIf ExecTrace = 1 Then
     mTrc.EoP e_proc, e_inf
 #End If
-
 End Sub
-
 
 Private Function ErrMsg(ByVal err_source As String, _
                Optional ByVal err_no As Long = 0, _
@@ -644,7 +612,7 @@ Public Function HasChangedName(ByVal hc_nme As Name, _
 xt: Set dct = Nothing
     Exit Function
     
-eh: Select Case ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -708,7 +676,7 @@ Public Function HasChangedReferredRange(ByVal hc_nme As Name, _
     
 xt: Exit Function
     
-eh: Select Case ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -915,7 +883,7 @@ Private Function FoundInFormulas(ByVal fif_str As String, _
     Dim cel As Range
     Dim cll As New Collection
     Dim wsh As Worksheet
-    Dim Rng As Range
+    Dim rng As Range
     
     BoP PROC
     For Each wsh In fif_wbk.Worksheets
@@ -924,9 +892,9 @@ Private Function FoundInFormulas(ByVal fif_str As String, _
         End If
         
         On Error Resume Next
-        Set Rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
+        Set rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
         If Err.Number <> 0 Then GoTo ws
-        For Each cel In Rng
+        For Each cel In rng
             If InStr(1, cel.Formula, fif_str) > 0 Then
                 FoundInFormulas = True
                 If IsMissing(fif_cll) Then
@@ -944,7 +912,7 @@ xt: Set fif_cll = cll
     EoP PROC
     Exit Function
     
-eh: Select Case ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1013,7 +981,7 @@ Public Function IsInUse(ByVal iu_nme As Name, _
     
 xt: Exit Function
     
-eh: Select Case ErrMsg(ErrSrc(PROC))
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

@@ -1,29 +1,32 @@
 Attribute VB_Name = "mWbk"
 Option Explicit
-Option Private Module
 Option Compare Text
 ' -----------------------------------------------------------------------------------
 ' Standard Module mWbk: Provides basic Workbook services.
+' =====================
 '
 ' Public services:
-' - GetOpen     Opens a provided Workbook if possible, returns the Workbook object of
-'               the openend or an already open Workbook
-' - IsFullName  Returns TRUE when a provided string is the full name of a Workbook
-' - IsName      Returns TRUE when a provided string is the name of a Workbook
-' - IsWbObject    Returns TRUE when the provided variant is a Workbook (not necessarily
-'               also open!)
-' - IsOpen      Returns TRUE when the provided Workbook is open
-' - Opened      Returns a Dictionary of all open Workbooks in any application
-'               instance with the Workbook's Name as the key and the Workbook object
-'               as the item.
+' ----------------
+' GetOpen     Opens a provided Workbook if possible, returns the Workbook object of
+'             the openend or an already open Workbook
+' IsFullName  Returns TRUE when a provided string is the full name of a Workbook
+' IsName      Returns TRUE when a provided string is the name of a Workbook
+' IsWbObject  Returns TRUE when the provided variant is a Workbook (not necessarily
+'             also open!)
+' IsOpen      Returns TRUE when the provided Workbook is open
+' Opened      Returns a Dictionary of all open Workbooks in any application
+'             instance with the Workbook's Name as the key and the Workbook object
+'             as the item.
 '
-' Uses:         mErH, fMsg, mMsg, mTrc (in mWbkTest module only!)
+' Uses:
+' -----
+' No other components
 '
 ' Requires: Reference to "Microsoft Scripting Runtine"
 '
-' See: https://github.com/warbe-maker/Common-VBA-Excel-Workbook-Services
 '
 ' W. Rauschenberger, Berlin June 2022
+' See: https://github.com/warbe-maker/VBA-Excel-Workbook
 ' -----------------------------------------------------------------------------------
 #If Not MsgComp = 1 Then
     ' ------------------------------------------------------------------------
@@ -46,6 +49,31 @@ Private Declare PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameA"
 Private Declare PtrSafe Function IIDFromString Lib "ole32" (ByVal lpsz As LongPtr, ByRef lpiid As UUID) As LongPtr
 Private Declare PtrSafe Function AccessibleObjectFromWindow Lib "oleacc" (ByVal hWnd As LongPtr, ByVal dwId As LongPtr, ByRef riid As UUID, ByRef ppvObject As Object) As LongPtr
 
+Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
+    Alias "ShellExecuteA" _
+    (ByVal hWnd As Long, _
+    ByVal lpOperation As String, _
+    ByVal lpFile As String, _
+    ByVal lpParameters As String, _
+    ByVal lpDirectory As String, _
+    ByVal nShowCmd As Long) _
+    As Long
+
+'***App Window Constants***
+Private Const WIN_NORMAL = 1         'Open Normal
+Private Const WIN_MAX = 3            'Open Maximized
+Private Const WIN_MIN = 2            'Open Minimized
+
+'***Error Codes***
+Private Const ERROR_SUCCESS = 32&
+Private Const ERROR_NO_ASSOC = 31&
+Private Const ERROR_OUT_OF_MEM = 0&
+Private Const ERROR_FILE_NOT_FOUND = 2&
+Private Const ERROR_PATH_NOT_FOUND = 3&
+Private Const ERROR_BAD_FORMAT = 11&
+Private Const WS_THICKFRAME As Long = &H40000
+Private Const GWL_STYLE As Long = -16
+
 Type UUID 'GUID
     Data1 As Long
     Data2 As Integer
@@ -56,6 +84,8 @@ End Type
 Private Const IID_IDispatch As String = "{00020400-0000-0000-C000-000000000046}"
 Private Const OBJID_NATIVEOM As LongPtr = &HFFFFFFF0
 ' --- End of declarations to get all Workbooks of all running Excel instances
+
+Private Const GITHUB_REPO_URL = "https://github.com/warbe-maker/VBA-Excel-Workbook"
 
 Public Property Get Value(Optional ByVal v_wsh As Worksheet, _
                           Optional ByVal v_name As Variant) As String
@@ -81,6 +111,56 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Property
+
+Public Sub README(Optional ByVal r_bookmark As String = vbNullString)
+    Const README_URL = "/blob/master/README.md"
+    
+    If r_bookmark = vbNullString _
+    Then ShellRun GITHUB_REPO_URL & README_URL _
+    Else: ShellRun GITHUB_REPO_URL & README_URL & "#" & r_bookmark
+        
+End Sub
+
+Private Function ShellRun(ByVal sr_string As String, _
+                 Optional ByVal sr_show_how As Long = WIN_NORMAL) As String
+' ----------------------------------------------------------------------------
+' Opens a folder, email-app, url, or even an Access instance.
+'
+' Usage Examples: - Open a folder:  ShellRun("C:\TEMP\")
+'                 - Call Email app: ShellRun("mailto:user@tutanota.com")
+'                 - Open URL:       ShellRun("http://.......")
+'                 - Unknown:        ShellRun("C:\TEMP\Test") (will call
+'                                   "Open With" dialog)
+'                 - Open Access DB: ShellRun("I:\mdbs\xxxxxx.mdb")
+' Copyright:      This code was originally written by Dev Ashish. It is not to
+'                 be altered or distributed, except as part of an application.
+'                 You are free to use it in any application, provided the
+'                 copyright notice is left unchanged.
+' Courtesy of:    Dev Ashish
+' ----------------------------------------------------------------------------
+
+    Dim lRet            As Long
+    Dim varTaskID       As Variant
+    Dim stRet           As String
+    Dim hWndAccessApp   As Long
+    
+    '~~ First try ShellExecute
+    lRet = apiShellExecute(hWndAccessApp, vbNullString, sr_string, vbNullString, vbNullString, sr_show_how)
+    
+    Select Case True
+        Case lRet = ERROR_OUT_OF_MEM:       stRet = "Execution failed: Out of Memory/Resources!"
+        Case lRet = ERROR_FILE_NOT_FOUND:   stRet = "Execution failed: File not found!"
+        Case lRet = ERROR_PATH_NOT_FOUND:   stRet = "Execution failed: Path not found!"
+        Case lRet = ERROR_BAD_FORMAT:       stRet = "Execution failed: Bad File Format!"
+        Case lRet = ERROR_NO_ASSOC          ' Try the OpenWith dialog
+            varTaskID = Shell("rundll32.exe shell32.dll,OpenAs_RunDLL " & sr_string, WIN_NORMAL)
+            lRet = (varTaskID <> 0)
+        Case lRet > ERROR_SUCCESS:          lRet = -1
+    End Select
+    
+    ShellRun = lRet & IIf(stRet = vbNullString, vbNullString, ", " & stRet)
+
+End Function
 
 Public Property Let Value(Optional ByVal v_wsh As Worksheet, _
                           Optional ByVal v_name As Variant, _
@@ -159,68 +239,40 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function ErrMsg(ByVal err_source As String, _
-              Optional ByVal err_no As Long = 0, _
-              Optional ByVal err_dscrptn As String = vbNullString, _
-              Optional ByVal err_line As Long = 0) As Variant
+               Optional ByVal err_no As Long = 0, _
+               Optional ByVal err_dscrptn As String = vbNullString, _
+               Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Universal error message display service including a debugging option active
-' when the Conditional Compile Argument 'Debugging = 1' and an optional
-' additional "About the error:" section displaying text connected to an error
-' message by two vertical bars (||).
+' Universal error message display service. Obligatory copy Private for any
+' VB-Component using the common error service but not having the mBasic common
+' component installed.
+' Displays: - a debugging option button when the Cond. Comp. Arg. 'Debugging = 1'
+'           - an optional additional "About:" section when the err_dscrptn has
+'             an additional string concatenated by two vertical bars (||)
+'           - the error message by means of the Common VBA Message Service
+'             (fMsg/mMsg) when installed and active (Cond. Comp. Arg.
+'             `MsgComp = 1`)
 '
-' A copy of this function is used in each procedure with an error handling
-' (On error Goto eh).
+' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
+'               to turn them into a negative and in the error message back into
+'               its origin positive number.
 '
-' The function considers the Common VBA Error Handling Component (ErH) which
-' may be installed (Conditional Compile Argument 'ErHComp = 1') and/or the
-' Common VBA Message Display Component (mMsg) installed (Conditional Compile
-' Argument 'MsgComp = 1'). Only when none of the two is installed the error
-' message is displayed by means of the VBA.MsgBox.
-'
-' Usage: Example with the Conditional Compile Argument 'Debugging = 1'
-'
-'        Private/Public <procedure-name>
-'            Const PROC = "<procedure-name>"
-'
-'            On Error Goto eh
-'            ....
-'        xt: Exit Sub/Function/Property
-'
-'        eh: Select Case ErrMsg(ErrSrc(PROC))
-'               Case vbResume:  Stop: Resume
-'               Case Else:      GoTo xt
-'            End Select
-'        End Sub/Function/Property
-'
-'        The above may appear a lot of code lines but will be a godsend in case
-'        of an error!
-'
-' Uses:  - For programmed application errors (Err.Raise AppErr(n), ....) the
-'          function AppErr will be used which turns the positive number into a
-'          negative one. The error message will regard a negative error number
-'          as an 'Application Error' and will use AppErr to turn it back for
-'          the message into its original positive number. Together with the
-'          ErrSrc there will be no need to maintain numerous different error
-'          numbers for a VB-Project.
-'        - The caller provides the source of the error through the module
-'          specific function ErrSrc(PROC) which adds the module name to the
-'          procedure name.
-'
-' W. Rauschenberger Berlin, Nov 2021
+' W. Rauschenberger Berlin, June 2023
+' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
 #If ErHComp = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
-    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line)
+    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt
 #ElseIf MsgComp = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
     '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
-    ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line)
+    ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt
 #End If
-    '~~ When neither the mMsg nor the mErH component is installed the error
-    '~~ message is displayed by means of the VBA.MsgBox
+    '~~ When neither of the Common Component is available in the VB-Project
+    '~~ the error message is displayed by means of the VBA.MsgBox
     Dim ErrBttns    As Variant
     Dim ErrAtLine   As String
     Dim ErrDesc     As String
@@ -239,6 +291,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
+    '~~ Consider extra information is provided with the error description
     If InStr(err_dscrptn, "||") <> 0 Then
         ErrDesc = Split(err_dscrptn, "||")(0)
         ErrAbout = Split(err_dscrptn, "||")(1)
@@ -253,10 +306,9 @@ Private Function ErrMsg(ByVal err_source As String, _
             ErrType = "Application Error "
         Case Else
             ErrNo = err_no
-            If (InStr(1, err_dscrptn, "DAO") <> 0 _
-            Or InStr(1, err_dscrptn, "ODBC Teradata Driver") <> 0 _
-            Or InStr(1, err_dscrptn, "ODBC") <> 0 _
-            Or InStr(1, err_dscrptn, "Oracle") <> 0) _
+            If err_dscrptn Like "*DAO*" _
+            Or err_dscrptn Like "*ODBC*" _
+            Or err_dscrptn Like "*Oracle*" _
             Then ErrType = "Database Error " _
             Else ErrType = "VB Runtime Error "
     End Select
@@ -265,30 +317,17 @@ Private Function ErrMsg(ByVal err_source As String, _
     If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
     ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
        
-    ErrText = "Error: " & vbLf & _
-              ErrDesc & vbLf & vbLf & _
-              "Source: " & vbLf & _
-              err_source & ErrAtLine
-    If ErrAbout <> vbNullString _
-    Then ErrText = ErrText & vbLf & vbLf & _
-                  "About: " & vbLf & _
-                  ErrAbout
+    ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
+    If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
     
-#If Debugging Then
+#If Debugging = 1 Then
     ErrBttns = vbYesNo
-    ErrText = ErrText & vbLf & vbLf & _
-              "Debugging:" & vbLf & _
-              "Yes    = Resume Error Line" & vbLf & _
-              "No     = Terminate"
+    ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
 #Else
     ErrBttns = vbCritical
 #End If
-    
-    ErrMsg = MsgBox(Title:=ErrTitle _
-                  , Prompt:=ErrText _
-                  , Buttons:=ErrBttns)
-xt: Exit Function
-
+    ErrMsg = MsgBox(Title:=ErrTitle, Prompt:=ErrText, Buttons:=ErrBttns)
+xt:
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
