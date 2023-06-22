@@ -2,28 +2,18 @@ Attribute VB_Name = "mComp"
 Option Explicit
 ' ------------------------------------------------------------------------
 ' Standard-Module mComp: Services for (not only Common) VBComponents.
+' ======================
 '
 ' Public services:
-' - CommCompRegStateEnum
-'   Returns a provided CommCompRegStateString as enumerated value
-' - CommCompRegStateString
-'   Returns a provided enumerated CommCompRegStateString as string
-' - Exists
-'   Returns TRUE when a components name exists in a Workbook's VBProject
-' - IsSheetDocMod
-'   Returns TRUE when a provided VBComponent object is of a type
-'   Document-Module and represents a Worksheet
-' - IsWrkbDocMod
-'   Returns TRUE when a provided VBComponent object is of a type
-'   Document-Module and represents the Workbook
-'
-' - ManageUsedCommonComponent
-'
-' - TempName
-'   Returns a temporary name for a provided VBComponent's name which
-'   is not already used in the provided Workbook/VBProject
-' - TypeString
-'   Returns a provided VBComponent object's type as string
+' ----------------
+' Exists        Returns TRUE when a components name exists in a
+'               Workbook's VBProject
+' IsSheetDocMod Returns TRUE when a provided VBComponent object is of a
+'               type Document-Module and represents a Worksheet
+' TempName      Returns a temporary name for a provided VBComponent's
+'               name which is not already used in the provided
+'               Workbook/VBProject
+' TypeString    Returns a provided VBComponent object's type as string
 '
 ' ------------------------------------------------------------------------
 Public Const RENAMED_BY_COMPMAN = "_RnmdByCompMan"

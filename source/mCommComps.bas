@@ -427,7 +427,8 @@ Private Sub OutdatedUpdateChoice()
                                 , "mCommComps.OutdatedUpdateChoiceDsplyDiffs"
     mMsg.BttnAppRun AppRunArgs, BttnSkipForNow _
                                 , ThisWorkbook _
-                                , "mCommComps.OutdatedUpdateChoiceSkipForNow"
+                                , "mCommComps.OutdatedUpdateChoiceSkipForNow" _
+                                , Comp.CompName
     mMsg.BttnAppRun AppRunArgs, BttnSkipForever _
                                 , ThisWorkbook _
                                 , "mCommComps.OutdatedUpdateChoiceSkipForever" _
@@ -483,10 +484,18 @@ Private Sub OutdatedUpdateChoiceSkipForever(ByVal u_comp_name)
     Const PROC = "OutdatedUpdateChoiceSkipForever"
     
     On Error GoTo eh
+    Dim wbk As Workbook
     
     mBasic.BoP ErrSrc(PROC)
     mCompManDat.RegistrationState(u_comp_name) = enRegStatePrivate
     Qoutdated.DeQueue
+    Set wbk = Services.Serviced
+    With New clsComp
+        Set .Wrkbk = wbk
+        .CompName = u_comp_name
+        Services.ServicedItem = .VBComp
+    End With
+    
     With Services
         .NoOfItemsIgnored = .NoOfItemsIgnored + 1
         .LogEntry "Outdated used Commpon Component: Update skipped forever!"
@@ -503,16 +512,24 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub OutdatedUpdateChoiceSkipForNow()
+Private Sub OutdatedUpdateChoiceSkipForNow(ByVal u_comp_name As String)
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
     Const PROC = "OutdatedUpdateChoiceSkipForNow"
     
     On Error GoTo eh
+    Dim wbk As Workbook
     
     mBasic.BoP ErrSrc(PROC)
     Qoutdated.DeQueue
+    Set wbk = Services.Serviced
+    With New clsComp
+        Set .Wrkbk = wbk
+        .CompName = u_comp_name
+        Services.ServicedItem = .VBComp
+    End With
+    
     With Services
         .NoOfItemsIgnored = .NoOfItemsIgnored + 1
         .LogEntry "Outdated used Commpon Component: Update skipped for now!"
@@ -593,11 +610,9 @@ Private Sub OutdatedUpdateCollect()
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
     Set Qoutdated = New clsQ
-'    Application.StatusBar = vbNullString
     Set dct = Comps.CommonUsed
     
     For Each v In dct
-'        Set vbc = dctAll(v)
         Set Comp = dct(v)
         With Comp
             Services.ServicedItem = .VBComp

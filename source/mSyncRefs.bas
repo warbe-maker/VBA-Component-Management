@@ -54,9 +54,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-
-
-
 Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
                     ByVal c_wbk_target As Workbook)
 ' ------------------------------------------------------------------------------

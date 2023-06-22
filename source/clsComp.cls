@@ -382,7 +382,7 @@ Friend Property Get ExpFileTempFullName() As String
     If Not wbk Is Nothing Then
         With fso
             If sTmpFolder = vbNullString Then
-                sTmpFolder = mExport.ExpFileFolderPath(wbk) & "\Temp"
+                sTmpFolder = Services.TempExportFolder
             End If
             If Not .FolderExists(sTmpFolder) Then
                 mBasic.TimedDoEvents ErrSrc(PROC)
@@ -467,9 +467,14 @@ Friend Property Get Outdated() As Boolean
 ' Returns True when the current component is a Used Common Component of which
 ' the corresponding Raw Common Component's code has changed.
 ' ------------------------------------------------------------------------------
+    Const PROC = "Outdated"
+    
+    mBasic.BoP ErrSrc(PROC)
     With Me
         If .KindOfComp = mCompMan.enCommCompUsed Then Outdated = RawChanged
     End With
+    mBasic.EoP ErrSrc(PROC)
+    
 End Property
 
 Private Property Get RawChanged() As Boolean
@@ -487,6 +492,7 @@ Private Property Get RawChanged() As Boolean
     On Error GoTo eh
     Dim bExcludeExportHeader As Boolean
     
+    mBasic.BoP ErrSrc(PROC), Me.CompName
     bExcludeExportHeader = Me.TypeString = "UserForm"
     If Me.RevisionNumber < mCommComps.RevisionNumber(sCompName) Then
         '~~ The Revision Number of the Raw Common Component is greater which means that
@@ -515,7 +521,8 @@ Private Property Get RawChanged() As Boolean
         End If
     End If
 
-xt: Exit Property
+xt: mBasic.EoP ErrSrc(PROC), Me.CompName
+    Exit Property
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

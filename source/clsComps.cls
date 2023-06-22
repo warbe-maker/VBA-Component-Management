@@ -36,10 +36,13 @@ Public Function CollectAll() As Dictionary
 ' Note: The mDct.DctAdd service orders the items ascending by key (possible
 '       because the key object has a Name property.
 ' ----------------------------------------------------------------------------
+    Const PROC = "CollectAll"
+    
     Dim vbc     As VBComponent
     Dim Comp    As clsComp
     Dim wbk     As Workbook
     
+    mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
     If wbk Is Nothing Then
         Set wbk = ActiveWorkbook
@@ -64,28 +67,28 @@ Public Function CollectAll() As Dictionary
         Next vbc
     End With
     mDct.KeySort dctAll
+    mBasic.EoP ErrSrc(PROC)
     
 End Function
 
-Private Function Changed(Optional ByRef c_stats As clsStats = Nothing) As Dictionary
+Private Function Changed() As Dictionary
 ' ----------------------------------------------------------------------------
-' Returns a Dictionary all components of which the code has been modified.
-' The Dictionary has the VBComponent objects as key and the corresponding
-' clsComp objects as item. The function uses the All Dictionary and removes
-' all items where the components not indicates it has changed.
+' Returns a Dictionary with all components of which the code has been
+' modified. The Dictionary has the VBComponent objects as key and the
+' corresponding clsComp objects as item. The function uses the All Dictionary
+' and removes all items where the components not indicates it has changed.
 ' ----------------------------------------------------------------------------
     Dim Comp    As clsComp
     Dim v       As Variant
     Dim dct     As Dictionary
     
-    Set dct = dctAll(c_stats)
+    Set dct = dctAll
     For Each v In dct
         Set Comp = dct(v)
         If Not Comp.Changed Then
             dct.Remove v
         End If
     Next v
-    If Not c_stats Is Nothing Then c_stats.Count mCompMan.sic_comps_changed, dct.Count
     Set Changed = dct
     
 End Function
@@ -103,6 +106,7 @@ Public Function CommonUsed() As Dictionary
     Dim v       As Variant
     Dim vbc     As VBComponent
     
+    mBasic.BoP ErrSrc(PROC)
     Set dct = dctAll
     For Each v In dct
         Set Comp = dct(v)
@@ -148,6 +152,7 @@ Public Function CommonUsed() As Dictionary
     End With
     
 xt: Set CommonUsed = dct
+    mBasic.EoP ErrSrc(PROC)
     Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

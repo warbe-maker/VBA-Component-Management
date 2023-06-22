@@ -331,7 +331,7 @@ Public Sub CollectChanged(ByVal c_shp_source As Shape)
     Dim vSource     As Variant
     Dim sId         As String
     
-    mBasic.EoP ErrSrc(PROC)
+    mBasic.BoP ErrSrc(PROC)
     If c_shp_source.Type = msoOLEControlObject Then
         '~~ Synchronize all properties of the oobTarget with the oobSource
         Set oobSource = shpSource.OLEFormat.Object

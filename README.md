@@ -1,41 +1,9 @@
-## Table of contents
-<!-- Start Document Outline -->
-
-* [Table of contents](#table-of-contents)
-* [Management of Excel VB-Project Components](#management-of-excel-vb-project-components)
-* [Disambiguation](#disambiguation)
-* [Services](#services)
-	* [Export Changed Components](#export-changed-components)
-	* [Update Outdated Common Components](#update-outdated-common-components)
-	* [Synchronize VB-Project](#synchronize-vb-project)
-* [Installation](#installation)
-	* [Provision of CompMan as a servicing Workbook instance](#provision-of-compman-as-a-servicing-workbook-instance)
-	* [CompMan's default files and folders environment](#compmans-default-files-and-folders-environment)
-	* [Configuration changes](#configuration-changes-compmans-config-worksheet)
-* [Usage](#usage)
-	* [Enabling the services (serviced or not serviced)](#enabling-the-services-serviced-or-not-serviced)
-	* [Enabling the Export service](#enabling-the-export-service)
-	* [Enabling the Update service](#enabling-the-update-service)
-	* [Enabling the Synchronization service](#enabling-the-synchronization-service)
-	* [Using the Synchronization Service](#using-the-synchronization-service)
-* [Other](#other)
-	* [Status of the CompMan Add-in](#status-of-the-compman-add-in)
-	* [Common Components](#common-components)
-	* [The Revision Number](#the-revision-number)
-	* [Other CompMan specific files](#other-compman-specific-files)
-	* [Multiple computers involved in VB-Project's development/maintenance](#multiple-computers-involved-in-vb-projects-developmentmaintenance)
-	* [CompMan used as Add-in](#compman-used-as-add-in)
-	* [Pausing/continuing the CompMan Add-in](#pausingcontinuing-the-compman-add-in)
-* [Contribution](#contribution)
-
-<!-- End Document Outline -->
-## Management of Excel VB-Project Components
+## Component Management Services focusing on Excel VB-Projects
 - **Export** any _Component_ the code has changed (automated with the Workbook_BeforeSave_ event)
 - **Update** outdated _Used&nbsp;[Common Components](#common-components)_
 - **Synchronize** the VB-Project of two Workbooks
-- **Manage** _Hosted Common&nbsp;Components_
  
-Also see the [Programmatic-ally updating Excel VBA code][2] post for this subject.
+Also see the [Programmatically updating Excel VBA code][2] post for this subject.
 
 ## Disambiguation
 
@@ -247,7 +215,7 @@ CompMan is pretty much focused on _Common&nbsp;Components_. In order to prevent 
 | File                        | Location             | Description               |
 |-----------------------------|----------------------|---------------------------|
 | _***CompMan.dat***_         | The <u>serviced</u> Workbook's parent folder | PrivateProfile file for the registration of all  _Hosted&nbsp;Common&nbsp;Components_ and all _Used&nbsp;Common&nbsp;Components_. |
-| _***CompMan.Service.trc***_ | The <u>serviced</u> Workbook's parent folder | Execution trace of the performed CompMan service, available only when the VB-Project's _Conditional Compile Argument_ `ExecTrace = 1` is set. |
+| _***CompMan.Service.trc***_ | The <u>serviced</u> Workbook's parent folder | Execution trace of the performed CompMan service, available only when the VB-Project's _Conditional Compile Argument_<br><nobr>`XcTrc_mTrc = 1` (mTrc is installed/used) or<br>`XcTrc_clsTrc = 1` (clsTrc is installed/used) is set. |
 |  _***CompMan.Service.log***_| The <u>serviced</u> Workbook's parent folder | Log file for the executed CompMan services.|
 | _***CommComp.dat***_        | The [Common-Components](#the-common-components-folder) folder | A _PrivateProfile_ file with sections representing Common Components with various information like the hosting Workbook and the _[Revision-Number](#the-revision-number)_ for instance.|
 

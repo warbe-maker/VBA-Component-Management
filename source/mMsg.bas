@@ -1,29 +1,27 @@
 Attribute VB_Name = "mMsg"
 Option Explicit
 ' ------------------------------------------------------------------------------
-' Standard Module mMsg
-'               Message display services using the fMsg form.
-'
+' Standard Module mMsg: Message display services using the fMsg form.
+' =====================
 ' Public services:
-' - Box         In analogy to the MsgBox, provides a simple message but with all
-'               the fexibility for the display of up to 49 reply buttons.
-' - Buttons     Supports the specification of the buttons displayed in a matrix
-'               of 7 x 7 buttons (max 7 buttons in max 7 rows)
-' - Dsply       Exposes all properties and methods for the display of any kind
-'               of message
-' - Monitor     Uses modeless instances of the fMsg form - any instance is
-'               identified by the window title - to display the progress of a
-'               process or monitor intermediate results.
-' - MsgInstance Creates (when not existing) and returns an fMsg object
-'               identified by the Title
+' Box         In analogy to the MsgBox, provides a simple message but with all
+'             the fexibility for the display of up to 49 reply buttons.
+' Buttons     Supports the specification of the buttons displayed in a matrix
+'             of 7 x 7 buttons (max 7 buttons in max 7 rows)
+' Dsply       Exposes all properties and methods for the display of any kind
+'             of message
+' Monitor     Uses modeless instances of the fMsg form - any instance is
+'             identified by the window title - to display the progress of a
+'             process or monitor intermediate results.
+' MsgInstance Creates (when not existing) and returns an fMsg object
+'             identified by the Title
 '
-' Uses:         fMsg
+' Uses:       fMsg
 '
 ' Requires:     Reference to "Microsoft Scripting Runtime"
 '
-' See: https://github.com/warbe-maker/Common-VBA-Message-Service
-'
-' W. Rauschenberger, Berlin Mar 2022 (last revision)
+' W. Rauschenberger, Berlin June 2023
+' See: https://github.com/warbe-maker/VBA-Message
 ' ------------------------------------------------------------------------------
 Const LOGPIXELSX                                As Long = 88        ' -------------
 Const LOGPIXELSY                                As Long = 90        ' Constants for

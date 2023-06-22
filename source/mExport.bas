@@ -2,15 +2,17 @@ Attribute VB_Name = "mExport"
 Option Explicit
 ' ----------------------------------------------------------------------------
 ' Standard-Module mExport: Services specifically for the export of changed or
-' ------------------------ all components.
+' ======================== all components.
+'
 ' Public services:
-' - All                 Exports all VBComponentnts whether the code has
-'                       changed or not
-' - ChangedComponents   Exports all VBComponents of which the code has
-'                       changed, i.e. a temporary Export-File differs from the
+' ----------------
+' All               Exports all VBComponentnts whether the code has changed
+'                   or not
+' ChangedComponents Exports all VBComponents of which the code has changed,
+'                   i.e. a temporary Export-File differs from the
 '                       regular Export-File (of the previous code change).
-' - ExpFileFolderPath   Returns a serviced Workbook's path for all Export-
-'                       Files whereby the name of the folder is the current
+' ExpFileFolderPath Returns a serviced Workbook's path for all Export-Files
+'                   whereby the name of the folder is the current
 '                       configured one (fefaulting  to 'source'). When no
 '                       Export-Folder exists, one is created. In case an
 '                       outdated export folder exists, i.e. one with an
@@ -96,9 +98,7 @@ End Function
 
 Public Sub ChangedComponents(ByVal c_hosted As String)
 ' ----------------------------------------------------------------------------
-' - Exports all components the code had been modified, detected by the
-'   comparison of a temporary export file with last modification's export
-'   file.
+' - Exports all components the code had been modified
 ' - Removes all Export Files of which the corresponding component no longer
 '   exist.
 ' - Registers a due warning message when a Used Common Component had been
@@ -122,7 +122,6 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
     
     Hskpng                      ' forward outdated export folder and remove obsolete Export files
     mCompManDat.Hskpng c_hosted ' remove obsolete sections in CompMan.dat
-    
     Set wbk = Services.Serviced
     
     For Each v In dctAllComps
@@ -134,7 +133,7 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                 Set .Wrkbk = Services.Serviced
                 .CompName = vbc.Name
                 Set .VBComp = vbc
-                Select Case .KindOfComp
+                    Select Case .KindOfComp
                     Case mCompMan.enCommCompHosted
                         If .Changed Then
                             Services.LogEntry "Hosted Raw Common Component code modified"
@@ -209,6 +208,7 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
     With Services
         .DsplyProgress "exported"
         .RemoveTempRenamed
+        .TempExportFolderRemove
     End With
     
 xt: mBasic.EoP ErrSrc(PROC)

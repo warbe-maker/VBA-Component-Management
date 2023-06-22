@@ -1,13 +1,11 @@
 Attribute VB_Name = "mCompManTest"
 Option Explicit
-Option Private Module
-' -------------------------------------------------------
-' Standard module mTest
-'                 Provides the means to test the services
-'                 of the CompMan AddIn Workbook.
+' ------------------------------------------------------------------------------
+' Standard module mTest: Provides the means to test the services of the CompMan
+' ====================== AddIn Workbook.
 '
 ' W. Rauschenberger Berlin, Jan 2021
-' -------------------------------------------------------
+' ------------------------------------------------------------------------------
 Private Const TEST_CHANGE = "' Test code change"
 
 Private cTest   As clsTestService
@@ -48,6 +46,28 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Sub Test_ExportChanged()
+    Const PROC = "Test_ExportChanged"
+    
+    On Error GoTo eh
+    Dim Comp        As New clsComp
+    Dim wbActive    As Workbook
+    
+    mBasic.BoP ErrSrc(PROC)
+   
+    Services.Initiate ErrSrc(PROC), ThisWorkbook
+    Log.Title "Export Changed Components Test"
+    mCompMan.ExportChangedComponents ThisWorkbook, "mCompManClient"
+
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
 Private Sub Test_Log()
     Const PROC = "Test_Log"
     
@@ -69,28 +89,6 @@ Private Sub Test_Log()
 xt: Set Services = Nothing
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub Test_ExportChanged()
-    Const PROC = "Test_ExportChanged"
-    
-    On Error GoTo eh
-    Dim Comp        As New clsComp
-    Dim wbActive    As Workbook
-    
-    mBasic.BoP ErrSrc(PROC)
-   
-    Services.Initiate ErrSrc(PROC), ThisWorkbook
-    Log.Title "Export Changed Components Test"
-    mCompMan.ExportChangedComponents ThisWorkbook, "mCompManClient"
-
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt

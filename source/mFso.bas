@@ -1550,14 +1550,14 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub FilePathSplit(ByRef spf_path As String, _
-                Optional ByRef spf_file As String = vbNullString)
+Public Sub FilePathSplit(ByRef f_path As String, _
+                Optional ByRef f_file As String = vbNullString)
 ' ----------------------------------------------------------------------------
-' Returns the provided file path string (spf_path) split in path and file name provided
-' the argument is either an existing folder's path or an existing file's path.
-' - When sp_path is a folder only string sp_file = vbNullString,
-' - When sp_path only contains a file name sp_folder = vbNullString and
-'   sp_file = the file's name
+' Returns the provided file path string (f_path) split in path and file name
+' provided the argument is either an existing folder's path or an existing
+' file's path. When sp_path is a folder only string for sp_file a vbNullString
+' is returned, when sp_path only contains a file name, sp_folder = vbNullString
+' is returned else sp_file = the file's name
 ' When the provided path is neither an existing folder's path nor an existing
 ' file's full name both arguments are returned a vbNullString.
 ' Note: For a non existing folder or file it is impossible to decide whether
@@ -1574,25 +1574,18 @@ Public Sub FilePathSplit(ByRef spf_path As String, _
     Dim sFolder As String
     Dim sFile   As String
     
-    aPath() = Split(spf_path, "\")  'Put the Parts of our path into an array
-    i = UBound(aPath)
-    sFile = aPath(i)                ' A valid name only when the argument named an existing of a nonn existing but valid file's name
-    aPath(i) = ""                   ' Remove the "maybe-a-file" from the array
-    sFolder = Join(aPath, "\")      ' Rebuild the path from the remaing array
-        
     With fso
-        If .FileExists(spf_path) Then
-            '~~ The provided argument ends with a valid file name and thus is a full file name
-            spf_path = sFolder
-            spf_file = sFile
-        ElseIf .FolderExists(spf_file) Then
-            '~~ The provided argument ends with a valid folder name and thus is a folder's path
-            spf_file = vbNullString
-        Else
-            Debug.Print ErrSrc(PROC) & ": Neither a folder nor a file exists with the provided string '" & spf_path & "'!"
-            spf_path = vbNullString
-            spf_file = vbNullString
-        End If
+        Select Case True
+            Case Not .FileExists(f_path) And Not .FolderExists(f_path)
+                Debug.Print ErrSrc(PROC) & ": Neither a folder nor a file exists with the provided string '" & f_path & "'!"
+                f_path = vbNullString
+                f_file = vbNullString
+            Case .FileExists(f_path)
+                f_file = .GetFileName(f_path)
+                f_path = Replace(f_path, f_file, vbNullString)
+            Case .FolderExists(f_path)
+                f_file = vbNullString
+        End Select
     End With
             
 xt: Set fso = Nothing

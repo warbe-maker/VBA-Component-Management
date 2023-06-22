@@ -123,7 +123,7 @@ Private Sub Class_Initialize()
 ' -----------------------------------------------------------------------------------
     NewLogInit
     bWithTimeStamp = False
-    sFileName = DefaultLogFileName
+    sFileName = fso.GetBaseName(ActiveWorkbook.Name) & ".log"
     sPath = ActiveWorkbook.Path
     FileFullName = sPath & "\" & sFileName
     NewLog
@@ -285,9 +285,9 @@ Private Property Let ColWidth(Optional ByVal c_col As Long, _
     aMaxItemLengths(c_col) = c_width
 End Property
 
-Private Property Get DefaultLogFileName() As String
-    DefaultLogFileName = fso.GetBaseName(ActiveWorkbook.Name) & ".log"
-End Property
+'Private Property Get DefaultLogFileName() As String
+'    DefaultLogFileName = fso.GetBaseName(ActiveWorkbook.Name) & ".log"
+'End Property
 
 Private Property Get DelimiterLineDue() As Boolean
     DelimiterLineDue = bNewLog _
@@ -299,8 +299,8 @@ Friend Property Get FileFullName() As String:   FileFullName = sFileFullName:   
 
 Friend Property Let FileFullName(ByVal s As String)
 ' ----------------------------------------------------------------------------
-' Explicitly specifies the log file's name and location - as an alternative to
-' the provision of FileName and/or Path
+' Specifies the log file's name and location, by the way maintains the Path
+' and the FileName property.
 ' ----------------------------------------------------------------------------
     Dim lDaysAge    As Long
     

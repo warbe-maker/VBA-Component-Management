@@ -19,6 +19,10 @@ Private Property Let AddInStatus(ByVal s As String):                 MaintainMin
 
 Private Property Let AutoOpenStatus(ByVal s As String):              MaintainMinRowHeight Me.Range("AutoOpenStatus"), s:                     End Property
 
+Private Property Get ButtonAddInProvideGiveUp() As Button:          Set ButtonAddInProvideGiveUp = Me.Buttons("cmbAddInSetUpGiveUp"):       End Property
+
+Private Property Get ButtonAddInRenew() As Button:                  Set ButtonAddInRenew = Me.Buttons("cmbAddInRenew"):                     End Property
+
 Public Property Let ButtonCaption(Optional ByVal b_cmb As Button, _
                                            ByVal b_caption As String)
     Dim b   As Boolean
@@ -63,25 +67,21 @@ Private Property Let ButtonEnabled(Optional ByVal b_cmb As Button, _
 
 End Property
 
-Private Property Get ButtonAddInProvideGiveUp() As Button:          Set ButtonAddInProvideGiveUp = Me.Buttons("cmbAddInSetUpGiveUp"):       End Property
-
 Private Property Let ButtonHelpUrlAddinSetup(ByVal s As String):    UrlButton(Me.Range("ButtonHelpUrlAddinSetup")) = s:                     End Property
 
 Private Property Let ButtonHelpUrlPauseContinue(ByVal s As String): UrlButton(Me.Range("ButtonHelpUrlPauseContinue")) = s:                  End Property
 
 Private Property Get ButtonPauseAddIn() As Button:                  Set ButtonPauseAddIn = Me.Buttons("cmbAddInPause"):                     End Property
 
-Private Property Get ButtonAddInRenew() As Button:                  Set ButtonAddInRenew = Me.Buttons("cmbAddInRenew"):                     End Property
-
 Private Property Get ButtonSetupRenewAddIn() As Button:             Set ButtonSetupRenewAddIn = Me.Buttons("cmbAddInRenew"):                End Property
 
 Private Property Get ButtonWrkbkAutoOpen() As Button:               Set ButtonWrkbkAutoOpen = Me.Buttons("cmbWrkbkAutoOpen"):               End Property
 
+Private Property Let CommonComponentsFolderUrl(ByVal s As String):  UrlLabel(Me.Range("CommonComponentsFolderUrl")) = s:                    End Property
+
 Private Property Let CompManAddInStatusUrl(ByVal s As String):      UrlLabel(Me.Range("CompManAddInStatusUrl")) = s:                        End Property
 
 Private Property Let CompManWrkbkStatusUrl(ByVal s As String):      UrlLabel(Me.Range("CompManWrkbkStatusUrl")) = s:                        End Property
-
-Private Property Let CommonComponentsFolderUrl(ByVal s As String):  UrlLabel(Me.Range("CommonComponentsFolderUrl")) = s:                    End Property
 
 Public Property Let ConfigInfo(ByVal s As String):                  mWsh.Value(Me, "ConfigInfo") = s:                                       End Property
 
@@ -200,38 +200,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub CompManAddinProvideGiveUpFlipFlop()
-' ----------------------------------------------------------------------------
-' Called by CommandButton cmbAddInSetUpGiveUp:
-' Flipflops between "Provide Add-in" and "Give-Up add-in".
-' Note: The Renew Add-in button is only visible when the Add-in is provided.
-' ----------------------------------------------------------------------------
-    Const PROC = "AutoOpenCompManFlipFlop"
-    
-    On Error GoTo eh
-    If mMe.IsAddinInstnc Then GoTo xt
-    Application.ScreenUpdating = False
-    If AutoOpenAddinIsSetup Then
-        mAddin.GiveUp
-        ButtonCaption(ButtonAddInProvideGiveUp) = "Provide Add-in"
-        ButtonAddInRenew.Visible = False
-        ButtonPauseAddIn.Visible = False
-    Else
-        mAddin.SetupRenew
-        ButtonCaption(ButtonAddInProvideGiveUp) = "Give up Add-in"
-        ButtonAddInRenew.Visible = True
-        ButtonPauseAddIn.Visible = True
-    End If
-    wsConfig.CurrentStatus
-    
-xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
 Public Sub AutoOpenCompManFlipFlop()
 ' ----------------------------------------------------------------------------
 ' Called by CommandButton cmbWrkbkAutoOpen:
@@ -285,6 +253,38 @@ Public Sub AutoOpenCompManSetup()
         .Save
     End With
     
+End Sub
+
+Public Sub CompManAddinProvideGiveUpFlipFlop()
+' ----------------------------------------------------------------------------
+' Called by CommandButton cmbAddInSetUpGiveUp:
+' Flipflops between "Provide Add-in" and "Give-Up add-in".
+' Note: The Renew Add-in button is only visible when the Add-in is provided.
+' ----------------------------------------------------------------------------
+    Const PROC = "AutoOpenCompManFlipFlop"
+    
+    On Error GoTo eh
+    If mMe.IsAddinInstnc Then GoTo xt
+    Application.ScreenUpdating = False
+    If AutoOpenAddinIsSetup Then
+        mAddin.GiveUp
+        ButtonCaption(ButtonAddInProvideGiveUp) = "Provide Add-in"
+        ButtonAddInRenew.Visible = False
+        ButtonPauseAddIn.Visible = False
+    Else
+        mAddin.SetupRenew
+        ButtonCaption(ButtonAddInProvideGiveUp) = "Give up Add-in"
+        ButtonAddInRenew.Visible = True
+        ButtonPauseAddIn.Visible = True
+    End If
+    wsConfig.CurrentStatus
+    
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub
 
 Public Sub CurrentStatus()
@@ -369,6 +369,100 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Private Function ErrMsg(ByVal err_source As String, _
+               Optional ByVal err_no As Long = 0, _
+               Optional ByVal err_dscrptn As String = vbNullString, _
+               Optional ByVal err_line As Long = 0) As Variant
+' ------------------------------------------------------------------------------
+' Universal error message display service which displays:
+' - a debugging option button (Conditional Compile Argument 'Debugging = 1')
+' - an optional additional "About:" section when the err_dscrptn has an
+'   additional string concatenated by two vertical bars (||)
+' - the error message by means of the Common VBA Message Service (fMsg/mMsg)
+'   Common Component
+'   mMsg (Conditional Compile Argument "MsgComp = 1") is installed.
+'
+' Uses:
+' - AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
+'           to turn them into a negative and in the error message back into
+'           its origin positive number.
+' - ErrSrc  To provide an unambiguous procedure name by prefixing is with
+'           the module name.
+'
+' W. Rauschenberger Berlin, Apr 2023
+'
+' See: https://github.com/warbe-maker/VBA-Error
+' ------------------------------------------------------------------------------
+#If ErHComp = 1 Then
+    '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
+    '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
+    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
+    GoTo xt
+#ElseIf MsgComp = 1 Then
+    '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
+    '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
+    ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
+    GoTo xt
+#End If
+    '~~ When neither of the Common Component is available in the VB-Project
+    '~~ the error message is displayed by means of the VBA.MsgBox
+    Dim ErrBttns    As Variant
+    Dim ErrAtLine   As String
+    Dim ErrDesc     As String
+    Dim ErrLine     As Long
+    Dim ErrNo       As Long
+    Dim ErrSrc      As String
+    Dim ErrText     As String
+    Dim ErrTitle    As String
+    Dim ErrType     As String
+    Dim ErrAbout    As String
+        
+    '~~ Obtain error information from the Err object for any argument not provided
+    If err_no = 0 Then err_no = Err.Number
+    If err_line = 0 Then ErrLine = Erl
+    If err_source = vbNullString Then err_source = Err.source
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
+    
+    '~~ Consider extra information is provided with the error description
+    If InStr(err_dscrptn, "||") <> 0 Then
+        ErrDesc = Split(err_dscrptn, "||")(0)
+        ErrAbout = Split(err_dscrptn, "||")(1)
+    Else
+        ErrDesc = err_dscrptn
+    End If
+    
+    '~~ Determine the type of error
+    Select Case err_no
+        Case Is < 0
+            ErrNo = AppErr(err_no)
+            ErrType = "Application Error "
+        Case Else
+            ErrNo = err_no
+            If err_dscrptn Like "*DAO*" _
+            Or err_dscrptn Like "*ODBC*" _
+            Or err_dscrptn Like "*Oracle*" _
+            Then ErrType = "Database Error " _
+            Else ErrType = "VB Runtime Error "
+    End Select
+    
+    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
+    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
+    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
+       
+    ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
+    If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
+    
+#If Debugging = 1 Then
+    ErrBttns = vbYesNo
+    ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
+#Else
+    ErrBttns = vbCritical
+#End If
+    ErrMsg = MsgBox(Title:=ErrTitle, Prompt:=ErrText, Buttons:=ErrBttns)
+xt:
+End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = Me.CodeName & "." & sProc
