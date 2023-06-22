@@ -383,7 +383,7 @@ Private Sub OutdatedUpdateChoice()
     Dim Msg         As mMsg.TypeMsg
 
     Set AppRunArgs = New Dictionary
-    Qoutdated.First Comp
+    Qoutdated.First Comp ' Get the next outdated component from the queue
     BttnUpdate = "Update" & vbLf & vbLf & Comp.CompName
     BttnDsplyDiffs = "Display changes"
     BttnSkipForNow = "Skip this update" & vbLf & "for now"
@@ -407,15 +407,29 @@ Private Sub OutdatedUpdateChoice()
             With .Label
                 .Text = Replace(BttnSkipForever, vbLf, " ")
                 .FontBold = True
-                .FontColor = rgbRed
+                .FontColor = rgbGreen
             End With
-            .Text.Text = "Although the component's name is identical with a known Common Component " & _
-                         "it will be de-registered as a ""used"" one and registered ""private"" instead. " & _
-                         "Re-instating the component as a ""Used Common Component"" requires the following steps:" & vbLf & _
-                         "1. Rename it" & vbLf & _
+            .Text.Text = "The component, known as a potential 'Used Common Component' will be de-registered " & _
+                         "and ignored in the future! I.e. the ""used"" status will be changed into ""private"" status. " & _
+                         "Re-instantiating as a ""used"" Common Component will requires the following steps:" & vbLf & _
+                         "1. Remove it" & vbLf & _
                          "2. Save the Workbook" & vbLf & _
-                         "3. Import the Common Component from the ""Common-Components"" folder"
+                         "3. Re-Import it from the ""Common-Components"" folder."
         End With
+        If Comp.KindOfComp = enCommCompUsed Then
+            If Comp.RevisionNumber > Comp.Raw.RevisionNumber Then
+                With .Section(4)
+                    .Label.Text = "Attention!!!!"
+                    .Text.Text = "The ""Revision Number"" of this ""Used Common Component"" is greater than the ""Revision Number"" " & _
+                                 "of the ""Common Component"" in the ""Common Component Folder""." & vbLf & _
+                                 "The likely reason: The ""Used Common Component"" has been modified with the Workbook using it. " & _
+                                 "When updated, this modification will get lost. Checking the changes and making them in the ""raw/hosted"" " & _
+                                 "version is a choice. Another would be to " & Replace(BttnSkipForNow, vbLf, " ") & "." & vbLf & _
+                                 "Another, less likely reason may be that the ""Common Components Folder"", only possible when it is " & _
+                                 "updated on different computers!"
+                End With
+            End If
+        End If
     End With
     
     mMsg.BttnAppRun AppRunArgs, BttnUpdate _
@@ -626,7 +640,7 @@ Private Sub OutdatedUpdateCollect()
                 End With
             Else
                 '~~ When not outdated due to a code difference the revision numbers ought to be equal
-                .RevisionNumber = .Raw.RevisionNumber
+                If .RevisionNumber <> .Raw.RevisionNumber Then .RevisionNumber = .Raw.RevisionNumber
                 With Services
                     .NoOfItemsIgnored = .NoOfItemsIgnored + 1
                     .LogEntry "Used Common Component is up-to-date"

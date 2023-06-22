@@ -1,17 +1,15 @@
 Attribute VB_Name = "mCompManClient"
 Option Explicit
-' ----------------------------------------------------------------------
-' Standard Module mCompManClient
-' ==============================
-' CompMan client interface. To be imported into any Workbook for being
-' serviced by CompMan's: - "Export Changed Components"
-'                        - "Update Outdated Common Components"
-'                        - "Synchronize VB-Projects"
+' ----------------------------------------------------------------------------
+' Standard Module mCompManClient: CompMan client interface. To be imported
+' =============================== into any Workbook for being serviced by
+' CompMan's "Export Changed Components", "Update Outdated Common Components",
+' or "Synchronize VB-Projects" service.
 '
-' W. Rauschenberger, Berlin Apr 2023
+' W. Rauschenberger, Berlin Jun 2023
 '
-' See https://github.com/warbe-maker/Excel-VB-Components-Management-Services
-' ----------------------------------------------------------------------
+' See https://github.com/warbe-maker/VB-Components-Management
+' ----------------------------------------------------------------------------
 ' --- The below constants must not be changed to Private since they are used byCompMan
 Public Const COMPMAN_DEVLP              As String = "CompMan.xlsb"
 Public Const SRVC_EXPORT_ALL            As String = "ExportAll"

@@ -138,7 +138,7 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                         If .Changed Then
                             Services.LogEntry "Hosted Raw Common Component code modified"
                             .Export
-                            mCompManDat.RawRevisionNumberIncrease v
+                            .RevisionNumberIncrease
                             mCommComps.SaveToCommonComponentsFolder .CompName, .ExpFile, .ExpFileFullName
                             mCompManDat.RegistrationState(.CompName) = enRegStateHosted
                             With Services
@@ -164,8 +164,8 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                         If .Changed Then
                             '~~ A warning will be displayed when the modification is about to be reverted
                             '~~ when the component is updated at Workbook open
-                            .DueModificationWarning = True
                             .Export
+                            .RevisionNumberIncrease
                             With Services
                                 .NoOfItemsServiced = .NoOfItemsServiced + 1
                                 .NoOfItemsServicedNames = vbc.Name

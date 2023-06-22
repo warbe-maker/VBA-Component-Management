@@ -136,6 +136,14 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
         MonitorFooter "Successfully updated! (process monitor closes in 2 seconds)", b_monitor
     End With
     
+    With Comp
+        If .KindOfComp = enCommCompUsed Then
+            If .RevisionNumber <> .Raw.RevisionNumber Then
+                .RevisionNumber = .Raw.RevisionNumber
+            End If
+        End If
+    End With
+    
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     

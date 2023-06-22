@@ -90,14 +90,6 @@ Private Sub Class_Terminate()
     
 End Sub
 
-Public Property Get DueModificationWarning() As Boolean
-    DueModificationWarning = mCompManDat.DueModificationWarning(sCompName)
-End Property
-
-Public Property Let DueModificationWarning(ByVal b As Boolean)
-    mCompManDat.DueModificationWarning(sCompName) = b
-End Property
-
 Friend Property Get Changed() As Boolean
 ' ------------------------------------------------------------------------------
 ' Returns TRUE when the Component's Export-File dose not exist or a temporary
@@ -161,54 +153,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Property
-
-Private Sub RemoveLeadingTrailingEmptyLines(ByRef dct As Dictionary)
-' ------------------------------------------------------------------------------
-' Removes any empty lines (length = 0) from the beginning and the end of a
-' Dictionary (dct).
-' ------------------------------------------------------------------------------
-    Const PROC = "RemoveLeadingTrailingEmptyLines"
-    
-    On Error GoTo eh
-    If dct.Count > 0 Then
-        While Len(Trim(dct.Items()(0))) = 0                 ' Remove leading empty items
-            dct.Remove dct.Keys()(0)
-        Wend
-    End If
-    
-    If dct.Count > 0 Then
-        While Len(Trim(dct.Items()(dct.Count - 1))) = 0     ' Remove trailing empty items
-            dct.Remove dct.Keys()(dct.Count - 1)
-        Wend
-    End If
-    
-xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub RemoveModuleInfo(ByRef dct As Dictionary)
-' ------------------------------------------------------------------------------
-' Remove the extra module information lines from a Dictionary which resulted
-' from the contents of a VBComponent's Export-File.
-' ------------------------------------------------------------------------------
-    Const ATTRIB_VB = "Attribute VB_*"
-    
-    Dim i   As Long
-    Dim j   As Long
-    
-    For i = Min(15, dct.Count - 1) To 0 Step -1
-        If dct.Items()(i) Like ATTRIB_VB Then Exit For
-    Next i
-        
-    For j = 0 To i
-        dct.Remove dct.Keys()(0)
-    Next j
-    
-End Sub
 
 Friend Property Get CodeName(Optional ByVal scn_name As String) As String
 ' ------------------------------------------------------------------------------
@@ -335,33 +279,6 @@ Friend Property Get ExpFilesDiffer() As Boolean
                                                 , fd_exp_file_2:=Me.ExpFile)
 End Property
 
-Friend Property Get ExpFileTempAndRawExpFileDiffers() As Boolean
-' ------------------------------------------------------------------------------
-' Returns TRUE when the temporary Export File of this Used Common Component
-' differs from the Export File of the corresponding Raw Common Component.
-' ------------------------------------------------------------------------------
-    ExpFileTempAndRawExpFileDiffers = mCompMan.Services.FilesDiffer(fd_exp_file_1:=Raw.SavedExpFile _
-                                                                 , fd_exp_file_2:=Me.ExpFileTemp)
-End Property
-
-Friend Property Get ExpFileTempsDiffer() As Boolean
-' ------------------------------------------------------------------------------
-' Returns TRUE when the temporary Export File of this component differs from
-' the temporary Export File of the Raw. This comparison is only possible when
-' the Raw's host Workbook is accidentially open.
-' ------------------------------------------------------------------------------
-    ExpFileTempsDiffer = mCompMan.Services.FilesDiffer(fd_exp_file_1:=Raw.ExpFileTemp _
-                                            , fd_exp_file_2:=Me.ExpFileTemp)
-End Property
-
-Friend Property Get RevisionNumbersDiffer() As Boolean
-' ------------------------------------------------------------------------------
-' Returns TRUE when the RevisionNumber of the Raw Common Component differs from
-' the current RevisionNumber of this Used Common Component.
-' ------------------------------------------------------------------------------
-    RevisionNumbersDiffer = mCommComps.RevisionNumber(sCompName) <> mCompManDat.RevisionNumber(sCompName)
-End Property
-
 Friend Property Get ExpFileTemp() As File
     With fso
         If Not .FileExists(Me.ExpFileTempFullName) Then
@@ -369,6 +286,15 @@ Friend Property Get ExpFileTemp() As File
         End If
         Set ExpFileTemp = .GetFile(Me.ExpFileTempFullName)
     End With
+End Property
+
+Friend Property Get ExpFileTempAndRawExpFileDiffers() As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when the temporary Export File of this Used Common Component
+' differs from the Export File of the corresponding Raw Common Component.
+' ------------------------------------------------------------------------------
+    ExpFileTempAndRawExpFileDiffers = mCompMan.Services.FilesDiffer(fd_exp_file_1:=Raw.SavedExpFile _
+                                                                 , fd_exp_file_2:=Me.ExpFileTemp)
 End Property
 
 Friend Property Get ExpFileTempFullName() As String
@@ -401,6 +327,16 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Property
+
+Friend Property Get ExpFileTempsDiffer() As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when the temporary Export File of this component differs from
+' the temporary Export File of the Raw. This comparison is only possible when
+' the Raw's host Workbook is accidentially open.
+' ------------------------------------------------------------------------------
+    ExpFileTempsDiffer = mCompMan.Services.FilesDiffer(fd_exp_file_1:=Raw.ExpFileTemp _
+                                            , fd_exp_file_2:=Me.ExpFileTemp)
 End Property
 
 Friend Property Get IsWrkbk() As Boolean
@@ -471,13 +407,13 @@ Friend Property Get Outdated() As Boolean
     
     mBasic.BoP ErrSrc(PROC)
     With Me
-        If .KindOfComp = mCompMan.enCommCompUsed Then Outdated = RawChanged
+        If .KindOfComp = enCommCompUsed Then Outdated = RawDiffers
     End With
     mBasic.EoP ErrSrc(PROC)
     
 End Property
 
-Private Property Get RawChanged() As Boolean
+Private Property Get RawDiffers() As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the Used Common Component's (ME's) corresponding Raw had
 ' changed which is indicated by Raw Revision Number greater than the current
@@ -487,19 +423,18 @@ Private Property Get RawChanged() As Boolean
 '       Files are equal - only the Revison Number of the Used Common Component
 '       is updated and FALSE is returned.
 ' ------------------------------------------------------------------------------
-    Const PROC = "RawChanged"
+    Const PROC = "RawDiffers"
     
     On Error GoTo eh
     Dim bExcludeExportHeader As Boolean
     
     mBasic.BoP ErrSrc(PROC), Me.CompName
     bExcludeExportHeader = Me.TypeString = "UserForm"
-    If Me.RevisionNumber < mCommComps.RevisionNumber(sCompName) Then
-        '~~ The Revision Number of the Raw Common Component is greater which means that
-        '~~ a modification had been exported - and the Revision Number thereby increased
-        If Not mCompMan.Services.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
-                                          , fd_exp_file_2:=Raw.SavedExpFile _
-                                          , fd_ignore_export_header:=bExcludeExportHeader) Then
+    If Me.RevisionNumber <> Me.Raw.RevisionNumber Then
+        '~~ When the revision numbers are different either of the tow must have been changed
+        If Not Services.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
+                                  , fd_exp_file_2:=Raw.SavedExpFile _
+                                  , fd_ignore_export_header:=bExcludeExportHeader) Then
             '~~ Because the Export File of the Used Common Component is identical
             '~~ with the Export File of the Raw Common Component the Used Common
             '~~ Component must have been updated manually already - e.g. by dragging
@@ -507,17 +442,17 @@ Private Property Get RawChanged() As Boolean
             '~~ needs to be set equal.
             mCompManDat.RevisionNumber(sCompName) = mCommComps.RevisionNumber(sCompName)
         Else
-            RawChanged = True
+            RawDiffers = True
         End If
-    ElseIf Me.RevisionNumber = mCommComps.RevisionNumber(sCompName) Then
-        If mCompMan.Services.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
-                                      , fd_exp_file_2:=Raw.SavedExpFile _
-                                      , fd_ignore_export_header:=bExcludeExportHeader) Then
+    ElseIf Me.RevisionNumber = Me.Raw.RevisionNumber Then
+        If Services.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
+                              , fd_exp_file_2:=Raw.SavedExpFile _
+                              , fd_ignore_export_header:=bExcludeExportHeader) Then
             '~~ it is not the Raw which had changed but the Used Common Component in its Workbook.
             '~~ In order to prevent Used Common Components differ between Workbooks using them
             '~~ and remaining different unrecognized the Raw is indicated changed to enforce
             '~~ an update - and by the way revert the modification in the Used Common Component.
-            RawChanged = True
+            RawDiffers = True
         End If
     End If
 
@@ -532,7 +467,19 @@ End Property
 
 Friend Property Get RevisionNumber() As String:         RevisionNumber = mCompManDat.RevisionNumber(sCompName): End Property
 
-Friend Property Let RevisionNumber(ByVal s As String):  mCompManDat.RevisionNumber(sCompName) = s:              End Property
+Friend Property Let RevisionNumber(ByVal s As String)
+    mCompManDat.RevisionNumber(sCompName) = s
+End Property
+
+Friend Property Get RevisionNumbersDiffer() As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when the RevisionNumber of the Raw Common Component differs from
+' the current RevisionNumber of this Used Common Component.
+' ------------------------------------------------------------------------------
+    If KindOfComp = enCommCompUsed Then
+        RevisionNumbersDiffer = RevisionNumber <> Raw.RevisionNumber
+    End If
+End Property
 
 Friend Property Get Service() As String
     If sService = vbNullString Then
@@ -656,5 +603,82 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Sub RemoveLeadingTrailingEmptyLines(ByRef dct As Dictionary)
+' ------------------------------------------------------------------------------
+' Removes any empty lines (length = 0) from the beginning and the end of a
+' Dictionary (dct).
+' ------------------------------------------------------------------------------
+    Const PROC = "RemoveLeadingTrailingEmptyLines"
+    
+    On Error GoTo eh
+    If dct.Count > 0 Then
+        While Len(Trim(dct.Items()(0))) = 0                 ' Remove leading empty items
+            dct.Remove dct.Keys()(0)
+        Wend
+    End If
+    
+    If dct.Count > 0 Then
+        While Len(Trim(dct.Items()(dct.Count - 1))) = 0     ' Remove trailing empty items
+            dct.Remove dct.Keys()(dct.Count - 1)
+        Wend
+    End If
+    
+xt: Exit Sub
 
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Sub RemoveModuleInfo(ByRef dct As Dictionary)
+' ------------------------------------------------------------------------------
+' Remove the extra module information lines from a Dictionary which resulted
+' from the contents of a VBComponent's Export-File.
+' ------------------------------------------------------------------------------
+    Const ATTRIB_VB = "Attribute VB_*"
+    
+    Dim i   As Long
+    Dim j   As Long
+    
+    For i = Min(15, dct.Count - 1) To 0 Step -1
+        If dct.Items()(i) Like ATTRIB_VB Then Exit For
+    Next i
+        
+    For j = 0 To i
+        dct.Remove dct.Keys()(0)
+    Next j
+    
+End Sub
+
+Public Sub RevisionNumberIncrease()
+' ----------------------------------------------------------------------------
+' Increases the revision number by one starting with 1 for a new day.
+' ----------------------------------------------------------------------------
+    Dim RevNo   As Long
+    Dim RevDate As String
+    Dim sRevNo  As String
+    
+    Select Case KindOfComp
+        Case enCommCompHosted:  sRevNo = mCommComps.RevisionNumber(CompName)
+        Case enCommCompUsed:    sRevNo = RevisionNumber
+    End Select
+    
+    If sRevNo = vbNullString Then
+        RevNo = 1
+    Else
+        RevNo = Split(sRevNo, ".")(1)
+        RevDate = Split(sRevNo, ".")(0)
+        If RevDate <> Format(Now(), "YYYY-MM-DD") _
+        Then RevNo = 1 _
+        Else RevNo = RevNo + 1
+    End If
+    sRevNo = Format(Now(), "YYYY-MM-DD") & "." & Format(RevNo, "000")
+    Select Case KindOfComp
+        Case enCommCompHosted:  mCommComps.RevisionNumber(CompName) = sRevNo
+                                RevisionNumber = sRevNo
+        Case enCommCompUsed:    RevisionNumber = sRevNo
+    End Select
+    
+End Sub
 

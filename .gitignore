@@ -2,4 +2,6 @@
 References.txt
 *.log
 *.trc
+*.*Backup
+*.bkp
 

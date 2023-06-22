@@ -271,7 +271,7 @@ Private Sub CommCompsHosted(ByVal m_hosted As String)
                     '~~ Yet not registered as "hosted" as the serviced Workbook claims it
                     mCompManDat.RegistrationState(v) = enRegStateHosted
                     mCompManDat.RawExpFileFullName(v) = .ExpFileFullName    ' in any case update the Export File name
-                    mCompManDat.RawRevisionNumberIncrease v                 ' this will initially set it
+                    .RevisionNumberIncrease                 ' this will initially set it
                     mCommComps.SaveToCommonComponentsFolder v, .ExpFile, .ExpFileFullName
                 End If
                 

@@ -189,38 +189,38 @@ Public Function RevisionNumberInitial() As String
     RevisionNumberInitial = Format(Now(), "YYYY-MM-DD") & ".001"
 End Function
 
-Public Sub RawRevisionNumberIncrease(ByVal comp_name As String)
-' ----------------------------------------------------------------------------
-' Increases the revision number by one starting with 1 for a new day.
-' ----------------------------------------------------------------------------
-    Dim RevNo   As Long
-    Dim RevDate As String
-    
-    If RawRevisionNumber(comp_name) = vbNullString Then
-        RevNo = 1
-    Else
-        RevNo = Split(RawRevisionNumber(comp_name), ".")(1)
-        RevDate = Split(RawRevisionNumber(comp_name), ".")(0)
-        If RevDate <> Format(Now(), "YYYY-MM-DD") _
-        Then RevNo = 1 _
-        Else: RevNo = RevNo + 1
-    End If
-    RawRevisionNumber(comp_name) = Format(Now(), "YYYY-MM-DD") & "." & Format(RevNo, "000")
+'Public Sub RawRevisionNumberIncrease(ByVal comp_name As String)
+'' ----------------------------------------------------------------------------
+'' Increases the revision number by one starting with 1 for a new day.
+'' ----------------------------------------------------------------------------
+'    Dim RevNo   As Long
+'    Dim RevDate As String
+'
+'    If RawRevisionNumber(comp_name) = vbNullString Then
+'        RevNo = 1
+'    Else
+'        RevNo = Split(RawRevisionNumber(comp_name), ".")(1)
+'        RevDate = Split(RawRevisionNumber(comp_name), ".")(0)
+'        If RevDate <> Format(Now(), "YYYY-MM-DD") _
+'        Then RevNo = 1 _
+'        Else: RevNo = RevNo + 1
+'    End If
+'    RawRevisionNumber(comp_name) = Format(Now(), "YYYY-MM-DD") & "." & Format(RevNo, "000")
+'
+'End Sub
 
-End Sub
-
-Public Property Get DueModificationWarning(Optional ByVal comp_name As String) As Boolean
-' ----------------------------------------------------------------------------
-' Returns the revision number in the format YYYY-MM-DD.n
-' ----------------------------------------------------------------------------
-    If NameExists(pp_section:=comp_name, pp_value_name:=VALUE_NAME_DUE_MODIF_WARNING) _
-    Then DueModificationWarning = CBool(Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_DUE_MODIF_WARNING))
-End Property
-
-Public Property Let DueModificationWarning(Optional ByVal comp_name As String, _
-                                                    ByVal comp_due_warning As Boolean)
-    Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_DUE_MODIF_WARNING) = Abs(CInt(comp_due_warning))
-End Property
+'Public Property Get DueModificationWarning(Optional ByVal comp_name As String) As Boolean
+'' ----------------------------------------------------------------------------
+'' Returns the revision number in the format YYYY-MM-DD.n
+'' ----------------------------------------------------------------------------
+'    If NameExists(pp_section:=comp_name, pp_value_name:=VALUE_NAME_DUE_MODIF_WARNING) _
+'    Then DueModificationWarning = CBool(Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_DUE_MODIF_WARNING))
+'End Property
+'
+'Public Property Let DueModificationWarning(Optional ByVal comp_name As String, _
+'                                                    ByVal comp_due_warning As Boolean)
+'    Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_DUE_MODIF_WARNING) = Abs(CInt(comp_due_warning))
+'End Property
 
 Public Property Get RevisionNumber(Optional ByVal comp_name As String) As String
 ' ----------------------------------------------------------------------------
@@ -258,6 +258,7 @@ Public Sub Hskpng(ByVal h_hosted As String)
     mBasic.BoP ErrSrc(PROC)
     HskpngRemoveObsoleteSections h_hosted
     HskpngHosted h_hosted
+    HskpngRemoveDueModificationWarning
     mHskpng.ReorgDatFile CompManDatFileFullName
 
 xt: mBasic.EoP ErrSrc(PROC)
@@ -269,6 +270,18 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Sub HskpngRemoveDueModificationWarning()
+    Dim dct As Dictionary
+    Dim v   As Variant
+    
+    Set dct = mFso.PPsections(CompManDatFileFullName)
+    For Each v In dct
+        mFso.PPremoveNames pp_file:=CompManDatFileFullName _
+                         , pp_section:=v _
+                         , pp_value_names:=VALUE_NAME_DUE_MODIF_WARNING
+    Next v
+    
+End Sub
 Private Sub HskpngHosted(ByVal h_hosted As String)
     
     Dim dctHosted   As Dictionary

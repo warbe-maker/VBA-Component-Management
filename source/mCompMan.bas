@@ -81,6 +81,8 @@ Public Enum siCounter
     sic_used_comm_vbc_outdated
 End Enum
 
+Private Const GITHUB_REPO_URL = "https://github.com/warbe-maker/VBA-Component-Management"
+
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
 ' Ensures that a programmed (i.e. an application) error numbers never conflicts
@@ -130,6 +132,15 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Sub
+
+Public Sub README(Optional ByVal r_bookmark As String = vbNullString)
+    Const README_URL = "/blob/master/README.md"
+    
+    If r_bookmark = vbNullString _
+    Then mBasic.ShellRun GITHUB_REPO_URL & README_URL _
+    Else mBasic.ShellRun GITHUB_REPO_URL & README_URL & "#" & r_bookmark
+        
 End Sub
 
 Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
