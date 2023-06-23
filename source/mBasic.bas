@@ -86,6 +86,7 @@ Public Const DSPACE     As String = " "
 Public Const DEXCL      As String = "!"
 Public Const DQUOTE     As String = """"    ' one " character
 
+Private Const GITHUB_REPO_URL = "https://github.com/warbe-maker/VBA-Basics"
 ' Common xl constants grouped ----------------------------
 Public Enum YesNo   ' ------------------------------------
     xlYes = 1       ' System constants (identical values)
@@ -909,11 +910,13 @@ Public Function ProgramIsInstalled(ByVal sProgram As String) As Boolean
 End Function
 
 Public Sub README(Optional ByVal r_bookmark As String = vbNullString)
-    Const BASE_URL = "https://github.com/warbe-maker/VBA-Basics/blob/master/README.md"
     
-    If r_bookmark = vbNullString _
-    Then ShellRun BASE_URL _
-    Else ShellRun BASE_URL & "#" & r_bookmark
+    If r_bookmark = vbNullString Then
+        mBasic.ShellRun GITHUB_REPO_URL
+    Else
+        r_bookmark = Replace("#" & r_bookmark, "##", "#") ' add # if missing
+        mBasic.ShellRun GITHUB_REPO_URL & r_bookmark
+    End If
         
 End Sub
 

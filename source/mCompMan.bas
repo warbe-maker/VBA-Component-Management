@@ -143,11 +143,13 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub README(Optional ByVal r_bookmark As String = vbNullString)
-    Const README_URL = "/blob/master/README.md"
     
-    If r_bookmark = vbNullString _
-    Then mBasic.ShellRun GITHUB_REPO_URL & README_URL _
-    Else mBasic.ShellRun GITHUB_REPO_URL & README_URL & "#" & r_bookmark
+    If r_bookmark = vbNullString Then
+        mBasic.ShellRun GITHUB_REPO_URL
+    Else
+        r_bookmark = Replace("#" & r_bookmark, "##", "#") ' add # if missing
+        mBasic.ShellRun GITHUB_REPO_URL & r_bookmark
+    End If
         
 End Sub
 
