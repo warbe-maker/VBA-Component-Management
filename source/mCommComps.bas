@@ -218,10 +218,13 @@ Public Function ExistsAsGlobalCommonComponentExportFile(ByVal ex_vbc As VBCompon
 ' Returns TRUE when the VBComponent's (ex_vbc) Export-File exists in the
 ' global Common-Components-Folder.
 ' ----------------------------------------------------------------------------
+    Const PROC  As String = "ExistsAsGlobalCommonComponentExportFile"
+    
     Dim fso     As New FileSystemObject
     Dim sFile   As String
     Dim Comp    As New clsComp
     
+    mBasic.BoP ErrSrc(PROC)
     With Comp
         Set .Wrkbk = Services.Serviced
         .CompName = ex_vbc.Name
@@ -229,6 +232,8 @@ Public Function ExistsAsGlobalCommonComponentExportFile(ByVal ex_vbc As VBCompon
     End With
     ExistsAsGlobalCommonComponentExportFile = fso.FileExists(sFile)
     Set Comp = Nothing
+    
+xt: mBasic.EoP ErrSrc(PROC)
     
 End Function
 
@@ -515,9 +520,9 @@ Private Sub OutdatedUpdateChoiceSkipForever(ByVal u_comp_name)
         .LogEntry "Outdated used Commpon Component: Update skipped forever!"
     End With
     
-xt: mBasic.EoP ErrSrc(PROC)
-    Services.MessageUnload UpdateDialogTitle
+xt: Services.MessageUnload UpdateDialogTitle
     mCommComps.OutdatedUpdate
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -549,9 +554,9 @@ Private Sub OutdatedUpdateChoiceSkipForNow(ByVal u_comp_name As String)
         .LogEntry "Outdated used Commpon Component: Update skipped for now!"
     End With
     
-xt: mBasic.EoP ErrSrc(PROC)
-    Services.MessageUnload UpdateDialogTitle
+xt: Services.MessageUnload UpdateDialogTitle
     mCommComps.OutdatedUpdate
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -595,9 +600,9 @@ Private Sub OutdatedUpdateChoiceUpdate(ByVal u_comp_name As String)
     Qoutdated.DeQueue
     Set Comp = Nothing
     
-xt: mBasic.EoP ErrSrc(PROC)
-    Services.MessageUnload UpdateDialogTitle
+xt: Services.MessageUnload UpdateDialogTitle
     mCommComps.OutdatedUpdate
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -624,7 +629,7 @@ Private Sub OutdatedUpdateCollect()
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
     Set Qoutdated = New clsQ
-    Set dct = Comps.CommonUsed
+    Set dct = Comps.All ' all = all relevant for the current service
     
     For Each v In dct
         Set Comp = dct(v)
@@ -666,9 +671,12 @@ End Sub
 
 Public Sub Register(ByVal r_comp_name As String, _
                      ByVal r_exp_file As String)
-    Dim fso As New FileSystemObject
-    Dim wbk As Workbook
+    Const PROC  As String = "Register"
     
+    Dim fso     As New FileSystemObject
+    Dim wbk     As Workbook
+    
+    mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
     RawHostWbFullName(r_comp_name) = wbk.FullName
     RawHostWbName(r_comp_name) = wbk.Name
@@ -676,6 +684,7 @@ Public Sub Register(ByVal r_comp_name As String, _
     RawExpFileFullName(r_comp_name) = r_exp_file
     Set fso = Nothing
 
+xt: mBasic.EoP ErrSrc(PROC)
 End Sub
 
 Public Function SavedExpFileExists(ByVal comp_name As String) As Boolean
@@ -698,9 +707,12 @@ Public Sub SaveToCommonComponentsFolder(ByVal stgf_comp_name As String, _
 ' Components folder which serves as source for the update of Common Components
 ' used in other VB-Projects.
 ' ------------------------------------------------------------------------------
+    Const PROC  As String = "SaveToCommonComponentsFolder"
+    
     Dim frxFile As File
     Dim fso     As New FileSystemObject
     
+    mBasic.BoP ErrSrc(PROC)
     mCommComps.SavedExpFile(stgf_comp_name) = stgf_exp_file
     '~~ When the Export file has a .frm extension the .frx file needs to be copied too
     If fso.GetExtensionName(stgf_exp_file_full_name) = "frm" Then
@@ -714,6 +726,8 @@ Public Sub SaveToCommonComponentsFolder(ByVal stgf_comp_name As String, _
     mCommComps.RawHostWbName(stgf_comp_name) = Services.Serviced.Name
     mCommComps.RevisionNumber(stgf_comp_name) = mCompManDat.RawRevisionNumber(stgf_comp_name)
     
-    Set fso = Nothing
+xt: Set fso = Nothing
+    mBasic.EoP ErrSrc(PROC)
+
 End Sub
 

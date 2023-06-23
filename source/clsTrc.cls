@@ -316,7 +316,7 @@ Friend Property Let Path(ByVal v As Variant)
                                                    "folder's path, nor a Workbook object, nor a Folder object!"
             End If
     End Select
-    FileFullName = Path & FileName
+    FileFullName = Path & "\" & FileName ' re-establishes it when not already existing
     
 End Property
 
@@ -672,6 +672,7 @@ Private Sub LogBgn(ByVal l_ntry As Collection, _
     Dim ElapsedSecsTotal    As String
     Dim ElapsedSecs         As String
     Dim TopNtry             As Collection
+    Dim s                   As String
     
     Set TopNtry = StckTop(TraceStack)
     If TopNtry Is Nothing _
@@ -680,14 +681,14 @@ Private Sub LogBgn(ByVal l_ntry As Collection, _
     StckPush TraceStack, l_ntry
     
     If TraceStack.Count = 1 Then
-        '~~ When the very first trace entry had been pushed on the stack
-        '~~ Provide a trace separator and a trace header
         cyTcksAtStart = ItmTcks(l_ntry)
     
         '~~ Trace-Log header
-        Log = LogText(l_elpsd_total:="Elapsed " _
-                    , l_elpsd_secs:="Length  " _
-                    , l_strng:="Execution trace by 'Common VBA Execution Trace Service (mTrc)' (" & GITHUB_REPO_URL & ")")
+        s = LogText(l_elpsd_total:="Elapsed " _
+                  , l_elpsd_secs:="Length  " _
+                  , l_strng:="Execution trace by 'Common VBA Execution Trace Service (mTrc)' (" & GITHUB_REPO_URL & ")")
+        If fso.GetFile(FileFullName).Size > 0 Then Log = String(Len(s), "=")
+        Log = s
         
         '~~ Trace-Log title
         If sTitle = vbNullString Then

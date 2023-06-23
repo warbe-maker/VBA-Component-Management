@@ -3,8 +3,7 @@ Option Explicit
 ' ----------------------------------------------------------------------------
 ' Standard Module mBasic: Declarations, procedures, methods and function
 ' ======================= likely to be required in any VB-Project, optionally
-' just being copied.
-'
+'                         just being copied.
 ' Note: All services run completely autonomous, i.e. do not require any other
 '       installed module. However, when the Common VBA Message Services
 '       (fMsg/mMsg) and or the Common VBA Error Services (mErH) are installed
@@ -50,13 +49,11 @@ Option Explicit
 ' ErrSrc            Unambigous identification of a procedure - used with
 '                   BoP, EoP, and ErrMsg
 '
-' Requires Reference to:
-' Microsoft Scripting Runtime
-' Microsoft Visual Basic Application Extensibility .."
+' Requires:
+' ---------
+' Reference to "Microsoft Scripting Runtime"
+' Reference to "Microsoft Visual Basic Application Extensibility .."
 '
-' May use:             fMsg, mMsg, mErH (via ErrMsg)
-'
-' ----------------------------------------------------------------------------
 ' 1) Provides a comprehensive and well designed display of an error message,
 '    provided Common VBA Error Services (mErH) and the Common VBA Message
 '    Service (fMsg/mMsg) is installed and the Conditional Compile Arguments
@@ -70,8 +67,8 @@ Option Explicit
 '    be copied into any component to use the mErH and the mTrc/clsTrc module.
 ' 3) To be copied as Private procedure into any component which raises
 '    Application Errors by means of Err.Raise.
-' 4) https://github.com/warbe-maker/Common-VBA-Error-Services
-' 5) https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service
+' 4) https://github.com/warbe-maker/VBA-Error
+' 5) https://github.com/warbe-maker/VBA-Trace
 '
 ' W. Rauschenberger, Berlin Feb. 2022
 ' See https://github.com/warbe-maker/VBA-Basics (displayed with README proc)

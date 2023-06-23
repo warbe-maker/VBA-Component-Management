@@ -112,10 +112,17 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     Const PROC = "UpdateOutdatedCommonComponents"
     
     On Error GoTo eh
+    '~~ When the Open event is raised through the VBE Immediate Window or when
+    '~~ the open houskeeping has registered new used Common Components ...
+    Set Services = Nothing
+    mCompMan.ExportChangedComponents u_wbk_serviced, u_hosted
+    
+    Set Services = Nothing
     Set Services = New clsServices
     With Services
+        .Serviced = u_wbk_serviced
         .CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED
-        .EstablishExecTraceFile u_wbk_serviced
+        .EstablishExecTraceFile
     End With
     
     mBasic.BoP ErrSrc(PROC)
@@ -123,6 +130,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     mHskpng.CommComps u_hosted
     mCompManDat.Hskpng u_hosted
     Set mCommComps.Qoutdated = Nothing
+    
     mCommComps.OutdatedUpdate ' Dialog to update/renew one by one
     
 xt: mBasic.EoP ErrSrc(PROC)
@@ -166,8 +174,9 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     On Error GoTo eh
     Set Services = New clsServices
     With Services
+        .Serviced = e_wbk_serviced
         .CurrentService = mCompManClient.SRVC_EXPORT_CHANGED
-        .EstablishExecTraceFile e_wbk_serviced
+        .EstablishExecTraceFile
     End With
         
     mBasic.BoP ErrSrc(PROC)
@@ -269,8 +278,9 @@ Public Sub SynchronizeVBProjects(ByVal sync_wbk_opened As Workbook)
     On Error GoTo eh
     Set Services = New clsServices
     With Services
+        .Serviced = sync_wbk_opened
         .CurrentService = mCompManClient.SRVC_SYNCHRONIZE
-        .EstablishExecTraceFile sync_wbk_opened
+        .EstablishExecTraceFile
     End With
     
     mBasic.BoP ErrSrc(PROC)

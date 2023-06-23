@@ -325,6 +325,8 @@ Friend Property Let FileFullName(ByVal s As String)
 
 End Property
 
+Friend Property Get FileName() As String:       FileName = sFileName:           End Property
+
 Friend Property Let FileName(ByVal s As String)
     If fso.GetExtensionName(s) = vbNullString Then
         s = s & ".log"
@@ -391,67 +393,6 @@ End Property
 Private Property Let TitleSpecified(ByVal b As Boolean)
     If Not b Then Set aTitleLines = Nothing
 End Property
-
-Public Function AlignString(ByVal a_strng As String, _
-                            ByVal a_lngth As Long, _
-                   Optional ByVal a_align As String = "L", _
-                   Optional ByVal a_margn As String = vbNullString, _
-                   Optional ByVal a_fill As String = " ") As String
-' ----------------------------------------------------------------------------
-' Returns a string (a_strng) with a lenght (a_lngth) aligned (a_align) and
-' filled with (a_fill).
-' Preconditions:
-' - The length (a_lngth) is the final lenght including any specific fillss
-' - The string (a_strn) may contain already leading or trailing preserved
-'   spaces.
-' ----------------------------------------------------------------------------
-    Const PROC = "AlignString"
-    
-    On Error GoTo eh
-    Dim sFill   As String
-    Dim s       As String
-
-    If Trim$(a_strng) = vbNullString Then
-        AlignString = String$(a_lngth, " ")
-    Else
-        If a_fill = vbNullString Then a_fill = " "
-        Select Case Left(UCase(a_align), 1)
-            
-            Case "L"
-                a_strng = WithMargins(a_strng)
-                Select Case a_fill
-                    Case ".:"
-                        If Right$(a_strng, 1) <> " " Then a_strng = a_strng & " "
-                        AlignString = Left$(a_strng & String(a_lngth, a_fill), a_lngth - 1) & ":"
-                    Case "."
-                        If Right$(a_strng, 1) <> " " Then a_strng = a_strng & " "
-                        AlignString = Left$(a_strng & String(a_lngth, a_fill), a_lngth)
-                    Case Else
-                        AlignString = Left$(a_strng & String(a_lngth, a_fill), a_lngth)
-                End Select
-            
-            Case "R"
-                AlignString = Right$(String(a_lngth, a_fill) & a_strng & a_margn, a_lngth)
-                
-            Case "C"
-                s = " " & Trim$(a_strng) & " "
-                If Len(s) < a_lngth Then
-                    sFill = String$(Int((a_lngth - Len(s)) / 2), a_fill)
-                End If
-                    AlignString = sFill & s & sFill
-                If Len(AlignString) < a_lngth Then
-                    AlignString = AlignString & VBA.String$(a_lngth - Len(AlignString), a_fill)
-                End If
-        End Select
-    End If
-
-xt: Exit Function
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
 
 Public Sub Alignment(ByVal a_string As String, _
             Optional ByRef a_return As String, _
@@ -716,6 +657,67 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Public Function AlignString(ByVal a_strng As String, _
+                            ByVal a_lngth As Long, _
+                   Optional ByVal a_align As String = "L", _
+                   Optional ByVal a_margn As String = vbNullString, _
+                   Optional ByVal a_fill As String = " ") As String
+' ----------------------------------------------------------------------------
+' Returns a string (a_strng) with a lenght (a_lngth) aligned (a_align) and
+' filled with (a_fill).
+' Preconditions:
+' - The length (a_lngth) is the final lenght including any specific fillss
+' - The string (a_strn) may contain already leading or trailing preserved
+'   spaces.
+' ----------------------------------------------------------------------------
+    Const PROC = "AlignString"
+    
+    On Error GoTo eh
+    Dim sFill   As String
+    Dim s       As String
+
+    If Trim$(a_strng) = vbNullString Then
+        AlignString = String$(a_lngth, " ")
+    Else
+        If a_fill = vbNullString Then a_fill = " "
+        Select Case Left(UCase(a_align), 1)
+            
+            Case "L"
+                a_strng = WithMargins(a_strng)
+                Select Case a_fill
+                    Case ".:"
+                        If Right$(a_strng, 1) <> " " Then a_strng = a_strng & " "
+                        AlignString = Left$(a_strng & String(a_lngth, a_fill), a_lngth - 1) & ":"
+                    Case "."
+                        If Right$(a_strng, 1) <> " " Then a_strng = a_strng & " "
+                        AlignString = Left$(a_strng & String(a_lngth, a_fill), a_lngth)
+                    Case Else
+                        AlignString = Left$(a_strng & String(a_lngth, a_fill), a_lngth)
+                End Select
+            
+            Case "R"
+                AlignString = Right$(String(a_lngth, a_fill) & a_strng & a_margn, a_lngth)
+                
+            Case "C"
+                s = " " & Trim$(a_strng) & " "
+                If Len(s) < a_lngth Then
+                    sFill = String$(Int((a_lngth - Len(s)) / 2), a_fill)
+                End If
+                    AlignString = sFill & s & sFill
+                If Len(AlignString) < a_lngth Then
+                    AlignString = AlignString & VBA.String$(a_lngth - Len(AlignString), a_fill)
+                End If
+        End Select
+    End If
+
+xt: Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------

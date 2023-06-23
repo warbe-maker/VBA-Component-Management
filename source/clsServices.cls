@@ -56,19 +56,29 @@ Private sServicedItemType       As String
 Private wbkServiced             As Workbook
 Private sCurrentService         As String
 Private lMaxLenItemType         As Long
+Private sExecTraceFile          As String
+Private sLogFileService         As String
+Private sLogFileServiceSummary  As String
 
 Private Sub Class_Initialize()
     sNoOfItemsServicedNames = vbNullString
+    Set Log = New clsLog
+    Set SummaryLog = New clsLog
 End Sub
 
 Private Sub Class_Terminate()
     Set Log = Nothing
+    Set SummaryLog = Nothing
     Set Comps = Nothing
 End Sub
 
 Friend Property Get CurrentService() As String:             CurrentService = sCurrentService:           End Property
 
 Friend Property Let CurrentService(ByVal s As String):      sCurrentService = s:                        End Property
+
+Public Property Get ExecTraceFile() As String:              ExecTraceFile = sExecTraceFile:             End Property
+
+Private Property Let ExecTraceFile(ByVal s As String):      sExecTraceFile = s:                         End Property
 
 Friend Property Get NonBreakingSpace() As String:           NonBreakingSpace = Chr$(160):               End Property
 
@@ -106,29 +116,28 @@ Friend Property Get NoOfItemsTotal() As Long:               NoOfItemsTotal = lNo
 Friend Property Let NoOfItemsTotal(ByVal l As Long):        lNoOfItemsTotal = l:                        End Property
 
 Friend Property Get Serviced() As Workbook
-    Const PROC = "Serviced/Get"
+    Const PROC = "Serviced-Get"
     
-    On Error Resume Next
-    Dim s   As String
-    Dim fso As New FileSystemObject
+    On Error GoTo eh
+    If wbkServiced Is Nothing _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), _
+         "A service Workbook has yet not been provided!" & _
+         mErH.CONCAT & "Services.Serviced = <serviced workbook> must have been executed before!"
     
-    s = wbkServiced.Name
-    If Err.Number <> 0 Then
-        Set wbkServiced = ActiveWorkbook
-    End If
     Set Serviced = wbkServiced
-    If wbkServiced.Name <> ActiveWorkbook.Name _
-    Then Err.Raise AppErr(1), ThisWorkbook.Name & "." & ErrSrc(PROC), "The current serviced Workbook registered is " & wbkServiced.Name & " which is not the active Workbook " & ActiveWorkbook.Name & "!"
-    Set fso = Nothing
     
+xt: Exit Property
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Property
 
 Friend Property Let Serviced(ByVal ws_wbk As Workbook)
-    
-    Const PROC = "Serviced/Let"
+    Const PROC = "Serviced-Let"
     Set wbkServiced = ws_wbk
     wsService.CurrentServicedWorkbookFullName = wbkServiced.FullName
-
 End Property
 
 Friend Property Let ServicedItem(Optional ByRef s_max_len_name As Long, _
@@ -156,7 +165,7 @@ Friend Property Let ServicedItem(Optional ByRef s_max_len_name As Long, _
     Dim lbl As Label
     Dim img As Image
     Dim cbt As CommandButton
-    Dim Rng As Range
+    Dim rng As Range
 
     Select Case TypeName(v)
         Case "VBComponent":     Set vbc = v:    Select Case vbc.Type
@@ -185,7 +194,7 @@ Friend Property Let ServicedItem(Optional ByRef s_max_len_name As Long, _
         Case "SpinButton":      Set sbt = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
         Case "TextBox":         Set tbx = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
         Case "ToggleButton":    Set tbt = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
-        Case "Range":           Set Rng = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name.Name
+        Case "Range":           Set rng = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name.Name
         Case Else
             Debug.Print "TypeName '" & TypeName(v) & "' not yet considered as a serviced item"
     End Select
@@ -199,6 +208,10 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Property
 
 Friend Property Get ServicedItemName() As String:   ServicedItemName = sServicedItemName:   End Property
+
+Friend Property Get TempExportFolder() As String
+    TempExportFolder = mExport.ExpFileFolderPath(Serviced) & "\Temp"
+End Property
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -325,27 +338,34 @@ Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "clsServices." & s
 End Function
 
-Public Sub EstablishExecTraceFile(ByVal etl_wbk_serviced As Workbook, _
-                         Optional ByVal etl_append As Boolean = False)
+Public Sub EstablishExecTraceFile()
 ' --------------------------------------------------------------------------
 ' Establishes a trace log file in the serviced Workbook's parent folder
 ' provided either the Cond. Comp. Arg. `XcTrc_mTrc = 1` or XcTrc_clsTrc = 1`
 ' Note: A new trace-log-file is provided with the SRVC_UPDATE_OUTDATED which
 '       is the service performed when a serviced Workbook is opened.
 ' --------------------------------------------------------------------------
+    Const PROC = "EstablishExecTraceFile"
+    Const TRACE_FILE_NAME   As String = "CompMan.Services.ExecTrace.log"
+
 #If XcTrc_mTrc = 1 Then
-    mTrc.FileName = "CompMan.Services.ExecTrace.log"
+    mTrc.FileName = TRACE_FILE_NAME
+    mTrc.Path = Serviced.Path
     If CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED Then
         mTrc.NewFile
     End If
+    sExecTraceFile = mTrc.FileFullName
+
 #ElseIf XcTrc_clsTrc = 1 Then
     Set Trc = New clsTrc
     With Trc
-        .FileName = "CompMan.Services.ExecTrace.log"
+        .FileName = TRACE_FILE_NAME
+        .Path = Serviced.Path
         .Title = CurrentServiceStatusBar
         If Services.CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED Then
             .NewFile
         End If
+        sExecTraceFile = .FileFullName
     End With
 #End If
 End Sub
@@ -447,16 +467,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
-
-Friend Property Get TempExportFolder() As String
-    TempExportFolder = mExport.ExpFileFolderPath(Serviced) & "\Temp"
-End Property
-
-Public Sub TempExportFolderRemove()
-    With New FileSystemObject
-        .DeleteFolder TempExportFolder
-    End With
 End Sub
 
 Private Function ExportHeaderRemoved(ByVal ehr_fle As File) As Dictionary
@@ -623,37 +633,28 @@ Public Sub Initiate(ByVal i_service As String, _
     Dim fso As New FileSystemObject
     
     mBasic.BoP ErrSrc(PROC)
-    Set Log = New clsLog
-    Set SummaryLog = New clsLog
-    Set Comps = New clsComps
-
-    If Not i_serviced_wbk Is ActiveWorkbook Then
-        Set dctAllComps = Comps.CollectAll()
-    Else
-        Set dctAllComps = Comps.All
-    End If
-
     wsService.ClearDataAllServices
-    Me.Serviced = i_serviced_wbk
+    Serviced = i_serviced_wbk
+    Set Comps = New clsComps ' initialization collect the VB-Component relevant for the current service
     
+    If Log Is Nothing Then Set Log = New clsLog
     With Log
-        .KeepDays = 365 ' a new log-file is created with the open service
+        .KeepDays = 2 ' a new log-file is created after 48 hours
         .WithTimeStamp
         .FileFullName = i_serviced_wbk.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".Services.log"
         .MaxItemLengths Comps.MaxLenServicedType, Comps.MaxLenServicedItem
         .AlignmentItems "|L|L.:|L|"
+        sLogFileService = .FileName
         wsService.CurrentServiceLogFileFullName = .FileFullName
-        If sCurrentService = mCompManClient.SRVC_UPDATE_OUTDATED Then
-            '~~ The log-file is established with the open service and is kept until the next open
-            .NewFile
-        End If
     End With
     
+    If SummaryLog Is Nothing Then Set SummaryLog = New clsLog
     With SummaryLog
         .WithTimeStamp
         .KeepDays = 10
-        .FileFullName = ThisWorkbook.Path & "\CompMan.ServicesSummary.log"
+        .FileFullName = ThisWorkbook.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".ServicesSummary.log"
         .NewLog False ' suppresses delimiter line
+        sLogFileServiceSummary = .FileName
     End With
     
     Select Case i_service
@@ -703,8 +704,7 @@ Public Sub LogEntry(ByVal l_s As String)
 End Sub
 
 Public Sub LogEntrySummary(ByVal s As String)
-    CompMan.SummaryLog.Entry s
-    CompMan.SummaryLog.Entry String(Len(Split(s, ": ")(0)), " ") & "  (see " & CompMan.Log.FileFullName & " for log details)"
+    CompMan.SummaryLog.Entry s, "  (see " & sLogFileService & " for log details)"
 End Sub
 
 Public Sub MessageUnload(ByVal sm_title As String)
@@ -828,6 +828,12 @@ Private Function SelectServicedWrkbk(ByVal gs_service As String) As Workbook
     Else: Set SelectServicedWrkbk = Nothing
 
 End Function
+
+Public Sub TempExportFolderRemove()
+    With New FileSystemObject
+        If .FolderExists(TempExportFolder) Then .DeleteFolder TempExportFolder
+    End With
+End Sub
 
 Private Function WbkIsOpenedRegular() As Boolean
 ' ----------------------------------------------------------------------------

@@ -395,14 +395,22 @@ Private Sub RenewFinalResult(ByVal r_fs As Boolean)
 End Sub
 
 Private Function Renew_01_ConfirmConfig() As Boolean
+    Const PROC = "Renew_01_ConfirmConfig"
+    
+    mBasic.BoP ErrSrc(PROC)
     mMe.RenewAction = "Assert 'CompMan's Basic Configuration'"
     Renew_01_ConfirmConfig = mMe.Config(cfg_addin:=True)
     If Renew_01_ConfirmConfig _
     Then mMe.RenewMonitorResult = "Passed" _
     Else mMe.RenewMonitorResult = "Failed"
+
+xt: mBasic.EoP ErrSrc(PROC)
 End Function
 
 Private Function Renew_02_DevInstnc() As Boolean
+    Const PROC = "Renew_02_DevInstnc"
+    
+    mBasic.BoP ErrSrc(PROC)
     mMe.RenewAction = "Assert this 'Setup/Renew' service is executed from the 'Development-Instance-Workbook'"
     Renew_02_DevInstnc = IsDevInstnc()
     If Not Renew_02_DevInstnc Then
@@ -411,6 +419,8 @@ Private Function Renew_02_DevInstnc() As Boolean
     Else
         mMe.RenewMonitorResult = "Passed"
     End If
+
+xt: mBasic.EoP ErrSrc(PROC)
 End Function
 
 Private Sub Renew_03_SaveAndRemoveAddInReferences()
@@ -425,6 +435,7 @@ Private Sub Renew_03_SaveAndRemoveAddInReferences()
     Dim sWbs        As String
     Dim bOneRemoved As Boolean
 
+    mBasic.BoP ErrSrc(PROC)
     mMe.RenewAction = "Save and remove references to the Add-in from open Workbooks"
     mAddin.ReferencesRemove dctAddInRefs, sWbs, bOneRemoved, bAllRemoved
     If bOneRemoved Then
@@ -435,7 +446,8 @@ Private Sub Renew_03_SaveAndRemoveAddInReferences()
                           ) = "Passed"
     End If
     
-xt: Exit Sub
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -447,6 +459,7 @@ Private Sub Renew_04_DevInstncWorkbookSave()
     Const PROC = "Renew_04_DevInstncWorkbookSave"
     
     On Error GoTo eh
+    mBasic.BoP ErrSrc(PROC)
     mMe.RenewAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ")"
     
     Set wbkSource = Application.Workbooks(DevInstncName)
@@ -454,7 +467,8 @@ Private Sub Renew_04_DevInstncWorkbookSave()
     wbkSource.Activate
     mMe.RenewMonitorResult() = "Passed"
 
-xt: Exit Sub
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -467,15 +481,15 @@ Private Sub Renew_05_Set_IsAddin_ToFalse()
     
     On Error GoTo eh
     
+    mBasic.BoP ErrSrc(PROC)
     mMe.RenewAction = "Set the 'IsAddin' property of the 'CompMan Add-in' to FALSE"
-    If mAddin.Set_IsAddin_ToFalse Then
-        mMe.RenewMonitorResult() = "Passed"
-    Else
-        mMe.RenewMonitorResult("CompMan's 'Add-in Instance was not open or the 'IsAddin' property was already set to FALSE" _
-                              ) = "Passed"
-    End If
-    
-xt: Exit Sub
+    If mAddin.Set_IsAddin_ToFalse _
+    Then mMe.RenewMonitorResult() = "Passed" _
+    Else mMe.RenewMonitorResult("CompMan's 'Add-in Instance was not open or the 'IsAddin' property was already set to FALSE" _
+                               ) = "Passed"
+     
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -492,6 +506,7 @@ Private Function Renew_06_CloseCompManAddinWorkbook() As Boolean
     Dim fso         As New FileSystemObject
     Dim sErrDesc    As String
     
+    mBasic.BoP ErrSrc(PROC)
     mMe.RenewAction = "Close the 'CompMan Add-in'"
     wbkSource.Activate
     Renew_06_CloseCompManAddinWorkbook = mAddin.WbkClose(sErrDesc)
@@ -504,6 +519,7 @@ Private Function Renew_06_CloseCompManAddinWorkbook() As Boolean
     End If
     
 xt: Set fso = Nothing
+    mBasic.EoP ErrSrc(PROC)
     Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -519,6 +535,7 @@ Private Function Renew_07_DeleteAddInInstanceWorkbook() As Boolean
     Const PROC = "Renew_07_DeleteAddInInstanceWorkbook"
     
     On Error GoTo eh
+    mBasic.BoP ErrSrc(PROC)
     mMe.RenewAction = "Delete the 'CompMan Add-in' Workbook' (" & mAddin.WbkName & ")"
     
     With New FileSystemObject
@@ -539,7 +556,8 @@ Private Function Renew_07_DeleteAddInInstanceWorkbook() As Boolean
         End If
     End With
     
-xt: Exit Function
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -555,6 +573,7 @@ Private Function Renew_08_SaveDevInstncWorkbookAsAddin() As Boolean
     Const PROC = "Renew_08_SaveDevInstncWorkbookAsAddin"
     
     On Error GoTo eh
+    mBasic.BoP ErrSrc(PROC)
     mMe.RenewAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ") as 'CompMan Add-in' (" & mAddin.WbkName & ")"
     
     With Application
@@ -577,7 +596,8 @@ Private Function Renew_08_SaveDevInstncWorkbookAsAddin() As Boolean
         End If
     End With
     
-xt: Exit Function
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -596,6 +616,7 @@ Private Function Renew_09_OpenAddinInstncWorkbook() As Boolean
     Dim sBaseAddinName  As String
     Dim sBaseDevName    As String
     
+    mBasic.BoP ErrSrc(PROC)
     If Not mAddin.IsOpen Then
         If mAddin.Exists Then
             mMe.RenewAction = "Re-open the 'CompMan Add-in' (" & mAddin.WbkName & ")"
@@ -617,7 +638,8 @@ Private Function Renew_09_OpenAddinInstncWorkbook() As Boolean
         End If
     End If
 
-xt: Exit Function
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -629,11 +651,13 @@ Private Sub Renew_11_SetupAutoOpen()
     Const PROC = "Renew_11_SetupAutoOpen"
     
     On Error GoTo eh
+    mBasic.BoP ErrSrc(PROC)
     mMe.RenewAction = "Setup/maintain auto-open for the 'CompMan Add-in'"
     wsConfig.AutoOpenAddinSetup
     mMe.RenewMonitorResult() = "Passed"
     
-xt: Exit Sub
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -645,14 +669,11 @@ Private Sub Renew_12_SetupWinMergeIni()
     Const PROC = "Renew_12_SetupWinMergeIni"
     
     On Error GoTo eh
-'    Dim fso As New FileSystemObject
-'    If fso.FileExists(mWinMergeIni.WinMergeIniAddinFullName) Then
-'        fso.DeleteFile (mWinMergeIni.WinMergeIniAddinFullName)
-'    End If
+    mBasic.BoP ErrSrc(PROC)
     mWinMergeIni.Setup WinMergeIniAddinFullName
-'    Set fso = Nothing
     
-xt: Exit Sub
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -669,6 +690,7 @@ Private Sub Renew_10_RestoreReferencesToAddIn()
     Dim sWbs            As String
     Dim bOneRestored    As Boolean
     
+    mBasic.BoP ErrSrc(PROC)
     mMe.RenewAction = "Restore all saved 'References' to the 'CompMan Add-in' in open Workbooks"
     
     For Each v In dctAddInRefs
@@ -681,12 +703,10 @@ Private Sub Renew_10_RestoreReferencesToAddIn()
     If bOneRestored Then
         sWbs = Left(sWbs, Len(sWbs) - 2)
         mMe.RenewMonitorResult() = "Passed"
-    Else
-'        mMe.RenewMonitorResult(sRenewAction & vbLf & "Restoring 'References' did not find any saved to restore" _
-'                              ) = "Passed"
     End If
     
-xt: Exit Sub
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -707,9 +727,13 @@ Public Sub Renew___AddIn()
     
     On Error GoTo eh
     Set Services = New clsServices
+    With Services
+        .Serviced = ThisWorkbook
+        .EstablishExecTraceFile
+    End With
     
+    mBasic.BoP ErrSrc(PROC)
     lRenewStep = 0
-
     Application.EnableEvents = False
     bSucceeded = False
                             
@@ -762,6 +786,7 @@ xt: RenewFinalResult bSucceeded
     DoEvents
     Application.SendKeys "%{Tab}" ' brings the monitor message to front
     Application.EnableEvents = True
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

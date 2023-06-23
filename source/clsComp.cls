@@ -31,6 +31,7 @@ Option Explicit
 ' - KindOfComp
 ' - MaxLenComp
 ' - MaxLenType
+' -
 ' - Service
 ' - Sheet
 ' - SheetName
@@ -426,33 +427,49 @@ Private Property Get RawDiffers() As Boolean
     Const PROC = "RawDiffers"
     
     On Error GoTo eh
-    Dim bExcludeExportHeader As Boolean
+    Dim bIgnoreExpFileHeader    As Boolean
+    Dim sRevUsed                As String
+    Dim sRevRaw                 As String
     
     mBasic.BoP ErrSrc(PROC), Me.CompName
-    bExcludeExportHeader = Me.TypeString = "UserForm"
-    If Me.RevisionNumber <> Me.Raw.RevisionNumber Then
+    sRevUsed = RevisionNumber
+    sRevRaw = Raw.RevisionNumber
+    bIgnoreExpFileHeader = VBComp.Type = vbext_ct_MSForm
+    
+    If sRevUsed <> sRevRaw Then
         '~~ When the revision numbers are different either of the tow must have been changed
-        If Not Services.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
-                                  , fd_exp_file_2:=Raw.SavedExpFile _
-                                  , fd_ignore_export_header:=bExcludeExportHeader) Then
-            '~~ Because the Export File of the Used Common Component is identical
-            '~~ with the Export File of the Raw Common Component the Used Common
-            '~~ Component must have been updated manually already - e.g. by dragging
-            '~~ the component from the hosting Workbook. So just the Revision Number
-            '~~ needs to be set equal.
-            mCompManDat.RevisionNumber(sCompName) = mCommComps.RevisionNumber(sCompName)
-        Else
+        If Services.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
+                              , fd_exp_file_2:=Raw.SavedExpFile _
+                              , fd_ignore_export_header:=bIgnoreExpFileHeader) Then
             RawDiffers = True
+            '~~ This should enforce the update choice dialog which will consider the
+            '~~ Revision-Number difference.
+        Else
+            '~~ Because the 'used' Common Component is identical with its 'raw' version
+            '~~ in the 'Common Component Folder' the 'used' must have been instantly updated
+            '~~ after the change e.g. by dragging the component from the VB-Project it had
+            '~~ been changed into the other Workbook. Thus, just the Revision Number
+            '~~ needs to be set equal.
+            If sRevUsed < sRevRaw _
+            Then RevisionNumber = sRevRaw _
+            Else RevisionNumber = sRevUsed
+            With Services
+                .ServicedItem = Me.VBComp
+                .LogEntry "Revision-Numbers ""used"" and ""raw"" set equal to " & Me.RevisionNumber
+            End With
         End If
     ElseIf Me.RevisionNumber = Me.Raw.RevisionNumber Then
         If Services.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
                               , fd_exp_file_2:=Raw.SavedExpFile _
-                              , fd_ignore_export_header:=bExcludeExportHeader) Then
-            '~~ it is not the Raw which had changed but the Used Common Component in its Workbook.
-            '~~ In order to prevent Used Common Components differ between Workbooks using them
-            '~~ and remaining different unrecognized the Raw is indicated changed to enforce
-            '~~ an update - and by the way revert the modification in the Used Common Component.
-            RawDiffers = True
+                              , fd_ignore_export_header:=bIgnoreExpFileHeader) Then
+            RawDiffers = True ' when continued, will force update choice dialog
+            Err.Raise AppErr(1), ErrSrc(PROC), _
+            "The code of the used Common Component '" & CompName & "' differs from the code in the " & _
+            """Common Components Folder"" although the ""Revision-Numbers"" are equal!" & _
+            mErH.CONCAT & "This is a potential programming error. When either of the " & _
+            "is changed (the ""raw"" version in its ""hosting"" Workbook or the ""clone"" " & _
+            "in its ""using"" Workbook) the ""Revision-Number"" is increased. Thus this should " & _
+            "never happen!!!"
         End If
     End If
 

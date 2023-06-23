@@ -101,6 +101,7 @@ Private Sub CommCompsRemoveObsoleteComponents(ByVal h_hosted As String)
     Dim dctHosted   As Dictionary
     Dim sExpFile    As String
     
+    mBasic.BoP ErrSrc(PROC)
     Set dctHosted = Hosted(h_hosted)
     Set wbk = Services.Serviced
     sBaseName = fso.GetBaseName(wbk.FullName)
@@ -132,6 +133,7 @@ Private Sub CommCompsRemoveObsoleteComponents(ByVal h_hosted As String)
     
 xt: Set dct = Nothing
     Set fso = Nothing
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -147,8 +149,10 @@ Private Sub CommCompsHostedClear(ByVal c_comp_name As String)
 ' orphan but remains a Common Component which is now just one used by the
 ' Workbook provided it (still) exist in it.
 ' ----------------------------------------------------------------------------
-    Dim wbk As Workbook
+    Const PROC  As String = "CommCompsHostedClear"
+    Dim wbk     As Workbook
     
+    mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
     
     mCommComps.RawExpFileFullName(c_comp_name) = vbNullString
@@ -159,6 +163,7 @@ Private Sub CommCompsHostedClear(ByVal c_comp_name As String)
     If mComp.Exists(c_comp_name, wbk) Then
         mCompManDat.RegistrationState(c_comp_name) = enRegStateUsed
     End If
+    mBasic.EoP ErrSrc(PROC)
 
 End Sub
 
@@ -172,12 +177,14 @@ Private Sub CommCompsUsed()
 ' When none is available the current date is registered on the fly.
 ' its Revision-Number is
 ' ----------------------------------------------------------------------------
+    Const PROC          As String = "CommCompsUsed"
     Dim vbc             As VBComponent
     Dim wbk             As Workbook
     Dim BttnConfirmed   As String
     Dim BttnPrivate     As String
     Dim Msg             As mMsg.TypeMsg
     
+    mBasic.BoP ErrSrc(PROC)
     BttnConfirmed = "Yes!" & vbLf & _
                     "This is a used Common Component" & vbLf & _
                     "identical with the corresponding" & vbLf & _
@@ -207,7 +214,7 @@ Private Sub CommCompsUsed()
                                      , dsply_msg:=Msg _
                                      , dsply_buttons:=mMsg.Buttons(BttnConfirmed, vbLf, BttnPrivate))
                     Case BttnConfirmed: mCompManDat.RegistrationState(vbc.Name) = enRegStateUsed
-                                        mCompManDat.RawRevisionNumber(vbc.Name) = mCommComps.RevisionNumber(vbc.Name)
+                                        mCompManDat.RawRevisionNumber(vbc.Name) = vbNullString ' yet unknown will force update when outdated
                     Case BttnPrivate:   mCompManDat.RegistrationState(vbc.Name) = enRegStatePrivate
                 End Select
             End If
@@ -217,6 +224,8 @@ Private Sub CommCompsUsed()
             
         End If
     Next vbc
+
+xt: mBasic.EoP ErrSrc(PROC)
 
 End Sub
 
@@ -252,6 +261,7 @@ Private Sub CommCompsHosted(ByVal m_hosted As String)
     Dim dctHosted       As Dictionary
     Dim wbk             As Workbook
     
+    mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
     sHostBaseName = fso.GetBaseName(wbk.FullName)
     Set dctHosted = mCommComps.Hosted(m_hosted)
@@ -324,6 +334,7 @@ Private Sub CommCompsHosted(ByVal m_hosted As String)
     Next v
 
 xt: Set fso = Nothing
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -339,11 +350,14 @@ Private Sub CommCompsNotHosted(ByVal h_hosted As String)
 ' Note: The Common Component remains being an orphan until it is again claimed
 '       being hosted by a Workbook.
 ' ----------------------------------------------------------------------------
+    Const PROC      As String = ""
+    
     Dim dctHosted   As Dictionary
     Dim dctComps    As Dictionary
     Dim v           As Variant
     Dim wbk         As Workbook
     
+    mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
     Set dctHosted = mCommComps.Hosted(h_hosted)
     Set dctComps = mCommComps.Components
@@ -355,6 +369,8 @@ Private Sub CommCompsNotHosted(ByVal h_hosted As String)
         End If
     Next v
 
+xt: mBasic.EoP ErrSrc(PROC)
+    
 End Sub
 
 

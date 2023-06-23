@@ -25,16 +25,19 @@ Private Const VALUE_NAME_REG_STAT_OF_COMPONENT  As String = "KindOfComponent"
 Private Const VALUE_NAME_USED_EXPORT_FOLDER     As String = "UsedExportFolder"
 
 Private Property Get CompManDatFileFullName() As String
-    Dim wbk As Workbook
-    Dim fso As New FileSystemObject
+    Const PROC  As String = "CompManDatFileFullName-Get"
+    Dim wbk     As Workbook
+    Dim fso     As New FileSystemObject
     
+    mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
     CompManDatFileFullName = Replace(wbk.FullName, wbk.Name, "CompMan.dat")
     If Not fso.FileExists(CompManDatFileFullName) Then
         fso.CreateTextFile CompManDatFileFullName
     End If
     Set fso = Nothing
-    
+
+xt: mBasic.EoP ErrSrc(PROC)
 End Property
 
 Public Property Let RegistrationState(Optional ByVal comp_name As String, _
@@ -189,39 +192,6 @@ Public Function RevisionNumberInitial() As String
     RevisionNumberInitial = Format(Now(), "YYYY-MM-DD") & ".001"
 End Function
 
-'Public Sub RawRevisionNumberIncrease(ByVal comp_name As String)
-'' ----------------------------------------------------------------------------
-'' Increases the revision number by one starting with 1 for a new day.
-'' ----------------------------------------------------------------------------
-'    Dim RevNo   As Long
-'    Dim RevDate As String
-'
-'    If RawRevisionNumber(comp_name) = vbNullString Then
-'        RevNo = 1
-'    Else
-'        RevNo = Split(RawRevisionNumber(comp_name), ".")(1)
-'        RevDate = Split(RawRevisionNumber(comp_name), ".")(0)
-'        If RevDate <> Format(Now(), "YYYY-MM-DD") _
-'        Then RevNo = 1 _
-'        Else: RevNo = RevNo + 1
-'    End If
-'    RawRevisionNumber(comp_name) = Format(Now(), "YYYY-MM-DD") & "." & Format(RevNo, "000")
-'
-'End Sub
-
-'Public Property Get DueModificationWarning(Optional ByVal comp_name As String) As Boolean
-'' ----------------------------------------------------------------------------
-'' Returns the revision number in the format YYYY-MM-DD.n
-'' ----------------------------------------------------------------------------
-'    If NameExists(pp_section:=comp_name, pp_value_name:=VALUE_NAME_DUE_MODIF_WARNING) _
-'    Then DueModificationWarning = CBool(Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_DUE_MODIF_WARNING))
-'End Property
-'
-'Public Property Let DueModificationWarning(Optional ByVal comp_name As String, _
-'                                                    ByVal comp_due_warning As Boolean)
-'    Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_DUE_MODIF_WARNING) = Abs(CInt(comp_due_warning))
-'End Property
-
 Public Property Get RevisionNumber(Optional ByVal comp_name As String) As String
 ' ----------------------------------------------------------------------------
 ' Returns the revision number in the format YYYY-MM-DD.n
@@ -282,12 +252,14 @@ Private Sub HskpngRemoveDueModificationWarning()
     Next v
     
 End Sub
+
 Private Sub HskpngHosted(ByVal h_hosted As String)
-    
+    Const PROC      As String = ""
     Dim dctHosted   As Dictionary
     Dim wbk         As Workbook
     Dim v           As Variant
     
+    mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
     Set dctHosted = mCommComps.Hosted(h_hosted)
     
@@ -300,6 +272,7 @@ Private Sub HskpngHosted(ByVal h_hosted As String)
         End If
     Next v
     
+xt: mBasic.EoP ErrSrc(PROC)
 End Sub
 
 Private Sub HskpngRemoveObsoleteSections(ByVal h_hosted As String)
@@ -314,6 +287,7 @@ Private Sub HskpngRemoveObsoleteSections(ByVal h_hosted As String)
     Dim wbk As Workbook
     Dim dctHosted   As Dictionary
     
+    mBasic.BoP ErrSrc(PROC)
     Set dctHosted = mCommComps.Hosted(h_hosted)
     Set wbk = Services.Serviced
     For Each v In mCompManDat.Components
@@ -322,7 +296,8 @@ Private Sub HskpngRemoveObsoleteSections(ByVal h_hosted As String)
         End If
     Next v
         
-xt: Exit Sub
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

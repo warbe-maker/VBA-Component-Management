@@ -20,8 +20,6 @@ Option Explicit
 '
 ' ----------------------------------------------------------------------------
 
-Public dctAllComps As Dictionary
-
 Public Sub All()
 ' ----------------------------------------------------------------------------
 '
@@ -37,10 +35,8 @@ Public Sub All()
     Dim lRemaining  As String
     
     mBasic.BoP ErrSrc(PROC)
-    
     '~~ Prevent any action when the required preconditins are not met
     If Services.Denied(mCompManClient.SRVC_EXPORT_ALL) Then GoTo xt
-
     '~~ Remove any obsolete Export-Files within the Workbook folder
     '~~ I.e. of no longer existing VBComponents or at an outdated location
     Hskpng
@@ -114,18 +110,18 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
     Dim v           As Variant
     Dim vbc         As VBComponent
     Dim wbk         As Workbook
+    Dim dct         As Dictionary
     
     mBasic.BoP ErrSrc(PROC)
-    
     '~~ Prevent any action when the required preconditins are not met
     If Services.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
     
     Hskpng                      ' forward outdated export folder and remove obsolete Export files
     mCompManDat.Hskpng c_hosted ' remove obsolete sections in CompMan.dat
     Set wbk = Services.Serviced
-    
-    For Each v In dctAllComps
-        Set Comp = dctAllComps(v)
+    Set dct = Comps.All
+    For Each v In dct
+        Set Comp = dct(v)
         Set vbc = Comp.VBComp
         If Not Services.IsRenamedByCompMan(vbc.Name) Then
             With Comp
@@ -239,6 +235,7 @@ Private Sub Hskpng()
     Dim sExpFileName        As String
     Dim sExpFldrRecentPath  As String
     
+    mBasic.BoP ErrSrc(PROC)
     '~~ Rename the export folder when the one last used is no longe the one currently configured
     sExpFldrCurrentPath = mExport.ExpFileFolderPath(Services.Serviced)
     sExpFldrCurrentName = wsConfig.FolderExport
@@ -269,6 +266,7 @@ Private Sub Hskpng()
         
 xt: Set fso = Nothing
     Set fl = Nothing
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

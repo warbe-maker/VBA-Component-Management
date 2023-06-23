@@ -2,10 +2,14 @@ Attribute VB_Name = "mWsh"
 Option Explicit
 ' ------------------------------------------------------------------------------
 ' Standard Module mWsh: Common Worksheet services
+' =====================
 '
 ' Public services:
-' - ChangeCodeName
-' - Delete          Provides a 'clean deletion of a Worksheet by removing all
+' ----------------
+' - ChangeCodeName  Renames the provided VB-Component identified by its current
+'                   CodeName to the new provided name and returns it as
+'                   VB-Component object.
+' - Delete          Provides a 'clean' deletion of a Worksheet by removing all
 '                   relevant Name objects beforehand in order th prevent invalid
 '                   Name object reulting from the deletion.
 ' - Exists
@@ -13,12 +17,90 @@ Option Explicit
 ' - Url
 ' - Value Let/Get   ..
 '
-' W. Rauschenberger, Berlin Dec 2022
+' W. Rauschenberger, Berlin Jun 2023
+' See: https://github.com/warbe-maker/VBA-Excel-Worksheet
 ' ------------------------------------------------------------------------------
+Private Const GITHUB_REPO_URL = "GITHUB_REPO_URL"
+
+Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
+    Alias "ShellExecuteA" _
+    (ByVal hWnd As Long, _
+    ByVal lpOperation As String, _
+    ByVal lpFile As String, _
+    ByVal lpParameters As String, _
+    ByVal lpDirectory As String, _
+    ByVal nShowCmd As Long) _
+    As Long
+
+'***App Window Constants***
+Private Const WIN_NORMAL = 1         'Open Normal
+Private Const WIN_MAX = 3            'Open Maximized
+Private Const WIN_MIN = 2            'Open Minimized
+
+'***Error Codes***
+Private Const ERROR_SUCCESS = 32&
+Private Const ERROR_NO_ASSOC = 31&
+Private Const ERROR_OUT_OF_MEM = 0&
+Private Const ERROR_FILE_NOT_FOUND = 2&
+Private Const ERROR_PATH_NOT_FOUND = 3&
+Private Const ERROR_BAD_FORMAT = 11&
+Private Const WS_THICKFRAME As Long = &H40000
+Private Const GWL_STYLE As Long = -16
+
 Public Enum enExistenceQuality
     enNameOrCodeName
     enNameAndCodeName
 End Enum
+
+Public Sub README(Optional ByVal r_bookmark As String = vbNullString)
+    Const README_URL = "/blob/master/README.md"
+    
+    If r_bookmark = vbNullString _
+    Then ShellRun GITHUB_REPO_URL & README_URL _
+    Else: ShellRun GITHUB_REPO_URL & README_URL & "#" & r_bookmark
+        
+End Sub
+
+Public Function ShellRun(ByVal sr_string As String, _
+                Optional ByVal sr_show_how As Long = WIN_NORMAL) As String
+' ----------------------------------------------------------------------------
+' Opens a folder, email-app, url, or even an Access instance.
+'
+' Usage Examples: - Open a folder:  ShellRun("C:\TEMP\")
+'                 - Call Email app: ShellRun("mailto:user@tutanota.com")
+'                 - Open URL:       ShellRun("http://.......")
+'                 - Unknown:        ShellRun("C:\TEMP\Test") (will call
+'                                   "Open With" dialog)
+'                 - Open Access DB: ShellRun("I:\mdbs\xxxxxx.mdb")
+' Copyright:      This code was originally written by Dev Ashish. It is not to
+'                 be altered or distributed, except as part of an application.
+'                 You are free to use it in any application, provided the
+'                 copyright notice is left unchanged.
+' Courtesy of:    Dev Ashish
+' ----------------------------------------------------------------------------
+
+    Dim lRet            As Long
+    Dim varTaskID       As Variant
+    Dim stRet           As String
+    Dim hWndAccessApp   As Long
+    
+    '~~ First try ShellExecute
+    lRet = apiShellExecute(hWndAccessApp, vbNullString, sr_string, vbNullString, vbNullString, sr_show_how)
+    
+    Select Case True
+        Case lRet = ERROR_OUT_OF_MEM:       stRet = "Execution failed: Out of Memory/Resources!"
+        Case lRet = ERROR_FILE_NOT_FOUND:   stRet = "Execution failed: File not found!"
+        Case lRet = ERROR_PATH_NOT_FOUND:   stRet = "Execution failed: Path not found!"
+        Case lRet = ERROR_BAD_FORMAT:       stRet = "Execution failed: Bad File Format!"
+        Case lRet = ERROR_NO_ASSOC          ' Try the OpenWith dialog
+            varTaskID = Shell("rundll32.exe shell32.dll,OpenAs_RunDLL " & sr_string, WIN_NORMAL)
+            lRet = (varTaskID <> 0)
+        Case lRet > ERROR_SUCCESS:          lRet = -1
+    End Select
+    
+    ShellRun = lRet & IIf(stRet = vbNullString, vbNullString, ", " & stRet)
+
+End Function
 
 Public Sub ChangeCodeName(ByVal ccn_wbk As Workbook, _
                           ByVal ccn_old As String, _
@@ -109,7 +191,7 @@ Public Property Let Url(Optional ByVal su_wsh As Worksheet, _
     Dim sAddress    As String
     Dim sSubAddress As String
     Dim bProtected  As Boolean
-    Dim rng         As Range
+    Dim Rng         As Range
     
     Application.ScreenUpdating = False
     bProtected = su_wsh.ProtectContents
@@ -186,29 +268,29 @@ Public Property Let Value(Optional ByVal v_wsh As Worksheet, _
 ' ----------------------------------------------------------------------------
     Const PROC = "Value-Let"
     
-    Dim rng         As Range
+    Dim Rng         As Range
     Dim bProtected  As Boolean
     
     On Error Resume Next
     Select Case TypeName(v_name)
-        Case "String": Set rng = v_wsh.Range(v_name)
-        Case "Range":  Set rng = v_name
+        Case "String": Set Rng = v_wsh.Range(v_name)
+        Case "Range":  Set Rng = v_name
     End Select
     If Err.Number <> 0 _
     Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.Name & "' has no range with a name '" & v_name & "'!"
     
     bProtected = v_wsh.ProtectContents
     
-    If bProtected And rng.Locked Then
+    If bProtected And Rng.Locked Then
         '~~ Unprotect is required only when the range is locked and the sheet is protected
         On Error Resume Next
         v_wsh.Unprotect
         If Err.Number <> 0 _
         Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.Name & "' is apparently password protected which is not supported by this component's Value service!"
-        rng.Value = v_value
+        Rng.Value = v_value
         If bProtected Then v_wsh.Protect
     Else
-        rng.Value = v_value
+        Rng.Value = v_value
     End If
     
 xt: Exit Property
@@ -231,45 +313,37 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
     If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function
 
-' -----------------------------------------------------------------------------------
-' Standard  Module mWsh Checks the existence of a Worksheet.
-'
-' Methods:
-' - Exists  Returns TRUE when the object exists
-'
-' Uses:     Standard Module mErrHndlr
-'
-' Requires: Reference to "Microsoft Scripting Runtine"
-'
-' W. Rauschenberger, Berlin August 2019
-' -----------------------------------------------------------------------------------
-Private Sub BoP(ByVal b_proc As String, ParamArray b_arguments() As Variant)
+Private Sub BoP(ByVal b_proc As String, _
+       Optional ByVal b_args As String = vbNullString)
 ' ------------------------------------------------------------------------------
-' (B)egin-(o)f-(P)rocedure named (b_proc). Procedure to be copied as Private
-' into any module potentially either using the Common VBA Error Service and/or
-' the Common VBA Execution Trace Service. Has no effect when Conditional Compile
-' Arguments are 0 or not set at all.
+' Common 'Begin of Procedure' interface serving the 'Common VBA Error Services'
+' and - if not installed/activated the 'Common VBA Execution Trace Service'.
+' Obligatory copy Private for any VB-Component using the service but not having
+' the mBasic common component installed.
 ' ------------------------------------------------------------------------------
-    Dim s As String: If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
-#If ErHComp = 1 Then
-    mErH.BoP b_proc, s
-#ElseIf ExecTrace = 1 Then
-    mTrc.BoP b_proc, s
+#If ErHComp = 1 Then          ' serves the mTrc/clsTrc when installed and active
+    mErH.BoP b_proc, b_args
+#ElseIf XcTrc_clsTrc = 1 Then ' when only clsTrc is installed and active
+    Trc.BoP b_proc, b_args
+#ElseIf XcTrc_mTrc = 1 Then   ' when only mTrc is installed and activate
+    mTrc.BoP b_proc, b_args
 #End If
 End Sub
 
 Private Sub EoP(ByVal e_proc As String, _
-      Optional ByVal e_inf As String = vbNullString)
+       Optional ByVal e_args As String = vbNullString)
 ' ------------------------------------------------------------------------------
-' (E)nd-(o)f-(P)rocedure named (e_proc). Procedure to be copied as Private Sub
-' into any module potentially either using the Common VBA Error Service and/or
-' the Common VBA Execution Trace Service. Has no effect when Conditional Compile
-' Arguments are 0 or not set at all.
+' Common 'Begin of Procedure' interface serving the 'Common VBA Error Services'
+' and - if not installed/activated the 'Common VBA Execution Trace Service'.
+' Obligatory copy Private for any VB-Component using the service but not having
+' the mBasic common component installed.
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
-    mErH.EoP e_proc
-#ElseIf ExecTrace = 1 Then
-    mTrc.EoP e_proc, e_inf
+#If ErHComp = 1 Then          ' serves the mTrc/clsTrc when installed and active
+    mErH.EoP e_proc, e_args
+#ElseIf XcTrc_clsTrc = 1 Then ' when only clsTrc is installed and active
+    Trc.EoP e_proc, e_args
+#ElseIf XcTrc_mTrc = 1 Then   ' when only mTrc is installed and activate
+    mTrc.EoP e_proc, e_args
 #End If
 End Sub
 
@@ -278,34 +352,23 @@ Private Function ErrMsg(ByVal err_source As String, _
                Optional ByVal err_dscrptn As String = vbNullString, _
                Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Universal error message display service. See:
-' https://warbe-maker.github.io/vba/common/2022/02/15/Personal-and-public-Common-Components.html
+' Universal error message display service. Obligatory copy Private for any
+' VB-Component using the common error service but not having the mBasic common
+' component installed.
+' Displays: - a debugging option button when the Cond. Comp. Arg. 'Debugging = 1'
+'           - an optional additional "About:" section when the err_dscrptn has
+'             an additional string concatenated by two vertical bars (||)
+'           - the error message by means of the Common VBA Message Service
+'             (fMsg/mMsg) when installed and active (Cond. Comp. Arg.
+'             `MsgComp = 1`)
 '
-' Basic service:
-' - Displays a debugging option button when the Conditional Compile Argument
-'   'Debugging = 1'
-' - Displays an optional additional "About the error:" section when a string is
-'   concatenated with the error message by two vertical bars (||)
-' - Displays the error message by means of VBA.MsgBox when neither of the
-'   following is installed
+' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
+'               to turn them into a negative and in the error message back into
+'               its origin positive number.
 '
-' Extendend service when other Common Components are installed and indicated via
-' Conditional Compile Arguments:
-' - Invokes mErH.ErrMsg when the Conditional Compile Argument ErHComp = 1
-' - Invokes mMsg.ErrMsg when the Conditional Compile Argument MsgComp = 1 (and
-'   the mErH module is not installed / MsgComp not set)
-'
-' Uses:
-' - AppErr For programmed application errors (Err.Raise AppErr(n), ....) to turn
-'          them into negative and in the error message back into a positive
-'          number.
-' - ErrSrc To provide an unambiguous procedure name by prefixing is with the
-'          module name.
-'
-' See: https://github.com/warbe-maker/Common-VBA-Error-Services
-'
-' W. Rauschenberger Berlin, May 2022
-' ------------------------------------------------------------------------------' ------------------------------------------------------------------------------
+' W. Rauschenberger Berlin, June 2023
+' See: https://github.com/warbe-maker/VBA-Error
+' ------------------------------------------------------------------------------
 #If ErHComp = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
@@ -366,7 +429,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
     If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
     
-#If Debugging Then
+#If Debugging = 1 Then
     ErrBttns = vbYesNo
     ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
 #Else
