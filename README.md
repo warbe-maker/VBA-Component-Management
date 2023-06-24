@@ -88,50 +88,44 @@ CompManServiced
 ## Usage
 ### Enabling the services (serviced or not serviced)
 A Workbook will only be [serviced](#enabling-the-services-serviced-or-not-serviced) by CompMan provided
-1. The opened Workbook has one or more of the below services enabled
-2. A ***servicing CompMan instance*** (the [CompMan.xlsb][1] Workbook and/or the [CompMan Add-in](#compman-used-as-add-in) is open
+1. A ***servicing CompMan instance*** (see [how to provide](#installation)) is open
+2. The ***to-be-serviced Workbook*** Workbook has one or more of the below services enabled (see below)
 3. The ***to-be-serviced Workbook*** is opened from within a sub-folder of the configured [_CompManServiced_ folder](#compmans-default-files-and-folders-environment), Note: In case of the _Synchronization service_ from within a sub-folder of the configured _Sync-Target-Folder_.
 4. The ***to-be-serviced Workbook*** is the only Workbook in its parent folder (the parent folder may have sub-folders with Workbooks however)
 5. WinMerge ([WinMerge English][3], [WinMerge German][4] or any other language version is installed to display the difference for any components when about to be updated by the [_Update_ service](#enabling-the-update-service)
 
->Note: As a consequence from the above, a productive Workbook must not be used from within the configured [_CompManServiced_ folder](#compmans-default-files-and-folders-environment). When a Workbook with any [enabled](#enabling-the-services-serviced-or-not-serviced)/prepared service is opened when located elsewhere the user will not be bothered by any means, i.e. will not even recognize CompMan at all - even when open/available.
+>Note: As a consequence from the above, a productive Workbook must not be used from within the configured [_CompManServiced_ folder](#compmans-default-files-and-folders-environment). When a Workbook with any enabled/prepared service is opened when located elsewhere the user will not be bothered by any means, i.e. will not even recognize CompMan at all - even when open/available.
 
->Note: Even when a Workbook has one or more services [enabled](#enabling-the-services-serviced-or-not-serviced), the service is denied without notice when the [required (pre)conditions](#serviced-or-not-serviced) are not met.
+>Note: Even when a Workbook has one or more services [enabled](#enabling-the-services-serviced-or-not-serviced), the service is denied without notice when the above (pre)conditions are not met.
 
 ### Enabling the _Export_ service
 The _Export_ service is performed whenever the Workbook is saved from within the configured [_CompManServiced_ folder](#compmans-default-files-and-folders-environment) and all the [preconditions](#enabling-the-services-serviced-or-not-serviced) are met.
-1. From the Common Components folder import the _mCompManClient.bas_ which serves as the link to the CompMan services.
+1. From the Common Components folder import the _mCompManClient.bas_ (available after CompMan has been setup) which serves as the link to the CompMan services
 2. Into the Workbook module copy the following:
 ```vb
+Private Const HOSTED_RAWS = vbNullstring
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
-    '~~ The below statement has no effect unless this (the Workbook serviced by CompMan) had been
-    '~~ opened from within a sub-folder of the configured 'CompManServiced' folder.
-    '~~ HOSTED_RAWS is a vbNullString constant when the Workbook not hosts any Common Component. 
     mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
 End Sub
 ```
-3. In case the Workbook hosts one or more _[Common Components](#common-components)_ copy into the Workbook module:<br>
-`Private Const HOSTED_RAWS = <component-name>[,<component-name]...`<br>
-else<br>
-`Private Const HOSTED_RAWS = vbNullstring`
+3. See _[Common Components](#common-components)_ in case the Workbook hosts one/some
 
 ### Enabling the _Update_ service
 The _Update_ service is performed whenever the Workbook is opened from within the configured [_CompManServiced_ folder](#compmans-default-files-and-folders-environment) and all the [preconditions](#enabling-the-services-serviced-or-not-serviced) are meet.
 1. Make sure CompMan is [provided](#installation) and open
-1. From the _Common-Components_ folder import the _mCompManClient.bas_ which serves as the interface to the CompMan services.
+1. From the _Common-Components_ folder import the _mCompManClient.bas_ (available after CompMan has been setup) which serves as the interface to the CompMan services.
 2. Into the Workbook module copy the following:
 ```vb
+Private Const HOSTED_RAWS = vbNullstring
 Private Sub Workbook_Open()
-    '~~ The below statement has no effect unless this (the Workbook serviced by CompMan) had been
-    '~~ opened from within a sub-folder of the configured 'CompManServiced' folder.
-    '~~ HOSTED_RAWS is a vbNullString constant when the Workbook not hosts any Common Component.
     mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, HOSTED_RAWS
 End Sub
 ```
+Despite the import of the _mCompManClient_ this is the only required modification in a VB-Project for this service.
+
 3. In case the Workbook hosts one or more _[Common Components](#common-components]_ copy into the Workbook module:<br>
-`Private Const HOSTED_RAWS = <component-name>[,<component-name]...`<br>
-else<br>
-`Private Const HOSTED_RAWS = vbNullstring`
+`Private Const HOSTED_RAWS = <component-name>[,<component-name]...`  
+> This will only be the case when a Common Component ([in the sense of CompMan](#common-components)) is hosted, i.e. developed and maintained in a - preferably dedicated - Workbook. However, any Workbook may declare one of its components as a hosted _Common Component_ (watch-out conflicts!). When declared and modified the Export-File will be copied to the _Common Components Folder_ and the _Revision Number_ will be increased.
 
 ### Enabling the _Synchronization_ service
 The _Synchronize VB-Project_ service is performed when the Workbook is opened from within the configured [_Serviced Synchronization Target Folder_](#configuration-changes) and all the [preconditions](#enabling-the-services-serviced-or-not-serviced) are meet
@@ -204,7 +198,11 @@ New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. 
  
 ### Common Components
 #### The concept of "hosted" Common Components
-A _VB-Component_ considered common for _VB-Projects_ is preferably developed and maintained in a dedicated Workbook last but not least because this allows a dedicated regression test environment . The consequence: When a used component has a valuable common quality it is copied into a dedicated (hosting) Workbook where it "lives" from then on. The conclusion: A ***true*** Common Component is one hosted, i.e. developed, maintained and (regression) tested in a dedicated Workbook. It looks like an avoidable effort but on the long run it pays off for a professional VB-Project development. See also the blog post [Common VBA Components][6].
+A _VB-Component_ considered common for _VB-Projects_ is preferably (not a must) developed and maintained in a dedicated Workbook for a simple reason: Common Components are a perfect means for a 'code-and-forget' module which - by its nature allows extensive testing and last but not least a dedicated regression-test-environment. Something which I've managed for all my Common Components!. That means: When a used component has a valuable 'common' quality it is is either simply declared as a hosted _Common Component_ or (better) copied into a dedicated (hosting) Workbook where it "lives" from then on.
+
+> **Conclusion:** A ***true*** Common Component is preferably hosted, i.e. developed, maintained and (regression) tested! in a dedicated Workbook. It may look as an avoidable effort but on the long run it pays off for a [professional VB-Project development][7]. A Workbook which hosts (declares) a _Common Component_ indicates this in the Workbook module's declaration section with:  
+`Private Const HOSTED_RAWS = <component-name>[,<component-name]...`
+
 #### The service
 The initial intention for the development of CompMan was to keep _Common&nbspComponent_ up-to-date in all VB-Projects using them. To achieve this the _Export Service_ maintains hosted _Raw&nbsp;Common&nbsp;Components_ with a [_Revision Number_](#the-revision-number) as a copy of the _Export&nbsp;File_ in a [Common-Components](#compmans-default-files-and-folders-environment) folder. The _Update-Outdated-Common-Components_ service checks for [serviced](#enabling-the-services-serviced-or-not-serviced) Workbook whether a _Used&nbsp;Common&nbsp;Component_ is outdated and displays an update dialog, also allowing to display the code difference by means of WinMerge ([WinMerge English][3], [WinMerge German][4].
 
@@ -240,3 +238,4 @@ Contribution of any kind is welcome, raising issues specifically.
 [4]:https://winmerge.org/downloads/?lang=de
 [5]:https://github.com
 [6]:https://warbe-maker.github.io/vba/common/2021/02/19/Common-VBA-Components.html
+[7]:https://warbe-maker.github.io/vba/excel/component/management/common/components/2023/06/12/VB-Project-development-towards-professionalism.html
