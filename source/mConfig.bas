@@ -19,7 +19,7 @@ Option Explicit
 '                       folder has no Addin and ThisWorkbooks parent.parent
 '                       folder has no Common-Components folder.
 ' - DefaultEnvConfirmed Confirms the setup of the default environment.
-' - DefaultEnvSetup     Sets up CompMan's default environment of files and
+' - SetupCompManDefaultEnvironment     Sets up CompMan's default environment of files and
 '                       folders
 ' ----------------------------------------------------------------------------
 Public Const DEFAULT_FOLDER_COMPMAN_PARENT     As String = "CompMan"
@@ -192,13 +192,18 @@ Public Sub SetupConfirmed()
     
 End Sub
 
-Public Sub DefaultEnvSetup()
+Public Sub SetupCompManDefaultEnvironment()
 ' ----------------------------------------------------------------------------
 ' Sets up CompMan's default environment of files and folders
 '
 ' See: https://github.com/warbe-maker/VBCompMan/blob/master/README.md?#compmans-default-files-and-folders-environment
 ' ----------------------------------------------------------------------------
-    Const PROC = "DefaultEnvSetup"
+    Const PROC = "SetupCompManDefaultEnvironment"
+    
+    Dim Services    As clsServices
+    Dim Comp        As clsComp
+    Dim dctAll      As Dictionary
+    Dim vbc         As VBComponent
     
     On Error GoTo eh
     Dim FldrExport          As String
@@ -219,6 +224,19 @@ Public Sub DefaultEnvSetup()
         If Not .Verified Then .Activate
     End With
 
+    '~~ Export the mCompManClient to the Common Components folder
+    For Each vbc In ThisWorkbook.VBProject.VBComponents
+        If vbc.Name = "mCompManClient" Then
+            Set Comp = New clsComp
+            With Comp
+                Set .Wrkbk = ThisWorkbook
+                Set .VBComp = vbc
+                .VBComp.Export mConfig.CommonCompsFolderNameDefault & "\" & .CompName & .ExpFileExt
+            End With
+            Exit For
+        End If
+    Next vbc
+    
 xt: Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))

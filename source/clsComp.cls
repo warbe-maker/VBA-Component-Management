@@ -101,7 +101,7 @@ Friend Property Get Changed() As Boolean
     On Error GoTo eh
     '~~ Any component is regarded changed when a temporary Export-File differs from the regular one
     Me.VBComp.Export Me.ExpFileTempFullName
-    mBasic.TimedDoEvents
+    mBasic.TimedDoEvents ErrSrc(PROC)
     
     '~~ Any component its Export-File not exists is regarded changed
     '~~ In fact it is either new or the Export-Folder location had changed
@@ -251,9 +251,9 @@ Friend Property Get ExpFile() As File
     
 End Property
 
-Friend Property Set ExpFile(ByVal fl As File):      Set flExpFile = fl:     End Property
+Friend Property Set ExpFile(ByVal fl As File):      Set flExpFile = fl:         End Property
 
-Friend Property Get ExpFileExt() As String: ExpFileExt = sExpFileExt:   End Property
+Friend Property Get ExpFileExt() As String:         ExpFileExt = sExpFileExt:   End Property
 
 Friend Property Get ExpFileFullName() As String
 ' ------------------------------------------------------------------------------

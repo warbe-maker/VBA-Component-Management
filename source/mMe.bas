@@ -72,6 +72,7 @@ Public Function AssertedServicingEnabled() As Boolean
     On Error GoTo eh
     Dim fso As New FileSystemObject
     
+    If Trc Is Nothing Then Set Trc = New clsTrc
     BaseName = fso.GetBaseName(ThisWorkbook.Name)
     Extension = fso.GetExtensionName(ThisWorkbook.Name)
     If mMe.IsAddinInstnc Then
@@ -110,14 +111,15 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
                       "Go ahead and set it up"
                      
         If DefaultEnvDisplay(BttnGoAhead) = BttnGoAhead Then
-            mConfig.DefaultEnvSetup
+            mConfig.SetupCompManDefaultEnvironment
             sWrkbkOpnd = ThisWorkbook.FullName
-            Stop
             Application.EnableEvents = False
             ThisWorkbook.SaveAs mConfig.CompManParentFolderNameDefault & "\" & ThisWorkbook.Name
             Application.EnableEvents = True
             mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
             AssertedFilesAndFldrsStructure = True
+            DoEvents
+            On Error Resume Next
             fso.DeleteFile sWrkbkOpnd
             mConfig.SetupConfirmed
         End If

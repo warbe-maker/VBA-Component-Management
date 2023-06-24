@@ -1213,10 +1213,10 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function TimedDoEvents(Optional t_source As String = vbNullString) As String
+Public Function TimedDoEvents(Optional t_source As String = vbNullString, _
+                              Optional t_debug_print As Boolean = False) As String
 ' ---------------------------------------------------------------------------
-' For the execution of a DoEvents statement. Provides the information in
-' which procedure it had been executed and the msecs delay it has caused.
+' Returns the elapsed time in seconds of DoEvents statement.
 '
 ' Background: DoEvents every now and then are concidered to solve problems.
 '             However, when looking at the description of DoEvents its effect
@@ -1227,7 +1227,7 @@ Public Function TimedDoEvents(Optional t_source As String = vbNullString) As Str
 '             results. This little procedure at least documents in VBE's
 '             immediate window the resulting performace delay in milliseconds.
 ' ---------------------------------------------------------------------------
-    Const TIMER_FORMAT = "00.0000"
+    Const TIMER_FORMAT = "0.00000"
     Dim cBegin      As Currency
     Dim cEnd        As Currency
     Dim cElapsed    As Currency
@@ -1235,10 +1235,9 @@ Public Function TimedDoEvents(Optional t_source As String = vbNullString) As Str
     mBasic.TimerBegin cBegin
     DoEvents
     mBasic.TimerEnd cBegin, cEnd, cElapsed, TIMER_FORMAT
-    
-    If t_source <> vbNullString Then t_source = Trim(Replace(t_source & ":", "::", ":")) & " "
-    TimedDoEvents = t_source & Format((cElapsed / SysFrequency) * 1000, TIMER_FORMAT) & " milliseconds"
-    Debug.Print TimedDoEvents
+    If t_source <> vbNullString Then t_source = " (" & Trim(t_source) & ")"
+    TimedDoEvents = Format((cElapsed / SysFrequency) * 1000, TIMER_FORMAT) & " seconds " & t_source
+    If t_debug_print Then Debug.Print TimedDoEvents
     
 End Function
 

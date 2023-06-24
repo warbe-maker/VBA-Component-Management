@@ -354,8 +354,8 @@ Public Sub CurrentStatus()
     Else
         AutoOpenStatus = "auto-open for " & ThisWorkbook.Name & "  n o t  s e t u p !"
     End If
-    ButtonHelpUrlAddinSetup = "#compmanxlsb-versus-compman-as-add-in"
-    ButtonHelpUrlPauseContinue = "#configuration-changes-compmans-config-worksheet"
+    ButtonHelpUrlAddinSetup = "#configuration-changes-compmans-config-worksheet"
+    ButtonHelpUrlPauseContinue = "#compmanxlsb-versus-compman-as-add-in"
 
     FolderSyncTargetIsValid
     FolderSyncArchiveIsValid
