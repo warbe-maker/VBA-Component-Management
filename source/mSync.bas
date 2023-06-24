@@ -225,18 +225,6 @@ xt:   mBasic.EoP ErrSrc(PROC)
 
 End Function
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ------------------------------------------------------------------------------
-' Ensures that a programmed 'Application' error number not conflicts with the
-' number of a 'VB Runtime Error' or any other system error.
-' - Returns a given positive 'Application Error' number (app_err_no) into a
-'   negative by adding the system constant vbObjectError
-' - Returns the original 'Application Error' number when called with a negative
-'   error number.
-' ------------------------------------------------------------------------------
-    If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
-End Function
-
 Public Function AppRunNewIds(ByVal a_kind As enSyncKindOfObject) As String
     AppRunNewIds = DueSyncIdsByAction(a_kind, enSyncActionAddNew)
 End Function
@@ -691,7 +679,7 @@ Private Sub Finalize()
         With .Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization service (GitHub README):"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_SYNC_CHAPTER
+            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
         End With
     End With
 
@@ -954,7 +942,7 @@ Public Sub OpenDecision()
         With .Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization service (GitHub README):"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_SYNC_CHAPTER
+            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
         End With
     End With
     
@@ -1321,9 +1309,9 @@ Public Function SourceExists(ByVal se_wbk_opened As Workbook) As Boolean
     Dim MsgTitle        As String
     Dim i               As Long
     
-    mFso.Exists ex_folder:=wsConfig.FolderCompManRoot _
-              , ex_file:=Replace(se_wbk_opened.Name, SYNC_TARGET_SUFFIX & ".xls", ".xls") _
-              , ex_result_files:=cll
+    mFso.Exists x_folder:=wsConfig.FolderCompManRoot _
+              , x_file:=Replace(se_wbk_opened.Name, SYNC_TARGET_SUFFIX & ".xls", ".xls") _
+              , x_result_files:=cll
     Select Case cll.Count
         Case 0
             MsgTitle = "No corresponding Sync-Source-Workbook found!"
@@ -1357,7 +1345,7 @@ Public Function SourceExists(ByVal se_wbk_opened As Workbook) As Boolean
         With Msg.Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization service (GitHub README):"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_SYNC_CHAPTER
+            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
         End With
         mMsg.Dsply dsply_title:=MsgTitle _
                  , dsply_msg:=Msg _
@@ -1524,7 +1512,7 @@ Private Sub SyncAll()
         With Msg.Section(lSection).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_SYNC_CHAPTER
+            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
         End With
         
         Application.EnableEvents = True

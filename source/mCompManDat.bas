@@ -2,9 +2,8 @@ Attribute VB_Name = "mCompManDat"
 Option Explicit
 ' ---------------------------------------------------------------------------
 ' Standard Module mCompManDat: Maintains for each serviced Workbook a file
-' ---------------------------- named CompMan.dat primarily for the
-'                              Workbook's hosted and used Common Components
-'                              with the following structure:
+' ============================ named CompMan.dat primarily for the
+' Workbook's hosted and used Common Components with the following structure:
 '
 ' [<component-name>]
 ' KindOfComponent=used|hosted
@@ -208,9 +207,9 @@ End Property
 
 Private Function NameExists(ByVal pp_section As String, _
                             ByVal pp_value_name As String) As Boolean
-    NameExists = mFso.Exists(ex_file:=CompManDatFileFullName _
-                           , ex_section:=pp_section _
-                           , ex_value_name:=pp_value_name)
+    NameExists = mFso.Exists(x_file:=CompManDatFileFullName _
+                           , x_section:=pp_section _
+                           , x_value_name:=pp_value_name)
 End Function
 
 Public Sub RemoveComponent(ByVal r_comp_name As String)

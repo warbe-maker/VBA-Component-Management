@@ -291,38 +291,37 @@ Private Sub CommCompsHosted(ByVal m_hosted As String)
                     
                 End If
                 
-                If Services.FilesDiffer(fd_exp_file_1:=.ExpFile _
-                                      , fd_exp_file_2:=mCommComps.SavedExpFile(v)) Then
+                If Services.FilesDiffer(f_file_1:=.ExpFile _
+                                      , f_file_2:=mCommComps.SavedExpFile(v)) Then
                     '~~ Attention! This is a cruical issue which should never be the case. However, when different
                     '~~ computers/users are involved in the development process ...
                     '~~ Instead of simply updating the saved raw Export File better have carefully checked the case
                     If mCommComps.RevisionNumber(v) = mCompManDat.RawRevisionNumber(v) Then
                         If InconsitencyWarning _
-                           (exp_file_full_name:=.ExpFile.Path _
-                          , saved_exp_file_full_name:=mCommComps.SavedExpFile(v).Path _
-                          , sri_diff_message:="While the Revision Number of the 'Hosted Raw'  " & mBasic.Spaced(v) & "  is identical with the " & _
-                                              "'Saved Raw' their Export Files are different. Compared were:" & vbLf & _
-                                              "Hosted Raw Export File = " & .ExpFile.Path & vbLf & _
-                                              "Saved Raw Export File  = " & mCommComps.SavedExpFile(v).Path & vbLf & _
-                                              "whereby any empty code lines and case differences had been ignored. " & _
-                                              "The difference thus really matters!" _
+                           (i_file_full_name:=.ExpFile.Path _
+                          , i_file_full_name_saved:=mCommComps.SavedExpFile(v).Path _
+                          , i_message:="While the Revision Number of the 'Hosted Raw'  " & mBasic.Spaced(v) & "  is identical with the " & _
+                                       "'Saved Raw' their Export Files are different. Compared were:" & vbLf & _
+                                       "Hosted Raw Export File = " & .ExpFile.Path & vbLf & _
+                                       "Saved Raw Export File  = " & mCommComps.SavedExpFile(v).Path & "." & vbLf & _
+                                       "Since empty code lines and case differences had been ignored the difference definitely matters!" _
                            ) Then
                             mCommComps.SaveToCommonComponentsFolder v, .ExpFile, .ExpFileFullName
                         End If
                     ElseIf mCommComps.RevisionNumber(v) <> mCompManDat.RawRevisionNumber(v) Then
                         If mCommComps.InconsitencyWarning _
-                           (exp_file_full_name:=.ExpFile.Path _
-                          , saved_exp_file_full_name:=mCommComps.SavedExpFile(v).Path _
-                          , sri_diff_message:="The 'Revision Number' of the 'Hosted Raw Common Component's Export File' and the " & _
-                                              "the 'Saved Raw's Export File' differ:" & vbLf & _
-                                              "Hosted Raw = " & mCompManDat.RawRevisionNumber(v) & vbLf & _
-                                              "Saved Raw  = " & mCommComps.RevisionNumber(v) & vbLf & _
-                                              "and also the Export Files differ. Compared were:" & vbLf & _
-                                              "Hosted Raw = " & .ExpFile.Path & vbLf & _
-                                              "Saved Raw  = " & mCommComps.SavedExpFile(v).Path & vbLf & _
-                                              "whereby any empty code lines and case differences had been ignored. " & _
-                                              "The difference thus really matters! Updating is not at all " & _
-                                              "recommendable before the issue had been clarified." _
+                           (i_file_full_name:=.ExpFile.Path _
+                          , i_file_full_name_saved:=mCommComps.SavedExpFile(v).Path _
+                          , i_message:="The 'Revision Number' of the 'Hosted Raw Common Component's Export File' and the " & _
+                                       "the 'Saved Raw's Export File' differ:" & vbLf & _
+                                       "Hosted Raw = " & mCompManDat.RawRevisionNumber(v) & vbLf & _
+                                       "Saved Raw  = " & mCommComps.RevisionNumber(v) & vbLf & _
+                                       "and also the Export Files differ. Compared were:" & vbLf & _
+                                       "Hosted Raw = " & .ExpFile.Path & vbLf & _
+                                       "Saved Raw  = " & mCommComps.SavedExpFile(v).Path & vbLf & _
+                                       "whereby any empty code lines and case differences had been ignored. " & _
+                                       "The difference thus really matters! Updating is not " & _
+                                       "recommendable unless the issue has been clarified." _
                            ) Then
                             mCommComps.SaveToCommonComponentsFolder v, .ExpFile, .ExpFileFullName
                         End If

@@ -120,7 +120,7 @@ Friend Property Get Serviced() As Workbook
     
     On Error GoTo eh
     If wbkServiced Is Nothing _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), _
+    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), _
          "A service Workbook has yet not been provided!" & _
          mErH.CONCAT & "Services.Serviced = <serviced workbook> must have been executed before!"
     
@@ -165,7 +165,7 @@ Friend Property Let ServicedItem(Optional ByRef s_max_len_name As Long, _
     Dim lbl As Label
     Dim img As Image
     Dim cbt As CommandButton
-    Dim rng As Range
+    Dim Rng As Range
 
     Select Case TypeName(v)
         Case "VBComponent":     Set vbc = v:    Select Case vbc.Type
@@ -194,7 +194,7 @@ Friend Property Let ServicedItem(Optional ByRef s_max_len_name As Long, _
         Case "SpinButton":      Set sbt = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
         Case "TextBox":         Set tbx = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
         Case "ToggleButton":    Set tbt = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
-        Case "Range":           Set rng = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name.Name
+        Case "Range":           Set Rng = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name.Name
         Case Else
             Debug.Print "TypeName '" & TypeName(v) & "' not yet considered as a serviced item"
     End Select
@@ -212,17 +212,6 @@ Friend Property Get ServicedItemName() As String:   ServicedItemName = sServiced
 Friend Property Get TempExportFolder() As String
     TempExportFolder = mExport.ExpFileFolderPath(Serviced) & "\Temp"
 End Property
-
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ------------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
-End Function
 
 Private Function CodeModuleIsEmpty(ByRef vbc As VBComponent) As Boolean
     With vbc.CodeModule
@@ -370,10 +359,10 @@ Public Sub EstablishExecTraceFile()
 #End If
 End Sub
 
-Public Function ExpFilesDiffDisplay(ByVal fd_exp_file_left_full_name As String, _
-                                    ByVal fd_exp_file_right_full_name As String, _
-                                    ByVal fd_exp_file_left_title As String, _
-                                    ByVal fd_exp_file_right_title As String) As Boolean
+Public Function ExpFilesDiffDisplay(ByVal e_file_left_full_name As String, _
+                                    ByVal e_file_right_full_name As String, _
+                                    ByVal e_file_left_title As String, _
+                                    ByVal e_file_right_title As String) As Boolean
 ' ----------------------------------------------------------------------------
 ' Displays the differences between export file 1 and 2 by means of WinMerge!
 ' Note: CompMan ignores any differences caused by empty code lines or case.
@@ -397,15 +386,15 @@ Public Function ExpFilesDiffDisplay(ByVal fd_exp_file_left_full_name As String, 
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
-    If Not fso.FileExists(fd_exp_file_left_full_name) _
+    If Not fso.FileExists(e_file_left_full_name) _
     Then Err.Raise Number:=AppErr(2) _
                  , source:=ErrSrc(PROC) _
-                 , Description:="The file """ & fd_exp_file_left_full_name & """ does not exist!"
+                 , Description:="The file """ & e_file_left_full_name & """ does not exist!"
     
-    If Not fso.FileExists(fd_exp_file_right_full_name) _
+    If Not fso.FileExists(e_file_right_full_name) _
     Then Err.Raise Number:=AppErr(3) _
                  , source:=ErrSrc(PROC) _
-                 , Description:="The file """ & fd_exp_file_right_full_name & """ does not exist!"
+                 , Description:="The file """ & e_file_right_full_name & """ does not exist!"
         
     '~~ Guarantee an ini-File which meets CompMan's specifics
     With fso
@@ -420,11 +409,11 @@ Public Function ExpFilesDiffDisplay(ByVal fd_exp_file_left_full_name As String, 
     
     '~~ Prepare command line
     sCommand = "WinMergeU " & _
-               """" & fd_exp_file_left_full_name & """" & " " & _
-               """" & fd_exp_file_right_full_name & """" & _
+               """" & e_file_left_full_name & """" & " " & _
+               """" & e_file_right_full_name & """" & _
                " /e " & _
-               " /dl " & DQUOTE & fd_exp_file_left_title & DQUOTE & _
-               " /dr " & DQUOTE & fd_exp_file_right_title & DQUOTE & " " & _
+               " /dl " & DQUOTE & e_file_left_title & DQUOTE & _
+               " /dr " & DQUOTE & e_file_right_title & DQUOTE & " " & _
                " /inifile " & """" & mWinMergeIni.WinMergeIniFullName & """"
 
     '~~ Execute command line
@@ -455,7 +444,7 @@ Public Sub ExportChangedComponents(ByVal e_hosted As String)
     
     mBasic.BoP ErrSrc(PROC)
     If Me.Serviced Is Nothing _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
+    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                             "(it may have been called directly via the 'Immediate Window'"
     mHskpng.CommComps e_hosted
     mExport.ChangedComponents e_hosted
@@ -497,9 +486,9 @@ Private Function ExportHeaderRemoved(ByVal ehr_fle As File) As Dictionary
     
 End Function
 
-Public Function FilesDiffer(ByVal fd_exp_file_1 As File, _
-                            ByVal fd_exp_file_2 As File, _
-                   Optional ByVal fd_ignore_export_header = False) As Boolean
+Public Function FilesDiffer(ByVal f_file_1 As File, _
+                            ByVal f_file_2 As File, _
+                   Optional ByVal f_ignore_export_header = False) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when file 1 and file 2 are different whereby case differences
 ' and empty lines are ignored. This function guarantees a uniform comparison of
@@ -513,36 +502,36 @@ Public Function FilesDiffer(ByVal fd_exp_file_1 As File, _
     Dim fl2 As File
     
     With fso
-        If TypeName(fd_exp_file_1) = "File" Then
-            If Not .FileExists(fd_exp_file_1) _
-            Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided 'fd_exp_file_1' does not exist!"
-            Set fl1 = fso.GetFile(fd_exp_file_1)
-        ElseIf TypeName(fd_exp_file_1) = "Nothing" _
-            Then Err.Raise AppErr(2), ErrSrc(PROC), "File 'fd_exp_file_1' is not provided!"
+        If TypeName(f_file_1) = "File" Then
+            If Not .FileExists(f_file_1) _
+            Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The provided 'f_file_1' does not exist!"
+            Set fl1 = fso.GetFile(f_file_1)
+        ElseIf TypeName(f_file_1) = "Nothing" _
+            Then Err.Raise mBasic.AppErr(2), ErrSrc(PROC), "File 'f_file_1' is not provided!"
         Else
-            Set fl1 = fd_exp_file_1
+            Set fl1 = f_file_1
         End If
         
-        If TypeName(fd_exp_file_2) = "File" Then
-            If Not .FileExists(fd_exp_file_2) _
-            Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided 'fd_exp_file_2' does not exist!"
-            Set fl2 = fso.GetFile(fd_exp_file_2)
-        ElseIf TypeName(fd_exp_file_2) = "Nothing" Then
+        If TypeName(f_file_2) = "File" Then
+            If Not .FileExists(f_file_2) _
+            Then Err.Raise mBasic.AppErr(2), ErrSrc(PROC), "The provided 'f_file_2' does not exist!"
+            Set fl2 = fso.GetFile(f_file_2)
+        ElseIf TypeName(f_file_2) = "Nothing" Then
             FilesDiffer = True
             GoTo xt
         Else
-            Set fl2 = fd_exp_file_2
+            Set fl2 = f_file_2
         End If
     End With
     
-    If fd_ignore_export_header Then
+    If f_ignore_export_header Then
         FilesDiffer = DifferentWithExpHeaderExcluded(fl1, fl2)
     Else
-        FilesDiffer = mFso.FileDiffers(fd_file1:=fl1 _
-                                     , fd_file2:=fl2 _
-                                     , fd_stop_after:=1 _
-                                     , fd_ignore_empty_records:=True _
-                                     , fd_compare:=vbTextCompare).Count <> 0
+        FilesDiffer = mFso.FileDiffers(f_file1:=fl1 _
+                                     , f_file2:=fl2 _
+                                     , f_stop_after:=1 _
+                                     , f_ignore_empty_records:=True _
+                                     , f_compare:=vbTextCompare).Count <> 0
     End If
 xt: Set fso = Nothing
     Exit Function
@@ -553,8 +542,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function FilesDifference(ByVal fd_exp_file_1 As File, _
-                                ByVal fd_exp_file_2 As File) As Dictionary
+Public Function FilesDifference(ByVal f_file_1 As File, _
+                                ByVal f_file_2 As File) As Dictionary
 ' ----------------------------------------------------------------------------
 ' Returns a Dictionary with either 0 items when file 1 and file 2 are
 ' identical or with one item when the two files differ. Empty lines and case
@@ -568,28 +557,28 @@ Public Function FilesDifference(ByVal fd_exp_file_1 As File, _
     Dim fl2 As File
     
     With fso
-        If VarType(fd_exp_file_1) = vbString Then
-            If Not .FileExists(fd_exp_file_1) _
-            Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided 'fd_exp_file_1' is a string not identifying an existing file!"
-            Set fl1 = fso.GetFile(fd_exp_file_1)
+        If VarType(f_file_1) = vbString Then
+            If Not .FileExists(f_file_1) _
+            Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The provided 'f_file_1' is a string not identifying an existing file!"
+            Set fl1 = fso.GetFile(f_file_1)
         Else
-            Set fl1 = fd_exp_file_1
+            Set fl1 = f_file_1
         End If
         
-        If VarType(fd_exp_file_2) = vbString Then
-            If Not .FileExists(fd_exp_file_2) _
-            Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided 'fd_exp_file_2' is a string not identifying an existing file!"
-            Set fl2 = fso.GetFile(fd_exp_file_2)
+        If VarType(f_file_2) = vbString Then
+            If Not .FileExists(f_file_2) _
+            Then Err.Raise mBasic.AppErr(2), ErrSrc(PROC), "The provided 'f_file_2' is a string not identifying an existing file!"
+            Set fl2 = fso.GetFile(f_file_2)
         Else
-            Set fl2 = fd_exp_file_2
+            Set fl2 = f_file_2
         End If
     End With
     
-    Set FilesDifference = mFso.FileDiffers(fd_file1:=fl1 _
-                                      , fd_file2:=fl2 _
-                                      , fd_stop_after:=1 _
-                                      , fd_ignore_empty_records:=True _
-                                      , fd_compare:=vbTextCompare)
+    Set FilesDifference = mFso.FileDiffers(f_file1:=fl1 _
+                                      , f_file2:=fl2 _
+                                      , f_stop_after:=1 _
+                                      , f_ignore_empty_records:=True _
+                                      , f_compare:=vbTextCompare)
                             
 xt: Set fso = Nothing
     Exit Function

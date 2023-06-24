@@ -113,7 +113,7 @@ Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
         With Msg.Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization, section Name Synchronization:"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_SYNC_CHAPTER_NAMES
+            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
         End With
         
         Application.EnableEvents = True

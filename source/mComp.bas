@@ -24,17 +24,17 @@ Public Enum enCommCompRegState
     enRegStatePrivate       ' Not a Common Component (though the name matches)
 End Enum
 
-Public Function Exists(ByVal ex_comp As Variant, _
-                       ByVal ex_wbk As Workbook, _
-              Optional ByRef ex_vbc As VBComponent) As Boolean
+Public Function Exists(ByVal x_comp As Variant, _
+                       ByVal x_wbk As Workbook, _
+              Optional ByRef x_vbc As VBComponent) As Boolean
 ' ------------------------------------------------------------------------------
-' Returns TRUE and the VBComponent (ex_vbc) when the provided VB-
-' Component (ex_comp) exists in the Workbook's (ex_wbk) VB-Project.
+' Returns TRUE and the VBComponent (x_vbc) when the provided VB-
+' Component (x_comp) exists in the Workbook's (x_wbk) VB-Project.
 ' ------------------------------------------------------------------------------
     On Error Resume Next
     Select Case True
-        Case TypeOf ex_comp Is VBComponent:  Set ex_vbc = ex_wbk.VBProject.VBComponents(ex_comp.Name)
-        Case VarType(ex_comp) = vbString:    Set ex_vbc = ex_wbk.VBProject.VBComponents(ex_comp)
+        Case TypeOf x_comp Is VBComponent:  Set x_vbc = x_wbk.VBProject.VBComponents(x_comp.Name)
+        Case VarType(x_comp) = vbString:    Set x_vbc = x_wbk.VBProject.VBComponents(x_comp)
     End Select
     Exists = Err.Number = 0
 End Function

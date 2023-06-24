@@ -101,7 +101,7 @@ Friend Property Get Changed() As Boolean
     On Error GoTo eh
     '~~ Any component is regarded changed when a temporary Export-File differs from the regular one
     Me.VBComp.Export Me.ExpFileTempFullName
-    mBasic.TimedDoEvents ErrSrc(PROC)
+    mBasic.TimedDoEvents
     
     '~~ Any component its Export-File not exists is regarded changed
     '~~ In fact it is either new or the Export-Folder location had changed
@@ -115,8 +115,8 @@ Friend Property Get Changed() As Boolean
     If dctChanges Is Nothing Then
         '~~ The difference between the regular and the temporary export file
         '~~ is only provided once
-        Set dctChanges = mCompMan.Services.FilesDifference(fd_exp_file_1:=fso.GetFile(Me.ExpFileTempFullName) _
-                                                , fd_exp_file_2:=fso.GetFile(Me.ExpFileFullName))
+        Set dctChanges = mCompMan.Services.FilesDifference(f_file_1:=fso.GetFile(Me.ExpFileTempFullName) _
+                                                         , f_file_2:=fso.GetFile(Me.ExpFileFullName))
     End If
     Changed = dctChanges.Count <> 0
     
@@ -197,7 +197,7 @@ Friend Property Let CompName(ByVal s As String)
             sExpFileFullName = mExport.ExpFileFolderPath(wbk) & "\" & vbc.Name & sExpFileExt
         End If
     Else
-        Err.Raise AppErr(1), ErrSrc(PROC), "Component Name assigned for a yet unknown Workbook!"
+        Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Component Name assigned for a yet unknown Workbook!"
     End If
 
 xt: Exit Property
@@ -208,11 +208,11 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Get Exists(Optional ByRef ex_wbk As Workbook = Nothing) As Boolean
+Friend Property Get Exists(Optional ByRef x_wbk As Workbook = Nothing) As Boolean
     Dim v As VBComponent
-    If Not ex_wbk Is Nothing Then
+    If Not x_wbk Is Nothing Then
         On Error Resume Next
-        Set v = ex_wbk.VBProject.VBComponents(sCompName)
+        Set v = x_wbk.VBProject.VBComponents(sCompName)
         Exists = Not v Is Nothing
     ElseIf vbc Is Nothing Then
         On Error Resume Next
@@ -276,8 +276,8 @@ Friend Property Get ExpFilesDiffer() As Boolean
 ' Returns TRUE when the Export File of this Used Common Component differs from
 ' the Export File of the corresponding Raw Common Component.
 ' ------------------------------------------------------------------------------
-    ExpFilesDiffer = mCompMan.Services.FilesDiffer(fd_exp_file_1:=Raw.SavedExpFile _
-                                                , fd_exp_file_2:=Me.ExpFile)
+    ExpFilesDiffer = mCompMan.Services.FilesDiffer(f_file_1:=Raw.SavedExpFile _
+                                                 , f_file_2:=Me.ExpFile)
 End Property
 
 Friend Property Get ExpFileTemp() As File
@@ -294,8 +294,8 @@ Friend Property Get ExpFileTempAndRawExpFileDiffers() As Boolean
 ' Returns TRUE when the temporary Export File of this Used Common Component
 ' differs from the Export File of the corresponding Raw Common Component.
 ' ------------------------------------------------------------------------------
-    ExpFileTempAndRawExpFileDiffers = mCompMan.Services.FilesDiffer(fd_exp_file_1:=Raw.SavedExpFile _
-                                                                 , fd_exp_file_2:=Me.ExpFileTemp)
+    ExpFileTempAndRawExpFileDiffers = mCompMan.Services.FilesDiffer(f_file_1:=Raw.SavedExpFile _
+                                                                  , f_file_2:=Me.ExpFileTemp)
 End Property
 
 Friend Property Get ExpFileTempFullName() As String
@@ -319,7 +319,7 @@ Friend Property Get ExpFileTempFullName() As String
             ExpFileTempFullName = sTmpFolder & "\" & sCompName & sExpFileExt
         End With
     Else
-        Err.Raise AppErr(1), ErrSrc(PROC), "Workbook object yet not available for component '" & sCompName & "'!"
+        Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Workbook object yet not available for component '" & sCompName & "'!"
     End If
     
 xt: Exit Property
@@ -336,8 +336,8 @@ Friend Property Get ExpFileTempsDiffer() As Boolean
 ' the temporary Export File of the Raw. This comparison is only possible when
 ' the Raw's host Workbook is accidentially open.
 ' ------------------------------------------------------------------------------
-    ExpFileTempsDiffer = mCompMan.Services.FilesDiffer(fd_exp_file_1:=Raw.ExpFileTemp _
-                                            , fd_exp_file_2:=Me.ExpFileTemp)
+    ExpFileTempsDiffer = mCompMan.Services.FilesDiffer(f_file_1:=Raw.ExpFileTemp _
+                                            , f_file_2:=Me.ExpFileTemp)
 End Property
 
 Friend Property Get IsWrkbk() As Boolean
@@ -436,40 +436,24 @@ Private Property Get RawDiffers() As Boolean
     sRevRaw = Raw.RevisionNumber
     bIgnoreExpFileHeader = VBComp.Type = vbext_ct_MSForm
     
-    If sRevUsed <> sRevRaw Then
-        '~~ When the revision numbers are different either of the tow must have been changed
-        If Services.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
-                              , fd_exp_file_2:=Raw.SavedExpFile _
-                              , fd_ignore_export_header:=bIgnoreExpFileHeader) Then
-            RawDiffers = True
-            '~~ This should enforce the update choice dialog which will consider the
-            '~~ Revision-Number difference.
-        Else
-            '~~ Because the 'used' Common Component is identical with its 'raw' version
-            '~~ in the 'Common Component Folder' the 'used' must have been instantly updated
-            '~~ after the change e.g. by dragging the component from the VB-Project it had
-            '~~ been changed into the other Workbook. Thus, just the Revision Number
-            '~~ needs to be set equal.
-            If sRevUsed < sRevRaw _
-            Then RevisionNumber = sRevRaw _
-            Else RevisionNumber = sRevUsed
+    If Services.FilesDiffer(f_file_1:=Me.ExpFile _
+                          , f_file_2:=Raw.SavedExpFile _
+                          , f_ignore_export_header:=bIgnoreExpFileHeader) Then
+        RawDiffers = True
+        '~~ This should enforce the update choice dialog which will consider the
+        '~~ Revision-Number difference.
+    Else
+        '~~ Because the 'used' Common Component is identical with its 'raw' version
+        '~~ in the 'Common Component Folder' the 'used' must have been instantly updated
+        '~~ after the change e.g. by dragging the component from the VB-Project it had
+        '~~ been changed into the other Workbook. Thus, just the Revision Number
+        '~~ needs to be set equal.
+        If sRevUsed <> sRevRaw Then
+            RevisionNumber = sRevRaw
             With Services
                 .ServicedItem = Me.VBComp
-                .LogEntry "Revision-Numbers ""used"" and ""raw"" set equal to " & Me.RevisionNumber
+                .LogEntry "Component is up-to-date! Revision-Number has been set to to " & sRevRaw & " (the raw's in the Common Components Folder)"
             End With
-        End If
-    ElseIf Me.RevisionNumber = Me.Raw.RevisionNumber Then
-        If Services.FilesDiffer(fd_exp_file_1:=Me.ExpFile _
-                              , fd_exp_file_2:=Raw.SavedExpFile _
-                              , fd_ignore_export_header:=bIgnoreExpFileHeader) Then
-            RawDiffers = True ' when continued, will force update choice dialog
-            Err.Raise AppErr(1), ErrSrc(PROC), _
-            "The code of the used Common Component '" & CompName & "' differs from the code in the " & _
-            """Common Components Folder"" although the ""Revision-Numbers"" are equal!" & _
-            mErH.CONCAT & "This is a potential programming error. When either of the " & _
-            "is changed (the ""raw"" version in its ""hosting"" Workbook or the ""clone"" " & _
-            "in its ""using"" Workbook) the ""Revision-Number"" is increased. Thus this should " & _
-            "never happen!!!"
         End If
     End If
 
@@ -534,7 +518,7 @@ Friend Property Get Wrkbk() As Workbook
     
     If wbk Is Nothing Then
         If Not fso.FileExists(sWrkbkFullName) _
-        Then Err.Raise AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
+        Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
         Set wbk = mCompMan.WbkGetOpen(sWrkbkFullName)
     Else
         Set Wrkbk = wbk
@@ -578,17 +562,6 @@ Friend Property Get WrkbkBaseName() As String:                 WrkbkBaseName = B
 Friend Property Get WrkbkFullName() As String:                 WrkbkFullName = sWrkbkFullName:                  End Property
 
 Friend Property Let WrkbkFullName(ByVal s As String):          sWrkbkFullName = s:                              End Property
-
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ------------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
-End Function
 
 Private Function BaseName(ByVal s As String) As String
     With New FileSystemObject:  BaseName = .GetBaseName(s): End With

@@ -213,9 +213,9 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCommComps" & "." & sProc
 End Function
 
-Public Function ExistsAsGlobalCommonComponentExportFile(ByVal ex_vbc As VBComponent) As Boolean
+Public Function ExistsAsGlobalCommonComponentExportFile(ByVal x_vbc As VBComponent) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns TRUE when the VBComponent's (ex_vbc) Export-File exists in the
+' Returns TRUE when the VBComponent's (x_vbc) Export-File exists in the
 ' global Common-Components-Folder.
 ' ----------------------------------------------------------------------------
     Const PROC  As String = "ExistsAsGlobalCommonComponentExportFile"
@@ -227,8 +227,8 @@ Public Function ExistsAsGlobalCommonComponentExportFile(ByVal ex_vbc As VBCompon
     mBasic.BoP ErrSrc(PROC)
     With Comp
         Set .Wrkbk = Services.Serviced
-        .CompName = ex_vbc.Name
-        sFile = wsConfig.FolderCommonComponentsPath & "\" & ex_vbc.Name & .ExpFileExt
+        .CompName = x_vbc.Name
+        sFile = wsConfig.FolderCommonComponentsPath & "\" & x_vbc.Name & .ExpFileExt
     End With
     ExistsAsGlobalCommonComponentExportFile = fso.FileExists(sFile)
     Set Comp = Nothing
@@ -260,9 +260,9 @@ Public Function Hosted(ByVal h_hosted As String) As Dictionary
     
 End Function
 
-Public Function InconsitencyWarning(ByVal exp_file_full_name, _
-                                    ByVal saved_exp_file_full_name, _
-                                    ByVal sri_diff_message) As Boolean
+Public Function InconsitencyWarning(ByVal i_file_full_name, _
+                                    ByVal i_file_full_name_saved, _
+                                    ByVal i_message) As Boolean
 ' ----------------------------------------------------------------------------
 ' Displays an information about a modification of a Used Common Component.
 ' The disaplay offers the option to display the code difference.
@@ -276,7 +276,7 @@ Public Function InconsitencyWarning(ByVal exp_file_full_name, _
     Dim BttnDsply   As String
     Dim BttnSkip    As String
     Dim BttnAnyway  As String
-    
+
     BttnDsply = "Display code difference" & vbLf & "between hosted and saved" & vbLf & "Export Files"
     BttnSkip = "Do not update!" & vbLf & "further investigation" & vbLf & "is required"
     BttnAnyway = "I know the reason!" & vbLf & "go ahead updating" & vbLf & "(not recommended!)"
@@ -288,17 +288,18 @@ Public Function InconsitencyWarning(ByVal exp_file_full_name, _
             .FontColor = rgbRed
         End With
         With .Text
-            .Text = sri_diff_message
+            .Text = i_message
             .FontColor = rgbRed
         End With
     End With
     With Msg.Section(2)
         .Label.Text = "Background:"
-        .Text.Text = "When a Raw Common Component is modified within its hosting Workbook it is not only exported. " & _
-                     "Its 'Revision Number' is increased and the 'Export File' is copied into the 'Common Components' " & _
-                     "folder while the 'Revision Number' is updated in the 'ComComps-RawsSaved.dat' file in the " & _
-                     "'Common Components' folder. Thus, the Raw's Export File and the copy of it as the 'Revision Number' " & _
-                     "are always identical. In case not, something is seriously corrupted."
+        .Text.Text = "When a Raw Common Component is modified within its hosting Workbook and exported (save) " & _
+                     "its 'Revision Number' is increased and the 'Export File' is copied into the 'Common Components' " & _
+                     "folder and the 'Revision Number' is updated in the 'Common Components' folder's ""CommComps.dat"" file. " & _
+                     "When a 'used Common Component is modified within the VB-Project just using (not hosting!) it, " & _
+                     "the 'Revision Number' only of this 'used Common Component' is increased. When both had been modified " & _
+                     "the may still differ although the 'Revision Numbers' are equal."
     End With
         
     Do
@@ -308,10 +309,10 @@ Public Function InconsitencyWarning(ByVal exp_file_full_name, _
                              , dsply_buttons:=cllBttns _
                               )
             Case BttnDsply
-                Services.ExpFilesDiffDisplay fd_exp_file_left_full_name:=exp_file_full_name _
-                                               , fd_exp_file_left_title:="Raw Common Component's Export File: (" & exp_file_full_name & ")" _
-                                               , fd_exp_file_right_full_name:=saved_exp_file_full_name _
-                                               , fd_exp_file_right_title:="Saved Raw's Export File (" & saved_exp_file_full_name & ")"
+                Services.ExpFilesDiffDisplay e_file_left_full_name:=i_file_full_name _
+                                           , e_file_left_title:="Raw Common Component's Export File: (" & i_file_full_name & ")" _
+                                           , e_file_right_full_name:=i_file_full_name_saved _
+                                           , e_file_right_title:="Saved Raw's Export File (" & i_file_full_name_saved & ")"
             Case BttnSkip:      InconsitencyWarning = False:    Exit Do
             Case BttnAnyway:    InconsitencyWarning = True:     Exit Do
         End Select
@@ -432,6 +433,15 @@ Private Sub OutdatedUpdateChoice()
                                  "version is a choice. Another would be to " & Replace(BttnSkipForNow, vbLf, " ") & "." & vbLf & _
                                  "Another, less likely reason may be that the ""Common Components Folder"", only possible when it is " & _
                                  "updated on different computers!"
+                End With
+            ElseIf Comp.RevisionNumber = Comp.Raw.RevisionNumber Then
+                With .Section(4)
+                    .Label.Text = "Attention!!!!"
+                    .Text.Text = "Though the ""Revision Number"" of this ""Used Common Component"" is  e q u a l  to the ""Revision Number"" " & _
+                                 "of the ""Common Component"" in the ""Common Component Folder"" the code differs!" & vbLf & _
+                                 "The likely reason: The ""Used Common Component"" and its ""raw"" had botth been inconsistenly! modified. " & _
+                                 "When updated, the modification in the ""Used Common Component"" will get lost. Checking the difference should " & _
+                                 "indicate whether or not an update is preferred. Skipping the update for now postpones the decision."
                 End With
             End If
         End If
@@ -700,8 +710,8 @@ Public Function SavedExpFileExists(ByVal comp_name As String) As Boolean
 End Function
 
 Public Sub SaveToCommonComponentsFolder(ByVal stgf_comp_name As String, _
-                                        ByVal stgf_exp_file As File, _
-                                        ByVal stgf_exp_file_full_name As String)
+                                        ByVal stgf_file As File, _
+                                        ByVal stgf_file_full_name As String)
 ' ------------------------------------------------------------------------------
 ' Save a copy of the hosted raw`s (stgf_comp_name) export file to the Common
 ' Components folder which serves as source for the update of Common Components
@@ -713,14 +723,14 @@ Public Sub SaveToCommonComponentsFolder(ByVal stgf_comp_name As String, _
     Dim fso     As New FileSystemObject
     
     mBasic.BoP ErrSrc(PROC)
-    mCommComps.SavedExpFile(stgf_comp_name) = stgf_exp_file
+    mCommComps.SavedExpFile(stgf_comp_name) = stgf_file
     '~~ When the Export file has a .frm extension the .frx file needs to be copied too
-    If fso.GetExtensionName(stgf_exp_file_full_name) = "frm" Then
-        Set frxFile = fso.GetFile(Replace(stgf_exp_file_full_name, "frm", "frx"))
+    If fso.GetExtensionName(stgf_file_full_name) = "frm" Then
+        Set frxFile = fso.GetFile(Replace(stgf_file_full_name, "frm", "frx"))
         mCommComps.SavedExpFile(stgf_comp_name) = frxFile
     End If
 
-    mCommComps.RawExpFileFullName(stgf_comp_name) = stgf_exp_file_full_name
+    mCommComps.RawExpFileFullName(stgf_comp_name) = stgf_file_full_name
     mCommComps.RawHostWbBaseName(stgf_comp_name) = fso.GetBaseName(Services.Serviced.FullName)
     mCommComps.RawHostWbFullName(stgf_comp_name) = Services.Serviced.FullName
     mCommComps.RawHostWbName(stgf_comp_name) = Services.Serviced.Name

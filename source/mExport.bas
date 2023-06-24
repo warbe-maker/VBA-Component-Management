@@ -13,11 +13,10 @@ Option Explicit
 '                       regular Export-File (of the previous code change).
 ' ExpFileFolderPath Returns a serviced Workbook's path for all Export-Files
 '                   whereby the name of the folder is the current
-'                       configured one (fefaulting  to 'source'). When no
-'                       Export-Folder exists, one is created. In case an
-'                       outdated export folder exists, i.e. one with an
-'                       outdated name, this one is renamed instead.
-'
+'                   configured one (fefaulting  to 'source'). When no
+'                   Export-Folder exists, one is created. In case an
+'                   outdated export folder exists, i.e. one with an
+'                   outdated name, this one is renamed instead.
 ' ----------------------------------------------------------------------------
 
 Public Sub All()
@@ -42,7 +41,7 @@ Public Sub All()
     Hskpng
     
     If mMe.IsAddinInstnc _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Add-in instance which is impossible for this operation!"
+    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Add-in instance which is impossible for this operation!"
     
     Set wbk = Services.Serviced
     With wbk.VBProject
@@ -81,17 +80,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ----------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
-End Function
-
 Public Sub ChangedComponents(ByVal c_hosted As String)
 ' ----------------------------------------------------------------------------
 ' - Exports all components the code had been modified
@@ -111,6 +99,7 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
     Dim vbc         As VBComponent
     Dim wbk         As Workbook
     Dim dct         As Dictionary
+    Dim sRevNo      As String
     
     mBasic.BoP ErrSrc(PROC)
     '~~ Prevent any action when the required preconditins are not met
@@ -135,12 +124,13 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                             Services.LogEntry "Hosted Raw Common Component code modified"
                             .Export
                             .RevisionNumberIncrease
+                            sRevNo = .RevisionNumber
                             mCommComps.SaveToCommonComponentsFolder .CompName, .ExpFile, .ExpFileFullName
                             mCompManDat.RegistrationState(.CompName) = enRegStateHosted
                             With Services
                                 .NoOfItemsServiced = .NoOfItemsServiced + 1
                                 .LogEntry "Modified hosted Common Component e x p o r t e d !"
-                                .LogEntry "Modified hosted Common Component's Revision Number increased"
+                                .LogEntry "Modified hosted Common Component's Revision Number increased to " & sRevNo
                                 .LogEntry "Modified hosted Common Component's Export-File copied to " & wsConfig.FolderCommonComponentsPath
                             End With
                         ElseIf Not mCommComps.SavedExpFileExists(.CompName) Then
@@ -305,11 +295,11 @@ Public Function ExpFileFolderPath(ByVal v As Variant) As String
             Case "String"
                 s = v
                 If Not .FileExists(s) _
-                Then Err.Raise AppErr(1), ErrSrc(PROC), "'" & s & "' is not the FullName of an existing Workbook!"
+                Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "'" & s & "' is not the FullName of an existing Workbook!"
                 sPathParent = .GetParentFolderName(s)
                 sPath = sPathParent & "\" & wsConfig.FolderExport
             Case Else
-                Err.Raise AppErr(1), ErrSrc(PROC), "The required information about the concerned Workbook is neither provided as a Workbook object nor as a string identifying an existing Workbooks FullName"
+                Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The required information about the concerned Workbook is neither provided as a Workbook object nor as a string identifying an existing Workbooks FullName"
         End Select
         If Not .FolderExists(sPath) Then
             '~~ When no 'Export' folder exists there may still be an outdated one of which the nmae had not already been changed.

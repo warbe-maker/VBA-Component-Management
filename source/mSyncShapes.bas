@@ -47,17 +47,6 @@ Public Property Let KnownObsolete(Optional ByVal nk_id As String, _
     If b Then mSync.CollectKnown dctKnownObsolete, nk_id
 End Property
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ------------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
-End Function
-
 Public Function NoOfShapes(ByVal n_wbk As Workbook) As Long
     Dim wsh As Worksheet
     For Each wsh In n_wbk.Worksheets
@@ -115,7 +104,7 @@ Private Sub AppRunChanged()
     
     mBasic.BoP ErrSrc(PROC)
     If Not wsSyncLog.SummaryDone("Worksheets") _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The precondition of done Worksheet synchronizations is not met!"
+    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The precondition of done Worksheet synchronizations is not met!"
             
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.source
@@ -969,7 +958,7 @@ Public Function ShapeNames(ByVal sn_obj As Variant) As String
             ShapeNames = oob.ShapeRange.Name
             ShapeNames = ShapeNames & " (" & oob.Name & ")"
         Case Else
-            Err.Raise AppErr(1), ErrSrc(PROC), "The provided object iss neither a 'Shape' nor an 'OleObject'!"
+            Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The provided object iss neither a 'Shape' nor an 'OleObject'!"
     End Select
     
 xt: Exit Function
@@ -1029,7 +1018,7 @@ Public Sub SyncKind()
     With Msg.Section(8).Label
         .Text = "See in README chapter CompMan's VB-Project-Synchronization service (GitHub README):"
         .FontColor = rgbBlue
-        .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_SYNC_CHAPTER
+        .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
     End With
                
     '~~ Prepare a Command-Buttonn with an Application.Run action for the synchronization of all Worksheets

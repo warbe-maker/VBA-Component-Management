@@ -81,7 +81,7 @@ Private Sub Test_Log()
         Services.ServicedItem = " <component-name> "
         Services.LogEntry "Tested"
         mMsg.Box Title:="Test-Log:" _
-               , Prompt:=mFso.FileTxt(ft_file:=.LogFile.Path) _
+               , Prompt:=mFso.FileTxt(.LogFile.Path) _
                , box_monospaced:=True
         If fso.FileExists(.LogFile.Path) Then fso.DeleteFile .LogFile.Path
     End With

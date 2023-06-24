@@ -2,14 +2,37 @@ Attribute VB_Name = "mCompMan"
 Option Explicit
 Option Compare Text
 ' ----------------------------------------------------------------------------
-' Standard Module mCompMan
-'          Services for the management of VBComponents in Workbooks provided:
-'          - stored within the 'FolderServiced'
-'          - have the Conditional Compile Argument 'CompMan = 1'
-'          - have 'CompMan' referenced
-'          - the Workbook resides in its own dedicated folder
-'          - the Workbook calls the '' service with the Open event
-'          - the Workbook calls the '' service with the Save event
+' Standard Module mCompMan: Services for the management of VB-Components in
+' ========================= Workbooks. Services for Workbooks having them
+' enabled are onyl provided when:
+' - either this Workbook or its Addin instance is open
+' - the serviced Workbook resides in its dedicated folder
+' - the Workbook is opened from within the 'CompMan-Managed' folder. I.e.
+'   that productive Workbooks at their productive location are ignored.
+' The services are provided through an interface component (mCompManClient)
+' which is copied into the to-be-serviced Workbook's VB-Project.
+'
+' Public services:
+' ----------------
+' DisplayCodeChange       Displays the current difference between a
+'                           component's code and its current Export-File
+' ExportAll               Exports all components into the Workbook's
+'                           dedicated folder (created when not existing)
+' ExportChangedComponents Exports all components of which the code in the
+'                           Export-File differs from the current code.
+' Service
+'
+' Uses Common Components: - mBasic
+'                         - mErrhndlr
+'                         - mFso
+'                         - mWrkbk
+' Requires:
+' - Reference to: - "Microsoft Visual Basic for Applications Extensibility ..."
+'                 - "Microsoft Scripting Runtime"
+'                 - "Windows Script Host Object Model"
+'                 - Trust in the VBA project object modell (Security
+'                   setting for makros)
+
 ' Usage:   This Workbbok's services may additionally be available Add-in when
 '          setup and open.
 '
@@ -31,33 +54,14 @@ Option Compare Text
 ' See also:
 ' https://warbe-maker.github.io/warbe-maker.github.io/vba/excel/code/component/management/2021/03/02/Programatically-updating-Excel-VBA-code.html
 ' ----------------------------------------------------------------------------
-' Services:
-' - DisplayCodeChange       Displays the current difference between a
-'                           component's code and its current Export-File
-' - ExportAll               Exports all components into the Workbook's
-'                           dedicated folder (created when not existing)
-' - ExportChangedComponents Exports all components of which the code in the
-'                           Export-File differs from the current code.
-' - Service
-'
-' Uses Common Components: - mBasic
-'                         - mErrhndlr
-'                         - mFso
-'                         - mWrkbk
-' Requires:
-' - Reference to: - "Microsoft Visual Basic for Applications Extensibility ..."
-'                 - "Microsoft Scripting Runtime"
-'                 - "Windows Script Host Object Model"
-'                 - Trust in the VBA project object modell (Security
-'                   setting for makros)
 '
 ' W. Rauschenberger Berlin August 2019
 ' -------------------------------------------------------------------------------
-Public Const README_URL                         As String = "https://github.com/warbe-maker/VBCompMan/blob/master/README.md"
-Public Const README_SYNC_CHAPTER                As String = "?#using-the-synchronization-service"
-Public Const README_SYNC_CHAPTER_NAMES          As String = "?#names-synchronization"
-Public Const README_DEFAULT_FILES_AND_FOLDERS   As String = "?#compmans-default-files-and-folders-environment"
-Public Const README_CONFIG_CHANGES              As String = "?#configuration-changes-compmans-config-worksheet"
+Public Const GITHUB_REPO_URL                    As String = "https://github.com/warbe-maker/VBA-Component-Management"
+Public Const README_SYNC_CHAPTER                As String = "#using-the-synchronization-service"
+Public Const README_SYNC_CHAPTER_NAMES          As String = "#names-synchronization"
+Public Const README_DEFAULT_FILES_AND_FOLDERS   As String = "#compmans-default-files-and-folders-environment"
+Public Const README_CONFIG_CHANGES              As String = "#configuration-changes-compmans-config-worksheet"
 
 Public Log                                      As clsLog
 Public SummaryLog                               As clsLog
@@ -80,19 +84,6 @@ Public Enum siCounter
     sic_comps_changed
     sic_used_comm_vbc_outdated
 End Enum
-
-Private Const GITHUB_REPO_URL = "https://github.com/warbe-maker/VBA-Component-Management"
-
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ------------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
-End Function
 
 Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mCompMan" & "." & es_proc
@@ -233,21 +224,21 @@ Public Function RunTest(ByVal rt_service As String, _
     Select Case rt_service
         Case mCompManClient.SRVC_UPDATE_OUTDATED, mCompManClient.SRVC_EXPORT_CHANGED
             Select Case True
-                Case Not wsConfig.FolderCompManRootIsValid:                              RunTest = AppErr(1) ' Configuration for the service is invalid
-                Case Not rt_serviced_wbk.FullName Like wsConfig.FolderCompManRoot & "*": RunTest = AppErr(2) ' Denied because outside configured 'Dev and Test' folder
+                Case Not wsConfig.FolderCompManRootIsValid:                              RunTest = mBasic.AppErr(1) ' Configuration for the service is invalid
+                Case Not rt_serviced_wbk.FullName Like wsConfig.FolderCompManRoot & "*": RunTest = mBasic.AppErr(2) ' Denied because outside configured 'Dev and Test' folder
                 Case rt_service = mCompManClient.SRVC_UPDATE_OUTDATED
                     If mMe.IsDevInstnc And ((mAddin.IsOpen And mAddin.Paused) Or Not mAddin.IsOpen) Then
-                        RunTest = AppErr(3) ' Denied because serviced is the DevInstance but the Addin is paused or not open
+                        RunTest = mBasic.AppErr(3) ' Denied because serviced is the DevInstance but the Addin is paused or not open
                     End If
             End Select
         
         Case mCompManClient.SRVC_SYNCHRONIZE
             If wsConfig.FolderSyncTarget = vbNullString Or wsConfig.FolderSyncArchive = vbNullString Then
-                RunTest = AppErr(1) ' Not configured
+                RunTest = mBasic.AppErr(1) ' Not configured
             ElseIf Not rt_serviced_wbk.FullName Like wsConfig.FolderSyncTarget & "*" Then
-                RunTest = AppErr(2) ' Denied because not opened from within the configured 'Sync-Target' folder
+                RunTest = mBasic.AppErr(2) ' Denied because not opened from within the configured 'Sync-Target' folder
             ElseIf Not mMe.IsDevInstnc Then
-                RunTest = AppErr(3)
+                RunTest = mBasic.AppErr(3)
             End If
     End Select
 

@@ -195,17 +195,6 @@ Private Function AnyForBeingSynced() As Boolean
     End If
 End Function
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ----------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
-End Function
-
 Private Sub AppRunChanged()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Changes the Name property of the
@@ -247,10 +236,10 @@ Private Sub AppRunChanged()
         sIdTarget = vTarget(i)
         GetName vSource(i), wbkSource, nmeSource
         If nmeSource Is Nothing _
-        Then Err.Raise AppErr(1), ErrSrc(PROC), "A Name identified '" & vSource(i) & "' does not exist in Workbook '" & wbkSource.Name & "'!"
+        Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "A Name identified '" & vSource(i) & "' does not exist in Workbook '" & wbkSource.Name & "'!"
         GetName sIdTarget, wbkTarget, nmeTarget
         If nmeTarget Is Nothing _
-        Then Err.Raise AppErr(1), ErrSrc(PROC), "A Name identified '" & sIdTarget & "' does not exist in Workbook '" & wbkTarget.Name & "'!"
+        Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "A Name identified '" & sIdTarget & "' does not exist in Workbook '" & wbkTarget.Name & "'!"
         
         PropertiesDiffer nmeSource, nmeTarget, bName, bRange, bScope, bNone
         sOldName = mNme.MereName(nmeTarget)
@@ -339,7 +328,7 @@ Private Sub AppRunMultiple()
     For i = LBound(va) To UBound(va)
         GetName va(i), wbkSource, nme
         If nme Is Nothing _
-        Then Err.Raise AppErr(1), ErrSrc(PROC), "A Name identified '" & va(i) & "' does not exist in Workbook '" & wbkSource.Name & "'!"
+        Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "A Name identified '" & va(i) & "' does not exist in Workbook '" & wbkSource.Name & "'!"
 
         sName = mNme.MereName(nme)
         sSheetName = Replace(Split(nme.RefersTo, "!")(0), "=", vbNullString)
@@ -414,7 +403,7 @@ Private Sub AppRunNew()
     For i = LBound(va) To UBound(va)
         GetName va(i), wbkSource, nme
         If nme Is Nothing _
-        Then Err.Raise AppErr(1), ErrSrc(PROC), "A Name identified '" & va(i) & "' does not exist in Workbook '" & wbkSource.Name & "'!"
+        Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "A Name identified '" & va(i) & "' does not exist in Workbook '" & wbkSource.Name & "'!"
         Services.ServicedItem = nme
         
         sName = mNme.MereName(nme)
@@ -1396,7 +1385,7 @@ Private Function RefToChangeConfirmed(ByVal r_nme_source As Name, _
                 "              section: Name Synchronization"
         .MonoSpaced = True
         .FontColor = rgbBlue
-        .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_SYNC_CHAPTER_NAMES
+        .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
     End With
     
     Bttn1 = "Skip and continue"
@@ -1699,7 +1688,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
         With Msg.Section(lSection).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization, section Name Synchronization:"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_SYNC_CHAPTER_NAMES
+            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
         End With
         
         Application.EnableEvents = True

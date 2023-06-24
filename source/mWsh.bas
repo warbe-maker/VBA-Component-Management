@@ -303,12 +303,11 @@ End Property
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
-' Ensures that a programmed 'Application' error number not conflicts with the
-' number of a 'VB Runtime Error' or any other system error.
-' - Returns a given positive 'Application Error' number (app_err_no) into a
-'   negative by adding the system constant vbObjectError
-' - Returns the original 'Application Error' number when called with a negative
-'   error number.
+' Ensures that a programmed (i.e. an application) error numbers never conflicts
+' with the number of a VB runtime error. Thr function returns a given positive
+' number (app_err_no) with the vbObjectError added - which turns it into a
+' negative value. When the provided number is negative it returns the original
+' positive "application" error number e.g. for being used with an error message.
 ' ------------------------------------------------------------------------------
     If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function

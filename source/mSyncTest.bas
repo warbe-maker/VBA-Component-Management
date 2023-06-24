@@ -4,10 +4,10 @@ Option Explicit
 Private Const TEST_BOOK_SYNC    As String = "CompManSyncTest.xlsb"
 Private Const TEST_SHEET_SOURCE As String = "Test_A"
 Private Const TEST_SHAPE_SOURCE As String = "CommandButton2_Test_A"
-Private Const TEST_OOB_SOURCE   As String = "CommandButtonActiveX_Test_A"
+Private Const TEST_OOB_SOURCE   As String = "CommandButtonActivx_Test_A"
 Private Const TEST_SHEET_TARGET As String = "Test_A"
 Private Const TEST_SHAPE_TARGET As String = "CommandButton2_Test_A"
-Private Const TEST_OOB_TARGET   As String = "CommandButtonActiveX_Test_A"
+Private Const TEST_OOB_TARGET   As String = "CommandButtonActivx_Test_A"
 
 Private oobSource               As OLEObject
 Private oobTarget               As OLEObject
@@ -22,16 +22,6 @@ Private Property Get TestSyncTargetFullName() As String
     TestSyncTargetFullName = wsConfig.FolderSyncTarget & "\" & "CompManSyncTest\" & TEST_BOOK_SYNC
 End Property
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ------------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
-End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mSyncTest." & sProc
@@ -49,22 +39,22 @@ Private Sub Test_99_mSyncShapeProperties_Name_Property()
     Test_EnvironmentProvide
         
     '~~ Test 1: Change Shape.Name property (changing the Shape Name changes the OOB's CodeName accordingly!)
-    shpSource.Name = "CommandButtonActiveX_Test_A_X"
-    Debug.Assert mSyncShapes.ShapeNames(shpSource) = "CommandButtonActiveX_Test_A_X (CommandButtonActiveX_Test_A_X)"
-    Debug.Assert mSyncShapes.ShapeNames(oobSource) = "CommandButtonActiveX_Test_A_X (CommandButtonActiveX_Test_A_X)"
+    shpSource.Name = "CommandButtonActivx_Test_A_X"
+    Debug.Assert mSyncShapes.ShapeNames(shpSource) = "CommandButtonActivx_Test_A_X (CommandButtonActivx_Test_A_X)"
+    Debug.Assert mSyncShapes.ShapeNames(oobSource) = "CommandButtonActivx_Test_A_X (CommandButtonActivx_Test_A_X)"
     '~~ Undo
-    shpSource.Name = "CommandButtonActiveX_Test_A"
-    Debug.Assert mSyncShapes.ShapeNames(shpSource) = "CommandButtonActiveX_Test_A (CommandButtonActiveX_Test_A)"
-    Debug.Assert mSyncShapes.ShapeNames(oobSource) = "CommandButtonActiveX_Test_A (CommandButtonActiveX_Test_A)"
+    shpSource.Name = "CommandButtonActivx_Test_A"
+    Debug.Assert mSyncShapes.ShapeNames(shpSource) = "CommandButtonActivx_Test_A (CommandButtonActivx_Test_A)"
+    Debug.Assert mSyncShapes.ShapeNames(oobSource) = "CommandButtonActivx_Test_A (CommandButtonActivx_Test_A)"
     
     '~~ Test 2: Change the OLEObject.Name property  (changing the Code-Name changes the Shape's Name accordingly!)
-    oobSource.Name = "cmbActiveX_Test_A"
-    Debug.Assert mSyncShapes.ShapeNames(shpSource) = "cmbActiveX_Test_A (cmbActiveX_Test_A)"
-    Debug.Assert mSyncShapes.ShapeNames(oobSource) = "cmbActiveX_Test_A (cmbActiveX_Test_A)"
+    oobSource.Name = "cmbActivx_Test_A"
+    Debug.Assert mSyncShapes.ShapeNames(shpSource) = "cmbActivx_Test_A (cmbActivx_Test_A)"
+    Debug.Assert mSyncShapes.ShapeNames(oobSource) = "cmbActivx_Test_A (cmbActivx_Test_A)"
     '~~ Undo
-    oobSource.Name = "CommandButtonActiveX_Test_A"
-    Debug.Assert mSyncShapes.ShapeNames(shpSource) = "CommandButtonActiveX_Test_A (CommandButtonActiveX_Test_A)"
-    Debug.Assert mSyncShapes.ShapeNames(oobSource) = "CommandButtonActiveX_Test_A (CommandButtonActiveX_Test_A)"
+    oobSource.Name = "CommandButtonActivx_Test_A"
+    Debug.Assert mSyncShapes.ShapeNames(shpSource) = "CommandButtonActivx_Test_A (CommandButtonActivx_Test_A)"
+    Debug.Assert mSyncShapes.ShapeNames(oobSource) = "CommandButtonActivx_Test_A (CommandButtonActivx_Test_A)"
         
 xt: Test_EnvironmentCleanup
     Exit Sub

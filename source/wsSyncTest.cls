@@ -55,7 +55,7 @@ Private Property Get ItemRange(ByVal i_wbk As Workbook) As Range
     Set wsh = i_wbk.Worksheets(SheetName)
     Set Rng = wsh.Range(ItemAddress)
     If Rng.row = 1 _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The setup range for a Test-Name must not be row 1 which is reserved as header!"
+    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The setup range for a Test-Name must not be row 1 which is reserved as header!"
     Set ItemRange = Rng
 
 xt: Exit Property
@@ -161,7 +161,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Determine the type of error
     Select Case err_no
         Case Is < 0
-            ErrNo = AppErr(err_no)
+            ErrNo = mBasic.AppErr(err_no)
             ErrType = "Application Error "
         Case Else
             ErrNo = err_no
@@ -224,17 +224,6 @@ Private Property Let SyncTestTargetFullName(ByVal s As String):                 
 Private Property Get TestSetupData() As Range
     Set TestSetupData = Intersect(Me.Range("colsTestData").EntireColumn, Me.Range("rwsTestData"), Me.UsedRange.EntireRow)
 End Property
-
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ----------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
-End Function
 
 Public Function DoSync(ByVal d_kind As String) As Boolean
     Dim cel As Range
@@ -442,7 +431,7 @@ Private Function SetupCompFromFile(ByVal s_source_or_target As String, _
     ElseIf fso.FileExists(sFromFile1) Then
         sFromFile = sFromFile1
     Else
-        Err.Raise AppErr(1), ErrSrc(PROC), "The provided file (" & s_from_file & ") neither exist in " & vbLf & vbLf & _
+        Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The provided file (" & s_from_file & ") neither exist in " & vbLf & vbLf & _
                                            "'" & sPath1 & "' nor in " & vbLf & vbLf & _
                                            "'" & sPath2 & "'!"
     End If
@@ -521,7 +510,7 @@ Private Sub SetupReference(ByVal r_name As String, _
             On Error Resume Next
             r_wbk.VBProject.References.AddFromGuid ref.GUID, ref.Major, ref.Minor
             If Err.Number <> 0 _
-            Then Err.Raise AppErr(1), ErrSrc(PROC), "Reference '" & ref.GUID & "' not added"
+            Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Reference '" & ref.GUID & "' not added"
         End If
     Next ref
 

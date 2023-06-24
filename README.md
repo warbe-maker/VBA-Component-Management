@@ -81,7 +81,9 @@ CompManServiced
 | _Synchronization Archive Folder_ | **Folder** obligatory for the _Synchronize VB-Project_ service which archives a _Sync-Target-Workbook_ before it is synchronized with its corresponding _Sync-Source-Workbook_. When the _Synchronization Archive Folder_ selection dialog is terminated, i.e. no folder is selected, the _Synchronization Archive Folder_ becomes 'not configured'.|
 | _CompMan-Workbook status_        | CompMan's current status which may be changed by the _Setup Auto-open_/_Remove Auto-open_ **Command Button** |
 | _CompMan Addin status_           | Status provided by the _Provide Add-in/Give up Add-in_ **Command Button**.|
-| _Pause/Continue Add-in_          | **Command Button** to temporarily pause and subsequently continue the setup Add-in.|
+| <a id='setup-auto-open'></a> <nobr>***Setup Auto-open***<br>***Remove Auto-open***| Sets up or reomes the Auto-Open for the _CompMan.xlsb_.|
+|<nobr>***Pause Add-in***<br>***Continue Add-in***| **Command Button** to temporarily pause and subsequently continue the setup Add-in.|
+|<a id='setup-as-add-in'></a><nobr>***Give up Add-in***<br>***Provide Add-in***| ***Provide Add-in*** establishes the CompMan.xlsb as Add-in automatically opened when Excel starts.<br>***Give up Add-in*** removes the Addin (even when it is currently open, which requires a couple of tricks).| 
 
 ## Usage
 ### Enabling the services (serviced or not serviced)
@@ -223,8 +225,8 @@ CompMan is pretty much focused on _Common&nbsp;Components_. In order to prevent 
 When the [Common-Components](#compmans-default-files-and-folders-environment) folder is handled/managed as a GitHub repository it will be easy to keep an up-to-date clone on various computers. Currently the location of the [Common-Components](#compmans-default-files-and-folders-environment) folder is fixed and cannot be re-configured/located on a network. However, the whole environment, i.e. the [_CompManServiced_ folder](#compmans-default-files-and-folders-environment) folder may be moved to/kept at any location.
 
 ### CompMan.xlsb versus CompMan as Add-in
-All services are provided by an open [CompMan.xlsb][1] Workbook even when it is additionally setup as Addin. The Addin only provides the services when the [CompMan.xlsb][1] Workbook is not open. When the Addin is paused and the  [CompMan.xlsb][1] Workbook is not open no services are provided until the [CompMan.xlsb][1] Workbook is not open again, the Addin is continued and the Workbook is closed again. The advantage of the Addin is that it remains invisible. That's all.
-> While any Workbook can use the services either form an open [CompMan.xlsb][1] Workbook ++or++ from the Addin, the [CompMan.xlsb][1] Workbook itself requires the Addin to update any outdated _Used&nbsp;Common&nbsp;Components_.
+All services are provided by an open [CompMan.xlsb][1] Workbook even when it is additionally [setup as Addin](#setup-as-add-in). The Addin only provides the services when the [CompMan.xlsb][1] Workbook is not open. When the Addin is paused and the  [CompMan.xlsb][1] Workbook is not open no services are provided until the [CompMan.xlsb][1] Workbook is open again and the Addin is continued. The Workbook may be closed then. The advantage of the **Addin** is that it remains (almost) invisible. That's all.
+> While any Workbook can use the services either form an open [CompMan.xlsb][1] Workbook ++or++ from the Addin, the [CompMan.xlsb][1] Workbook itself requires the **Addin** to update its own outdated _Used&nbsp;Common&nbsp;Components_.
 
 ## Contribution
 Contribution of any kind is welcome, raising issues specifically.

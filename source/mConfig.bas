@@ -130,7 +130,7 @@ Public Function DefaultEnvDisplay(ByVal BttnGoAhead As String) As Variant
         With .Section(5).Label
             .FontColor = rgbBlue
             .Text = "See README chapter 'Files and Folders' for more information"
-            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_DEFAULT_FILES_AND_FOLDERS
+            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_DEFAULT_FILES_AND_FOLDERS
         End With
     End With
     

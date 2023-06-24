@@ -142,14 +142,14 @@ Private Property Get MonitorAnchor() As Range:                      Set MonitorA
 Private Property Let UrlButton(ByVal url_rng As Range, _
                                ByVal url_chapter As String)
                         
-    mWsh.Url(Me, url_rng, xlUnderlineStyleNone, 11) = Replace(Replace(mCompMan.README_URL & url_chapter, "##", "#"), "?", vbNullString)
+    mWsh.Url(Me, url_rng, xlUnderlineStyleNone, 11) = Replace(Replace(mCompMan.GITHUB_REPO_URL & url_chapter, "##", "#"), "?", vbNullString)
     
 End Property
 
 Private Property Let UrlLabel(ByVal url_rng As Range, _
                               ByVal url_chapter As String)
                         
-    mWsh.Url(Me, url_rng, xlUnderlineStyleNone, 9) = Replace(Replace(mCompMan.README_URL & url_chapter, "##", "#"), "?", vbNullString)
+    mWsh.Url(Me, url_rng, xlUnderlineStyleNone, 9) = Replace(Replace(mCompMan.GITHUB_REPO_URL & url_chapter, "##", "#"), "?", vbNullString)
     
 End Property
 
@@ -354,7 +354,7 @@ Public Sub CurrentStatus()
     Else
         AutoOpenStatus = "auto-open for " & ThisWorkbook.Name & "  n o t  s e t u p !"
     End If
-    ButtonHelpUrlAddinSetup = "#configuration-changes-compmans-config-worksheet"
+    ButtonHelpUrlAddinSetup = "#compmanxlsb-versus-compman-as-add-in"
     ButtonHelpUrlPauseContinue = "#configuration-changes-compmans-config-worksheet"
 
     FolderSyncTargetIsValid
@@ -384,7 +384,7 @@ Private Function ErrMsg(ByVal err_source As String, _
 '   mMsg (Conditional Compile Argument "MsgComp = 1") is installed.
 '
 ' Uses:
-' - AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
+' - AppErr  For programmed application errors (Err.Raise mBasic.AppErr(n), ....)
 '           to turn them into a negative and in the error message back into
 '           its origin positive number.
 ' - ErrSrc  To provide an unambiguous procedure name by prefixing is with
@@ -436,7 +436,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Determine the type of error
     Select Case err_no
         Case Is < 0
-            ErrNo = AppErr(err_no)
+            ErrNo = mBasic.AppErr(err_no)
             ErrType = "Application Error "
         Case Else
             ErrNo = err_no

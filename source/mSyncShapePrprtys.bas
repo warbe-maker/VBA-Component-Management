@@ -309,17 +309,6 @@ Private Property Let SheetSource(ByVal wsh As Worksheet):       Set wshSource = 
 
 Private Property Let SheetTarget(ByVal wsh As Worksheet):       Set wshTarget = wsh:    End Property
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ------------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
-End Function
-
 Public Sub CollectChanged(ByVal c_shp_source As Shape)
 ' ------------------------------------------------------------------------------
 ' Collects each changed property as a due synchronization.
@@ -351,7 +340,7 @@ Public Sub CollectChanged(ByVal c_shp_source As Shape)
                 End If
 np1:        Next enProperty
         Else
-            Err.Raise AppErr(1), ErrSrc(PROC), "No corresponding target OOB found for the source Shape " & mSyncShapes.ShapeNames(shpSource)
+            Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "No corresponding target OOB found for the source Shape " & mSyncShapes.ShapeNames(shpSource)
         End If
     Else ' any other type of shape
         '~~ Synchronize the properties of the shpTarget with the shpSource
@@ -370,7 +359,7 @@ np1:        Next enProperty
                 End If
 np2:        Next enProperty
         Else
-            Err.Raise AppErr(1), ErrSrc(PROC), "No corresponding target Shape found for the source Shape " & mSyncShapes.ShapeNames(shpSource)
+            Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "No corresponding target Shape found for the source Shape " & mSyncShapes.ShapeNames(shpSource)
         End If
     End If
 
@@ -1079,7 +1068,7 @@ Public Sub SyncProperties(ByRef sp_dct_sync_asserted As Dictionary)
                 End If
             Next enProperty
         Else
-            Err.Raise AppErr(1), ErrSrc(PROC), "No corresponding target OOB found for the source Shape " & mSyncShapes.ShapeNames(shpSource)
+            Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "No corresponding target OOB found for the source Shape " & mSyncShapes.ShapeNames(shpSource)
         End If
     Else ' any other type of shape
         '~~ Synchronize the properties of the shpTarget with the shpSource
@@ -1099,7 +1088,7 @@ Public Sub SyncProperties(ByRef sp_dct_sync_asserted As Dictionary)
                 End If
 np:         Next enProperty
         Else
-            Err.Raise AppErr(1), ErrSrc(PROC), "No corresponding target Shape found for the source Shape " & mSyncShapes.ShapeNames(shpSource)
+            Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "No corresponding target Shape found for the source Shape " & mSyncShapes.ShapeNames(shpSource)
         End If
     End If
         

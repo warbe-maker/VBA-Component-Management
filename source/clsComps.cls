@@ -69,7 +69,7 @@ Private Function CollectAll() As Dictionary
         
     If dct.Count > 0 Then mDct.KeySort dct
     
-xt: Set CollectAll = dct
+xt: Set CollectAll = mDct.KeySort(dct)
     Set dct = Nothing
     mBasic.EoP ErrSrc(PROC)
     Exit Function

@@ -115,17 +115,6 @@ Public Property Let KnownOwnedByPrjct(Optional ByVal nk_id As String, _
     If b Then mSync.CollectKnown dctKnownOwnedByPrjct, nk_id
 End Property
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ------------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
-End Function
-
 Public Sub AppRunSyncAll()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Synchronizes all Sheets by
@@ -779,7 +768,7 @@ Private Function Exists(ByVal se_wbk As Workbook, _
     Dim wsh As Worksheet
     
     If se_wsh_name = vbNullString And se_wsh_code_name = vbNullString _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "Neither a Sheet's Name nor a Sheet's CodeName is provided!"
+    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Neither a Sheet's Name nor a Sheet's CodeName is provided!"
     
     For Each wsh In se_wbk.Worksheets
         Select Case True
@@ -983,7 +972,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
         With Msg.Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization, section Name Synchronization:"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_SYNC_CHAPTER_NAMES
+            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
         End With
         
         Application.EnableEvents = True

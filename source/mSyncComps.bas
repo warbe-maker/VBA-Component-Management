@@ -122,17 +122,6 @@ Public Function AllDone(ByVal d_wbk_source As Workbook, _
 
 End Function
 
-Private Function AppErr(ByVal app_err_no As Long) As Long
-' ----------------------------------------------------------------------------
-' Ensures that a programmed (i.e. an application) error numbers never conflicts
-' with the number of a VB runtime error. Thr function returns a given positive
-' number (app_err_no) with the vbObjectError added - which turns it into a
-' negative value. When the provided number is negative it returns the original
-' positive "application" error number e.g. for being used with an error message.
-' ------------------------------------------------------------------------------
-    If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
-End Function
-
 Public Sub AppRunSyncAll()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Synchronizes all VB-Components
@@ -675,7 +664,7 @@ Private Function GetComp(ByVal g_wbk As Workbook, _
     Next vbc
     
     If GetComp Is Nothing _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook's (" & g_wbk.Name & "' has no VBComponent named '" & g_vbc_id & "'!"
+    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The Workbook's (" & g_wbk.Name & "' has no VBComponent named '" & g_vbc_id & "'!"
 
 xt: Exit Function
 
@@ -801,7 +790,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
         With Msg.Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization, section Name Synchronization:"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.README_URL & mCompMan.README_SYNC_CHAPTER_NAMES
+            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
         End With
         
         Application.EnableEvents = True

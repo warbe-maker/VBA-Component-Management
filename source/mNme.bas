@@ -883,7 +883,7 @@ Private Function FoundInFormulas(ByVal fif_str As String, _
     Dim cel As Range
     Dim cll As New Collection
     Dim wsh As Worksheet
-    Dim rng As Range
+    Dim Rng As Range
     
     BoP PROC
     For Each wsh In fif_wbk.Worksheets
@@ -892,9 +892,9 @@ Private Function FoundInFormulas(ByVal fif_str As String, _
         End If
         
         On Error Resume Next
-        Set rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
+        Set Rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
         If Err.Number <> 0 Then GoTo ws
-        For Each cel In rng
+        For Each cel In Rng
             If InStr(1, cel.Formula, fif_str) > 0 Then
                 FoundInFormulas = True
                 If IsMissing(fif_cll) Then
