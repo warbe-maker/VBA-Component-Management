@@ -80,10 +80,10 @@ CompManServiced
 | _Serviced Synchronization Target Folder_ | **Folder** into which a Workbook (for which the _Synchronize VB-Project_ has been [enabled](#enabling-the-services-serviced-or-not-serviced) is temporarily moved and opened in order to have its _VB-Project_ synchronized with the corresponding (same named) Workbook residing in its dedicated folder within the configured [_CompManServiced_ folder](#compmans-default-files-and-folders-environment). When the configuration of the _Serviced Synchronization Target Folder_ is terminated, i.e. no folder is selected, the _Serviced Synchronization Target Folder_ becomes 'not configured'.|
 | _Synchronization Archive Folder_ | **Folder** obligatory for the _Synchronize VB-Project_ service which archives a _Sync-Target-Workbook_ before it is synchronized with its corresponding _Sync-Source-Workbook_. When the _Synchronization Archive Folder_ selection dialog is terminated, i.e. no folder is selected, the _Synchronization Archive Folder_ becomes 'not configured'.|
 | _CompMan-Workbook status_        | CompMan's current status which may be changed by the _Setup Auto-open_/_Remove Auto-open_ **Command Button** |
-| _CompMan Addin status_           | Status provided by the _Provide Add-in/Give up Add-in_ **Command Button**.|
-| <a id='setup-auto-open'></a> <nobr>***Setup Auto-open***<br>***Remove Auto-open***| Sets up or reomes the Auto-Open for the _CompMan.xlsb_.|
+|<a id='setup-as-add-in'></a><nobr>_CompMan Addin status_ | Status provided by the _Provide Add-in/Give up Add-in_ **Command Button**.|
+|<nobr>***Setup Auto-open***<br>***Remove Auto-open***| Sets up or reomes the Auto-Open for the _CompMan.xlsb_.|
 |<nobr>***Pause Add-in***<br>***Continue Add-in***| **Command Button** to temporarily pause and subsequently continue the setup Add-in.|
-|<a id='setup-as-add-in'></a><nobr>***Give up Add-in***<br>***Provide Add-in***| ***Provide Add-in*** establishes the CompMan.xlsb as Add-in automatically opened when Excel starts.<br>***Give up Add-in*** removes the Addin (even when it is currently open, which requires a couple of tricks).| 
+|</a><nobr>***Give up Add-in***<br>***Provide Add-in***| ***Provide Add-in*** establishes the CompMan.xlsb as Add-in automatically opened when Excel starts.<br>***Give up Add-in*** removes the Addin (even when it is currently open, which requires a couple of tricks).| 
 
 ## Usage
 ### Enabling the services (serviced or not serviced)
