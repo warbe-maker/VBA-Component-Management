@@ -406,7 +406,7 @@ Private Function SetupCompFromFile(ByVal s_source_or_target As String, _
     sPath1 = ThisWorkbook.Path & "\source\"
     sExt = fso.GetExtensionName(s_from_file)
     Select Case s_source_or_target
-        Case "source"
+        Case "Sync_SourceWorkbook"
             sPath2 = ThisWorkbook.Path & "\SyncTestSource\setup\"
             If sExtension = "dat" Then
                 sFromFile1 = sPath1 & s_from_file
@@ -416,7 +416,7 @@ Private Function SetupCompFromFile(ByVal s_source_or_target As String, _
                 sFromFile2 = sPath2 & s_from_file
             End If
         
-        Case "target"
+        Case "Sync_TargetWorkbook"
             sPath2 = ThisWorkbook.Path & "\SyncTestTarget\setup\"
             If sExtension = "dat" Then
                 sFromFile1 = sPath1 & s_from_file
@@ -550,14 +550,14 @@ Private Function SetupSheet(ByVal s_name As String, _
     Set wsh = Nothing
     
     Application.DisplayAlerts = False
-    If s_first_target And s_source_or_target = "target" Then
+    If s_first_target And s_source_or_target = "Sync_TargetWorkbook" Then
         For i = 2 To s_wbk.Worksheets.Count
             Set wsh = s_wbk.Worksheets(2)
             wsh.Delete
         Next i
         s_first_target = False
     End If
-    If s_first_source And s_source_or_target = "source" Then
+    If s_first_source And s_source_or_target = "Sync_SourceWorkbook" Then
         For i = 2 To s_wbk.Worksheets.Count
             Set wsh = s_wbk.Worksheets(2)
             wsh.Delete
@@ -721,10 +721,10 @@ End Sub
 
 Private Function Wrkbk(ByVal w_source_or_target As String) As Workbook
     Select Case w_source_or_target
-        Case "source"
+        Case "Sync_SourceWorkbook"
             Set wbkSource = mWbk.GetOpen(wsSyncTest.SyncTestSourceFullName)
             Set Wrkbk = wbkSource
-        Case "target"
+        Case "Sync_TargetWorkbook"
             Set wbkTarget = mWbk.GetOpen(wsSyncTest.SyncTestTargetFullName)
             Set Wrkbk = wbkTarget
     End Select

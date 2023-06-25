@@ -160,10 +160,10 @@ Public Sub TestSync(Optional ByVal t_regression As Boolean = False)
     Application.ScreenUpdating = False
     With wsSyncTest
         .SetupTestWorkbooksEstablish t_regression
-        .Setup "source", t_regression
+        .Setup "Sync_SourceWorkbook", t_regression
         .wbkSource.Save
         If t_regression Then .wbkSource.Close ' will be re-opened by the service
-        .Setup "target", t_regression
+        .Setup "Sync_TargetWorkbook", t_regression
     End With
     
     If Not t_regression Then

@@ -19,13 +19,13 @@ Option Explicit
 '                       folder has no Addin and ThisWorkbooks parent.parent
 '                       folder has no Common-Components folder.
 ' - DefaultEnvConfirmed Confirms the setup of the default environment.
-' - SetupCompManDefaultEnvironment     Sets up CompMan's default environment of files and
+' - SelfSetupDefaultEnvironment     Sets up CompMan's default environment of files and
 '                       folders
 ' ----------------------------------------------------------------------------
 Public Const DEFAULT_FOLDER_COMPMAN_PARENT     As String = "CompMan"
 Public Const DEFAULT_FOLDER_COMMON_COMPONENTS  As String = "Common-Components"
 Public Const DEFAULT_FOLDER_COMPMAN_ROOT       As String = "CompManServiced"
-
+Public Const DEFAULT_FOLDER_EXPORT             As String = "source"
 Private fso As New FileSystemObject
 
 Private Property Get CommonCompsFolderNameCurrent() As String:      CommonCompsFolderNameCurrent = ServicedRootFolderNameCurrent & "\" & DEFAULT_FOLDER_COMMON_COMPONENTS:                  End Property
@@ -38,13 +38,13 @@ Public Property Get CompManParentFolderNameDefault() As String:     CompManParen
 
 Private Property Get ExportFolderNameCurrent() As String:           ExportFolderNameCurrent = CompManParentFolderNameCurrent & "\" & wsConfig.FolderExport:                                 End Property
 
-Private Property Get ExportFolderNameDefault() As String:           ExportFolderNameDefault = CompManParentFolderNameDefault & "\" & wsConfig.FolderExport:                                 End Property
+Private Property Get ExportFolderNameDefault() As String:           ExportFolderNameDefault = CompManParentFolderNameDefault & "\" & DEFAULT_FOLDER_EXPORT:                                 End Property
 
 Public Property Get ServicedRootFolderNameCurrent() As String:      ServicedRootFolderNameCurrent = fso.GetFile(ThisWorkbook.FullName).ParentFolder.ParentFolder:                           End Property
 
 Private Property Get ServicedRootFolderNameDefault() As String:     ServicedRootFolderNameDefault = fso.GetFile(ThisWorkbook.FullName).ParentFolder & "\" & DEFAULT_FOLDER_COMPMAN_ROOT:    End Property
 
-Public Property Get VBCompManAddinFolderNameCurrent() As String:   VBCompManAddinFolderNameCurrent = CompManParentFolderNameCurrent & "\" & "Addin":                                       End Property
+Public Property Get VBCompManAddinFolderNameCurrent() As String:   VBCompManAddinFolderNameCurrent = CompManParentFolderNameCurrent & "\" & "Addin":                                        End Property
 
 Private Property Get VBCompManAddinFolderNameDefault() As String:   VBCompManAddinFolderNameDefault = CompManParentFolderNameDefault & "\" & "Addin":                                       End Property
 
@@ -171,7 +171,7 @@ Public Sub SetupConfirmed()
                     " |                                       " & vbLf & _
                     " +--" & fso.GetFolder(CompManParentFolderNameCurrent).Name & vbLf & _
                     " |  +--" & ThisWorkbook.Name & vbLf & _
-                    " |  +--" & fso.GetFolder(ExportFolderNameCurrent).Name & vbLf & _
+                    " |  +--" & wsConfig.FolderExport & vbLf & _
                     " |  +--WinMerge.ini                      " & vbLf & _
                     " |                                       " & vbLf & _
                     " +--" & fso.GetFolder(CommonCompsFolderNameCurrent).Name & vbLf & _
@@ -192,19 +192,63 @@ Public Sub SetupConfirmed()
     
 End Sub
 
-Public Sub SetupCompManDefaultEnvironment()
+Public Sub SelfSetupExportCompManClient()
+
+    Dim Comp        As clsComp
+    Dim vbc         As VBComponent
+    
+    '~~ Export the mCompManClient to the Common Components folder
+    If Services Is Nothing Then Set Services = New clsServices
+    Services.Serviced = ThisWorkbook
+    For Each vbc In Services.Serviced.VBProject.VBComponents
+        If vbc.Name = "mCompManClient" Then
+            Services.ServicedItem = vbc
+                    
+            Set Comp = New clsComp
+            With Comp
+                Set .Wrkbk = ThisWorkbook
+                Set .VBComp = vbc
+                .KindOfComp = enCommCompHosted
+
+                With Log
+                    .KeepDays = 2 ' a new log-file is created after 48 hours
+                    .WithTimeStamp
+                    .FileFullName = Services.Serviced.Path & "\" & fso.GetBaseName(Services.Serviced.Name) & ".Services.log"
+                    .MaxItemLengths Len(Comp.TypeString), Len(vbc.Name)
+                    .AlignmentItems "|L|L.:|L|"
+                    Services.LogFileService = .FileName
+                    wsService.CurrentServiceLogFileFullName = .FileFullName
+                    .NewFile
+                End With
+        
+                '~~ Export, initialize the Revision Number of both the hosted and
+                '~~ the raw in the Common-Components folder and register it as hosted.
+                .Export
+                With Services
+                    .ServicedItem = vbc
+                    .NoOfItemsServiced = .NoOfItemsServiced + 1
+                    .LogEntry "hosted Common Component initially exported by the ""self-setup"" process!"
+                    .LogEntry "hosted Common Component's Revision Number initialized with " & Comp.RevisionNumber
+                    .LogEntry "hosted Common Component's Export-File copied to " & wsConfig.FolderCommonComponentsPath
+                End With
+            End With
+            Exit For
+        End If
+    Next vbc
+
+    Set Comp = Nothing
+    Set Log = Nothing
+    
+End Sub
+
+Public Sub SelfSetupDefaultEnvironment()
 ' ----------------------------------------------------------------------------
 ' Sets up CompMan's default environment of files and folders
 '
 ' See: https://github.com/warbe-maker/VBCompMan/blob/master/README.md?#compmans-default-files-and-folders-environment
 ' ----------------------------------------------------------------------------
-    Const PROC = "SetupCompManDefaultEnvironment"
-    
-    Dim Services    As clsServices
-    Dim Comp        As clsComp
-    Dim dctAll      As Dictionary
-    Dim vbc         As VBComponent
-    
+    Const PROC = "SelfSetupDefaultEnvironment"
+        
     On Error GoTo eh
     Dim FldrExport          As String
         
@@ -223,19 +267,6 @@ Public Sub SetupCompManDefaultEnvironment()
         .AutoOpenAddinRemove
         If Not .Verified Then .Activate
     End With
-
-    '~~ Export the mCompManClient to the Common Components folder
-    For Each vbc In ThisWorkbook.VBProject.VBComponents
-        If vbc.Name = "mCompManClient" Then
-            Set Comp = New clsComp
-            With Comp
-                Set .Wrkbk = ThisWorkbook
-                Set .VBComp = vbc
-                .VBComp.Export mConfig.CommonCompsFolderNameDefault & "\" & .CompName & .ExpFileExt
-            End With
-            Exit For
-        End If
-    Next vbc
     
 xt: Exit Sub
 

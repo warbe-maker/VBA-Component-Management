@@ -19,67 +19,6 @@ Option Explicit
 '                   outdated name, this one is renamed instead.
 ' ----------------------------------------------------------------------------
 
-Public Sub All()
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Const PROC = "All"
-    
-    On Error GoTo eh
-    Dim vbc         As VBComponent
-    Dim Comp        As clsComp
-    Dim wbk         As Workbook
-    Dim lAll        As Long
-    Dim lExported   As Long
-    Dim lRemaining  As String
-    
-    mBasic.BoP ErrSrc(PROC)
-    '~~ Prevent any action when the required preconditins are not met
-    If Services.Denied(mCompManClient.SRVC_EXPORT_ALL) Then GoTo xt
-    '~~ Remove any obsolete Export-Files within the Workbook folder
-    '~~ I.e. of no longer existing VBComponents or at an outdated location
-    Hskpng
-    
-    If mMe.IsAddinInstnc _
-    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The Workbook (active or provided) is the CompMan Add-in instance which is impossible for this operation!"
-    
-    Set wbk = Services.Serviced
-    With wbk.VBProject
-        lAll = .VBComponents.Count
-        lRemaining = lAll
-        
-        For Each vbc In .VBComponents
-            If Not Services.IsRenamedByCompMan(vbc.Name) Then
-                Set Comp = New clsComp
-                With Comp
-                    .Wrkbk = Services.Serviced
-                    .CompName = vbc.Name
-                    '~~ Only export if it is not a component renamed by CompMan which is a left over
-                    .Export
-                    lExported = lExported + 1
-                    lRemaining = lRemaining - 1
-                End With
-                Set Comp = Nothing
-                Services.ProgressOld p_result:=lExported _
-                                , p_of:=lAll _
-                                , p_op:="exported" _
-                                , p_dots:=String(lRemaining, ".")
-            End If
-        Next vbc
-    End With
-
-    Services.RemoveTempRenamed
-    
-xt: Set Comps = Nothing
-    mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-    
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
 Public Sub ChangedComponents(ByVal c_hosted As String)
 ' ----------------------------------------------------------------------------
 ' - Exports all components the code had been modified
@@ -122,15 +61,12 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                     Case mCompMan.enCommCompHosted
                         If .Changed Then
                             Services.LogEntry "Hosted Raw Common Component code modified"
-                            .Export
-                            .RevisionNumberIncrease
                             sRevNo = .RevisionNumber
-                            mCommComps.SaveToCommonComponentsFolder .CompName, .ExpFile, .ExpFileFullName
-                            mCompManDat.RegistrationState(.CompName) = enRegStateHosted
+                            .Export
                             With Services
                                 .NoOfItemsServiced = .NoOfItemsServiced + 1
                                 .LogEntry "Modified hosted Common Component e x p o r t e d !"
-                                .LogEntry "Modified hosted Common Component's Revision Number increased to " & sRevNo
+                                .LogEntry "Modified hosted Common Component's Revision Number increased from " & sRevNo & " to " & Comp.RevisionNumber
                                 .LogEntry "Modified hosted Common Component's Export-File copied to " & wsConfig.FolderCommonComponentsPath
                             End With
                         ElseIf Not mCommComps.SavedExpFileExists(.CompName) Then
@@ -151,7 +87,6 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                             '~~ A warning will be displayed when the modification is about to be reverted
                             '~~ when the component is updated at Workbook open
                             .Export
-                            .RevisionNumberIncrease
                             With Services
                                 .NoOfItemsServiced = .NoOfItemsServiced + 1
                                 .NoOfItemsServicedNames = vbc.Name

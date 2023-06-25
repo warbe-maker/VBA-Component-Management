@@ -113,7 +113,7 @@ Private Property Let FolderCompManRootUrl(ByVal s As String):       UrlLabel(Me.
 
 Public Property Get FolderExport() As String:                       FolderExport = mWsh.Value(Me, "FolderExport"):                          End Property
 
-Private Property Let FolderExport(ByVal s As String):               mWsh.Value(Me, "FolderExport") = s:                                     End Property
+Public Property Let FolderExport(ByVal s As String):                mWsh.Value(Me, "FolderExport") = s:                                     End Property
 
 Private Property Get FolderExportInfo() As String:                  FolderExportInfo = mWsh.Value(Me, "FolderExportInfo"):                  End Property
 
@@ -550,9 +550,9 @@ Public Function FolderExportIsValid(Optional ByRef iv_info As String) As Boolean
                                 "into which CompMan exports new/modified components. The name may be changed however."
             FolderExportIsValid = True
         Else
-            FolderExport = "source"
+            FolderExport = mConfig.DEFAULT_FOLDER_EXPORT
             FolderExportInfo = "Current configured (default) name of the folder within a serviced Workbook's dedicated " & _
-                                "folder into which CompMan exports new/modified components. The name may be changed however."
+                               "folder into which CompMan exports new/modified components. The name may be changed however."
             FolderExportIsValid = False
         End If
         iv_info = FolderExportInfo

@@ -14,6 +14,7 @@ Private wbSrc   As Workbook
 Private wbTrgt  As Workbook
 Private vbc     As VBComponent
 Private vbcm    As CodeModule
+Private fso     As New FileSystemObject
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCompManTest" & "." & sProc
@@ -31,6 +32,7 @@ Private Sub Regression()
     On Error GoTo eh
     Set cTest = New clsTestService
     cTest.Regression = True
+    Set Trc = New clsTrc ' if not within regression-test
     mBasic.BoP ErrSrc(PROC)
     
     mCompManTest.Test_ExportChanged
@@ -53,6 +55,7 @@ Private Sub Test_ExportChanged()
     Dim Comp        As New clsComp
     Dim wbActive    As Workbook
     
+    If Trc Is Nothing Then Set Trc = New clsTrc ' if not within regression-test
     mBasic.BoP ErrSrc(PROC)
    
     Services.Initiate ErrSrc(PROC), ThisWorkbook
@@ -96,7 +99,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Private Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
-                              ByVal rnc_vbc_name As String)
+                               ByVal rnc_vbc_name As String)
 ' ------------------------------------------------------------------------------
 ' This test procedure is exclusively initiated within the
 ' 'CompMan-Development-Instance-Workbook and executed by' the 'CompMan Add-in'
@@ -110,11 +113,12 @@ Private Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
     Dim wbActive    As Workbook
     Dim wbTemp      As Workbook
     
+    If Trc Is Nothing Then Set Trc = New clsTrc ' if not within regression-test
     mBasic.BoP ErrSrc(PROC)
     If mMe.IsDevInstnc Then GoTo xt
     
     Services.Initiate ErrSrc(PROC), ThisWorkbook
-    Log.Title "Renew Component Test"
+    Log.Title "Test RenewByImport"
     
     With Comp
         .CompName = rnc_vbc_name
@@ -161,6 +165,9 @@ Private Sub Test_UpdateOutdatedCommonComponents()
     Dim AddinService    As String
     Dim AddInStatus     As String
     
+    If Trc Is Nothing Then Set Trc = New clsTrc ' if not within regression-test
+    mBasic.BoP ErrSrc(PROC)
+    If Trc Is Nothing Then Set Trc = New clsTrc ' if not within regression-test
     If Services.Denied(mCompManClient.SRVC_UPDATE_OUTDATED) Then GoTo xt
 
     AddinService = mAddin.WbkName & "!mCompMan.UpdateOutdatedCommonComponents"
@@ -191,7 +198,8 @@ Private Sub Test_UpdateOutdatedCommonComponents()
              , Buttons:=vbExclamation
     End If
     
-xt: Exit Sub
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -199,3 +207,21 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Sub Test_Template_Proc()
+
+    Const PROC = "Test_RevNoIncrease"
+        
+    If Trc Is Nothing Then ' if not executed within a regression-test
+        Set Trc = New clsTrc
+        Trc.NewFile ' temp trace-log-file, with default name for this test only
+    End If
+    mBasic.BoP ErrSrc(PROC)
+    
+xt: mBasic.EoP ErrSrc(PROC)
+    '~~ show trace and delete trace-log-file
+    Trc.Dsply
+    Stop ' continue when display is closed
+    fso.DeleteFile Trc.FileFullName
+    Set Trc = Nothing
+    
+End Sub

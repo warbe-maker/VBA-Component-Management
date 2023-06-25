@@ -72,6 +72,8 @@ Private Sub Class_Terminate()
     Set Comps = Nothing
 End Sub
 
+Public Property Let LogFileService(ByVal s As String):      sLogFileService = s:                        End Property
+
 Friend Property Get CurrentService() As String:             CurrentService = sCurrentService:           End Property
 
 Friend Property Let CurrentService(ByVal s As String):      sCurrentService = s:                        End Property

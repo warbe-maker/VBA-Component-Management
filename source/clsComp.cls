@@ -349,6 +349,13 @@ Friend Property Get IsWrkbk() As Boolean
     
 End Property
 
+Friend Property Let KindOfComp(ByVal en As enKindOfComp)
+' ------------------------------------------------------------------------------
+' For the "self-set-up" only
+' ------------------------------------------------------------------------------
+    lKindOfComp = en
+End Property
+
 Friend Property Get KindOfComp() As enKindOfComp
 ' ------------------------------------------------------------------------------
 ' Returns the Kind of Component (lKindOfComp) or determines and saves it when
@@ -466,11 +473,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Get RevisionNumber() As String:         RevisionNumber = mCompManDat.RevisionNumber(sCompName): End Property
+Friend Property Get RevisionNumber() As String:             RevisionNumber = mCompManDat.RevisionNumber(sCompName): End Property
 
-Friend Property Let RevisionNumber(ByVal s As String)
-    mCompManDat.RevisionNumber(sCompName) = s
-End Property
+Friend Property Let RevisionNumber(ByVal s As String):      mCompManDat.RevisionNumber(sCompName) = s:              End Property
 
 Friend Property Get RevisionNumbersDiffer() As Boolean
 ' ------------------------------------------------------------------------------
@@ -494,9 +499,9 @@ Friend Property Get Sheet() As Worksheet:                   Set Sheet = wsh:    
 Friend Property Set Sheet(ByRef s_wsh As Worksheet):        Set wsh = s_wsh:            End Property
 
 Friend Property Get TypeString() As String
-' ----------------------------------------
+' ------------------------------------------------------------------------------
 ' Returns the component's type as String.
-' ----------------------------------------
+' ------------------------------------------------------------------------------
     If Not vbc Is Nothing Then
         On Error Resume Next
         TypeString = dctType(vbc.Type)
@@ -533,15 +538,14 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Property
 
 Friend Property Set Wrkbk(ByRef w_wbk As Workbook)
-' ---------------------------------------------------------
+' ------------------------------------------------------------------------------
 ' Provides the properties: - Wrkbk         (wbk)
 '                          - WrkbFullName  (sWrkbkFullName)
 '                          - WrkbkBaseName (sWrkbkBaseName)
 '                          - ExpFilePath   (sExpFilePath)
 '                          - Service       (sService)
 '                          - MaxLenComp    (lMaxLenComp)
-' ---------------------------------------------------------
-    
+' ------------------------------------------------------------------------------
     Dim vbc As VBComponent
     
     Set wbk = w_wbk
@@ -580,10 +584,30 @@ Private Function ErrSrc(ByVal sProc As String) As String
 End Function
 
 Public Sub Export()
+' ------------------------------------------------------------------------------
+' Export of a changed component (or one which had yet not ever been exported)
+' the way CompMan's component management does it:
+' - Export it to its dedicated export folder
+' - When a hosted Common Component: Copy it to the Common-Components folder
+'   and register it in the hosting Workbooks "CompMan.dat" file as "hosted"
+' - Increase the Revision Number in both "CompMan.dat" files: the one in the
+'   Common-Components folder and the one in the hosting Workbook's parent
+'   folder (both performed by RevisionNumberIncrease)
+' ------------------------------------------------------------------------------
     Const PROC = "Export"
     On Error GoTo eh
     
-    Me.VBComp.Export Me.ExpFileFullName
+    With Me
+        .VBComp.Export Me.ExpFileFullName   ' 1. The 'system' export
+        Select Case KindOfComp              ' 2. CompMan's component management
+            Case enCommCompHosted
+                mCommComps.SaveToCommonComponentsFolder .CompName, .ExpFile, .ExpFileFullName
+                mCompManDat.RegistrationState(.CompName) = enRegStateHosted
+                RevisionNumberIncrease
+            Case enCommCompUsed
+                RevisionNumberIncrease
+        End Select
+    End With
 
 xt: Exit Sub
 
@@ -645,30 +669,26 @@ Public Sub RevisionNumberIncrease()
 ' ----------------------------------------------------------------------------
 ' Increases the revision number by one starting with 1 for a new day.
 ' ----------------------------------------------------------------------------
-    Dim RevNo   As Long
-    Dim RevDate As String
-    Dim sRevNo  As String
-    
-    Select Case KindOfComp
-        Case enCommCompHosted:  sRevNo = mCommComps.RevisionNumber(CompName)
-        Case enCommCompUsed:    sRevNo = RevisionNumber
-    End Select
+    Dim lRevNo As Long
+    Dim sRevNo As String
     
     If sRevNo = vbNullString Then
-        RevNo = 1
+        sRevNo = Format(Now(), FORMAT_REV_DATE) & "." & Format(1, FORMAT_REV_NO)
     Else
-        RevNo = Split(sRevNo, ".")(1)
-        RevDate = Split(sRevNo, ".")(0)
-        If RevDate <> Format(Now(), "YYYY-MM-DD") _
-        Then RevNo = 1 _
-        Else RevNo = RevNo + 1
+        lRevNo = Split(sRevNo, ".")(1)
+        If Split(sRevNo, ".")(0) <> Format(Now(), FORMAT_REV_DATE) Then ' not/nolonger the same day
+            lRevNo = 1
+        Else
+            lRevNo = lRevNo + 1
+        End If
+        sRevNo = Format(Now(), FORMAT_REV_DATE) & "." & Format(lRevNo, FORMAT_REV_NO)
     End If
-    sRevNo = Format(Now(), "YYYY-MM-DD") & "." & Format(RevNo, "000")
-    Select Case KindOfComp
-        Case enCommCompHosted:  mCommComps.RevisionNumber(CompName) = sRevNo
-                                RevisionNumber = sRevNo
-        Case enCommCompUsed:    RevisionNumber = sRevNo
-    End Select
+    
+    If KindOfComp <> enInternal _
+    Then RevisionNumber = sRevNo ' hosted or used
+    
+    If KindOfComp = enCommCompHosted _
+    Then mCommComps.RevisionNumber(CompName) = sRevNo ' for the raw in the Common-Components folder
     
 End Sub
 

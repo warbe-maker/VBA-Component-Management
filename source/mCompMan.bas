@@ -62,6 +62,8 @@ Public Const README_SYNC_CHAPTER                As String = "#using-the-synchron
 Public Const README_SYNC_CHAPTER_NAMES          As String = "#names-synchronization"
 Public Const README_DEFAULT_FILES_AND_FOLDERS   As String = "#compmans-default-files-and-folders-environment"
 Public Const README_CONFIG_CHANGES              As String = "#configuration-changes-compmans-config-worksheet"
+Public Const FORMAT_REV_DATE                    As String = "YYYY-MM-DD"
+Public Const FORMAT_REV_NO                      As String = "000"
 
 Public Log                                      As clsLog
 Public SummaryLog                               As clsLog

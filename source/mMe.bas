@@ -104,6 +104,8 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
     Dim BttnGoAhead As String
     Dim sWrkbkOpnd  As String
     
+    Set Services = New clsServices
+    
     If mConfig.EnvIsMissing() Then
         '~~ The CompMan Workbook has been opened the very first time at this location.
         '~~ A default folders and files environment is now setup - provided the user confirms it.
@@ -111,7 +113,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
                       "Go ahead and set it up"
                      
         If DefaultEnvDisplay(BttnGoAhead) = BttnGoAhead Then
-            mConfig.SetupCompManDefaultEnvironment
+            mConfig.SelfSetupDefaultEnvironment
             sWrkbkOpnd = ThisWorkbook.FullName
             Application.EnableEvents = False
             ThisWorkbook.SaveAs mConfig.CompManParentFolderNameDefault & "\" & ThisWorkbook.Name
@@ -121,6 +123,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
             DoEvents
             On Error Resume Next
             fso.DeleteFile sWrkbkOpnd
+            mConfig.SelfSetupExportCompManClient
             mConfig.SetupConfirmed
         End If
     Else
@@ -139,7 +142,8 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
         wsConfig.Activate
     End If
                         
-xt: Exit Function
+xt: Set Services = Nothing
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
