@@ -811,34 +811,30 @@ Public Function ErrMsg(ByVal err_source As String, _
     If err_source = vbNullString Then err_source = Err.source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
-    
-    '~~ Consider extra information is provided with the error description
+    '~~ About
+    ErrDesc = err_dscrptn
     If InStr(err_dscrptn, "||") <> 0 Then
         ErrDesc = Split(err_dscrptn, "||")(0)
         ErrAbout = Split(err_dscrptn, "||")(1)
+    End If
+    '~~ Type of error
+    If err_no < 0 Then
+        ErrType = "Application Error ": ErrNo = AppErr(err_no)
     Else
-        ErrDesc = err_dscrptn
+        ErrType = "VB Runtime Error ":  ErrNo = err_no
+        If err_dscrptn Like "*DAO*" _
+        Or err_dscrptn Like "*ODBC*" _
+        Or err_dscrptn Like "*Oracle*" _
+        Then ErrType = "Database Error "
     End If
     
-    '~~ Determine the type of error
-    Select Case err_no
-        Case Is < 0
-            ErrNo = AppErr(err_no)
-            ErrType = "Application Error "
-        Case Else
-            ErrNo = err_no
-            If err_dscrptn Like "*DAO*" _
-            Or err_dscrptn Like "*ODBC*" _
-            Or err_dscrptn Like "*Oracle*" _
-            Then ErrType = "Database Error " _
-            Else ErrType = "VB Runtime Error "
-    End Select
-    
-    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
-    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
-    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
-       
-    ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
+    '~~ Title
+    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"
+    If err_line <> 0 Then ErrAtLine = " at line " & err_line
+    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")
+    '~~ Description
+    ErrText = "Error: " & vbLf & ErrDesc
+    '~~ About
     If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
     
 #If Debugging = 1 Then

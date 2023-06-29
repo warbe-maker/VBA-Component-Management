@@ -126,7 +126,7 @@ Private fMonitor            As fMsg
 
 Private Property Get ModeLess() As Boolean:          ModeLess = bModeLess:   End Property
 
-Private Property Let ModeLess(ByVal b As Boolean):   bModeLess = b:          End Property
+Private Property Let ModeLess(ByVal B As Boolean):   bModeLess = B:          End Property
 
 Private Property Get ScreenHeight() As Single
     ConvertPixelsToPoints y_dpi:=GetSystemMetrics32(SM_CYVIRTUALSCREEN), y_pts:=ScreenHeight
@@ -748,13 +748,6 @@ Public Function ErrMsg(ByVal err_source As String, _
         .Text.Text = ErrDesc
     End With
     With ErrMsgText.Section(2)
-        With .Label
-            .Text = "Error source:"
-            .FontColor = rgbBlue
-        End With
-        .Text.Text = err_source
-    End With
-    With ErrMsgText.Section(3)
         If ErrAbout = vbNullString Then
             .Label.Text = vbNullString
             .Text.Text = vbNullString
@@ -765,14 +758,14 @@ Public Function ErrMsg(ByVal err_source As String, _
         .Label.FontColor = rgbBlue
     End With
 #If Debugging = 1 Then
-    With ErrMsgText.Section(4)
+    With ErrMsgText.Section(3)
         With .Label
-            .Text = "About 'Resume Error Line':"
+            .Text = "Resume Error Line:"
             .FontColor = rgbBlue
         End With
-        .Text.Text = "The additional debugging option button is displayed because the " & _
-                     "Conditional Compile Argument 'Debugging = 1'. Pressing this button " & _
-                     "and twice F8 ends up at the code line which raised the error"
+        .Text.Text = "Debugging option. Button is displayed because the " & _
+                     "Cond. Comp. Argument 'Debugging = 1'. Pressing this button " & _
+                     "and twice F8 leads straight to the code line which raised the error."
     End With
 #End If
     mMsg.Dsply dsply_title:=ErrTitle _

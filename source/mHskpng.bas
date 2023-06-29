@@ -13,6 +13,7 @@ Public Sub CommComps(ByVal h_hosted As String)
     Const PROC = "CommComps"
     
     On Error GoTo eh
+    
     mBasic.BoP ErrSrc(PROC)
     CommCompsRemoveObsoleteComponents h_hosted
     CommCompsAddMissingComponents
@@ -53,6 +54,7 @@ Private Sub CommCompsAddMissingComponents()
     Dim sCompName   As String
     Dim sExt        As String
     
+    mBasic.BoP ErrSrc(PROC)
     Set dct = mCommComps.Components
     With fso
         For Each fle In .GetFolder(wsConfig.FolderCommonComponentsPath).Files
@@ -74,7 +76,8 @@ Private Sub CommCompsAddMissingComponents()
     Set fso = Nothing
     Set dct = Nothing
 
-xt: Exit Sub
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -256,10 +259,11 @@ Private Sub CommCompsHosted(ByVal m_hosted As String)
     On Error GoTo eh
     Dim v               As Variant
     Dim fso             As New FileSystemObject
-    Dim RawComComp      As clsComp
+    Dim CommCompHosted  As clsComp
     Dim sHostBaseName   As String
     Dim dctHosted       As Dictionary
     Dim wbk             As Workbook
+    Dim sInconstMsg     As String
     
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
@@ -273,8 +277,8 @@ Private Sub CommCompsHosted(ByVal m_hosted As String)
                    "When the component is no longer hosted or its name has changed the argument needs to be updated accordingly.", _
                    vbOK, "VBComponent " & v & "unkonwn!"
         Else
-            Set RawComComp = New clsComp
-            With RawComComp
+            Set CommCompHosted = New clsComp
+            With CommCompHosted
                 Set .Wrkbk = Services.Serviced
                 .CompName = v
                 If mCompManDat.RegistrationState(v) <> enRegStateHosted Then
@@ -297,38 +301,50 @@ Private Sub CommCompsHosted(ByVal m_hosted As String)
                     '~~ computers/users are involved in the development process ...
                     '~~ Instead of simply updating the saved raw Export File better have carefully checked the case
                     If mCommComps.RevisionNumber(v) = mCompManDat.RawRevisionNumber(v) Then
-                        If InconsitencyWarning _
-                           (i_file_full_name:=.ExpFile.Path _
-                          , i_file_full_name_saved:=mCommComps.SavedExpFile(v).Path _
-                          , i_message:="While the Revision Number of the 'Hosted Raw'  " & mBasic.Spaced(v) & "  is identical with the " & _
-                                       "'Saved Raw' their Export Files are different. Compared were:" & vbLf & _
-                                       "Hosted Raw Export File = " & .ExpFile.Path & vbLf & _
-                                       "Saved Raw Export File  = " & mCommComps.SavedExpFile(v).Path & "." & vbLf & _
-                                       "Since empty code lines and case differences had been ignored the difference definitely matters!" _
-                           ) Then
-                            mCommComps.SaveToCommonComponentsFolder v, .ExpFile, .ExpFileFullName
-                        End If
+                        sInconstMsg = "The 'Revision Number' of the 'Hosted Common Component' is identical with the 'Revivision Number' " & _
+                                      "of the Common Component in the 'Common-Components Folder':" & vbLf & vbLf & _
+                                      mCompManDat.RawRevisionNumber(v) & " (Common Component Hosted)" & vbLf & _
+                                      mCommComps.RevisionNumber(v) & " (Common Component in 'Common-Components Folder')" & vbLf & vbLf & _
+                                      "but the Export Files differ:" & vbLf & vbLf & _
+                                      .ExpFile.Path & vbLf & _
+                                      "compared with" & vbLf & _
+                                      mCommComps.SavedExpFile(v).Path & vbLf & vbLf & _
+                                      "whereby any empty code lines and case differences had already been ignored as irrelevant." & _
+                                      "1. Question: How on earth could this happen?" & vbLf & _
+                                      "2. Question: Which of the two is the most up-to-date version?" & vbLf & _
+                                      "Exporting follows the decision that the hosted version is the one up-to-date, Updating means that the " & _
+                                      "version in the 'Common-Components Folder' is the one up-to-date."
+                                      
+                        Select Case mCommComps.InconsitencyWarning(i_file_full_name:=.ExpFile.Path _
+                                                                 , i_file_full_name_saved:=mCommComps.SavedExpFile(v).Path _
+                                                                 , i_message:=sInconstMsg)
+                            Case mCommComps.BttnInconsistencyExport:   mCommComps.SaveToCommonComponentsFolder v, .ExpFile, .ExpFileFullName
+                            Case mCommComps.BttnInconsistencySkip
+                        End Select
                     ElseIf mCommComps.RevisionNumber(v) <> mCompManDat.RawRevisionNumber(v) Then
-                        If mCommComps.InconsitencyWarning _
-                           (i_file_full_name:=.ExpFile.Path _
-                          , i_file_full_name_saved:=mCommComps.SavedExpFile(v).Path _
-                          , i_message:="The 'Revision Number' of the 'Hosted Raw Common Component's Export File' and the " & _
-                                       "the 'Saved Raw's Export File' differ:" & vbLf & _
-                                       "Hosted Raw = " & mCompManDat.RawRevisionNumber(v) & vbLf & _
-                                       "Saved Raw  = " & mCommComps.RevisionNumber(v) & vbLf & _
-                                       "and also the Export Files differ. Compared were:" & vbLf & _
-                                       "Hosted Raw = " & .ExpFile.Path & vbLf & _
-                                       "Saved Raw  = " & mCommComps.SavedExpFile(v).Path & vbLf & _
-                                       "whereby any empty code lines and case differences had been ignored. " & _
-                                       "The difference thus really matters! Updating is not " & _
-                                       "recommendable unless the issue has been clarified." _
-                           ) Then
-                            mCommComps.SaveToCommonComponentsFolder v, .ExpFile, .ExpFileFullName
-                        End If
+                        sInconstMsg = "The 'Revision Number' of the 'Hosted Common Component' differs from the 'Revivision Number' " & _
+                                      "of the Common Component in the 'Common-Components Folder':" & vbLf & vbLf & _
+                                      mCompManDat.RawRevisionNumber(v) & " (Common Component Hosted)" & vbLf & _
+                                      mCommComps.RevisionNumber(v) & " (Common Component in 'Common-Components Folder')" & vbLf & vbLf & _
+                                      "but the Export Files are equal:" & vbLf & vbLf & _
+                                      .ExpFile.Path & vbLf & _
+                                      "compared with" & vbLf & _
+                                      mCommComps.SavedExpFile(v).Path & vbLf & vbLf & _
+                                      "whereby any empty code lines and case differences had already been ignored as irrelevant. " & _
+                                      "Exporting is not recommendable unless it is clear the the hosted version is the up-to-date one."
+                        Select Case mCommComps.InconsitencyWarning(i_file_full_name:=.ExpFile.Path _
+                                                                 , i_file_full_name_saved:=mCommComps.SavedExpFile(v).Path _
+                                                                 , i_message:=sInconstMsg)
+                            Case mCommComps.BttnInconsistencyExport
+                                .Export
+                            Case mCommComps.BttnInconsistencyUpdate
+                                mUpdate.ByReImport .Wrkbk, .CompName, mCommComps.SavedExpFile(v)
+                            Case mCommComps.BttnInconsistencySkip
+                        End Select
                     End If
                 End If
             End With
-            Set RawComComp = Nothing
+            Set CommCompHosted = Nothing
         End If
     Next v
 
@@ -349,7 +365,7 @@ Private Sub CommCompsNotHosted(ByVal h_hosted As String)
 ' Note: The Common Component remains being an orphan until it is again claimed
 '       being hosted by a Workbook.
 ' ----------------------------------------------------------------------------
-    Const PROC      As String = ""
+    Const PROC      As String = "CommCompsNotHosted"
     
     Dim dctHosted   As Dictionary
     Dim dctComps    As Dictionary

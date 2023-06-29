@@ -89,6 +89,7 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
     Dim Comp            As clsComp
     Dim TmpWbk          As Workbook
     Dim lStep           As Long
+    Dim sRevNo          As String
     
     mBasic.BoP ErrSrc(PROC)
     MonitorInitiate "Update an outdated component", b_monitor
@@ -137,11 +138,18 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
     End With
     
     With Comp
-        If .KindOfComp = enCommCompUsed Then
-            If .RevisionNumber <> .Raw.RevisionNumber Then
-                .RevisionNumber = .Raw.RevisionNumber
-            End If
-        End If
+        Select Case .KindOfComp
+            Case enCommCompUsed
+                sRevNo = .Raw.RevisionNumber
+                If .RevisionNumber <> sRevNo Then
+                    .RevisionNumber = sRevNo
+                End If
+            Case enCommCompHosted
+                sRevNo = mCommComps.RevisionNumber(.CompName)
+                If .RevisionNumber <> sRevNo Then
+                    .RevisionNumber = sRevNo
+                End If
+        End Select
     End With
     
 xt: mBasic.EoP ErrSrc(PROC)

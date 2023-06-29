@@ -23,6 +23,21 @@ Private UpdateDialogTitle                       As String
 Private UpdateDialogTop                         As Long
 Private UpdateDialogLeft                        As Long
 
+Public Property Get BttnInconsistencyExport() As String
+    BttnInconsistencyExport = "Export" & vbLf & _
+                              "(the hosted version is the one up-to-date)"
+End Property
+
+Public Property Get BttnInconsistencySkip() As String
+    BttnInconsistencySkip = "Skip" & vbLf & "for further investigation"
+End Property
+
+Public Property Get BttnInconsistencyUpdate() As String
+    BttnInconsistencyUpdate = "Update (re-import)" & vbLf & _
+                              "(the 'Common-Components Folder' version is up-to-date)"
+
+End Property
+
 Public Property Get CommCompsDatFileFullName() As String
     CommCompsDatFileFullName = wsConfig.FolderCommonComponentsPath & "\CommComps.dat"
 End Property
@@ -262,26 +277,29 @@ End Function
 
 Public Function InconsitencyWarning(ByVal i_file_full_name, _
                                     ByVal i_file_full_name_saved, _
-                                    ByVal i_message) As Boolean
+                                    ByVal i_message) As Variant
 ' ----------------------------------------------------------------------------
 ' Displays an information about a modification of a Used Common Component.
-' The disaplay offers the option to display the code difference.
-' Returns TRUE only when the reply is "go ahead, update anyway"
+' The display offers the option to display the code difference. The function
+' returns the finally pressed button.
 ' ----------------------------------------------------------------------------
     Const PROC = "InconsitencyWarning"
     
     On Error GoTo eh
-    Dim Msg         As mMsg.TypeMsg
-    Dim cllBttns    As Collection
-    Dim BttnDsply   As String
-    Dim BttnSkip    As String
-    Dim BttnAnyway  As String
-
-    BttnDsply = "Display code difference" & vbLf & "between hosted and saved" & vbLf & "Export Files"
-    BttnSkip = "Do not update!" & vbLf & "further investigation" & vbLf & "is required"
-    BttnAnyway = "I know the reason!" & vbLf & "go ahead updating" & vbLf & "(not recommended!)"
+    Dim fso                 As New FileSystemObject
+    Dim Msg                 As mMsg.TypeMsg
+    Dim cllBttns            As Collection
+    Dim BttnDsply           As String
+    Dim BttnSkip            As String
+    Dim BttnExport          As String
+    Dim BttnUpdate          As String
     
-    Set cllBttns = mMsg.Buttons(BttnDsply, vbLf, BttnAnyway, vbLf, BttnSkip)
+    BttnDsply = "Display difference" & "(of Export-Files)"
+    BttnSkip = BttnInconsistencySkip
+    BttnExport = BttnInconsistencyExport
+    BttnUpdate = BttnInconsistencyUpdate
+    
+    Set cllBttns = mMsg.Buttons(BttnDsply, vbLf, BttnExport, BttnUpdate, vbLf, BttnSkip)
     With Msg.Section(1)
         With .Label
             .Text = "Attention!"
@@ -289,22 +307,39 @@ Public Function InconsitencyWarning(ByVal i_file_full_name, _
         End With
         With .Text
             .Text = i_message
-            .FontColor = rgbRed
         End With
     End With
     With Msg.Section(2)
+        .Label.Text = Replace(Replace(BttnExport, vbLf, " "), "  ", " ")
+        .Label.FontColor = rgbBlue
+        .Text.Text = "According to the displayed differencies is the hosted version the one up-to-date. " & vbLf & _
+                     "It will be exported and copied to the 'Common-Components Folder' and the 'Revision Number' will be increased."
+    End With
+    With Msg.Section(3)
+        .Label.Text = Replace(Replace(BttnUpdate, vbLf, " "), "  ", " ")
+        .Label.FontColor = rgbBlue
+        .Text.Text = "The hosted version will be updated with the 'Common-Components Folder' version (by re-import) and " & _
+                     "the 'Revision-Number' of the hosted version will be set identical with the 'Common-Components Folder' version"
+    End With
+    With Msg.Section(4)
+        .Label.Text = Replace(Replace(BttnSkip, vbLf, " "), "  ", " ")
+        .Label.FontColor = rgbBlue
+        .Text.Text = "Will be clarified later!& " & vbLf & _
+                     "Note: Each Workbook Safe will redisplay this message until either Export or Update is performed."
+    End With
+    With Msg.Section(5)
         .Label.Text = "Background:"
-        .Text.Text = "When a Raw Common Component is modified within its hosting Workbook and exported (save) " & _
-                     "its 'Revision Number' is increased and the 'Export File' is copied into the 'Common Components' " & _
-                     "folder and the 'Revision Number' is updated in the 'Common Components' folder's ""CommComps.dat"" file. " & _
+        .Label.FontColor = rgbBlue
+        .Text.Text = "When 'hosted Common Component' is modified within its hosting Workbook and exported, the " & _
+                     "'Export File' is copied to the 'Common-Components Folder' and the 'Revision Number' is increased " & _
+                     "and set equal in the hosting Workbook's and the Common-Component Folder's ""CommComps.dat"" file. " & _
                      "When a 'used Common Component is modified within the VB-Project just using (not hosting!) it, " & _
-                     "the 'Revision Number' only of this 'used Common Component' is increased. When both had been modified " & _
-                     "the may still differ although the 'Revision Numbers' are equal."
+                     "the 'Revision Number' only of this 'used Common Component' is increased. When by accident both " & _
+                     "had been modified the 'Revision Numbers' may be equal but the Export Files will differ."
     End With
         
     Do
-        If Not mMsg.BttnArgsAreValid(cllBttns) Then Stop
-        Select Case mMsg.Dsply(dsply_title:="Serious inconsistency warning!" _
+        Select Case mMsg.Dsply(dsply_title:="Inconsistency warning for " & fso.GetBaseName(i_file_full_name) & "!" _
                              , dsply_msg:=Msg _
                              , dsply_buttons:=cllBttns _
                               )
@@ -313,18 +348,21 @@ Public Function InconsitencyWarning(ByVal i_file_full_name, _
                                            , e_file_left_title:="Raw Common Component's Export File: (" & i_file_full_name & ")" _
                                            , e_file_right_full_name:=i_file_full_name_saved _
                                            , e_file_right_title:="Saved Raw's Export File (" & i_file_full_name_saved & ")"
-            Case BttnSkip:      InconsitencyWarning = False:    Exit Do
-            Case BttnAnyway:    InconsitencyWarning = True:     Exit Do
+            Case BttnSkip:      InconsitencyWarning = BttnSkip:     Exit Do
+            Case BttnExport:    InconsitencyWarning = BttnExport:   Exit Do
+            Case BttnUpdate:    InconsitencyWarning = BttnUpdate:   Exit Do
         End Select
     Loop
 
-xt: Exit Function
+xt: Set fso = Nothing
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Function
+
 Private Function MaxRawLenght() As Long
 ' -----------------------------------------------
 ' Returns the max length of a raw componen's name
