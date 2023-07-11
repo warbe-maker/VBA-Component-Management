@@ -197,7 +197,7 @@ Public Sub SelfSetupExportCompManClient()
     Dim Comp        As clsComp
     Dim vbc         As VBComponent
     
-    '~~ Export the mCompManClient to the Common Components folder
+    '~~ Export the mCompManClient to the Common-Components folder
     If Services Is Nothing Then Set Services = New clsServices
     Services.Serviced = ThisWorkbook
     For Each vbc In Services.Serviced.VBProject.VBComponents
@@ -206,11 +206,11 @@ Public Sub SelfSetupExportCompManClient()
                     
             Set Comp = New clsComp
             With Comp
-                Set .Wrkbk = ThisWorkbook
-                Set .VBComp = vbc
+                .Wrkbk = ThisWorkbook
+                .VBComp = vbc
                 .KindOfComp = enCommCompHosted
 
-                With Log
+                With LogServiced
                     .KeepDays = 2 ' a new log-file is created after 48 hours
                     .WithTimeStamp
                     .FileFullName = Services.Serviced.Path & "\" & fso.GetBaseName(Services.Serviced.Name) & ".Services.log"
@@ -227,9 +227,9 @@ Public Sub SelfSetupExportCompManClient()
                 With Services
                     .ServicedItem = vbc
                     .NoOfItemsServiced = .NoOfItemsServiced + 1
-                    .LogEntry "hosted Common Component initially exported by the ""self-setup"" process!"
-                    .LogEntry "hosted Common Component's Revision Number initialized with " & Comp.RevisionNumber
-                    .LogEntry "hosted Common Component's Export-File copied to " & wsConfig.FolderCommonComponentsPath
+                    .LogServicedEntry "Common Component hosted: initially exported by the ""self-setup"" process!"
+                    .LogServicedEntry "Common Component hosted: Revision Number initialized with " & Comp.RevisionNumber
+                    .LogServicedEntry "Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
                 End With
             End With
             Exit For
@@ -237,7 +237,7 @@ Public Sub SelfSetupExportCompManClient()
     Next vbc
 
     Set Comp = Nothing
-    Set Log = Nothing
+    Set LogServiced = Nothing
     
 End Sub
 

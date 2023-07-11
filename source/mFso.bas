@@ -47,6 +47,11 @@ Option Compare Text
 ' PPvalue       r/w Reads from or writes to a name from/to a PP.
 ' PPvalueNameExists Returns TRUE when a value-name exists in a PP under a
 '                   given section.
+' PPvalueNameRename Function replaces an old value name with a new one
+'                   either in a specific section or in all sections when no
+'                   specific section is provided. Optionally not reorgs the
+'                   file, returns True when at least one name has been
+'                   replaced.
 ' PPvalueNames      Returns a Dictionary of all value-names within given
 '                   sections in a PP with the value-name and the section name
 '                   as key (<name>[section]) and the value as item, the names
@@ -1855,18 +1860,18 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub PPremoveNames(ByVal pp_file As Variant, _
-                         ByVal pp_section As String, _
-                         ByVal pp_value_names As Variant, _
-                Optional ByRef pp_file_result As String)
+Public Function PPremoveNames(ByVal pp_file As Variant, _
+                              ByVal pp_section As String, _
+                              ByVal pp_value_names As Variant, _
+                     Optional ByRef pp_file_result As String) As Boolean
 ' -----------------------------------------------------------------------------
-' PrivateProfile file service.
-' Removes from the section (pp_section) in the PrivateProfile file (pp_file)
-' a names (pp_value_names) provided either as: comma delimited string,
-' Dictionary with name items, or Collection of names.
+' PrivateProfile file service. Removes from a PrivateProfile file's (pp_file)
+' section (pp_section) a name (pp_value_names) provided either as a
+' comma delimited string, or as one string only.
 ' When no file (pp_file) is provided - either as full name or as file object
 ' a file selection dialog is displayed. When finally there's still no file
 ' provided the service ends without notice.
+' When the name existed and has been removed, the function returns TRUE.
 ' -----------------------------------------------------------------------------
     Const PROC = "PPremoveNames"
     
@@ -1878,19 +1883,22 @@ Public Sub PPremoveNames(ByVal pp_file As Variant, _
     pp_file_result = fl
     
     For Each v In NamesInArg(pp_value_names)
-        DeletePrivateProfileKey Section:=pp_section _
-                               , Key:=v _
-                               , Setting:=0 _
-                               , Name:=fl
+        If mFso.PPvalueExists(pp_file, v, pp_section) Then
+            DeletePrivateProfileKey Section:=pp_section _
+                                  , Key:=v _
+                                  , Setting:=0 _
+                                  , Name:=fl
+            PPremoveNames = True
+        End If
     Next v
 
-xt: Exit Sub
+xt: Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
+End Function
 
 Public Sub PPremoveSections(ByVal pp_file As Variant, _
                    Optional ByVal pp_sections As String = vbNullString, _
@@ -2099,6 +2107,68 @@ Public Function PPvalueExists(ByVal pp_file As Variant, _
             PPvalueExists = mFso.PPvalueNames(fl, pp_section).Exists(pp_value_name)
         End If
     End If
+End Function
+
+Public Function PPvalueNameRename(ByVal pp_name_old As String, _
+                                  ByVal pp_name_new As String, _
+                                  ByVal pp_file As Variant, _
+                         Optional ByVal pp_section As String = vbNullString, _
+                         Optional ByRef pp_reorg As Boolean = True) As Boolean
+' ----------------------------------------------------------------------------
+' PrivateProfile file service. Rename an old value name (pp_name_old) to a new
+' name (pp_nmae_new) either in a specific section (pp_section) or in all
+' sections when no specific section is provided. Optionally not reorgs the
+' file when (pp_reorg) = False (defaults to True).
+' ----------------------------------------------------------------------------
+    Const PROC = "PPvalueNameRename"
+    
+    On Error GoTo eh
+    Dim dct         As Dictionary
+    Dim v           As Variant
+    Dim sSect       As String
+    Dim vValue      As Variant
+    Dim dctSects    As Dictionary
+    Dim vSect       As Variant
+    
+    If pp_name_old = vbNullString Or pp_name_new = vbNullString Then GoTo xt
+    
+    Set dct = PPsections(pp_file)
+    
+    For Each v In dct
+        If pp_section <> vbNullString Then
+            If v = pp_section Then
+                '~~> Rename Name just within one specific section
+                If mFso.PPvalueExists(pp_file, pp_name_old, pp_section) Then
+                    vValue = PPvalue(pp_file, pp_section, pp_name_old)
+                    PPremoveNames pp_file, pp_section, pp_name_old
+                    If vValue <> vbNullString _
+                    Then PPvalue(pp_file, pp_section, pp_name_new) = vValue
+                    PPvalueNameRename = True
+                End If
+                GoTo xt
+            End If
+        Else
+            Set dctSects = PPsections(pp_file)
+            For Each vSect In dctSects
+            '~~> Rename Name in all sections
+                If mFso.PPvalueExists(pp_file, pp_name_old, pp_section) Then
+                    vValue = PPvalue(pp_file, vSect, pp_name_old)
+                    PPremoveNames pp_file, vSect, pp_name_old
+                    If vValue <> vbNullString Then PPvalue(pp_file, vSect, pp_name_new) = vValue
+                    PPvalueNameRename = True
+                End If
+            Next vSect
+        End If
+    Next v
+    
+xt: Set dct = Nothing
+    If pp_reorg Then PPreorg pp_file
+    Exit Function
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Public Function PPvalueNames(ByVal pp_file As Variant, _

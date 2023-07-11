@@ -1,40 +1,42 @@
 Attribute VB_Name = "mNme"
 Option Explicit
 ' ------------------------------------------------------------------------
-' Standard Module mNme: Services about Name objects.
+' Standard Module mNme: Common services for/about Name objects.
+' =====================
 '
 ' Public services:
-' - Corresponding   Returns a Dictionary with all Name objects in a
-'                   provided Workbook which correspond with a provided
-'                   Name object whereby 'corresponding' means with either
-'                   the same name and/or the same referred range.
-' - Create          Returns a Name object with provided properties and the
-'                   provided scope.
-' - Exists          Returns TRUE and the resulting name object when a
-'                   Range Name exists in a provided Workbook disregarding
-'                   any difference in the RefersTo argument.
-' - HasChanged      Returns TRUE when a provided Name object refers to
-'                   a range in a Workbook which has exactly one but
-'                   another name.
-' - IsNotUnique     Returns TRUE when a Name refers to a range in a
-'                   Workbook which has already one but another name.
-' - IsInUse         Returns TRUE when a provided Name's Name is found in
-'                   any of a Workbook's VBComponent code lines.
-' - MereName        Returns the mere Name of a Name object, i.e. with a
-'                   scope sheet prefix unstripped.
-' - Remove          Removes a provided Name or all Names which refer to a
-'                   provided Worksheet
-' - Scope           Returns the scoped Workbook or Worksheet object for a
-'                   provided Name object.
-' - ScopeName       Returns a provided Name object's scope as string
-'                   "scope: Workbook" or "scope: Worksheet <name>"
-' - UnifiedId       Returns a unified id for a provided Name object in the
-'                   form: <name> | <refersto> | scope: Workbook
-'                      or <name> | <refersto> | scope: Worksheet <name>
-'                   either "Workbook scope" or <Worksheet.Name> scope.
-
+' ----------------
+' Corresponding   Returns a Dictionary with all Name objects in a provided
+'                 Workbook which correspond with a provided Name object
+'                 whereby 'corresponding' means with either the same name
+'                 and/or the same referred range.
+' Create          Returns a Name object with provided properties and the
+'                 provided scope.
+' Exists          Returns TRUE and the resulting name object when a Range
+'                 Name exists in a provided Workbook disregarding any
+'                 difference in the RefersTo argument.
+' HasChanged      Returns TRUE when a provided Name object refers to
+'                 a range in a Workbook which has exactly one but
+'                 another name.
+' IsNotUnique     Returns TRUE when a Name refers to a range in a
+'                 Workbook which has already one but another name.
+' IsInUse         Returns TRUE when a provided Name's Name is found in
+'                 any of a Workbook's VBComponent code lines.
+' MereName        Returns the mere Name of a Name object, i.e. with a
+'                 scope sheet prefix unstripped.
+' Remove          Removes a provided Name or all Names which refer to a
+'                 provided Worksheet
+' Scope           Returns the scoped Workbook or Worksheet object for a
+'                 provided Name object.
+' ScopeName       Returns a provided Name object's scope as string
+'                 "scope: Workbook" or "scope: Worksheet <name>"
+' UnifiedId       Returns a unified id for a provided Name object in the
+'                 form: <name> | <refersto> | scope: Workbook
+'                    or <name> | <refersto> | scope: Worksheet <name>
+'                 either "Workbook scope" or <Worksheet.Name> scope.
 '
-' W. Rauschenberger, Berlin, Dec 2022
+'
+' W. Rauschenberger, Berlin, Jul 2023
 ' ------------------------------------------------------------------------
 Public Const SCOPE_DELIM = "|"
 

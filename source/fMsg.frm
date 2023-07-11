@@ -1,8 +1,8 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} fMsg 
    ClientHeight    =   14805
-   ClientLeft      =   150
-   ClientTop       =   390
+   ClientLeft      =   147
+   ClientTop       =   392
    ClientWidth     =   12390
    OleObjectBlob   =   "fMsg.frx":0000
 End
@@ -129,7 +129,7 @@ End Enum
 
 'Needed for GetCursorInfo
 Private Type POINT
-    X As Long
+    x As Long
     Y As Long
 End Type
 
@@ -242,7 +242,7 @@ Private vMsgButtonDefault       As Variant          ' Index or caption of the de
 Private iSectionsPropSpaced     As Long             ' number of prop. spaced sections setup
 Private iSectionsMonoSpaced     As Long             ' number of mono-spaced sections setup
 
-Public Property Let ModeLess(ByVal b As Boolean): bModeLess = b:    End Property
+Public Property Let ModeLess(ByVal B As Boolean): bModeLess = B:    End Property
 
 Private Sub UserForm_Initialize()
     Const PROC = "UserForm_Initialize"
@@ -377,8 +377,8 @@ Private Property Get MonoSpaced(Optional ByVal var_ctl As Variant) As Boolean
 End Property
 
 Private Property Let MonoSpaced(Optional ByVal var_ctl As Variant, _
-                                         ByVal b As Boolean)
-    If b Then
+                                         ByVal B As Boolean)
+    If B Then
         If Not dctMonoSpaced.Exists(var_ctl) Then dctMonoSpaced.Add var_ctl, var_ctl.Name
     Else
         If dctMonoSpaced.Exists(var_ctl) Then dctMonoSpaced.Remove var_ctl
@@ -390,8 +390,8 @@ Private Property Get MonoSpacedTbx(Optional ByVal tbx As MSForms.TextBox) As Boo
 End Property
 
 Private Property Let MonoSpacedTbx(Optional ByVal tbx As MSForms.TextBox, _
-                                            ByVal b As Boolean)
-    If b Then
+                                            ByVal B As Boolean)
+    If B Then
         If Not dctMonoSpacedTbx.Exists(tbx) Then dctMonoSpacedTbx.Add tbx, tbx.Name
     Else
         If dctMonoSpacedTbx.Exists(tbx) Then dctMonoSpacedTbx.Remove tbx
@@ -598,9 +598,9 @@ Private Property Get PrcntgHeightMsgArea() As Single
     PrcntgHeightMsgArea = Round(frmMsectsArea.Height / (frmMsectsArea.Height + frmBttnsArea.Height), 2)
 End Property
 
-Public Property Let ReplyWithIndex(ByVal b As Boolean):     bReplyWithIndex = b:                                    End Property
+Public Property Let ReplyWithIndex(ByVal B As Boolean):     bReplyWithIndex = B:                                    End Property
 
-Public Property Let SetupDone(ByVal b As Boolean):          bSetUpDone = b:                                         End Property
+Public Property Let SetupDone(ByVal B As Boolean):          bSetUpDone = B:                                         End Property
 
 Private Property Get SysFrequency() As Currency
     If TimerSystemFrequency = 0 Then getFrequency TimerSystemFrequency
@@ -674,8 +674,8 @@ Private Property Get TimerTicksElapsed() As Currency:       TimerTicksElapsed = 
 
 Public Property Get VisualizeForTest() As Boolean:          VisualizeForTest = bVisualizeForTest:                       End Property
 
-Public Property Let VisualizeForTest(ByVal b As Boolean)
-    bVisualizeForTest = b
+Public Property Let VisualizeForTest(ByVal B As Boolean)
+    bVisualizeForTest = B
     CollectDesignControls ' do again to ensure visualization
 End Property
 
@@ -1548,7 +1548,7 @@ Private Sub HandCursorForLink(ByVal hc_section As Long)
     Then AddCursor IDC_HAND
 End Sub
 
-Private Sub IndicateFrameCaptionsSetup(Optional ByVal b As Boolean = True)
+Private Sub IndicateFrameCaptionsSetup(Optional ByVal B As Boolean = True)
 ' ----------------------------------------------------------------------------
 ' When False (the default) captions are removed from all frames, else they
 ' remain visible for testing purpose
@@ -1556,7 +1556,7 @@ Private Sub IndicateFrameCaptionsSetup(Optional ByVal b As Boolean = True)
             
     Dim ctl As MSForms.Control
        
-    If Not b Then
+    If Not B Then
         For Each ctl In Me.Controls
             If TypeName(ctl) = "Frame" Then
                 ctl.Caption = vbNullString
@@ -1602,14 +1602,14 @@ Private Sub laMsgSection6Label_Click():     OpenClickedLabelItem 6: End Sub
 Private Sub laMsgSection7Label_Click():     OpenClickedLabelItem 7: End Sub
 Private Sub laMsgSection8Label_Click():     OpenClickedLabelItem 8: End Sub
 
-Private Sub laMsgSection1Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 1:    End Sub
-Private Sub laMsgSection2Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 2:    End Sub
-Private Sub laMsgSection3Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 3:    End Sub
-Private Sub laMsgSection4Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 4:    End Sub
-Private Sub laMsgSection5Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 5:    End Sub
-Private Sub laMsgSection6Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 6:    End Sub
-Private Sub laMsgSection7Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 7:    End Sub
-Private Sub laMsgSection8Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single):        HandCursorForLink 8:    End Sub
+Private Sub laMsgSection1Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 1:    End Sub
+Private Sub laMsgSection2Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 2:    End Sub
+Private Sub laMsgSection3Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 3:    End Sub
+Private Sub laMsgSection4Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 4:    End Sub
+Private Sub laMsgSection5Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 5:    End Sub
+Private Sub laMsgSection6Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 6:    End Sub
+Private Sub laMsgSection7Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 7:    End Sub
+Private Sub laMsgSection8Label_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal Y As Single):        HandCursorForLink 8:    End Sub
 
 Private Function Max(ParamArray va() As Variant) As Variant
 ' ----------------------------------------------------------------------------

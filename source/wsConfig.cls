@@ -85,10 +85,6 @@ Private Property Let CompManWrkbkStatusUrl(ByVal s As String):      UrlLabel(Me.
 
 Public Property Let ConfigInfo(ByVal s As String):                  mWsh.Value(Me, "ConfigInfo") = s:                                       End Property
 
-'Private Property Get FolderAddin() As String:                       FolderAddin = mWsh.Value(Me, "FolderAddin"):                            End Property
-'
-'Public Property Let FolderAddin(ByVal s As String):                 mWsh.Value(Me, "FolderAddin") = s:                                      End Property
-
 Private Property Let FolderAddInInfo(ByVal s As String):            MaintainMinRowHeight Me.Range("FolderAddInInfo"), s:                    End Property
 
 Private Property Let FolderAddInUrl(ByVal s As String):             UrlLabel(Me.Range("FolderAddInUrl")) = s:                               End Property
@@ -750,7 +746,6 @@ Public Function Verified() As Boolean
 End Function
 
 Private Sub Worksheet_Activate()
-    Dim fso As New FileSystemObject
     Dim b As Boolean
     
     If mMe.IsAddinInstnc Then GoTo xt

@@ -793,7 +793,9 @@ Public Function BttnArgsAreValid(ByVal v_arg As Variant) As Boolean
         Select Case True
             Case IsArray(v_arg), TypeName(v_arg) = "Collection", TypeName(v_arg) = "Dictionary"
                  For Each v In v_arg
-                    If Not BttnArgsAreValid(v) Then Exit Function
+                    If Not BttnArgsAreValid(v) Then
+                        Exit Function
+                    End If
                  Next v
                 BttnArgsAreValid = True
             Case IsNumeric(v_arg)

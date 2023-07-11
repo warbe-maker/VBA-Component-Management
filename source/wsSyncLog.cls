@@ -11,7 +11,7 @@ Option Explicit
 
 Private Property Get CompsDone() As Boolean:         CompsDone = DoneYN(SummaryDone("VBComponent")):            End Property
 
-Private Property Let CompsDone(ByVal b As Boolean):  SummaryDone("VBComponent") = DoneYN(b):                    End Property
+Private Property Let CompsDone(ByVal B As Boolean):  SummaryDone("VBComponent") = DoneYN(B):                    End Property
 
 Private Property Get NamesAdded() As Long:           NamesAdded = Me.Range("celNamesAdded").Value:               End Property
 
@@ -19,21 +19,21 @@ Private Property Get NamesChanged() As Long:         NamesChanged = Me.Range("ce
 
 Private Property Get NamesDone() As Boolean:         NamesDone = DoneYN(SummaryDone("Name")):                    End Property
 
-Private Property Let NamesDone(ByVal b As Boolean):  SummaryDone("Name") = DoneYN(b):                            End Property
+Private Property Let NamesDone(ByVal B As Boolean):  SummaryDone("Name") = DoneYN(B):                            End Property
 
 Private Property Get NamesRemoved() As Long:         NamesRemoved = Me.Range("celNamesRemoved").Value:           End Property
 
 Public Property Get RefsDone() As Boolean:          RefsDone = DoneYN(SummaryDone("Reference")):                End Property
 
-Public Property Let RefsDone(ByVal b As Boolean):   SummaryDone("Reference") = DoneYN(b):                       End Property
+Public Property Let RefsDone(ByVal B As Boolean):   SummaryDone("Reference") = DoneYN(B):                       End Property
 
 Private Property Get ShapesDone() As Boolean:        ShapesDone = DoneYN(SummaryDone("Shape")):                  End Property
 
-Private Property Let ShapesDone(ByVal b As Boolean): SummaryDone("Shape") = DoneYN(b):                           End Property
+Private Property Let ShapesDone(ByVal B As Boolean): SummaryDone("Shape") = DoneYN(B):                           End Property
 
 Private Property Get SheetsDone() As Boolean:        SheetsDone = DoneYN(SummaryDone("Worksheet")):              End Property
 
-Private Property Let SheetsDone(ByVal b As Boolean): SummaryDone("Worksheet") = DoneYN(b):                       End Property
+Private Property Let SheetsDone(ByVal B As Boolean): SummaryDone("Worksheet") = DoneYN(B):                       End Property
 
 Public Property Get SummaryDone(Optional ByVal ds_type As String) As Variant
     Dim Rng As Range
@@ -92,7 +92,7 @@ Public Sub Done(Optional ByVal d_prefix As String = " ", _
         .Offset(0, 2).Value = d_action
         .Offset(0, 3).Value = d_details
     End With
-    Log.Entry d_prefix, d_type, d_item, d_action, d_details
+    LogServiced.Entry d_prefix, d_type, d_item, d_action, d_details
     mBasic.EoP ErrSrc(PROC)
     
 End Sub

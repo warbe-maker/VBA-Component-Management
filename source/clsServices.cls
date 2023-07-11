@@ -23,7 +23,8 @@ Option Explicit
 ' - FilesDifference         ...
 ' - Initiate                ...
 ' - IsRenamedByCompMan      ...
-' - LogEntry                ...
+' - LogServicedEntry        ...
+' - LogServicingEntry       ...
 ' - MessageUnload           ...
 ' - Progress                ...
 ' - ProgressOld             ...
@@ -33,7 +34,7 @@ Option Explicit
 ' - NonBreakingSpace        Global non-breaking space character
 ' - NoOfItemsTotal      r/w The total number of items relevant for the service
 ' - noOfObjectsOutdated
-' - NoOfItemsCommonUsed
+' - NoOfCommonComponents
 ' - NoOfItemsServiced   r/w The number of items Exported, Updated, Synchronized
 ' - NoOfItemsIgnored    r/w The number of items ignored/passed because irrelevant for the service
 ' - Serviced            r/w
@@ -42,65 +43,63 @@ Option Explicit
 Public DialogLeft               As Long
 Public DialogTop                As Long
 
-Private lNoOfItemsCommonUsed    As Long
-Private lNoOfItemsDone          As Long
+Private lNoOfCommonComponents    As Long
 Private lNoOfItemsOutdated      As Long
 Private lNoOfItemsIgnored       As Long
 Private lNoOfItemsServiced      As Long
 Private lNoOfItemsTotal         As Long
 Private sNoOfItemsServicedNames As String
-Private sServicedItem           As String
 Private sServicedItemLoged      As String
 Private sServicedItemName       As String
 Private sServicedItemType       As String
 Private wbkServiced             As Workbook
 Private sCurrentService         As String
-Private lMaxLenItemType         As Long
 Private sExecTraceFile          As String
 Private sLogFileService         As String
 Private sLogFileServiceSummary  As String
 
 Private Sub Class_Initialize()
     sNoOfItemsServicedNames = vbNullString
-    Set Log = New clsLog
-    Set SummaryLog = New clsLog
+    Set LogServiced = New clsLog
+    Set LogServicing = New clsLog
 End Sub
 
 Private Sub Class_Terminate()
-    Set Log = Nothing
-    Set SummaryLog = Nothing
+    Set LogServiced = Nothing
+    Set LogServicing = Nothing
     Set Comps = Nothing
+    Set CompManDat = Nothing
 End Sub
 
-Public Property Let LogFileService(ByVal s As String):      sLogFileService = s:                        End Property
+Public Property Let LogFileService(ByVal s As String):      sLogFileService = s:                                End Property
 
-Friend Property Get CurrentService() As String:             CurrentService = sCurrentService:           End Property
+Friend Property Get CurrentService() As String:             CurrentService = sCurrentService:                   End Property
 
-Friend Property Let CurrentService(ByVal s As String):      sCurrentService = s:                        End Property
+Friend Property Let CurrentService(ByVal s As String):      sCurrentService = s:                                End Property
 
-Public Property Get ExecTraceFile() As String:              ExecTraceFile = sExecTraceFile:             End Property
+Public Property Get ExecTraceFile() As String:              ExecTraceFile = sExecTraceFile:                     End Property
 
-Private Property Let ExecTraceFile(ByVal s As String):      sExecTraceFile = s:                         End Property
+Private Property Let ExecTraceFile(ByVal s As String):      sExecTraceFile = s:                                 End Property
 
-Friend Property Get NonBreakingSpace() As String:           NonBreakingSpace = Chr$(160):               End Property
+Friend Property Get NonBreakingSpace() As String:           NonBreakingSpace = Chr$(160):                       End Property
 
-Friend Property Get NoOfItemsCommonUsed() As Long:          NoOfItemsCommonUsed = lNoOfItemsCommonUsed: End Property
+Friend Property Get NoOfCommonComponents() As Long:         NoOfCommonComponents = lNoOfCommonComponents:       End Property
 
-Friend Property Let NoOfItemsCommonUsed(ByVal l As Long):   lNoOfItemsCommonUsed = l:                   End Property
+Friend Property Let NoOfCommonComponents(ByVal l As Long):  lNoOfCommonComponents = l:                          End Property
 
-Friend Property Get NoOfItemsIgnored() As Long:             NoOfItemsIgnored = lNoOfItemsIgnored:       End Property
+Friend Property Get NoOfItemsIgnored() As Long:             NoOfItemsIgnored = lNoOfItemsIgnored:               End Property
 
-Friend Property Let NoOfItemsIgnored(ByVal l As Long):      lNoOfItemsIgnored = l:                      End Property
+Friend Property Let NoOfItemsIgnored(ByVal l As Long):      lNoOfItemsIgnored = l:                              End Property
 
-Friend Property Get NoOfItemsOutdated() As Long:            NoOfItemsOutdated = lNoOfItemsOutdated:     End Property
+Friend Property Get NoOfItemsOutdated() As Long:            NoOfItemsOutdated = lNoOfItemsOutdated:             End Property
 
-Friend Property Let NoOfItemsOutdated(ByVal l As Long):     lNoOfItemsOutdated = l:                     End Property
+Friend Property Let NoOfItemsOutdated(ByVal l As Long):     lNoOfItemsOutdated = l:                             End Property
 
-Friend Property Get NoOfItemsServiced() As Long:            NoOfItemsServiced = lNoOfItemsServiced:     End Property
+Friend Property Get NoOfItemsServiced() As Long:            NoOfItemsServiced = lNoOfItemsServiced:             End Property
 
-Friend Property Let NoOfItemsServiced(ByVal l As Long):     lNoOfItemsServiced = l:                     End Property
+Friend Property Let NoOfItemsServiced(ByVal l As Long):     lNoOfItemsServiced = l:                             End Property
 
-Public Property Get NoOfItemsServicedNames() As String:     NoOfItemsServicedNames = sNoOfItemsServicedNames: End Property
+Public Property Get NoOfItemsServicedNames() As String:     NoOfItemsServicedNames = sNoOfItemsServicedNames:   End Property
 
 Public Property Let NoOfItemsServicedNames(ByVal s As String)
     If sNoOfItemsServicedNames = vbNullString Then
@@ -113,9 +112,9 @@ Public Property Let NoOfItemsServicedNames(ByVal s As String)
     End If
 End Property
 
-Friend Property Get NoOfItemsTotal() As Long:               NoOfItemsTotal = lNoOfItemsTotal:           End Property
+Friend Property Get NoOfItemsTotal() As Long:               NoOfItemsTotal = lNoOfItemsTotal:                   End Property
 
-Friend Property Let NoOfItemsTotal(ByVal l As Long):        lNoOfItemsTotal = l:                        End Property
+Friend Property Let NoOfItemsTotal(ByVal l As Long):        lNoOfItemsTotal = l:                                End Property
 
 Friend Property Get Serviced() As Workbook
     Const PROC = "Serviced-Get"
@@ -270,7 +269,7 @@ Public Function Denied(ByVal d_service As String) As Boolean
     End Select
     
     If sStatus <> vbNullString Then
-        SummaryLog.Entry sStatus
+        LogServicing.Entry sStatus
         Me.DsplyStatus sStatus
         Denied = True
     End If
@@ -448,7 +447,6 @@ Public Sub ExportChangedComponents(ByVal e_hosted As String)
     If Me.Serviced Is Nothing _
     Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
                                             "(it may have been called directly via the 'Immediate Window'"
-    mHskpng.CommComps e_hosted
     mExport.ChangedComponents e_hosted
     
 xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
@@ -626,10 +624,14 @@ Public Sub Initiate(ByVal i_service As String, _
     mBasic.BoP ErrSrc(PROC)
     wsService.ClearDataAllServices
     Serviced = i_serviced_wbk
+        
+    Set CompManDat = New clsCompManDat
+    Set CommComps = New clsCommComps
+    Set Comps = Nothing
     Set Comps = New clsComps ' initialization collect the VB-Component relevant for the current service
     
-    If Log Is Nothing Then Set Log = New clsLog
-    With Log
+    If LogServiced Is Nothing Then Set LogServiced = New clsLog
+    With LogServiced
         .KeepDays = 2 ' a new log-file is created after 48 hours
         .WithTimeStamp
         .FileFullName = i_serviced_wbk.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".Services.log"
@@ -639,8 +641,8 @@ Public Sub Initiate(ByVal i_service As String, _
         wsService.CurrentServiceLogFileFullName = .FileFullName
     End With
     
-    If SummaryLog Is Nothing Then Set SummaryLog = New clsLog
-    With SummaryLog
+    If LogServicing Is Nothing Then Set LogServicing = New clsLog
+    With LogServicing
         .WithTimeStamp
         .KeepDays = 10
         .FileFullName = ThisWorkbook.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".ServicesSummary.log"
@@ -660,7 +662,7 @@ Public Sub Initiate(ByVal i_service As String, _
                                                     wsService.ClearDataUpdateService
     End Select
     
-    Log.Title CurrentServiceStatusBar
+    LogServiced.Title CurrentServiceStatusBar
     DsplyStatus vbNullString
 
 xt: mBasic.EoP ErrSrc(PROC)
@@ -680,22 +682,40 @@ Public Function IsRenamedByCompMan(ByVal comp_name As String) As Boolean
     IsRenamedByCompMan = InStr(comp_name, RENAMED_BY_COMPMAN) <> 0
 End Function
 
-Public Sub LogEntry(ByVal l_s As String)
+Public Sub LogServicedEntry(ByVal l_s As String)
 ' ----------------------------------------------------------------------------
 ' Writes an entry to the Services.log file by means of clsLog services.
 ' Supresses repetition of already loged items.
 ' ----------------------------------------------------------------------------
-    If sServicedItemName = sServicedItemLoged Then
-        Log.Entry " ", " ", l_s
-    Else
-        Log.Entry sServicedItemType, sServicedItemName, l_s
-        sServicedItemLoged = sServicedItemName
-    End If
-    
+    With LogServicing
+        If sServicedItemName = sServicedItemLoged Then
+            .Entry " ", " ", l_s
+        Else
+            .Entry sServicedItemType, sServicedItemName, l_s
+            sServicedItemLoged = sServicedItemName
+        End If
+    End With
 End Sub
 
+Public Sub LogServicingEntry(ByVal l_s As String)
+' ----------------------------------------------------------------------------
+' Writes an entry to the Services.log file by means of clsLog services.
+' Supresses repetition of already loged items.
+' ----------------------------------------------------------------------------
+    With LogServicing
+        If sServicedItemName = sServicedItemLoged Then
+            .Entry " ", " ", l_s
+        Else
+            .Entry sServicedItemType, sServicedItemName, l_s
+            sServicedItemLoged = sServicedItemName
+        End If
+    End With
+End Sub
+
+
+
 Public Sub LogEntrySummary(ByVal s As String)
-    CompMan.SummaryLog.Entry s, "  (see " & sLogFileService & " for log details)"
+    CompMan.LogServicing.Entry s, "  (see " & sLogFileService & " for log details)"
 End Sub
 
 Public Sub MessageUnload(ByVal sm_title As String)

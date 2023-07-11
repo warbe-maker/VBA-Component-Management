@@ -44,18 +44,18 @@ Private Sub AutoOpenShortCutRemove()
     
 End Sub
 
-Private Sub Clear(ByVal c_addin_folder_full_name As String)
-' ----------------------------------------------------------------------------
-' Clears all items concerning the Add-in despite the Add-in folder.
-' ----------------------------------------------------------------------------
-
-    ReferencesRemove
-    Set_IsAddin_ToFalse
-    WbkClose
-    WbkRemove c_addin_folder_full_name & "\" & mAddin.WbkName
-    AutoOpenShortCutRemove
-    
-End Sub
+'Private Sub Clear(ByVal c_addin_folder_full_name As String)
+'' ----------------------------------------------------------------------------
+'' Clears all items concerning the Add-in despite the Add-in folder.
+'' ----------------------------------------------------------------------------
+'
+'    ReferencesRemove
+'    Set_IsAddin_ToFalse
+'    WbkClose
+'    WbkRemove c_addin_folder_full_name & "\" & mAddin.WbkName
+'    AutoOpenShortCutRemove
+'
+'End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mAddin" & "." & sProc

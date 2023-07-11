@@ -15,8 +15,7 @@ Private Property Let Value(Optional ByVal pp_value_name As String, _
                            Optional ByVal pp_file As String, _
                                     ByVal pp_value As Variant)
 ' ----------------------------------------------------------------------------
-' Writes the value (pp_value) under the name (pp_value_name) into the
-' CompManDatFileFullName.
+' Writes a value (pp_value) named (pp_value_name) into file (pp_file).
 ' ----------------------------------------------------------------------------
     Const PROC = "Value"
     
@@ -34,13 +33,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get WinMergeIniAddinFullName() As String
-    WinMergeIniAddinFullName = ThisWorkbook.Path & "\Addin\WinMerge.ini"
-End Property
+Public Property Get WinMergeIniAddinFullName() As String:   WinMergeIniAddinFullName = ThisWorkbook.Path & "\Addin\WinMerge.ini":   End Property
 
-Public Property Get WinMergeIniFullName() As String
-    WinMergeIniFullName = ThisWorkbook.Path & "\WinMerge.ini"
-End Property
+Public Property Get WinMergeIniFullName() As String:        WinMergeIniFullName = ThisWorkbook.Path & "\WinMerge.ini":              End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mWinMergeIni." & sProc
@@ -52,7 +47,7 @@ Public Sub Setup(ByVal s_ini_file As String)
 ' first time it will write all the remaining properties.
 '
 ' ----------------------------------------------------------------------------
-    Value(VALUE_NAME_IGNORE_BLANKS, WinMergeIniFullName) = 1
-    Value(VALUE_NAME_IGNORE_CASE, WinMergeIniFullName) = 1
+    Value(VALUE_NAME_IGNORE_BLANKS, s_ini_file) = 1
+    Value(VALUE_NAME_IGNORE_CASE, s_ini_file) = 1
 End Sub
 

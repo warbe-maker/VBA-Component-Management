@@ -59,7 +59,7 @@ Private Sub Test_ExportChanged()
     mBasic.BoP ErrSrc(PROC)
    
     Services.Initiate ErrSrc(PROC), ThisWorkbook
-    Log.Title "Export Changed Components Test"
+    LogServiced.Title "Export Changed Components Test"
     mCompMan.ExportChangedComponents ThisWorkbook, "mCompManClient"
 
 xt: mBasic.EoP ErrSrc(PROC)
@@ -71,19 +71,19 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_Log()
-    Const PROC = "Test_Log"
+Private Sub Test_LogServiced()
+    Const PROC = "Test_LogServiced"
     
     On Error GoTo eh
     Dim fso As New FileSystemObject
     
     
     Services.Initiate PROC, ThisWorkbook
-    With Log
+    With LogServiced
         .Title ErrSrc(PROC)
         Services.ServicedItem = " <component-name> "
-        Services.LogEntry "Tested"
-        mMsg.Box Title:="Test-Log:" _
+        Services.LogServicedEntry "Tested"
+        mMsg.Box Title:="Test-LogServiced:" _
                , Prompt:=mFso.FileTxt(.LogFile.Path) _
                , box_monospaced:=True
         If fso.FileExists(.LogFile.Path) Then fso.DeleteFile .LogFile.Path
@@ -118,7 +118,7 @@ Private Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
     If mMe.IsDevInstnc Then GoTo xt
     
     Services.Initiate ErrSrc(PROC), ThisWorkbook
-    Log.Title "Test RenewByImport"
+    LogServiced.Title "Test RenewByImport"
     
     With Comp
         .CompName = rnc_vbc_name
@@ -127,7 +127,7 @@ Private Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
         If .Wrkbk Is ActiveWorkbook Then
             Set wbActive = ActiveWorkbook
             Set wbTemp = Workbooks.Add ' Activates a temporary Workbook
-            Log.Entry "Active Workbook de-activated by creating a temporary Workbook"
+            LogServiced.Entry "Active Workbook de-activated by creating a temporary Workbook"
         End If
             
         mUpdate.ByReImport b_wbk_target:=.Wrkbk _
@@ -137,14 +137,14 @@ Private Sub Test_RenewByImport(ByVal rnc_exp_file_full_name, _
     
 xt: If Not wbTemp Is Nothing Then
         wbTemp.Close SaveChanges:=False
-        Log.Entry "Temporary created Workbook closed without save"
+        LogServiced.Entry "Temporary created Workbook closed without save"
         Set wbTemp = Nothing
         If Not ActiveWorkbook Is wbActive Then
             wbActive.Activate
-            Log.Entry "De-activated Workbook '" & wbActive.Name & "' re-activated"
+            LogServiced.Entry "De-activated Workbook '" & wbActive.Name & "' re-activated"
             Set wbActive = Nothing
         Else
-            Log.Entry "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
+            LogServiced.Entry "Workbook '" & wbActive.Name & "' re-activated by closing the temporary created Workbook"
         End If
     End If
     Set Comp = Nothing

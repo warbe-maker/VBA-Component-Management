@@ -16,14 +16,22 @@ Option Explicit
 '
 ' W. Rauschenberger Berlin Feb. 2023
 ' ---------------------------------------------------------------------------
-Private Const SECTION_NAME_RECENT_EXPORT        As String = "_MostRecentExport" ' _ avoids conflict with an existing VBComponent
-Private Const VALUE_NAME_DUE_MODIF_WARNING      As String = "DueModificationWarning"
-Private Const VALUE_NAME_RAW_EXP_FILE_FULL_NAME As String = "RawExpFileFullName"
-Private Const VALUE_NAME_RAW_REVISION_NUMBER    As String = "RawRevisionNumber"
-Private Const VALUE_NAME_REG_STAT_OF_COMPONENT  As String = "KindOfComponent"
-Private Const VALUE_NAME_USED_EXPORT_FOLDER     As String = "UsedExportFolder"
 
-Private Property Get CompManDatFileFullName() As String
+' Housekeeping syntax (allows the on-the-fly-change of value names as well as their removal):
+' -------------------------------------------------------------------------------------------
+' "<current-name>:<old-name>" = rename in all sections
+' "<current>"                 = no action
+' ":<remove-name>"            = remove in all sections
+Private Const SECTION_NAME_RECENT_EXPORT            As String = "_MostRecentExport" ' _ avoids conflict with an existing VBComponent
+Private Const VALUE_NAME_LAST_MOD_REVISION_NUMBER   As String = "RevisionNumber:RawRevisionNumber"
+Private Const VALUE_NAME_REG_STAT_OF_COMPONENT      As String = "KindOfComponent"
+Private Const VALUE_NAME_USED_EXPORT_FOLDER         As String = "UsedExportFolder"
+
+Public Property Get CompManDatFileFullName() As String
+' ----------------------------------------------------------------------------
+' Returns the current serviced Workbook's full name of the CompMan.dat file
+' Precondition: Services.Serviced is set.
+' ----------------------------------------------------------------------------
     Const PROC  As String = "CompManDatFileFullName-Get"
     Dim wbk     As Workbook
     Dim fso     As New FileSystemObject
@@ -39,46 +47,42 @@ Private Property Get CompManDatFileFullName() As String
 xt: mBasic.EoP ErrSrc(PROC)
 End Property
 
-Public Property Let RegistrationState(Optional ByVal comp_name As String, _
-                                               ByVal comp_reg_state As enCommCompRegState)
-    CompRegState(comp_name) = comp_reg_state
-    mHskpng.ReorgDatFile CompManDatFileFullName
+Private Property Get CompRegState(Optional ByVal comp_name As String) As enCommCompRegState
+    CompRegState = mCommComps.CommCompRegStateEnum(Value(pp_section:=comp_name, pp_value_name:=CurrentName("VALUE_NAME_REG_STAT_OF_COMPONENT")))
+End Property
 
+Private Property Let CompRegState(Optional ByVal comp_name As String, _
+                                           ByVal comp_reg_state As enCommCompRegState)
+    Value(pp_section:=comp_name, pp_value_name:=CurrentName("VALUE_NAME_REG_STAT_OF_COMPONENT")) = mCommComps.CommCompRegStateString(comp_reg_state)
+End Property
+
+Public Property Get RecentlyUsedExportFolder() As String
+    RecentlyUsedExportFolder = Value(pp_section:=SECTION_NAME_RECENT_EXPORT, pp_value_name:=CurrentName("VALUE_NAME_USED_EXPORT_FOLDER"))
+End Property
+
+Public Property Let RecentlyUsedExportFolder(ByVal s As String)
+    Value(pp_section:=SECTION_NAME_RECENT_EXPORT, pp_value_name:=CurrentName("VALUE_NAME_USED_EXPORT_FOLDER")) = s
 End Property
 
 Public Property Get RegistrationState(Optional ByVal comp_name As String) As enCommCompRegState
     RegistrationState = CompRegState(comp_name)
 End Property
 
-Public Function CommCompUsedIsKnown(ByVal comp_name As String) As Boolean
-    CommCompUsedIsKnown = ComponentsRegistered(enRegStateUsed).Exists(comp_name)
-End Function
-
-Public Property Get RecentlyUsedExportFolder() As String
-    RecentlyUsedExportFolder = Value(pp_section:=SECTION_NAME_RECENT_EXPORT, pp_value_name:=VALUE_NAME_USED_EXPORT_FOLDER)
+Public Property Let RegistrationState(Optional ByVal comp_name As String, _
+                                               ByVal comp_reg_state As enCommCompRegState)
+    CompRegState(comp_name) = comp_reg_state
 End Property
 
-Public Property Let RecentlyUsedExportFolder(ByVal s As String)
-    Value(pp_section:=SECTION_NAME_RECENT_EXPORT, pp_value_name:=VALUE_NAME_USED_EXPORT_FOLDER) = s
+Public Property Get RevisionNumber(Optional ByVal r_comp_name As String) As String
+' ----------------------------------------------------------------------------
+' Returns the revision number in the format YYYY-MM-DD.n
+' ----------------------------------------------------------------------------
+    RevisionNumber = Value(pp_section:=r_comp_name, pp_value_name:=CurrentName("VALUE_NAME_LAST_MOD_REVISION_NUMBER"))
 End Property
 
-Public Property Get RawExpFileFullName(Optional ByVal comp_name As String) As String
-    RawExpFileFullName = Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_RAW_EXP_FILE_FULL_NAME)
-End Property
-
-Public Property Let RawExpFileFullName(Optional ByVal comp_name As String, _
-                                                ByVal exp_file_full_name As String)
-    Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_RAW_EXP_FILE_FULL_NAME) = exp_file_full_name
-    Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_REG_STAT_OF_COMPONENT) = "hosted"
-End Property
-
-Public Property Get RawRevisionNumber(Optional ByVal comp_name As String) As String
-    RawRevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_RAW_REVISION_NUMBER)
-End Property
-
-Public Property Let RawRevisionNumber(Optional ByVal comp_name As String, _
-                                               ByVal comp_rev_no As String)
-    Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_RAW_REVISION_NUMBER) = comp_rev_no
+Public Property Let RevisionNumber(Optional ByVal r_comp_name As String, _
+                                            ByVal r_rev_no As String)
+    Value(pp_section:=r_comp_name, pp_value_name:=CurrentName("VALUE_NAME_LAST_MOD_REVISION_NUMBER")) = r_rev_no
 End Property
 
 Private Property Get Value(Optional ByVal pp_section As String, _
@@ -112,6 +116,7 @@ Private Property Let Value(Optional ByVal pp_section As String, _
     Const PROC = "Value_Let"
     
     On Error GoTo eh
+    Debug.Print "Write " & pp_value_name & "="; pp_value & " into:" & CompManDatFileFullName
     mFso.PPvalue(pp_file:=CompManDatFileFullName _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
@@ -125,6 +130,14 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
+Public Function CommCompUsedIsKnown(ByVal comp_name As String) As Boolean
+    CommCompUsedIsKnown = ComponentsRegistered(enRegStateUsed).Exists(comp_name)
+End Function
+
+Private Function Components() As Dictionary
+    Set Components = mFso.PPsectionNames(CompManDatFileFullName)
+End Function
+
 Private Function ComponentsRegistered(ByVal c_reg_state As enCommCompRegState) As Dictionary
     Dim dct         As New Dictionary
     Dim vSection    As Variant
@@ -132,7 +145,7 @@ Private Function ComponentsRegistered(ByVal c_reg_state As enCommCompRegState) A
     For Each vSection In mFso.PPsectionNames(CompManDatFileFullName)
         If mFso.PPvalue(pp_file:=CompManDatFileFullName _
                                 , pp_section:=vSection _
-                                , pp_value_name:=VALUE_NAME_REG_STAT_OF_COMPONENT) = CommCompRegStateString(c_reg_state) _
+                                , pp_value_name:=CurrentName("VALUE_NAME_REG_STAT_OF_COMPONENT")) = CommCompRegStateString(c_reg_state) _
         Then
             dct.Add vSection, vbNullString
         End If
@@ -142,79 +155,22 @@ Private Function ComponentsRegistered(ByVal c_reg_state As enCommCompRegState) A
     
 End Function
 
-Private Property Get CompRegState(Optional ByVal comp_name As String) As enCommCompRegState
-    CompRegState = mCommComps.CommCompRegStateEnum(Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_REG_STAT_OF_COMPONENT))
-End Property
-
-Private Property Let CompRegState(Optional ByVal comp_name As String, _
-                                           ByVal comp_reg_state As enCommCompRegState)
-    Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_REG_STAT_OF_COMPONENT) = mCommComps.CommCompRegStateString(comp_reg_state)
-End Property
-
-Private Function Components() As Dictionary
-    Set Components = mFso.PPsectionNames(CompManDatFileFullName)
+Private Function CurrentName(ByVal sNameConst As String) As String
+    Dim v   As Variant
+    Dim dct As Dictionary
+    
+    Set dct = HskpngValueNamesCurrent
+    For Each v In dct
+        If v = sNameConst Then
+            CurrentName = Split(dct(v), ":")(0)
+        End If
+    Next v
+    
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCompManDat" & "." & sProc
 End Function
-
-'Public Function CompIsRegistered(ByVal raw_comp_name As String, ByVal comp_reg_state As enCommCompRegState) As Boolean
-'    CompIsRegistered = CompRegState(raw_comp_name) = comp_reg_state
-'End Function
-
-Private Function MaxRawLenght() As Long
-' -----------------------------------------------
-' Returns the max length of a raw componen's name
-' -----------------------------------------------
-    Const PROC = "MaxRawLenght"
-    
-    On Error GoTo eh
-    Dim v As Variant
-    
-    For Each v In Components
-        MaxRawLenght = Max(MaxRawLenght, Len(v))
-    Next v
-    
-xt: Exit Function
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Public Function RevisionNumberInitial() As String
-' ----------------------------------------------------------------------------
-' Returns an initial revision number in the form: YYYY-MM-DD.001
-' ----------------------------------------------------------------------------
-    RevisionNumberInitial = Format(Now(), "YYYY-MM-DD") & ".001"
-End Function
-
-Public Property Get RevisionNumber(Optional ByVal comp_name As String) As String
-' ----------------------------------------------------------------------------
-' Returns the revision number in the format YYYY-MM-DD.n
-' ----------------------------------------------------------------------------
-    RevisionNumber = Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_RAW_REVISION_NUMBER)
-End Property
-
-Public Property Let RevisionNumber(Optional ByVal comp_name As String, _
-                                            ByVal comp_rev_no As String)
-    Dim RevDate As String:  RevDate = Split(comp_rev_no, ".")(0)
-    Dim RevNo   As Long:    RevNo = Split(comp_rev_no, ".")(1)
-    Value(pp_section:=comp_name, pp_value_name:=VALUE_NAME_RAW_REVISION_NUMBER) = RevDate & "." & Format(RevNo, "000")
-End Property
-
-Private Function NameExists(ByVal pp_section As String, _
-                            ByVal pp_value_name As String) As Boolean
-    NameExists = mFso.Exists(x_file:=CompManDatFileFullName _
-                           , x_section:=pp_section _
-                           , x_value_name:=pp_value_name)
-End Function
-
-Public Sub RemoveComponent(ByVal r_comp_name As String)
-    mFso.PPremoveSections pp_file:=CompManDatFileFullName, pp_sections:=r_comp_name
-End Sub
 
 Public Sub Hskpng(ByVal h_hosted As String)
 ' ------------------------------------------------------------------------------
@@ -227,7 +183,6 @@ Public Sub Hskpng(ByVal h_hosted As String)
     mBasic.BoP ErrSrc(PROC)
     HskpngRemoveObsoleteSections h_hosted
     HskpngHosted h_hosted
-    HskpngRemoveDueModificationWarning
     mHskpng.ReorgDatFile CompManDatFileFullName
 
 xt: mBasic.EoP ErrSrc(PROC)
@@ -239,24 +194,15 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub HskpngRemoveDueModificationWarning()
-    Dim dct As Dictionary
-    Dim v   As Variant
-    
-    Set dct = mFso.PPsections(CompManDatFileFullName)
-    For Each v In dct
-        mFso.PPremoveNames pp_file:=CompManDatFileFullName _
-                         , pp_section:=v _
-                         , pp_value_names:=VALUE_NAME_DUE_MODIF_WARNING
-    Next v
-    
-End Sub
-
 Private Sub HskpngHosted(ByVal h_hosted As String)
-    Const PROC      As String = ""
+    Const PROC      As String = "HskpngHosted"
+    
+    On Error GoTo eh
+    Dim fso         As New FileSystemObject
     Dim dctHosted   As Dictionary
     Dim wbk         As Workbook
     Dim v           As Variant
+    Dim Comp        As clsComp
     
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
@@ -266,12 +212,36 @@ Private Sub HskpngHosted(ByVal h_hosted As String)
         If mComp.Exists(v, wbk) Then
             If mCompManDat.RegistrationState(v) <> enRegStateHosted _
             Then mCompManDat.RegistrationState(v) = enRegStateHosted
+            If mCommComps.LastModExpFileFullNameOrigin = vbNullString Then
+                Set Comp = New clsComp
+                With Comp
+                    .Wrkbk = Services.Serviced
+                    .CompName = v
+                    If Services.FilesDiffer(.ExpFile, fso.GetFile(mCommComps.LastModExpFileFullName(.CompName))) Then
+                        Err.Raise AppErr(1), ErrSrc(PROC), _
+                                  "The origin of the Export-File saved in the Common-Components folder of the " & _
+                                  "Common Component " & .CompName & " is unknown! Because it is not identical " & _
+                                  "with the Export-File of the Workbook which claims hosting it, the origin " & _
+                                  "is still to be clarified!"
+                    Else
+                        mCommComps.LastModExpFileFullNameOrigin(.CompName) = .ExpFileFullName
+                    End If
+                    
+                End With
+            End If
         Else
             mCompManDat.RemoveComponent v
         End If
     Next v
     
-xt: mBasic.EoP ErrSrc(PROC)
+xt: Set fso = Nothing
+    mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub
 
 Private Sub HskpngRemoveObsoleteSections(ByVal h_hosted As String)
@@ -316,5 +286,164 @@ Private Function HskpngSectionIsInvalid(ByVal h_section As String, _
         Case Else
             HskpngSectionIsInvalid = True
     End Select
+End Function
+
+Public Function HskpngValueNames() As Boolean
+' ----------------------------------------------------------------------------
+' Renames all value names with a syntax <new>:<old> in all sections,
+' Removes all value names with a syntax :<old>
+' When at least one housekeeping action had been performed the function
+' returns TRUE.
+' ----------------------------------------------------------------------------
+    Const PROC = "Hskpng"
+    
+    On Error GoTo eh
+    Dim dctNames    As Dictionary
+    Dim dctSects    As Dictionary
+    Dim i           As Long
+    Dim sNew        As String
+    Dim sOld        As String
+    Dim v           As Variant
+    Dim vName       As Variant
+    
+    mBasic.BoP ErrSrc(PROC)
+    Set dctNames = HskpngValueNamesCurrent
+    
+    For i = 0 To dctNames.Count - 1
+        vName = Split(dctNames.Items(i), ":")
+        If UBound(vName) = 1 Then
+            '~~> <new>:<old> or :<remove>
+            If vName(0) = vbNullString Then
+                '~~ Remove the name in all sections
+                Set dctSects = ValueSections
+                For Each v In dctSects
+                    If ValueNameRemoveInAllSections(vName(1), v) Then
+                        HskpngValueNames = True
+                    End If
+                Next v
+            Else
+                '~~> Rename the old name with the new name in all sections
+                sNew = vName(0)
+                sOld = vName(1)
+                If sOld <> vbNullString And sNew <> vbNullString Then
+                    If ValueNameRenameInAllSections(sOld, sNew) = True Then
+                        HskpngValueNames = True
+                    End If
+                End If
+            End If
+        End If
+    Next i
+
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function HskpngValueNamesCurrent() As Dictionary
+
+    Static dct As Dictionary
+    If dct Is Nothing Then
+        Set dct = New Dictionary
+        dct.Add "SECTION_NAME_RECENT_EXPORT", _
+                 SECTION_NAME_RECENT_EXPORT
+        dct.Add "VALUE_NAME_LAST_MOD_REVISION_NUMBER ", _
+                 VALUE_NAME_LAST_MOD_REVISION_NUMBER
+        dct.Add "VALUE_NAME_REG_STAT_OF_COMPONENT", _
+                 VALUE_NAME_REG_STAT_OF_COMPONENT
+        dct.Add "VALUE_NAME_USED_EXPORT_FOLDER", _
+                 VALUE_NAME_USED_EXPORT_FOLDER
+    End If
+    Set HskpngValueNamesCurrent = dct
+    
+End Function
+
+Private Function MaxRawLenght() As Long
+' -----------------------------------------------
+' Returns the max length of a raw componen's name
+' -----------------------------------------------
+    Const PROC = "MaxRawLenght"
+    
+    On Error GoTo eh
+    Dim v As Variant
+    
+    For Each v In Components
+        MaxRawLenght = Max(MaxRawLenght, Len(v))
+    Next v
+    
+xt: Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function NameExists(ByVal pp_section As String, _
+                            ByVal pp_value_name As String) As Boolean
+    NameExists = mFso.Exists(x_file:=CompManDatFileFullName _
+                           , x_section:=pp_section _
+                           , x_value_name:=pp_value_name)
+End Function
+
+Public Sub RemoveComponent(ByVal r_comp_name As String)
+    mFso.PPremoveSections pp_file:=CompManDatFileFullName, pp_sections:=r_comp_name
+End Sub
+
+Public Function RevisionNumberInitial() As String
+' ----------------------------------------------------------------------------
+' Returns an initial revision number in the form: YYYY-MM-DD.001
+' ----------------------------------------------------------------------------
+    RevisionNumberInitial = Format(Now(), "YYYY-MM-DD") & ".001"
+End Function
+
+Private Function ValueNameRemoveInAllSections(ByVal pp_name As String, _
+                                     Optional ByVal pp_section As String = vbNullString) As Boolean
+' ----------------------------------------------------------------------------
+'
+' ----------------------------------------------------------------------------
+    Dim dct As Dictionary
+    Dim v   As Variant
+    
+    Set dct = ValueSections
+    
+    For Each v In dct
+        If mFso.PPremoveNames(pp_file:=CompManDatFileFullName _
+                            , pp_section:=v _
+                            , pp_value_names:=pp_name) Then
+            ValueNameRemoveInAllSections = True
+        End If
+    Next v
+    
+End Function
+
+Private Function ValueNameRenameInAllSections(ByVal v_old As String, _
+                                              ByVal v_new As String) As Boolean
+' ------------------------------------------------------------------------------
+'
+' ------------------------------------------------------------------------------
+    Dim dct     As Dictionary
+    Dim v       As Variant
+    Dim bReorg  As Boolean
+    Dim i       As Long
+    
+    Set dct = ValueSections
+    For Each v In dct
+        i = i + 1
+        bReorg = i = dct.Count
+        If mFso.PPvalueNameRename(v_old, v_new, CompManDatFileFullName, v, bReorg) Then
+            ValueNameRenameInAllSections = True
+        End If
+    Next v
+    
+End Function
+
+Private Function ValueSections() As Dictionary
+    Static dct As Dictionary
+    If dct Is Nothing Then Set dct = mFso.PPsections(CompManDatFileFullName)
+    Set ValueSections = dct
 End Function
 

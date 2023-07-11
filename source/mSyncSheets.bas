@@ -71,8 +71,8 @@ Public Property Get KnownChanged(Optional ByVal nk_id As String) As Boolean
 End Property
 
 Public Property Let KnownChanged(Optional ByVal nk_id As String, _
-                                               ByVal b As Boolean)
-    If b Then mSync.CollectKnown dctKnownChanged, nk_id
+                                               ByVal B As Boolean)
+    If B Then mSync.CollectKnown dctKnownChanged, nk_id
 End Property
 
 Private Property Get KnownInSync(Optional ByVal is_id As String) As Boolean
@@ -81,8 +81,8 @@ Private Property Get KnownInSync(Optional ByVal is_id As String) As Boolean
 End Property
 
 Private Property Let KnownInSync(Optional ByVal is_id As String, _
-                                                 ByVal b As Boolean)
-    If b Then mSync.CollectKnown dctKnownInSync, is_id
+                                                 ByVal B As Boolean)
+    If B Then mSync.CollectKnown dctKnownInSync, is_id
 End Property
 
 Public Property Get KnownNew(Optional ByVal nk_id As String) As Boolean
@@ -91,8 +91,8 @@ Public Property Get KnownNew(Optional ByVal nk_id As String) As Boolean
 End Property
 
 Public Property Let KnownNew(Optional ByVal nk_id As String, _
-                                          ByVal b As Boolean)
-    If b Then mSync.CollectKnown dctKnownNew, nk_id
+                                          ByVal B As Boolean)
+    If B Then mSync.CollectKnown dctKnownNew, nk_id
 End Property
 
 Public Property Get KnownObsolete(Optional ByVal nk_id As String) As Boolean
@@ -101,8 +101,8 @@ Public Property Get KnownObsolete(Optional ByVal nk_id As String) As Boolean
 End Property
 
 Public Property Let KnownObsolete(Optional ByVal nk_id As String, _
-                                               ByVal b As Boolean)
-    If b Then mSync.CollectKnown dctKnownObsolete, nk_id
+                                               ByVal B As Boolean)
+    If B Then mSync.CollectKnown dctKnownObsolete, nk_id
 End Property
 
 Public Property Get KnownOwnedByPrjct(Optional ByVal nk_id As String) As Boolean
@@ -111,8 +111,8 @@ Public Property Get KnownOwnedByPrjct(Optional ByVal nk_id As String) As Boolean
 End Property
 
 Public Property Let KnownOwnedByPrjct(Optional ByVal nk_id As String, _
-                                               ByVal b As Boolean)
-    If b Then mSync.CollectKnown dctKnownOwnedByPrjct, nk_id
+                                               ByVal B As Boolean)
+    If B Then mSync.CollectKnown dctKnownOwnedByPrjct, nk_id
 End Property
 
 Public Sub AppRunSyncAll()
@@ -347,7 +347,7 @@ Private Sub ClearLinksToSource(ByVal cls_wsh_source As Worksheet, _
             Services.ServicedItem = cls_wsh_target
             mSync.TargetWorkingCopy.BreakLink v, xlLinkTypeExcelLinks
             DoEvents
-            Log.Entry "obsolete", "Worksheet", SyncId(cls_wsh_target), "removed", "(Back)Link to '" & Split(v, "\")(UBound(Split(v, "\"))) & "' cleared"
+            LogServiced.Entry "obsolete", "Worksheet", SyncId(cls_wsh_target), "removed", "(Back)Link to '" & Split(v, "\")(UBound(Split(v, "\"))) & "' cleared"
         Next v
     End If
         
@@ -364,7 +364,7 @@ Private Sub ClearLinksToSource(ByVal cls_wsh_source As Worksheet, _
                     nme.Delete
                 Else
                     nme.RefersTo = Replace(nme.RefersTo, "[" & mSync.source.Name & "]", vbNullString)
-                    Log.Entry "invalid", "Worksheet", Services.ServicedItemName, "changed", "Back-Reference '" & sRefersTo & "' changed to '" & nme.RefersTo & "'"
+                    LogServiced.Entry "invalid", "Worksheet", Services.ServicedItemName, "changed", "Back-Reference '" & sRefersTo & "' changed to '" & nme.RefersTo & "'"
                 End If
             End If
         End If
@@ -380,7 +380,7 @@ Private Sub ClearLinksToSource(ByVal cls_wsh_source As Worksheet, _
                 If InStr(sOnAction, mSync.source.Name) <> 0 Then
                     Services.ServicedItem = wsh
                     shp.OnAction = Replace(sOnAction, mSync.source.Name, mSync.TargetWorkingCopy.Name)
-                    Log.Entry "invalid", "Worksheet", Services.ServicedItemName, "changed", "Back-Link to source '" & sOnAction & "' changed to '" & shp.OnAction & "'"
+                    LogServiced.Entry "invalid", "Worksheet", Services.ServicedItemName, "changed", "Back-Link to source '" & sOnAction & "' changed to '" & shp.OnAction & "'"
                 End If
             End If
         Next shp

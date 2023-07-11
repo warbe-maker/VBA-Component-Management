@@ -2,9 +2,9 @@ Attribute VB_Name = "mMe"
 Option Explicit
 Option Private Module
 ' ---------------------------------------------------------------------------
-' Standard Module mMe   Services for the self management like the relation
-'                       between the Component Management AddIn instance
-'                       and the development instance.
+' Standard Module mMe: Services for the self management like the relation
+' ==================== between the Component Management AddIn instance
+' and the development instance.
 '
 ' Public services:
 ' - CfgAsserted                    Returns True when the required properties

@@ -177,13 +177,18 @@ Private Sub AppRunChanged()
     For i = LBound(va) To UBound(va)
         Set SourceComp.Wrkbk = wbkSource
         Set TargetComp.Wrkbk = wbkTarget
-        Set SourceComp.VBComp = GetComp(wbkSource, va(i))
-        Set TargetComp.VBComp = GetComp(wbkTarget, va(i))
+        With SourceComp
+            .Wrkbk = wbkSource
+            .VBComp = GetComp(wbkSource, va(i))
+        End With
+        With TargetComp
+            .Wrkbk = wbkTarget
+            .VBComp = GetComp(wbkTarget, va(i))
+        End With
         sId = va(i)
         If SourceComp.VBComp.Type <> vbext_ct_MSForm Then
-            mUpdate.ByCodeReplace b_source_vbc:=SourceComp.VBComp _
-                                , b_source_wbk:=wbkSource _
-                                , b_target_wbk:=wbkTarget
+            mUpdate.ByCodeReplace b_source_comp:=SourceComp _
+                                , b_target_comp:=TargetComp
             wsSyncLog.Done "modified", "VBComponent", sId, "updated", "VBComponent's code lines replaced with code lines of source component"
         Else
             mUpdate.ByReImport b_wbk_target:=wbkTarget _
@@ -241,8 +246,8 @@ Private Sub AppRunNew()
         Set vbc = GetComp(wbkSource, va(i))
         sId = SyncId(vbc, wbkSource)
         With SourceComp
-            Set .Wrkbk = wbkSource
-            Set .VBComp = vbc
+            .Wrkbk = wbkSource
+            .VBComp = vbc
             wbkTarget.VBProject.VBComponents.Import .ExpFileFullName
             wsSyncLog.Done "new", "VBComponent", sId, "added", "by import of Sync-Source-Workbook's corresonding Export-File"
         End With

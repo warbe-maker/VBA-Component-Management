@@ -65,20 +65,22 @@ Public Const README_CONFIG_CHANGES              As String = "#configuration-chan
 Public Const FORMAT_REV_DATE                    As String = "YYYY-MM-DD"
 Public Const FORMAT_REV_NO                      As String = "000"
 
-Public Log                                      As clsLog
-Public SummaryLog                               As clsLog
+Public LogServiced                              As clsLog ' log writen for the serviced Workbook
+Public LogServicing                             As clsLog ' the servicing Workbooks own log
 Public Comps                                    As clsComps
 Public Services                                 As clsServices
+Public CompManDat                               As clsCompManDat
+Public CommComps                                As clsCommComps
 
 #If XcTrc_clsTrc = 1 Then
     Public Trc                                  As clsTrc
 #End If
 
 Public Enum enKindOfComp            ' The kind of VBComponent in the sense of CompMan
-    enUnknown = 0
-    enCommCompHosted = 1
-    enCommCompUsed = 2              ' The Component is a used raw, i.e. the raw is hosted by another Workbook
-    enInternal = 3                  ' Neither a hosted nor a used Raw Common Component
+    enUnknown = 0                   ' When the kind of component yet has not been analysed
+    enCommCompHosted = 1            ' When the component is claimed hosted by the open serviced Workbook
+    enCommCompUsed = 2              ' When the component is a used Common Component, i.e. one known in the Common-Componwents folder
+    enInternal = 3                  ' When the component is not a Common Component (may still be one with the same name)
 End Enum
 
 Public Enum siCounter
@@ -120,11 +122,11 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     
     mBasic.BoP ErrSrc(PROC)
     Services.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, u_wbk_serviced
-    mHskpng.CommComps u_hosted
-    mCompManDat.Hskpng u_hosted
-    Set mCommComps.Qoutdated = Nothing
+    CommComps.Hskpng u_hosted
+    CompManDat.Hskpng u_hosted
+    Set CommComps.Qoutdated = Nothing
     
-    mCommComps.OutdatedUpdate ' Dialog to update/renew one by one
+    CommComps.OutdatedUpdate ' Dialog to update/renew one by one
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -178,8 +180,8 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     Services.Initiate mCompManClient.SRVC_EXPORT_CHANGED, e_wbk_serviced
     If Services.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
     
-    mHskpng.CommComps e_hosted
-    mCompManDat.Hskpng e_hosted
+    CommComps.Hskpng e_hosted
+    CompManDat.Hskpng e_hosted
     
     Services.ExportChangedComponents e_hosted
     ExportChangedComponents = True
@@ -367,7 +369,7 @@ Public Function WinMergeIsInstalled() As Boolean
     WinMergeIsInstalled = AppIsInstalled("WinMerge")
 End Function
 
-Private Sub CheckForUnusedPublicItems()
+Public Sub CheckForUnusedPublicItems()
 ' ----------------------------------------------------------------
 ' Attention! The service requires the VBPUnusedPublic.xlsb
 '            Workbook open. When not open the service terminates

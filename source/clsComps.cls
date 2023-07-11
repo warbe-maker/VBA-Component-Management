@@ -19,7 +19,7 @@ Private Sub Class_Initialize()
 ' current service.
 ' ----------------------------------------------------------------------------
     If Services.CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED Then
-        Set dctAll = CollectAllUsedCommComps
+        Set dctAll = CollectAllCommComps
     Else
         Set dctAll = CollectAll
     End If
@@ -53,9 +53,9 @@ Private Function CollectAll() As Dictionary
         For Each vbc In .VBComponents
             Set Comp = New clsComp
             With Comp
-                Set .Wrkbk = wbk
+                .Wrkbk = wbk
                 .CompName = vbc.Name
-                Set .VBComp = vbc
+                .VBComp = vbc
                 lMaxLenServicedItem = Max(lMaxLenServicedItem, Len(.CompName))
                 lMaxLenServicedType = Max(lMaxLenServicedType, Len(.TypeString))
                 dct.Add vbc.Name, Comp
@@ -69,7 +69,7 @@ Private Function CollectAll() As Dictionary
         
     If dct.Count > 0 Then mDct.KeySort dct
     
-xt: Set CollectAll = mDct.KeySort(dct)
+xt: Set CollectAll = dct
     Set dct = Nothing
     mBasic.EoP ErrSrc(PROC)
     Exit Function
@@ -102,14 +102,14 @@ Private Function Changed() As Dictionary
     
 End Function
 
-Private Function CollectAllUsedCommComps() As Dictionary
+Private Function CollectAllCommComps() As Dictionary
 ' ----------------------------------------------------------------------------
 ' Returns a Dictionary with all VBComponent objects as key and the
 ' corresponding clsComp objects as item.
 ' Note: The mDct.DctAdd service orders the items ascending by key (possible
 '       because the key object has a Name property.
 ' ----------------------------------------------------------------------------
-    Const PROC = "CollectAllUsedCommComps"
+    Const PROC = "CollectAllCommComps"
     
     On Error GoTo eh
     Dim vbc     As VBComponent
@@ -124,16 +124,16 @@ Private Function CollectAllUsedCommComps() As Dictionary
         For Each vbc In .VBComponents
             Set Comp = New clsComp
             With Comp
-                Set .Wrkbk = wbk
+                .Wrkbk = wbk
                 .CompName = vbc.Name
-                Set .VBComp = vbc
+                .VBComp = vbc
                 Services.ServicedItem = vbc
                 lMaxLenServicedItem = Max(lMaxLenServicedItem, Len(.CompName))
                 lMaxLenServicedType = Max(lMaxLenServicedType, Len(.TypeString))
-                If .KindOfComp = enCommCompUsed Then
+                If .KindOfComp = enCommCompHosted Or .KindOfComp = enCommCompUsed Then
                     dct.Add vbc.Name, Comp
                     With Services
-                        .NoOfItemsCommonUsed = .NoOfItemsCommonUsed + 1
+                        .NoOfCommonComponents = .NoOfCommonComponents + 1
                         .NoOfItemsTotal = dct.Count
                         .DsplyProgress "collected"
                     End With
@@ -143,7 +143,7 @@ Private Function CollectAllUsedCommComps() As Dictionary
     End With
     
     If dct.Count > 0 Then mDct.KeySort dct
-    Set CollectAllUsedCommComps = dct
+    Set CollectAllCommComps = dct
 
 xt: Set dct = Nothing
     mBasic.EoP ErrSrc(PROC)

@@ -15,12 +15,12 @@ Public Sub CommComps(ByVal h_hosted As String)
     On Error GoTo eh
     
     mBasic.BoP ErrSrc(PROC)
-    CommCompsRemoveObsoleteComponents h_hosted
-    CommCompsAddMissingComponents
-    CommCompsHosted h_hosted
-    CommCompsNotHosted h_hosted
-    CommCompsUsed
-    ReorgDatFile CommCompsDatFileFullName
+    mHskpng.CommCompsMaintainProperties
+    mHskpng.CommCompsRemoveObsoleteComponents h_hosted
+    mHskpng.CommCompsHosted h_hosted
+    mHskpng.CommCompsNotHosted h_hosted
+    mHskpng.CommCompsUsed
+    mHskpng.ReorgDatFile CommCompsDatFileFullName
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -32,20 +32,27 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub ReorgDatFile(ByVal r_dat_file As String)
+    Const PROC = "ReorgDatFile"
+    mBasic.BoP ErrSrc(PROC)
     mFso.PPreorg r_dat_file
+    mBasic.EoP ErrSrc(PROC)
 End Sub
 
-Private Sub CommCompsAddMissingComponents()
+Private Sub CommCompsMaintainProperties()
 ' ------------------------------------------------------------------------------
 ' Adds for each Common Component's Export-File in the Common-Components folder
-' a section to the CommComps.dat when missing.
-' Note: A missing section indicates a Common Component of wich the Export-File
-'       has been copied manually into the Common-Components folder. In CompMan's
-'       definition of a Common Component - which is one hosted in a Workbbok
-'       where it is developed, maintained, and tested - a manually added one
-'       is an orphan until a Workbook claims hosting it.
+' a section to the CommComps.dat when missing or updates the ExportFileName when
+' not identical with the found file.
+'
+' Background:
+' A missing section indicates a Common Component of wich the Export-File has
+' obvously been copied manually into the Common-Components folder which now in
+' the sense of CompMan has become an available Common Component ready for being
+' imported into any VB-Project. A new registered Common Component remains
+' un-hosted until a Workbbok claims hosting it, i.e. providing a delevelopment
+' and test environment for it.
 ' ------------------------------------------------------------------------------
-    Const PROC = "CommCompsAddMissingComponents"
+    Const PROC = "CommCompsMaintainProperties"
     
     On Error GoTo eh
     Dim fle         As File
@@ -63,11 +70,17 @@ Private Sub CommCompsAddMissingComponents()
                 Case "bas", "frm", "cls"
                     sCompName = .GetBaseName(fle.Path)
                     If Not dct.Exists(sCompName) Then
-                        mCommComps.RawExpFileFullName(sCompName) = vbNullString
-                        mCommComps.RawHostWbBaseName(sCompName) = vbNullString
-                        mCommComps.RawHostWbFullName(sCompName) = vbNullString
-                        mCommComps.RawHostWbName(sCompName) = vbNullString
-                        mCommComps.RevisionNumber(sCompName) = mCompManDat.RevisionNumberInitial
+                        '~~ The Export-File is yet not registered as a known Common Component
+                        '~~ It most likely has been copied manually into the Common-Components
+                        '~~ folder. I.e. its "raw host" is unknown - and registered as such.
+                        '~- The raw host will remain unknown until the Common Component is
+                        '~~ modified in a Workbook using it and exported.
+                        mCommComps.LastModWbk(sCompName) = Nothing
+                        mCommComps.RevisionNumber(sCompName) = CompManDat.RevisionNumberInitial
+                    Else
+                        If mCommComps.LastModExpFileFullNameOrigin(sCompName) = vbNullString Then
+                            Debug.Print "The property ""LastModExpFileFullNameOrigin"" of component " & sCompName & " is not available, i.e. its origin is unknown or simply yet not registered respectively!"
+                        End If
                     End If
             End Select
         Next fle
@@ -113,11 +126,10 @@ Private Sub CommCompsRemoveObsoleteComponents(ByVal h_hosted As String)
     '~~ Obsolete because the component is no longer hosted by the indicated Workbook
     '~~ no longer exist in the indicated Workbook
     For Each v In dct
-        If mCommComps.RawHostWbBaseName(v) = sBaseName Then
+        If mCommComps.LastModWbkBaseName(v) = sBaseName Then
             '~~ The component indicates being one of the serviced Workbook
-            If Not mComp.Exists(v, wbk) _
-            Or Not dctHosted.Exists(v) Then
-                mCompManDat.RemoveComponent v
+            If Not mComp.Exists(v, wbk) Then
+                CompManDat.RemoveComponent v
             End If
         End If
     Next v
@@ -127,9 +139,11 @@ Private Sub CommCompsRemoveObsoleteComponents(ByVal h_hosted As String)
     '~~ De-register global Common Components no longer hosted
     Set dct = mCommComps.Components
     For Each v In dct
-        sExpFile = fso.GetFileName(mCommComps.RawExpFileFullName(v))
-        If Not fso.FileExists(wsConfig.FolderCommonComponentsPath & "\" & sExpFile) Then
-            CommCompsRemoveSection v
+        sExpFile = fso.GetFileName(mCommComps.LastModExpFileFullNameOrigin(v))
+        If sExpFile <> vbNullString Then
+            If Not fso.FileExists(wsConfig.FolderCommonComponentsPath & "\" & sExpFile) Then
+                CommCompsRemoveSection v
+            End If
         End If
     Next v
     Set dct = mCommComps.Components
@@ -143,31 +157,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Sub
-
-Private Sub CommCompsHostedClear(ByVal c_comp_name As String)
-' ----------------------------------------------------------------------------
-' Performed when a Common Component is not/no longer claimed hosted by the
-' originally claiming Workbook. The Common Component just becomes an
-' orphan but remains a Common Component which is now just one used by the
-' Workbook provided it (still) exist in it.
-' ----------------------------------------------------------------------------
-    Const PROC  As String = "CommCompsHostedClear"
-    Dim wbk     As Workbook
-    
-    mBasic.BoP ErrSrc(PROC)
-    Set wbk = Services.Serviced
-    
-    mCommComps.RawExpFileFullName(c_comp_name) = vbNullString
-    mCommComps.RawHostWbBaseName(c_comp_name) = vbNullString
-    mCommComps.RawHostWbFullName(c_comp_name) = vbNullString
-    mCommComps.RawHostWbName(c_comp_name) = vbNullString
-
-    If mComp.Exists(c_comp_name, wbk) Then
-        mCompManDat.RegistrationState(c_comp_name) = enRegStateUsed
-    End If
-    mBasic.EoP ErrSrc(PROC)
-
 End Sub
 
 Private Sub CommCompsUsed()
@@ -186,46 +175,53 @@ Private Sub CommCompsUsed()
     Dim BttnConfirmed   As String
     Dim BttnPrivate     As String
     Dim Msg             As mMsg.TypeMsg
+    Dim Comp            As clsComp
     
     mBasic.BoP ErrSrc(PROC)
     BttnConfirmed = "Yes!" & vbLf & _
                     "This is a used Common Component" & vbLf & _
                     "identical with the corresponding" & vbLf & _
                     "VBComponent's Export-File in the" & vbLf & _
-                    "Common Components folder"
+                    """Common-Components folder"""
     BttnPrivate = "No!" & vbLf & _
                   "This is a VBComponent which" & vbLf & _
                   "accidentially has the same name."
     
     Set wbk = Services.Serviced
     For Each vbc In wbk.VBProject.VBComponents
-        If mCommComps.ExistsAsGlobalCommonComponentExportFile(vbc) Then
-            If mCommComps.RevisionNumber(vbc.Name) = vbNullString Then
-                mCommComps.RevisionNumber(vbc.Name) = vbNullString
-            End If
-            If Not mCompManDat.RegistrationState(vbc.Name) = enRegStatePrivate _
-            And Not mCompManDat.RegistrationState(vbc.Name) = enRegStateUsed _
-            And Not mCompManDat.RegistrationState(vbc.Name) = enRegStateHosted _
-            Then
-                '~~ Once an equally named VBComponent is registered a private it will no longer be regarded as "used" and updated.
-                Msg.Section(1).Text.Text = "The VBComponent named  '" & vbc.Name & "'  is known as a Common Component " & _
-                                           "because it exists in the Common Components folder  '" & _
-                                           wsConfig.FolderCommonComponentsPath & "'  but is yet not registered either " & _
-                                           "as used or private in the serviced Workbook."
+        Set Comp = New clsComp
+        With Comp
+            .Wrkbk = wbk
+            .VBComp = vbc
+            If mCommComps.Exists(vbc, .ExpFileExt) Then
+                If mCommComps.RevisionNumber(vbc.Name) = vbNullString Then
+                    mCommComps.RevisionNumber(vbc.Name) = vbNullString
+                End If
+                If Not CompManDat.RegistrationState(vbc.Name) = enRegStatePrivate _
+                And Not CompManDat.RegistrationState(vbc.Name) = enRegStateUsed _
+                And Not CompManDat.RegistrationState(vbc.Name) = enRegStateHosted _
+                Then
+                    '~~ Once an equally named VBComponent is registered a private it will no longer be regarded as "used" and updated.
+                    Msg.Section(1).Text.Text = "The VBComponent named   " & mBasic.Spaced(vbc.Name) & "   is known as a ""Common Component"" " & _
+                                               "because it exists in the ""Common-Components folder""  '" & _
+                                               wsConfig.FolderCommonComponentsPath & "'  but is yet not registered either " & _
+                                               "as used or private in the serviced Workbook."
+                    
+                    Select Case mMsg.Dsply(dsply_title:="Not yet registered ""Common Component""" _
+                                         , dsply_msg:=Msg _
+                                         , dsply_buttons:=mMsg.Buttons(BttnConfirmed, vbLf, BttnPrivate))
+                        Case BttnConfirmed: CompManDat.RegistrationState(vbc.Name) = enRegStateUsed
+                                            CompManDat.RevisionNumber(vbc.Name) = vbNullString ' yet unknown will force update when outdated
+                        Case BttnPrivate:   CompManDat.RegistrationState(vbc.Name) = enRegStatePrivate
+                    End Select
+                End If
+            Else
+                '~~ The Export-File has manually been copied into the Common
+                '~~ Components-Folder and thus is yet not registered
                 
-                Select Case mMsg.Dsply(dsply_title:="Not yet registered Common Component" _
-                                     , dsply_msg:=Msg _
-                                     , dsply_buttons:=mMsg.Buttons(BttnConfirmed, vbLf, BttnPrivate))
-                    Case BttnConfirmed: mCompManDat.RegistrationState(vbc.Name) = enRegStateUsed
-                                        mCompManDat.RawRevisionNumber(vbc.Name) = vbNullString ' yet unknown will force update when outdated
-                    Case BttnPrivate:   mCompManDat.RegistrationState(vbc.Name) = enRegStatePrivate
-                End Select
             End If
-        Else
-            '~~ The Export-File has manually been copied into the Common
-            '~~ Components-Folder and thus is yet not registered
-            
-        End If
+        End With
+        Set Comp = Nothing
     Next vbc
 
 xt: mBasic.EoP ErrSrc(PROC)
@@ -246,7 +242,7 @@ Private Sub CommCompsHosted(ByVal m_hosted As String)
 '   - in the local CommComps.dat:
 '     - Component Name
 '     - Revision Number
-'   - in the ComComps-RawsSaved.dat in the Common Components folder:
+'   - in the ComComps-RawsSaved.dat in the Common-Components folder:
 '     - Component Name
 '     - Export File Full Name
 '     - Host Base Name
@@ -273,75 +269,46 @@ Private Sub CommCompsHosted(ByVal m_hosted As String)
     For Each v In dctHosted
         If Not mComp.Exists(v, wbk) Then
             MsgBox "The VBComponent " & v & " is claimed hosted by the serviced Workbook " & Services.Serviced.Name & _
-                   " but is not known by the Workbook's VB-Project - and thus will be ignored!" & vbLf & vbLf & _
+                   " will be ignored (it does not exist in the Workbook's VB-Project) !" & vbLf & vbLf & _
                    "When the component is no longer hosted or its name has changed the argument needs to be updated accordingly.", _
-                   vbOK, "VBComponent " & v & "unkonwn!"
+                   vbOK, "VBComponent " & v & "does not exist!"
         Else
             Set CommCompHosted = New clsComp
             With CommCompHosted
-                Set .Wrkbk = Services.Serviced
+                .Wrkbk = wbk
                 .CompName = v
-                If mCompManDat.RegistrationState(v) <> enRegStateHosted Then
-                    '~~ Yet not registered as "hosted" as the serviced Workbook claims it
-                    mCompManDat.RegistrationState(v) = enRegStateHosted
-                    mCompManDat.RawExpFileFullName(v) = .ExpFileFullName    ' in any case update the Export File name
-                    .RevisionNumberIncrease                                 ' this will initially set it
-                    mCommComps.SaveToCommonComponentsFolder v, .ExpFile, .ExpFileFullName
+                If CompManDat.RegistrationState(v) <> enRegStateHosted Then
+                    '~~ The Workbook has yet not claimed the Common Component hosted but now does.
+                    CompManDat.RegistrationState(v) = enRegStateHosted
+                    '~~ This housekeeping is executed prior the "Export of changed components"
+                    '~~ The Export-File comparison is therefore done with a temporary Export-File.
+                    If Not Services.FilesDiffer(f_file_1:=.ExpFileTemp _
+                                              , f_file_2:=mCommComps.LastModExpFile(v) _
+                                              , f_ignore_export_header:=True) _
+                    Then
+                        '~~ Only when the claiming Workbook's Common Component is identical
+                        '~~ with the Export-File in the Common-Components folder it is also
+                        '~~ registered as the raw source
+                        mCommComps.LastModWbk(v) = wbk
+                        mCommComps.LastModExpFileFullNameOrigin(v) = .ExpFileFullName
+                        mCommComps.RevisionNumber = .RevisionNumber
+                    Else
+                        '~~ Any other Workbook appears to have modified and saved the Common Component
+                        '~~ to the Common-Components folde. This information remains valid.
+                    End If
                 End If
                 
-                mCommComps.Register v, .ExpFileFullName
-                If Not mCommComps.ExistsAsGlobalCommonComponentExportFile(.VBComp) Then
-                    mCommComps.SaveToCommonComponentsFolder v, .ExpFile, .ExpFileFullName
+                If Not mCommComps.Exists(.VBComp, .ExpFileExt) Then
+                    mCommComps.SaveToCommonComponentsFolder v, .ExpFile, .ExpFileFullName, wbk
                     
                 End If
                 
-                If Services.FilesDiffer(f_file_1:=.ExpFile _
-                                      , f_file_2:=mCommComps.SavedExpFile(v)) Then
-                    '~~ Attention! This is a cruical issue which should never be the case. However, when different
-                    '~~ computers/users are involved in the development process ...
-                    '~~ Instead of simply updating the saved raw Export File better have carefully checked the case
-                    If mCommComps.RevisionNumber(v) = mCompManDat.RawRevisionNumber(v) Then
-                        sInconstMsg = "The 'Revision Number' of the 'Hosted Common Component' is identical with the 'Revivision Number' " & _
-                                      "of the Common Component in the 'Common-Components Folder':" & vbLf & vbLf & _
-                                      mCompManDat.RawRevisionNumber(v) & " (Common Component Hosted)" & vbLf & _
-                                      mCommComps.RevisionNumber(v) & " (Common Component in 'Common-Components Folder')" & vbLf & vbLf & _
-                                      "but the Export Files differ:" & vbLf & vbLf & _
-                                      .ExpFile.Path & vbLf & _
-                                      "compared with" & vbLf & _
-                                      mCommComps.SavedExpFile(v).Path & vbLf & vbLf & _
-                                      "whereby any empty code lines and case differences had already been ignored as irrelevant." & _
-                                      "1. Question: How on earth could this happen?" & vbLf & _
-                                      "2. Question: Which of the two is the most up-to-date version?" & vbLf & _
-                                      "Exporting follows the decision that the hosted version is the one up-to-date, Updating means that the " & _
-                                      "version in the 'Common-Components Folder' is the one up-to-date."
-                                      
-                        Select Case mCommComps.InconsitencyWarning(i_file_full_name:=.ExpFile.Path _
-                                                                 , i_file_full_name_saved:=mCommComps.SavedExpFile(v).Path _
-                                                                 , i_message:=sInconstMsg)
-                            Case mCommComps.BttnInconsistencyExport:   mCommComps.SaveToCommonComponentsFolder v, .ExpFile, .ExpFileFullName
-                            Case mCommComps.BttnInconsistencySkip
-                        End Select
-                    ElseIf mCommComps.RevisionNumber(v) <> mCompManDat.RawRevisionNumber(v) Then
-                        sInconstMsg = "The 'Revision Number' of the 'Hosted Common Component' differs from the 'Revivision Number' " & _
-                                      "of the Common Component in the 'Common-Components Folder':" & vbLf & vbLf & _
-                                      mCompManDat.RawRevisionNumber(v) & " (Common Component Hosted)" & vbLf & _
-                                      mCommComps.RevisionNumber(v) & " (Common Component in 'Common-Components Folder')" & vbLf & vbLf & _
-                                      "but the Export Files are equal:" & vbLf & vbLf & _
-                                      .ExpFile.Path & vbLf & _
-                                      "compared with" & vbLf & _
-                                      mCommComps.SavedExpFile(v).Path & vbLf & vbLf & _
-                                      "whereby any empty code lines and case differences had already been ignored as irrelevant. " & _
-                                      "Exporting is not recommendable unless it is clear the the hosted version is the up-to-date one."
-                        Select Case mCommComps.InconsitencyWarning(i_file_full_name:=.ExpFile.Path _
-                                                                 , i_file_full_name_saved:=mCommComps.SavedExpFile(v).Path _
-                                                                 , i_message:=sInconstMsg)
-                            Case mCommComps.BttnInconsistencyExport
-                                .Export
-                            Case mCommComps.BttnInconsistencyUpdate
-                                mUpdate.ByReImport .Wrkbk, .CompName, mCommComps.SavedExpFile(v)
-                            Case mCommComps.BttnInconsistencySkip
-                        End Select
+                If Not Services.FilesDiffer(f_file_1:=.ExpFile _
+                                          , f_file_2:=mCommComps.LastModExpFile(v)) Then
+                    If mCommComps.RevisionNumber(v) <> CompManDat.RevisionNumber(v) Then
+                        mCommComps.RevisionNumber(v) = CompManDat.RevisionNumber(v)
                     End If
+
                 End If
             End With
             Set CommCompHosted = Nothing
@@ -360,10 +327,8 @@ End Sub
 
 Private Sub CommCompsNotHosted(ByVal h_hosted As String)
 ' ----------------------------------------------------------------------------
-' Removes the hosting Workbook for any Common Component when it is no longer
-' claimed hosted by the registered Workbook.
-' Note: The Common Component remains being an orphan until it is again claimed
-'       being hosted by a Workbook.
+' When a former hosting Workbook not or no longer claims a Common Component
+' hosted the RegistrationState is changed to enRegStateUsed.
 ' ----------------------------------------------------------------------------
     Const PROC      As String = "CommCompsNotHosted"
     
@@ -377,9 +342,11 @@ Private Sub CommCompsNotHosted(ByVal h_hosted As String)
     Set dctHosted = mCommComps.Hosted(h_hosted)
     Set dctComps = mCommComps.Components
     For Each v In dctComps
-        If RawHostWbName(v) = wbk.Name Then
+        If LastModWbkName(v) = wbk.Name Then
             If Not dctHosted.Exists(v) Then
-                CommCompsHostedClear v
+                If mComp.Exists(v, wbk) Then
+                    CompManDat.RegistrationState(v) = enRegStateUsed
+                End If
             End If
         End If
     Next v

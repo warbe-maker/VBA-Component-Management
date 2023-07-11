@@ -22,11 +22,10 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mMe" & "." & sProc
 End Function
 
-Public Sub ByCodeReplace(ByVal b_source_vbc As VBComponent, _
-                         ByVal b_source_wbk As Workbook, _
-                         ByVal b_target_wbk As Workbook)
+Public Sub ByCodeReplace(ByVal b_source_comp As clsComp, _
+                         ByVal b_target_comp As clsComp)
 ' ----------------------------------------------------------------------------
-' Updates the VBComponent named (b_source_vbc) in the Workbook (b_target_wbk)
+' Updates a VBComponent named (b_source_comp) in the Workbook (b_target_wbk)
 ' by replacing the code lines of the target component with those from the
 ' source component.
 ' Note 1: Code replacement is the only update method applicable for Data
@@ -37,30 +36,31 @@ Public Sub ByCodeReplace(ByVal b_source_vbc As VBComponent, _
 
     On Error GoTo eh
     Dim i           As Long
-    Dim SourceComp  As clsComp
     Dim SourceCode  As Dictionary
     Dim v           As Variant
         
     '~~ Obtain the new code lines from the Sync-source-Workbook's component
-    Set SourceComp = New clsComp
-    With SourceComp
-        Set .Wrkbk = b_source_wbk
-        Set .VBComp = b_source_vbc
-        Set SourceCode = .CodeLines
-        Services.ServicedItem = .VBComp
-    End With
+    Set SourceCode = b_source_comp.CodeLines
     
-    With b_target_wbk.VBProject.VBComponents(b_source_vbc.Name).CodeModule
+    With b_target_comp.VBComp.CodeModule
         If .CountOfLines > 0 Then .DeleteLines 1, .CountOfLines     ' Remove all lines from the cloned raw component
         For Each v In SourceCode                                    ' Insert the raw component's code lines
             i = i + 1
             .InsertLines i, SourceCode(v)
         Next v
     End With
-    Services.LogEntry "Updated by code replace"
+    
+    With b_target_comp
+        Select Case .KindOfComp
+            Case enCommCompHosted
+                Services.LogServicedEntry "Outdated Common Component hosted updated by code replace"
+            Case enCommCompUsed
+                Services.LogServicedEntry "Outdated Common Component used updated by code replace"
+        End Select
+    End With
+    
         
-xt: Set SourceComp = Nothing
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -90,13 +90,14 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
     Dim TmpWbk          As Workbook
     Dim lStep           As Long
     Dim sRevNo          As String
+    Dim fso             As New FileSystemObject
     
     mBasic.BoP ErrSrc(PROC)
     MonitorInitiate "Update an outdated component", b_monitor
     
     Set Comp = New clsComp
     With Comp
-        Set .Wrkbk = b_wbk_target
+        .Wrkbk = b_wbk_target
         .CompName = b_vbc_name
     End With
     
@@ -137,15 +138,17 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
         MonitorFooter "Successfully updated! (process monitor closes in 2 seconds)", b_monitor
     End With
     
+    Set Comp = Nothing
+    Set Comp = New clsComp
     With Comp
+        .Wrkbk = b_wbk_target
+        .CompName = b_vbc_name
+        '~~ Export the re-imported component to ensure an up-to-date Export-File
+        fso.CopyFile b_exp_file, .ExpFileFullName, True
+        '~~ Update the Revision-Number
+        sRevNo = CommComps.RevisionNumber(.CompName)
         Select Case .KindOfComp
-            Case enCommCompUsed
-                sRevNo = .Raw.RevisionNumber
-                If .RevisionNumber <> sRevNo Then
-                    .RevisionNumber = sRevNo
-                End If
-            Case enCommCompHosted
-                sRevNo = mCommComps.RevisionNumber(.CompName)
+            Case enCommCompUsed, enCommCompHosted
                 If .RevisionNumber <> sRevNo Then
                     .RevisionNumber = sRevNo
                 End If

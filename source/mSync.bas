@@ -727,7 +727,7 @@ Public Sub Initiate(Optional ByVal i_sync_refs As Boolean = True, _
 '   When identical with last performed - and inerrupted
 '                            sync continue it
 ' ------------------------------------------------------------------------------
-    With Log
+    With LogServiced
         .AlignmentItems "|L|L|L|L|L|"
         .MaxItemLengths 10, Comps.MaxLenServicedType, 90, 15, 150
         .Headers "|  Due  | Item | Item | Sync | Comment  |"

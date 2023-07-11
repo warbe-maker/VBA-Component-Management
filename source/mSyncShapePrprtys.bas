@@ -953,9 +953,9 @@ Private Sub SyncAssertion(ByVal sa_obj_source As Variant, _
         If Not sa_dct_synched.Exists(PropertyName(sa_en_property)) Then
             mDct.DctAdd sa_dct_synched, PropertyName(sa_en_property), sa_obj_source.Parent.Name & "." & mSyncShapes.ShapeNames(sa_obj_source), , seq_ascending
         End If
-        Log.Entry "change", "Shape-Property", PropertyName(sa_en_property), "changed", PropertyChange(sa_target_value, sa_source_value)
+        LogServiced.Entry "change", "Shape-Property", PropertyName(sa_en_property), "changed", PropertyChange(sa_target_value, sa_source_value)
     Else
-        Log.Entry "change", "Shape-Property", PropertyName(sa_en_property), "failed", " "
+        LogServiced.Entry "change", "Shape-Property", PropertyName(sa_en_property), "failed", " "
     End If
 
 End Sub
