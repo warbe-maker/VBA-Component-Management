@@ -1,25 +1,21 @@
 Attribute VB_Name = "mDct"
 Option Explicit
 ' ----------------------------------------------------------------------------
-' Standard Module mDct: Procedures for Dictionaries
+' Standard Module mDct: Services for Dictionaries.
+' =====================
 '
-' Note: 1. Procedures of the mDct module do not use the Common VBA Error Handler.
-'          However, test module uses the mErrHndlr module for test purpose.
+' Public Methods:
+' ---------------
+' DctAdd      Add a key/item pair into a given Dictionary instantly ordered
+' DictDiff    Returns True when tow Dictionaries were different
+' KeySort     Returns a Dictionary with their keys sorted ascending.
 '
-'       2. This module is developed, tested, and maintained in the dedicated
-'          Common Component Workbook Dct.xlsm available on Github
-'          https://Github.com/warbe-maker/VBA-Basic-Procedures
+' Uses:       No other modules
+'             Note: mErH, mTrc, fMsg/mMsg are for the mTest module only
 '
-' Methods:
-' - DctAdd      Add a key/item pair into a given Dictionary instantly ordered
-' - DictDiff    Returns True when tow Dictionaries were different
-'
-' Uses:         No other modules
-'               Note: mErH, mTrc, fMsg, mMsg are for the mTest module only
-'
-' Requires:     "Microsoft Scripting Runtime"
-'               Note: The reference to "Microsoft Visual Basic Application Extensibility .."
-'               is for the mTest module only!
+' Requires:   "Microsoft Scripting Runtime"
+'             Note: The reference to "Microsoft Visual Basic Application Extensibility .."
+'             is for the mTest module only!
 '
 ' W. Rauschenberger, Berlin Sept 2020
 ' ----------------------------------------------------------------------------

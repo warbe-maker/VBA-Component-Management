@@ -102,7 +102,8 @@ Friend Property Let NoOfItemsServiced(ByVal l As Long):     lNoOfItemsServiced =
 Public Property Get NoOfItemsServicedNames() As String:     NoOfItemsServicedNames = sNoOfItemsServicedNames:   End Property
 
 Public Property Let NoOfItemsServicedNames(ByVal s As String)
-    If sNoOfItemsServicedNames = vbNullString Then
+    If sNoOfItemsServicedNames = vbNullString _
+    Or InStr(sNoOfItemsServicedNames, s) <> 0 Then
         sNoOfItemsServicedNames = "(" & s & ")"
     Else
         sNoOfItemsServicedNames = Left(sNoOfItemsServicedNames, Len(sNoOfItemsServicedNames) - 1) _
@@ -110,6 +111,8 @@ Public Property Let NoOfItemsServicedNames(ByVal s As String)
                                 & s _
                                 & ")"
     End If
+    sNoOfItemsServicedNames = Replace(sNoOfItemsServicedNames, ", ,", ",")
+    
 End Property
 
 Friend Property Get NoOfItemsTotal() As Long:               NoOfItemsTotal = lNoOfItemsTotal:                   End Property
@@ -610,6 +613,7 @@ End Function
 
 Public Sub Initiate(ByVal i_service As String, _
                     ByVal i_serviced_wbk As Workbook, _
+                    ByVal i_hosted As String, _
            Optional ByRef i_ini As Boolean = True)
 ' ------------------------------------------------------------------------------
 ' Provides the initiation for all (regular) services.
@@ -625,8 +629,8 @@ Public Sub Initiate(ByVal i_service As String, _
     wsService.ClearDataAllServices
     Serviced = i_serviced_wbk
         
-    Set CompManDat = New clsCompManDat
-    Set CommComps = New clsCommComps
+    Set CompManDat = New clsCompManDat: CompManDat.Hosted = i_hosted ' must be initialized first !
+    Set CommComps = New clsCommComps:   CommComps.Hosted = i_hosted
     Set Comps = Nothing
     Set Comps = New clsComps ' initialization collect the VB-Component relevant for the current service
     

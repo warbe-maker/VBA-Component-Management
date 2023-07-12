@@ -206,15 +206,17 @@ Friend Property Let CompName(ByVal s As String)
             End Select
             sExpFileFullName = mExport.ExpFileFolderPath(wbk) & "\" & vbc.Name & sExpFileExt
         End If
-        If CommComps.Exists(vbc, sExpFileExt, sModByWbkName, sRawExpFileFullName, fRawExpFile, sLastModRevNo) Then
-            Me.IsCommComp = True
-            Set Raw = New clsRaw
-            With Raw
-                .CompName = vbc.Name
-                .LastModExpFile = fRawExpFile
-                .LastModByWbkName = sModByWbkName
-                .LastModRevisionNumber = sLastModRevNo
-            End With
+        If Not CommComps Is Nothing Then
+            If CommComps.Exists(vbc, sExpFileExt, sModByWbkName, sRawExpFileFullName, fRawExpFile, sLastModRevNo) Then
+                Me.IsCommComp = True
+                Set Raw = New clsRaw
+                With Raw
+                    .CompName = vbc.Name
+                    .LastModExpFile = fRawExpFile
+                    .LastModByWbkName = sModByWbkName
+                    .LastModRevisionNumber = sLastModRevNo
+                End With
+            End If
         End If
     Else
         Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Component Name assigned for a yet unknown Workbook!"
@@ -647,7 +649,7 @@ Public Sub Export()
             Case enCommCompHosted, enCommCompUsed
                 '~~ The last Workbook in which a Common Component is modified becomes
                 '~~ the current "Raw host" regardless of which Workbook claims hosting it.
-                CommComps.SaveToCommonComponentsFolder .CompName, .ExpFile, .ExpFileFullName
+                CommComps.SaveToCommonComponentsFolder .CompName, .ExpFile
                 RevisionNumberIncrease sRevNo
                 CommComps.LastModExpFileFullNameOrigin(.CompName) = .ExpFileFullName
                 CommComps.LastModWbk(.CompName) = .Wrkbk

@@ -28,6 +28,11 @@ Option Explicit
 ' ------------------
 ' Components               r   Dictionary of all components/sections in the
 '                              CompMan.dat
+' Hosted                     w Provides the hosted components, provided as a
+'                              comma delimited string in a Dictionary
+'                              (dctHosted) and performs the housekeeping for
+'                              the serviced Workbook's CompMan.dat file
+'                              file.
 ' RecentlyUsedExportFolder r/w .
 ' RegistrationState        r/w .
 ' RevisionNumber           r/w .
@@ -41,6 +46,7 @@ Private Const VALUE_NAME_REG_STAT_OF_COMPONENT      As String = "VALUE_NAME_REG_
 Private Const VALUE_NAME_USED_EXPORT_FOLDER         As String = "VALUE_NAME_USED_EXPORT_FOLDER"
 Private PP                                          As clsPP
 Private fso                                         As FileSystemObject
+Private dctHosted                                   As Dictionary
 
 Private Sub Class_Initialize()
     Dim wbk     As Workbook
@@ -56,15 +62,18 @@ Private Sub Class_Initialize()
     '~~> "<current>"                 = no action
     '~~> "<current-name>:<old-name>" = rename in all sections
     '~~> ":<remove-name>"            = remove in all sections
-    dct.Add VALUE_NAME_LAST_MOD_REVISION_NUMBER, _
-            "RevisionNumber:RawRevisionNumber"
-    dct.Add VALUE_NAME_REG_STAT_OF_COMPONENT, _
-            "KindOfComponent"
-    dct.Add VALUE_NAME_USED_EXPORT_FOLDER, _
-            "UsedExportFolder"
+    dct.Add VALUE_NAME_LAST_MOD_REVISION_NUMBER, "RevisionNumber:RawRevisionNumber"
+    dct.Add VALUE_NAME_REG_STAT_OF_COMPONENT, "KindOfComponent"
+    dct.Add VALUE_NAME_USED_EXPORT_FOLDER, "UsedExportFolder"
+    dct.Add "Obsolete_1", ":DueModificationWarning"
     PP.Names = dct
     Set dct = Nothing
     
+End Sub
+
+Private Sub Class_Terminate()
+    Set fso = Nothing
+    Set PP = Nothing
 End Sub
 
 Friend Property Get Components() As Dictionary
@@ -73,15 +82,36 @@ End Property
 
 Private Property Get CompRegState(Optional ByVal comp_name As String) As enCommCompRegState
     With PP
-        CompRegState = CommComps.CommCompRegStateEnum(.Value(pp_section:=comp_name, pp_value_name:=.Name(VALUE_NAME_REG_STAT_OF_COMPONENT)))
+        CompRegState = CompMan.CommCompRegStateEnum(.Value(pp_section:=comp_name, pp_value_name:=.Name(VALUE_NAME_REG_STAT_OF_COMPONENT)))
     End With
 End Property
 
 Private Property Let CompRegState(Optional ByVal comp_name As String, _
                                            ByVal comp_reg_state As enCommCompRegState)
     With PP
-        .Value(pp_section:=comp_name, pp_value_name:=.Name(VALUE_NAME_REG_STAT_OF_COMPONENT)) = CommComps.CommCompRegStateString(comp_reg_state)
+        .Value(pp_section:=comp_name, pp_value_name:=.Name(VALUE_NAME_REG_STAT_OF_COMPONENT)) = CompMan.CommCompRegStateString(comp_reg_state)
     End With
+End Property
+
+Friend Property Let Hosted(ByVal s As String)
+' ----------------------------------------------------------------------------
+' Provides the hosted components, provided as a comma delimited string in a
+' Dictionary (dctHosted) and performs the housekeeping for Common Components
+' in the serviced Workbook's CompMan.dat file.
+' ----------------------------------------------------------------------------
+    Dim v       As Variant
+    Dim sComp   As String
+    Dim dct     As New Dictionary
+    
+    Set dctHosted = Nothing: Set dctHosted = New Dictionary
+    For Each v In Split(s, ",")
+        sComp = Trim$(v)
+        If Not dct.Exists(sComp) Then
+            dctHosted.Add sComp, sComp
+        End If
+    Next v
+    Hskpng
+    
 End Property
 
 Friend Property Get RecentlyUsedExportFolder() As String
@@ -125,13 +155,17 @@ Public Function CommCompUsedIsKnown(ByVal comp_name As String) As Boolean
     CommCompUsedIsKnown = ComponentsRegistered(enRegStateUsed).Exists(comp_name)
 End Function
 
+Public Sub ComponentRemove(ByVal r_comp_name As String)
+    PP.ComponentRemove r_comp_name
+End Sub
+
 Private Function ComponentsRegistered(ByVal c_reg_state As enCommCompRegState) As Dictionary
     Dim vSection    As Variant
     Dim dct         As New Dictionary
     
     With PP
         For Each vSection In PP.Components
-            If .Value(pp_section:=vSection, pp_value_name:=.Name(VALUE_NAME_REG_STAT_OF_COMPONENT)) = CommComps.CommCompRegStateString(c_reg_state) _
+            If .Value(pp_section:=vSection, pp_value_name:=.Name(VALUE_NAME_REG_STAT_OF_COMPONENT)) = CompMan.CommCompRegStateString(c_reg_state) _
             Then dct.Add vSection, vbNullString
         Next vSection
     End With
@@ -144,7 +178,7 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsCompManDat" & "." & sProc
 End Function
 
-Public Sub Hskpng(ByVal h_hosted As String)
+Private Sub Hskpng()
 ' ------------------------------------------------------------------------------
 ' Removes obsolete sections which are those neither representing an existing
 ' VBComponent no another valid section's Name.
@@ -153,8 +187,8 @@ Public Sub Hskpng(ByVal h_hosted As String)
     
     On Error GoTo eh
     mBasic.BoP ErrSrc(PROC)
-    HskpngRemoveObsoleteSections h_hosted
-    HskpngHosted h_hosted
+    HskpngObsolete
+    HskpngHosted
     PP.Reorg
 
 xt: mBasic.EoP ErrSrc(PROC)
@@ -166,46 +200,28 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub Reorg()
-    PP.Reorg
-End Sub
-
-Private Sub HskpngHosted(ByVal h_hosted As String)
+Private Sub HskpngHosted()
+' ------------------------------------------------------------------------------
+' Maintains in the serviced Workbook's CompMan.dat file for any component
+' claimed hosted the corresponding RegistrationState and the Revision-Number
+' (when missing).
+' ------------------------------------------------------------------------------
     Const PROC      As String = "HskpngHosted"
     
     On Error GoTo eh
-    Dim dctHosted   As Dictionary
     Dim wbk         As Workbook
     Dim v           As Variant
     Dim Comp        As clsComp
     
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
-    Set dctHosted = CommComps.Hosted(h_hosted)
     
     For Each v In dctHosted
         If mComp.Exists(v, wbk) Then
-            If CompManDat.RegistrationState(v) <> enRegStateHosted _
-            Then CompManDat.RegistrationState(v) = enRegStateHosted
-            If CommComps.LastModExpFileFullNameOrigin = vbNullString Then
-                Set Comp = New clsComp
-                With Comp
-                    .Wrkbk = Services.Serviced
-                    .CompName = v
-                    If Services.FilesDiffer(.ExpFile, fso.GetFile(CommComps.LastModExpFileFullName(.CompName))) Then
-                        Err.Raise AppErr(1), ErrSrc(PROC), _
-                                  "The origin of the Export-File saved in the Common-Components folder of the " & _
-                                  "Common Component " & .CompName & " is unknown! Because it is not identical " & _
-                                  "with the Export-File of the Workbook which claims hosting it, the origin " & _
-                                  "is still to be clarified!"
-                    Else
-                        CommComps.LastModExpFileFullNameOrigin(.CompName) = .ExpFileFullName
-                    End If
-                    
-                End With
-            End If
-        Else
-            PP.ComponentRemove v
+            If Me.RegistrationState(v) <> enRegStateHosted _
+            Then Me.RegistrationState(v) = enRegStateHosted
+            If Me.RevisionNumber(v) = vbNullString _
+            Then Me.RevisionNumber = Me.RevisionNumberInitial
         End If
     Next v
     
@@ -218,20 +234,49 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub HskpngRemoveObsoleteSections(ByVal h_hosted As String)
+Private Sub HskpngNotHosted()
+' ----------------------------------------------------------------------------
+' When a former hosting Workbook not or no longer claims a Common Component
+' hosted the RegistrationState in the serviced Workbook's CompMan.dat file
+' is changed to enRegStateUsed.
+' ----------------------------------------------------------------------------
+    Const PROC      As String = "HskpngNotHosted"
+    
+    On Error GoTo eh
+    Dim v           As Variant
+    Dim wbk         As Workbook
+    
+    mBasic.BoP ErrSrc(PROC)
+    Set wbk = Services.Serviced
+    For Each v In Components
+        If Not dctHosted.Exists(v) Then
+            If mComp.Exists(v, wbk) Then
+                CompManDat.RegistrationState(v) = enRegStateUsed
+            End If
+        End If
+    Next v
+
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Sub HskpngObsolete()
 ' ------------------------------------------------------------------------------
 ' Remove sections representing VBComponents no longer existing and those with an
 ' invalid name.
 ' ------------------------------------------------------------------------------
-    Const PROC = "HskpngRemoveObsoleteSections"
+    Const PROC = "HskpngObsolete"
     
     On Error GoTo eh
     Dim v   As Variant
     Dim wbk As Workbook
-    Dim dctHosted   As Dictionary
     
     mBasic.BoP ErrSrc(PROC)
-    Set dctHosted = CommComps.Hosted(h_hosted)
     Set wbk = Services.Serviced
     For Each v In PP.Components
         If HskpngSectionIsInvalid(v, wbk) Then
@@ -283,8 +328,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub ComponentRemove(ByVal r_comp_name As String)
-    PP.ComponentRemove r_comp_name
+Public Sub Reorg()
+    PP.Reorg
 End Sub
 
 Public Function RevisionNumberInitial() As String
@@ -294,7 +339,3 @@ Public Function RevisionNumberInitial() As String
     RevisionNumberInitial = Format(Now(), "YYYY-MM-DD") & ".001"
 End Function
 
-Private Sub Class_Terminate()
-    Set fso = Nothing
-    Set PP = Nothing
-End Sub

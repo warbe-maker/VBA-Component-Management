@@ -121,12 +121,12 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     End With
     
     mBasic.BoP ErrSrc(PROC)
-    Services.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, u_wbk_serviced
-    CommComps.Hskpng u_hosted
-    CompManDat.Hskpng u_hosted
-    Set CommComps.Qoutdated = Nothing
+    Services.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, u_wbk_serviced, u_hosted
+    CommComps.Hosted = u_hosted
+    CompManDat.Hosted = u_hosted
+    Set Qoutdated = Nothing
     
-    CommComps.OutdatedUpdate ' Dialog to update/renew one by one
+    mCommComps.OutdatedUpdate ' Dialog to update/renew one by one
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -177,12 +177,9 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     End With
         
     mBasic.BoP ErrSrc(PROC)
-    Services.Initiate mCompManClient.SRVC_EXPORT_CHANGED, e_wbk_serviced
+    Services.Initiate mCompManClient.SRVC_EXPORT_CHANGED, e_wbk_serviced, e_hosted
     If Services.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
-    
-    CommComps.Hskpng e_hosted
-    CompManDat.Hskpng e_hosted
-    
+        
     Services.ExportChangedComponents e_hosted
     ExportChangedComponents = True
     ExportChangedComponents = Application.StatusBar
@@ -281,7 +278,7 @@ Public Sub SynchronizeVBProjects(ByVal sync_wbk_opened As Workbook)
     End With
     
     mBasic.BoP ErrSrc(PROC)
-    Services.Initiate mCompManClient.SRVC_SYNCHRONIZE, sync_wbk_opened
+    Services.Initiate mCompManClient.SRVC_SYNCHRONIZE, sync_wbk_opened, vbNullString
     
     If mSync.SourceExists(sync_wbk_opened) Then
         '~~ - Keep records of the full name of all three Workbooks involved in this synchronization
@@ -303,6 +300,22 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Public Function CommCompRegStateEnum(ByVal s As String) As enCommCompRegState
+    Select Case s
+        Case "hosted":  CommCompRegStateEnum = enRegStateHosted
+        Case "used":    CommCompRegStateEnum = mComp.enRegStateUsed
+        Case "private": CommCompRegStateEnum = mComp.enRegStatePrivate
+    End Select
+End Function
+
+Public Function CommCompRegStateString(ByVal en As enCommCompRegState) As String
+    Select Case en
+        Case enRegStateHosted:  CommCompRegStateString = "hosted"
+        Case enRegStateUsed:    CommCompRegStateString = "used"
+        Case enRegStatePrivate: CommCompRegStateString = "private"
+    End Select
+End Function
 
 
 Public Function WbkGetOpen(ByVal go_wbk_full_name As String) As Workbook
