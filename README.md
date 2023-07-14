@@ -1,9 +1,6 @@
 ## Component Management Services focusing on Excel VB-Projects
-- **Export** any _Component_ the code has changed (automated with the Workbook_BeforeSave_ event)
-- **Update** outdated _Used&nbsp;[Common Components](#common-components)_
-- **Synchronize** the VB-Project of two Workbooks
- 
-Also see the [Programmatically updating Excel VBA code][2] post for this subject.
+
+> The services **Export** (any _Component_ the code has changed), **Update** (any outdated _Used&nbsp;[Common Components](#common-components)_), and **Synchronize** (the VB-Project of two Workbooks) only requires one component installed/imported with a single code line for each service, anyway guaranteeing that a productive Workbook is not bothered by these services at all.
 
 ## Disambiguation
 
