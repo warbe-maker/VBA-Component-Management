@@ -83,7 +83,7 @@ Friend Property Let Value(Optional ByVal pp_section As String, _
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    Debug.Print "Write " & pp_value_name & "=" & pp_value & " into:" & sFullName
+'    Debug.Print "Write Value-Name: " & pp_value_name & " = Value: " & pp_value & " into Priv-Prof-File: " & sFullName
     mFso.PPvalue(pp_file:=sFullName _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _

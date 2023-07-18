@@ -1,6 +1,20 @@
 Attribute VB_Name = "mCommComps"
 Option Explicit
-
+' ------------------------------------------------------------------------
+' Standard-Module mCommComps: Services for Common Components.
+' ======================
+'
+' Public services:
+' ----------------
+' OutdatedUpdate Collects all used outdated Common Components when called
+'                for the first time and displays the first one queued in
+'                Qoutdated. The service is re-called until the queue is
+'                empty. The display of the update choices is a mode-less
+'                dialog which calls sub-services in accordance with the
+'                button pressed.
+'
+' W. Rauschenberger, Berlin Jul 18 2023
+' ------------------------------------------------------------------------
 Public Qoutdated                                As clsQ
 
 Private BttnUpdate                              As String
@@ -371,11 +385,13 @@ Private Sub OutdatedUpdateCollect()
     Const PROC = "OutdatedUpdateCollect"
     
     On Error GoTo eh
-    Dim Comp        As clsComp
-    Dim wbk         As Workbook
-    Dim dct         As Dictionary
-    Dim v           As Variant
-    Dim sName       As String
+    Dim Comp            As clsComp
+    Dim wbk             As Workbook
+    Dim dct             As Dictionary
+    Dim v               As Variant
+    Dim sName           As String
+    Dim bDiscontinue    As Boolean
+    Dim bOutdated       As Boolean
     
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.Serviced
@@ -387,7 +403,12 @@ Private Sub OutdatedUpdateCollect()
         With Comp
             Services.ServicedItem = .VBComp
             If (.KindOfComp = enCommCompHosted Or .KindOfComp = enCommCompUsed) Then
-                If .Outdated Then
+                bOutdated = .Outdated(bDiscontinue)
+                If bDiscontinue Then
+                    Services.DsplyProgress " !!! collecting outdated Common Components discontinued!!"
+                    GoTo xt
+                End If
+                If bOutdated Then
                     Qoutdated.EnQueue Comp
                     sName = .CompName
                     With Services
@@ -422,6 +443,4 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-
 

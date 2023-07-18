@@ -676,9 +676,8 @@ End Sub
 Public Sub SaveToCommonComponentsFolder(ByVal s_comp_name As String, _
                                         ByVal s_file As File)
 ' ------------------------------------------------------------------------------
-' Save a copy of the hosted raw`s (s_comp_name) export file to the Common
-' Components folder which serves as source for the update of Common Components
-' used in other VB-Projects.
+' Save a copy of a modified Common Component's (s_comp_name) export file (s_file)
+' to the Common-Components folder and register the last modified Export-File.
 ' ------------------------------------------------------------------------------
     Const PROC  As String = "SaveToCommonComponentsFolder"
         
@@ -686,9 +685,10 @@ Public Sub SaveToCommonComponentsFolder(ByVal s_comp_name As String, _
     LastModExpFile(s_comp_name) = s_file
     '~~ When the Export file has a .frm extension the .frx file needs to be copied too
     With fso
+        .CopyFile s_file, sFolderPath & "\" & .GetFileName(s_file)
         If .GetExtensionName(s_file.Name) = "frm" Then
             '~~ when the save export file is a UserForm, also save the frx-file
-            LastModExpFile(s_comp_name) = .GetFile(Replace(s_file.Path, "frm", "frx"))
+            .CopyFile Replace(s_file, "frm", "frx"), sFolderPath & "\" & .GetBaseName(s_file) & ".frx"
         End If
     End With
     
