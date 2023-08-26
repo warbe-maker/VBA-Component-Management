@@ -71,6 +71,7 @@ Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
     Dim Msg             As mMsg.TypeMsg
     Dim sDueSyncs       As String
     
+    mCompManClient.Events ErrSrc(PROC), False
     mBasic.BoP ErrSrc(PROC)
     mSyncRefs.Collect c_wbk_source, c_wbk_target
     Bttn1 = "Perform all Reference synchronization actions" & vbLf & "listed above"
@@ -116,10 +117,10 @@ Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
             .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
         End With
         
-        Application.EnableEvents = True
         '~~ Display the mode-less dialog for the Names synchronization to run
         mMsg.Dsply dsply_title:=TITLE_SYNC_REFS _
                  , dsply_msg:=Msg _
+                 , dsply_label_spec:="R70" _
                  , dsply_buttons:=cllButtons _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
@@ -129,6 +130,7 @@ Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
     End If
 
 xt: mBasic.EoP ErrSrc(PROC)
+    mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

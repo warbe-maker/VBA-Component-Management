@@ -494,6 +494,7 @@ Public Sub FlipStages(ByVal fs_cell As Range, _
     Dim celLast     As Range
     Dim bEvents     As Boolean
     
+    Application.EnableEvents = False
     If fs_cell.Cells.Count <> 1 _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided range is not a single cell!"
     Set wsh = fs_cell.Parent
@@ -532,14 +533,13 @@ Public Sub FlipStages(ByVal fs_cell As Range, _
     End If
     
     '~~ De-Select in order to allow a subsequent stage flip
-    bEvents = Application.EnableEvents
-    Application.EnableEvents = False
     If fs_select_next Is Nothing Then
         Set celLast = wsh.Cells.SpecialCells(xlCellTypeLastCell)
         celLast.Offset(1, 1).Select
     ElseIf TypeOf fs_select_next Is Range Then
         fs_select_next.Select
     End If
+    
     Application.EnableEvents = bEvents
     
 End Sub

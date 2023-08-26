@@ -5,11 +5,10 @@ Option Explicit
 ' ======================= likely to be required in any VB-Project, optionally
 ' just being copied.
 '
-' Note: All services run completely autonomous, i.e. do not require any other
-'       installed module. However, when the Common VBA Message Services
-'       (fMsg/mMsg) and or the Common VBA Error Services (mErH) are installed
-'       an error message is passed on to their corresponding procedure which
-'       provides a much better service.
+' Note: All provided services run completely autonomous, i.e. do not require
+'       any other installed module. However, when the Common VBA Message
+'       Services (fMsg/mMsg) is installed an error message is passed on to
+'       their corresponding procedure which provides a much better service.
 '
 ' Public Procedures, Functions, Services:
 ' ---------------------------------------
@@ -70,7 +69,7 @@ Option Explicit
 ' Microsoft Scripting Runtime
 ' Microsoft Visual Basic Application Extensibility ..
 '
-' W. Rauschenberger, Berlin Jul 2023
+' W. Rauschenberger, Berlin Aug 2023
 ' See https://github.com/warbe-maker/VBA-Basics (with README servie)
 ' ----------------------------------------------------------------------------
 Public Const DCONCAT    As String = "||"    ' For concatenating and error with a general message (info) to the error description

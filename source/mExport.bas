@@ -63,14 +63,14 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                                 .Export
                                 With Services
                                     .NoOfItemsServiced = .NoOfItemsServiced + 1
-                                    .LogServicedEntry "Modified Common Component hosted: e x p o r t e d !"
-                                    .LogServicedEntry "Modified Common Component hosted: Revision Number increased from " & sRevNo & " to " & Comp.RevisionNumber
-                                    .LogServicedEntry "Modified Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
+                                    .ServicedItemLogEntry "Modified Common Component hosted: e x p o r t e d !"
+                                    .ServicedItemLogEntry "Modified Common Component hosted: Revision Number increased from " & sRevNo & " to " & Comp.RevisionNumber
+                                    .ServicedItemLogEntry "Modified Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
                                 End With
                             Else
                                 With Services
                                     .NoOfItemsIgnored = .NoOfItemsIgnored + 1
-                                    .LogServicedEntry "Unchanged Common Component hosted ignored"
+                                    .ServicedItemLogEntry "Unchanged Common Component hosted ignored"
                                 End With
                             End If
                     Case mCompMan.enCommCompUsed
@@ -80,14 +80,14 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                                 .Export
                                 With Services
                                     .NoOfItemsServiced = .NoOfItemsServiced + 1
-                                    .LogServicedEntry "Modified Common Component used: e x p o r t e d !"
-                                    .LogServicedEntry "Modified Common Component used: Revision Number increased from " & sRevNo & " to " & Comp.RevisionNumber
-                                    .LogServicedEntry "Modified Common Component used: Export-File copied to " & wsConfig.FolderCommonComponentsPath
+                                    .ServicedItemLogEntry "Modified Common Component used: e x p o r t e d !"
+                                    .ServicedItemLogEntry "Modified Common Component used: Revision Number increased from " & sRevNo & " to " & Comp.RevisionNumber
+                                    .ServicedItemLogEntry "Modified Common Component used: Export-File copied to " & wsConfig.FolderCommonComponentsPath
                                 End With
                             Else
                                 With Services
                                     .NoOfItemsIgnored = .NoOfItemsIgnored + 1
-                                    .LogServicedEntry "Unchanged Common Component used"
+                                    .ServicedItemLogEntry "Unchanged Common Component used"
                                 End With
                             End If
                                             
@@ -98,12 +98,12 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                             With Services
                                 .NoOfItemsServiced = .NoOfItemsServiced + 1
                                 .NoOfItemsServicedNames = vbc.Name
-                                .LogServicedEntry "Modified VBComponent e x p o r t e d !"
+                                .ServicedItemLogEntry "Modified VBComponent e x p o r t e d !"
                             End With
                         Else
                             With Services
                                 .NoOfItemsIgnored = .NoOfItemsIgnored + 1
-                                .LogServicedEntry "Unchanged VBComponent ignored"
+                                .ServicedItemLogEntry "Unchanged VBComponent ignored"
                             End With
                         End If
                 End Select

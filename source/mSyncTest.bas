@@ -98,7 +98,7 @@ Private Sub Test_EnvironmentCleanup()
         End If
     End With
     
-    Application.EnableEvents = False
+    mCompManClient.Events ErrSrc(PROC), False
     On Error Resume Next
     mSync.TargetWorkingCopy.Close False
     mSync.source.Close False
@@ -108,11 +108,11 @@ Private Sub Test_EnvironmentCleanup()
     Set shpTarget = Nothing
     Set oobSource = Nothing
     Set oobTarget = Nothing
-    Application.EnableEvents = True
     
     Set fso = Nothing
     
-xt: Exit Sub
+xt: mCompManClient.Events ErrSrc(PROC), True
+    Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -127,9 +127,8 @@ Private Sub Test_EnvironmentProvide()
     Test_EnvironmentCleanup
     
     On Error GoTo eh
-    Application.EnableEvents = False
+    mCompManClient.Events ErrSrc(PROC), False
     mSync.TargetWorkingCopy = mWbk.GetOpen(TestSyncTargetFullName)
-    Application.EnableEvents = True
 '    mSync.Source = mSync.Target
     If wshSource Is Nothing Then Set wshSource = mSync.source.Worksheets(TEST_SHEET_SOURCE)
     If wshTarget Is Nothing Then Set wshTarget = mSync.TargetWorkingCopy.Worksheets(TEST_SHEET_TARGET)
@@ -138,7 +137,8 @@ Private Sub Test_EnvironmentProvide()
     If oobSource Is Nothing Then Set oobSource = wshSource.OLEObjects(TEST_OOB_SOURCE)
     If oobTarget Is Nothing Then Set oobTarget = wshTarget.OLEObjects(TEST_OOB_TARGET)
     
-xt: Exit Sub
+xt: mCompManClient.Events ErrSrc(PROC), True
+    Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

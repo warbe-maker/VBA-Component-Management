@@ -690,20 +690,26 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Private Sub Worksheet_Activate()
+    Const PROC = "Worksheet_Activate"
+    
     Dim Rng As Range
-    Application.EnableEvents = False
+    
+    mCompManClient.Events ErrSrc(PROC), False
     Set Rng = Intersect(Me.Range("rwsTestData").EntireRow, Me.UsedRange, Me.Range("colsTestData").EntireColumn)
     On Error Resume Next
     Rng.EntireRow.RowHeight = 11
     Rng.Select
-    Application.EnableEvents = True
+    mCompManClient.Events ErrSrc(PROC), True
 End Sub
 
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    Const PROC = "Worksheet_SelectionChange"
+    
     Dim celCurrent As Range
     
-    If Target.Cells.CountLarge > 1 Then Exit Sub
-    Application.EnableEvents = False
+    mCompManClient.Events ErrSrc(PROC), False
+    If Target.Cells.CountLarge > 1 Then GoTo xt
+    
     Application.ScreenUpdating = False
     Select Case True
         Case Not Intersect(Target, Me.Range("colItemActive").EntireColumn) Is Nothing
@@ -715,7 +721,8 @@ Private Sub Worksheet_SelectionChange(ByVal Target As Range)
             FlipState Target
             celCurrent.Select
     End Select
-    Application.EnableEvents = True
+
+xt: mCompManClient.Events ErrSrc(PROC), True
 
 End Sub
 

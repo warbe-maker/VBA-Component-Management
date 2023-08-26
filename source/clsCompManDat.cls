@@ -126,6 +126,14 @@ Friend Property Let RecentlyUsedExportFolder(ByVal s As String)
     End With
 End Property
 
+Friend Property Get RegStateString(Optional ByVal comp_name As String) As String
+    Select Case RegistrationState(comp_name)
+        Case enRegStateHosted:  RegStateString = "hosted"
+        Case enRegStatePrivate: RegStateString = "private"
+        Case enRegStateUsed:    RegStateString = "used"
+    End Select
+End Property
+
 Friend Property Get RegistrationState(Optional ByVal comp_name As String) As enCommCompRegState
     RegistrationState = CompRegState(comp_name)
 End Property

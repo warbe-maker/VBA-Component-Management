@@ -1611,6 +1611,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
     Dim sDueSyncs       As String
     Dim bTerminated     As Boolean
     
+    mCompManClient.Events ErrSrc(PROC), False
     mBasic.BoP ErrSrc(PROC)
     Set fSync = mMsg.MsgInstance(TITLE_SYNC_NAMES)
     mSync.MonitorStep "Synchronizing Names"
@@ -1691,10 +1692,10 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
             .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
         End With
         
-        Application.EnableEvents = True
         '~~ Display the mode-less dialog for the Names synchronization to run
         mMsg.Dsply dsply_title:=TITLE_SYNC_NAMES _
                  , dsply_msg:=Msg _
+                 , dsply_label_spec:="R70" _
                  , dsply_buttons:=cllButtons _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
@@ -1704,6 +1705,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
     End If
      
 xt: mBasic.EoP ErrSrc(PROC)
+    mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

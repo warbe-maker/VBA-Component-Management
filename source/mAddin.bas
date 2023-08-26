@@ -181,10 +181,12 @@ Public Function Set_IsAddin_ToFalse() As Boolean
 End Function
 
 Public Function WbkClose(Optional ByRef wc_err_desc As String) As Boolean
+    Const PROC = "WbkClose"
+    
     Dim wbk As Workbook
     
+    mCompManClient.Events ErrSrc(PROC), False
     If mAddin.IsOpen(wbk) Then
-        Application.EnableEvents = False
         On Error Resume Next
         wbk.Close False
         If Err.Number <> 0 Then
@@ -195,7 +197,7 @@ Public Function WbkClose(Optional ByRef wc_err_desc As String) As Boolean
     End If
     WbkClose = True ' not open, already closed
 
-xt: Application.EnableEvents = True
+xt: mCompManClient.Events ErrSrc(PROC), True
     Exit Function
 
 End Function

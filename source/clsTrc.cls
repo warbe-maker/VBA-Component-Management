@@ -64,7 +64,7 @@ Option Explicit
 ' ---------
 ' Reference to 'Microsoft Scripting Runtime'
 '
-' W. Rauschenberger, Berlin, June 2023
+' W. Rauschenberger, Berlin, Aug 2023
 ' See: https://github.com/warbe-maker/VBA-Trace
 ' ----------------------------------------------------------------------------
 Private Const GITHUB_REPO_URL   As String = "https://github.com/warbe-maker/VBA-Trace"
@@ -272,7 +272,7 @@ End Property
 
 Friend Property Get LogSuspended() As Boolean:              LogSuspended = bLogToFileSuspended:             End Property
 
-Friend Property Let LogSuspended(ByVal B As Boolean):       bLogToFileSuspended = B:                        End Property
+Friend Property Let LogSuspended(ByVal b As Boolean):       bLogToFileSuspended = b:                        End Property
 
 Private Property Let NtryItm(Optional ByVal t_entry As Collection, ByVal v As Variant)
     t_entry.Add v, "I"

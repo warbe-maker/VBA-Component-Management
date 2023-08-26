@@ -25,6 +25,36 @@ Public Const SRVC_UPDATE_OUTDATED_DSPLY As String = "Update Outdated Common Comp
 Private Const COMPMAN_ADDIN             As String = "CompMan.xlam"
 Private Const vbResume                  As Long = 6 ' return value (equates to vbYes)
 Private Busy                            As Boolean ' prevent parallel execution of a service
+Private sEventsLvl                      As String
+Private bWbkExecChange                  As Boolean
+
+Public Sub Events(ByVal e_src As String, _
+                  ByVal e_b As Boolean, _
+         Optional ByVal e_reset As Boolean = False)
+' ------------------------------------------------------------------------------
+' Follow-Up (trace) of Application.EnableEvents False/True - proves consistency.
+' Recognizes the execution chang from the initiating Workbook to the service
+' executing Workbook.
+' ------------------------------------------------------------------------------
+    If e_reset Then
+        sEventsLvl = vbNullString
+        bWbkExecChange = False
+    End If
+    If Not e_b Then
+        Application.EnableEvents = False
+        If ThisWorkbook.Name = "CompMan.xlam" And Not bWbkExecChange Then
+            bWbkExecChange = True
+            sEventsLvl = sEventsLvl & "   "
+        End If
+        Debug.Print sEventsLvl & ">> " & ThisWorkbook.Name & "." & e_src & " Application.EnableEvents = False"
+        sEventsLvl = sEventsLvl & "   "
+    Else
+        sEventsLvl = Left(sEventsLvl, Len(sEventsLvl) - 3)
+        Application.EnableEvents = True
+        Debug.Print sEventsLvl & "<< " & ThisWorkbook.Name & "." & e_src & " Application.EnableEvents = True"
+    End If
+
+End Sub
 
 Private Property Let DisplayedServiceStatus(ByVal s As String)
     With Application
@@ -65,7 +95,9 @@ Public Sub CompManService(ByVal cms_name As String, _
     
     On Error GoTo eh
     Dim sWbkServicingName   As String
-    
+        
+    sEventsLvl = vbNullString
+    mCompManClient.Events ErrSrc(PROC), False
     If IsAddinInstance Then
         Application.StatusBar = "None of CompMan's services is applicable for CompMan's Add-in instance!"
         GoTo xt
@@ -87,14 +119,17 @@ Public Sub CompManService(ByVal cms_name As String, _
         Else Application.Run sWbkServicingName & "!mCompMan." & cms_name, ThisWorkbook, cms_hosted_common_components
     End If
     If Not ThisWorkbook.Saved Then
-        Application.DisplayAlerts = False
-        Application.EnableEvents = False
-        ThisWorkbook.Save
-        Application.DisplayAlerts = True
+        With Application
+            .DisplayAlerts = False
+            .EnableEvents = False
+            ThisWorkbook.Save
+            .DisplayAlerts = True
+            .EnableEvents = True
+        End With
     End If
     
 xt: Busy = False
-    Application.EnableEvents = True
+    mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 
 eh: Select Case ErrMsg(ErrSrc(PROC))

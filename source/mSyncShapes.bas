@@ -1030,6 +1030,7 @@ Public Sub SyncKind()
     '~~ Display the mode-less dialog for the confirmation which Sheet synchronization to run
     mMsg.Dsply dsply_title:=TITLE_SYNC_SHAPES _
              , dsply_msg:=Msg _
+             , dsply_label_spec:="R70" _
              , dsply_buttons:=cllButtons _
              , dsply_modeless:=True _
              , dsply_buttons_app_run:=AppRunArgs _

@@ -23,7 +23,7 @@ Option Explicit
 ' - FilesDifference         ...
 ' - Initiate                ...
 ' - IsRenamedByCompMan      ...
-' - LogServicedEntry        ...
+' - ServicedItemLogEntry    ...
 ' - LogServicingEntry       ...
 ' - MessageUnload           ...
 ' - Progress                ...
@@ -634,6 +634,7 @@ Public Sub Initiate(ByVal i_service As String, _
     Set Comps = Nothing
     Set Comps = New clsComps ' initialization collect the VB-Component relevant for the current service
     
+    '~~ The log-file for the serviced Workbook
     If LogServiced Is Nothing Then Set LogServiced = New clsLog
     With LogServiced
         .KeepDays = 2 ' a new log-file is created after 48 hours
@@ -645,12 +646,15 @@ Public Sub Initiate(ByVal i_service As String, _
         wsService.CurrentServiceLogFileFullName = .FileFullName
     End With
     
+    '~~ The log-file for the servicing Workbook
     If LogServicing Is Nothing Then Set LogServicing = New clsLog
     With LogServicing
         .WithTimeStamp
         .KeepDays = 10
         .FileFullName = ThisWorkbook.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".ServicesSummary.log"
-        .NewLog False ' suppresses delimiter line
+        .NewLog True ' suppresses delimiter line
+        .MaxItemLengths Comps.MaxLenServicedType, Comps.MaxLenServicedItem
+        .AlignmentItems "|L|L.:|L|"
         sLogFileServiceSummary = .FileName
     End With
     
@@ -667,6 +671,7 @@ Public Sub Initiate(ByVal i_service As String, _
     End Select
     
     LogServiced.Title CurrentServiceStatusBar
+    LogServicing.Title CurrentServiceStatusBar
     DsplyStatus vbNullString
 
 xt: mBasic.EoP ErrSrc(PROC)
@@ -686,7 +691,7 @@ Public Function IsRenamedByCompMan(ByVal comp_name As String) As Boolean
     IsRenamedByCompMan = InStr(comp_name, RENAMED_BY_COMPMAN) <> 0
 End Function
 
-Public Sub LogServicedEntry(ByVal l_s As String)
+Public Sub ServicedItemLogEntry(ByVal l_s As String)
 ' ----------------------------------------------------------------------------
 ' Writes an entry to the Services.log file by means of clsLog services.
 ' Supresses repetition of already loged items.
@@ -694,29 +699,15 @@ Public Sub LogServicedEntry(ByVal l_s As String)
     With LogServicing
         If sServicedItemName = sServicedItemLoged Then
             .Entry " ", " ", l_s
+            LogServiced.Entry " ", " ", l_s
         Else
             .Entry sServicedItemType, sServicedItemName, l_s
+            LogServiced.Entry sServicedItemType, sServicedItemName, l_s
             sServicedItemLoged = sServicedItemName
         End If
     End With
+        
 End Sub
-
-Public Sub LogServicingEntry(ByVal l_s As String)
-' ----------------------------------------------------------------------------
-' Writes an entry to the Services.log file by means of clsLog services.
-' Supresses repetition of already loged items.
-' ----------------------------------------------------------------------------
-    With LogServicing
-        If sServicedItemName = sServicedItemLoged Then
-            .Entry " ", " ", l_s
-        Else
-            .Entry sServicedItemType, sServicedItemName, l_s
-            sServicedItemLoged = sServicedItemName
-        End If
-    End With
-End Sub
-
-
 
 Public Sub LogEntrySummary(ByVal s As String)
     CompMan.LogServicing.Entry s, "  (see " & sLogFileService & " for log details)"

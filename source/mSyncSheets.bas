@@ -71,8 +71,8 @@ Public Property Get KnownChanged(Optional ByVal nk_id As String) As Boolean
 End Property
 
 Public Property Let KnownChanged(Optional ByVal nk_id As String, _
-                                               ByVal B As Boolean)
-    If B Then mSync.CollectKnown dctKnownChanged, nk_id
+                                               ByVal b As Boolean)
+    If b Then mSync.CollectKnown dctKnownChanged, nk_id
 End Property
 
 Private Property Get KnownInSync(Optional ByVal is_id As String) As Boolean
@@ -81,8 +81,8 @@ Private Property Get KnownInSync(Optional ByVal is_id As String) As Boolean
 End Property
 
 Private Property Let KnownInSync(Optional ByVal is_id As String, _
-                                                 ByVal B As Boolean)
-    If B Then mSync.CollectKnown dctKnownInSync, is_id
+                                                 ByVal b As Boolean)
+    If b Then mSync.CollectKnown dctKnownInSync, is_id
 End Property
 
 Public Property Get KnownNew(Optional ByVal nk_id As String) As Boolean
@@ -91,8 +91,8 @@ Public Property Get KnownNew(Optional ByVal nk_id As String) As Boolean
 End Property
 
 Public Property Let KnownNew(Optional ByVal nk_id As String, _
-                                          ByVal B As Boolean)
-    If B Then mSync.CollectKnown dctKnownNew, nk_id
+                                          ByVal b As Boolean)
+    If b Then mSync.CollectKnown dctKnownNew, nk_id
 End Property
 
 Public Property Get KnownObsolete(Optional ByVal nk_id As String) As Boolean
@@ -101,8 +101,8 @@ Public Property Get KnownObsolete(Optional ByVal nk_id As String) As Boolean
 End Property
 
 Public Property Let KnownObsolete(Optional ByVal nk_id As String, _
-                                               ByVal B As Boolean)
-    If B Then mSync.CollectKnown dctKnownObsolete, nk_id
+                                               ByVal b As Boolean)
+    If b Then mSync.CollectKnown dctKnownObsolete, nk_id
 End Property
 
 Public Property Get KnownOwnedByPrjct(Optional ByVal nk_id As String) As Boolean
@@ -111,8 +111,8 @@ Public Property Get KnownOwnedByPrjct(Optional ByVal nk_id As String) As Boolean
 End Property
 
 Public Property Let KnownOwnedByPrjct(Optional ByVal nk_id As String, _
-                                               ByVal B As Boolean)
-    If B Then mSync.CollectKnown dctKnownOwnedByPrjct, nk_id
+                                               ByVal b As Boolean)
+    If b Then mSync.CollectKnown dctKnownOwnedByPrjct, nk_id
 End Property
 
 Public Sub AppRunSyncAll()
@@ -896,6 +896,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
     Dim bDueChanged     As Boolean
     Dim bDueObP         As Boolean
     
+    mCompManClient.Events ErrSrc(PROC), False
     mBasic.BoP ErrSrc(PROC)
     Set fSync = mMsg.MsgInstance(TITLE_SYNC_SHEETS)
     mSync.MonitorStep "Synchronizing Worksheets"
@@ -975,10 +976,10 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
             .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
         End With
         
-        Application.EnableEvents = True
         '~~ Display the mode-less dialog for the Names synchronization to run
         mMsg.Dsply dsply_title:=TITLE_SYNC_SHEETS _
                  , dsply_msg:=Msg _
+                 , dsply_label_spec:="R70" _
                  , dsply_buttons:=cllButtons _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
@@ -988,6 +989,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
     End If
       
 xt: mBasic.EoP ErrSrc(PROC)
+    mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

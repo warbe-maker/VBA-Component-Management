@@ -53,9 +53,9 @@ Public Sub ByCodeReplace(ByVal b_source_comp As clsComp, _
     With b_target_comp
         Select Case .KindOfComp
             Case enCommCompHosted
-                Services.LogServicedEntry "Outdated Common Component hosted updated by code replace"
+                Services.ServicedItemLogEntry "Outdated Common Component hosted updated by code replace"
             Case enCommCompUsed
-                Services.LogServicedEntry "Outdated Common Component used updated by code replace"
+                Services.ServicedItemLogEntry "Outdated Common Component used updated by code replace"
         End Select
     End With
     

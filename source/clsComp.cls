@@ -173,10 +173,6 @@ Friend Property Get CodeName(Optional ByVal scn_name As String) As String
     
 End Property
 
-Friend Property Get IsCommComp() As Boolean:        IsCommComp = bIsCommComp:   End Property
-
-Friend Property Let IsCommComp(ByVal b As Boolean): bIsCommComp = b:            End Property
-
 Friend Property Get CompName() As String:           CompName = sCompName:       End Property
 
 Friend Property Let CompName(ByVal s As String)
@@ -229,24 +225,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Property
-
-Private Function Exists(ByVal x_wbk As Workbook, _
-              Optional ByRef x_vbc As VBComponent) As Boolean
-    Dim v As VBComponent
-    If Not x_wbk Is Nothing Then
-        On Error Resume Next
-        Set v = x_wbk.VBProject.VBComponents(sCompName)
-        Exists = Not v Is Nothing
-    ElseIf vbc Is Nothing Then
-        On Error Resume Next
-        Set vbc = wbk.VBProject.VBComponents(sCompName)
-        Exists = Not vbc Is Nothing
-    Else
-        Exists = Not vbc Is Nothing
-    End If
-    If Exists Then Set x_vbc = wbk.VBProject.VBComponents(sCompName)
-    
-End Function
 
 Friend Property Get ExistsBySheetName(Optional ByVal eb_name As String) As Boolean
     Dim wsh As Worksheet
@@ -365,6 +343,10 @@ End Property
 '                                            , f_file_2:=Me.ExpFileTemp)
 'End Property
 
+Friend Property Get IsCommComp() As Boolean:        IsCommComp = bIsCommComp:   End Property
+
+Friend Property Let IsCommComp(ByVal b As Boolean): bIsCommComp = b:            End Property
+
 Friend Property Get IsWrkbk() As Boolean
     
     Dim bSigned As Boolean
@@ -433,63 +415,135 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
 ' the corresponding Raw Common Component's code has changed.
 ' ------------------------------------------------------------------------------
     Const PROC = "Outdated"
+    Const BTTN_RESET_REV_NO As String = "Reset the Revision Number" & vbLf & "of the used Common Component"
     
     On Error GoTo eh
     Dim sRevNoCommCompFolder    As String
     Dim bExpFilesDiffer         As Boolean
-    Dim Msg                     As TypeMsg
     Dim sRegStat                As String
+    Dim i                       As Long
+    
     mBasic.BoP ErrSrc(PROC)
     With Me
         sRevNoCommCompFolder = CommComps.RevisionNumber(.CompName)
         bExpFilesDiffer = Services.FilesDiffer(f_file_1:=.ExpFile _
                                              , f_file_2:=CommComps.LastModExpFile(.CompName) _
                                              , f_ignore_export_header:=True)
+        
+        mCompMan.MsgInit
+        i = 0
+        i = i + 1
+        With Msg.Section(i)
+            .Label.Text = "Attention!"
+            .Label.FontColor = rgbRed
+            .Label.FontBold = True
+        End With
+        
         Select Case True
-            Case .RevisionNumber < sRevNoCommCompFolder
+            Case .RevisionNumber <> vbNullString And .RevisionNumber < sRevNoCommCompFolder
                 If bExpFilesDiffer Then
                     Outdated = True
                 Else
-                    Err.Raise AppErr(1), ErrSrc(PROC), _
-                              "While the Export-File of the used Common Component is identical with the " & _
-                              "Export File in the Common-Components folder the Revision numbers differ! " & _
-                              "This is a severe logic error which requires further code inspection and testing."
+                    i = i + 1
+                    Msg.Section(i).Text.Text = _
+                        "While the Export-File of the used Common Component   " & _
+                        mBasic.Spaced(Me.CompName) & "   is identical with the " & _
+                        "Export File in the Common-Components folder the Revision " & _
+                        "numbers differ! This is a severe logic error which " & _
+                        "requires further investigation regarding the cause " & _
+                        "(code inspection and testing)."
+                    CommCompFacts i, .RevisionNumber, sRevNoCommCompFolder
+                    mMsg.Dsply dsply_title:="Severe inconsistent Common-Component facts!" _
+                             , dsply_msg:=Msg _
+                             , dsply_label_spec:="R100" _
+                             , dsply_width_min:=30 _
+                             , dsply_buttons:=vbOKOnly
+                    GoTo xt
                 End If
+            
             Case .RevisionNumber = sRevNoCommCompFolder
                 If bExpFilesDiffer Then
                     '~~ Servere logic error!
-                    Err.Raise AppErr(2), ErrSrc(PROC), _
-                              "While the Export-File of the used Common Component differs from the " & _
-                              "Export File in the Common-Components folder the Revision numbers are equal! " & _
-                              "This is a severe logic error which requires further code inspection and testing."
-                Else
+                    i = i + 1
+                    Msg.Section(i).Text.Text = _
+                        "While the Export-File of the of the " & CompManDat.RegStateString(Me.CompName) & _
+                        "Common Component   " & mBasic.Spaced(Me.CompName) & "   differs from the " & _
+                        "Export File in the Common-Components folder, the Revision numbers are equal." & vbLf & _
+                        "This is a severe logic error which requires further investigation regarding " & _
+                        "the cause (code inspection and testing)." & vbLf & _
+                        "See facts below."
+                    CommCompFacts i, .RevisionNumber, sRevNoCommCompFolder
+                    Do
+                        Select Case mMsg.Dsply(dsply_title:="Severe inconsistent Common-Component facts!" _
+                                             , dsply_msg:=Msg _
+                                             , dsply_label_spec:="R100" _
+                                             , dsply_width_min:=30 _
+                                             , dsply_buttons:=mMsg.Buttons(BTTN_DSPLY_DIFF, vbLf, vbOKOnly))
+                            Case vbOK: GoTo xt
+                            Case BTTN_DSPLY_DIFF
+                                 Services.ExpFilesDiffDisplay e_file_left_full_name:=Me.ExpFileFullName _
+                                , e_file_left_title:="Used Common Component's Export File: (" & Me.ExpFileFullName & ")" _
+                                , e_file_right_full_name:=CommComps.LastModExpFileFullName(Me.CompName) _
+                                , e_file_right_title:="Export File of Common Component in Comman Components folder (" & CommComps.LastModExpFileFullName(Me.CompName) & ")"
+                        End Select
+                    Loop
                 End If
             Case .RevisionNumber > sRevNoCommCompFolder
                 '~~ The Common-Components folder appears to be outdated
-                With Msg.Section(1)
-                    With .Text
-                        .Text = "Attention!" & vbLf & _
-                                "The ""Revision Number"" of the " & CompManDat.RegistrationState(Me.CompName) & _
-                                " Common Component   " & mBasic.Spaced(Me.CompName) & "   is greater than " & _
-                                "the ""Revision Number"" of the Export-File in the Common-Components folder. " & _
-                                "This means that the content of the Common-Components folder is outdated!!!"
-                        .FontColor = rgbRed
+                If bExpFilesDiffer Then
+                    With Msg
+                        i = i + 1
+                        .Section(i).Text.Text = _
+                            "The 'Revision Number' of the " & CompManDat.RegStateString(Me.CompName) & _
+                            " Common Component   " & mBasic.Spaced(Me.CompName) & "   is greater than " & _
+                            "the 'Revision Number' of the Common Component in the Common-Components folder " & _
+                            "and the Export-Files differ." & vbLf & _
+                            "The content of the Common-Components folder may be outdated!!!" & vbLf & _
+                            "The fact that the Export-Files differ will be ignored but this requires " & _
+                            "further investigation in order to identify the cause." & vbLf & _
+                            "See facts below."
+                        i = i + 1
+                        .Section(i).Text.Text = _
+                            "Any check for outdated Common Components will be discontinued!"
+                        o_discontinue = False
                     End With
+                    CommCompFacts i, .RevisionNumber, sRevNoCommCompFolder
+    
+                    Do
+                        Select Case mMsg.Dsply(dsply_title:="The Common-Components folder may be outdated!" _
+                                             , dsply_msg:=Msg _
+                                             , dsply_label_spec:="R100" _
+                                             , dsply_width_min:=30 _
+                                             , dsply_buttons:=mMsg.Buttons(BTTN_DSPLY_DIFF, vbLf, vbOKOnly))
+                            Case BTTN_DSPLY_DIFF
+                                 Services.ExpFilesDiffDisplay e_file_left_full_name:=Me.ExpFileFullName _
+                                , e_file_left_title:="Used Common Component's Export File: (" & Me.ExpFileFullName & ")" _
+                                , e_file_right_full_name:=CommComps.LastModExpFileFullName(Me.CompName) _
+                                , e_file_right_title:="Export File of Common Component in Comman Components folder (" & CommComps.LastModExpFileFullName(Me.CompName) & ")"
+                            Case vbOK: GoTo xt
+                        End Select
+                    Loop
+            Else
+                '~~ When the Export-Files are equal it will not do any harm when the
+                '~~ Revision-Number of the used Common Component is re-set to the
+                '~~ Revision-Numer of the Common Component in the Common Components folder.
+                .RevisionNumber = sRevNoCommCompFolder
+                With Services
+                    .ServicedItem = Me.VBComp
+                    .ServicedItemLogEntry "The Revision-Number has been re-set to " & sRevNoCommCompFolder
                 End With
-                Msg.Section(2).Text.Text = "Any check for outedated Common Components will be discontinued!"
-                o_discontinue = True
-                mMsg.Dsply dsply_title:="The Common-Components folder appears to be outdated!" _
-                         , dsply_msg:=Msg _
-                         , dsply_buttons:=vbOKOnly
                 GoTo xt
+            End If
+            
         End Select
+        
         If Not Outdated Then
             If .RevisionNumber <> sRevNoCommCompFolder Then
                 .RevisionNumber = sRevNoCommCompFolder
             End If
             With Services
                 .ServicedItem = Me.VBComp
-                .LogServicedEntry "Component is up-to-date! Revision-Number has been set to to " & sRevNoCommCompFolder & " (the raw's in the Common Components Folder)"
+                .ServicedItemLogEntry "Component is up-to-date! Revision-Number has been set to to " & sRevNoCommCompFolder & " (the raw's in the Common Components Folder)"
             End With
         End If
     End With
@@ -503,58 +557,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-'Private Property Get RawDiffers() As Boolean
-'' ----------------------------------------------------------------------------
-'' Returns TRUE when the Used Common Component's (ME's) corresponding Raw had
-'' changed which is indicated by Raw Revision Number greater than the current
-'' Revision Number of the Used Common Component.
-'' Note: When the Used Common Component had already been updated manually via
-''       the open Raw host Workbook - indicated by the fact that the Export
-''       Files are equal - only the Revison Number of the Used Common Component
-''       is updated and FALSE is returned.
-'' ------------------------------------------------------------------------------
-'    Const PROC = "RawDiffers"
-'
-'    On Error GoTo eh
-'    Dim bIgnoreExpFileHeader    As Boolean
-'    Dim sRevUsed                As String
-'    Dim sRevNoCommCompFolder                 As String
-'
-'    mBasic.BoP ErrSrc(PROC), Me.CompName
-'    sRevUsed = RevisionNumber
-'    sRevNoCommCompFolder = Raw.LastModRevisionNumber
-'    bIgnoreExpFileHeader = VBComp.Type = vbext_ct_MSForm
-'
-'    If Services.FilesDiffer(f_file_1:=Me.ExpFile _
-'                          , f_file_2:=Raw.LastModExpFile _
-'                          , f_ignore_export_header:=bIgnoreExpFileHeader) Then
-'        RawDiffers = True
-'        '~~ This should enforce the update choice dialog which will consider the
-'        '~~ Revision-Number difference.
-'    Else
-'        '~~ Because the 'used' Common Component is identical with its 'raw' version
-'        '~~ in the 'Common Component Folder' the 'used' must have been instantly updated
-'        '~~ after the change e.g. by dragging the component from the VB-Project it had
-'        '~~ been changed into the other Workbook. Thus, just the Revision Number
-'        '~~ needs to be set equal.
-'        If sRevUsed <> sRevNoCommCompFolder Then
-'            RevisionNumber = sRevNoCommCompFolder
-'            With Services
-'                .ServicedItem = Me.VBComp
-'                .LogServicedEntry "Component is up-to-date! Revision-Number has been set to to " & sRevNoCommCompFolder & " (the raw's in the Common Components Folder)"
-'            End With
-'        End If
-'    End If
-'
-'xt: mBasic.EoP ErrSrc(PROC), Me.CompName
-'    Exit Property
-'
-'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-'        Case vbResume:  Stop: Resume
-'        Case Else:      GoTo xt
-'    End Select
-'End Property
-
+                          
 Friend Property Get RevisionNumber() As String:             RevisionNumber = CompManDat.RevisionNumber(sCompName): End Property
 
 Friend Property Let RevisionNumber(ByVal s As String):      CompManDat.RevisionNumber(sCompName) = s:              End Property
@@ -665,8 +668,59 @@ Private Sub CleanUpTemps()
     
 End Sub
 
+Private Sub CommCompFacts(ByVal c_sect As Long, _
+                          ByVal c_rev_no_Used As String, _
+                          ByVal c_rev_no_raw As String)
+
+    With Msg
+        c_sect = c_sect + 1
+        With .Section(c_sect)
+            .Label.Text = c_rev_no_Used
+            .Label.FontColor = rgbBlack
+            .Label.FontBold = True
+            .Label.MonoSpaced = True
+            .Text.Text = "= Revision Number of the used Common Component."
+        End With
+        c_sect = c_sect + 1
+        With .Section(c_sect)
+            .Label.Text = c_rev_no_raw
+            .Label.FontColor = rgbBlack
+            .Label.FontBold = True
+            .Label.MonoSpaced = True
+            .Text.Text = "= Revision Number of the Common Component in the Common Components folder."
+        End With
+        c_sect = c_sect + 1
+        With .Section(c_sect)
+            .Label.Text = CommComps.LastModWbkName(Me.CompName)
+            .Label.FontColor = rgbBlack
+            .Label.FontBold = True
+            .Label.MonoSpaced = True
+            .Text.Text = "= Workbook which last modified the Common Component - and saved the Export-file to the Common components folder."
+        End With
+    End With
+                          
+End Sub
+
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsComp" & "." & sProc
+End Function
+
+Private Function Exists(ByVal x_wbk As Workbook, _
+              Optional ByRef x_vbc As VBComponent) As Boolean
+    Dim v As VBComponent
+    If Not x_wbk Is Nothing Then
+        On Error Resume Next
+        Set v = x_wbk.VBProject.VBComponents(sCompName)
+        Exists = Not v Is Nothing
+    ElseIf vbc Is Nothing Then
+        On Error Resume Next
+        Set vbc = wbk.VBProject.VBComponents(sCompName)
+        Exists = Not vbc Is Nothing
+    Else
+        Exists = Not vbc Is Nothing
+    End If
+    If Exists Then Set x_vbc = wbk.VBProject.VBComponents(sCompName)
+    
 End Function
 
 Public Sub Export()

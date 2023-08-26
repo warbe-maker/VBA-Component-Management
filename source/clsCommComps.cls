@@ -205,7 +205,7 @@ End Property
 
 Friend Property Get LastModWbkName(Optional ByVal comp_name As String) As String
     With PP
-        LastModWbkName = fso.GetFileName(.Value(pp_section:=comp_name, pp_value_name:=.Name(LAST_MOD_WBK_FULL_NAME)))
+        LastModWbkName = fso.GetFileName(LastModWbkFullName(comp_name))
     End With
 End Property
 
@@ -463,7 +463,7 @@ Private Sub HskpngSectionsMissing()
                         RevisionNumber(sCompName) = CompManDat.RevisionNumberInitial
                     Else
                         If LastModExpFileFullNameOrigin(sCompName) = vbNullString Then
-                            Debug.Print "The property ""LastModExpFileFullNameOrigin"" of component " & sCompName & " is not available, i.e. its origin is unknown or simply yet not registered respectively!"
+'                            Debug.Print "The property ""LastModExpFileFullNameOrigin"" of component " & sCompName & " is not available, i.e. its origin is unknown or simply yet not registered respectively!"
                         End If
                     End If
             End Select
@@ -561,63 +561,68 @@ Public Function InconsistencyWarning(ByVal i_file_full_name, _
     Const PROC = "InconsistencyWarning"
     
     On Error GoTo eh
-    Dim Msg                 As mMsg.TypeMsg
     Dim cllBttns            As Collection
-    Dim BttnDsply           As String
     Dim BttnSkip            As String
     Dim BttnExport          As String
     Dim BttnUpdate          As String
+    Dim i                   As Long
     
-    BttnDsply = "Display difference" & "(of Export-Files)"
     BttnSkip = BttnInconsistencySkip
     BttnExport = BttnInconsistencyExport
     BttnUpdate = BttnInconsistencyUpdate
     
-    Set cllBttns = mMsg.Buttons(BttnDsply, vbLf, BttnExport, BttnUpdate, vbLf, BttnSkip)
-    With Msg.Section(1)
-        With .Label
-            .Text = "Attention!"
-            .FontColor = rgbRed
+    Set cllBttns = mMsg.Buttons(BTTN_DSPLY_DIFF, vbLf, BttnExport, BttnUpdate, vbLf, BttnSkip)
+    mCompMan.MsgInit
+    i = 0
+    With Msg
+        i = i + 1
+        With .Section(i)
+            .Label.Text = "Attention!"
+            .Label.FontColor = rgbRed
         End With
-        With .Text
-            .Text = i_message
+        i = i + 1
+        With .Section(i)
+            With .Text.Text = i_message
+            End With
         End With
-    End With
-    With Msg.Section(2)
-        .Label.Text = Replace(Replace(BttnExport, vbLf, " "), "  ", " ")
-        .Label.FontColor = rgbBlue
-        .Text.Text = "According to the displayed differencies is the hosted version the one up-to-date. " & vbLf & _
-                     "It will be exported and copied to the ""Common-Components Folder"" and the 'Revision Number' will be increased."
-    End With
-    With Msg.Section(3)
-        .Label.Text = Replace(Replace(BttnUpdate, vbLf, " "), "  ", " ")
-        .Label.FontColor = rgbBlue
-        .Text.Text = "The hosted version will be updated with the ""Common-Components Folder"" version (by re-import) and " & _
-                     "the 'Revision-Number' of the hosted version will be set identical with the ""Common-Components Folder"" version"
-    End With
-    With Msg.Section(4)
-        .Label.Text = Replace(Replace(BttnSkip, vbLf, " "), "  ", " ")
-        .Label.FontColor = rgbBlue
-        .Text.Text = "Will be clarified later!& " & vbLf & _
-                     "Note: Each Workbook Safe will redisplay this message until either Export or Update is performed."
-    End With
-    With Msg.Section(5)
-        .Label.Text = "Background:"
-        .Label.FontColor = rgbBlue
-        .Text.Text = "When 'hosted Common Component' is modified within its hosting Workbook and exported, the " & _
-                     "'Export File' is copied to the ""Common-Components Folder"" and the 'Revision Number' is increased " & _
-                     "and set equal in the hosting Workbook's and the Common-Component Folder's ""CommComps.dat"" file. " & _
-                     "When a 'used Common Component is modified within the VB-Project just using (not hosting!) it, " & _
-                     "the 'Revision Number' only of this 'used Common Component' is increased. When by accident both " & _
-                     "had been modified the 'Revision Numbers' may be equal but the Export Files will differ."
+        i = i + 1
+        With .Section(i)
+            .Label.Text = Replace(Replace(BttnExport, vbLf, " "), "  ", " ")
+            .Text.Text = "According to the displayed differencies is the hosted version the one up-to-date. " & vbLf & _
+                         "It will be exported and copied to the ""Common-Components Folder"" and the 'Revision Number' will be increased."
+        End With
+        i = i + 1
+        With .Section(i)
+            .Label.Text = Replace(Replace(BttnUpdate, vbLf, " "), "  ", " ")
+            .Text.Text = "The hosted version will be updated with the ""Common-Components Folder"" version (by re-import) and " & _
+                         "the 'Revision-Number' of the hosted version will be set identical with the ""Common-Components Folder"" version"
+        End With
+        i = i + 1
+        With .Section(i)
+            .Label.Text = Replace(Replace(BttnSkip, vbLf, " "), "  ", " ")
+            .Text.Text = "Will be clarified later!& " & vbLf & _
+                         "Note: Each Workbook Safe will redisplay this message until either Export or Update is performed."
+        End With
+        i = i + 1
+        With .Section(i)
+            .Label.Text = "Background:"
+            .Text.Text = "When 'hosted Common Component' is modified within its hosting Workbook and exported, the " & _
+                         "'Export File' is copied to the ""Common-Components Folder"" and the 'Revision Number' is increased " & _
+                         "and set equal in the hosting Workbook's and the Common-Component Folder's ""CommComps.dat"" file. " & _
+                         "When a 'used Common Component is modified within the VB-Project just using (not hosting!) it, " & _
+                         "the 'Revision Number' only of this 'used Common Component' is increased. When by accident both " & _
+                         "had been modified the 'Revision Numbers' may be equal but the Export Files will differ."
+        End With
+        
     End With
         
     Do
         Select Case mMsg.Dsply(dsply_title:="Inconsistency warning for " & fso.GetBaseName(i_file_full_name) & "!" _
                              , dsply_msg:=Msg _
+                             , dsply_label_spec:="R70" _
                              , dsply_buttons:=cllBttns _
                               )
-            Case BttnDsply
+            Case BTTN_DSPLY_DIFF
                 Services.ExpFilesDiffDisplay e_file_left_full_name:=i_file_full_name _
                                            , e_file_left_title:="Raw Common Component's Export File: (" & i_file_full_name & ")" _
                                            , e_file_right_full_name:=i_file_full_name_saved _

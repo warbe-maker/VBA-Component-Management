@@ -227,9 +227,9 @@ Public Sub SelfSetupExportCompManClient()
                 With Services
                     .ServicedItem = vbc
                     .NoOfItemsServiced = .NoOfItemsServiced + 1
-                    .LogServicedEntry "Common Component hosted: initially exported by the ""self-setup"" process!"
-                    .LogServicedEntry "Common Component hosted: Revision Number initialized with " & Comp.RevisionNumber
-                    .LogServicedEntry "Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
+                    .ServicedItemLogEntry "Common Component hosted: initially exported by the ""self-setup"" process!"
+                    .ServicedItemLogEntry "Common Component hosted: Revision Number initialized with " & Comp.RevisionNumber
+                    .ServicedItemLogEntry "Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
                 End With
             End With
             Exit For

@@ -746,16 +746,17 @@ Public Function Verified() As Boolean
 End Function
 
 Private Sub Worksheet_Activate()
+    Const PROC = "Worksheet_Activate"
+    
     Dim b As Boolean
     
+    mCompManClient.Events ErrSrc(PROC), False
     If mMe.IsAddinInstnc Then GoTo xt
-    
     CurrentStatus
     Me.Verified
     With Application
         .ScreenUpdating = False
         .DisplayFormulaBar = False
-        .EnableEvents = False
     End With
     With ActiveWindow
         .DisplayHorizontalScrollBar = False
@@ -774,9 +775,9 @@ Private Sub Worksheet_Activate()
         End With
         If b Then .Protect
     End With
-    Application.EnableEvents = True
     
-xt: Exit Sub
+xt: mCompManClient.Events ErrSrc(PROC), True
+    Exit Sub
 
 End Sub
 

@@ -139,9 +139,9 @@ Private Sub HskpngValueNames()
         End If
     Next i
 
-    If Not bDone _
-    Then Debug.Print "All Value-Names housekeeping in " & sFullName & " done!" _
-    Else Debug.Print "Value-Names housekeeping in " & sFullName & " performed!"
+'    If Not bDone _
+'    Then Debug.Print "All Value-Names housekeeping in " & sFullName & " done!" _
+'    Else Debug.Print "Value-Names housekeeping in " & sFullName & " performed!"
 
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub

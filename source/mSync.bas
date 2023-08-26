@@ -949,6 +949,7 @@ Public Sub OpenDecision()
     '~~ Display the mode-less open decision dialog
     mMsg.Dsply dsply_title:=OpnDcsnMsgTitle _
              , dsply_msg:=MsgText _
+             , dsply_label_spec:="R70" _
              , dsply_buttons:=MsgButtons _
              , dsply_modeless:=True _
              , dsply_buttons_app_run:=AppRunArgs _
@@ -980,6 +981,8 @@ Private Sub OpnDcsnPreparationTarget()
 ' - The Sync-Source-Workbook will be closed and the Sync-Target-Workbook will be
 '   opened instead.
 ' ------------------------------------------------------------------------------
+    Const PROC = "OpnDcsnPreparationTarget"
+    
     Dim fso As New FileSystemObject
     
     mMsg.MsgInstance OpnDcsnMsgTitle, True ' Close/unload the mode-less open dialog
@@ -995,9 +998,9 @@ Private Sub OpnDcsnPreparationTarget()
             If .FileExists(wsService.SyncTargetFullNameCopy) _
             Then .DeleteFile wsService.SyncTargetFullNameCopy
         End With
-        Application.EnableEvents = False
+        mCompManClient.Events ErrSrc(PROC), False
         mSync.TargetOpen
-        Application.EnableEvents = True
+        mCompManClient.Events ErrSrc(PROC), True
         
     End If
 
@@ -1280,17 +1283,19 @@ Private Sub SourceClose()
 ' ------------------------------------------------------------------------------
 ' Closes an open Sync-Source-Workbook by considering still unsaved change.
 ' ------------------------------------------------------------------------------
+    Const PROC = "SourceClose"
+    
     Dim wbk As Workbook
     Dim sSourceFullName As String
     
     sSourceFullName = wsService.SyncSourceFullName
     If mWbk.IsOpen(sSourceFullName, wbk) Then
         If wbk.FullName = sSourceFullName Then
-            Application.EnableEvents = False
+            mCompManClient.Events ErrSrc(PROC), False
             If wbk.Saved _
             Then wbk.Close False _
             Else wbk.Close True
-            Application.EnableEvents = True
+            mCompManClient.Events ErrSrc(PROC), True
         End If
     End If
 
@@ -1349,6 +1354,7 @@ Public Function SourceExists(ByVal se_wbk_opened As Workbook) As Boolean
         End With
         mMsg.Dsply dsply_title:=MsgTitle _
                  , dsply_msg:=Msg _
+                 , dsply_label_spec:="R70" _
                  , dsply_buttons:=mMsg.Buttons("Terminate Synchronization") _
                  , dsply_width_min:=30
         wsService.SyncSourceFullName = vbNullString
@@ -1360,10 +1366,11 @@ Public Function SourceExists(ByVal se_wbk_opened As Workbook) As Boolean
 End Function
 
 Private Sub SourceOpen()
+    Const PROC = "SourceOpen"
     
-    Application.EnableEvents = False
+    mCompManClient.Events ErrSrc(PROC), False
     Set wbkSyncSource = mWbk.GetOpen(wsService.SyncSourceFullName)
-    Application.EnableEvents = True
+    mCompManClient.Events ErrSrc(PROC), True
 
 End Sub
 
@@ -1515,10 +1522,10 @@ Private Sub SyncAll()
             .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
         End With
         
-        Application.EnableEvents = True
         '~~ Display the mode-less dialog for the Names synchronization to run
         mMsg.Dsply dsply_title:=TITLE_SYNC_ALL _
                  , dsply_msg:=Msg _
+                 , dsply_label_spec:="R70" _
                  , dsply_buttons:=cllButtons _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
@@ -1527,7 +1534,8 @@ Private Sub SyncAll()
         DoEvents
     End If
         
-xt:  mBasic.EoP ErrSrc(PROC)
+xt: mBasic.EoP ErrSrc(PROC)
+    mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 
 eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -1666,6 +1674,8 @@ Private Sub TargetClose()
 ' ------------------------------------------------------------------------------
 ' Closes an open Sync-Target-Workbook by considering possible changes made.
 ' ------------------------------------------------------------------------------
+    Const PROC = "TargetClose"
+    
     Dim wbk                         As Workbook
     Dim Msg                         As TypeMsg
     Dim MsgTitle                    As String
@@ -1710,9 +1720,9 @@ Private Sub TargetClose()
                 Case BttnCloseBySavingChanges:  wbk.Close True
             End Select
         Else
-            Application.EnableEvents = False
+            mCompManClient.Events ErrSrc(PROC), False
             wbk.Close
-            Application.EnableEvents = True
+            mCompManClient.Events ErrSrc(PROC), True
         End If
     End If
 End Sub
@@ -1745,6 +1755,8 @@ Private Sub TargetWorkingCopyClose()
 ' Closes a still open Sync-Target-Workbook's working copy by considering
 ' possible synchronizations or manual changes made.
 ' ------------------------------------------------------------------------------
+    Const PROC = "TargetWorkingCopyClose"
+    
     Dim wbk                         As Workbook
     Dim Msg                         As TypeMsg
     Dim MsgTitle                    As String
@@ -1794,9 +1806,9 @@ Private Sub TargetWorkingCopyClose()
                 Case BttnCloseBySavingChanges:  wbk.Close True
             End Select
         Else
-            Application.EnableEvents = False
+            mCompManClient.Events ErrSrc(PROC), False
             wbk.Close
-            Application.EnableEvents = True
+            mCompManClient.Events ErrSrc(PROC), True
         End If
     End If
 End Sub
@@ -1857,6 +1869,8 @@ Private Sub TargetWorkingCopyOpen(Optional ByVal tco_new As Boolean = True, _
 ' when the ActiveWorkbook is a Sync-Target-Workbook's working copy the
 ' procedure ends without any action.
 ' ----------------------------------------------------------------------------
+    Const PROC = "TargetWorkingCopyOpen"
+    
     Dim fso         As New FileSystemObject
     Dim sTargetWorkingCopy As String
     Dim sTarget     As String
@@ -1864,6 +1878,7 @@ Private Sub TargetWorkingCopyOpen(Optional ByVal tco_new As Boolean = True, _
     
     sTarget = wsService.CurrentServicedWorkbookFullName
     sTargetWorkingCopy = wsService.SyncTargetFullNameCopy
+    mCompManClient.Events ErrSrc(PROC), False
     
     If tco_new Then
         '~~ Delete an already existing working copy
@@ -1874,19 +1889,16 @@ Private Sub TargetWorkingCopyOpen(Optional ByVal tco_new As Boolean = True, _
             fso.DeleteFile (sTargetWorkingCopy)
         End If
         ' Save the provided Workbook under the copy name and set it as the current working copy
-        Application.EnableEvents = False
         mWbk.GetOpen(sTarget).SaveAs FileName:=sTargetWorkingCopy, AccessMode:=xlExclusive
         Set tco_wbk_result = ActiveWorkbook
-        Application.EnableEvents = True
     Else
         '~~ Continue with existing working copy
-        Application.EnableEvents = False
         Set tco_wbk_result = mWbk.GetOpen(sTargetWorkingCopy)
         tco_wbk_result.Activate
-        Application.EnableEvents = True
     End If
     
 xt:  Set fso = Nothing
+     mCompManClient.Events ErrSrc(PROC), True
     
 End Sub
 

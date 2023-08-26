@@ -64,6 +64,7 @@ Public Const README_DEFAULT_FILES_AND_FOLDERS   As String = "#compmans-default-f
 Public Const README_CONFIG_CHANGES              As String = "#configuration-changes-compmans-config-worksheet"
 Public Const FORMAT_REV_DATE                    As String = "YYYY-MM-DD"
 Public Const FORMAT_REV_NO                      As String = "000"
+Public Const BTTN_DSPLY_DIFF                    As String = "Display difference" & vbLf & "(of Export-Files)"
 
 Public LogServiced                              As clsLog ' log writen for the serviced Workbook
 Public LogServicing                             As clsLog ' the servicing Workbooks own log
@@ -71,6 +72,7 @@ Public Comps                                    As clsComps
 Public Services                                 As clsServices
 Public CompManDat                               As clsCompManDat
 Public CommComps                                As clsCommComps
+Public Msg                                      As TypeMsg
 
 #If XcTrc_clsTrc = 1 Then
     Public Trc                                  As clsTrc
@@ -107,6 +109,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     Const PROC = "UpdateOutdatedCommonComponents"
     
     On Error GoTo eh
+    mCompManClient.Events ErrSrc(PROC), False
     '~~ When the Open event is raised through the VBE Immediate Window or when
     '~~ the open houskeeping has registered new used Common Components ...
     Set Services = Nothing
@@ -129,6 +132,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     mCommComps.OutdatedUpdate ' Dialog to update/renew one by one
     
 xt: mBasic.EoP ErrSrc(PROC)
+    mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -169,6 +173,8 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
+    mCompManClient.Events ErrSrc(PROC), False
+    
     Set Services = New clsServices
     With Services
         .Serviced = e_wbk_serviced
@@ -185,10 +191,9 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     ExportChangedComponents = Application.StatusBar
     
 xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
-    Application.EnableEvents = True
     Services.LogEntrySummary Application.StatusBar
-    
     Set Services = Nothing
+    mCompManClient.Events ErrSrc(PROC), True
     Exit Function
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -381,6 +386,20 @@ End Function
 Public Function WinMergeIsInstalled() As Boolean
     WinMergeIsInstalled = AppIsInstalled("WinMerge")
 End Function
+
+Public Sub MsgInit()
+    Dim i As Long
+    
+    For i = 1 To mMsg.NoOfMsgSects
+        With Msg.Section(i)
+            .Label.Text = vbNullString
+            .Label.FontColor = rgbBlue
+            .Text.Text = vbNullString
+            .Text.MonoSpaced = False
+        End With
+    Next i
+
+End Sub
 
 Public Sub CheckForUnusedPublicItems()
 ' ----------------------------------------------------------------

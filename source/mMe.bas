@@ -104,8 +104,8 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
     Dim BttnGoAhead As String
     Dim sWrkbkOpnd  As String
     
+    Application.EnableEvents = False
     Set Services = New clsServices
-    
     If mConfig.EnvIsMissing() Then
         '~~ The CompMan Workbook has been opened the very first time at this location.
         '~~ A default folders and files environment is now setup - provided the user confirms it.
@@ -115,9 +115,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
         If DefaultEnvDisplay(BttnGoAhead) = BttnGoAhead Then
             mConfig.SelfSetupDefaultEnvironment
             sWrkbkOpnd = ThisWorkbook.FullName
-            Application.EnableEvents = False
             ThisWorkbook.SaveAs mConfig.CompManParentFolderNameDefault & "\" & ThisWorkbook.Name
-            Application.EnableEvents = True
             mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
             AssertedFilesAndFldrsStructure = True
             DoEvents
@@ -143,6 +141,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
     End If
                         
 xt: Set Services = Nothing
+    Application.EnableEvents = True
     Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -579,13 +578,13 @@ Private Function Renew_08_SaveDevInstncWorkbookAsAddin() As Boolean
     Const PROC = "Renew_08_SaveDevInstncWorkbookAsAddin"
     
     On Error GoTo eh
+    mCompManClient.Events ErrSrc(PROC), False
     mBasic.BoP ErrSrc(PROC)
     mMe.RenewAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ") as 'CompMan Add-in' (" & mAddin.WbkName & ")"
     
     With Application
         If Not mAddin.Exists Then
             '~~ At this point the Add-in must no longer exist at its location
-            .EnableEvents = False
             On Error Resume Next
             wbkSource.SaveAs WbkFullName, FileFormat:=ADDIN_FORMAT
             Renew_08_SaveDevInstncWorkbookAsAddin = Err.Number = 0
@@ -595,7 +594,6 @@ Private Function Renew_08_SaveDevInstncWorkbookAsAddin() As Boolean
             Else
                 mMe.RenewMonitorResult() = "Passed"
             End If
-            .EnableEvents = True
         Else ' file still exists
             mMe.RenewMonitorResult("Setup/Renew of the 'CompMan Add-in' as copy of the 'Development-Instance-Workbook'  " & mBasic.Spaced("failed!") _
                               ) = "Failed"
@@ -603,6 +601,7 @@ Private Function Renew_08_SaveDevInstncWorkbookAsAddin() As Boolean
     End With
     
 xt: mBasic.EoP ErrSrc(PROC)
+    mCompManClient.Events ErrSrc(PROC), True
     Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -732,6 +731,8 @@ Public Sub Renew___AddIn()
     Const PROC = "Renew___AddIn"
     
     On Error GoTo eh
+    
+    mCompManClient.Events ErrSrc(PROC), False
     Set Services = New clsServices
     With Services
         .Serviced = ThisWorkbook
@@ -740,7 +741,6 @@ Public Sub Renew___AddIn()
     
     mBasic.BoP ErrSrc(PROC)
     lRenewStep = 0
-    Application.EnableEvents = False
     bSucceeded = False
                             
     '~~ Get the CompMan base configuration confirmed or changed
@@ -783,7 +783,6 @@ Public Sub Renew___AddIn()
     bSucceeded = True
     
 xt: RenewFinalResult bSucceeded
-    Application.EnableEvents = False
     Application.ScreenUpdating = False
     Services.Serviced.Activate
     wsService.Activate
@@ -791,8 +790,8 @@ xt: RenewFinalResult bSucceeded
     wsConfig.Activate
     DoEvents
     Application.SendKeys "%{Tab}" ' brings the monitor message to front
-    Application.EnableEvents = True
     mBasic.EoP ErrSrc(PROC)
+    mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
