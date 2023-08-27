@@ -7,11 +7,8 @@
 | Term             | Meaning                  |
 |------------------|------------------------- |
 | _Component_       | Generic term for a _VB-Project's_ _VBComponent_ (_Class Module_,  _Data Module_, _Standard Module_, or _UserForm_) |
-| _Common&nbsp;Component_ | 1. A _Component_ which potentially may be used in any Excel VB-Project<br> 2. A _Component_ [hosted](#the-concept-of-hosted) in an (optionally dedicated) Workbook which claims it as the _Raw_ component. This Workbook hosts the source of the component for being development, maintained, and tested, while other Workbooks/VB-Projects are using a _Clone_ of the component. [^1]   |
-|_Used&nbsp;Common&nbsp;Component_ | The copy of a _Raw&#8209;Component_ in a _Workbook/VP&#8209;Project_ using it. _Clone-Components_ may be automatically kept up-to-date by the _UpdateOutdatedCommonComponents_ service.  The term _clone_ is borrowed from GitHub but has a slightly different meaning because the clone is usually not maintained but the _raw_ |
-| _Procedure_           | Generic term for any _VB-Component's_ (public or private) _Property_, _Sub_, or _Function_ |
-| _Raw&nbsp;Common&nbsp;Component_ | The instance of a _Common&nbsp;Component_ which is regarded the developed, maintained and tested 'original', [hosted](#the-concept-of-hosted) in a dedicated _Raw&#8209;Host_ Workbook. The term _raw_ is borrowed from GitHub and indicates the original version of something |
-| _Raw&#8209;Host_      | The Workbook/_VB-Project_ which hosts the _Raw-Component_ |
+| _Common&nbsp;Component_ | A _Component_ providing services for a certain subject, dedicated for being used in any VB-Project<br>|
+| _Procedure_           | Generic term for any _VB-Component's_ (public or private) `Property`, `Sub`, or `Function`|
 |_Service_             | Generic term for any _Public Property_, _Public Sub_, or _Public Function_ of a _Component_ |
 | _Servicing&nbsp;Workbook_ | The service providing Workbook, either the _[CompMan.xlsb][1]_ Workbook (when it is open) or the _CompMan Add-in_ when it is set up and open. |
 | _Serviced&nbsp;Workbook_ | The Workbook prepared for being [serviced](#enabling-the-services-serviced-or-not-serviced).
