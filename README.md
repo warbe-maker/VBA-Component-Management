@@ -157,6 +157,8 @@ New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. 
 | auto&#8209;open&nbsp;not&nbsp;setup| When the [_Add-in folder_](#compmans-default-files-and-folders-environment) is de-configured (no folder is selected when with 'Configure') a setup auto-open is removed |
  
 ### Common Components
+_Common Components_ are considered a key to the productivity and performance of VB-Projects, provided they are well designed and carefully tested. CompMan's aim is to support keeping them up-to-date in Vb-Proje TS using them. Even when not completely imported/used the serve as a rich source for procedures being copied.
+
 #### The concept of "hosted" Common Components
 Experience has shown than only a dedicated Workbook/VB-Project is appropriate for the development and especially the testing of a _Common Component_. It is required for the provision of a comprehensive test environment which also supports regression testing. _CompMan_ supports this concept by allowing to specify a _Common Component_ as being hosted in a Workbook. However, practice has shown that a modification or amendment  of a _Common Component_ is often triggered by a VB-Project just using, i.e. not hosting, it. _CompMan_ therefore supports this by keeping a record of which Workbook/VB-Project has last modified it.
 
