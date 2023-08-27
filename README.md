@@ -1,4 +1,4 @@
-## Component Management Services focusing on Excel VB-Projects
+am## Component Management Services focusing on Excel VB-Projects
 
 > The services **Export** (any _Component_ the code has changed), **Update** (any outdated _Used&nbsp;[Common Components](#common-components)_), and **Synchronize** (the VB-Project of two Workbooks) only requires one component installed/imported with a single code line for each service, anyway guaranteeing that a productive Workbook is not bothered by these services at all.
 
@@ -158,15 +158,12 @@ New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. 
  
 ### Common Components
 #### The concept of "hosted" Common Components
-A _VB-Component_ considered common for _VB-Projects_ is preferably (not a must) developed and maintained in a dedicated Workbook for a simple reason: Common Components are a perfect means for a 'code-and-forget' module which - by its nature allows extensive testing and last but not least a dedicated regression-test-environment. Something which I've managed for all my Common Components!. That means: When a used component has a valuable 'common' quality it is is either simply declared as a hosted _Common Component_ or (better) copied into a dedicated (hosting) Workbook where it "lives" from then on.
+Experience has shown than nothing but a dedicated Workbook is inappropriate for the development and especially the testing of a _Common Component. It is required for a comprehensive test environment which also supports regression testing. CompMan supports this concept by allowing to specify a _Common Component_ as being hosted in a Workbook. However, practice has shown that a _Common Component_ is often modified or amended directly within the VB-Project just using, i.e. not hosting, it, and therefore is supported by CompMan by keeping a record about which Workbook/VB-Project has modified it.
 
-> **Conclusion:** A ***true*** Common Component is preferably hosted, i.e. developed, maintained and (regression) tested! in a dedicated Workbook. It may look as an avoidable effort but on the long run it pays off for a [professional VB-Project development][7]. A Workbook which hosts (declares) a _Common Component_ indicates this in the Workbook module's declaration section with:  
-`Private Const HOSTED_RAWS = <component-name>[,<component-name]...`
+#### The services
+CompMan's initial intention was to keep _Common&nbspComponents_ up-to-date in all VB-Projects using them. To achieve this the _Export Service_ saves the Export-File of a modified used or hosted _Common Component to a _Common Components Folder_ thereby keeping a record of the modifying Workbook together with an incremented [_Revision Number_](#the-revision-number). Subsequently the _Update-Outdated-Common-Components_ service, with the `Workbook_Open` event, checks for any outdated used or hosted _Common&nbsp;Components_ and offers an update in a dedicated dialog which allows to check the code difference by means of WinMerge ([WinMerge English][3], [WinMerge German][4].
 
-#### The service
-The initial intention for the development of CompMan was to keep _Common&nbspComponent_ up-to-date in all VB-Projects using them. To achieve this the _Export Service_ maintains hosted _Raw&nbsp;Common&nbsp;Components_ with a [_Revision Number_](#the-revision-number) as a copy of the _Export&nbsp;File_ in a [Common-Components](#compmans-default-files-and-folders-environment) folder. The _Update-Outdated-Common-Components_ service checks for [serviced](#enabling-the-services-serviced-or-not-serviced) Workbook whether a _Used&nbsp;Common&nbsp;Component_ is outdated and displays an update dialog, also allowing to display the code difference by means of WinMerge ([WinMerge English][3], [WinMerge German][4].
-
-### The _Revision Number_
+#### The _Revision Number_
 CompMan is pretty much focused on _Common&nbsp;Components_. In order to prevent updates of _Used&nbsp;Common&nbsp;Components_ with outdated raw versions CompMan maintains a _Revision Number_ for them which is increased whenever a new modified version is exported. The _Revision Number_ is maintained in a file _ComCompsHosted.dat_ located in the Workbook folder and kept in sync with the Revision Number_ in a file _ComCompsSaved.dat_ located in [the _Common Components_ folder](#the-common-components-folder).
 
 
