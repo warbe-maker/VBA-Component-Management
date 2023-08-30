@@ -12,11 +12,11 @@ Option Explicit
 '                   i.e. a temporary Export-File differs from the
 '                       regular Export-File (of the previous code change).
 ' ExpFileFolderPath Returns a serviced Workbook's path for all Export-Files
-'                   whereby the name of the folder is the current
-'                   configured one (fefaulting  to 'source'). When no
-'                   Export-Folder exists, one is created. In case an
-'                   outdated export folder exists, i.e. one with an
-'                   outdated name, this one is renamed instead.
+'                   whereby the name of the folder is the current configured
+'                   one (fefaulting  to 'source'). When no Export-Folder
+'                   exists, one is created. In case an outdated export folder
+'                   exists, i.e. one with an outdated name, this one is
+'                   renamed instead.
 ' ----------------------------------------------------------------------------
 
 Public Sub ChangedComponents(ByVal c_hosted As String)
@@ -63,6 +63,7 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                                 .Export
                                 With Services
                                     .NoOfItemsServiced = .NoOfItemsServiced + 1
+                                    .NoOfItemsServicedNames = vbc.Name
                                     .ServicedItemLogEntry "Modified Common Component hosted: e x p o r t e d !"
                                     .ServicedItemLogEntry "Modified Common Component hosted: Revision Number increased from " & sRevNo & " to " & Comp.RevisionNumber
                                     .ServicedItemLogEntry "Modified Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
@@ -80,6 +81,8 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                                 .Export
                                 With Services
                                     .NoOfItemsServiced = .NoOfItemsServiced + 1
+                                    .NoOfItemsServicedNames = vbc.Name
+
                                     .ServicedItemLogEntry "Modified Common Component used: e x p o r t e d !"
                                     .ServicedItemLogEntry "Modified Common Component used: Revision Number increased from " & sRevNo & " to " & Comp.RevisionNumber
                                     .ServicedItemLogEntry "Modified Common Component used: Export-File copied to " & wsConfig.FolderCommonComponentsPath

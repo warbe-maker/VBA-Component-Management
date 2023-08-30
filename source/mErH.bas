@@ -119,10 +119,10 @@ End Function
 Public Sub README(Optional ByVal r_bookmark As String = vbNullString)
     
     If r_bookmark = vbNullString Then
-        mBasic.ShellRun GITHUB_REPO_URL
+        ShellRun GITHUB_REPO_URL
     Else
         r_bookmark = Replace("#" & r_bookmark, "##", "#") ' add # if missing
-        mBasic.ShellRun GITHUB_REPO_URL & r_bookmark
+        ShellRun GITHUB_REPO_URL & r_bookmark
     End If
 
 End Sub
@@ -253,7 +253,7 @@ xt: Exit Property
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Property
 
-Private Function ErrBttns(ByVal bttns As Variant) As Long
+Private Function ErrBttns(ByVal Bttns As Variant) As Long
 ' ------------------------------------------------------------------------------
 ' Returns the number of specified buttons in (bttns).
 ' ------------------------------------------------------------------------------
@@ -262,9 +262,9 @@ Private Function ErrBttns(ByVal bttns As Variant) As Long
     Dim i   As Long
     Dim cll As Collection
     
-    Select Case TypeName(bttns)
+    Select Case TypeName(Bttns)
         Case "Collection"
-            Set cll = bttns
+            Set cll = Bttns
             s = cll(1)
             For i = 2 To cll.Count
                 s = s & "," & cll(i)
@@ -272,7 +272,7 @@ Private Function ErrBttns(ByVal bttns As Variant) As Long
             ErrBttns = ErrBttns(s)
         Case "String"
             i = 0
-            For Each v In Split(bttns, ",")
+            For Each v In Split(Bttns, ",")
                 If IsNumeric(v) Then
                     Select Case v
                         Case vbOKOnly:                                          i = i + 1
