@@ -1,17 +1,14 @@
 ## Component Management Services focusing on Excel VB-Projects
 
-> The services **Export** (any _Component_ the code has changed), **Update** (any outdated _Used&nbsp;[Common Components](#common-components)_), and **Synchronize** (the VB-Project of two Workbooks) only requires one component installed/imported with a single code line for each service, anyway guaranteeing that a productive Workbook is not bothered by these services at all.
+> The services **Export** (any _Component_ the code has changed), **Update** (any outdated _Used&nbsp;[Common Components](#common-components)_), and **Synchronize** (the VB-Project of two Workbooks) only requires one component installed/imported with a single code line for each service, by guaranteeing that a productive Workbook is not bothered by these services at all.
 
 ## Disambiguation
 
 | Term             | Meaning                  |
 |------------------|------------------------- |
 | _Component_       | Generic term for a _VB-Project's_ _VBComponent_ (_Class Module_,  _Data Module_, _Standard Module_, or _UserForm_) |
-| _Common&nbsp;Component_ | 1. A _Component_ which potentially may be used in any Excel VB-Project<br> 2. A _Component_ [hosted](#the-concept-of-hosted) in an (optionally dedicated) Workbook which claims it as the _Raw_ component. This Workbook hosts the source of the component for being development, maintained, and tested, while other Workbooks/VB-Projects are using a _Clone_ of the component. [^1]   |
-|_Used&nbsp;Common&nbsp;Component_ | The copy of a _Raw&#8209;Component_ in a _Workbook/VP&#8209;Project_ using it. _Clone-Components_ may be automatically kept up-to-date by the _UpdateOutdatedCommonComponents_ service.  The term _clone_ is borrowed from GitHub but has a slightly different meaning because the clone is usually not maintained but the _raw_ |
-| _Procedure_           | Generic term for any _VB-Component's_ (public or private) _Property_, _Sub_, or _Function_ |
-| _Raw&nbsp;Common&nbsp;Component_ | The instance of a _Common&nbsp;Component_ which is regarded the developed, maintained and tested 'original', [hosted](#the-concept-of-hosted) in a dedicated _Raw&#8209;Host_ Workbook. The term _raw_ is borrowed from GitHub and indicates the original version of something |
-| _Raw&#8209;Host_      | The Workbook/_VB-Project_ which hosts the _Raw-Component_ |
+| _Common&nbsp;Component_ | A _Component_ providing services for a certain subject, dedicated for being used in any VB-Project<br>|
+| _Procedure_           | Generic term for any _VB-Component's_ (public or private) `Property`, `Sub`, or `Function`|
 |_Service_             | Generic term for any _Public Property_, _Public Sub_, or _Public Function_ of a _Component_ |
 | _Servicing&nbsp;Workbook_ | The service providing Workbook, either the _[CompMan.xlsb][1]_ Workbook (when it is open) or the _CompMan Add-in_ when it is set up and open. |
 | _Serviced&nbsp;Workbook_ | The Workbook prepared for being [serviced](#enabling-the-services-serviced-or-not-serviced).
@@ -157,17 +154,16 @@ New Shapes (including ActiveX-Controls) are added, obsolete Shapes are removed. 
 | auto&#8209;open&nbsp;not&nbsp;setup| When the [_Add-in folder_](#compmans-default-files-and-folders-environment) is de-configured (no folder is selected when with 'Configure') a setup auto-open is removed |
  
 ### Common Components
+_Common Components_ are considered a key to the productivity and performance of VB-Projects, provided they are well designed and carefully tested. CompMan's aim is to support keeping them up-to-date in Vb-Proje TS using them. Even when not completely imported/used the serve as a rich source for procedures being copied.
+
 #### The concept of "hosted" Common Components
-A _VB-Component_ considered common for _VB-Projects_ is preferably (not a must) developed and maintained in a dedicated Workbook for a simple reason: Common Components are a perfect means for a 'code-and-forget' module which - by its nature allows extensive testing and last but not least a dedicated regression-test-environment. Something which I've managed for all my Common Components!. That means: When a used component has a valuable 'common' quality it is is either simply declared as a hosted _Common Component_ or (better) copied into a dedicated (hosting) Workbook where it "lives" from then on.
+Experience has shown than only a dedicated Workbook/VB-Project is appropriate for the development and especially the testing of a _Common Component_. It is required for the provision of a comprehensive test environment which also supports regression testing. _CompMan_ supports this concept by allowing to specify a _Common Component_ as being hosted in a Workbook. However, practice has shown that a modification or amendment  of a _Common Component_ is often triggered by a VB-Project just using, i.e. not hosting, it. _CompMan_ therefore supports this by keeping a record of which Workbook/VB-Project has last modified it.
 
-> **Conclusion:** A ***true*** Common Component is preferably hosted, i.e. developed, maintained and (regression) tested! in a dedicated Workbook. It may look as an avoidable effort but on the long run it pays off for a [professional VB-Project development][7]. A Workbook which hosts (declares) a _Common Component_ indicates this in the Workbook module's declaration section with:  
-`Private Const HOSTED_RAWS = <component-name>[,<component-name]...`
+#### The services
+CompMan's initial intention was to keep _Common&nbspComponents_ up-to-date in all VB-Projects using them. To achieve this the _Export Service_ saves the Export-File of a modified used or hosted _Common Component to a _Common Components Folder_ thereby keeping a record of the modifying Workbook together with an incremented [_Revision Number_](#the-revision-number). Subsequently the _Update-Outdated-Common-Components_ service (by with the `Workbook_Open` event) checks for any outdated used or hosted _Common&nbsp;Components_ and offers an update in a dedicated dialog which allows to check the code difference by means of WinMerge ([WinMerge English][3], [WinMerge German][4].
 
-#### The service
-The initial intention for the development of CompMan was to keep _Common&nbspComponent_ up-to-date in all VB-Projects using them. To achieve this the _Export Service_ maintains hosted _Raw&nbsp;Common&nbsp;Components_ with a [_Revision Number_](#the-revision-number) as a copy of the _Export&nbsp;File_ in a [Common-Components](#compmans-default-files-and-folders-environment) folder. The _Update-Outdated-Common-Components_ service checks for [serviced](#enabling-the-services-serviced-or-not-serviced) Workbook whether a _Used&nbsp;Common&nbsp;Component_ is outdated and displays an update dialog, also allowing to display the code difference by means of WinMerge ([WinMerge English][3], [WinMerge German][4].
-
-### The _Revision Number_
-CompMan is pretty much focused on _Common&nbsp;Components_. In order to prevent updates of _Used&nbsp;Common&nbsp;Components_ with outdated raw versions CompMan maintains a _Revision Number_ for them which is increased whenever a new modified version is exported. The _Revision Number_ is maintained in a file _ComCompsHosted.dat_ located in the Workbook folder and kept in sync with the Revision Number_ in a file _ComCompsSaved.dat_ located in [the _Common Components_ folder](#the-common-components-folder).
+#### The _Revision Number_
+CompMan maintains for_Common Components a _Revision Number_, increased whenever it is modified. The _Revision Number_ is maintained in a file _CompMan.dat_ located in the serviced Workbook's parent  folder and kept in sync with the _Revision Number_ in a file _ComComps.dat_ located in [the _Common Components_ folder](#the-common-components-folder).
 
 
 ### Other CompMan specific files
