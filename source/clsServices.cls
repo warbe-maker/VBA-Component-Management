@@ -724,17 +724,18 @@ End Sub
 
 Private Function Progress(ByVal p_operation_performed As String) As String
 ' --------------------------------------------------------------------------
-' Displays the progress of the Export service in the Application.StatusBar
-' in the form:
-' <service> (by <services>) for <serviced>: <n> of <m> op [(component [, component] ..]
+' Returns a progress message for the current service for being displayed in
+' the Application.StatusBar in the form:
+' <service> (by <servicing>) for <serviced>: <n> of <m> <op> [(component [, component] ..]
 ' <n> = Number of objects the service has been provided for (p_items_serviced)
 ' <m> = Total number of objects to be (ptentially) serviced
+' <op> = The performed operation
+' Whereby the progress is indicated in two ways: an increasing number of
+' dots for the items collected for being serviced and a decreasing number
+' of dots indication the items already serviced.
 '
 ' Example:
-' Export Changed Components (by CompMan.xlsb) for CompMan.xlsb: 1 of 50 exported (clsServices)
-' The progress is indicated by n plus a decreasing number of dots indicating
-' the number of objects done, whereby the number of dots is the number of
-' processed item
+' Export ... (by CompMan....) for ......: 1 of 50 exported (clsServices)
 ' --------------------------------------------------------------------------
     Const PROC          As String = "Progress"
     Const MSG_SCHEME    As String = "<n> of <m> <op> <comps> <dots>"

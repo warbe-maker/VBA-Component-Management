@@ -21,9 +21,10 @@ Private BttnUpdate                              As String
 Private BttnDsplyDiffs                          As String
 Private BttnSkipForNow                          As String
 Private BttnSkipForever                         As String
-Private UpdateDialogTitle                       As String
+Private UpdateTitle                             As String
 Private UpdateDialogTop                         As Long
 Private UpdateDialogLeft                        As Long
+Private sUpdateDone                             As String
 
 Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mCommComps" & "." & es_proc
@@ -39,11 +40,14 @@ Public Sub OutdatedUpdate()
     Const PROC = "OutdatedUpdate"
     
     On Error GoTo eh
-    If Qoutdated Is Nothing Then OutdatedUpdateCollect
+    If Qoutdated Is Nothing Then
+        OutdatedUpdate1Collect
+        If Not Qoutdated.IsEmpty Then sUpdateDone = "updated" Else sUpdateDone = "outdated"
+    End If
     If Not Qoutdated.IsEmpty Then
-        OutdatedUpdateChoice
+        OutdatedUpdate2Choice
     Else
-        Services.DsplyProgress "used Common Components updated"
+        Services.DsplyProgress "Common Components " & sUpdateDone
         Services.LogEntrySummary Application.StatusBar
     End If
     
@@ -55,7 +59,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub OutdatedUpdateChoice()
+Private Sub OutdatedUpdate2Choice()
 ' ------------------------------------------------------------------------------
 ' Displays the first outdated Common Component in the queue Qoutdated in a mode-
 ' less dialog for one of the options: "update", "display diffs", "skip for now",
@@ -63,151 +67,129 @@ Private Sub OutdatedUpdateChoice()
 ' The service considers used and hosted Common Components to be updated by
 ' dedicated buttons and section texts.
 ' ------------------------------------------------------------------------------
-    Const PROC = "OutdatedUpdateChoice"
+    Const PROC = "OutdatedUpdate2Choice"
     
     On Error GoTo eh
-    Dim AppRunArgs      As Dictionary
-    Dim cllButtons      As Collection
-    Dim Comp            As clsComp
-    Dim fUpdate         As fMsg
-    Dim sUpdate         As String
-    Dim sSkipForever    As String
-    Dim sSkipNow        As String
-    Dim sModWbkName     As String
-    Dim sUpdateBttnTxt  As String
-    Dim sSkipNowNote    As String
-    Dim i               As Long
+    Dim AppRunArgs          As Dictionary
+    Dim cllButtons          As Collection
+    Dim Comp                As clsComp
+    Dim fUpdate             As fMsg
+    Dim i                   As Long
+    Dim sModWbkName         As String
+    Dim sSkipForeverNote    As String
+    Dim sSkipForNow         As String
+    Dim sSkipForNowNote     As String
+    Dim sUpdateNote         As String
+    Dim sUpdateBttnTxt      As String
+    
+    BttnDsplyDiffs = "Display the code modifications"
+    BttnSkipForNow = "Skip this update" & vbLf & "for now"
+    BttnSkipForever = "Skip this update" & vbLf & mBasic.Spaced("forever")
     
     Set AppRunArgs = New Dictionary
     Qoutdated.First Comp ' Get the next outdated component from the queue
     
     With Comp
         sModWbkName = CommComps.LastModWbkName(.CompName)
-        BttnDsplyDiffs = "Display the code modifications"
         Select Case .KindOfComp
             Case enCommCompHosted
-                UpdateDialogTitle = "Hosted Common Component apparently modified within a Worbook using it!"
-                sUpdate = "The Common Component   " & mBasic.Spaced(.CompName) & "   hosted in this " & _
-                          "Workbook has been modified within the Workbook/VB-Project   " & _
-                          mBasic.Spaced(sModWbkName) & " .   It needs to be updated in this hosting Workbook " & _
-                          "for consistency! The extent of the coded modification can be seen with """ & _
-                          BttnDsplyDiffs & """ wich should allow an estimation wether or to which extent " & _
-                          "re-testing is appropriate."
-                sSkipNow = "The update will be postponed and proposed with the next Workbook open."
-                sSkipNowNote = "Please note: In contrast to a ""used Common Component"" it is not possible " & _
-                               "to skip this update forever. The only way to achieve this is to remove the " & _
-                               "hosted indication for this Workbook. With the next Workbook open the ""Common " & _
-                               "Component"" will be de-registered as hosted and registered as a used one. As a " & _
-                               "consequence it will remain ""not hosted"" until another Workbooks claims " & _
-                               "hosting it (or forever in case none ever does)."
+                UpdateTitle = "Hosted Common Component apparently modified within a Worbook using it!"
+                sUpdateNote = "The Common Component   " & mBasic.Spaced(.CompName) & "   hosted in this " & _
+                              "Workbook has been modified by/within the Workbook/VB-Project   " & _
+                              mBasic.Spaced(sModWbkName) & " .   The extent of the modification may be " & _
+                              "displayed in order to allow an estimation wether or not or to which extent " & _
+                              "re-testing is appropriate - provided the ""hosting"" Workbook provides " & _
+                              "a test environment."
+                sSkipForNow = "The update will be postponed and proposed with the next Workbook open."
+                sSkipForNowNote = "Please note: In contrast to a ""used"" Common Component it is not possible " & _
+                                  "to skip this update forever. The only way to achieve this is to remove the " & _
+                                  """hosted"" indication for this Workbook. Subsquently with the next Workbook " & _
+                                  "open the (then) ""used"" Common Component's update may be skipped forever, " & _
+                                  "i.e. it will be de-registered as ""used"" and registered as ""private"". It " & _
+                                  "also should be noted that the Common Component will remain ""not hosted"" until " & _
+                                  "another Workbooks claims ""hosting"" it."
                 BttnUpdate = "Update the hosted" & vbLf & "Common Component" & vbLf & vbLf & .CompName
-                sUpdateBttnTxt = "With this update the hosting Workbook again becomes the Workbook hosting the raw " & _
-                                 "version of the Common Component."
-                BttnSkipForNow = "Skip this update for now"
+                sUpdateBttnTxt = "With this update the ""hosted"" Common Component will become in sync with all Workbook using this version."
                 Set cllButtons = mMsg.Buttons(BttnUpdate, vbLf, BttnDsplyDiffs, vbLf, BttnSkipForNow)
-                Set fUpdate = mMsg.MsgInstance(UpdateDialogTitle)
-                mMsg.BttnAppRun AppRunArgs, BttnUpdate _
-                                            , ThisWorkbook _
-                                            , "OutdatedUpdateChoiceUpdate" _
-                                            , Comp.CompName
-                mMsg.BttnAppRun AppRunArgs, BttnDsplyDiffs _
-                                            , ThisWorkbook _
-                                            , "OutdatedUpdateChoiceDsplyDiffs"
-                mMsg.BttnAppRun AppRunArgs, BttnSkipForNow _
-                                            , ThisWorkbook _
-                                            , "OutdatedUpdateChoiceSkipForNow" _
-                                            , Comp.CompName
 
             Case enCommCompUsed
-                UpdateDialogTitle = "Used Common Component is outdated!"
-                sUpdate = "The used Common Component   " & mBasic.Spaced(.CompName) & "   has been modified within " & _
+                UpdateTitle = "Used Common Component is outdated!"
+                sUpdateNote = "The used Common Component   " & mBasic.Spaced(.CompName) & "   has been modified within " & _
                           "the Workbook/VB-Project   " & mBasic.Spaced(sModWbkName) & " .  Updating the used version " & _
                           "is thus recommended!"
-                sSkipNow = "Update will be postponed and proposed with the next Workbook open"
-                sSkipForever = "The component, currently known as a (used) Common Component will be de-registered " & _
-                               "and ignored in the future! I.e. the ""used"" status will be changed into ""private"" status. " & _
-                               "Re-instantiating as a ""used Common Component"" will requires the following steps:" & vbLf & _
+                sSkipForNow = "Update will be postponed and proposed with the next Workbook open"
+                sSkipForeverNote = "The component, currently known as a used Common Component will be de-registered " & _
+                               "and ignored in the future! I.e. its ""used"" status will be changed into ""private"". " & _
+                               "Re-instantiating it as a ""used"" Common Component will requires the following steps:" & vbLf & _
                                "1. Remove it" & vbLf & _
                                "2. Save the Workbook" & vbLf & _
                                "3. Re-Import it from the ""Common-Components"" folder."
                 BttnUpdate = "Update the used" & vbLf & "Common Component" & vbLf & vbLf & .CompName
-                sUpdateBttnTxt = "The outdated ""Common Component"" used in this Workbook becomes up-to-date again."
-                BttnSkipForNow = "Skip this update" & vbLf & "for now"
-                BttnSkipForever = "Skip this update" & vbLf & mBasic.Spaced("forever") & vbLf & "(I am aware of the consequence)"
-                Set fUpdate = mMsg.MsgInstance(UpdateDialogTitle)
+                sUpdateBttnTxt = "The outdated ""used"" Common Component becomes up-to-date again."
                 Set cllButtons = mMsg.Buttons(BttnUpdate, vbLf, BttnDsplyDiffs, vbLf, BttnSkipForNow, BttnSkipForever)
-                mMsg.BttnAppRun AppRunArgs, BttnUpdate _
-                                            , ThisWorkbook _
-                                            , "OutdatedUpdateChoiceUpdate" _
-                                            , Comp.CompName
-                mMsg.BttnAppRun AppRunArgs, BttnDsplyDiffs _
-                                            , ThisWorkbook _
-                                            , "OutdatedUpdateChoiceDsplyDiffs"
-                mMsg.BttnAppRun AppRunArgs, BttnSkipForNow _
-                                            , ThisWorkbook _
-                                            , "OutdatedUpdateChoiceSkipForNow" _
-                                            , Comp.CompName
-                mMsg.BttnAppRun AppRunArgs, BttnSkipForever _
-                                            , ThisWorkbook _
-                                            , "OutdatedUpdateChoiceSkipForever" _
-                                            , Comp.CompName
             Case Else
                 Stop
         End Select
         
+        Set fUpdate = mMsg.MsgInstance(UpdateTitle)
+         '~~ AppRun arguments for potentially displayed buttons
+        mMsg.BttnAppRun AppRunArgs, BttnUpdate _
+                                    , ThisWorkbook _
+                                    , "OutdatedUpdate2Choice1Update" _
+                                    , .CompName
+        mMsg.BttnAppRun AppRunArgs, BttnDsplyDiffs _
+                                    , ThisWorkbook _
+                                    , "OutdatedUpdate2Choice2DsplyDiffs"
+        mMsg.BttnAppRun AppRunArgs, BttnSkipForNow _
+                                    , ThisWorkbook _
+                                    , "OutdatedUpdate2Choice3SkipForNow" _
+                                    , .CompName
+        mMsg.BttnAppRun AppRunArgs, BttnSkipForever _
+                                    , ThisWorkbook _
+                                    , "OutdatedUpdate2Choice4SkipForever" _
+                                    , .CompName
     End With
     
     mCompMan.MsgInit
     i = 0
     With Msg
-        i = i + 1
-        .Section(i).Text.Text = sUpdate
-        i = i + 1
-        With .Section(i)
-            .Label.Text = "Update:"
-            .Text.Text = sUpdateBttnTxt
-        End With
-        i = i + 1
-        With .Section(i)
-            .Label.Text = "Display difference:"
-            .Text.Text = "The displayed code modifications (return with Esc) may help estimating the extent to which re-testing is appropriate after an update."
-        End With
-        
-        i = i + 1
-        With .Section(i)
-            .Label.Text = "Skip for now:"
-            .Text.Text = sSkipNow
-        End With
-        If Comp.KindOfComp = enCommCompHosted Then
-            i = i + 1
-            With .Section(i).Text
-                .Text = sSkipNowNote
-                .FontBold = True
-            End With
-        Else
-            '~~ Skip forever is only an option for Workbooks using the Common Component
-            i = i + 1
-            With .Section(i)
-                .Label.Text = "Skip forever:"
-                .Text.Text = sSkipForever
-            End With
+        i = i + 1:  .Section(i).Text.Text = sUpdateNote
+        i = i + 1:  With .Section(i)
+                        .Label.Text = "Update:"
+                        .Text.Text = sUpdateBttnTxt
+                    End With
+        i = i + 1:  With .Section(i)
+                        .Label.Text = "Display difference:"
+                        .Text.Text = "The displayed code modifications (return with Esc) may help estimating the extent to which re-testing is appropriate after an update."
+                    End With
+        i = i + 1:  With .Section(i)
+                        .Label.Text = "Skip for now:"
+                        .Text.Text = sSkipForNow
+                    End With
+        i = i + 1:  With .Section(i).Text
+                        .Text = sSkipForNowNote
+                        .FontBold = True
+                    End With
+        If Comp.KindOfComp = enCommCompUsed Then
+            '~~ Skip forever is an option only for used Common Components (hosted need to be de-registered as such first)
+            i = i + 1:  With .Section(i)
+                            .Label.Text = "Skip forever:"
+                            .Text.Text = sSkipForeverNote
+                        End With
         End If
-        i = i + 1
-        With .Section(i)
-            With .Label
-                .Text = "About:"
-                .OpenWhenClicked = GITHUB_REPO_URL & "#common-components"
-                .FontUnderline = True
-            End With
-            .Text.Text = "A 'Common Component' is one of which the Export-File is copied to the 'Common-Components folder' when the code is modified, " & _
-                         "whereby it may be modified within whichever Workbook's VB-Project using it, preferrably in a Workbook " & _
-                         "which claims 'hosting' it. When a 'Common Component' is modified its 'Revision Number' is " & _
-                         "increased and the Export-File is copied/overwritten in the 'Common-Components Folder'."
-        End With
-    End With
+        i = i + 1:  With .Section(i).Label
+                        .Text = "About:"
+                        .OpenWhenClicked = GITHUB_REPO_URL & "#common-components"
+                        .FontUnderline = True
+                    End With
+                    .Section(i).Text.Text = _
+                        "A 'Common Component' is one of which the Export-File is copied to the 'Common-Components folder' when the code is modified, " & _
+                        "whereby it may be modified within whichever Workbook's VB-Project using it, preferrably in a Workbook " & _
+                        "which claims 'hosting' it. When a 'Common Component' is modified its 'Revision Number' is " & _
+                        "increased and the Export-File is copied/overwritten in the 'Common-Components Folder'."
+     End With
     
-    '~~ Display the mode-less dialog for the Names synchronization to run
-    mMsg.Dsply dsply_title:=UpdateDialogTitle _
+    mMsg.Dsply dsply_title:=UpdateTitle _
                  , dsply_msg:=Msg _
                  , dsply_label_spec:="R70" _
                  , dsply_buttons:=cllButtons _
@@ -225,11 +207,11 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub OutdatedUpdateChoiceDsplyDiffs()
+Private Sub OutdatedUpdate2Choice2DsplyDiffs()
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
-    Const PROC = "OutdatedUpdateChoiceDsplyDiffs"
+    Const PROC = "OutdatedUpdate2Choice2DsplyDiffs"
     
     On Error GoTo eh
     Dim Comp    As clsComp
@@ -250,11 +232,11 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub OutdatedUpdateChoiceSkipForever(ByVal u_comp_name)
+Private Sub OutdatedUpdate2Choice4SkipForever(ByVal u_comp_name)
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
-    Const PROC = "OutdatedUpdateChoiceSkipForever"
+    Const PROC = "OutdatedUpdate2Choice4SkipForever"
     
     On Error GoTo eh
     Dim wbk As Workbook
@@ -274,7 +256,7 @@ Private Sub OutdatedUpdateChoiceSkipForever(ByVal u_comp_name)
         .ServicedItemLogEntry "Outdated used Commpon Component: Update skipped forever!"
     End With
     
-xt: Services.MessageUnload UpdateDialogTitle
+xt: Services.MessageUnload UpdateTitle
     OutdatedUpdate
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -285,11 +267,11 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub OutdatedUpdateChoiceSkipForNow(ByVal u_comp_name As String)
+Private Sub OutdatedUpdate2Choice3SkipForNow(ByVal u_comp_name As String)
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
-    Const PROC = "OutdatedUpdateChoiceSkipForNow"
+    Const PROC = "OutdatedUpdate2Choice3SkipForNow"
     
     On Error GoTo eh
     Dim wbk As Workbook
@@ -308,7 +290,7 @@ Private Sub OutdatedUpdateChoiceSkipForNow(ByVal u_comp_name As String)
         .ServicedItemLogEntry "Outdated used Commpon Component: Update skipped for now!"
     End With
     
-xt: Services.MessageUnload UpdateDialogTitle
+xt: Services.MessageUnload UpdateTitle
     OutdatedUpdate
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -319,11 +301,11 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub OutdatedUpdateChoiceUpdate(ByVal u_comp_name As String)
+Private Sub OutdatedUpdate2Choice1Update(ByVal u_comp_name As String)
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
-    Const PROC = "OutdatedUpdateChoiceUpdate"
+    Const PROC = "OutdatedUpdate2Choice1Update"
     
     On Error GoTo eh
     Dim wbk     As Workbook
@@ -348,7 +330,7 @@ Private Sub OutdatedUpdateChoiceUpdate(ByVal u_comp_name As String)
         With Services
             .NoOfItemsServiced = .NoOfItemsServiced + 1
             .NoOfItemsServicedNames = u_comp_name
-            .DsplyProgress "used Common Components updated"
+            .DsplyProgress "Common Components updated"
         End With
     
         Select Case .KindOfComp
@@ -365,7 +347,7 @@ Private Sub OutdatedUpdateChoiceUpdate(ByVal u_comp_name As String)
     Qoutdated.DeQueue
     Set Comp = Nothing
     
-xt: Services.MessageUnload UpdateDialogTitle
+xt: Services.MessageUnload UpdateTitle
     OutdatedUpdate
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -376,11 +358,11 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub OutdatedUpdateCollect()
+Private Sub OutdatedUpdate1Collect()
 ' ------------------------------------------------------------------------------
 ' Collects all outdated Used Common Components and enqueues them in Qoutdated.
 ' ------------------------------------------------------------------------------
-    Const PROC = "OutdatedUpdateCollect"
+    Const PROC = "OutdatedUpdate1Collect"
     
     On Error GoTo eh
     Dim Comp            As clsComp
@@ -403,7 +385,7 @@ Private Sub OutdatedUpdateCollect()
             If (.KindOfComp = enCommCompHosted Or .KindOfComp = enCommCompUsed) Then
                 bOutdated = .Outdated(bDiscontinue)
                 If bDiscontinue Then
-                    Services.DsplyProgress " !!! collecting outdated Common Components discontinued!!"
+                    Services.DsplyProgress " !!! collecting outdated Common Components discontinued !!!"
                     GoTo xt
                 End If
                 If bOutdated Then
@@ -412,7 +394,6 @@ Private Sub OutdatedUpdateCollect()
                     With Services
                         .NoOfItemsServicedNames = sName
                         .NoOfItemsOutdated = Qoutdated.Size
-                        .DsplyProgress "collected Common Components outdated"
                     End With
                 Else
                     '~~ When not outdated due to a code difference the revision numbers ought to be equal
@@ -427,9 +408,11 @@ Private Sub OutdatedUpdateCollect()
             End If
         End With
         Set Comp = Nothing
-        Services.DsplyProgress "collected Common Components outdated"
+        Application.StatusBar = vbNullString
+        DoEvents
+        Services.DsplyProgress "Common Components outdated"
     Next v
-    Services.DsplyProgress "collected Common Components outdated"
+    Services.DsplyProgress "Common Components outdated"
     
 xt: If wsService.CommonComponentsUsed = 0 Then wsService.CommonComponentsUsed = Services.NoOfCommonComponents
     If wsService.CommonComponentsOutdated = 0 Then wsService.CommonComponentsOutdated = Qoutdated.Size

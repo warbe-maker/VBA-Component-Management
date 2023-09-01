@@ -110,10 +110,10 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     
     On Error GoTo eh
     mCompManClient.Events ErrSrc(PROC), False
-    '~~ When the Open event is raised through the VBE Immediate Window or when
-    '~~ the open houskeeping has registered new used Common Components ...
-    Set Services = Nothing
-    mCompMan.ExportChangedComponents u_wbk_serviced, u_hosted
+'    '~~ When the Open event is raised through the VBE Immediate Window or when
+'    '~~ the open houskeeping has registered new used Common Components ...
+'    Set Services = Nothing
+'    mCompMan.ExportChangedComponents u_wbk_serviced, u_hosted
     
     Set Services = Nothing
     Set Services = New clsServices
