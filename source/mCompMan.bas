@@ -65,6 +65,7 @@ Public Const README_CONFIG_CHANGES              As String = "#configuration-chan
 Public Const FORMAT_REV_DATE                    As String = "YYYY-MM-DD"
 Public Const FORMAT_REV_NO                      As String = "000"
 Public Const BTTN_DSPLY_DIFF                    As String = "Display difference" & vbLf & "(of Export-Files)"
+Public Const SRVC_PROGRESS_SCHEME               As String = "<srvc> <by> <serviced>: <n> of <m> <op> <comps> <dots>"
 
 Public LogServiced                              As clsLog ' log writen for the serviced Workbook
 Public LogServicing                             As clsLog ' the servicing Workbooks own log
@@ -72,7 +73,8 @@ Public Comps                                    As clsComps
 Public Services                                 As clsServices
 Public CompManDat                               As clsCompManDat
 Public CommComps                                As clsCommComps
-Public Msg                                      As TypeMsg
+Public Msg                                      As udtMsg
+Public fso                                      As New FileSystemObject
 
 #If XcTrc_clsTrc = 1 Then
     Public Trc                                  As clsTrc
@@ -109,7 +111,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     Const PROC = "UpdateOutdatedCommonComponents"
     
     On Error GoTo eh
-    mCompManClient.Events ErrSrc(PROC), False
+'    mCompManClient.Events ErrSrc(PROC), False
 '    '~~ When the Open event is raised through the VBE Immediate Window or when
 '    '~~ the open houskeeping has registered new used Common Components ...
 '    Set Services = Nothing
@@ -132,7 +134,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     mCommComps.OutdatedUpdate ' Dialog to update/renew one by one
     
 xt: mBasic.EoP ErrSrc(PROC)
-    mCompManClient.Events ErrSrc(PROC), True
+'    mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -151,6 +153,13 @@ Public Sub README(Optional ByVal r_bookmark As String = vbNullString)
     End If
         
 End Sub
+
+Public Function UTC() As String
+    Dim dt As Object
+    Set dt = CreateObject("WbemScripting.SWbemDateTime")
+    dt.SetVarDate Now
+    UTC = Format(dt.GetVarDate(False), "YYYY-MM-DD-hh-mm-ss") & " (UTC)"
+End Function
 
 Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
                                Optional ByVal e_hosted As String = vbNullString) As Variant
@@ -173,7 +182,7 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     Const PROC = "ExportChangedComponents"
     
     On Error GoTo eh
-    mCompManClient.Events ErrSrc(PROC), False
+'    mCompManClient.Events ErrSrc(PROC), False
     
     Set Services = New clsServices
     With Services
@@ -186,14 +195,20 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     Services.Initiate mCompManClient.SRVC_EXPORT_CHANGED, e_wbk_serviced, e_hosted
     If Services.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
         
+    On Error Resume Next
     Services.ExportChangedComponents e_hosted
+    If Err.Number <> 0 Then
+        DoEvents
+        On Error GoTo eh
+        Services.ExportChangedComponents e_hosted
+    End If
     ExportChangedComponents = True
     ExportChangedComponents = Application.StatusBar
     
 xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Services.LogEntrySummary Application.StatusBar
     Set Services = Nothing
-    mCompManClient.Events ErrSrc(PROC), True
+'    mCompManClient.Events ErrSrc(PROC), True
     Exit Function
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -202,10 +217,10 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function RunTest(ByVal rt_service As String, _
-                        ByRef rt_serviced_wbk As Workbook) As Variant
+Public Function RunTest(ByVal r_service_proc As String, _
+                        ByRef r_serviced_wbk As Workbook) As Variant
 ' ----------------------------------------------------------------------------
-' Ensures the requested service (rt_service) is able to run or returns the
+' Ensures the requested service (r_service_proc) is able to run or returns the
 ' reason why not. The function returns:
 ' AppErr(1): CompMan's current configuration does not support the requested
 '            service, i.e. either the 'Synchronization-Folder' for the
@@ -227,12 +242,12 @@ Public Function RunTest(ByVal rt_service As String, _
     On Error GoTo eh
     
     RunTest = 0
-    Select Case rt_service
+    Select Case r_service_proc
         Case mCompManClient.SRVC_UPDATE_OUTDATED, mCompManClient.SRVC_EXPORT_CHANGED
             Select Case True
-                Case Not wsConfig.FolderCompManRootIsValid:                              RunTest = mBasic.AppErr(1) ' Configuration for the service is invalid
-                Case Not rt_serviced_wbk.FullName Like wsConfig.FolderCompManRoot & "*": RunTest = mBasic.AppErr(2) ' Denied because outside configured 'Dev and Test' folder
-                Case rt_service = mCompManClient.SRVC_UPDATE_OUTDATED
+                Case Not wsConfig.FolderCompManRootIsValid:                             RunTest = mBasic.AppErr(1) ' Configuration for the service is invalid
+                Case Not r_serviced_wbk.FullName Like wsConfig.FolderCompManRoot & "*": RunTest = mBasic.AppErr(2) ' Denied because outside configured 'Dev and Test' folder
+                Case r_service_proc = mCompManClient.SRVC_UPDATE_OUTDATED
                     If mMe.IsDevInstnc And ((mAddin.IsOpen And mAddin.Paused) Or Not mAddin.IsOpen) Then
                         RunTest = mBasic.AppErr(3) ' Denied because serviced is the DevInstance but the Addin is paused or not open
                     End If
@@ -241,7 +256,7 @@ Public Function RunTest(ByVal rt_service As String, _
         Case mCompManClient.SRVC_SYNCHRONIZE
             If wsConfig.FolderSyncTarget = vbNullString Or wsConfig.FolderSyncArchive = vbNullString Then
                 RunTest = mBasic.AppErr(1) ' Not configured
-            ElseIf Not rt_serviced_wbk.FullName Like wsConfig.FolderSyncTarget & "*" Then
+            ElseIf Not r_serviced_wbk.FullName Like wsConfig.FolderSyncTarget & "*" Then
                 RunTest = mBasic.AppErr(2) ' Denied because not opened from within the configured 'Sync-Target' folder
             ElseIf Not mMe.IsDevInstnc Then
                 RunTest = mBasic.AppErr(3)
@@ -331,7 +346,6 @@ Public Function WbkGetOpen(ByVal go_wbk_full_name As String) As Workbook
     Const PROC = "WbkGetOpen"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     
     If fso.FileExists(go_wbk_full_name) Then
         If mCompMan.WbkIsOpen(io_name:=go_wbk_full_name) _
@@ -339,8 +353,7 @@ Public Function WbkGetOpen(ByVal go_wbk_full_name As String) As Workbook
         Else Set WbkGetOpen = Application.Workbooks.Open(go_wbk_full_name)
     End If
     
-xt: Set fso = Nothing
-    Exit Function
+xt: Exit Function
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -354,10 +367,9 @@ Private Function WbkIsOpen(Optional ByVal io_name As String = vbNullString, _
 ' When the full name is provided the check spans all Excel instances else only
 ' the current one.
 ' ----------------------------------------------------------------------------
-    Const PROC = ""
+    Const PROC = "WbkIsOpen"
     
     On Error GoTo eh
-    Dim fso     As New FileSystemObject
     Dim xlApp   As Excel.Application
     
     If io_name = vbNullString And io_full_name = vbNullString Then GoTo xt

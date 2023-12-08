@@ -90,9 +90,7 @@ Private Property Let FolderAddInInfo(ByVal s As String):            MaintainMinR
 Private Property Let FolderAddInUrl(ByVal s As String):             UrlLabel(Me.Range("FolderAddInUrl")) = s:                               End Property
 
 Public Property Get FolderCommonComponentsName() As String
-    Dim fso As New FileSystemObject
     FolderCommonComponentsName = fso.GetFolder(FolderCommonComponentsPath).Name
-    Set fso = Nothing
 End Property
 
 Public Property Get FolderCommonComponentsPath() As String:         FolderCommonComponentsPath = mWsh.Value(Me, "FolderCommonComponents"):  End Property
@@ -169,7 +167,6 @@ Public Sub AutoOpenAddinSetup()
     Const PROC = "AutoOpenAddinSetup"
     
     On Error GoTo eh
-    Dim fso         As New FileSystemObject
     Dim oShell      As IWshShell3
     Dim oShortcut   As IWshShortcut
     Dim sShortcut   As String
@@ -290,7 +287,6 @@ Public Sub CurrentStatus()
     Const PROC = ""
     
     On Error GoTo eh
-    Dim fso         As New FileSystemObject
     Dim sStatus     As String
     Dim cll         As New Collection
     Dim i           As Long
@@ -356,8 +352,7 @@ Public Sub CurrentStatus()
     FolderSyncTargetIsValid
     FolderSyncArchiveIsValid
         
-xt: Set fso = Nothing
-    Set cll = Nothing
+xt: Set cll = Nothing
     Exit Sub
 
 eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
@@ -473,7 +468,6 @@ Public Function FolderCompManRootIsValid() As Boolean
     Const PROC = "FolderCompManRootIsValid"
     
     On Error GoTo eh
-    Dim fso     As New FileSystemObject
     Dim bValid  As Boolean
     
     FolderCompManRootUrl = mCompMan.README_CONFIG_CHANGES
@@ -543,12 +537,14 @@ Public Function FolderExportIsValid(Optional ByRef iv_info As String) As Boolean
         FolderExportUrl = mCompMan.README_CONFIG_CHANGES
         If .FolderExport <> vbNullString Then
             FolderExportInfo = "Current configured name of the folder within a serviced Workbook's dedicated folder " & _
-                                "into which CompMan exports new/modified components. The name may be changed however."
+                                "into which CompMan exports new/modified components. The name may be changed only by " & _
+                                "means of the corresponding ""Configure"" button exclusively!"
             FolderExportIsValid = True
         Else
             FolderExport = mConfig.DEFAULT_FOLDER_EXPORT
             FolderExportInfo = "Current configured (default) name of the folder within a serviced Workbook's dedicated " & _
-                               "folder into which CompMan exports new/modified components. The name may be changed however."
+                               "folder into which CompMan exports new/modified components. The name may be changed only by " & _
+                               "means of the corresponding ""Configure"" button exclusively!"
             FolderExportIsValid = False
         End If
         iv_info = FolderExportInfo
@@ -566,7 +562,6 @@ Private Function FolderSyncArchiveIsValid() As Boolean
 ' Returns TRUE when the current configured Synchronization-Archive-Folder is
 ' valid.
 ' ----------------------------------------------------------------------------
-    Dim fso As New FileSystemObject
     
     With Me
         FolderSyncArchiveUrl = mCompMan.README_CONFIG_CHANGES
@@ -593,8 +588,6 @@ Private Function FolderSyncArchiveIsValid() As Boolean
         End If
     End With
     
-    Set fso = Nothing
-
 End Function
 
 Public Sub FolderSyncTargetConfigure()
@@ -608,7 +601,6 @@ Public Function FolderSyncTargetIsValid() As Boolean
 ' Considers that the configured folder does not or no longer exist, in case
 ' the Workbook is opened on a different computer for example.
 ' ----------------------------------------------------------------------------
-    Dim fso As New FileSystemObject
     
     With wsConfig
         FolderSyncTargetIsValid = FolderSyncTarget = vbNullString
@@ -626,13 +618,12 @@ Public Function FolderSyncTargetIsValid() As Boolean
                                        "Important! The folder must not be a sub-folder of the 'Serviced Development and Test' folder!"
             End If
         Else
-            FolderSyncTargetInfo = "No 'Synchronization-Target' folder configured. CompMan's 'VB-Project Synchronization' service" & _
+            FolderSyncTargetInfo = "No 'Synchronization-Target' folder configured. CompMan's 'VB-Project Synchronization' service " & _
                                    "will not be provided even when a Workbook has it enabled." & vbLf & _
                                    "Important! The folder must not be a sub-folder of the 'Serviced Development and Test' folder!"
             FolderSyncTargetIsValid = True
         End If
     End With
-    Set fso = Nothing
     
 End Function
 
@@ -664,14 +655,19 @@ Public Sub MonitorRenewStep(Optional ByVal rn_result As String = vbNullString, _
 '
 ' ---------------------------------------------------------------
     Dim Title           As String:      Title = "Establish or renew CompMan as Add-in"
-    Dim Step            As TypeMsgText
-    Dim Footer          As TypeMsgText
+    Dim Step            As mMsg.udtMsgText
+    Dim Footer          As mMsg.udtMsgText
     Dim sProgressMsg    As String
     
     If rn_result <> vbNullString Then sRenewResult = rn_result
     If sRenewResult <> vbNullString Then sProgressMsg = ProgressMsg(RenewStep, RenewAction, sRenewResult)
     Step.FontSize = 8
-    Footer.FontSize = 8
+    With Footer
+        .FontSize = 8
+        .FontColor = rgbDarkGreen
+        .FontBold = True
+        .FontColor = rgbDarkGreen
+    End With
     Step.MonoSpaced = True
     
     If mMe.RenewStep > 0 And sRenewResult <> vbNullString Then
@@ -684,6 +680,9 @@ Public Sub MonitorRenewStep(Optional ByVal rn_result As String = vbNullString, _
                        , mon_width_min:=70 _
                        , mon_width_max:=80 _
                        , mon_pos:=MonitorAnchor
+             Footer.Text = "Renew Addin in progress. This may take a few seconds! Please wait and note " & _
+                           "that this monitor message may vanish several times during the progress."
+             mMsg.MonitorFooter Title, Footer
         Else
             mMsg.Monitor Title, Step
             If mMe.RenewTerminatedByUser Then
@@ -691,11 +690,7 @@ Public Sub MonitorRenewStep(Optional ByVal rn_result As String = vbNullString, _
                 mMsg.MonitorFooter Title, Footer
             Else
                 If Not rn_renew_failed Then
-                    With Footer
-                        .Text = "Renew process  " & mBasic.Spaced("successfully") & "  finished! Close window."
-                        .FontBold = True
-                        .FontColor = rgbDarkGreen
-                    End With
+                    Footer.Text = "Renew process  " & mBasic.Spaced("successfully") & "  finished! Close window."
                     mMsg.MonitorFooter Title, Footer
                 Else
                     With Footer

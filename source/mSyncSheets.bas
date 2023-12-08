@@ -169,7 +169,11 @@ Private Sub AppRunChanged()
     Set wbkSource = mSync.source
     vSource = Split(AppRunChangedIdsSource, ",")
     vTarget = Split(AppRunChangedIdsTarget, ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionChanged, 0)
+    mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                 , p_sync_step:=enSyncStepSyncing _
+                 , p_sync_action:=enSyncActionChanged _
+                 , p_count:=0
+    
     mSync.AppRunInit
     
     For i = LBound(vSource) To UBound(vSource)
@@ -188,7 +192,10 @@ Private Sub AppRunChanged()
             mWsh.ChangeCodeName wbkTarget, sOldCodeName, wshSource.CodeName
             wsSyncLog.Done "change", "Worksheet", SyncId(wshTarget), "changed", "CodeName changed from " & sOldCodeName & " to " & wshTarget.CodeName
         End If
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionChanged, i + 1)
+        mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                     , p_sync_step:=enSyncStepSyncing _
+                     , p_sync_action:=enSyncActionChanged _
+                     , p_count:=i + 1
     Next i
     
     dctKnownChanged.RemoveAll ' indicates done
@@ -239,7 +246,11 @@ Private Sub AppRunNew()
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.source
     va = Split(AppRunNewIds(enSyncObjectKindWorksheet), ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionAddNew, 0)
+    mSync.Progress p_kind:=enSyncObjectKindWorksheet _
+                 , p_sync_step:=enSyncStepSyncing _
+                 , p_sync_action:=enSyncActionAddNew _
+                 , p_count:=0
+    
     mSync.AppRunInit
     
     For i = LBound(va) To UBound(va)
@@ -251,7 +262,10 @@ Private Sub AppRunNew()
                                           , r_wbk_target:=wbkTarget
         
         wsSyncLog.Done "new", "Worksheet", va(i), "added", "New! Added/cloned to Sync-Target-Workbook (working copy)"
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionAddNew, i + 1)
+        mSync.Progress p_kind:=enSyncObjectKindWorksheet _
+                     , p_sync_step:=enSyncStepSyncing _
+                     , p_sync_action:=enSyncActionAddNew _
+                     , p_count:=i + 1
     Next i
     
     dctKnownNew.RemoveAll ' indicates that all new Names had been added
@@ -285,7 +299,10 @@ Private Sub AppRunObsolete()
     Set wbkSource = mSync.source
     Application.DisplayAlerts = False
     va = Split(AppRunObsoleteIds(enSyncObjectKindWorksheet), ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionRemoveObsolete, 0)
+    mSync.Progress p_kind:=enSyncObjectKindWorksheet _
+                 , p_sync_step:=enSyncStepSyncing _
+                 , p_sync_action:=enSyncActionRemoveObsolete _
+                 , p_count:=0
     mSync.AppRunInit
     
     For i = LBound(va) To UBound(va)
@@ -297,7 +314,10 @@ Private Sub AppRunObsolete()
         Else
             Debug.Print "The Worksheet '" & va(i) & "' no longer exists!"
         End If
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionRemoveObsolete, i + 1)
+        mSync.Progress p_kind:=enSyncObjectKindWorksheet _
+                     , p_sync_step:=enSyncStepSyncing _
+                     , p_sync_action:=enSyncActionRemoveObsolete _
+                     , p_count:=i + 1
     Next i
     
     dctKnownObsolete.RemoveAll ' indicates that all removals had been done
@@ -450,8 +470,11 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     
     '~~ Collect changed
     If DueCollect("Changed") Then
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepCollecting, enSyncActionChanged, 0)
-        
+        mSync.Progress p_kind:=enSyncObjectKindWorksheet _
+             , p_sync_step:=enSyncStepCollecting _
+             , p_sync_action:=enSyncActionChanged _
+             , p_count:=0
+
         For Each wshSource In mSync.source.Sheets
             sId = SyncId(wshSource)
             If Not KnownSource(sId) Then
@@ -469,13 +492,19 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     End If
                 End If
             End If
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepCollecting, enSyncActionChanged, dctKnownChanged.Count)
+            mSync.Progress p_kind:=enSyncObjectKindWorksheet _
+                 , p_sync_step:=enSyncStepCollecting _
+                 , p_sync_action:=enSyncActionChanged _
+                 , p_count:=dctKnownChanged.Count
         Next wshSource
     End If
 
     '~~ Collect new
     If DueCollect("New") Then
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepCollecting, enSyncActionAddNew, 0)
+        mSync.Progress p_kind:=enSyncObjectKindWorksheet _
+             , p_sync_step:=enSyncStepCollecting _
+             , p_sync_action:=enSyncActionAddNew _
+             , p_count:=0
         
         For Each wshSource In c_wbk_source.Worksheets
             sId = SyncId(wshSource)
@@ -497,13 +526,19 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                         End If
                 End Select
             End If
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepCollecting, enSyncActionAddNew, dctKnownNew.Count)
+            mSync.Progress p_kind:=enSyncObjectKindWorksheet _
+                 , p_sync_step:=enSyncStepCollecting _
+                 , p_sync_action:=enSyncActionAddNew _
+                 , p_count:=dctKnownNew.Count
         Next wshSource
     End If
         
     '~~ Collect obsolete
     If DueCollect("Obsolete") Then
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepCollecting, enSyncActionRemoveObsolete, 0)
+            mSync.Progress p_kind:=enSyncObjectKindWorksheet _
+                 , p_sync_step:=enSyncStepCollecting _
+                 , p_sync_action:=enSyncActionRemoveObsolete _
+                 , p_count:=0
         
         For Each wshTarget In c_wbk_target.Worksheets
             sId = SyncId(wshTarget)
@@ -518,7 +553,10 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                         mSync.DueSyncLet , enSyncObjectKindWorksheet, enSyncActionRemoveObsolete, , sId
                 End Select
             End If
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownObsolete.Count)
+            mSync.Progress p_kind:=enSyncObjectKindWorksheet _
+                 , p_sync_step:=enSyncStepCollecting _
+                 , p_sync_action:=enSyncActionRemoveObsolete _
+                 , p_count:=dctKnownObsolete.Count
         Next wshTarget
     End If
     
@@ -885,7 +923,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
     
     On Error GoTo eh
     Dim fSync           As fMsg
-    Dim Msg             As TypeMsg
+    Dim Msg             As mMsg.udtMsg
     Dim cllButtons      As New Collection
     Dim AppRunArgs      As New Dictionary
     Dim Bttn1           As String
@@ -973,13 +1011,13 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
         With Msg.Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization, section Name Synchronization:"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
+            .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
         End With
         
         '~~ Display the mode-less dialog for the Names synchronization to run
         mMsg.Dsply dsply_title:=TITLE_SYNC_SHEETS _
                  , dsply_msg:=Msg _
-                 , dsply_label_spec:="R70" _
+                 , dsply_Label_spec:="R70" _
                  , dsply_buttons:=cllButtons _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
@@ -1065,7 +1103,7 @@ Private Sub AppRunOwnedByPrjct()
     Set wbkSource = mSync.source
     mSyncNames.AllNames wbkTarget, dctNames
     va = Split(AppRunOwnedByPrjctIds(), ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionOwnedByPrjctObsolete, 0)
+    mSync.Progress enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionOwnedByPrjctObsolete, 0
     
     For i = LBound(va) To UBound(va)
         GetSheet wbkSource, va(i), wshSource
@@ -1087,7 +1125,7 @@ Private Sub AppRunOwnedByPrjct()
         '~~ Synchronize RefersTo and the Scope of all Names which refer to a range in
         '~~ the cloned/added Worksheet with those of the corresponding Name in the Sync-Source-Workbook
         wsSyncLog.Done "new", "Worksheet", SyncId(wshSource), "added", "re-cloned, considered 'owned-by-project'"
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionOwnedByPrjctObsolete, i + 1)
+        mSync.Progress enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionOwnedByPrjctObsolete, i + 1
     Next i
              
 xt: mBasic.EoP ErrSrc(PROC)

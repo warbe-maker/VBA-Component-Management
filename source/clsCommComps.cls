@@ -11,7 +11,7 @@ Option Explicit
 ' ---------------------------------------------------------------------------
 ' Class Module clsCommComps: Management of Common Components
 ' ========================== a) in the dedicated Common-Components folder
-'                             b) in the CommComps.dat
+'                            b) in the CommComps.dat file
 ' Public Methods:
 ' ----------------
 ' BttnInconsistencyExport          .
@@ -31,9 +31,9 @@ Option Explicit
 ' LastModExpFileFullNameOrigin r/w .
 ' LastModWbk                     w .
 ' LastModWbkBaseName           r   .
-' LastModWbkFullName           r/w .
+' LastModifiedInWbkFullName           r/w .
 ' LastModWbkName               r   .
-' RevisionNumber               r/w .
+' LastModifiedAtDatTime        r/w .
 ' ---------------------------------------------------------------------------
 
 ' Housekeeping syntax: (allows the on-the-fly-change of value names as well as their removal)
@@ -42,35 +42,33 @@ Option Explicit
 ' ":<remove-name>"            = remove in all sections
 Private Const LAST_MOD_EXP_FILE_FULL_NAME           As String = "LAST_MOD_EXP_FILE_FULL_NAME"
 Private Const LAST_MOD_EXP_FILE_FULL_NAME_ORIGIN    As String = "LAST_MOD_EXP_FILE_FULL_NAME_ORIGIN"
-Private Const LAST_MOD_WBK_FULL_NAME                As String = "LAST_MOD_WBK_FULL_NAME"
-Private Const REVISION_NUMBER                       As String = "REVISION_NUMBER"
+Private Const LAST_MODIFIED_AT_DATE_TIME            As String = "LAST_MODIFIED_AT_DATE_TIME"
+Private Const LAST_MODIFIED_IN_WBK_FULL_NAME        As String = "LAST_MODIFIED_IN_WBK_FULL_NAME"
 
-Private PP                                      As clsPP
-Private fso                                     As FileSystemObject
-Private dctHosted                               As Dictionary
-Private sFolderPath                             As String
+Private PP                                          As clsPP
+Private dctHosted                                   As Dictionary
+Private sFolderPath                                 As String
 
 Private Sub Class_Initialize()
     Dim dct As New Dictionary
     
     Set dctHosted = New Dictionary
-    Set fso = New FileSystemObject
     Set PP = New clsPP
     
     sFolderPath = wsConfig.FolderCommonComponentsPath
 
     '~~> Full name of the PP-File
-    PP.FullName = sFolderPath & "\" & "CommComps.dat"
+    PP.FileFullName = sFolderPath & "\" & "CommComps.dat"
         
     '~~> Value Names with the syntax (allows the on-the-fly-change of value names as well as their removal):
     '~~> "<current>"                 = no action
-    '~~> "<current-name>:<old-name>" = rename in all sections
-    '~~> ":<remove-name>"            = remove in all sections
-        dct.Add LAST_MOD_EXP_FILE_FULL_NAME, "LastModExpFileFullName"
-        dct.Add LAST_MOD_EXP_FILE_FULL_NAME_ORIGIN, "LastModExpFileFullNameOrigin"
-        dct.Add LAST_MOD_WBK_FULL_NAME, "LastModWbkFullName"
-        dct.Add REVISION_NUMBER, "RevisionNumber"
-        dct.Add "Obsolete_1", ":RawRevisionNumber"
+    '~~> "<current>:<old>[:<old>].." = rename any <old> to <new> in all sections
+    '~~> ":<remove>"                 = remove in all sections
+    dct.Add LAST_MOD_EXP_FILE_FULL_NAME, "LastModExpFileFullName"
+    dct.Add LAST_MOD_EXP_FILE_FULL_NAME_ORIGIN, "LastModExpFileFullNameOrigin"
+    dct.Add LAST_MODIFIED_IN_WBK_FULL_NAME, "LastModifiedInWbkFullName:LastModWbkFullName"
+    dct.Add LAST_MODIFIED_AT_DATE_TIME, "LastModifiedAtDateTime:RevisionNumber"
+    dct.Add "Obsolete_1", ":RawRevisionNumber"
     PP.Names = dct
     Set dct = Nothing
 
@@ -79,7 +77,6 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    Set fso = Nothing
     Set PP = Nothing
 End Sub
 
@@ -185,54 +182,54 @@ Friend Property Let LastModWbk(Optional ByVal r_comp_name As String, _
                                         ByVal r_wbk As Workbook)
     With PP
         If r_wbk Is Nothing _
-        Then .Value(pp_section:=r_comp_name, pp_value_name:=.Name(LAST_MOD_WBK_FULL_NAME)) = "unknown" _
-        Else .Value(pp_section:=r_comp_name, pp_value_name:=.Name(LAST_MOD_WBK_FULL_NAME)) = r_wbk.FullName
+        Then .Value(pp_section:=r_comp_name, pp_value_name:=.Name(LAST_MODIFIED_IN_WBK_FULL_NAME)) = "unknown" _
+        Else .Value(pp_section:=r_comp_name, pp_value_name:=.Name(LAST_MODIFIED_IN_WBK_FULL_NAME)) = r_wbk.FullName
     End With
     
 End Property
 
 Friend Property Get LastModWbkBaseName(Optional ByVal comp_name As String) As String
     With PP
-        LastModWbkBaseName = fso.GetBaseName(.Value(pp_section:=comp_name, pp_value_name:=.Name(LAST_MOD_WBK_FULL_NAME)))
+        LastModWbkBaseName = fso.GetBaseName(.Value(pp_section:=comp_name, pp_value_name:=.Name(LAST_MODIFIED_IN_WBK_FULL_NAME)))
     End With
 End Property
 
-Friend Property Get LastModWbkFullName(Optional ByVal comp_name As String) As String
+Friend Property Get LastModifiedInWbkFullName(Optional ByVal comp_name As String) As String
     With PP
-        LastModWbkFullName = .Value(pp_section:=comp_name, pp_value_name:=.Name(LAST_MOD_WBK_FULL_NAME))
+        LastModifiedInWbkFullName = .Value(pp_section:=comp_name, pp_value_name:=.Name(LAST_MODIFIED_IN_WBK_FULL_NAME))
     End With
 End Property
 
 Friend Property Get LastModWbkName(Optional ByVal comp_name As String) As String
     With PP
-        LastModWbkName = fso.GetFileName(LastModWbkFullName(comp_name))
+        LastModWbkName = fso.GetFileName(LastModifiedInWbkFullName(comp_name))
     End With
 End Property
 
-Friend Property Get RevisionNumber(Optional ByVal comp_name As String) As String
+Friend Property Get LastModifiedAtDatTime(Optional ByVal comp_name As String) As String
 ' ----------------------------------------------------------------------------
 ' Returns the revision number in the format YYYY-MM-DD.n
 ' ----------------------------------------------------------------------------
     With PP
-        RevisionNumber = .Value(pp_section:=comp_name, pp_value_name:=.Name(REVISION_NUMBER))
+        LastModifiedAtDatTime = .Value(pp_section:=comp_name, pp_value_name:=.Name(LAST_MODIFIED_AT_DATE_TIME))
     End With
 End Property
 
-Friend Property Let RevisionNumber(Optional ByVal comp_name As String, _
+Friend Property Let LastModifiedAtDatTime(Optional ByVal comp_name As String, _
                                             ByVal comp_rev_no As String)
 ' ------------------------------------------------------------------------------
 ' Returns a revision number in the form yy-mm-dd.00. Plus one when an existing
 ' revision number is provided (comp_rev-no) or the current date with .01.
 ' ------------------------------------------------------------------------------
-    Const PROC = "RevisionNumber Let"
+    Const PROC = "LastModifiedAtDatTime Let"
     
     On Error GoTo eh
     
     With PP
         If comp_rev_no = vbNullString Then
-            .Value(pp_section:=comp_name, pp_value_name:=.Name(REVISION_NUMBER)) = CompManDat.RevisionNumberInitial
+            .Value(pp_section:=comp_name, pp_value_name:=.Name(LAST_MODIFIED_AT_DATE_TIME)) = CompMan.UTC
         Else
-            .Value(pp_section:=comp_name, pp_value_name:=.Name(REVISION_NUMBER)) = comp_rev_no
+            .Value(pp_section:=comp_name, pp_value_name:=.Name(LAST_MODIFIED_AT_DATE_TIME)) = comp_rev_no
         End If
     End With
     
@@ -277,7 +274,7 @@ Public Function Exists(ByVal x_vbc As VBComponent, _
         x_export_file_full_name = sFile
         Set x_export_file = LastModExpFile(x_vbc.Name)
         x_modified_by_wbk_name = LastModWbkName(x_vbc.Name)
-        x_last_mod_rev_no = RevisionNumber(x_vbc.Name)
+        x_last_mod_rev_no = LastModifiedAtDatTime(x_vbc.Name)
     End If
     
 xt: Set Comp = Nothing
@@ -320,7 +317,7 @@ Private Sub HskpngHosted()
 ' the following values in the Common-Components folder's CommComp.dat file
 ' when yet not provided:
 ' - Component Name (section)
-' - LastModWbkFullName (value)
+' - LastModifiedInWbkFullName (value)
 ' - Revision Number
 ' ----------------------------------------------------------------------------
     Const PROC = "HskpngHosted"
@@ -357,7 +354,7 @@ Private Sub HskpngHosted()
                 Set Comp = Nothing
             End If
             
-            If LastModWbkFullName(v) = vbNullString Then
+            If LastModifiedInWbkFullName(v) = vbNullString Then
                 '~~ Yet no other Workbook is registered as the last having modified the component
                 Set CommCompHosted = New clsComp
                 With CommCompHosted
@@ -372,7 +369,7 @@ Private Sub HskpngHosted()
                         '~~ registered as the origin of the Export-File
                         LastModWbk(v) = wbk
                         LastModExpFileFullNameOrigin(v) = .ExpFileFullName
-                        RevisionNumber = .RevisionNumber
+                        LastModifiedAtDatTime = .LastModifiedAtDatTime
                     End If
                     
                 End With
@@ -460,7 +457,7 @@ Private Sub HskpngSectionsMissing()
                         '~- The raw host will remain unknown until the Common Component is
                         '~~ modified in a Workbook using it and exported.
                         LastModWbk(sCompName) = Nothing
-                        RevisionNumber(sCompName) = CompManDat.RevisionNumberInitial
+                        LastModifiedAtDatTime(sCompName) = CompMan.UTC
                     Else
                         If LastModExpFileFullNameOrigin(sCompName) = vbNullString Then
 '                            Debug.Print "The property ""LastModExpFileFullNameOrigin"" of component " & sCompName & " is not available, i.e. its origin is unknown or simply yet not registered respectively!"
@@ -497,7 +494,7 @@ Private Sub HskpngUsedOrPrivate()
     Dim wbk             As Workbook
     Dim BttnConfirmed   As String
     Dim BttnPrivate     As String
-    Dim Msg             As mMsg.TypeMsg
+    Dim Msg             As mMsg.udtMsg
     Dim Comp            As clsComp
     
     mBasic.BoP ErrSrc(PROC)
@@ -532,7 +529,7 @@ Private Sub HskpngUsedOrPrivate()
                                          , dsply_msg:=Msg _
                                          , dsply_buttons:=mMsg.Buttons(BttnConfirmed, vbLf, BttnPrivate))
                         Case BttnConfirmed: CompManDat.RegistrationState(.CompName) = enRegStateUsed
-                                            CompManDat.RevisionNumber(.CompName) = vbNullString ' yet unknown will force update when outdated
+                                            CompManDat.LastModifiedAtDatTime(.CompName) = vbNullString ' yet unknown will force update when outdated
                         Case BttnPrivate:   CompManDat.RegistrationState(.CompName) = enRegStatePrivate
                     End Select
                 End If
@@ -619,7 +616,7 @@ Public Function InconsistencyWarning(ByVal i_file_full_name, _
     Do
         Select Case mMsg.Dsply(dsply_title:="Inconsistency warning for " & fso.GetBaseName(i_file_full_name) & "!" _
                              , dsply_msg:=Msg _
-                             , dsply_label_spec:="R70" _
+                             , dsply_label_spec:="R90" _
                              , dsply_buttons:=cllBttns _
                               )
             Case BTTN_DSPLY_DIFF

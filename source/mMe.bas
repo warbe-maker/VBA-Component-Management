@@ -7,38 +7,40 @@ Option Private Module
 ' and the development instance.
 '
 ' Public services:
-' - CfgAsserted                    Returns True when the required properties
-'                                  (the paths) are configured and exist
-' - ControlItemRenewAdd            Adds a 'Renew___AddIn' control item to the
-'                                  'Add-Ins' poupup menu.
-' - ControlItemRenewRemove         Removes the 'Renew___AddIn' control item
-'                                  from the 'Add-Ins' poupup menu when the
-'                                  Workbook is closed.
-' - Renew___AddIn                     Called via the 'Renew___AddIn' control item
-'                                  in the 'Add-Ins' popup menu or executed
-'                                  via the corresponding Command Button at
-'                                  the 'Manage CompMan Add-in' Worksheet.
-' - UpdateOutdatedCommonComponents Updates any outdated Used Common
-'                                  Component by means of the Raw's Export
-'                                  File which had been saved to the Common
-'                                  Components folder with the last export.
-'                                  Because a Workbook cannot update its own
-'                                  components the Development instance
-'                                  Workbook requires an active 'Add-in
-'                                  Instance' to get its outdated Used
-'                                  Common Components updated. For any other
-'                                  Workbook the service can be provided by
-'                                  the open 'Development Instance'.
-' - FolderServicedIsValid          CompMan services are only applied for
-'                                  Workbooks which are located in the
-'                                  configured 'Serviced Folder' - which
-'                                  prevents productive Workbooks are bothered
+' ----------------
+' CfgAsserted                    Returns True when the required properties
+'                                (the paths) are configured and exist
+' ControlItemRenewAdd            Adds a 'Renew___AddIn' control item to the
+'                                'Add-Ins' poupup menu.
+' ControlItemRenewRemove         Removes the 'Renew___AddIn' control item
+'                                from the 'Add-Ins' poupup menu when the
+'                                Workbook is closed.
+' Renew___AddIn                  Called via the 'Renew___AddIn' control
+'                                item in the 'Add-Ins' popup menu or
+'                                executed via the corresponding Command
+'                                Button at the 'Manage CompMan Add-in'
+'                                Worksheet.
+' UpdateOutdatedCommonComponents Updates any outdated Used Common
+'                                Component by means of the Raw's Export
+'                                File which had been saved to the Common
+'                                Components folder with the last export.
+'                                Because a Workbook cannot update its own
+'                                components the Development instance
+'                                Workbook requires an active 'Add-in
+'                                Instance' to get its outdated Used
+'                                Common Components updated. For any other
+'                                Workbook the service can be provided by
+'                                the open 'Development Instance'.
+' FolderServicedIsValid          CompMan services are only applied for
+'                                Workbooks which are located in the
+'                                configured 'Serviced Folder' - which
+'                                prevents productive Workbooks are bothered
 ' Uses Common Components:
-' - mFso                   Get/Let PrivateProperty value service
-' - mWrkbk                  GetOpen and Opened service
-' - mMsg                    Dsply, Box, and Buttons service used by the
-'                           RenewAddin,  Renew_1_ConfirmConfig service
-' - mErH                    Common VBA Error Handling
+' -----------------------
+' mFso                           Get/Let PrivateProperty value service
+' mMsg                           Dsply, Box, and Buttons service used by the
+'                                RenewAddin,  Renew_1_ConfirmConfig service
+' mErH                           Common VBA Error Handling
 '
 ' W. Rauschenberger, Berlin Nov 2020
 ' ---------------------------------------------------------------------------
@@ -70,7 +72,6 @@ Public Function AssertedServicingEnabled() As Boolean
     Const PROC = "AssertedServicingEnabled"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     
     If Trc Is Nothing Then Set Trc = New clsTrc
     BaseName = fso.GetBaseName(ThisWorkbook.Name)
@@ -100,7 +101,6 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
     Const PROC = "AssertedFilesAndFldrsStructure"
     
     On Error GoTo eh
-    Dim fso         As New FileSystemObject
     Dim BttnGoAhead As String
     Dim sWrkbkOpnd  As String
     
@@ -174,8 +174,7 @@ End Function
 
 Private Function AssertedWinMerge() As Boolean
     
-    Dim fso     As New FileSystemObject
-    Dim Msg     As mMsg.TypeMsg
+    Dim Msg     As mMsg.udtMsg
     Dim Title   As String
     
     Title = "WinMerge is not installed!"
@@ -192,7 +191,7 @@ Private Function AssertedWinMerge() As Boolean
         With Msg.Section(2).Label
             .FontColor = rgbBlue
             .Text = "Download and install the desired language version of WinMerge"
-            .OpenWhenClicked = "https://winmerge.org/downloads/"
+            .OnClickAction = "https://winmerge.org/downloads/"
         End With
         With Msg.Section(3)
             With .Label
@@ -223,10 +222,10 @@ Public Property Get AutoOpenShortCutCompManWbk()
 End Property
 
 Public Property Get DevInstncFullName() As String
-    Dim fso As New FileSystemObject
-    DevInstncFullName = wsConfig.FolderCompManRoot & DBSLASH _
-                          & fso.GetBaseName(DevInstncName) & DBSLASH _
-                          & DevInstncName
+    DevInstncFullName = wsConfig.FolderCompManRoot _
+                      & DBSLASH _
+                      & fso.GetBaseName(DevInstncName) & DBSLASH _
+                      & DevInstncName
 End Property
 
 Private Property Get DevInstncName() As String
@@ -356,7 +355,6 @@ Private Sub DevInstncWorkbookDelete()
     Const PROC = "DevInstncWorkbookDelete"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     
     mMe.RenewAction = "Delete the 'Development-Instance-Workbook' (" & DevInstncName & ")"
     
@@ -376,8 +374,7 @@ Private Sub DevInstncWorkbookDelete()
         End If
     End With
 
-xt: Set fso = Nothing
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -468,8 +465,10 @@ Private Sub Renew_04_DevInstncWorkbookSave()
     mMe.RenewAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ")"
     
     Set wbkSource = Application.Workbooks(DevInstncName)
-    wbkSource.Save
-    wbkSource.Activate
+    With wbkSource
+        If Not .Saved Then .Save
+        .Activate
+    End With
     mMe.RenewMonitorResult() = "Passed"
 
 xt: mBasic.EoP ErrSrc(PROC)
@@ -508,7 +507,6 @@ Private Function Renew_06_CloseCompManAddinWorkbook() As Boolean
 ' ----------------------------------------------------------------------------
     Const PROC = "Renew_06_CloseCompManAddinWorkbook"
     
-    Dim fso         As New FileSystemObject
     Dim sErrDesc    As String
     
     mBasic.BoP ErrSrc(PROC)
@@ -523,8 +521,7 @@ Private Function Renew_06_CloseCompManAddinWorkbook() As Boolean
         mMe.RenewMonitorResult = "Passed"
     End If
     
-xt: Set fso = Nothing
-    mBasic.EoP ErrSrc(PROC)
+xt: mBasic.EoP ErrSrc(PROC)
     Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -583,7 +580,7 @@ Private Function Renew_08_SaveDevInstncWorkbookAsAddin() As Boolean
     mMe.RenewAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ") as 'CompMan Add-in' (" & mAddin.WbkName & ")"
     
     With Application
-        If Not mAddin.Exists Then
+        If Not fso.FileExists(mAddin.WbkFullName) Then
             '~~ At this point the Add-in must no longer exist at its location
             On Error Resume Next
             wbkSource.SaveAs WbkFullName, FileFormat:=ADDIN_FORMAT
@@ -623,7 +620,7 @@ Private Function Renew_09_OpenAddinInstncWorkbook() As Boolean
     
     mBasic.BoP ErrSrc(PROC)
     If Not mAddin.IsOpen Then
-        If mAddin.Exists Then
+        If fso.FileExists(mAddin.WbkFullName) Then
             mMe.RenewAction = "Re-open the 'CompMan Add-in' (" & mAddin.WbkName & ")"
             On Error Resume Next
             Set wb = Application.Workbooks.Open(WbkFullName)
@@ -675,7 +672,7 @@ Private Sub Renew_12_SetupWinMergeIni()
     
     On Error GoTo eh
     mBasic.BoP ErrSrc(PROC)
-    mWinMergeIni.Setup WinMergeIniAddinFullName
+    mWinMergeIni.Setup WinMergeIniFullName
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub

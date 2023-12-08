@@ -86,7 +86,6 @@ End Sub
 Private Sub Test_EnvironmentCleanup()
     Const PROC = "Test_EnvironmentCleanup"
     
-    Dim fso         As New FileSystemObject
     Dim wbk         As Workbook
     Dim sTargetWorkingCopy As String
     
@@ -108,9 +107,7 @@ Private Sub Test_EnvironmentCleanup()
     Set shpTarget = Nothing
     Set oobSource = Nothing
     Set oobTarget = Nothing
-    
-    Set fso = Nothing
-    
+        
 xt: mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 

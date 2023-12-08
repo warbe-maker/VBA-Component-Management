@@ -328,7 +328,6 @@ Private Sub SetupComp(ByVal c_source_or_target As String, _
     Const PROC = "SetupComp"
     
     On Error GoTo eh
-    Dim fso         As New FileSystemObject
     Dim vbc         As VBComponent
     Dim sFromFile   As String
     
@@ -360,8 +359,7 @@ Private Sub SetupComp(ByVal c_source_or_target As String, _
             End If
     End Select
     
-xt: Set fso = Nothing
-    Exit Sub
+xt: Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -393,8 +391,6 @@ Private Function SetupCompFromFile(ByVal s_source_or_target As String, _
     Const PROC = "Setup"
     
     On Error GoTo eh
-                                   
-    Dim fso         As New FileSystemObject
     Dim sExt        As String
     Dim sFromFile1  As String
     Dim sFromFile2  As String
@@ -437,7 +433,6 @@ Private Function SetupCompFromFile(ByVal s_source_or_target As String, _
     End If
     
 xt: SetupCompFromFile = sFromFile
-    Set fso = Nothing
     Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -583,7 +578,6 @@ Private Sub SetupTestWorkbooksCleanup(ByVal s_sync_source As String, _
     Const PROC = "SetupTestWorkbooksCleanup"
 
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     Dim wbk As Workbook
     
     With fso
@@ -625,7 +619,6 @@ Public Sub SetupTestWorkbooksEstablish(Optional ByVal s_regression As Boolean = 
     Const PROC = "SetupTestWorkbooksEstablish"
     
     On Error GoTo eh
-    Dim fso                 As New FileSystemObject
     Dim sSourcePath         As String
     Dim sTargetPath         As String
     Dim sSourceFullName     As String
@@ -680,8 +673,7 @@ Public Sub SetupTestWorkbooksEstablish(Optional ByVal s_regression As Boolean = 
         wsService.CurrentServicedWorkbookFullName = SyncTestTarget.FullName
     End If
         
-xt: Set fso = Nothing
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

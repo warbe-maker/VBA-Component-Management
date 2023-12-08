@@ -229,7 +229,7 @@ Private Sub AppRunChanged()
     sIdsTarget = AppRunChangedIdsTarget
     vSource = Split(sIdsSource, ",")
     vTarget = Split(sIdsTarget, ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionChanged, 0)
+    mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionChanged, 0
     AppRunInit
     
     For i = LBound(vSource) To UBound(vSource)
@@ -258,7 +258,7 @@ Private Sub AppRunChanged()
             If bRange Then .Done "change", "Name", sIdTarget, "changed", "Range changed from " & sOldRange & " to " & nmeTarget.RefersTo
             If bScope Then .Done "change", "Name", sIdTarget, "changed", "Scope changed from " & sOldScope & " to " & mNme.ScopeName(nmeTarget)
         End With
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionChanged, i + 1)
+        mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionChanged, i + 1
     Next i
     dctKnownChanged.RemoveAll ' indicates done
     AppRunTerminate
@@ -309,7 +309,7 @@ Private Sub AppRunMultiple()
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.source
     va = Split(AppRunMultipleIdsTarget, ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleRemove, 0)
+    mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleRemove, 0
     mSync.AppRunInit
     
     For i = LBound(va) To UBound(va)
@@ -319,11 +319,11 @@ Private Sub AppRunMultiple()
             wsSyncLog.Done "obsolete", "Name", SyncId(nme), "removed", "Multiple Name removed from Sync-Target-Workbook (working copy)"
         
         End If
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleRemove, i + 1)
+        mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleRemove, i + 1
     Next i
     
     va = Split(AppRunMultipleIdsSource, ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleAdd, 0)
+    mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleAdd, 0
     
     For i = LBound(va) To UBound(va)
         GetName va(i), wbkSource, nme
@@ -347,7 +347,7 @@ Private Sub AppRunMultiple()
                   , c_nme:=nme
             
         wsSyncLog.Done "multiple", "Name", va(i), "new ambiguity added", "New! Multiply added to Sync-Target-Workbook (working copy)"
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleAdd, i + 1)
+        mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleAdd, i + 1
     Next i
     dctKnownMultiple.RemoveAll ' indicates that all ambiguities had been done
     mSync.AppRunTerminate
@@ -397,7 +397,7 @@ Private Sub AppRunNew()
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.source
     va = Split(AppRunNewIds(enSyncObjectKindName), ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionAddNew, 0)
+    mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionAddNew, 0
     AppRunInit
     
     For i = LBound(va) To UBound(va)
@@ -427,7 +427,7 @@ Private Sub AppRunNew()
                   , c_nme:=nmeTarget
             
         wsSyncLog.Done "new", "Name", va(i), "added", "New! Added to Sync-Target-Workbook (working copy)"
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionAddNew, i + 1)
+        mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionAddNew, i + 1
     Next i
     dctKnownNew.RemoveAll ' indicates that all new Names had been added
     AppRunTerminate
@@ -463,7 +463,7 @@ Private Sub AppRunObsolete()
     Services.MessageUnload TITLE_SYNC_NAMES ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
     va = Split(mSync.AppRunObsoleteIds(enSyncObjectKindName), ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionRemoveObsolete, 0)
+    mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionRemoveObsolete, 0
     mSync.AppRunInit
     
     For i = LBound(va) To UBound(va)
@@ -475,7 +475,7 @@ Private Sub AppRunObsolete()
         Else
             Debug.Print "The Name '" & va(i) & "' no longer exists!"
         End If
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepSyncing, enSyncActionRemoveObsolete, i + 1)
+        mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionRemoveObsolete, i + 1
     Next i
     dctKnownObsolete.RemoveAll ' indicates that all removals had been done
     mSync.AppRunTerminate
@@ -567,7 +567,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     
     '~~ Collect Changed Name and/or Scope
     If DueCollect("Changed") Then
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepCollecting, enSyncActionChanged, 0)
+        mSync.Progress enSyncObjectKindName, enSyncStepCollecting, enSyncActionChanged, 0
         
         For Each nmeSource In c_wbk_source.Names
             sIdSource = mSyncNames.SyncId(nmeSource)
@@ -596,13 +596,13 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     End If
                 End If
             End If
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepCollecting, enSyncActionChanged, dctKnownChanged.Count / 2)
+            mSync.Progress enSyncObjectKindName, enSyncStepCollecting, enSyncActionChanged, dctKnownChanged.Count / 2
         Next nmeSource
     End If
     
     '~~ Collect obsolete target Names.
     If DueCollect("Obsolete") Then
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepCollecting, enSyncActionRemoveObsolete, 0)
+        mSync.Progress enSyncObjectKindName, enSyncStepCollecting, enSyncActionRemoveObsolete, 0
         
         For Each nmeTarget In c_wbk_target.Names
             sIdTarget = mSyncNames.SyncId(nmeTarget)
@@ -633,13 +633,13 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                         Next vTarget
                 End Select
             End If
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownObsolete.Count)
+            mSync.Progress enSyncObjectKindName, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownObsolete.Count
         Next nmeTarget
     End If
     
     '~~ Collect New Names
     If DueCollect("New") Then
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepCollecting, enSyncActionAddNew, 0)
+        mSync.Progress enSyncObjectKindName, enSyncStepCollecting, enSyncActionAddNew, 0
         
         For Each nmeSource In c_wbk_source.Names
             sIdSource = mSyncNames.SyncId(nmeSource)
@@ -681,14 +681,14 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                         End If
                 End Select
             End If
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepCollecting, enSyncActionAddNew, dctKnownNew.Count)
+            mSync.Progress enSyncObjectKindName, enSyncStepCollecting, enSyncActionAddNew, dctKnownNew.Count
         Next nmeSource
     End If
         
     '~~ Collect Multiple (specified as different names refer to the same range)
     If DueCollect("Multiple") Then
         lMultiply = 0
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepCollecting, enSyncActionMultiple, 0)
+        mSync.Progress enSyncObjectKindName, enSyncStepCollecting, enSyncActionMultiple, 0
         
         For Each nmeSource In c_wbk_source.Names
             sIdSource = mSyncNames.SyncId(nmeSource)
@@ -712,7 +712,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                 End If
             End If ' name corresponds to more than one target Name object
             
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindName, enSyncStepCollecting, enSyncActionMultiple, dctKnownMultiple.Count)
+            mSync.Progress enSyncObjectKindName, enSyncStepCollecting, enSyncActionMultiple, dctKnownMultiple.Count
         Next nmeSource
     End If
         
@@ -1276,11 +1276,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Private Function ParentWbk(ByVal p_nme As Name) As String
-    Dim fso As New FileSystemObject
     If TypeOf p_nme.Parent Is Worksheet _
     Then ParentWbk = fso.GetBaseName(p_nme.Parent.Parent.Name) _
     Else ParentWbk = fso.GetBaseName(p_nme.Parent.Name)
-    Set fso = Nothing
 End Function
 
 Private Sub PropertiesDiffer(ByVal p_nme_source As Name, _
@@ -1345,7 +1343,7 @@ End Function
 
 Private Function RefToChangeConfirmed(ByVal r_nme_source As Name, _
                                       ByVal r_nme_target As Name) As Boolean
-    Dim Msg As mMsg.TypeMsg
+    Dim Msg             As mMsg.udtMsg
     Dim Bttn1           As String
     Dim Bttn2           As String
     Dim sReferredSheet  As String
@@ -1385,7 +1383,7 @@ Private Function RefToChangeConfirmed(ByVal r_nme_source As Name, _
                 "              section: Name Synchronization"
         .MonoSpaced = True
         .FontColor = rgbBlue
-        .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
+        .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
     End With
     
     Bttn1 = "Skip and continue"
@@ -1527,7 +1525,6 @@ Private Function ScopeName(ByVal s_nme As Name) As String
 ' scope: Worksheet <workbook-base-name>.<worksheet-name>
 ' ----------------------------------------------------------------------------
 
-    Dim fso As New FileSystemObject
     Dim wbk As Workbook
     Dim wsh As Worksheet
  
@@ -1540,7 +1537,6 @@ Private Function ScopeName(ByVal s_nme As Name) As String
         Set wbk = s_nme.Parent
         ScopeName = ScopeName & "Workbook " & fso.GetBaseName(wbk.Name)
     End If
-    Set fso = Nothing
     
 End Function
 
@@ -1565,7 +1561,6 @@ Public Function SyncId(ByVal s_nme As Name) As String
 ' Note: A Worksheet scoped Name object (s_nme) may not conform with the sheet
 '       the Name the ReferTo property specifies.
 ' ----------------------------------------------------------------------------
-    Dim fso         As New FileSystemObject
     Dim sMereName   As String
     Dim sScopeName  As String
     Dim v           As Variant
@@ -1585,7 +1580,6 @@ Public Function SyncId(ByVal s_nme As Name) As String
     End If
     
     SyncId = sMereName & SYNC_ID_SEPARATOR & s_nme.RefersTo & SYNC_ID_SEPARATOR & sScopeName
-    Set fso = Nothing
     
 End Function
 
@@ -1607,7 +1601,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
     Dim cllButtons      As New Collection
     Dim fSync           As fMsg
     Dim lSection        As Long
-    Dim Msg             As TypeMsg
+    Dim Msg             As udtMsg
     Dim sDueSyncs       As String
     Dim bTerminated     As Boolean
     
@@ -1689,13 +1683,13 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
         With Msg.Section(lSection).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization, section Name Synchronization:"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
+            .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
         End With
         
         '~~ Display the mode-less dialog for the Names synchronization to run
         mMsg.Dsply dsply_title:=TITLE_SYNC_NAMES _
                  , dsply_msg:=Msg _
-                 , dsply_label_spec:="R70" _
+                 , dsply_Label_spec:="R70" _
                  , dsply_buttons:=cllButtons _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _

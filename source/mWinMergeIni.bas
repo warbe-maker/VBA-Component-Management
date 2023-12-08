@@ -33,9 +33,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get WinMergeIniAddinFullName() As String:   WinMergeIniAddinFullName = ThisWorkbook.Path & "\Addin\WinMerge.ini":   End Property
+'Public Property Get WinMergeIniAddinFullName() As String:   WinMergeIniAddinFullName = ThisWorkbook.Path & "\WinMerge.ini": End Property
 
-Public Property Get WinMergeIniFullName() As String:        WinMergeIniFullName = ThisWorkbook.Path & "\WinMerge.ini":              End Property
+Public Property Get WinMergeIniFullName() As String:        WinMergeIniFullName = ThisWorkbook.Path & "\WinMerge.ini":      End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mWinMergeIni." & sProc

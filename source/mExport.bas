@@ -33,7 +33,6 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
     
     On Error GoTo eh
     Dim Comp        As clsComp
-    Dim fso         As New FileSystemObject
     Dim v           As Variant
     Dim vbc         As VBComponent
     Dim wbk         As Workbook
@@ -59,13 +58,13 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                         Case mCompMan.enCommCompHosted
                             If .Changed Then
                                 '~~ The current Export-File is not identicall with a temporary export's Export-File
-                                sRevNo = .RevisionNumber
+                                sRevNo = .LastModifiedAtDatTime
                                 .Export
                                 With Services
                                     .NoOfItemsServiced = .NoOfItemsServiced + 1
                                     .NoOfItemsServicedNames = vbc.Name
                                     .ServicedItemLogEntry "Modified Common Component hosted: e x p o r t e d !"
-                                    .ServicedItemLogEntry "Modified Common Component hosted: Revision Number increased from " & sRevNo & " to " & Comp.RevisionNumber
+                                    .ServicedItemLogEntry "Modified Common Component hosted: Revision Number increased from " & sRevNo & " to " & Comp.LastModifiedAtDatTime
                                     .ServicedItemLogEntry "Modified Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
                                 End With
                             Else
@@ -77,14 +76,14 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                     Case mCompMan.enCommCompUsed
                             If .Changed Then
                                 '~~ The current Export-File is not identicall with a temporary export's Export-File
-                                sRevNo = .RevisionNumber
+                                sRevNo = .LastModifiedAtDatTime
                                 .Export
                                 With Services
                                     .NoOfItemsServiced = .NoOfItemsServiced + 1
                                     .NoOfItemsServicedNames = vbc.Name
 
                                     .ServicedItemLogEntry "Modified Common Component used: e x p o r t e d !"
-                                    .ServicedItemLogEntry "Modified Common Component used: Revision Number increased from " & sRevNo & " to " & Comp.RevisionNumber
+                                    .ServicedItemLogEntry "Modified Common Component used: Revision Number increased from " & sRevNo & " to " & Comp.LastModifiedAtDatTime
                                     .ServicedItemLogEntry "Modified Common Component used: Export-File copied to " & wsConfig.FolderCommonComponentsPath
                                 End With
                             Else
@@ -117,18 +116,16 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                 .NoOfItemsIgnored = .NoOfItemsIgnored + 1
             End With
         End If
-        Services.DsplyProgress "exported"
         Set Comps = Nothing
     Next v
 
     With Services
-        .DsplyProgress "exported"
+        .Progress "exported"
         .RemoveTempRenamed
         .TempExportFolderRemove
     End With
     
 xt: mBasic.EoP ErrSrc(PROC)
-    Set fso = Nothing
     Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -147,7 +144,6 @@ Private Sub Hskpng()
     Const PROC = "Hskpng"
     
     On Error GoTo eh
-    Dim fso                 As New FileSystemObject
     Dim fl                  As File
     Dim sExpFldrCurrentName As String
     Dim sExpFldrRecentName  As String
@@ -184,8 +180,7 @@ Private Sub Hskpng()
         Next fl
     End With
         
-xt: Set fso = Nothing
-    Set fl = Nothing
+xt: Set fl = Nothing
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -209,7 +204,6 @@ Public Function ExpFileFolderPath(ByVal v As Variant) As String
     Const PROC = "ExpFileFolderPath"
     
     On Error GoTo eh
-    Dim fso         As New FileSystemObject
     Dim wbk         As Workbook
     Dim s           As String
     Dim sPath       As String
@@ -260,7 +254,6 @@ Private Function AnExportFolderExists(ByVal oef_path As String, _
     Const PROC = "AnExportFolderExists"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     Dim fld As Folder
     Dim fle As File
     
@@ -275,8 +268,7 @@ Private Function AnExportFolderExists(ByVal oef_path As String, _
         Next fle
     Next fld
     
-xt: Set fso = Nothing
-    Exit Function
+xt: Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

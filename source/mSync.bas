@@ -639,8 +639,7 @@ Private Sub Finalize()
     Const BTTN_ABORT    As String = "Terminate without finalization"
     
     On Error GoTo eh
-    Dim fso             As New FileSystemObject
-    Dim MsgText         As TypeMsg
+    Dim MsgText         As mMsg.udtMsg
     Dim MsgButtons      As Collection
     Dim wbkSource       As Workbook
     Dim wbkTarget       As Workbook
@@ -679,7 +678,7 @@ Private Sub Finalize()
         With .Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization service (GitHub README):"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
+            .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
         End With
     End With
 
@@ -694,7 +693,6 @@ Private Sub Finalize()
             wbkSource.Close
             mSync.TargetWorkingCopy.Close False
     End Select
-'    Application.StatusBar = vbNullString
     
 xt:  mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -787,13 +785,10 @@ Public Sub MonitorStep(ByVal ms_text As String)
     
     On Error Resume Next
     ActiveWindow.WindowState = xlMaximized
-    s = "Synchronization (by " & ThisWorkbook.Name _
-                          & ") for " _
-                          & Services.Serviced.Name _
-                          & ": " _
-                          & ms_text
-    Application.StatusBar = vbNullString
-    Services.DsplyStatus s
+    mCompManClient.Progress p_service_name:=mCompManClient.SRVC_SYNCHRONIZE _
+                          , p_by_servicing_wbk_name:=ThisWorkbook.Name _
+                          , p_serviced_wbk_name:=Services.Serviced.Name _
+                          , p_service_info:=ms_text
     
 End Sub
 
@@ -804,7 +799,7 @@ Public Sub OpenDecision()
     Const PROC  As String = "OpenDecision"
     
     On Error GoTo eh
-    Dim MsgText     As TypeMsg
+    Dim MsgText     As mMsg.udtMsg
     Dim MsgButtons  As New Collection
     Dim AppRunArgs  As New Dictionary
     
@@ -942,14 +937,14 @@ Public Sub OpenDecision()
         With .Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization service (GitHub README):"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
+            .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
         End With
     End With
     
     '~~ Display the mode-less open decision dialog
     mMsg.Dsply dsply_title:=OpnDcsnMsgTitle _
              , dsply_msg:=MsgText _
-             , dsply_label_spec:="R70" _
+             , dsply_Label_spec:="R70" _
              , dsply_buttons:=MsgButtons _
              , dsply_modeless:=True _
              , dsply_buttons_app_run:=AppRunArgs _
@@ -982,9 +977,7 @@ Private Sub OpnDcsnPreparationTarget()
 '   opened instead.
 ' ------------------------------------------------------------------------------
     Const PROC = "OpnDcsnPreparationTarget"
-    
-    Dim fso As New FileSystemObject
-    
+        
     mMsg.MsgInstance OpnDcsnMsgTitle, True ' Close/unload the mode-less open dialog
     If OpenedIsTarget Then
         With fso
@@ -1093,10 +1086,10 @@ eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function Progress(ByVal p_kind As enSyncKindOfObject, _
-                         ByVal p_sync_step As enSyncStep, _
-                         ByVal p_sync_action As enSyncAction, _
-                         ByVal p_count As Long) As String
+Public Sub Progress(ByVal p_kind As enSyncKindOfObject, _
+                    ByVal p_sync_step As enSyncStep, _
+                    ByVal p_sync_action As enSyncAction, _
+                    ByVal p_count As Long)
 ' ------------------------------------------------------------------------------
 ' Returns a string indcation the sync progress
 ' <kind> <action> [<sub-action> (n of m)] [ ] ...
@@ -1117,8 +1110,10 @@ Public Function Progress(ByVal p_kind As enSyncKindOfObject, _
     Static lCountObsolete   As Long
     Static lCountChanged    As Long
     Static lCountMultiple   As Long
+    
     Dim lOf                 As Long
     Dim sStepDetails        As String
+    Dim sProgressMsg        As String
     
     mBasic.BoP ErrSrc(PROC)
     If p_kind <> enKind Or p_sync_step <> enStep Or p_sync_action <> enAction Then
@@ -1126,7 +1121,7 @@ Public Function Progress(ByVal p_kind As enSyncKindOfObject, _
     End If
     
     If p_sync_step <> enAction Then
-        Progress = vbNullString
+        sProgressMsg = vbNullString
         sNew = vbNullString
         sObsolete = vbNullString
         sChanged = vbNullString
@@ -1156,16 +1151,17 @@ Public Function Progress(ByVal p_kind As enSyncKindOfObject, _
     While Right(sStepDetails, 1) = ","
         sStepDetails = Trim(Left(sStepDetails, Len(sStepDetails) - 1))
     Wend
-    Progress = SyncStepString(p_sync_step) & " " & SyncKindString(enKind) & " " & sStepDetails
+    sProgressMsg = SyncStepString(p_sync_step) & " " & SyncKindString(enKind) & " " & sStepDetails
+    Application.StatusBar = sProgressMsg
     
 xt:  mBasic.EoP ErrSrc(PROC)
-    Exit Function
+    Exit Sub
 
 eh:  Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Function
+End Sub
 
 Private Function ProgressOf(ByVal p_kind As enSyncKindOfObject, _
                             ByVal p_sync_step As enSyncStep, _
@@ -1310,7 +1306,7 @@ Public Function SourceExists(ByVal se_wbk_opened As Workbook) As Boolean
 ' ------------------------------------------------------------------------------
     Dim cll             As Collection
     Dim sSourceFullName As String
-    Dim Msg             As TypeMsg
+    Dim Msg             As mMsg.udtMsg
     Dim MsgTitle        As String
     Dim i               As Long
     
@@ -1350,11 +1346,11 @@ Public Function SourceExists(ByVal se_wbk_opened As Workbook) As Boolean
         With Msg.Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization service (GitHub README):"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
+            .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
         End With
         mMsg.Dsply dsply_title:=MsgTitle _
                  , dsply_msg:=Msg _
-                 , dsply_label_spec:="R70" _
+                 , dsply_Label_spec:="R70" _
                  , dsply_buttons:=mMsg.Buttons("Terminate Synchronization") _
                  , dsply_width_min:=30
         wsService.SyncSourceFullName = vbNullString
@@ -1438,7 +1434,7 @@ Private Sub SyncAll()
     Dim bDueComps   As Boolean
     Dim bDueShapes  As Boolean
     Dim lSection    As Long
-    Dim Msg         As mMsg.TypeMsg
+    Dim Msg         As mMsg.udtMsg
     Dim Bttn1       As String
     Dim Bttn2       As String
     Dim cllButtons  As Collection
@@ -1519,13 +1515,13 @@ Private Sub SyncAll()
         With Msg.Section(lSection).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
+            .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
         End With
         
         '~~ Display the mode-less dialog for the Names synchronization to run
         mMsg.Dsply dsply_title:=TITLE_SYNC_ALL _
                  , dsply_msg:=Msg _
-                 , dsply_label_spec:="R70" _
+                 , dsply_Label_spec:="R70" _
                  , dsply_buttons:=cllButtons _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
@@ -1572,7 +1568,7 @@ End Function
                              
 Public Sub SyncMode()
     
-    Dim sMsg As mMsg.TypeMsg
+    Dim sMsg    As mMsg.udtMsg
     Dim Bttn1   As String:  Bttn1 = "Synchronize" & vbLf & "summarized"
     Dim Bttn2   As String:  Bttn2 = "Synchronize" & vbLf & "by kind"
     
@@ -1624,7 +1620,6 @@ Private Sub TargetArchive()
 ' <workbook-base-name>-yy-mm-dd-nn whereby nn is a number from 01 to 99 to
 ' distinguish a Sync-Target-Workbook archived more than once during a day.
 ' ------------------------------------------------------------------------------
-    Dim fso                     As New FileSystemObject
     Dim sArchiveFolderRoot      As String
     Dim sArchiveFolderTarget    As String
     Dim l                       As Long
@@ -1657,7 +1652,6 @@ Private Sub TargetArchive()
 End Sub
 
 Private Sub TargetClearExportFiles()
-    Dim fso             As New FileSystemObject
     Dim sFolder         As String
     Dim sTargetFullName As String
     
@@ -1666,7 +1660,6 @@ Private Sub TargetClearExportFiles()
         sFolder = .GetParentFolderName(sTargetFullName) & "\" & wsConfig.FolderExport
         If .FolderExists(sFolder) Then .DeleteFolder sFolder
     End With
-    Set fso = Nothing
     
 End Sub
 
@@ -1677,7 +1670,7 @@ Private Sub TargetClose()
     Const PROC = "TargetClose"
     
     Dim wbk                         As Workbook
-    Dim Msg                         As TypeMsg
+    Dim Msg                         As mMsg.udtMsg
     Dim MsgTitle                    As String
     Dim BttnCloseWithoutSaving      As String
     Dim BttnCloseBySavingChanges    As String
@@ -1758,7 +1751,7 @@ Private Sub TargetWorkingCopyClose()
     Const PROC = "TargetWorkingCopyClose"
     
     Dim wbk                         As Workbook
-    Dim Msg                         As TypeMsg
+    Dim Msg                         As mMsg.udtMsg
     Dim MsgTitle                    As String
     Dim BttnCloseWithoutSaving      As String
     Dim BttnCloseBySavingChanges    As String
@@ -1814,24 +1807,20 @@ Private Sub TargetWorkingCopyClose()
 End Sub
 
 Private Function TargetWorkingCopyDelete() As Boolean
-    Dim fso                 As New FileSystemObject
     Dim sTargetWorkingCopyFullName As String
     
     sTargetWorkingCopyFullName = wsService.SyncTargetFullNameCopy
     With fso
         If .FileExists(sTargetWorkingCopyFullName) Then .DeleteFile sTargetWorkingCopyFullName
     End With
-    Set fso = Nothing
 
 End Function
 
 Private Function TargetWorkingCopyExists() As Boolean
-    Dim fso As New FileSystemObject
     Dim sTargetWorkingCopyFullName As String
     
     sTargetWorkingCopyFullName = wsService.SyncTargetFullNameCopy
     TargetWorkingCopyExists = fso.FileExists(sTargetWorkingCopyFullName)
-    Set fso = Nothing
 
 End Function
 
@@ -1871,7 +1860,6 @@ Private Sub TargetWorkingCopyOpen(Optional ByVal tco_new As Boolean = True, _
 ' ----------------------------------------------------------------------------
     Const PROC = "TargetWorkingCopyOpen"
     
-    Dim fso         As New FileSystemObject
     Dim sTargetWorkingCopy As String
     Dim sTarget     As String
     Dim wbk         As Workbook
@@ -1897,8 +1885,7 @@ Private Sub TargetWorkingCopyOpen(Optional ByVal tco_new As Boolean = True, _
         tco_wbk_result.Activate
     End If
     
-xt:  Set fso = Nothing
-     mCompManClient.Events ErrSrc(PROC), True
+xt:  mCompManClient.Events ErrSrc(PROC), True
     
 End Sub
 

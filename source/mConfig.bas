@@ -26,7 +26,6 @@ Public Const DEFAULT_FOLDER_COMPMAN_PARENT     As String = "CompMan"
 Public Const DEFAULT_FOLDER_COMMON_COMPONENTS  As String = "Common-Components"
 Public Const DEFAULT_FOLDER_COMPMAN_ROOT       As String = "CompManServiced"
 Public Const DEFAULT_FOLDER_EXPORT             As String = "source"
-Private fso As New FileSystemObject
 
 Private Property Get CommonCompsFolderNameCurrent() As String:      CommonCompsFolderNameCurrent = ServicedRootFolderNameCurrent & "\" & DEFAULT_FOLDER_COMMON_COMPONENTS:                  End Property
 
@@ -67,7 +66,7 @@ Public Function DefaultEnvDisplay(ByVal BttnGoAhead As String) As Variant
 ' Displays the to-be-setup default environment.
 ' ----------------------------------------------------------------------------
     Dim lMax    As Long
-    Dim Msg     As mMsg.TypeMsg
+    Dim Msg     As mMsg.udtMsg
     
     With Msg
         With .Section(1).Text
@@ -130,7 +129,7 @@ Public Function DefaultEnvDisplay(ByVal BttnGoAhead As String) As Variant
         With .Section(5).Label
             .FontColor = rgbBlue
             .Text = "See README chapter 'Files and Folders' for more information"
-            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_DEFAULT_FILES_AND_FOLDERS
+            .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_DEFAULT_FILES_AND_FOLDERS
         End With
     End With
     
@@ -157,7 +156,7 @@ Public Sub SetupConfirmed()
 ' ----------------------------------------------------------------------------
 ' Confirms the setup of the default environment.
 ' ----------------------------------------------------------------------------
-    Dim Msg             As mMsg.TypeMsg
+    Dim Msg             As mMsg.udtMsg
     Dim sSetupLocation  As String
     
     sSetupLocation = fso.GetFolder(ServicedRootFolderNameCurrent).ParentFolder.ParentFolder
@@ -183,7 +182,7 @@ Public Sub SetupConfirmed()
         With .Section(4).Label
             .FontColor = rgbBlue
             .Text = "See the corresponding README for how to enable a Workbook for being serviced"
-            .OpenWhenClicked = "https://github.com/warbe-maker/VBCompMan/blob/master/README.md?#enabling-the-services-serviced-or-not-serviced"
+            .OnClickAction = "https://github.com/warbe-maker/VBCompMan/blob/master/README.md?#enabling-the-services-serviced-or-not-serviced"
         End With
     End With
     mMsg.Dsply dsply_title:="Setup of CompMan's default environment completed!" _
@@ -228,7 +227,7 @@ Public Sub SelfSetupExportCompManClient()
                     .ServicedItem = vbc
                     .NoOfItemsServiced = .NoOfItemsServiced + 1
                     .ServicedItemLogEntry "Common Component hosted: initially exported by the ""self-setup"" process!"
-                    .ServicedItemLogEntry "Common Component hosted: Revision Number initialized with " & Comp.RevisionNumber
+                    .ServicedItemLogEntry "Common Component hosted: Revision Number initialized with " & Comp.LastModifiedAtDatTime
                     .ServicedItemLogEntry "Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
                 End With
             End With
@@ -252,11 +251,13 @@ Public Sub SelfSetupDefaultEnvironment()
     On Error GoTo eh
     Dim FldrExport          As String
         
-    If Not fso.FolderExists(ServicedRootFolderNameDefault) Then fso.CreateFolder ServicedRootFolderNameDefault
-    If Not fso.FolderExists(mConfig.CommonCompsFolderNameDefault) Then fso.CreateFolder mConfig.CommonCompsFolderNameDefault
-    If Not fso.FolderExists(CompManParentFolderNameDefault) Then fso.CreateFolder CompManParentFolderNameDefault
-    If Not fso.FolderExists(ExportFolderNameDefault) Then fso.CreateFolder ExportFolderNameDefault
-    If Not fso.FolderExists(VBCompManAddinFolderNameDefault) Then fso.CreateFolder VBCompManAddinFolderNameDefault
+    With fso
+        If Not .FolderExists(ServicedRootFolderNameDefault) Then .CreateFolder ServicedRootFolderNameDefault
+        If Not .FolderExists(mConfig.CommonCompsFolderNameDefault) Then .CreateFolder mConfig.CommonCompsFolderNameDefault
+        If Not .FolderExists(CompManParentFolderNameDefault) Then .CreateFolder CompManParentFolderNameDefault
+        If Not .FolderExists(ExportFolderNameDefault) Then .CreateFolder ExportFolderNameDefault
+        If Not .FolderExists(VBCompManAddinFolderNameDefault) Then .CreateFolder VBCompManAddinFolderNameDefault
+    End With
     
     With wsConfig
         .FolderCompManRoot = ServicedRootFolderNameDefault

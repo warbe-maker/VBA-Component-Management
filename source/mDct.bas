@@ -15,11 +15,11 @@ Option Explicit
 ' - DictDiff    Returns True when tow Dictionaries were different
 '
 ' Uses:         No other modules
-'               Note: mErH, mTrc, fMsg, mMsg are for the mTest module only
+'               Note: mErH, mTrc, fMsg, mMsg are for the mMsgTest module only
 '
 ' Requires:     "Microsoft Scripting Runtime"
 '               Note: The reference to "Microsoft Visual Basic Application Extensibility .."
-'               is for the mTest module only!
+'               is for the mMsgTest module only!
 '
 ' W. Rauschenberger, Berlin Sept 2020
 ' ----------------------------------------------------------------------------
@@ -415,7 +415,7 @@ Public Function ErrMsg(ByVal err_source As String, _
 ' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
 #If ErHComp = 1 Then
-    '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
+    '~~ When Common VBA Error Services (mErH) is avaiLabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt

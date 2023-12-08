@@ -14,8 +14,8 @@ Option Explicit
 Private Const MONITORED_STEPS   As Long = 11
 Private Const MONITOR_POS       As String = "20;400"
 
-Private tMonitorFooter          As TypeMsgText
-Private tMonitorStep            As TypeMsgText
+Private tMonitorFooter          As mMsg.udtMsgText
+Private tMonitorStep            As mMsg.udtMsgText
 Private sMonitorTitle           As String
 
 Private Function ErrSrc(ByVal sProc As String) As String
@@ -58,7 +58,6 @@ Public Sub ByCodeReplace(ByVal b_source_comp As clsComp, _
                 Services.ServicedItemLogEntry "Outdated Common Component used updated by code replace"
         End Select
     End With
-    
         
 xt: Exit Sub
 
@@ -90,7 +89,6 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
     Dim TmpWbk          As Workbook
     Dim lStep           As Long
     Dim sRevNo          As String
-    Dim fso             As New FileSystemObject
     
     mBasic.BoP ErrSrc(PROC)
     MonitorInitiate "Update an outdated component", b_monitor
@@ -146,11 +144,11 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
         '~~ Export the re-imported component to ensure an up-to-date Export-File
         fso.CopyFile b_exp_file, .ExpFileFullName, True
         '~~ Update the Revision-Number
-        sRevNo = CommComps.RevisionNumber(.CompName)
+        sRevNo = CommComps.LastModifiedAtDatTime(.CompName)
         Select Case .KindOfComp
             Case enCommCompUsed, enCommCompHosted
-                If .RevisionNumber <> sRevNo Then
-                    .RevisionNumber = sRevNo
+                If .LastModifiedAtDatTime <> sRevNo Then
+                    .LastModifiedAtDatTime = sRevNo
                 End If
         End Select
     End With

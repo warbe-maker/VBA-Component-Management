@@ -47,7 +47,6 @@ Public Sub OutdatedUpdate()
     If Not Qoutdated.IsEmpty Then
         OutdatedUpdate2Choice
     Else
-        Services.DsplyProgress "Common Components " & sUpdateDone
         Services.LogEntrySummary Application.StatusBar
     End If
     
@@ -179,7 +178,7 @@ Private Sub OutdatedUpdate2Choice()
         End If
         i = i + 1:  With .Section(i).Label
                         .Text = "About:"
-                        .OpenWhenClicked = GITHUB_REPO_URL & "#common-components"
+                        .OnClickAction = GITHUB_REPO_URL & "#common-components"
                         .FontUnderline = True
                     End With
                     .Section(i).Text.Text = _
@@ -191,7 +190,7 @@ Private Sub OutdatedUpdate2Choice()
     
     mMsg.Dsply dsply_title:=UpdateTitle _
                  , dsply_msg:=Msg _
-                 , dsply_label_spec:="R70" _
+                 , dsply_Label_spec:="R70" _
                  , dsply_buttons:=cllButtons _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
@@ -330,7 +329,7 @@ Private Sub OutdatedUpdate2Choice1Update(ByVal u_comp_name As String)
         With Services
             .NoOfItemsServiced = .NoOfItemsServiced + 1
             .NoOfItemsServicedNames = u_comp_name
-            .DsplyProgress "Common Components updated"
+            .Progress "Common Components updated"
         End With
     
         Select Case .KindOfComp
@@ -385,7 +384,7 @@ Private Sub OutdatedUpdate1Collect()
             If (.KindOfComp = enCommCompHosted Or .KindOfComp = enCommCompUsed) Then
                 bOutdated = .Outdated(bDiscontinue)
                 If bDiscontinue Then
-                    Services.DsplyProgress " !!! collecting outdated Common Components discontinued !!!"
+                    Services.Progress " !!! collecting outdated Common Components discontinued !!!"
                     GoTo xt
                 End If
                 If bOutdated Then
@@ -397,8 +396,8 @@ Private Sub OutdatedUpdate1Collect()
                     End With
                 Else
                     '~~ When not outdated due to a code difference the revision numbers ought to be equal
-                    If .RevisionNumber <> CommComps.RevisionNumber(.CompName) Then
-                        .RevisionNumber = CommComps.RevisionNumber(.CompName)
+                    If .LastModifiedAtDatTime <> CommComps.LastModifiedAtDatTime(.CompName) Then
+                        .LastModifiedAtDatTime = CommComps.LastModifiedAtDatTime(.CompName)
                     End If
                     With Services
                         .NoOfItemsIgnored = .NoOfItemsIgnored + 1
@@ -410,9 +409,9 @@ Private Sub OutdatedUpdate1Collect()
         Set Comp = Nothing
         Application.StatusBar = vbNullString
         DoEvents
-        Services.DsplyProgress "Common Components outdated"
+        Services.Progress "Common Components outdated"
     Next v
-    Services.DsplyProgress "Common Components outdated"
+    Services.Progress "Common Components outdated"
     
 xt: If wsService.CommonComponentsUsed = 0 Then wsService.CommonComponentsUsed = Services.NoOfCommonComponents
     If wsService.CommonComponentsOutdated = 0 Then wsService.CommonComponentsOutdated = Qoutdated.Size

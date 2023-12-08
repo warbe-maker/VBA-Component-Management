@@ -14,11 +14,22 @@ Option Explicit
 '
 ' Public Methods:
 ' ---------------
+' ComponentRemove
+' Components
+' FileFullName
+' Value
+' ValueSections
+' Name
+' Names
+' Reorg
 '
+' Uses: mFso for common Private Profile File services
+'
+' W. Rauschenberger, Berlin Oct 2023
 ' ----------------------------------------------------------------------------------------
-Private sFullName   As String
-Private dctNames    As Dictionary
-Private fso         As FileSystemObject
+Private sFileFullName   As String
+Private dctNames        As Dictionary
+Private fso             As FileSystemObject
 
 Private Sub Class_Initialize()
     Set fso = New FileSystemObject
@@ -30,10 +41,10 @@ Friend Property Let Names(ByVal n_dct As Dictionary)
     HskpngValueNames
 End Property
 
-Friend Property Let FullName(ByVal s As String)
-    sFullName = s
-    If Not fso.FileExists(sFullName) Then
-        fso.CreateTextFile sFullName
+Friend Property Let FileFullName(ByVal s As String)
+    sFileFullName = s
+    If Not fso.FileExists(sFileFullName) Then
+        fso.CreateTextFile sFileFullName
     End If
 End Property
 
@@ -57,7 +68,7 @@ Friend Property Get Value(Optional ByVal pp_section As String, _
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-    Value = mFso.PPvalue(pp_file:=sFullName _
+    Value = mFso.PPvalue(pp_file:=sFileFullName _
                       , pp_section:=pp_section _
                       , pp_value_name:=pp_value_name _
                        )
@@ -70,21 +81,20 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Property
 
 Public Function Components() As Dictionary
-    Set Components = mFso.PPsectionNames(sFullName)
+    Set Components = mFso.PPsectionNames(sFileFullName)
 End Function
 
 Friend Property Let Value(Optional ByVal pp_section As String, _
                           Optional ByVal pp_value_name As String, _
                                    ByVal pp_value As Variant)
 ' ----------------------------------------------------------------------------
-' Writes the value (pp_value) under the name (pp_value_name) into the
-' CompManDatFileFullName.
+' Writes the value (pp_value) with the name (pp_value_name) into the Private-
+' Profile-File sFileFullName.
 ' ----------------------------------------------------------------------------
     Const PROC = "Value_Let"
     
     On Error GoTo eh
-'    Debug.Print "Write Value-Name: " & pp_value_name & " = Value: " & pp_value & " into Priv-Prof-File: " & sFullName
-    mFso.PPvalue(pp_file:=sFullName _
+    mFso.PPvalue(pp_file:=sFileFullName _
               , pp_section:=pp_section _
               , pp_value_name:=pp_value_name _
                ) = pp_value
@@ -99,49 +109,49 @@ End Property
 
 Private Sub HskpngValueNames()
 ' ----------------------------------------------------------------------------
-' Renames all value names with a syntax <new>:<old> in all sections,
-' Removes all value names with a syntax :<old>
-' When at least one housekeeping action had been performed the function
-' returns TRUE.
+' The service considers entries in the dctNames Dictionary of which the item
+' has the following syntax: [<new>][:<old>][:<old>]
+' - Renames any <old> value names with an entry's syntax
+'   [<new>][:<old>][:<old>]..
+'   to <new>,
+' - Removes <old> value names with an entry's syntax
+'   :<old>[:<old]...
+' - Returns TRUE when at least one housekeeping action had been performed.
 ' ----------------------------------------------------------------------------
     Const PROC = "HskpngValueNames"
     
     On Error GoTo eh
     Dim dctSects    As Dictionary
     Dim i           As Long
+    Dim j           As Long
     Dim sNew        As String
     Dim sOld        As String
     Dim v           As Variant
     Dim vName       As Variant
-    Dim bDone       As Boolean
     
     mBasic.BoP ErrSrc(PROC)
     
     For i = 0 To dctNames.Count - 1
         vName = Split(dctNames.Items(i), ":")
-        If UBound(vName) = 1 Then
-            '~~> <new>:<old> or :<remove>
+        If UBound(vName) >= 1 Then
+            '~~> One or more old names are to be renamed to a new name<new>:<old> or :<remove>
             If vName(0) = vbNullString Then
-                '~~ Remove the name in all sections
-                If ValueNameRemoveInAllSections(vName(1)) Then
-                    bDone = True
-                End If
+                For j = 1 To UBound(vName)
+                    '~~ Remove the names in all sections
+                    ValueNameRemoveInAllSections vName(1)
+                Next j
             Else
-                '~~> Rename the old name with the new name in all sections
                 sNew = vName(0)
-                sOld = vName(1)
-                If sOld <> vbNullString And sNew <> vbNullString Then
-                    If ValueNameRenameInAllSections(sOld, sNew) = True Then
-                        bDone = True
+                For j = 1 To UBound(vName)
+                    '~~> Rename in all sections any old name to the new name
+                    sOld = vName(j)
+                    If sOld <> vbNullString And sNew <> vbNullString Then
+                        ValueNameRenameInAllSections sOld, sNew
                     End If
-                End If
+                Next j
             End If
         End If
     Next i
-
-'    If Not bDone _
-'    Then Debug.Print "All Value-Names housekeeping in " & sFullName & " done!" _
-'    Else Debug.Print "Value-Names housekeeping in " & sFullName & " performed!"
 
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -153,7 +163,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Friend Property Get ValueSections() As Dictionary
-    Set ValueSections = mFso.PPsections(sFullName)
+    Set ValueSections = mFso.PPsections(sFileFullName)
 End Property
 
 Private Function ValueNameRemoveInAllSections(ByVal pp_name As String) As Boolean
@@ -163,7 +173,7 @@ Private Function ValueNameRemoveInAllSections(ByVal pp_name As String) As Boolea
     Dim v As Variant
     
     For Each v In ValueSections
-        If mFso.PPremoveNames(pp_file:=sFullName _
+        If mFso.PPremoveNames(pp_file:=sFileFullName _
                             , pp_section:=v _
                             , pp_value_names:=pp_name) Then
             ValueNameRemoveInAllSections = True
@@ -180,7 +190,7 @@ Private Function ValueNameRenameInAllSections(ByVal v_old As String, _
     Dim v As Variant
     
     For Each v In ValueSections
-        If mFso.PPvalueNameRename(v_old, v_new, sFullName, v, False) Then
+        If mFso.PPvalueNameRename(v_old, v_new, sFileFullName, v, False) Then
             ValueNameRenameInAllSections = True
         End If
     Next v
@@ -188,17 +198,10 @@ Private Function ValueNameRenameInAllSections(ByVal v_old As String, _
 End Function
 
 Public Sub Reorg()
-    mFso.PPreorg sFullName
+    mFso.PPreorg sFileFullName
 End Sub
 
-'Private Function NameExists(ByVal pp_section As String, _
-'                            ByVal pp_value_name As String) As Boolean
-'    NameExists = mFso.Exists(x_file:=sFullName _
-'                           , x_section:=pp_section _
-'                           , x_value_name:=pp_value_name)
-'End Function
-
 Public Sub ComponentRemove(ByVal r_comp_name As String)
-    mFso.PPremoveSections pp_file:=sFullName, pp_sections:=r_comp_name
+    mFso.PPremoveSections pp_file:=sFileFullName, pp_sections:=r_comp_name
 End Sub
 

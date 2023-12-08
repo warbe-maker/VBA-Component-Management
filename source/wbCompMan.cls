@@ -24,9 +24,6 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = Me.CodeName & "." & sProc
 End Function
 
-Private Sub Workbook_AfterSave(ByVal Success As Boolean)
-End Sub
-
 Private Sub Workbook_BeforeClose(Cancel As Boolean)
 ' ------------------------------------------------------------------------------
 ' Ensure the CompMan Add-in is not (no longer) paused when the Development
@@ -49,15 +46,20 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     Const PROC = "Workbook_BeforeSave"
     
     If mMe.AssertedServicingEnabled Then
-        mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
+'        mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
         If Not wsConfig.Verified Then
             wsConfig.Activate
             Cancel = True
         End If
     End If
     Application.CutCopyMode = False
-    
+    Application.StatusBar = "Workbook is being saved"
 End Sub
+
+Private Sub Workbook_AfterSave(ByVal Success As Boolean)
+    mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
+End Sub
+
 
 Private Sub Workbook_Open()
 ' ----------------------------------------------------------------------------

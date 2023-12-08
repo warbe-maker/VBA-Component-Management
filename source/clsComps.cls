@@ -59,10 +59,15 @@ Private Function CollectAll() As Dictionary
                 lMaxLenServicedItem = Max(lMaxLenServicedItem, Len(.CompName))
                 lMaxLenServicedType = Max(lMaxLenServicedType, Len(.TypeString))
                 dct.Add vbc.Name, Comp
+                mCompManClient.Progress p_service_name:=mCompManClient.ServiceName(Services.CurrentService) _
+                                      , p_serviced_wbk_name:=Services.Serviced.Name _
+                                      , p_by_servicing_wbk_name:=ThisWorkbook.Name _
+                                      , p_progress_figures:=True _
+                                      , p_no_comps_total:=dct.Count
             End With
             With Services
                 .NoOfItemsTotal = dct.Count
-                .DsplyProgress "collected"
+'                .DsplyProgress "collected"
             End With
         Next vbc
     End With
@@ -133,9 +138,13 @@ Private Function CollectAllCommComps() As Dictionary
                 If .KindOfComp = enCommCompHosted Or .KindOfComp = enCommCompUsed Then
                     dct.Add vbc.Name, Comp
                     With Services
-                        .NoOfCommonComponents = .NoOfCommonComponents + 1
                         .NoOfItemsTotal = dct.Count
-                        .DsplyProgress "collected"
+                        .NoOfCommonComponents = .NoOfCommonComponents + 1
+                        mCompManClient.Progress p_service_name:=mCompManClient.ServiceName(Services.CurrentService) _
+                                              , p_serviced_wbk_name:=.Serviced.Name _
+                                              , p_by_servicing_wbk_name:=ThisWorkbook.Name _
+                                              , p_progress_figures:=True _
+                                              , p_no_comps_total:=dct.Count
                     End With
                 End If
             End With

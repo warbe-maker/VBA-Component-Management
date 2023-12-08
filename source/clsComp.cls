@@ -68,7 +68,6 @@ Private sService            As String       ' Name of the 'Service' folder, i.e.
 Private dctType             As Dictionary
 Private lMaxLenComp         As Long
 Private wsh                 As Worksheet
-Private fso                 As FileSystemObject
 Public Raw                  As clsRaw       ' The raw component's properties for a Used Common Component
 
 Private Sub Class_Initialize()
@@ -78,18 +77,15 @@ Private Sub Class_Initialize()
     dctType.Add vbext_ct_Document, "Document Module"
     dctType.Add vbext_ct_MSForm, "UserForm"
     dctType.Add vbext_ct_StdModule, "Standard Module"
-    Set fso = New FileSystemObject
 End Sub
 
 Private Sub Class_Terminate()
+    
     Set dctChanges = Nothing
     Set wbk = Nothing
     Set vbc = Nothing
     Set flExpFile = Nothing
-    
     CleanUpTemps
-    
-    Set fso = Nothing
     Set Raw = Nothing
     
 End Sub
@@ -210,7 +206,7 @@ Friend Property Let CompName(ByVal s As String)
                     .CompName = vbc.Name
                     .LastModExpFile = fRawExpFile
                     .LastModByWbkName = sModByWbkName
-                    .LastModRevisionNumber = sLastModRevNo
+                    .LastModifiedAtDatTime = sLastModRevNo
                 End With
             End If
         End If
@@ -425,7 +421,7 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
     
     mBasic.BoP ErrSrc(PROC)
     With Me
-        sRevNoCommCompFolder = CommComps.RevisionNumber(.CompName)
+        sRevNoCommCompFolder = CommComps.LastModifiedAtDatTime(.CompName)
         bExpFilesDiffer = Services.FilesDiffer(f_file_1:=.ExpFile _
                                              , f_file_2:=CommComps.LastModExpFile(.CompName) _
                                              , f_ignore_export_header:=True)
@@ -440,10 +436,12 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
         End With
         
         Select Case True
-            Case .RevisionNumber <> vbNullString And .RevisionNumber < sRevNoCommCompFolder
+            Case .LastModifiedAtDatTime <> vbNullString And .LastModifiedAtDatTime < sRevNoCommCompFolder
+                '~~ The used Common Component has a last-mod-dat-time less than the Common Component in the Common Components folder
                 If bExpFilesDiffer Then
                     Outdated = True
                 Else
+                    '~~ The export files are equal although the last-mod-dat-time differs !
                     i = i + 1
                     Msg.Section(i).Text.Text = _
                         "While the Export-File of the used Common Component   " & _
@@ -452,18 +450,19 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
                         "numbers differ! This is a severe logic error which " & _
                         "requires further investigation regarding the cause " & _
                         "(code inspection and testing)."
-                    CommCompFacts i, .RevisionNumber, sRevNoCommCompFolder
+                    CommCompFacts i, .LastModifiedAtDatTime, sRevNoCommCompFolder
                     mMsg.Dsply dsply_title:="Severe inconsistent Common-Component facts!" _
                              , dsply_msg:=Msg _
-                             , dsply_label_spec:="R100" _
+                             , dsply_label_spec:="R130" _
                              , dsply_width_min:=30 _
                              , dsply_buttons:=vbOKOnly
                     GoTo xt
                 End If
             
-            Case .RevisionNumber = sRevNoCommCompFolder
+            Case .LastModifiedAtDatTime = sRevNoCommCompFolder
                 If bExpFilesDiffer Then
-                    '~~ Servere logic error!
+                    '~~ The used Common Component has a last-mod-dat-time equal with the Common Component in the Common Components folder
+                    '~~ but the export files differ. This is regarded a severe logic error!
                     i = i + 1
                     Msg.Section(i).Text.Text = _
                         "While the Export-File of the of the " & CompManDat.RegStateString(Me.CompName) & _
@@ -472,23 +471,24 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
                         "This is a severe logic error which requires further investigation regarding " & _
                         "the cause (code inspection and testing)." & vbLf & _
                         "See facts below."
-                    CommCompFacts i, .RevisionNumber, sRevNoCommCompFolder
+                    CommCompFacts i, .LastModifiedAtDatTime, sRevNoCommCompFolder
                     Do
                         Select Case mMsg.Dsply(dsply_title:="Severe inconsistent Common-Component facts!" _
                                              , dsply_msg:=Msg _
-                                             , dsply_label_spec:="R100" _
+                                             , dsply_label_spec:="R130" _
                                              , dsply_width_min:=30 _
                                              , dsply_buttons:=mMsg.Buttons(BTTN_DSPLY_DIFF, vbLf, vbOKOnly))
                             Case vbOK: GoTo xt
                             Case BTTN_DSPLY_DIFF
                                  Services.ExpFilesDiffDisplay e_file_left_full_name:=Me.ExpFileFullName _
-                                , e_file_left_title:="Used Common Component's Export File: (" & Me.ExpFileFullName & ")" _
+                                , e_file_left_title:="Export File of the Used Common Component  " & mBasic.Spaced(Me.CompName) & "  (" & Me.ExpFileFullName & ")" _
                                 , e_file_right_full_name:=CommComps.LastModExpFileFullName(Me.CompName) _
-                                , e_file_right_title:="Export File of Common Component in Comman Components folder (" & CommComps.LastModExpFileFullName(Me.CompName) & ")"
+                                , e_file_right_title:="Export File of the Common Component  " & mBasic.Spaced(Me.CompName) & _
+                                                      "  in the Common Components folder (" & CommComps.LastModExpFileFullName(Me.CompName) & ")"
                         End Select
                     Loop
                 End If
-            Case .RevisionNumber > sRevNoCommCompFolder
+            Case .LastModifiedAtDatTime > sRevNoCommCompFolder
                 '~~ The Common-Components folder appears to be outdated
                 If bExpFilesDiffer Then
                     With Msg
@@ -507,7 +507,7 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
                             "Any check for outdated Common Components will be discontinued!"
                         o_discontinue = False
                     End With
-                    CommCompFacts i, .RevisionNumber, sRevNoCommCompFolder
+                    CommCompFacts i, .LastModifiedAtDatTime, sRevNoCommCompFolder
     
                     Do
                         Select Case mMsg.Dsply(dsply_title:="The Common-Components folder may be outdated!" _
@@ -517,9 +517,10 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
                                              , dsply_buttons:=mMsg.Buttons(BTTN_DSPLY_DIFF, vbLf, vbOKOnly))
                             Case BTTN_DSPLY_DIFF
                                  Services.ExpFilesDiffDisplay e_file_left_full_name:=Me.ExpFileFullName _
-                                , e_file_left_title:="Used Common Component's Export File: (" & Me.ExpFileFullName & ")" _
+                                , e_file_left_title:="Export File of the Used Common Component  " & mBasic.Spaced(Me.CompName) & "  (" & Me.ExpFileFullName & ")" _
                                 , e_file_right_full_name:=CommComps.LastModExpFileFullName(Me.CompName) _
-                                , e_file_right_title:="Export File of Common Component in Comman Components folder (" & CommComps.LastModExpFileFullName(Me.CompName) & ")"
+                                , e_file_right_title:="Export File of the Common Component  " & mBasic.Spaced(Me.CompName) & _
+                                                      "  in the Common Components folder (" & CommComps.LastModExpFileFullName(Me.CompName) & ")"
                             Case vbOK: GoTo xt
                         End Select
                     Loop
@@ -527,7 +528,7 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
                 '~~ When the Export-Files are equal it will not do any harm when the
                 '~~ Revision-Number of the used Common Component is re-set to the
                 '~~ Revision-Numer of the Common Component in the Common Components folder.
-                .RevisionNumber = sRevNoCommCompFolder
+                .LastModifiedAtDatTime = sRevNoCommCompFolder
                 With Services
                     .ServicedItem = Me.VBComp
                     .ServicedItemLogEntry "The Revision-Number has been re-set to " & sRevNoCommCompFolder
@@ -538,8 +539,8 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
         End Select
         
         If Not Outdated Then
-            If .RevisionNumber <> sRevNoCommCompFolder Then
-                .RevisionNumber = sRevNoCommCompFolder
+            If .LastModifiedAtDatTime <> sRevNoCommCompFolder Then
+                .LastModifiedAtDatTime = sRevNoCommCompFolder
             End If
             With Services
                 .ServicedItem = Me.VBComp
@@ -558,19 +559,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Property
 
                           
-Friend Property Get RevisionNumber() As String:             RevisionNumber = CompManDat.RevisionNumber(sCompName): End Property
+Friend Property Get LastModifiedAtDatTime() As String:             LastModifiedAtDatTime = CompManDat.LastModifiedAtDatTime(sCompName): End Property
 
-Friend Property Let RevisionNumber(ByVal s As String):      CompManDat.RevisionNumber(sCompName) = s:              End Property
-
-Friend Property Get RevisionNumbersDiffer() As Boolean
-' ------------------------------------------------------------------------------
-' Returns TRUE when the RevisionNumber of the Raw Common Component differs from
-' the current RevisionNumber of this Used Common Component.
-' ------------------------------------------------------------------------------
-    If KindOfComp = enCommCompUsed Then
-        RevisionNumbersDiffer = RevisionNumber <> Raw.LastModRevisionNumber
-    End If
-End Property
+Friend Property Let LastModifiedAtDatTime(ByVal s As String):      CompManDat.LastModifiedAtDatTime(sCompName) = s:              End Property
 
 Friend Property Get Service() As String
     If sService = vbNullString Then
@@ -675,27 +666,27 @@ Private Sub CommCompFacts(ByVal c_sect As Long, _
     With Msg
         c_sect = c_sect + 1
         With .Section(c_sect)
-            .Label.Text = c_rev_no_Used
+            .Label.Text = c_rev_no_Used & " ="
             .Label.FontColor = rgbBlack
             .Label.FontBold = True
             .Label.MonoSpaced = True
-            .Text.Text = "= Revision Number of the used Common Component."
+            .Text.Text = "Revision Number of the used Common Component."
         End With
         c_sect = c_sect + 1
         With .Section(c_sect)
-            .Label.Text = c_rev_no_raw
+            .Label.Text = c_rev_no_raw & " ="
             .Label.FontColor = rgbBlack
             .Label.FontBold = True
             .Label.MonoSpaced = True
-            .Text.Text = "= Revision Number of the Common Component in the Common Components folder."
+            .Text.Text = "Revision Number of the Common Component in the Common Components folder."
         End With
         c_sect = c_sect + 1
         With .Section(c_sect)
-            .Label.Text = CommComps.LastModWbkName(Me.CompName)
+            .Label.Text = CommComps.LastModWbkName(Me.CompName) & " ="
             .Label.FontColor = rgbBlack
             .Label.FontBold = True
             .Label.MonoSpaced = True
-            .Text.Text = "= Workbook which last modified the Common Component - and saved the Export-file to the Common components folder."
+            .Text.Text = "Workbook which last modified the Common Component - and saved the Export-file to the Common components folder."
         End With
     End With
                           
@@ -735,7 +726,7 @@ Public Sub Export()
     Const PROC = "Export"
     
     On Error GoTo eh
-    Dim sRevNo As String
+    Dim sLastModifiedDateTime As String
     
     With Me
         .VBComp.Export .ExpFileFullName   ' 1. The 'system' export
@@ -744,11 +735,11 @@ Public Sub Export()
                 '~~ The last Workbook in which a Common Component is modified becomes
                 '~~ the current "Raw host" regardless of which Workbook claims hosting it.
                 CommComps.SaveToCommonComponentsFolder .CompName, .ExpFile
-                RevisionNumberIncrease sRevNo
                 CommComps.LastModExpFileFullNameOrigin(.CompName) = .ExpFileFullName
                 CommComps.LastModWbk(.CompName) = .Wrkbk
-                CommComps.RevisionNumber(.CompName) = sRevNo
-                CompManDat.RevisionNumber(.CompName) = sRevNo
+                sLastModifiedDateTime = CompMan.UTC
+                CommComps.LastModifiedAtDatTime(.CompName) = sLastModifiedDateTime
+                CompManDat.LastModifiedAtDatTime(.CompName) = sLastModifiedDateTime
         End Select
     End With
 
@@ -805,30 +796,6 @@ Private Sub RemoveModuleInfo(ByRef dct As Dictionary)
     For j = 0 To i
         dct.Remove dct.Keys()(0)
     Next j
-    
-End Sub
-
-Public Sub RevisionNumberIncrease(ByRef r_rev_no As String)
-' ----------------------------------------------------------------------------
-' Increases the revision number by one starting with 1 for a new day.
-' ----------------------------------------------------------------------------
-    Dim lRevNo As Long
-    Dim sRevNo As String
-    
-    sRevNo = CompManDat.RevisionNumber(Me.CompName)
-    If sRevNo = vbNullString Then
-        sRevNo = Format(Now(), FORMAT_REV_DATE) & "." & Format(1, FORMAT_REV_NO)
-    Else
-        lRevNo = Split(sRevNo, ".")(1)
-        If Split(sRevNo, ".")(0) <> Format(Now(), FORMAT_REV_DATE) Then ' not/nolonger the same day
-            lRevNo = 1
-        Else
-            lRevNo = lRevNo + 1
-        End If
-        sRevNo = Format(Now(), FORMAT_REV_DATE) & "." & Format(lRevNo, FORMAT_REV_NO)
-    End If
-    
-    r_rev_no = sRevNo
     
 End Sub
 

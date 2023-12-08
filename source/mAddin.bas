@@ -35,36 +35,17 @@ Public Property Get WbkName() As String
 End Property
 
 Private Sub AutoOpenShortCutRemove()
-    Dim fso As New FileSystemObject
     Dim s   As String
     
     s = AutoOpenShortCut
-    If fso.FileExists(s) Then fso.DeleteFile s
-    Set fso = Nothing
+    With fso
+        If .FileExists(s) Then .DeleteFile s
+    End With
     
 End Sub
 
-'Private Sub Clear(ByVal c_addin_folder_full_name As String)
-'' ----------------------------------------------------------------------------
-'' Clears all items concerning the Add-in despite the Add-in folder.
-'' ----------------------------------------------------------------------------
-'
-'    ReferencesRemove
-'    Set_IsAddin_ToFalse
-'    WbkClose
-'    WbkRemove c_addin_folder_full_name & "\" & mAddin.WbkName
-'    AutoOpenShortCutRemove
-'
-'End Sub
-
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mAddin" & "." & sProc
-End Function
-
-Public Function Exists() As Boolean
-    Dim fso As New FileSystemObject
-    Exists = fso.FileExists(mAddin.WbkFullName)
-    Set fso = Nothing
 End Function
 
 Public Sub GiveUp()
@@ -87,24 +68,27 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function IsOpen(Optional ByRef io_wbk As Workbook) As Boolean
+Public Function IsOpen(Optional ByRef i_wbk As Workbook) As Boolean
     Const PROC = "IsOpen"
     
     On Error GoTo eh
     Dim i As Long
     Dim s As String
     
+    mBasic.BoP ErrSrc(PROC)
     s = mAddin.WbkName
     For i = 1 To Application.AddIns2.Count
         If Application.AddIns2(i).Name = s Then
             On Error Resume Next
-            Set io_wbk = Application.Workbooks(s)
+            Set i_wbk = Application.Workbooks(s)
             IsOpen = Err.Number = 0
+            On Error GoTo eh
             GoTo xt
         End If
     Next i
     
-xt: Exit Function
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -129,8 +113,6 @@ Public Sub ReferencesRemove(Optional ByRef rr_dct As Dictionary, _
 ' ----------------------------------------------------------------------------
 '
 ' ----------------------------------------------------------------------------
-        
-    Dim fso As New FileSystemObject
     Dim dct As Dictionary
     Dim v   As Variant
     Dim ref As Reference
@@ -157,7 +139,6 @@ Public Sub ReferencesRemove(Optional ByRef rr_dct As Dictionary, _
         Next v
         rr_removed_all = True
     End With
-    Set fso = Nothing
     
 End Sub
 
@@ -203,8 +184,6 @@ xt: mCompManClient.Events ErrSrc(PROC), True
 End Function
     
 Public Function WbkRemove(ByVal wr_wbk_full_name As String) As Boolean
-    Dim fso As New FileSystemObject
     If fso.FileExists(wr_wbk_full_name) Then fso.DeleteFile wr_wbk_full_name
-    Set fso = Nothing
 End Function
 

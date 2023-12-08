@@ -273,7 +273,12 @@ Public Function Denied(ByVal d_service As String) As Boolean
     
     If sStatus <> vbNullString Then
         LogServicing.Entry sStatus
-        Me.DsplyStatus sStatus
+        With Me
+            mCompManClient.Progress p_service_name:=CurrentService _
+                                  , p_serviced_wbk_name:=Serviced.Name _
+                                  , p_by_servicing_wbk_name:=ThisWorkbook.Name _
+                                  , p_service_info:=sStatus
+        End With
         Denied = True
     End If
     
@@ -304,28 +309,6 @@ Private Function DifferentWithExpHeaderExcluded(ByVal dhe_fle1 As File, _
                   , dd_ignore_case:=True)
     
 End Function
-
-Public Sub DsplyProgress(ByVal d_operation As String)
-    
-    With Application
-'        .StatusBar = vbNullString
-        .StatusBar = Progress(d_operation)
-    End With
-    
-    End Sub
-
-Public Sub DsplyStatus(ByVal ds_s As String)
-    Dim s As String
-    
-    s = Trim(CurrentServiceStatusBar & ": " & ds_s)
-    If Len(s) > 255 Then s = Left(s, 250) & " ..."
-
-    With Application
-        .StatusBar = vbNullString
-        .StatusBar = s
-    End With
-
-End Sub
 
 Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "clsServices." & s
@@ -381,7 +364,6 @@ Public Function ExpFilesDiffDisplay(ByVal e_file_left_full_name As String, _
     Dim waitOnReturn        As Boolean: waitOnReturn = True
     Dim windowStyle         As Integer: windowStyle = 1
     Dim sCommand            As String
-    Dim fso                 As New FileSystemObject
     Dim wshShell            As Object
     
     If Not AppIsInstalled("WinMerge") _
@@ -402,13 +384,8 @@ Public Function ExpFilesDiffDisplay(ByVal e_file_left_full_name As String, _
         
     '~~ Guarantee an ini-File which meets CompMan's specifics
     With fso
-        If mMe.IsAddinInstnc Then
-            If .FileExists(mWinMergeIni.WinMergeIniAddinFullName) Then .DeleteFile (mWinMergeIni.WinMergeIniAddinFullName)
-            mWinMergeIni.Setup mWinMergeIni.WinMergeIniAddinFullName
-        Else
-            If .FileExists(mWinMergeIni.WinMergeIniFullName) Then .DeleteFile (mWinMergeIni.WinMergeIniFullName)
-            mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
-        End If
+        If .FileExists(mWinMergeIni.WinMergeIniFullName) Then .DeleteFile (mWinMergeIni.WinMergeIniFullName)
+        mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
     End With
     
     '~~ Prepare command line
@@ -500,7 +477,6 @@ Public Function FilesDiffer(ByVal f_file_1 As File, _
     Const PROC = "FilesDiffer"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     Dim fl1 As File
     Dim fl2 As File
     
@@ -536,8 +512,7 @@ Public Function FilesDiffer(ByVal f_file_1 As File, _
                                      , f_ignore_empty_records:=True _
                                      , f_compare:=vbTextCompare).Count <> 0
     End If
-xt: Set fso = Nothing
-    Exit Function
+xt: Exit Function
                             
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -555,7 +530,6 @@ Public Function FilesDifference(ByVal f_file_1 As File, _
     Const PROC = "FilesDifference"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     Dim fl1 As File
     Dim fl2 As File
     
@@ -583,8 +557,7 @@ Public Function FilesDifference(ByVal f_file_1 As File, _
                                       , f_ignore_empty_records:=True _
                                       , f_compare:=vbTextCompare)
                             
-xt: Set fso = Nothing
-    Exit Function
+xt: Exit Function
                             
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -594,7 +567,6 @@ End Function
 
 Private Function FolderNotVbProjectExclusive() As Boolean
 
-    Dim fso As New FileSystemObject
     Dim fl  As File
     
     For Each fl In fso.GetFolder(Me.Serviced.Path).Files
@@ -611,7 +583,7 @@ next_fl:
 
 End Function
 
-Public Sub Initiate(ByVal i_service As String, _
+Public Sub Initiate(ByVal i_service_proc As String, _
                     ByVal i_serviced_wbk As Workbook, _
                     ByVal i_hosted As String, _
            Optional ByRef i_ini As Boolean = True)
@@ -623,7 +595,6 @@ Public Sub Initiate(ByVal i_service As String, _
     Const PROC = "Initiate"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     
     mBasic.BoP ErrSrc(PROC)
     wsService.ClearDataAllServices
@@ -658,21 +629,16 @@ Public Sub Initiate(ByVal i_service As String, _
         sLogFileServiceSummary = .FileName
     End With
     
-    Select Case i_service
-        Case mCompManClient.SRVC_EXPORT_ALL:        wsService.CurrentServiceName = SRVC_EXPORT_ALL_DSPLY
-        Case mCompManClient.SRVC_EXPORT_CHANGED:    wsService.CurrentServiceName = SRVC_EXPORT_CHANGED_DSPLY
-        Case mCompManClient.SRVC_SYNCHRONIZE:       wsService.CurrentServiceName = SRVC_SYNCHRONIZE_DSPLY
-                                                    wsService.ClearDataSynchService
+    wsService.CurrentServiceName = mCompManClient.ServiceName(i_service_proc)
+    Select Case i_service_proc
+        Case mCompManClient.SRVC_SYNCHRONIZE:       wsService.ClearDataSynchService
                                                     wsSyncLog.Clear
                                                     If i_ini Then mSync.Initiate
-
-        Case mCompManClient.SRVC_UPDATE_OUTDATED:   wsService.CurrentServiceName = SRVC_UPDATE_OUTDATED_DSPLY
-                                                    wsService.ClearDataUpdateService
+        Case mCompManClient.SRVC_UPDATE_OUTDATED:   wsService.ClearDataUpdateService
     End Select
     
     LogServiced.Title CurrentServiceStatusBar
     LogServicing.Title CurrentServiceStatusBar
-    DsplyStatus vbNullString
 
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -722,7 +688,7 @@ Public Sub MessageUnload(ByVal sm_title As String)
     mMsg.MsgInstance sm_title, True
 End Sub
 
-Private Function Progress(ByVal p_operation_performed As String) As String
+Public Function Progress(ByVal p_operation_performed As String) As String
 ' --------------------------------------------------------------------------
 ' Returns a progress message for the current service for being displayed in
 ' the Application.StatusBar in the form:
@@ -738,23 +704,25 @@ Private Function Progress(ByVal p_operation_performed As String) As String
 ' Export ... (by CompMan....) for ......: 1 of 50 exported (clsServices)
 ' --------------------------------------------------------------------------
     Const PROC          As String = "Progress"
-    Const MSG_SCHEME    As String = "<n> of <m> <op> <comps> <dots>"
     
     On Error GoTo eh
     Dim sMsg    As String
+    Dim lTotalComps As Long
     
-    sMsg = CurrentServiceStatusBar & ": "
-    sMsg = sMsg & Replace(MSG_SCHEME, "<n>", lNoOfItemsServiced)
     If lNoOfItemsOutdated <> 0 Then
-        sMsg = Replace(sMsg, "<m>", lNoOfItemsOutdated)
+        lTotalComps = lNoOfItemsOutdated
     Else
-        sMsg = Replace(sMsg, "<m>", lNoOfItemsTotal)
+        lTotalComps = lNoOfItemsTotal
     End If
-    sMsg = Replace(sMsg, "<op>", p_operation_performed)
-    sMsg = Replace(sMsg, "<comps>", sNoOfItemsServicedNames)
-    sMsg = Replace(sMsg, "<dots>", String(lNoOfItemsTotal - lNoOfItemsIgnored - lNoOfItemsServiced, "."))
-    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 250) & " ..."
-    Progress = sMsg
+    mCompManClient.Progress p_service_name:=CurrentService _
+                          , p_serviced_wbk_name:=Serviced.Name _
+                          , p_by_servicing_wbk_name:=ThisWorkbook.Name _
+                          , p_progress_figures:=True _
+                          , p_no_comps_serviced:=lNoOfItemsServiced _
+                          , p_no_comps_ignored:=lNoOfItemsIgnored _
+                          , p_no_comps_total:=lTotalComps _
+                          , p_service_op:=p_operation_performed _
+                          , p_service_info:=sNoOfItemsServicedNames
     
 xt: Exit Function
 
@@ -762,40 +730,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Function
-
-Public Function ProgressOld(Optional ByVal p_result As Long = 0, _
-                         Optional ByVal p_of As Long = 0, _
-                         Optional ByVal p_op As String = vbNullString, _
-                         Optional ByVal p_comps As String = vbNullString, _
-                         Optional ByVal p_dots As Long = 0) As String
-' --------------------------------------------------------------------------
-' Displays a services progress in the Application.StatusBar in the form:
-' service for serviced: n of m op [(component [, component] ..]
-' --------------------------------------------------------------------------
-    Const MSG_SCHEEME = "<n> of <m> <op> <comps> <dots>"
-    
-    Dim sMsg As String
-    
-    sMsg = Replace(MSG_SCHEEME, "<n>", p_result)
-    sMsg = Replace(sMsg, "<m>", p_of)
-    sMsg = Replace(sMsg, "<op>", p_op)
-    If p_comps <> vbNullString Then
-        If Right(p_comps, 2) = ", " Then p_comps = Left(p_comps, Len(p_comps) - 2)
-        If Right(p_comps, 1) = "," Then p_comps = Left(p_comps, Len(p_comps) - 1)
-        sMsg = Replace(sMsg, "<comps>", "(" & p_comps & ")")
-    Else
-        sMsg = Replace(sMsg, "<comps>", vbNullString)
-    End If
-    If p_dots > 0 Then
-        sMsg = Replace(sMsg, "<dots>", VBA.String(p_dots, "."))
-    Else
-        sMsg = Replace(sMsg, "<dots>", vbNullString)
-    End If
-    If Len(sMsg) > 255 Then sMsg = Left(sMsg, 250) & " ..."
-        
-    ProgressOld = sMsg
-    
 End Function
 
 Public Sub RemoveTempRenamed()

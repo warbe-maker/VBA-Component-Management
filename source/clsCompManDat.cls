@@ -15,7 +15,7 @@ Option Explicit
 '
 ' [<component-name>]
 ' KindOfComponent=used|hosted
-' RevisionNumber=yyyy-mm-dd.nnn
+' LastModifiedAtDatTime=YYYY-MM-DD-hh-mm-ss (UTC)
 '
 ' The entries (sections) are maintained along with the Workbook_BeforeSave
 ' event via the ExportChangedComponents service. The revision number is
@@ -35,17 +35,16 @@ Option Explicit
 '                              file.
 ' RecentlyUsedExportFolder r/w .
 ' RegistrationState        r/w .
-' RevisionNumber           r/w .
+' LastModifiedAtDatTime           r/w .
 '
 ' W. Rauschenberger Berlin, Jul. 2023
 ' ---------------------------------------------------------------------------
 
 Private Const SECTION_NAME_RECENT_EXPORT            As String = "_MostRecentExport" ' _ avoids conflict with an existing VBComponent
-Private Const VALUE_NAME_LAST_MOD_REVISION_NUMBER   As String = "VALUE_NAME_LAST_MOD_REVISION_NUMBER"
+Private Const VALUE_NAME_LAST_MODIFIED_DATE_TIME    As String = "VALUE_NAME_LAST_MODIFIED_DATE_TIME"
 Private Const VALUE_NAME_REG_STAT_OF_COMPONENT      As String = "VALUE_NAME_REG_STAT_OF_COMPONENT"
 Private Const VALUE_NAME_USED_EXPORT_FOLDER         As String = "VALUE_NAME_USED_EXPORT_FOLDER"
 Private PP                                          As clsPP
-Private fso                                         As FileSystemObject
 Private dctHosted                                   As Dictionary
 
 Private Sub Class_Initialize()
@@ -56,13 +55,14 @@ Private Sub Class_Initialize()
     
     '~~> Private Property File Full Name
     Set wbk = Services.Serviced
-    PP.FullName = Replace(wbk.FullName, wbk.Name, "CompMan.dat")
+    PP.FileFullName = Replace(wbk.FullName, wbk.Name, "CompMan.dat")
     
     '~~> Value Names with the syntax (allows the on-the-fly-change of value names as well as their removal):
     '~~> "<current>"                 = no action
     '~~> "<current-name>:<old-name>" = rename in all sections
     '~~> ":<remove-name>"            = remove in all sections
-    dct.Add VALUE_NAME_LAST_MOD_REVISION_NUMBER, "RevisionNumber:RawRevisionNumber"
+'    dct.Add VALUE_NAME_LAST_MODIFIED_DATE_TIME, "RevisionNumber:RawRevisionNumber"
+    dct.Add VALUE_NAME_LAST_MODIFIED_DATE_TIME, "LastModifiedAtDatTime:RevisionNumber"
     dct.Add VALUE_NAME_REG_STAT_OF_COMPONENT, "KindOfComponent"
     dct.Add VALUE_NAME_USED_EXPORT_FOLDER, "UsedExportFolder"
     dct.Add "Obsolete_1", ":DueModificationWarning"
@@ -72,7 +72,6 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    Set fso = Nothing
     Set PP = Nothing
 End Sub
 
@@ -143,19 +142,19 @@ Friend Property Let RegistrationState(Optional ByVal comp_name As String, _
     CompRegState(comp_name) = comp_reg_state
 End Property
 
-Friend Property Get RevisionNumber(Optional ByVal r_comp_name As String) As String
+Friend Property Get LastModifiedAtDatTime(Optional ByVal r_comp_name As String) As String
 ' ----------------------------------------------------------------------------
 ' Returns the revision number in the format YYYY-MM-DD.n
 ' ----------------------------------------------------------------------------
     With PP
-        RevisionNumber = .Value(pp_section:=r_comp_name, pp_value_name:=.Name(VALUE_NAME_LAST_MOD_REVISION_NUMBER))
+        LastModifiedAtDatTime = .Value(pp_section:=r_comp_name, pp_value_name:=.Name(VALUE_NAME_LAST_MODIFIED_DATE_TIME))
     End With
 End Property
 
-Friend Property Let RevisionNumber(Optional ByVal r_comp_name As String, _
+Friend Property Let LastModifiedAtDatTime(Optional ByVal r_comp_name As String, _
                                             ByVal r_rev_no As String)
     With PP
-        .Value(pp_section:=r_comp_name, pp_value_name:=.Name(VALUE_NAME_LAST_MOD_REVISION_NUMBER)) = r_rev_no
+        .Value(pp_section:=r_comp_name, pp_value_name:=.Name(VALUE_NAME_LAST_MODIFIED_DATE_TIME)) = r_rev_no
     End With
 End Property
 
@@ -228,8 +227,8 @@ Private Sub HskpngHosted()
         If mComp.Exists(v, wbk) Then
             If Me.RegistrationState(v) <> enRegStateHosted _
             Then Me.RegistrationState(v) = enRegStateHosted
-            If Me.RevisionNumber(v) = vbNullString _
-            Then Me.RevisionNumber = Me.RevisionNumberInitial
+            If Me.LastModifiedAtDatTime(v) = vbNullString _
+            Then Me.LastModifiedAtDatTime(v) = CompMan.UTC
         End If
     Next v
     
@@ -339,11 +338,4 @@ End Function
 Public Sub Reorg()
     PP.Reorg
 End Sub
-
-Public Function RevisionNumberInitial() As String
-' ----------------------------------------------------------------------------
-' Returns an initial revision number in the form: YYYY-MM-DD.001
-' ----------------------------------------------------------------------------
-    RevisionNumberInitial = Format(Now(), "YYYY-MM-DD") & ".001"
-End Function
 

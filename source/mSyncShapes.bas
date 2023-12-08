@@ -110,8 +110,8 @@ Private Sub AppRunChanged()
     Set wbkSource = mSync.source
     vSource = Split(AppRunChangedIdsSource, ",")
     vTarget = Split(AppRunChangedIdsTarget, ",")
-    sPrgrss = "Synchronizing Worksheets > Changed Name or CodeName " & String(UBound(vSource), ".")
-    Services.DsplyStatus sPrgrss
+'    sPrgrss = "Synchronizing Worksheets > Changed Name or CodeName " & String(UBound(vSource), ".")
+'    Services.DsplyStatus sPrgrss
     
     For i = LBound(vSource) To UBound(vSource)
         Set shpSource = GetShape(vSource(i), wbkSource, wshSource)
@@ -165,7 +165,7 @@ Private Sub AppRunNew()
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.source
     v = Split(mSync.AppRunNewIds(enSyncObjectKindShape), ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepSyncing, enSyncActionAddNew, 0)
+    mSync.Progress enSyncObjectKindShape, enSyncStepSyncing, enSyncActionAddNew, 0
     
     For i = LBound(v) To UBound(v)
         Set shpSource = GetShape(v(i), wbkSource, wshSource)
@@ -174,7 +174,7 @@ Private Sub AppRunNew()
                                 , c_quality:=enCorrespondingSheetsQuality.enAndNameCodeName _
                                 , c_wsh_result:=wshTarget
         CopyShapeToTarget shpSource, wshTarget
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepSyncing, enSyncActionAddNew, i + 1)
+        mSync.Progress enSyncObjectKindShape, enSyncStepSyncing, enSyncActionAddNew, i + 1
     Next i
     dctKnownNew.RemoveAll ' indicates done
         
@@ -208,8 +208,8 @@ Private Sub AppRunObsolete()
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.source
     v = Split(mSync.AppRunObsoleteIds(enSyncObjectKindShape), ",")
-    sPrgrss = "Synchronizing Shapes > Obsolete " & String(UBound(v) + 1, ".")
-    Services.DsplyStatus sPrgrss
+'    sPrgrss = "Synchronizing Shapes > Obsolete " & String(UBound(v) + 1, ".")
+'    Services.DsplyStatus sPrgrss
     
     For i = LBound(v) To UBound(v)
         Set shpTarget = GetShape(v(i), wbkTarget, wshTarget)
@@ -224,7 +224,7 @@ Private Sub AppRunObsolete()
         Else
             wsSyncLog.Done "obsolete", "Shape", SyncId(shpTarget), "failed!", "Remove from Sync-Target_Workbook's working failed!"
         End If
-        Services.DsplyStatus Left(sPrgrss, Len(sPrgrss) - (i + 1))
+'        Services.DsplyStatus Left(sPrgrss, Len(sPrgrss) - (i + 1))
     Next i
     dctKnownObsolete.RemoveAll ' indicates done
 
@@ -264,7 +264,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     If dctKnownObsolete Is Nothing Then
         Set dctKnownObsolete = New Dictionary
         lCount = GetShapesCount(wbkTarget)
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, 0)
+        mSync.Progress enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, 0
         
         For Each wshTarget In c_wbk_target.Worksheets
             mSyncSheets.Corresponding c_wsh:=wshTarget _
@@ -280,7 +280,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                         End If
                     End If
                 End If
-                Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownChanged.Count)
+                mSync.Progress enSyncObjectKindShape, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownChanged.Count
             Next shpTarget
         Next wshTarget
     End If
@@ -289,7 +289,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     If dctKnownNew Is Nothing Then
         Set dctKnownNew = New Dictionary
         lCount = GetShapesCount(wbkSource)
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionAddNew, 0)
+        mSync.Progress enSyncObjectKindShape, enSyncStepCollecting, enSyncActionAddNew, 0
         
         For Each wshSource In c_wbk_source.Worksheets
             mSyncSheets.Corresponding c_wsh:=wshSource _
@@ -303,7 +303,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     '~~ Collect changed
     If dctKnownChanged Is Nothing Then
         Set dctKnownChanged = New Dictionary
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, 0)
+        mSync.Progress enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, 0
         
         For Each wshSource In wbkSource.Worksheets
             mSyncSheets.Corresponding c_wsh:=wshSource _
@@ -314,7 +314,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                 If Exists(shpSource, wshTarget, shpTarget) Then
                     mSyncShapePrprtys.CollectChanged shpSource
                 End If
-                Services.DsplyStatus mSync.Progress(enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, dctKnownChanged.Count)
+                mSync.Progress enSyncObjectKindShape, enSyncStepCollecting, enSyncActionChanged, dctKnownChanged.Count
             Next shpSource
         Next wshSource
     End If
@@ -980,7 +980,7 @@ Public Sub SyncKind()
     Dim AppRunArgs  As New Dictionary
     Dim cllButtons  As New Collection
     Dim fSync       As fMsg
-    Dim Msg         As TypeMsg
+    Dim Msg         As mMsg.udtMsg
     Dim v           As Variant
     Dim dctNew      As Dictionary
     Dim dctObsolete As Dictionary
@@ -1018,7 +1018,7 @@ Public Sub SyncKind()
     With Msg.Section(8).Label
         .Text = "See in README chapter CompMan's VB-Project-Synchronization service (GitHub README):"
         .FontColor = rgbBlue
-        .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
+        .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER
     End With
                
     '~~ Prepare a Command-Buttonn with an Application.Run action for the synchronization of all Worksheets
@@ -1030,7 +1030,7 @@ Public Sub SyncKind()
     '~~ Display the mode-less dialog for the confirmation which Sheet synchronization to run
     mMsg.Dsply dsply_title:=TITLE_SYNC_SHAPES _
              , dsply_msg:=Msg _
-             , dsply_label_spec:="R70" _
+             , dsply_Label_spec:="R70" _
              , dsply_buttons:=cllButtons _
              , dsply_modeless:=True _
              , dsply_buttons_app_run:=AppRunArgs _

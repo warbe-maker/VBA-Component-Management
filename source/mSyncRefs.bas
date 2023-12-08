@@ -68,7 +68,7 @@ Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
     Dim Bttn1           As String
     Dim cllButtons      As Collection
     Dim lSection        As Long
-    Dim Msg             As mMsg.TypeMsg
+    Dim Msg             As mMsg.udtMsg
     Dim sDueSyncs       As String
     
     mCompManClient.Events ErrSrc(PROC), False
@@ -114,13 +114,13 @@ Public Sub SyncKind(ByVal c_wbk_source As Workbook, _
         With Msg.Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization, section Name Synchronization:"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
+            .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
         End With
         
         '~~ Display the mode-less dialog for the Names synchronization to run
         mMsg.Dsply dsply_title:=TITLE_SYNC_REFS _
                  , dsply_msg:=Msg _
-                 , dsply_label_spec:="R70" _
+                 , dsply_Label_spec:="R70" _
                  , dsply_buttons:=cllButtons _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
@@ -166,7 +166,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     
     '~~ Collect obsolete
     If DueCollect("Obsolete") Then
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionRemoveObsolete, 0)
+        mSync.Progress enSyncObjectKindReference, enSyncStepCollecting, enSyncActionRemoveObsolete, 0
         For Each ref In c_wbk_target.VBProject.References
             sId = SyncId(ref)
             If Not KnownInSync(sId) Then
@@ -174,13 +174,13 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     mSync.DueSyncLet , enSyncObjectKindReference, enSyncActionRemoveObsolete, , sId
                 End If
             End If
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownObsolete.Count)
+            mSync.Progress enSyncObjectKindReference, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownObsolete.Count
         Next ref
     End If
     
     '~~ Collect new
     If DueCollect("New") Then
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionAddNew, 0)
+        mSync.Progress enSyncObjectKindReference, enSyncStepCollecting, enSyncActionAddNew, 0
         For Each ref In c_wbk_source.VBProject.References
             sId = SyncId(ref)
             If Not KnownInSync(sId) Then
@@ -188,7 +188,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     mSync.DueSyncLet , enSyncObjectKindReference, enSyncActionAddNew, , sId
                 End If
             End If
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindReference, enSyncStepCollecting, enSyncActionAddNew, dctKnownNew.Count)
+            mSync.Progress enSyncObjectKindReference, enSyncStepCollecting, enSyncActionAddNew, dctKnownNew.Count
         Next ref
     End If
                    

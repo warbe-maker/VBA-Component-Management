@@ -14,7 +14,6 @@ Private wbSrc   As Workbook
 Private wbTrgt  As Workbook
 Private vbc     As VBComponent
 Private vbcm    As CodeModule
-Private fso     As New FileSystemObject
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCompManTest" & "." & sProc

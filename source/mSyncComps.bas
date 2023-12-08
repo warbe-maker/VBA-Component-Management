@@ -172,7 +172,7 @@ Private Sub AppRunChanged()
     Set wbkTarget = mSync.TargetWorkingCopy
     mSync.AppRunInit
     va = Split(AppRunIdsChanged(enSyncObjectKindVBComponent), ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionChangeCode, 0)
+    mSync.Progress enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionChangeCode, 0
     
     For i = LBound(va) To UBound(va)
         Set SourceComp.Wrkbk = wbkSource
@@ -198,7 +198,10 @@ Private Sub AppRunChanged()
         End If
         Set TargetComp = Nothing
         Set SourceComp = Nothing
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionChangeCode, i + 1)
+        mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                     , p_sync_step:=enSyncStepSyncing _
+                     , p_sync_action:=enSyncActionChangeCode _
+                     , p_count:=i + 1
     Next i
     
     dctKnownChanged.RemoveAll
@@ -238,7 +241,11 @@ Private Sub AppRunNew()
     Set wbkSource = mSync.source
     Set wbkTarget = mSync.TargetWorkingCopy
     va = Split(AppRunNewIds(enSyncObjectKindVBComponent), ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionAddNew, 0)
+    mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                 , p_sync_step:=enSyncStepSyncing _
+                 , p_sync_action:=enSyncActionAddNew _
+                 , p_count:=0
+    
     mSync.AppRunInit
     
     For i = LBound(va) To UBound(va)
@@ -252,7 +259,11 @@ Private Sub AppRunNew()
             wsSyncLog.Done "new", "VBComponent", sId, "added", "by import of Sync-Source-Workbook's corresonding Export-File"
         End With
         Set SourceComp = Nothing
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionAddNew, i + 1)
+        mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                 , p_sync_step:=enSyncStepSyncing _
+                 , p_sync_action:=enSyncActionAddNew _
+                 , p_count:=i + 1
+
     Next i
     
     dctKnownNew.RemoveAll
@@ -288,7 +299,10 @@ Private Sub AppRunObsolete()
     Set wbkTarget = mSync.TargetWorkingCopy
     Set wbkSource = mSync.source
     va = Split(AppRunObsoleteIds(enSyncObjectKindVBComponent), ",")
-    Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionRemoveObsolete, 0)
+    mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                 , p_sync_step:=enSyncStepSyncing _
+                 , p_sync_action:=enSyncActionRemoveObsolete _
+                 , p_count:=0
     mSync.AppRunInit
     
     For i = LBound(va) To UBound(va)
@@ -296,7 +310,10 @@ Private Sub AppRunObsolete()
         sId = SyncId(vbc, wbkTarget)
         wbkTarget.VBProject.VBComponents.Remove vbc
         wsSyncLog.Done "obsolete", "VBComponent", sId, "removed"
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepSyncing, enSyncActionRemoveObsolete, i + 1)
+        mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                     , p_sync_step:=enSyncStepSyncing _
+                     , p_sync_action:=enSyncActionRemoveObsolete _
+                     , p_count:=i + 1
     Next i
     dctKnownObsolete.RemoveAll
     
@@ -357,7 +374,10 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
     
     '~~ Collect VB-Components the code has changed
     If DueCollect("Changed") Then
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionChangeCode, 0)
+        mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                     , p_sync_step:=enSyncStepSyncing _
+                     , p_sync_action:=enSyncActionChangeCode _
+                     , p_count:=0
         For Each vbcSource In c_wbk_source.VBProject.VBComponents
             sId = SyncId(vbcSource, c_wbk_source)
             If Not KnownSource(sId) Then
@@ -380,13 +400,19 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     End If
                 End If
             End If
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionChangeCode, dctKnownChanged.Count)
+            mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                         , p_sync_step:=enSyncStepCollecting _
+                         , p_sync_action:=enSyncActionChangeCode _
+                         , p_count:=dctKnownChanged.Count
         Next vbcSource
     End If
 
     '~~ Collect New VB-Components
     If DueCollect("New") Then
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionAddNew, 0)
+        mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                     , p_sync_step:=enSyncStepCollecting _
+                     , p_sync_action:=enSyncActionAddNew _
+                     , p_count:=0
         For Each vbcSource In c_wbk_source.VBProject.VBComponents
             sId = SyncId(vbcSource, c_wbk_source)
             If Not KnownSource(sId) Then
@@ -411,13 +437,19 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     End If
                 End If
             End If
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionAddNew, dctKnownNew.Count)
+            mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                         , p_sync_step:=enSyncStepCollecting _
+                         , p_sync_action:=enSyncActionAddNew _
+                         , p_count:=dctKnownNew.Count
         Next vbcSource
     End If
 
     '~~ Collect obsolete VB-Components
     If DueCollect("Obsolete") Then
-        Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionRemoveObsolete, 0)
+        mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                     , p_sync_step:=enSyncStepCollecting _
+                     , p_sync_action:=enSyncActionRemoveObsolete _
+                     , p_count:=0
         For Each vbcTarget In c_wbk_target.VBProject.VBComponents
             sId = SyncId(vbcTarget, c_wbk_target)
             If Not KnownTarget(sId) Then
@@ -433,7 +465,10 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
                     End If
                 End If
             End If
-            Services.DsplyStatus mSync.Progress(enSyncObjectKindVBComponent, enSyncStepCollecting, enSyncActionRemoveObsolete, dctKnownObsolete.Count)
+            mSync.Progress p_kind:=enSyncObjectKindVBComponent _
+                         , p_sync_step:=enSyncStepCollecting _
+                         , p_sync_action:=enSyncActionRemoveObsolete _
+                         , p_count:=dctKnownObsolete.Count
         Next vbcTarget
     End If
 
@@ -615,7 +650,6 @@ Private Function GetCodeAsArray(ByVal gf_vbc As VBComponent) As Variant
     Const PROC = "GetCodeAsArray"
     
     On Error GoTo eh
-    Dim fso     As New FileSystemObject
     Dim s       As String
     Dim sSplit  As String
     
@@ -630,8 +664,7 @@ Private Function GetCodeAsArray(ByVal gf_vbc As VBComponent) As Variant
         End If
     End With
     
-xt: Set fso = Nothing
-    Exit Function
+xt: Exit Function
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -729,7 +762,7 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
     
     On Error GoTo eh
     Dim fSync           As fMsg
-    Dim Msg             As TypeMsg
+    Dim Msg             As mMsg.udtMsg
     Dim cllButtons      As New Collection
     Dim AppRunArgs      As New Dictionary
     Dim Bttn1           As String
@@ -796,13 +829,13 @@ Public Sub SyncKind(ByVal s_wbk_source As Workbook, _
         With Msg.Section(8).Label
             .Text = "See in README chapter CompMan's VB-Project-Synchronization, section Name Synchronization:"
             .FontColor = rgbBlue
-            .OpenWhenClicked = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
+            .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_SYNC_CHAPTER_NAMES
         End With
         
         '~~ Display the mode-less dialog for the Names synchronization to run
         mMsg.Dsply dsply_title:=TITLE_SYNC_COMPS _
                  , dsply_msg:=Msg _
-                 , dsply_label_spec:="R70" _
+                 , dsply_Label_spec:="R70" _
                  , dsply_buttons:=cllButtons _
                  , dsply_modeless:=True _
                  , dsply_buttons_app_run:=AppRunArgs _
