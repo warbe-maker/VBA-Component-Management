@@ -192,7 +192,7 @@ Public Function IsQueued(ByVal i_item As Variant, _
     IsQueued = QisQueued(cllQueue, i_item, i_pos, i_no_found)
 End Function
 
-Public Sub Item(ByVal i_pos As Long, _
+Public Sub item(ByVal i_pos As Long, _
                 ByRef i_item As Variant)
     Qitem cllQueue, i_pos, i_item
 End Sub

@@ -224,7 +224,7 @@ Private Sub AppRunChanged()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     sIdsSource = AppRunChangedIdsSource
     sIdsTarget = AppRunChangedIdsTarget
     vSource = Split(sIdsSource, ",")
@@ -295,7 +295,7 @@ Private Sub AppRunMultiple()
     On Error GoTo eh
     Dim i           As Long
     Dim nme         As Name
-    Dim Rng         As Range
+    Dim rng         As Range
     Dim sAddress    As String
     Dim sName       As String
     Dim sSheetName  As String
@@ -307,7 +307,7 @@ Private Sub AppRunMultiple()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     va = Split(AppRunMultipleIdsTarget, ",")
     mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionMultipleRemove, 0
     mSync.AppRunInit
@@ -334,7 +334,7 @@ Private Sub AppRunMultiple()
         sSheetName = Replace(Split(nme.RefersTo, "!")(0), "=", vbNullString)
         sAddress = Split(nme.RefersTo, "!")(1)
         Set wsh = wbkTarget.Worksheets(sSheetName)
-        Set Rng = wsh.Range(sAddress)
+        Set rng = wsh.Range(sAddress)
         If mNme.ScopeIsWorkbook(nme) Then
             Set vScope = wbkTarget
         ElseIf mNme.ScopeIsWorkSheet(nme, sSheetName) Then
@@ -342,7 +342,7 @@ Private Sub AppRunMultiple()
         End If
         
         mNme.Create c_name:=sName _
-                  , c_rng:=Rng _
+                  , c_rng:=rng _
                   , c_scope:=vScope _
                   , c_nme:=nme
             
@@ -381,7 +381,7 @@ Private Sub AppRunNew()
     On Error GoTo eh
     Dim nme         As Name
     Dim nmeTarget   As Name
-    Dim Rng         As Range
+    Dim rng         As Range
     Dim sAddress    As String
     Dim sName       As String
     Dim sSheetName  As String
@@ -395,7 +395,7 @@ Private Sub AppRunNew()
     mBasic.BoP ErrSrc(PROC)
     Services.MessageUnload TITLE_SYNC_NAMES ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     va = Split(AppRunNewIds(enSyncObjectKindName), ",")
     mSync.Progress enSyncObjectKindName, enSyncStepSyncing, enSyncActionAddNew, 0
     AppRunInit
@@ -414,7 +414,7 @@ Private Sub AppRunNew()
                                 , c_quality:=enCorrespondingSheetsQuality.enOrNameCodeName _
                                 , c_wsh_result:=wsh
         
-        Set Rng = wsh.Range(sAddress)
+        Set rng = wsh.Range(sAddress)
         If mNme.ScopeIsWorkbook(nme) Then
             Set vScope = wbkTarget
         ElseIf mNme.ScopeIsWorkSheet(nme, sSheetName) Then
@@ -422,7 +422,7 @@ Private Sub AppRunNew()
         End If
         
         mNme.Create c_name:=sName _
-                  , c_rng:=Rng _
+                  , c_rng:=rng _
                   , c_scope:=vScope _
                   , c_nme:=nmeTarget
             

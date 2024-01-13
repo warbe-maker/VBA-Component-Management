@@ -19,7 +19,7 @@
 
 ## Services
 ### _Export Changed Components_
-Used with the _Workbook\_BeforeSave_ event, all _VB-Components_ code is compared with its previous _Export&nbsp;File_. When the code had changed the component is re-exported to the configured _Export Folder_ of which the name defaults to _source_. These _Export&nbsp;Files_ not only function as a code  backup in case Excel ends up with a destroyed VB-Project, which may happen every now and then - but only functions as a versioning means (e.g. when [GitHub][5] is used for instance). See also _[Common Components](#common-components)_ which are handled specifically.
+Used with the _Workbook\_BeforeSave_ event. Exports all _VB-Components_ of which the code has changed (i.e. differs from the recent export's Export-File), to the configured _Export Folder_ of which the name defaults to _source_. These _Export&nbsp;Files_ not only function as a code  backup in case Excel ends up with a destroyed VB-Project, which may happen every now and then - but only functions as a versioning means (e.g. when [GitHub][5] is used for instance). When a used or hosted _[Common Component](#common-components)_ has been modified and exported, a _[Pending Release](#pending-release-management)_ is registered  See also which are handled specifically.
 
 ### _Update Outdated Common Components_
 Used with the _Workbook\_Open_ event all  _Used&nbsp;Common&nbsp;Components_ are checked whether they are outdated. In case, a dialog is displayed which allows to display the code difference (by means of ([WinMerge English][3], [WinMerge German][4], etc.) perform the update or skip it. The update uses the  _Export&nbsp;File_ of the _Raw&nbsp;Common&nbsp;Component_ in the _Common&nbsp;Components_ folder. 
@@ -159,6 +159,9 @@ _Common Components_ are considered a key to productivity and performance of VB-P
 - up-to-date in VB-Projects using them
 
 One of CompMan's aims is to specifically support Common Components in recognition and management in order to keep them up-to-date in VB-Projects using them. For an optimum support CompMan distinguishes between ***hosted*** and ***used*** Common Components, whereby ***hosted*** remains an optional concept when using CompMan.
+
+#### Pending Release Management
+When a used or hosted Common Component's code is modified and exported the component is registered as _Pending Release_, which is the release of the modification pending to become publicly available in the Common-Components folder. Any _Pending Release_ component is available in the Add-Ins menu from where the modification can be release to public one by one once the modification had become final.
 
 #### The concept of "hosted" Common Components
 Experience has shown than only a dedicated Workbook/VB-Project is appropriate for the development and especially the testing of a _Common Component_. It is required for the provision of a comprehensive test environment which also supports regression testing. _CompMan_ supports this concept by allowing to specify a _Common Component_ as being hosted in a Workbook. However, practice has shown that a modification or amendment  of a _Common Component_ is often triggered by a VB-Project just using, i.e. not hosting, it. _CompMan_ therefore supports this by keeping a record of which Workbook/VB-Project has last modified it.

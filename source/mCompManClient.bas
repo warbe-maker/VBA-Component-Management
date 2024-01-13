@@ -1,17 +1,19 @@
 Attribute VB_Name = "mCompManClient"
 Option Explicit
 ' ----------------------------------------------------------------------------
-' Standard Module mCompManClient: CompMan client interface. To be imported
-' =============================== into any Workbook for - potentially - being
-' serviced by CompMan's "Export Changed Components",
-'                       "Update Outdated Common Components",
-'                    or "Synchronize VB-Projects" service.
+' Standard Module mCompManClient: CompMan client interface. The component is
+' =============================== to be imported into any Workbook/VB-Project
+' for being serviced by CompMan's Export Changed Components, Update
+' Outdated Common Components, or the Synchronize VB-Projects service.
 '
-' W. Rauschenberger, Berlin Oct 2023
+' W. Rauschenberger, Berlin Dec 2023
 '
 ' See https://github.com/warbe-maker/VB-Components-Management
 ' ----------------------------------------------------------------------------
 ' --- The below constants must not be changed to Private since they are used byCompMan
+Private Const COMPMAN_ADDIN             As String = "CompMan.xlam"
+Private Const vbResume                  As Long = 6 ' return value (equates to vbYes)
+
 Public Const COMPMAN_DEVLP              As String = "CompMan.xlsb"
 Public Const SRVC_EXPORT_ALL            As String = "ExportAll"
 Public Const SRVC_EXPORT_ALL_DSPLY      As String = "Export All Components"
@@ -21,20 +23,17 @@ Public Const SRVC_SYNCHRONIZE           As String = "SynchronizeVBProjects"
 Public Const SRVC_SYNCHRONIZE_DSPLY     As String = "Synchronize VB-Projects"
 Public Const SRVC_UPDATE_OUTDATED       As String = "UpdateOutdatedCommonComponents"
 Public Const SRVC_UPDATE_OUTDATED_DSPLY As String = "Update Outdated Common Components"
-' --- The above constants must not be changed to Private since they are used byCompMan
-
-Private Const COMPMAN_ADDIN             As String = "CompMan.xlam"
-Private Const vbResume                  As Long = 6 ' return value (equates to vbYes)
+Public Const SRVC_RELEASE_PENDING_CHANGES_DSPLY As String = "Release pending changes"
+Public Const SRVC_RELEASE_PENDING_CHANGES   As String = "ReleaseService"
 
 Private Busy                            As Boolean ' prevent parallel execution of a service
 Private sEventsLvl                      As String
 Private bWbkExecChange                  As Boolean
 
-' --- Begin of declarations to get all Workbooks of all running Excel instances
-Private Declare PtrSafe Function FindWindowEx Lib "USER32" Alias "FindWindowExA" (ByVal hWnd1 As LongPtr, ByVal hWnd2 As LongPtr, ByVal lpsz1 As String, ByVal lpsz2 As String) As LongPtr
-Private Declare PtrSafe Function GetClassName Lib "USER32" Alias "GetClassNameA" (ByVal hwnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As LongPtr) As LongPtr
+Private Declare PtrSafe Function FindWindowEx Lib "user32" Alias "FindWindowExA" (ByVal hWnd1 As LongPtr, ByVal hWnd2 As LongPtr, ByVal lpsz1 As String, ByVal lpsz2 As String) As LongPtr
+Private Declare PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameA" (ByVal hWnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As LongPtr) As LongPtr
 Private Declare PtrSafe Function IIDFromString Lib "ole32" (ByVal lpsz As LongPtr, ByRef lpiid As UUID) As LongPtr
-Private Declare PtrSafe Function AccessibleObjectFromWindow Lib "oleacc" (ByVal hwnd As LongPtr, ByVal dwId As LongPtr, ByRef riid As UUID, ByRef ppvObject As Object) As LongPtr
+Private Declare PtrSafe Function AccessibleObjectFromWindow Lib "oleacc" (ByVal hWnd As LongPtr, ByVal dwId As LongPtr, ByRef riid As UUID, ByRef ppvObject As Object) As LongPtr
 
 Type UUID 'GUID
     Data1 As Long
@@ -81,11 +80,11 @@ Private Property Let DisplayedServiceStatus(ByVal s As String)
     End With
 End Property
 
-Private Property Get IsAddinInstance() As Boolean
+Public Property Get IsAddinInstance() As Boolean
     IsAddinInstance = ThisWorkbook.Name = COMPMAN_ADDIN
 End Property
 
-Private Property Get IsDevInstance() As Boolean
+Public Property Get IsDevInstance() As Boolean
     IsDevInstance = ThisWorkbook.Name = mCompManClient.COMPMAN_DEVLP
 End Property
 
@@ -101,7 +100,7 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
 End Function
 
 '#If Win64 Then
-    Private Function checkHwnds(ByRef xlApps() As Application, hwnd As LongPtr) As Boolean
+    Private Function checkHwnds(ByRef xlApps() As Application, hWnd As LongPtr) As Boolean
 '#Else
 '    Private Function checkHwnds(ByRef xlApps() As Application, hWnd As Long) As Boolean
 '#End If
@@ -116,7 +115,7 @@ End Function
     If UBound(xlApps) = 0 Then GoTo xt
 
     For i = LBound(xlApps) To UBound(xlApps)
-        If xlApps(i).hwnd = hwnd Then
+        If xlApps(i).hWnd = hWnd Then
             checkHwnds = False
             GoTo xt
         End If
@@ -275,7 +274,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -425,7 +424,7 @@ End Sub
 '
 '#If Win64 Then
     Dim hWndDesk As LongPtr
-    Dim hwnd As LongPtr
+    Dim hWnd As LongPtr
 '#Else
 '    Dim hWndDesk As Long
 '    Dim hWnd As Long
@@ -441,19 +440,19 @@ End Sub
     hWndDesk = FindWindowEx(hWndMain, 0&, "XLDESK", vbNullString)
 
     If hWndDesk <> 0 Then
-        hwnd = FindWindowEx(hWndDesk, 0, vbNullString, vbNullString)
+        hWnd = FindWindowEx(hWndDesk, 0, vbNullString, vbNullString)
 
-        Do While hwnd <> 0
+        Do While hWnd <> 0
             sText = String$(100, Chr$(0))
-            lRet = CLng(GetClassName(hwnd, sText, 100))
+            lRet = CLng(GetClassName(hWnd, sText, 100))
             If Left$(sText, lRet) = "EXCEL7" Then
                 Call IIDFromString(StrPtr(IID_IDispatch), iid)
-                If AccessibleObjectFromWindow(hwnd, OBJID_NATIVEOM, iid, ob) = 0 Then 'S_OK
+                If AccessibleObjectFromWindow(hWnd, OBJID_NATIVEOM, iid, ob) = 0 Then 'S_OK
                     Set GetExcelObjectFromHwnd = ob.Application
                     GoTo xt
                 End If
             End If
-            hwnd = FindWindowEx(hWndDesk, hwnd, vbNullString, vbNullString)
+            hWnd = FindWindowEx(hWndDesk, hWnd, vbNullString, vbNullString)
         Loop
         
     End If
@@ -486,7 +485,7 @@ Public Sub Progress(ByVal p_service_name As String, _
            Optional ByVal p_no_comps_serviced As Long = 0, _
            Optional ByVal p_no_comps_outdated As Long = 0, _
            Optional ByVal p_no_comps_total As Long = 0, _
-           Optional ByVal p_no_comps_ignored As Long = 0, _
+           Optional ByVal p_no_comps_skipped As Long = 0, _
            Optional ByVal p_service_info As String = vbNullString)
 ' --------------------------------------------------------------------------
 ' Universal message of the export and the update service's progress in the
@@ -523,7 +522,7 @@ Public Sub Progress(ByVal p_service_name As String, _
             sMsg = Replace(sMsg, "<m>", p_no_comps_total)
         End If
         sMsg = Replace(sMsg, "<op>", p_service_op)
-        lDots = p_no_comps_total - p_no_comps_ignored - p_no_comps_serviced
+        lDots = p_no_comps_total - p_no_comps_skipped - p_no_comps_serviced
         If lDots >= 0 Then
             sMsg = Replace(sMsg, "<dots>", String(lDots, "."))
         Else

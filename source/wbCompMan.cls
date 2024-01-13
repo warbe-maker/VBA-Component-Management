@@ -18,7 +18,7 @@ Option Explicit
 '
 ' W. Rauschenberger, Berlin Dec 2020
 ' ------------------------------------------------------------------------------
-Private Const HOSTED_RAWS = "mCompManClient"
+Private Const HOSTED_RAWS = "mCompManClient,mCodingRegulations,mCodingRules"
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = Me.CodeName & "." & sProc
@@ -36,7 +36,8 @@ Private Sub Workbook_BeforeClose(Cancel As Boolean)
             mAddin.Paused = False
         End If
     End If
-
+    mCompManMenu.Remove
+    
 End Sub
 
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
@@ -60,7 +61,6 @@ Private Sub Workbook_AfterSave(ByVal Success As Boolean)
     mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
 End Sub
 
-
 Private Sub Workbook_Open()
 ' ----------------------------------------------------------------------------
 ' Attention:  ThisWorkbook's raw clones (i.e. the used common components) are
@@ -72,7 +72,7 @@ Private Sub Workbook_Open()
 '             cloned raws updated and the Add-in instance will be renewed.
 ' ------------------------------------------------------------------------------
     Const PROC = "Workbook_Open"
-    
+       
     On Error GoTo eh
     If Not mMe.AssertedServicingEnabled Then GoTo xt
     
@@ -94,6 +94,8 @@ Private Sub Workbook_Open()
 '        mCompManClient.CompManService mCompManClient.SRVC_SYNCHRONIZE
         '~~ ------------------------------------------------------------------
     End If
+    
+    mCompManMenu.Setup
     
 xt: Exit Sub
 

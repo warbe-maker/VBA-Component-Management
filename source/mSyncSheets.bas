@@ -166,7 +166,7 @@ Private Sub AppRunChanged()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     vSource = Split(AppRunChangedIdsSource, ",")
     vTarget = Split(AppRunChangedIdsTarget, ",")
     mSync.Progress p_kind:=enSyncObjectKindVBComponent _
@@ -241,10 +241,10 @@ Private Sub AppRunNew()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     mSyncNames.AllNames wbkTarget, dctNames
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     va = Split(AppRunNewIds(enSyncObjectKindWorksheet), ",")
     mSync.Progress p_kind:=enSyncObjectKindWorksheet _
                  , p_sync_step:=enSyncStepSyncing _
@@ -296,7 +296,7 @@ Private Sub AppRunObsolete()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     Application.DisplayAlerts = False
     va = Split(AppRunObsoleteIds(enSyncObjectKindWorksheet), ",")
     mSync.Progress p_kind:=enSyncObjectKindWorksheet _
@@ -373,17 +373,17 @@ Private Sub ClearLinksToSource(ByVal cls_wsh_source As Worksheet, _
         
     '~~ Clear Link to source Workbook in Range-Names
     For Each nme In mSync.TargetWorkingCopy.Names
-        If InStr(nme.RefersTo, mSync.source.Name) <> 0 Then
+        If InStr(nme.RefersTo, mSync.Source.Name) <> 0 Then
             Services.ServicedItem = cls_wsh_target
             sRefersTo = nme.RefersTo
-            If InStr(nme.RefersTo, "[" & mSync.source.Name & "]") <> 0 Then
+            If InStr(nme.RefersTo, "[" & mSync.Source.Name & "]") <> 0 Then
                 If InStr(nme.RefersTo, "]" & cls_wsh_source.Name & "!") <> 0 Then
                     '~~ Names which had just been copied from the Sync-Source-Workbook allong with the cloning of the source sheet
                     '~~ are nor handled by this sheet synchronization but with the subsequent Names synchronization - in order
                     '~~ to enable full control of them.
                     nme.Delete
                 Else
-                    nme.RefersTo = Replace(nme.RefersTo, "[" & mSync.source.Name & "]", vbNullString)
+                    nme.RefersTo = Replace(nme.RefersTo, "[" & mSync.Source.Name & "]", vbNullString)
                     LogServiced.Entry "invalid", "Worksheet", Services.ServicedItemName, "changed", "Back-Reference '" & sRefersTo & "' changed to '" & nme.RefersTo & "'"
                 End If
             End If
@@ -397,9 +397,9 @@ Private Sub ClearLinksToSource(ByVal cls_wsh_source As Worksheet, _
             On Error Resume Next
             sOnAction = shp.OnAction
             If Err.Number = 0 Then ' shape has an OnAction property
-                If InStr(sOnAction, mSync.source.Name) <> 0 Then
+                If InStr(sOnAction, mSync.Source.Name) <> 0 Then
                     Services.ServicedItem = wsh
-                    shp.OnAction = Replace(sOnAction, mSync.source.Name, mSync.TargetWorkingCopy.Name)
+                    shp.OnAction = Replace(sOnAction, mSync.Source.Name, mSync.TargetWorkingCopy.Name)
                     LogServiced.Entry "invalid", "Worksheet", Services.ServicedItemName, "changed", "Back-Link to source '" & sOnAction & "' changed to '" & shp.OnAction & "'"
                 End If
             End If
@@ -475,7 +475,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
              , p_sync_action:=enSyncActionChanged _
              , p_count:=0
 
-        For Each wshSource In mSync.source.Sheets
+        For Each wshSource In mSync.Source.Sheets
             sId = SyncId(wshSource)
             If Not KnownSource(sId) Then
                 '~~ Note: A sheet already known new may be an 'owned-by-project' sheet which is re-cloned by default
@@ -861,14 +861,14 @@ Private Function HasUnlockedRange(ByVal hur_wsh As Worksheet) As Boolean
 ' Returns TRUE when the sheet (hur_wsg) has any unlocked range - which means
 ' that the user is able to change a value.
 ' -----------------------------------------------------------------------------
-    Dim Rng As Range
+    Dim rng As Range
     
-    For Each Rng In hur_wsh.UsedRange.Cells
-        If Rng.Locked = False Then
+    For Each rng In hur_wsh.UsedRange.Cells
+        If rng.Locked = False Then
             HasUnlockedRange = True
             Exit Function
         End If
-    Next Rng
+    Next rng
     
 End Function
 
@@ -1100,7 +1100,7 @@ Private Sub AppRunOwnedByPrjct()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     mSyncNames.AllNames wbkTarget, dctNames
     va = Split(AppRunOwnedByPrjctIds(), ",")
     mSync.Progress enSyncObjectKindWorksheet, enSyncStepSyncing, enSyncActionOwnedByPrjctObsolete, 0

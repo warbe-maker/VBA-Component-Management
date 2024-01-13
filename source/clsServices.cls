@@ -36,16 +36,16 @@ Option Explicit
 ' - noOfObjectsOutdated
 ' - NoOfCommonComponents
 ' - NoOfItemsServiced   r/w The number of items Exported, Updated, Synchronized
-' - NoOfItemsIgnored    r/w The number of items ignored/passed because irrelevant for the service
-' - Serviced            r/w
-' - ServicedItem        w
+' - NoOfItemsSkipped    r/w The number of items ignored/passed because irrelevant for the service
+' - ServicedWbk         r/w
+' - ServicedItem          w
 ' ------------------------------------------------------------------------------------
 Public DialogLeft               As Long
 Public DialogTop                As Long
 
-Private lNoOfCommonComponents    As Long
+Private lNoOfCommonComponents   As Long
 Private lNoOfItemsOutdated      As Long
-Private lNoOfItemsIgnored       As Long
+Private lNoOfItemsSkipped       As Long
 Private lNoOfItemsServiced      As Long
 Private lNoOfItemsTotal         As Long
 Private sNoOfItemsServicedNames As String
@@ -55,23 +55,19 @@ Private sServicedItemType       As String
 Private wbkServiced             As Workbook
 Private sCurrentService         As String
 Private sExecTraceFile          As String
-Private sLogFileService         As String
-Private sLogFileServiceSummary  As String
 
 Private Sub Class_Initialize()
     sNoOfItemsServicedNames = vbNullString
     Set LogServiced = New clsLog
-    Set LogServicing = New clsLog
+    Set LogService = New clsLog
 End Sub
 
 Private Sub Class_Terminate()
     Set LogServiced = Nothing
-    Set LogServicing = Nothing
+    Set LogService = Nothing
     Set Comps = Nothing
     Set CompManDat = Nothing
 End Sub
-
-Public Property Let LogFileService(ByVal s As String):      sLogFileService = s:                                End Property
 
 Friend Property Get CurrentService() As String:             CurrentService = sCurrentService:                   End Property
 
@@ -87,9 +83,9 @@ Friend Property Get NoOfCommonComponents() As Long:         NoOfCommonComponents
 
 Friend Property Let NoOfCommonComponents(ByVal l As Long):  lNoOfCommonComponents = l:                          End Property
 
-Friend Property Get NoOfItemsIgnored() As Long:             NoOfItemsIgnored = lNoOfItemsIgnored:               End Property
+Friend Property Get NoOfItemsSkipped() As Long:             NoOfItemsSkipped = lNoOfItemsSkipped:               End Property
 
-Friend Property Let NoOfItemsIgnored(ByVal l As Long):      lNoOfItemsIgnored = l:                              End Property
+Friend Property Let NoOfItemsSkipped(ByVal l As Long):      lNoOfItemsSkipped = l:                              End Property
 
 Friend Property Get NoOfItemsOutdated() As Long:            NoOfItemsOutdated = lNoOfItemsOutdated:             End Property
 
@@ -119,16 +115,16 @@ Friend Property Get NoOfItemsTotal() As Long:               NoOfItemsTotal = lNo
 
 Friend Property Let NoOfItemsTotal(ByVal l As Long):        lNoOfItemsTotal = l:                                End Property
 
-Friend Property Get Serviced() As Workbook
-    Const PROC = "Serviced-Get"
+Friend Property Get ServicedWbk() As Workbook
+    Const PROC = "ServicedWbk-Get"
     
     On Error GoTo eh
     If wbkServiced Is Nothing _
     Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), _
          "A service Workbook has yet not been provided!" & _
-         mErH.CONCAT & "Services.Serviced = <serviced workbook> must have been executed before!"
+         mErH.CONCAT & "Services.ServicedWbk = <serviced workbook> must have been executed before!"
     
-    Set Serviced = wbkServiced
+    Set ServicedWbk = wbkServiced
     
 xt: Exit Property
 
@@ -138,8 +134,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Let Serviced(ByVal ws_wbk As Workbook)
-    Const PROC = "Serviced-Let"
+Friend Property Let ServicedWbk(ByVal ws_wbk As Workbook)
+    Const PROC = "ServicedWbk-Let"
     Set wbkServiced = ws_wbk
     wsService.CurrentServicedWorkbookFullName = wbkServiced.FullName
 End Property
@@ -169,7 +165,7 @@ Friend Property Let ServicedItem(Optional ByRef s_max_len_name As Long, _
     Dim lbl As Label
     Dim img As Image
     Dim cbt As CommandButton
-    Dim Rng As Range
+    Dim rng As Range
 
     Select Case TypeName(v)
         Case "VBComponent":     Set vbc = v:    Select Case vbc.Type
@@ -178,7 +174,7 @@ Friend Property Let ServicedItem(Optional ByRef s_max_len_name As Long, _
                                                     Case vbext_ct_MSForm:           sServicedItemType = "UserForm":         sServicedItemName = vbc.Name
                                                     Case vbext_ct_StdModule:        sServicedItemType = "Standard-Module":  sServicedItemName = vbc.Name
                                                     Case vbext_ct_Document
-                                                        If mComp.IsSheetDocMod(vbc, Me.Serviced) Then
+                                                        If mComp.IsSheetDocMod(vbc, Me.ServicedWbk) Then
                                                                                     sServicedItemType = "Worksheet":        sServicedItemName = vbc.Name
                                                         Else
                                                                                     sServicedItemType = "Workbook":         sServicedItemName = vbc.Name
@@ -198,7 +194,7 @@ Friend Property Let ServicedItem(Optional ByRef s_max_len_name As Long, _
         Case "SpinButton":      Set sbt = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
         Case "TextBox":         Set tbx = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
         Case "ToggleButton":    Set tbt = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name
-        Case "Range":           Set Rng = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name.Name
+        Case "Range":           Set rng = v:                                        sServicedItemType = TypeName(v):        sServicedItemName = v.Name.Name
         Case Else
             Debug.Print "TypeName '" & TypeName(v) & "' not yet considered as a serviced item"
     End Select
@@ -214,7 +210,7 @@ End Property
 Friend Property Get ServicedItemName() As String:   ServicedItemName = sServicedItemName:   End Property
 
 Friend Property Get TempExportFolder() As String
-    TempExportFolder = mExport.ExpFileFolderPath(Serviced) & "\Temp"
+    TempExportFolder = mExport.ExpFileFolderPath(ServicedWbk) & "\Temp"
 End Property
 
 Private Function CodeModuleIsEmpty(ByRef vbc As VBComponent) As Boolean
@@ -234,7 +230,7 @@ Private Function CurrentServiceStatusBar() As String
     Then CurrentServiceStatusBar = CurrentServiceStatusBar & "Add-in" _
     Else CurrentServiceStatusBar = CurrentServiceStatusBar & ThisWorkbook.Name
     
-    CurrentServiceStatusBar = CurrentServiceStatusBar & ") for " & Me.Serviced.Name
+    CurrentServiceStatusBar = CurrentServiceStatusBar & ") for " & Me.ServicedWbk.Name
 
 End Function
 
@@ -272,10 +268,10 @@ Public Function Denied(ByVal d_service As String) As Boolean
     End Select
     
     If sStatus <> vbNullString Then
-        LogServicing.Entry sStatus
+        LogService.Entry sStatus
         With Me
             mCompManClient.Progress p_service_name:=CurrentService _
-                                  , p_serviced_wbk_name:=Serviced.Name _
+                                  , p_serviced_wbk_name:=ServicedWbk.Name _
                                   , p_by_servicing_wbk_name:=ThisWorkbook.Name _
                                   , p_service_info:=sStatus
         End With
@@ -290,25 +286,25 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function DifferentWithExpHeaderExcluded(ByVal dhe_fle1 As File, _
-                                                ByVal dhe_fle2 As File) As Boolean
-' ----------------------------------------------------------------------------
+'Private Function DifferentWithExpHeaderExcluded(ByVal dhe_fle1 As File, _
+'                                                ByVal dhe_fle2 As File) As Boolean
+'' ----------------------------------------------------------------------------
+''
+'' ----------------------------------------------------------------------------
+'    Dim dct1    As Dictionary
+'    Dim dct2    As Dictionary
 '
-' ----------------------------------------------------------------------------
-    Dim dct1    As Dictionary
-    Dim dct2    As Dictionary
-    
-    Set dct1 = ExportHeaderRemoved(dhe_fle1)
-    Set dct2 = ExportHeaderRemoved(dhe_fle2)
-    
-    DifferentWithExpHeaderExcluded = _
-    mDct.DctDiffers(dd_dct1:=dct1 _
-                  , dd_dct2:=dct2 _
-                  , dd_diff_keys:=False _
-                  , dd_ignore_items_empty:=True _
-                  , dd_ignore_case:=True)
-    
-End Function
+'    Set dct1 = ExportHeaderRemoved(dhe_fle1)
+'    Set dct2 = ExportHeaderRemoved(dhe_fle2)
+'
+'    DifferentWithExpHeaderExcluded = _
+'    mDct.DctDiffers(dd_dct1:=dct1 _
+'                  , dd_dct2:=dct2 _
+'                  , dd_diff_keys:=False _
+'                  , dd_ignore_items_empty:=True _
+'                  , dd_ignore_case:=True)
+'
+'End Function
 
 Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "clsServices." & s
@@ -326,7 +322,7 @@ Public Sub EstablishExecTraceFile()
 
 #If XcTrc_mTrc = 1 Then
     mTrc.FileName = TRACE_FILE_NAME
-    mTrc.Path = Serviced.Path
+    mTrc.Path = ServicedWbk.Path
     If CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED Then
         mTrc.NewFile
     End If
@@ -336,7 +332,7 @@ Public Sub EstablishExecTraceFile()
     Set Trc = New clsTrc
     With Trc
         .FileName = TRACE_FILE_NAME
-        .Path = Serviced.Path
+        .Path = ServicedWbk.Path
         .Title = CurrentServiceStatusBar
         If Services.CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED Then
             .NewFile
@@ -346,77 +342,12 @@ Public Sub EstablishExecTraceFile()
 #End If
 End Sub
 
-Public Function ExpFilesDiffDisplay(ByVal e_file_left_full_name As String, _
-                                    ByVal e_file_right_full_name As String, _
-                                    ByVal e_file_left_title As String, _
-                                    ByVal e_file_right_title As String) As Boolean
-' ----------------------------------------------------------------------------
-' Displays the differences between export file 1 and 2 by means of WinMerge!
-' Note: CompMan ignores any differences caused by empty code lines or case.
-'       When a difference is displayed it is thus not because of this kind of
-'       differneces but of others. Unfortunately it depends on the installed
-'       WinMerge's set option wether or not these kind of differences are
-'       displayed.
-' ----------------------------------------------------------------------------
-    Const PROC                          As String = "ExpFilesDiffDisplay"
-    
-    On Error GoTo eh
-    Dim waitOnReturn        As Boolean: waitOnReturn = True
-    Dim windowStyle         As Integer: windowStyle = 1
-    Dim sCommand            As String
-    Dim wshShell            As Object
-    
-    If Not AppIsInstalled("WinMerge") _
-    Then Err.Raise Number:=AppErr(1) _
-                 , source:=ErrSrc(PROC) _
-                 , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
-                                "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
-        
-    If Not fso.FileExists(e_file_left_full_name) _
-    Then Err.Raise Number:=AppErr(2) _
-                 , source:=ErrSrc(PROC) _
-                 , Description:="The file """ & e_file_left_full_name & """ does not exist!"
-    
-    If Not fso.FileExists(e_file_right_full_name) _
-    Then Err.Raise Number:=AppErr(3) _
-                 , source:=ErrSrc(PROC) _
-                 , Description:="The file """ & e_file_right_full_name & """ does not exist!"
-        
-    '~~ Guarantee an ini-File which meets CompMan's specifics
-    With fso
-        If .FileExists(mWinMergeIni.WinMergeIniFullName) Then .DeleteFile (mWinMergeIni.WinMergeIniFullName)
-        mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
-    End With
-    
-    '~~ Prepare command line
-    sCommand = "WinMergeU " & _
-               """" & e_file_left_full_name & """" & " " & _
-               """" & e_file_right_full_name & """" & _
-               " /e " & _
-               " /dl " & DQUOTE & e_file_left_title & DQUOTE & _
-               " /dr " & DQUOTE & e_file_right_title & DQUOTE & " " & _
-               " /inifile " & """" & mWinMergeIni.WinMergeIniFullName & """"
-
-    '~~ Execute command line
-    Set wshShell = CreateObject("WScript.Shell")
-    With wshShell
-        ExpFilesDiffDisplay = .Run(Command:=sCommand, windowStyle:=windowStyle, waitOnReturn:=waitOnReturn)
-    End With
-        
-xt: Exit Function
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
 Public Sub ExportChangedComponents(ByVal e_hosted As String)
 ' ------------------------------------------------------------------------------
 ' Exclusively called by mCompMan.ExportChangedComponents, triggered by the
 ' Before_Save event.
 ' Attention: When called directly by the user, e.g. via the 'Imediate Window' an
-'            error will be raised because an 'Me.Serviced' Workbook is
+'            error will be raised because an 'Me.ServicedWbk' Workbook is
 '            not set.
 ' ------------------------------------------------------------------------------
     Const PROC = "ExportChangedComponents"
@@ -424,8 +355,8 @@ Public Sub ExportChangedComponents(ByVal e_hosted As String)
     On Error GoTo eh
     
     mBasic.BoP ErrSrc(PROC)
-    If Me.Serviced Is Nothing _
-    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'Serviced' Workbook. " & _
+    If Me.ServicedWbk Is Nothing _
+    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'ServicedWbk' Workbook. " & _
                                             "(it may have been called directly via the 'Immediate Window'"
     mExport.ChangedComponents e_hosted
     
@@ -466,59 +397,59 @@ Private Function ExportHeaderRemoved(ByVal ehr_fle As File) As Dictionary
     
 End Function
 
-Public Function FilesDiffer(ByVal f_file_1 As File, _
-                            ByVal f_file_2 As File, _
-                   Optional ByVal f_ignore_export_header = False) As Boolean
-' ----------------------------------------------------------------------------
-' Returns TRUE when file 1 and file 2 are different whereby case differences
-' and empty lines are ignored. This function guarantees a uniform comparison of
-' export files throughout CompMan.
-' ----------------------------------------------------------------------------
-    Const PROC = "FilesDiffer"
-    
-    On Error GoTo eh
-    Dim fl1 As File
-    Dim fl2 As File
-    
-    With fso
-        If TypeName(f_file_1) = "File" Then
-            If Not .FileExists(f_file_1) _
-            Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The provided 'f_file_1' does not exist!"
-            Set fl1 = fso.GetFile(f_file_1)
-        ElseIf TypeName(f_file_1) = "Nothing" _
-            Then Err.Raise mBasic.AppErr(2), ErrSrc(PROC), "File 'f_file_1' is not provided!"
-        Else
-            Set fl1 = f_file_1
-        End If
-        
-        If TypeName(f_file_2) = "File" Then
-            If Not .FileExists(f_file_2) _
-            Then Err.Raise mBasic.AppErr(2), ErrSrc(PROC), "The provided 'f_file_2' does not exist!"
-            Set fl2 = fso.GetFile(f_file_2)
-        ElseIf TypeName(f_file_2) = "Nothing" Then
-            FilesDiffer = True
-            GoTo xt
-        Else
-            Set fl2 = f_file_2
-        End If
-    End With
-    
-    If f_ignore_export_header Then
-        FilesDiffer = DifferentWithExpHeaderExcluded(fl1, fl2)
-    Else
-        FilesDiffer = mFso.FileDiffers(f_file1:=fl1 _
-                                     , f_file2:=fl2 _
-                                     , f_stop_after:=1 _
-                                     , f_ignore_empty_records:=True _
-                                     , f_compare:=vbTextCompare).Count <> 0
-    End If
-xt: Exit Function
-                            
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
+'Public Function FilesDiffer(ByVal f_file_1 As File, _
+'                            ByVal f_file_2 As File, _
+'                   Optional ByVal f_ignore_export_header = False) As Boolean
+'' ----------------------------------------------------------------------------
+'' Returns TRUE when file 1 and file 2 are different whereby case differences
+'' and empty lines are ignored. This function guarantees a uniform comparison of
+'' export files throughout CompMan.
+'' ----------------------------------------------------------------------------
+'    Const PROC = "FilesDiffer"
+'
+'    On Error GoTo eh
+'    Dim fl1 As File
+'    Dim fl2 As File
+'
+'    With fso
+'        If TypeName(f_file_1) = "File" Then
+'            If Not .FileExists(f_file_1) _
+'            Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The provided 'f_file_1' does not exist!"
+'            Set fl1 = fso.GetFile(f_file_1)
+'        ElseIf TypeName(f_file_1) = "Nothing" _
+'            Then Err.Raise mBasic.AppErr(2), ErrSrc(PROC), "File 'f_file_1' is not provided!"
+'        Else
+'            Set fl1 = f_file_1
+'        End If
+'
+'        If TypeName(f_file_2) = "File" Then
+'            If Not .FileExists(f_file_2) _
+'            Then Err.Raise mBasic.AppErr(2), ErrSrc(PROC), "The provided 'f_file_2' does not exist!"
+'            Set fl2 = fso.GetFile(f_file_2)
+'        ElseIf TypeName(f_file_2) = "Nothing" Then
+'            FilesDiffer = True
+'            GoTo xt
+'        Else
+'            Set fl2 = f_file_2
+'        End If
+'    End With
+'
+'    If f_ignore_export_header Then
+'        FilesDiffer = DifferentWithExpHeaderExcluded(fl1, fl2)
+'    Else
+'        FilesDiffer = mFso.FileDiffers(f_file1:=fl1 _
+'                                     , f_file2:=fl2 _
+'                                     , f_stop_after:=1 _
+'                                     , f_ignore_empty_records:=True _
+'                                     , f_compare:=vbTextCompare).Count <> 0
+'    End If
+'xt: Exit Function
+'
+'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+'        Case vbResume:  Stop: Resume
+'        Case Else:      GoTo xt
+'    End Select
+'End Function
 
 Public Function FilesDifference(ByVal f_file_1 As File, _
                                 ByVal f_file_2 As File) As Dictionary
@@ -551,11 +482,11 @@ Public Function FilesDifference(ByVal f_file_1 As File, _
         End If
     End With
     
-    Set FilesDifference = mFso.FileDiffers(f_file1:=fl1 _
-                                      , f_file2:=fl2 _
-                                      , f_stop_after:=1 _
-                                      , f_ignore_empty_records:=True _
-                                      , f_compare:=vbTextCompare)
+    Set FilesDifference = mFso.FileDiffersFromFile(f_file_this:=fl1 _
+                                                 , f_file_from:=fl2 _
+                                                 , f_stop_after:=1 _
+                                                 , f_exclude_empty:=True _
+                                                 , f_compare:=vbTextCompare)
                             
 xt: Exit Function
                             
@@ -569,9 +500,9 @@ Private Function FolderNotVbProjectExclusive() As Boolean
 
     Dim fl  As File
     
-    For Each fl In fso.GetFolder(Me.Serviced.Path).Files
+    For Each fl In fso.GetFolder(Me.ServicedWbk.Path).Files
         If VBA.Left$(fso.GetFileName(fl.Path), 2) = "~$" Then GoTo next_fl
-        If VBA.StrComp(fl.Path, Me.Serviced.FullName, vbTextCompare) <> 0 Then
+        If VBA.StrComp(fl.Path, Me.ServicedWbk.FullName, vbTextCompare) <> 0 Then
             Select Case fso.GetExtensionName(fl.Path)
                 Case "xlsm", "xlam", "xlsb" ' may contain macros, a VB-Project repsectively
                     FolderNotVbProjectExclusive = True
@@ -585,7 +516,7 @@ End Function
 
 Public Sub Initiate(ByVal i_service_proc As String, _
                     ByVal i_serviced_wbk As Workbook, _
-                    ByVal i_hosted As String, _
+           Optional ByVal i_hosted As String = vbNullString, _
            Optional ByRef i_ini As Boolean = True)
 ' ------------------------------------------------------------------------------
 ' Provides the initiation for all (regular) services.
@@ -598,10 +529,13 @@ Public Sub Initiate(ByVal i_service_proc As String, _
     
     mBasic.BoP ErrSrc(PROC)
     wsService.ClearDataAllServices
-    Serviced = i_serviced_wbk
+    ServicedWbk = i_serviced_wbk
         
-    Set CompManDat = New clsCompManDat: CompManDat.Hosted = i_hosted ' must be initialized first !
-    Set CommComps = New clsCommComps:   CommComps.Hosted = i_hosted
+    Set CompManDat = New clsCompManDat
+    CompManDat.Hosted = i_hosted ' must be initialized first !
+    Set CommComps = New clsCommComps
+    CommComps.Hosted = i_hosted
+    CommComps.Hskpng
     Set Comps = Nothing
     Set Comps = New clsComps ' initialization collect the VB-Component relevant for the current service
     
@@ -613,20 +547,20 @@ Public Sub Initiate(ByVal i_service_proc As String, _
         .FileFullName = i_serviced_wbk.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".Services.log"
         .MaxItemLengths Comps.MaxLenServicedType, Comps.MaxLenServicedItem
         .AlignmentItems "|L|L.:|L|"
-        sLogFileService = .FileName
+        mCompMan.LogFileService = .FileName
         wsService.CurrentServiceLogFileFullName = .FileFullName
     End With
     
     '~~ The log-file for the servicing Workbook
-    If LogServicing Is Nothing Then Set LogServicing = New clsLog
-    With LogServicing
+    If LogService Is Nothing Then Set LogService = New clsLog
+    With LogService
         .WithTimeStamp
         .KeepDays = 10
         .FileFullName = ThisWorkbook.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".ServicesSummary.log"
         .NewLog True ' suppresses delimiter line
         .MaxItemLengths Comps.MaxLenServicedType, Comps.MaxLenServicedItem
         .AlignmentItems "|L|L.:|L|"
-        sLogFileServiceSummary = .FileName
+        mCompMan.LogFileServicedSummary = .FileName
     End With
     
     wsService.CurrentServiceName = mCompManClient.ServiceName(i_service_proc)
@@ -638,7 +572,7 @@ Public Sub Initiate(ByVal i_service_proc As String, _
     End Select
     
     LogServiced.Title CurrentServiceStatusBar
-    LogServicing.Title CurrentServiceStatusBar
+    LogService.Title CurrentServiceStatusBar
 
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -662,7 +596,7 @@ Public Sub ServicedItemLogEntry(ByVal l_s As String)
 ' Writes an entry to the Services.log file by means of clsLog services.
 ' Supresses repetition of already loged items.
 ' ----------------------------------------------------------------------------
-    With LogServicing
+    With LogService
         If sServicedItemName = sServicedItemLoged Then
             .Entry " ", " ", l_s
             LogServiced.Entry " ", " ", l_s
@@ -676,7 +610,7 @@ Public Sub ServicedItemLogEntry(ByVal l_s As String)
 End Sub
 
 Public Sub LogEntrySummary(ByVal s As String)
-    CompMan.LogServicing.Entry s, "  (see " & sLogFileService & " for log details)"
+    CompMan.LogService.Entry s, "  (see " & mCompMan.LogFileService & " for log details)"
 End Sub
 
 Public Sub MessageUnload(ByVal sm_title As String)
@@ -715,11 +649,11 @@ Public Function Progress(ByVal p_operation_performed As String) As String
         lTotalComps = lNoOfItemsTotal
     End If
     mCompManClient.Progress p_service_name:=CurrentService _
-                          , p_serviced_wbk_name:=Serviced.Name _
+                          , p_serviced_wbk_name:=ServicedWbk.Name _
                           , p_by_servicing_wbk_name:=ThisWorkbook.Name _
                           , p_progress_figures:=True _
                           , p_no_comps_serviced:=lNoOfItemsServiced _
-                          , p_no_comps_ignored:=lNoOfItemsIgnored _
+                          , p_no_comps_skipped:=lNoOfItemsSkipped _
                           , p_no_comps_total:=lTotalComps _
                           , p_service_op:=p_operation_performed _
                           , p_service_info:=sNoOfItemsServicedNames
@@ -742,7 +676,7 @@ Public Sub RemoveTempRenamed()
     Dim vbc As VBComponent
     
     mBasic.BoP ErrSrc(PROC)
-    With Me.Serviced.VBProject
+    With Me.ServicedWbk.VBProject
         For Each vbc In .VBComponents
             If Services.IsRenamedByCompMan(vbc.Name) Then
                 .VBComponents.Remove vbc
@@ -781,6 +715,6 @@ Private Function WbkIsOpenedRegular() As Boolean
 ' Retrurns FALSE when the Workbook had been restored by Excel or opended as
 ' a version - which will cause the denial of any service.
 ' ----------------------------------------------------------------------------
-    WbkIsOpenedRegular = ActiveWindow.Caption = Me.Serviced.Name
+    WbkIsOpenedRegular = ActiveWindow.Caption = Me.ServicedWbk.Name
 End Function
 

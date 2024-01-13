@@ -11,7 +11,7 @@ Option Explicit
 
 Private Property Get CompsDone() As Boolean:         CompsDone = DoneYN(SummaryDone("VBComponent")):            End Property
 
-Private Property Let CompsDone(ByVal B As Boolean):  SummaryDone("VBComponent") = DoneYN(B):                    End Property
+Private Property Let CompsDone(ByVal b As Boolean):  SummaryDone("VBComponent") = DoneYN(b):                    End Property
 
 Private Property Get NamesAdded() As Long:           NamesAdded = Me.Range("celNamesAdded").Value:               End Property
 
@@ -19,49 +19,49 @@ Private Property Get NamesChanged() As Long:         NamesChanged = Me.Range("ce
 
 Private Property Get NamesDone() As Boolean:         NamesDone = DoneYN(SummaryDone("Name")):                    End Property
 
-Private Property Let NamesDone(ByVal B As Boolean):  SummaryDone("Name") = DoneYN(B):                            End Property
+Private Property Let NamesDone(ByVal b As Boolean):  SummaryDone("Name") = DoneYN(b):                            End Property
 
 Private Property Get NamesRemoved() As Long:         NamesRemoved = Me.Range("celNamesRemoved").Value:           End Property
 
 Public Property Get RefsDone() As Boolean:          RefsDone = DoneYN(SummaryDone("Reference")):                End Property
 
-Public Property Let RefsDone(ByVal B As Boolean):   SummaryDone("Reference") = DoneYN(B):                       End Property
+Public Property Let RefsDone(ByVal b As Boolean):   SummaryDone("Reference") = DoneYN(b):                       End Property
 
 Private Property Get ShapesDone() As Boolean:        ShapesDone = DoneYN(SummaryDone("Shape")):                  End Property
 
-Private Property Let ShapesDone(ByVal B As Boolean): SummaryDone("Shape") = DoneYN(B):                           End Property
+Private Property Let ShapesDone(ByVal b As Boolean): SummaryDone("Shape") = DoneYN(b):                           End Property
 
 Private Property Get SheetsDone() As Boolean:        SheetsDone = DoneYN(SummaryDone("Worksheet")):              End Property
 
-Private Property Let SheetsDone(ByVal B As Boolean): SummaryDone("Worksheet") = DoneYN(B):                       End Property
+Private Property Let SheetsDone(ByVal b As Boolean): SummaryDone("Worksheet") = DoneYN(b):                       End Property
 
 Public Property Get SummaryDone(Optional ByVal ds_type As String) As Variant
-    Dim Rng As Range
-    For Each Rng In Me.Range("rngSummaryType").Cells
-        If Rng.Value = ds_type Then
-            If Rng.Offset(0, 1).Value = "done" Then SummaryDone = True
+    Dim rng As Range
+    For Each rng In Me.Range("rngSummaryType").Cells
+        If rng.Value = ds_type Then
+            If rng.Offset(0, 1).Value = "done" Then SummaryDone = True
             Exit For
         End If
-    Next Rng
+    Next rng
 End Property
 
 Public Property Let SummaryDone(Optional ByVal ds_type As String, _
                                          ByVal ds_done As Variant)
-    Dim Rng As Range
-    For Each Rng In Me.Range("rngSummaryType").Cells
-        If Rng.Value = ds_type Then
+    Dim rng As Range
+    For Each rng In Me.Range("rngSummaryType").Cells
+        If rng.Value = ds_type Then
             If VarType(ds_done) = vbBoolean Then
                 If ds_done Then
-                    Rng.Offset(0, 1).Value = "done"
+                    rng.Offset(0, 1).Value = "done"
                 Else
-                    Rng.Offset(0, 1).Value = "due"
+                    rng.Offset(0, 1).Value = "due"
                 End If
             Else
-                Rng.Offset(0, 1).Value = ds_done
+                rng.Offset(0, 1).Value = ds_done
             End If
             Exit For
         End If
-    Next Rng
+    Next rng
     
 End Property
 
@@ -119,16 +119,16 @@ Private Function FirstFreeInCol(ByVal ff_rng As String) As Range
 ' ----------------------------------------------------------------------------
     Const PROC = "FirstFreeInCol"
     
-    Dim Rng As Range
+    Dim rng As Range
     
     mBasic.BoP ErrSrc(PROC)
     With Me
-        For Each Rng In Intersect(.Range(ff_rng).EntireColumn, .Range("rngDone").EntireRow).Cells
-            If Rng.Value = vbNullString Then
-                Set FirstFreeInCol = Rng
+        For Each rng In Intersect(.Range(ff_rng).EntireColumn, .Range("rngDone").EntireRow).Cells
+            If rng.Value = vbNullString Then
+                Set FirstFreeInCol = rng
                 GoTo xt
             End If
-        Next Rng
+        Next rng
     End With
     
 xt: mBasic.EoP ErrSrc(PROC)

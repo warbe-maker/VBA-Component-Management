@@ -198,8 +198,8 @@ Public Sub SelfSetupExportCompManClient()
     
     '~~ Export the mCompManClient to the Common-Components folder
     If Services Is Nothing Then Set Services = New clsServices
-    Services.Serviced = ThisWorkbook
-    For Each vbc In Services.Serviced.VBProject.VBComponents
+    Services.ServicedWbk = ThisWorkbook
+    For Each vbc In Services.ServicedWbk.VBProject.VBComponents
         If vbc.Name = "mCompManClient" Then
             Services.ServicedItem = vbc
                     
@@ -212,10 +212,10 @@ Public Sub SelfSetupExportCompManClient()
                 With LogServiced
                     .KeepDays = 2 ' a new log-file is created after 48 hours
                     .WithTimeStamp
-                    .FileFullName = Services.Serviced.Path & "\" & fso.GetBaseName(Services.Serviced.Name) & ".Services.log"
+                    .FileFullName = Services.ServicedWbk.Path & "\" & fso.GetBaseName(Services.ServicedWbk.Name) & ".Services.log"
                     .MaxItemLengths Len(Comp.TypeString), Len(vbc.Name)
                     .AlignmentItems "|L|L.:|L|"
-                    Services.LogFileService = .FileName
+                    mCompMan.LogFileService = .FileName
                     wsService.CurrentServiceLogFileFullName = .FileFullName
                     .NewFile
                 End With
@@ -227,7 +227,7 @@ Public Sub SelfSetupExportCompManClient()
                     .ServicedItem = vbc
                     .NoOfItemsServiced = .NoOfItemsServiced + 1
                     .ServicedItemLogEntry "Common Component hosted: initially exported by the ""self-setup"" process!"
-                    .ServicedItemLogEntry "Common Component hosted: Revision Number initialized with " & Comp.LastModifiedAtDatTime
+                    .ServicedItemLogEntry "Common Component hosted: Revision Number initialized with " & Comp.LastModAtDateTime
                     .ServicedItemLogEntry "Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
                 End With
             End With

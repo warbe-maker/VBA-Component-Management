@@ -39,7 +39,7 @@ Public Function MaxLenRefId(ByVal ml_wbk_source As Workbook, _
     On Error GoTo eh
     Dim ref     As Reference
     
-    For Each ref In mSync.source.VBProject.References
+    For Each ref In mSync.Source.VBProject.References
         MaxLenRefId = Max(MaxLenRefId, Len(SyncId(ref)))
     Next ref
     For Each ref In mSync.Target.VBProject.References
@@ -215,7 +215,7 @@ Public Sub AppRunSyncAll()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
 
     '~~ Remove obsolete References
     With mSync.TargetWorkingCopy.VBProject
@@ -235,7 +235,7 @@ Public Sub AppRunSyncAll()
     End With
 
     '~~ Add new References
-    With mSync.source.VBProject
+    With mSync.Source.VBProject
         For Each ref In .References
             If Not mRef.Exists(mSync.TargetWorkingCopy, ref) Then
                 On Error Resume Next

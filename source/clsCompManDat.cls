@@ -15,7 +15,7 @@ Option Explicit
 '
 ' [<component-name>]
 ' KindOfComponent=used|hosted
-' LastModifiedAtDatTime=YYYY-MM-DD-hh-mm-ss (UTC)
+' LastModAtDateTime=YYYY-MM-DD-hh-mm-ss (UTC)
 '
 ' The entries (sections) are maintained along with the Workbook_BeforeSave
 ' event via the ExportChangedComponents service. The revision number is
@@ -35,39 +35,44 @@ Option Explicit
 '                              file.
 ' RecentlyUsedExportFolder r/w .
 ' RegistrationState        r/w .
-' LastModifiedAtDatTime           r/w .
+' LastModAtDateTime           r/w .
 '
 ' W. Rauschenberger Berlin, Jul. 2023
 ' ---------------------------------------------------------------------------
 
-Private Const SECTION_NAME_RECENT_EXPORT            As String = "_MostRecentExport" ' _ avoids conflict with an existing VBComponent
-Private Const VALUE_NAME_LAST_MODIFIED_DATE_TIME    As String = "VALUE_NAME_LAST_MODIFIED_DATE_TIME"
-Private Const VALUE_NAME_REG_STAT_OF_COMPONENT      As String = "VALUE_NAME_REG_STAT_OF_COMPONENT"
-Private Const VALUE_NAME_USED_EXPORT_FOLDER         As String = "VALUE_NAME_USED_EXPORT_FOLDER"
-Private PP                                          As clsPP
-Private dctHosted                                   As Dictionary
+Private Const SECTION_NAME_RECENT_EXPORT                As String = "_MostRecentExport" ' _ avoids conflict with an existing VBComponent
+Private Const VALUE_NAME_LAST_MODIFIED_DATE_TIME        As String = "VALUE_NAME_LAST_MODIFIED_DATE_TIME"
+Private Const VALUE_NAME_REG_STAT_OF_COMPONENT          As String = "VALUE_NAME_REG_STAT_OF_COMPONENT"
+Private Const VALUE_NAME_USED_EXPORT_FOLDER             As String = "VALUE_NAME_USED_EXPORT_FOLDER"
+Private PP                                              As clsPP
+Private dctHosted                                       As Dictionary
 
 Private Sub Class_Initialize()
+    Const PROC = "Class_Initialize"
+    
     Dim wbk     As Workbook
     Dim dct     As New Dictionary
     
+    mBasic.BoP ErrSrc(PROC)
     Set PP = New clsPP
     
     '~~> Private Property File Full Name
-    Set wbk = Services.Serviced
+    Set wbk = Services.ServicedWbk
     PP.FileFullName = Replace(wbk.FullName, wbk.Name, "CompMan.dat")
     
     '~~> Value Names with the syntax (allows the on-the-fly-change of value names as well as their removal):
     '~~> "<current>"                 = no action
     '~~> "<current-name>:<old-name>" = rename in all sections
     '~~> ":<remove-name>"            = remove in all sections
-'    dct.Add VALUE_NAME_LAST_MODIFIED_DATE_TIME, "RevisionNumber:RawRevisionNumber"
-    dct.Add VALUE_NAME_LAST_MODIFIED_DATE_TIME, "LastModifiedAtDatTime:RevisionNumber"
-    dct.Add VALUE_NAME_REG_STAT_OF_COMPONENT, "KindOfComponent"
-    dct.Add VALUE_NAME_USED_EXPORT_FOLDER, "UsedExportFolder"
-    dct.Add "Obsolete_1", ":DueModificationWarning"
+    With dct
+        .Add VALUE_NAME_LAST_MODIFIED_DATE_TIME, "LastModifiedAtDatTime:LastModAtDateTime:RevisionNumber:RawRevisionNumber"
+        .Add VALUE_NAME_REG_STAT_OF_COMPONENT, "KindOfComponent"
+        .Add VALUE_NAME_USED_EXPORT_FOLDER, "UsedExportFolder"
+        .Add "Obsolete_1", ":DueModificationWarning"
+    End With
     PP.Names = dct
     Set dct = Nothing
+    mBasic.EoP ErrSrc(PROC)
     
 End Sub
 
@@ -109,28 +114,29 @@ Friend Property Let Hosted(ByVal s As String)
             dctHosted.Add sComp, sComp
         End If
     Next v
-    Hskpng
     
 End Property
 
-Friend Property Get RecentlyUsedExportFolder() As String
+Friend Property Get LastModAtDateTime(Optional ByVal r_comp_name As String) As String
+' ----------------------------------------------------------------------------
+' Returns the revision number in the format YYYY-MM-DD.n
+' ----------------------------------------------------------------------------
     With PP
-        RecentlyUsedExportFolder = .Value(pp_section:=SECTION_NAME_RECENT_EXPORT, pp_value_name:=.Name(VALUE_NAME_USED_EXPORT_FOLDER))
+        LastModAtDateTime = .Value(pp_section:=r_comp_name, pp_value_name:=.Name(VALUE_NAME_LAST_MODIFIED_DATE_TIME))
     End With
+End Property
+
+Friend Property Let LastModAtDateTime(Optional ByVal r_comp_name As String, _
+                                            ByVal r_rev_no As String)
+    With PP: .Value(pp_section:=r_comp_name, pp_value_name:=.Name(VALUE_NAME_LAST_MODIFIED_DATE_TIME)) = r_rev_no: End With
+End Property
+
+Friend Property Get RecentlyUsedExportFolder() As String
+    With PP: RecentlyUsedExportFolder = .Value(pp_section:=SECTION_NAME_RECENT_EXPORT, pp_value_name:=.Name(VALUE_NAME_USED_EXPORT_FOLDER)): End With
 End Property
 
 Friend Property Let RecentlyUsedExportFolder(ByVal s As String)
-    With PP
-        .Value(pp_section:=SECTION_NAME_RECENT_EXPORT, pp_value_name:=.Name(VALUE_NAME_USED_EXPORT_FOLDER)) = s
-    End With
-End Property
-
-Friend Property Get RegStateString(Optional ByVal comp_name As String) As String
-    Select Case RegistrationState(comp_name)
-        Case enRegStateHosted:  RegStateString = "hosted"
-        Case enRegStatePrivate: RegStateString = "private"
-        Case enRegStateUsed:    RegStateString = "used"
-    End Select
+    With PP: .Value(pp_section:=SECTION_NAME_RECENT_EXPORT, pp_value_name:=.Name(VALUE_NAME_USED_EXPORT_FOLDER)) = s: End With
 End Property
 
 Friend Property Get RegistrationState(Optional ByVal comp_name As String) As enCommCompRegState
@@ -142,20 +148,12 @@ Friend Property Let RegistrationState(Optional ByVal comp_name As String, _
     CompRegState(comp_name) = comp_reg_state
 End Property
 
-Friend Property Get LastModifiedAtDatTime(Optional ByVal r_comp_name As String) As String
-' ----------------------------------------------------------------------------
-' Returns the revision number in the format YYYY-MM-DD.n
-' ----------------------------------------------------------------------------
-    With PP
-        LastModifiedAtDatTime = .Value(pp_section:=r_comp_name, pp_value_name:=.Name(VALUE_NAME_LAST_MODIFIED_DATE_TIME))
-    End With
-End Property
-
-Friend Property Let LastModifiedAtDatTime(Optional ByVal r_comp_name As String, _
-                                            ByVal r_rev_no As String)
-    With PP
-        .Value(pp_section:=r_comp_name, pp_value_name:=.Name(VALUE_NAME_LAST_MODIFIED_DATE_TIME)) = r_rev_no
-    End With
+Friend Property Get RegStateString(Optional ByVal comp_name As String) As String
+    Select Case RegistrationState(comp_name)
+        Case enRegStateHosted:  RegStateString = "hosted"
+        Case enRegStatePrivate: RegStateString = "private"
+        Case enRegStateUsed:    RegStateString = "used"
+    End Select
 End Property
 
 Public Function CommCompUsedIsKnown(ByVal comp_name As String) As Boolean
@@ -221,14 +219,14 @@ Private Sub HskpngHosted()
     Dim Comp        As clsComp
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbk = Services.Serviced
+    Set wbk = Services.ServicedWbk
     
     For Each v In dctHosted
         If mComp.Exists(v, wbk) Then
             If Me.RegistrationState(v) <> enRegStateHosted _
             Then Me.RegistrationState(v) = enRegStateHosted
-            If Me.LastModifiedAtDatTime(v) = vbNullString _
-            Then Me.LastModifiedAtDatTime(v) = CompMan.UTC
+            If Me.LastModAtDateTime(v) = vbNullString _
+            Then Me.LastModAtDateTime(v) = CompMan.UTC
         End If
     Next v
     
@@ -254,7 +252,7 @@ Private Sub HskpngNotHosted()
     Dim wbk         As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbk = Services.Serviced
+    Set wbk = Services.ServicedWbk
     For Each v In Components
         If Not dctHosted.Exists(v) Then
             If mComp.Exists(v, wbk) Then
@@ -284,7 +282,7 @@ Private Sub HskpngObsolete()
     Dim wbk As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbk = Services.Serviced
+    Set wbk = Services.ServicedWbk
     For Each v In PP.Components
         If HskpngSectionIsInvalid(v, wbk) Then
             PP.ComponentRemove v
@@ -309,6 +307,7 @@ Private Function HskpngSectionIsInvalid(ByVal h_section As String, _
     Select Case True
         Case mComp.Exists(h_section, h_wbk)
         Case h_section = SECTION_NAME_RECENT_EXPORT
+        Case h_section = PP.NamesHousekeepingSection
         Case Else
             HskpngSectionIsInvalid = True
     End Select
@@ -336,6 +335,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub Reorg()
+    Const PROC = "Reorg"
+    mBasic.BoP ErrSrc(PROC)
     PP.Reorg
+    mBasic.EoP ErrSrc(PROC)
 End Sub
 

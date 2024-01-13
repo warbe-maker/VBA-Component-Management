@@ -191,7 +191,7 @@ Public Property Let Url(Optional ByVal su_wsh As Worksheet, _
     Dim sAddress    As String
     Dim sSubAddress As String
     Dim bProtected  As Boolean
-    Dim Rng         As Range
+    Dim rng         As Range
     
     Application.ScreenUpdating = False
     bProtected = su_wsh.ProtectContents
@@ -268,29 +268,29 @@ Public Property Let Value(Optional ByVal v_wsh As Worksheet, _
 ' ----------------------------------------------------------------------------
     Const PROC = "Value-Let"
     
-    Dim Rng         As Range
+    Dim rng         As Range
     Dim bProtected  As Boolean
     
     On Error Resume Next
     Select Case TypeName(v_name)
-        Case "String": Set Rng = v_wsh.Range(v_name)
-        Case "Range":  Set Rng = v_name
+        Case "String": Set rng = v_wsh.Range(v_name)
+        Case "Range":  Set rng = v_name
     End Select
     If Err.Number <> 0 _
     Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.Name & "' has no range with a name '" & v_name & "'!"
     
     bProtected = v_wsh.ProtectContents
     
-    If bProtected And Rng.Locked Then
+    If bProtected And rng.Locked Then
         '~~ Unprotect is required only when the range is locked and the sheet is protected
         On Error Resume Next
         v_wsh.Unprotect
         If Err.Number <> 0 _
         Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.Name & "' is apparently password protected which is not supported by this component's Value service!"
-        Rng.Value = v_value
+        rng.Value = v_value
         If bProtected Then v_wsh.Protect
     Else
-        Rng.Value = v_value
+        rng.Value = v_value
     End If
     
 xt: Exit Property
@@ -395,7 +395,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     

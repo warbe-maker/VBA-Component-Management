@@ -17,16 +17,19 @@ Option Explicit
 ' CompName                w
 ' LastModByWbkName      r/w
 ' LastModWbkBaseName    r
-' LastModifiedAtDatTime r/w
+' LastModAtDateTime r/w
 ' LastModExpFile        r
 ' ----------------------------------------------------------------------------------------
 Private fSavedExpFile           As File
 Private sCompName               As String
 Private sLastModByWbkFullName   As String
 Private sLastModByWbkName       As String
-Private sLastModifiedAtDatTime  As String
+Private sLastModAtDateTime      As String
 
-Friend Property Let CompName(ByVal s As String):                sCompName = s:                                                  End Property
+Friend Property Let CompName(ByVal s As String)
+    sCompName = s
+    CommComps.CompName = s
+End Property
 
 Private Property Get LastModByWbkFullName() As String:          LastModByWbkFullName = sLastModByWbkFullName:                   End Property
 
@@ -38,11 +41,11 @@ Friend Property Get LastModExpFile() As File:                   Set LastModExpFi
 
 Friend Property Let LastModExpFile(ByVal f As File):            Set fSavedExpFile = f:                                          End Property
 
-Friend Property Get LastModifiedAtDatTime() As String:          LastModifiedAtDatTime = sLastModifiedAtDatTime:                 End Property
+Friend Property Get LastModAtDateTime() As String:               LastModAtDateTime = sLastModAtDateTime:                           End Property
 
-Friend Property Let LastModifiedAtDatTime(ByVal s As String):   sLastModifiedAtDatTime = s:                                     End Property
+Friend Property Let LastModAtDateTime(ByVal s As String):        sLastModAtDateTime = s:                                          End Property
 
-Friend Property Get LastModWbkBaseName() As String:             LastModWbkBaseName = CommComps.LastModWbkBaseName(sCompName):  End Property
+Friend Property Get LastModWbkBaseName() As String:             LastModWbkBaseName = CommComps.LastModInWbkBaseName:            End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsRaw" & "." & sProc

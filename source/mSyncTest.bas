@@ -100,7 +100,7 @@ Private Sub Test_EnvironmentCleanup()
     mCompManClient.Events ErrSrc(PROC), False
     On Error Resume Next
     mSync.TargetWorkingCopy.Close False
-    mSync.source.Close False
+    mSync.Source.Close False
     Set wshSource = Nothing
     Set wshTarget = Nothing
     Set shpSource = Nothing
@@ -127,7 +127,7 @@ Private Sub Test_EnvironmentProvide()
     mCompManClient.Events ErrSrc(PROC), False
     mSync.TargetWorkingCopy = mWbk.GetOpen(TestSyncTargetFullName)
 '    mSync.Source = mSync.Target
-    If wshSource Is Nothing Then Set wshSource = mSync.source.Worksheets(TEST_SHEET_SOURCE)
+    If wshSource Is Nothing Then Set wshSource = mSync.Source.Worksheets(TEST_SHEET_SOURCE)
     If wshTarget Is Nothing Then Set wshTarget = mSync.TargetWorkingCopy.Worksheets(TEST_SHEET_TARGET)
     If shpSource Is Nothing Then Set shpSource = wshSource.Shapes(TEST_SHAPE_SOURCE)
     If shpTarget Is Nothing Then Set shpTarget = wshTarget.Shapes(TEST_SHAPE_TARGET)
@@ -169,7 +169,7 @@ Public Sub TestSync(Optional ByVal t_regression As Boolean = False)
             
         End With
         wsSyncTest.wbkSource.Save
-        mSync.source = mWbk.GetOpen(wsSyncTest.SyncTestSourceFullName)
+        mSync.Source = mWbk.GetOpen(wsSyncTest.SyncTestSourceFullName)
         mSync.TargetWorkingCopy = mWbk.GetOpen(wsSyncTest.SyncTestTargetFullName)
     End If
     

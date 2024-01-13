@@ -369,7 +369,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -431,7 +431,7 @@ Public Function Exists(ByVal e_wbk As Variant, _
     Dim sTest       As String
     Dim wsh         As Worksheet
     Dim wbk         As Workbook
-    Dim Rng         As Range
+    Dim rng         As Range
     Dim wsResult    As Worksheet
 
     BoP ErrSrc(PROC)
@@ -443,9 +443,9 @@ Public Function Exists(ByVal e_wbk As Variant, _
     Then Err.Raise AppErr(2), ErrSrc(PROC), "The Range (parameter e_rng) for the Range's existence check is ""Nothing""!"
     
     If TypeOf e_rng Is Range Then
-        Set Rng = e_rng
+        Set rng = e_rng
         On Error Resume Next
-        sTest = Rng.Address
+        sTest = rng.Address
         Exists = Err.Number = 0
     ElseIf VarType(e_rng) = vbString Then
         If Not SheetExists(wbk, e_wsh, wsResult) _
@@ -560,7 +560,7 @@ Public Function FoundInFormulas(ByVal fif_str As String, _
     Dim cel As Range
     Dim cll As New Collection
     Dim wsh As Worksheet
-    Dim Rng As Range
+    Dim rng As Range
     
     BoP PROC
     For Each wsh In fif_wbk.Worksheets
@@ -569,9 +569,9 @@ Public Function FoundInFormulas(ByVal fif_str As String, _
         End If
         
         On Error Resume Next
-        Set Rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
+        Set rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
         If Err.Number <> 0 Then GoTo nw
-        For Each cel In Rng
+        For Each cel In rng
             If InStr(1, cel.Formula, fif_str) > 0 Then
                 FoundInFormulas = True
                 If IsMissing(fif_cll) Then
@@ -950,9 +950,9 @@ Public Function WbkGetOpen(ByVal go_wb As Variant, _
     
     With AllWbksOpen
         If .Exists(sWbName) Then
-            Set WbkGetOpen = .Item(sWbName)
+            Set WbkGetOpen = .item(sWbName)
             If sWbFullName = vbNullString Then GoTo xt
-            Set wbOpen = .Item(sWbName)
+            Set wbOpen = .item(sWbName)
             If wbOpen.FullName = sWbFullName Then GoTo xt
             '~~ A Workbook with the Name is open but it has a different FullName
             If fso.FileExists(sWbFullName) Then
@@ -1011,7 +1011,7 @@ Private Function WbkIsOpen(ByVal wb As Variant, _
         WbName = fso.GetFileName(wb)
         If OpenWbks.Exists(WbName) Then
             '~~ A Workbook with the same 'WbName' is open
-            Set OpenWbk = OpenWbks.Item(WbName)
+            Set OpenWbk = OpenWbks.item(WbName)
             '~~ When a Workbook's Name is provided the Workbook is only regarde open when the open
             '~~ Workbook has the same name (i.e. including its extension)
             If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
@@ -1020,7 +1020,7 @@ Private Function WbkIsOpen(ByVal wb As Variant, _
         WbName = fso.GetFileName(wb)
         If OpenWbks.Exists(WbName) Then
             '~~ A Workbook with the same 'WbName' is open
-            Set OpenWbk = OpenWbks.Item(WbName)
+            Set OpenWbk = OpenWbks.item(WbName)
             '~~ The provided (wb) specifies an exist Workbook file. This Workbook is regarded open (and returned as opject)
             '~~ when a Workbook with its Name (including the extension!) is open regardless in which location
             If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wb) Then Set OpenWbk = Nothing
@@ -1028,12 +1028,12 @@ Private Function WbkIsOpen(ByVal wb As Variant, _
     ElseIf IsWbkObject(wb) Then
         WbName = wb.Name
         If Opened.Exists(WbName) Then
-            Set OpenWbk = OpenWbks.Item(WbName)
+            Set OpenWbk = OpenWbks.item(WbName)
         End If
     Else
         '~~ If wb is a Workbook's WbName it is regarded open when one with that WbName is open
         '~~ regrdless its extension
-        If OpenWbks.Exists(wb) Then Set OpenWbk = OpenWbks.Item(wb)
+        If OpenWbks.Exists(wb) Then Set OpenWbk = OpenWbks.item(wb)
     End If
     
 xt: If IsWbkObject(OpenWbk) Then

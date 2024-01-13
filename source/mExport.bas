@@ -18,7 +18,6 @@ Option Explicit
 '                   exists, i.e. one with an outdated name, this one is
 '                   renamed instead.
 ' ----------------------------------------------------------------------------
-
 Public Sub ChangedComponents(ByVal c_hosted As String)
 ' ----------------------------------------------------------------------------
 ' - Exports all components the code had been modified
@@ -32,98 +31,74 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
     Const PROC = "ChangedComponents"
     
     On Error GoTo eh
-    Dim Comp        As clsComp
-    Dim v           As Variant
-    Dim vbc         As VBComponent
-    Dim wbk         As Workbook
-    Dim dct         As Dictionary
-    Dim sRevNo      As String
+    Dim Comp                    As clsComp
+    Dim v                       As Variant
+    Dim wbk                     As Workbook
+    Dim dct                     As Dictionary
+    Dim sLastModDateTimeOld     As String
+    Dim vbc                     As VBComponent
+    Dim lItemsTotal             As Long
+    Dim lItemsServiced          As Long
+    Dim lItemsSkipped           As Long
     
     mBasic.BoP ErrSrc(PROC)
     '~~ Prevent any action when the required preconditins are not met
     If Services.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
+    Set wbk = Services.ServicedWbk
+    Set Prgrss = New clsProgress
+    Prgrss.Operation = "exported"
+    Prgrss.ItemsTotal = wbk.VBProject.VBComponents.Count
     
-    Set wbk = Services.Serviced
-    Set dct = Comps.All
-    For Each v In dct
-        Set Comp = dct(v)
-        Set vbc = Comp.VBComp
-        If Not Services.IsRenamedByCompMan(vbc.Name) Then
-            With Comp
-                Services.ServicedItem = vbc
-                .Wrkbk = Services.Serviced
-                .CompName = vbc.Name
-                .VBComp = vbc
-                    Select Case .KindOfComp
-                        Case mCompMan.enCommCompHosted
-                            If .Changed Then
-                                '~~ The current Export-File is not identicall with a temporary export's Export-File
-                                sRevNo = .LastModifiedAtDatTime
-                                .Export
-                                With Services
-                                    .NoOfItemsServiced = .NoOfItemsServiced + 1
-                                    .NoOfItemsServicedNames = vbc.Name
-                                    .ServicedItemLogEntry "Modified Common Component hosted: e x p o r t e d !"
-                                    .ServicedItemLogEntry "Modified Common Component hosted: Revision Number increased from " & sRevNo & " to " & Comp.LastModifiedAtDatTime
-                                    .ServicedItemLogEntry "Modified Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
-                                End With
-                            Else
-                                With Services
-                                    .NoOfItemsIgnored = .NoOfItemsIgnored + 1
-                                    .ServicedItemLogEntry "Unchanged Common Component hosted ignored"
-                                End With
-                            End If
-                    Case mCompMan.enCommCompUsed
-                            If .Changed Then
-                                '~~ The current Export-File is not identicall with a temporary export's Export-File
-                                sRevNo = .LastModifiedAtDatTime
-                                .Export
-                                With Services
-                                    .NoOfItemsServiced = .NoOfItemsServiced + 1
-                                    .NoOfItemsServicedNames = vbc.Name
-
-                                    .ServicedItemLogEntry "Modified Common Component used: e x p o r t e d !"
-                                    .ServicedItemLogEntry "Modified Common Component used: Revision Number increased from " & sRevNo & " to " & Comp.LastModifiedAtDatTime
-                                    .ServicedItemLogEntry "Modified Common Component used: Export-File copied to " & wsConfig.FolderCommonComponentsPath
-                                End With
-                            Else
-                                With Services
-                                    .NoOfItemsIgnored = .NoOfItemsIgnored + 1
-                                    .ServicedItemLogEntry "Unchanged Common Component used"
-                                End With
-                            End If
-                                            
+    For Each vbc In wbk.VBProject.VBComponents
+        Set Comp = New clsComp
+        With Comp
+            .Wrkbk = wbk
+            .VBComp = vbc
+            If Services.IsRenamedByCompMan(.CompName) Then
+                Prgrss.ItemSkipped
+                GoTo nxt
+            End If
+            Services.ServicedItem = .VBComp
+            If .CodeCurrent.IsNone And .CodeExported.IsNone Then
+                Debug.Print "skipped : " & .CompName
+                Prgrss.ItemSkipped
+                GoTo nxt
+            ElseIf .Changed Then
+                If .KindOfComp = enCommCompHosted _
+                Or .KindOfComp = enCommCompUsed Then sLastModDateTimeOld = .LastModAtDateTime
+                .Export
+                Debug.Print "exported: " & .CompName
+                Prgrss.ItemDone = .CompName
+                '~~ Component has been modified
+                Select Case .KindOfComp
+                    Case enCommCompHosted, enCommCompUsed
+                        .CodePublic.Source = CommComps.CurrentPublicExpFileFullName
+                        With Services
+                            .ServicedItemLogEntry "Modified Common Component: e x p o r t e d !"
+                            .ServicedItemLogEntry "Modified Common Component: Last modification info changed from " & sLastModDateTimeOld & " to " & Comp.LastModAtDateTime
+                            .ServicedItemLogEntry "Modified Common Component: Pending Release registered"
+                        End With
+                        CommComps.PendingReleaseManagement Comp
                     Case Else
-                        '~~ Neither a hosted nor a used Common Component
-                        If .Changed Then
-                            .Export
-                            With Services
-                                .NoOfItemsServiced = .NoOfItemsServiced + 1
-                                .NoOfItemsServicedNames = vbc.Name
-                                .ServicedItemLogEntry "Modified VBComponent e x p o r t e d !"
-                            End With
-                        Else
-                            With Services
-                                .NoOfItemsIgnored = .NoOfItemsIgnored + 1
-                                .ServicedItemLogEntry "Unchanged VBComponent ignored"
-                            End With
-                        End If
+                        '~~ The code of another but a used/hosted Common Component has changed
+                        Services.ServicedItemLogEntry "Modified VBComponent e x p o r t e d !"
                 End Select
-            End With
-            Set Comp = Nothing
-        Else
-            With Services
-                .NoOfItemsIgnored = .NoOfItemsIgnored + 1
-            End With
-        End If
-        Set Comps = Nothing
-    Next v
-
+            Else
+                Prgrss.ItemSkipped
+            End If
+        End With
+nxt:    Set Comp = Nothing
+    Next vbc
+    Prgrss.Dsply
+    Set Comps = Nothing
+    Set Prgrss = Nothing
+    
     With Services
-        .Progress "exported"
         .RemoveTempRenamed
         .TempExportFolderRemove
     End With
+    
+    mCompManMenu.Setup
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -153,7 +128,7 @@ Private Sub Hskpng()
     
     mBasic.BoP ErrSrc(PROC)
     '~~ Rename the export folder when the one last used is no longe the one currently configured
-    sExpFldrCurrentPath = mExport.ExpFileFolderPath(Services.Serviced)
+    sExpFldrCurrentPath = mExport.ExpFileFolderPath(Services.ServicedWbk)
     sExpFldrCurrentName = wsConfig.FolderExport
     sExpFldrRecentName = CompManDat.RecentlyUsedExportFolder
     If sExpFldrRecentName = vbNullString Then
@@ -171,7 +146,7 @@ Private Sub Hskpng()
         For Each fl In .GetFolder(sExpFldrCurrentPath).Files
             Select Case .GetExtensionName(fl.Path)
                 Case "bas", "cls", "frm", "frx"
-                    If Not mComp.Exists(.GetBaseName(fl), Services.Serviced) Then
+                    If Not mComp.Exists(.GetBaseName(fl), Services.ServicedWbk) Then
                         sExpFileName = .GetFileName(fl.Path)
                         .DeleteFile fl
                         LogServiced.Entry "Obsolete Export-File '" & sExpFileName & "' deleted (VBComponent no longer exists)"

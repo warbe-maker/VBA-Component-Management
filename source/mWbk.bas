@@ -171,25 +171,25 @@ Public Property Let Value(Optional ByVal v_wsh As Worksheet, _
 ' ----------------------------------------------------------------------------
     Const PROC = "Value-Let"
     
-    Dim Rng As Range
+    Dim rng As Range
     
     On Error Resume Next
     Select Case TypeName(v_name)
-        Case "String": Set Rng = v_wsh.Range(v_name)
-        Case "Range":  Set Rng = v_name
+        Case "String": Set rng = v_wsh.Range(v_name)
+        Case "Range":  Set rng = v_name
     End Select
     If Err.Number <> 0 _
     Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.Name & "' has no range with a name '" & v_name & "'!"
     
-    If v_wsh.ProtectContents And Rng.Locked Then
+    If v_wsh.ProtectContents And rng.Locked Then
         On Error Resume Next
         v_wsh.Unprotect
         If Err.Number <> 0 _
         Then Err.Raise AppErr(2), ErrSrc(PROC), "The Worksheet '" & v_wsh.Name & "' is apparently password protected which is not supported by the Value service!"
-        Rng.Value = v_value
+        rng.Value = v_value
         v_wsh.Protect
     Else
-        Rng.Value = v_value
+        rng.Value = v_value
     End If
     
 xt: Exit Property
@@ -287,7 +287,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -526,9 +526,9 @@ Public Function GetOpen(ByVal go_wbk As Variant, _
     
     With mWbk.Opened
         If .Exists(sWbName) Then
-            Set GetOpen = .Item(sWbName)
+            Set GetOpen = .item(sWbName)
             If sWbFullName = vbNullString Then GoTo xt
-            Set wbOpen = .Item(sWbName)
+            Set wbOpen = .item(sWbName)
             If wbOpen.FullName = sWbFullName Then GoTo xt
             '~~ A Workbook with the Name is open but it has a different FullName
             If fso.FileExists(sWbFullName) Then
@@ -607,7 +607,7 @@ Public Function IsOpen(ByVal wbk As Variant, _
         WbName = fso.GetFileName(wbk)
         If OpenWbks.Exists(WbName) Then
             '~~ A Workbook with the same 'WbName' is open
-            Set OpenWbk = OpenWbks.Item(WbName)
+            Set OpenWbk = OpenWbks.item(WbName)
             '~~ When a Workbook's Name is provided the Workbook is only regarde open when the open
             '~~ Workbook has the same name (i.e. including its extension)
             If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wbk) Then Set OpenWbk = Nothing
@@ -616,7 +616,7 @@ Public Function IsOpen(ByVal wbk As Variant, _
         WbName = fso.GetFileName(wbk)
         If OpenWbks.Exists(WbName) Then
             '~~ A Workbook with the same 'WbName' is open
-            Set OpenWbk = OpenWbks.Item(WbName)
+            Set OpenWbk = OpenWbks.item(WbName)
             '~~ The provided (wbk) specifies an exist Workbook file. This Workbook is regarded open (and returned as opject)
             '~~ when a Workbook with its Name (including the extension!) is open regardless in which location
             If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wbk) Then Set OpenWbk = Nothing
@@ -624,12 +624,12 @@ Public Function IsOpen(ByVal wbk As Variant, _
     ElseIf mWbk.IsWbObject(wbk) Then
         WbName = wbk.Name
         If Opened.Exists(WbName) Then
-            Set OpenWbk = OpenWbks.Item(WbName)
+            Set OpenWbk = OpenWbks.item(WbName)
         End If
     Else
         '~~ If wbk is a Workbook's WbName it is regarded open when one with that WbName is open
         '~~ regrdless its extension
-        If OpenWbks.Exists(wbk) Then Set OpenWbk = OpenWbks.Item(wbk)
+        If OpenWbks.Exists(wbk) Then Set OpenWbk = OpenWbks.item(wbk)
     End If
     
 xt: If mWbk.IsWbObject(OpenWbk) Then

@@ -209,7 +209,7 @@ Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
     '~~ Transfer based on sorted keys
     For i = LBound(arr) To UBound(arr)
         vKey = arr(i)
-        dct.Add Key:=vKey, Item:=s_dct.Item(vKey)
+        dct.Add Key:=vKey, item:=s_dct.item(vKey)
     Next i
     
 xt: Set s_dct = dct
@@ -806,7 +806,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     '~~ About

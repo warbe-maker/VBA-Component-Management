@@ -372,7 +372,7 @@ Public Sub BttnAppRun(ByRef b_dct As Dictionary, _
     For Each v In b_arguments
         If TypeName(v) = "Error" Then
             Err.Raise Number:=AppErr(1) _
-                    , source:=ErrSrc(PROC) _
+                    , Source:=ErrSrc(PROC) _
                     , Description:="The ParamArray argument (b_arguments) contains empty elements but empty elements " & _
                                    "are not supported/possible!" & "||" & _
                                    "Application.Run supports only positional but not named arguments. When only some of " & _
@@ -797,7 +797,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_number = 0 Then err_number = Err.Number
     If err_line = 0 Then err_line = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
         
@@ -1136,7 +1136,7 @@ Private Function RoundUp(ByVal v As Variant) As Variant
     RoundUp = Int(v) + (v - Int(v) + 0.5) \ 1
 End Function
 
-Public Function Screen(ByVal Item As enScreen) As Variant
+Public Function Screen(ByVal item As enScreen) As Variant
 ' -------------------------------------------------------------------------
 ' Return display screen Item for monitor displaying ActiveWindow
 ' Patterned after Excel's built-in information functions CELL and INFO
@@ -1202,7 +1202,7 @@ Public Function Screen(ByVal Item As enScreen) As Variant
         tMonitorInfo.dwFlags = MONITOR_PRIMARY
         tMonitorInfo.szDevice = "PRIMARY" & vbNullChar
     End If
-    Select Case Item
+    Select Case item
         Case enAdjustmentfactor:    xHSizeSq = GetDeviceCaps(hDC, DevCap.HORZSIZE) ^ 2
                                     xVSizeSq = GetDeviceCaps(hDC, DevCap.VERTSIZE) ^ 2
                                     xPix = GetDeviceCaps(hDC, DevCap.HORZRES) ^ 2 + GetDeviceCaps(hDC, DevCap.VERTRES) ^ 2

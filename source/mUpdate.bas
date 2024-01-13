@@ -88,7 +88,7 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
     Dim Comp            As clsComp
     Dim TmpWbk          As Workbook
     Dim lStep           As Long
-    Dim sRevNo          As String
+    Dim sLastModAtDateTime          As String
     
     mBasic.BoP ErrSrc(PROC)
     MonitorInitiate "Update an outdated component", b_monitor
@@ -141,14 +141,15 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
     With Comp
         .Wrkbk = b_wbk_target
         .CompName = b_vbc_name
+        CommComps.CompName = b_vbc_name
         '~~ Export the re-imported component to ensure an up-to-date Export-File
         fso.CopyFile b_exp_file, .ExpFileFullName, True
         '~~ Update the Revision-Number
-        sRevNo = CommComps.LastModifiedAtDatTime(.CompName)
+        sLastModAtDateTime = CommComps.LastModAtDateTime
         Select Case .KindOfComp
             Case enCommCompUsed, enCommCompHosted
-                If .LastModifiedAtDatTime <> sRevNo Then
-                    .LastModifiedAtDatTime = sRevNo
+                If .LastModAtDateTime <> sLastModAtDateTime Then
+                    .LastModAtDateTime = sLastModAtDateTime
                 End If
         End Select
     End With

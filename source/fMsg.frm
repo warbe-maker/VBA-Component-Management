@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} fMsg 
-   ClientHeight    =   14805
+   ClientHeight    =   14796
    ClientLeft      =   240
    ClientTop       =   390
    ClientWidth     =   15150
@@ -894,7 +894,7 @@ Private Function AddCursor(CursorType As CursorTypes)
     End If
 End Function
 
-Private Sub AdjustedParentsWidthAndHeight(ByVal ctrl As MsForms.Control)
+Private Sub AdjustedParentsWidthAndHeight(ByVal Ctrl As MsForms.Control)
 ' ------------------------------------------------------------------------------
 ' Adjust the width and height of all parent frames starting with the parent of
 ' the provided control (ctrl) by considering the control's width and height and
@@ -903,7 +903,7 @@ Private Sub AdjustedParentsWidthAndHeight(ByVal ctrl As MsForms.Control)
     Dim FrmParent   As Variant
     
     On Error Resume Next
-    Set FrmParent = ctrl.Parent
+    Set FrmParent = Ctrl.Parent
     If Err.Number <> 0 Then
         On Error GoTo eh
         GoTo xt
@@ -913,7 +913,7 @@ Private Sub AdjustedParentsWidthAndHeight(ByVal ctrl As MsForms.Control)
         If IsForm(FrmParent) Then
             If Not ScrollVerApplied(FrmParent) Then
                 FrmParent.Width = ContentWidth(FrmParent) + 5
-                FrmParent.Height = ctrl.Top + ContentHeight(FrmParent) + 30
+                FrmParent.Height = Ctrl.Top + ContentHeight(FrmParent) + 30
             End If
         ElseIf IsFrameOrForm(FrmParent) Then
             If Not ScrollVerApplied(FrmParent) Then
@@ -1884,7 +1884,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -2062,7 +2062,6 @@ Private Sub FinalizeWidthFrame(ByVal f_frm As MsForms.Frame, _
     siWidthContMax = f_max_width - f_margin_left - f_margin_right
     siWidthContent = ContentWidth(f_frm)
     With f_frm
-        Debug.Print .Name
         If siWidthContent > siWidthContMax + SCROLL_HOR_THRESHOLD Then
             '~~ In cas a horizontal scroll-bar is already applied
             '~~ only the scroll-width is adjusted to the content width
@@ -4026,7 +4025,7 @@ Const PROC = "Setup04MonoSpacedSection"
                           , a_width_limit:=0
                           
     FormWidthInside(s_sect) = FormWidthInsideMonospaced(s_sect, lbl.Width)
-    WidthsDebug s_sect, " " & PROC & " after setup monospaced section " & s_sect & " "
+'    WidthsDebug s_sect, " " & PROC & " after setup monospaced section " & s_sect & " "
                   
     dctSectTextSetup.Add s_sect, vbNullString
     TempTbx lbl, t_remove:=True
@@ -4393,7 +4392,7 @@ Private Sub Setup12PropSpacedSection(ByVal s_sect As Long)
                           , a_text:=sText _
                           , a_width_limit:=MsectTextWidthLimit(s_sect)
                 
-    WidthsDebug s_sect, " setup prop-speced section done "
+'    WidthsDebug s_sect, " setup prop-speced section done "
     dctSectTextSetup.Add s_sect, vbNullString
     TempTbx lblText, t_remove:=True
     
@@ -4457,7 +4456,7 @@ Private Sub Setup14Label(ByVal s_sect As Long)
         End With
         DoEvents
     End If
-    WidthsDebug s_sect, " " & PROC & " done for section " & s_sect & " "
+'    WidthsDebug s_sect, " " & PROC & " done for section " & s_sect & " "
     
 End Sub
 
@@ -4697,10 +4696,9 @@ Function WidthExpanded(ByVal w_this As Single, _
     w_new = Max(w_new, w_min) ' possible expands
     If w_new > w_now Then
         WidthExpanded = True
-        Debug.Print "Width expanded from " & w_now & " to " & w_new
-        If w_new = w_max Then
-            Debug.Print " ... and has reached its max of " & w_max
-        End If
+'        If w_new = w_max Then
+'            Debug.Print " ... and has reached its max of " & w_max
+'        End If
     End If
 End Function
 

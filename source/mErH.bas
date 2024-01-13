@@ -605,7 +605,8 @@ Private Function ErrMsgDsply(ByVal err_source As String, _
                      "(button is displayed because the Cond. Comp. Argument 'Debugging = 1')."
     End With
 #End If
-    
+
+    Application.EnableEvents = True ' set to TRUE in case FALSE
 #If MsgComp = 1 Then
     ErrMsgDsply = mMsg.Dsply(dsply_title:=sTitle _
                            , dsply_msg:=ErrMsgText _

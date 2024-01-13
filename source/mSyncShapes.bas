@@ -107,7 +107,7 @@ Private Sub AppRunChanged()
     Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The precondition of done Worksheet synchronizations is not met!"
             
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     vSource = Split(AppRunChangedIdsSource, ",")
     vTarget = Split(AppRunChangedIdsTarget, ",")
 '    sPrgrss = "Synchronizing Worksheets > Changed Name or CodeName " & String(UBound(vSource), ".")
@@ -163,7 +163,7 @@ Private Sub AppRunNew()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     v = Split(mSync.AppRunNewIds(enSyncObjectKindShape), ",")
     mSync.Progress enSyncObjectKindShape, enSyncStepSyncing, enSyncActionAddNew, 0
     
@@ -206,7 +206,7 @@ Private Sub AppRunObsolete()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     v = Split(mSync.AppRunObsoleteIds(enSyncObjectKindShape), ",")
 '    sPrgrss = "Synchronizing Shapes > Obsolete " & String(UBound(v) + 1, ".")
 '    Services.DsplyStatus sPrgrss
@@ -417,11 +417,11 @@ Private Sub CopyShape(ByVal shp_source As Shape, _
 ' sheet at the same cell (row/column) as the source Shape. In case the copy had
 ' failed the returned Shape (shp_target) is Nothing!
 ' ------------------------------------------------------------------------------
-    Dim Rng As Range
+    Dim rng As Range
     
-    Set Rng = wsh_target.Cells(shp_source.TopLeftCell.row, shp_source.TopLeftCell.Column)
+    Set rng = wsh_target.Cells(shp_source.TopLeftCell.row, shp_source.TopLeftCell.Column)
     shp_source.Copy
-    wsh_target.Paste Rng
+    wsh_target.Paste rng
     Set shp_target = wsh_target.Shapes(wsh_target.Shapes.Count)
     With shp_target
         .Name = shp_source.Name

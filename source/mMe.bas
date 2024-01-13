@@ -732,7 +732,7 @@ Public Sub Renew___AddIn()
     mCompManClient.Events ErrSrc(PROC), False
     Set Services = New clsServices
     With Services
-        .Serviced = ThisWorkbook
+        .ServicedWbk = ThisWorkbook
         .EstablishExecTraceFile
     End With
     
@@ -781,7 +781,7 @@ Public Sub Renew___AddIn()
     
 xt: RenewFinalResult bSucceeded
     Application.ScreenUpdating = False
-    Services.Serviced.Activate
+    Services.ServicedWbk.Activate
     wsService.Activate
     wsConfig.CurrentStatus
     wsConfig.Activate

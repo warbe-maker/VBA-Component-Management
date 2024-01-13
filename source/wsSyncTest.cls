@@ -49,14 +49,14 @@ Private Property Get ItemRange(ByVal i_wbk As Workbook) As Range
     Const PROC = "ItemRange"
     
     On Error GoTo eh
-    Dim Rng As Range
+    Dim rng As Range
     Dim wsh As Worksheet
     
     Set wsh = i_wbk.Worksheets(SheetName)
-    Set Rng = wsh.Range(ItemAddress)
-    If Rng.row = 1 _
+    Set rng = wsh.Range(ItemAddress)
+    If rng.row = 1 _
     Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The setup range for a Test-Name must not be row 1 which is reserved as header!"
-    Set ItemRange = Rng
+    Set ItemRange = rng
 
 xt: Exit Property
 
@@ -146,7 +146,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -684,13 +684,13 @@ End Sub
 Private Sub Worksheet_Activate()
     Const PROC = "Worksheet_Activate"
     
-    Dim Rng As Range
+    Dim rng As Range
     
     mCompManClient.Events ErrSrc(PROC), False
-    Set Rng = Intersect(Me.Range("rwsTestData").EntireRow, Me.UsedRange, Me.Range("colsTestData").EntireColumn)
+    Set rng = Intersect(Me.Range("rwsTestData").EntireRow, Me.UsedRange, Me.Range("colsTestData").EntireColumn)
     On Error Resume Next
-    Rng.EntireRow.RowHeight = 11
-    Rng.Select
+    rng.EntireRow.RowHeight = 11
+    rng.Select
     mCompManClient.Events ErrSrc(PROC), True
 End Sub
 

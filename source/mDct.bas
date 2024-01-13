@@ -149,9 +149,9 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
         If bOrderByKey And Not add_staywithfirst Then
             If .Exists(add_key) Then
                 If IsObject(add_item) Then
-                    Set .Item(add_key) = add_item
+                    Set .item(add_key) = add_item
                 Else
-                    .Item(add_key) = add_item
+                    .item(add_key) = add_item
                 End If
                 GoTo xt
             End If
@@ -309,7 +309,7 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
         '~~ and the add_key already exists the add_item is updated
         If bOrderByKey And Not bStayWithFirst Then
             If .Exists(add_key) Then
-                If IsObject(add_item) Then Set .Item(add_key) = add_item Else .Item(add_key) = add_item
+                If IsObject(add_item) Then Set .item(add_key) = add_item Else .item(add_key) = add_item
                 GoTo xt
             End If
         End If
@@ -353,9 +353,9 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
     
     For Each vKeyExisting In add_dct
         
-        If IsObject(add_dct.Item(vKeyExisting)) _
-        Then Set vItemExisting = add_dct.Item(vKeyExisting) _
-        Else vItemExisting = add_dct.Item(vKeyExisting)
+        If IsObject(add_dct.item(vKeyExisting)) _
+        Then Set vItemExisting = add_dct.item(vKeyExisting) _
+        Else vItemExisting = add_dct.item(vKeyExisting)
         
         With dctTemp
             If bDone Then
@@ -441,7 +441,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -663,13 +663,13 @@ Private Function DctAddItemExists( _
     DctAddItemExists = False
     
     For Each v In dct
-        If VarType(dct.Item(v)) = vbObject Then
-            If dct.Item(v) Is dctitem Then
+        If VarType(dct.item(v)) = vbObject Then
+            If dct.item(v) Is dctitem Then
                 DctAddItemExists = True
                 Exit Function
             End If
         Else
-            If dct.Item(v) = dctitem Then
+            If dct.item(v) = dctitem Then
                 DctAddItemExists = True
                 Exit Function
             End If
@@ -718,7 +718,7 @@ Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
     '~~ Transfer based on sorted keys
     For i = LBound(arr) To UBound(arr)
         vKey = arr(i)
-        dct.Add Key:=vKey, Item:=s_dct.Item(vKey)
+        dct.Add Key:=vKey, item:=s_dct.item(vKey)
     Next i
     
 xt: Set s_dct = dct

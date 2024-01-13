@@ -107,6 +107,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
+Public Property Get NamesHousekeepingSection() As String: NamesHousekeepingSection = "@NamesHousekeeping":  End Property
+
 Private Sub HskpngValueNames()
 ' ----------------------------------------------------------------------------
 ' The service considers entries in the dctNames Dictionary of which the item
@@ -128,8 +130,12 @@ Private Sub HskpngValueNames()
     Dim sOld        As String
     Dim v           As Variant
     Dim vName       As Variant
+    Dim sValueNames As String
     
     mBasic.BoP ErrSrc(PROC)
+    
+    sValueNames = Join(dctNames.Items, ";")
+    If Value(NamesHousekeepingSection, "DoneNamesHskpng") = sValueNames Then GoTo xt
     
     For i = 0 To dctNames.Count - 1
         vName = Split(dctNames.Items(i), ":")
@@ -152,7 +158,8 @@ Private Sub HskpngValueNames()
             End If
         End If
     Next i
-
+    Value(NamesHousekeepingSection, "DoneNamesHskpng") = sValueNames
+    
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -170,8 +177,10 @@ Private Function ValueNameRemoveInAllSections(ByVal pp_name As String) As Boolea
 ' ----------------------------------------------------------------------------
 '
 ' ----------------------------------------------------------------------------
+    Const PROC = "ValueNameRemoveInAllSections"
     Dim v As Variant
     
+    mBasic.BoP ErrSrc(PROC)
     For Each v In ValueSections
         If mFso.PPremoveNames(pp_file:=sFileFullName _
                             , pp_section:=v _
@@ -179,6 +188,7 @@ Private Function ValueNameRemoveInAllSections(ByVal pp_name As String) As Boolea
             ValueNameRemoveInAllSections = True
         End If
     Next v
+    mBasic.EoP ErrSrc(PROC)
     
 End Function
 
@@ -187,13 +197,17 @@ Private Function ValueNameRenameInAllSections(ByVal v_old As String, _
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
+    Const PROC = "ValueNameRenameInAllSections"
+    
     Dim v As Variant
     
+    mBasic.BoP ErrSrc(PROC)
     For Each v In ValueSections
         If mFso.PPvalueNameRename(v_old, v_new, sFileFullName, v, False) Then
             ValueNameRenameInAllSections = True
         End If
     Next v
+    mBasic.EoP ErrSrc(PROC)
     
 End Function
 

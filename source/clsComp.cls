@@ -51,7 +51,7 @@ Option Explicit
 ' - ReplaceRawWithCloneWhenConfirmed
 '
 ' -----------------------------------------------------------------------------------
-Private bIsCommComp           As Boolean
+Private bIsCommComp         As Boolean
 Private dctChanges          As Dictionary   ' Dictionary of code changes
 Private flExpFile           As File
 Private lKindOfComp         As enKindOfComp
@@ -68,7 +68,11 @@ Private sService            As String       ' Name of the 'Service' folder, i.e.
 Private dctType             As Dictionary
 Private lMaxLenComp         As Long
 Private wsh                 As Worksheet
+
 Public Raw                  As clsRaw       ' The raw component's properties for a Used Common Component
+Public CodeExported         As New clsCodeOfSource
+Public CodeCurrent          As New clsCodeOfSource
+Public CodePublic           As New clsCodeOfSource
 
 Private Sub Class_Initialize()
     If dctType Is Nothing Then Set dctType = New Dictionary Else dctType.RemoveAll
@@ -87,45 +91,39 @@ Private Sub Class_Terminate()
     Set flExpFile = Nothing
     CleanUpTemps
     Set Raw = Nothing
-    
+    Set CodeCurrent = Nothing
+    Set CodeExported = Nothing
+    Set CodePublic = Nothing
 End Sub
 
-Friend Property Get Changed() As Boolean
+Public Function Changed() As Boolean
 ' ------------------------------------------------------------------------------
-' Returns TRUE when the Component's Export-File dose not exist or a temporary
-' Export-File differs from the existing one.
+' Returns TRUE when the Component's Export-File does not exist or or the
+' Export-File's code differs from the current code of the component.
 ' ------------------------------------------------------------------------------
     Const PROC = "Changed"
     
     On Error GoTo eh
-    '~~ Any component is regarded changed when a temporary Export-File differs from the regular one
-    Me.VBComp.Export Me.ExpFileTempFullName
-    mBasic.TimedDoEvents ErrSrc(PROC)
+    Select Case True
+        Case Not CodeCurrent.IsNone And CodeExported.IsNone
+            Changed = True
+        Case Not CodeCurrent.IsNone And Not CodeExported.IsNone
+            Changed = CodeCurrent.DiffersFrom(CodeExported, False)
+        Case Not CodeCurrent.IsNone And CodeExported.IsNone
+            Changed = True
+        Case CodeCurrent.IsNone And Not CodeExported.IsNone
+            '~~ This should be covered elsewhere. Die Export-File has become obsolete eand should be removed
+        Case CodeCurrent.IsNone And CodeExported.IsNone
+            '~~ That is fine (will be ignored)
+    End Select
     
-    '~~ Any component its Export-File not exists is regarded changed
-    '~~ In fact it is either new or the Export-Folder location had changed
-    If Not fso.FileExists(Me.ExpFileFullName) Then
-        Changed = True
-        GoTo xt
-    End If
-    
-    '~~ Any component is regarded changed when the collection of changed lines (dctChanges)
-    '~~ not is nothing and the number of collected lines is <> 0
-    If dctChanges Is Nothing Then
-        '~~ The difference between the regular and the temporary export file
-        '~~ is only provided once
-        Set dctChanges = mCompMan.Services.FilesDifference(f_file_1:=fso.GetFile(Me.ExpFileTempFullName) _
-                                                         , f_file_2:=fso.GetFile(Me.ExpFileFullName))
-    End If
-    Changed = dctChanges.Count <> 0
-    
-xt: Exit Property
+xt: Exit Function
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Property
+End Function
 
 Friend Property Get CodeLines() As Dictionary
 ' ---------------------------------------------------------------------------
@@ -181,38 +179,35 @@ Friend Property Let CompName(ByVal s As String)
     Const PROC = "CompName-Let"
     
     On Error GoTo eh
-    Dim sModByWbkName       As String
-    Dim sRawExpFileFullName As String
-    Dim fRawExpFile         As File
-    Dim sLastModRevNo       As String
-    
     If s = vbNullString Then Stop
+    If wbk Is Nothing _
+    Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Component Name assigned for a yet unknown Workbook!"
+    If Not Exists(wbk, s, vbc) _
+    Then Err.Raise AppErr(2), ErrSrc(PROC), "A components named " & s & " does not exist in the Workbook " & wbk.Name & " !."
+    
     sCompName = s
-     If Not wbk Is Nothing Then
-        If Exists(wbk, vbc) Then
-            Select Case vbc.Type
-                Case vbext_ct_StdModule:    sExpFileExt = ".bas"
-                Case vbext_ct_ClassModule:  sExpFileExt = ".cls"
-                Case vbext_ct_MSForm:       sExpFileExt = ".frm"
-                Case vbext_ct_Document:     sExpFileExt = ".cls"
-            End Select
-            sExpFileFullName = mExport.ExpFileFolderPath(wbk) & "\" & vbc.Name & sExpFileExt
-        End If
-        If Not CommComps Is Nothing Then
-            If CommComps.Exists(vbc, sExpFileExt, sModByWbkName, sRawExpFileFullName, fRawExpFile, sLastModRevNo) Then
-                Me.IsCommComp = True
-                Set Raw = New clsRaw
-                With Raw
-                    .CompName = vbc.Name
-                    .LastModExpFile = fRawExpFile
-                    .LastModByWbkName = sModByWbkName
-                    .LastModifiedAtDatTime = sLastModRevNo
-                End With
-            End If
-        End If
-    Else
-        Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Component Name assigned for a yet unknown Workbook!"
+    CommComps.CompName = s
+    If vbc Is Nothing Then Set vbc = wbk.VBProject.VBComponents(s)
+    Select Case vbc.Type
+        Case vbext_ct_StdModule:    sExpFileExt = ".bas"
+        Case vbext_ct_ClassModule:  sExpFileExt = ".cls"
+        Case vbext_ct_MSForm:       sExpFileExt = ".frm"
+        Case vbext_ct_Document:     sExpFileExt = ".cls"
+    End Select
+    sExpFileFullName = mExport.ExpFileFolderPath(wbk) & "\" & vbc.Name & sExpFileExt
+    
+    If CommComps.ExistsPublic(sCompName) _
+    Or CommComps.ExistsPending(sCompName) Then
+        '~~ The component is known/existing public or - in case of a new hosted component -
+        '~~ has already been registered as a pending release component
+        IsCommComp = True
+        Set Raw = New clsRaw
+        Raw.CompName = vbc.Name
+        CodePublic.Source = CommComps.CurrentPublicExpFileFullName
     End If
+'    If sCompName = "wbCompMan" Then Stop
+    CodeCurrent.Source = vbc.CodeModule
+    CodeExported.Source = sExpFileFullName
     
 xt: Exit Property
 
@@ -237,11 +232,8 @@ Friend Property Get ExpFile() As File
             If fso.FileExists(.ExpFileFullName) Then
                 Set flExpFile = fso.GetFile(.ExpFileFullName)
             Else
-                '~~ The component apparently has yet no never been exported
-                If Not Me.VBComp Is Nothing Then
-                    Me.VBComp.Export .ExpFileFullName
-                    Set flExpFile = fso.GetFile(.ExpFileFullName)
-                End If
+                '~~ When the component has yet no never been exported
+                '~~ it will be along with the Export changed service
             End If
         End If
     End With
@@ -255,28 +247,10 @@ Friend Property Let ExpFile(ByVal fl As File):      Set flExpFile = fl:         
 Friend Property Get ExpFileExt() As String:         ExpFileExt = sExpFileExt:   End Property
 
 Friend Property Get ExpFileFullName() As String
-' ------------------------------------------------------------------------------
-' Will already have been prepared along with 'Property Let CompName'. However,
-' when the file does not exist it is created by the Export service.
-' ------------------------------------------------------------------------------
     If sExpFileFullName = vbNullString Then
         sExpFileFullName = mExport.ExpFileFolderPath(Me.Wrkbk) & "\" & sCompName & Me.ExpFileExt
     End If
     ExpFileFullName = sExpFileFullName
-    With New FileSystemObject
-        If Not .FileExists(sExpFileFullName) Then
-            Me.VBComp.Export sExpFileFullName
-        End If
-    End With
-End Property
-
-Friend Property Get ExpFilesDiffer() As Boolean
-' ------------------------------------------------------------------------------
-' Returns TRUE when the Export File of this Used Common Component differs from
-' the Export File of the corresponding Raw Common Component.
-' ------------------------------------------------------------------------------
-    ExpFilesDiffer = mCompMan.Services.FilesDiffer(f_file_1:=Raw.LastModExpFile _
-                                                 , f_file_2:=Me.ExpFile)
 End Property
 
 Friend Property Get ExpFileTemp() As File
@@ -286,15 +260,6 @@ Friend Property Get ExpFileTemp() As File
         End If
         Set ExpFileTemp = .GetFile(Me.ExpFileTempFullName)
     End With
-End Property
-
-Friend Property Get ExpFileTempAndRawExpFileDiffers() As Boolean
-' ------------------------------------------------------------------------------
-' Returns TRUE when the temporary Export File of this Used Common Component
-' differs from the Export File of the corresponding Raw Common Component.
-' ------------------------------------------------------------------------------
-    ExpFileTempAndRawExpFileDiffers = mCompMan.Services.FilesDiffer(f_file_1:=Raw.LastModExpFile _
-                                                                  , f_file_2:=Me.ExpFileTemp)
 End Property
 
 Friend Property Get ExpFileTempFullName() As String
@@ -329,16 +294,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-'Friend Property Get ExpFileTempsDiffer() As Boolean
-'' ------------------------------------------------------------------------------
-'' Returns TRUE when the temporary Export File of this component differs from
-'' the temporary Export File of the Raw. This comparison is only possible when
-'' the Raw's host Workbook is accidentially open.
-'' ------------------------------------------------------------------------------
-'    ExpFileTempsDiffer = mCompMan.Services.FilesDiffer(f_file_1:=Raw.ExpFileTemp _
-'                                            , f_file_2:=Me.ExpFileTemp)
-'End Property
-
 Friend Property Get IsCommComp() As Boolean:        IsCommComp = bIsCommComp:   End Property
 
 Friend Property Let IsCommComp(ByVal b As Boolean): bIsCommComp = b:            End Property
@@ -371,10 +326,10 @@ Friend Property Get KindOfComp() As enKindOfComp
                    "The kind of component cannot be returned since the VB-Component is yet unknown!"
                    
     If lKindOfComp = mCompMan.enUnknown Then
-        If CommComps.Exists(Me.VBComp, Me.ExpFileExt) Then
-            '~~ The component is registered in the ComComps.dat and thus is known as a Common Component,
-            '~~ i.e. one of which an Export-File exists in the Common-Components folder.
-            If CompManDat.RegistrationState(sCompName) = enRegStateHosted Then
+        If CommComps.ExistsPublic(sCompName) Then
+            '~~ The component is known as a public Common Component.
+            '~~ I.e. the component's Export-File exists in the Common-Components folder.
+            If CompManDat.RegistrationState(Me.CompName) = enRegStateHosted Then
                 '~~ The Common Component is currently registered as beeing hosted in the service Workbook
                 lKindOfComp = mCompMan.enCommCompHosted
             Else
@@ -407,147 +362,86 @@ Friend Property Get MaxLenComp() As Long:                   MaxLenComp = lMaxLen
 
 Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
 ' ------------------------------------------------------------------------------
-' Returns True when the current component is a Used Common Component of which
-' the corresponding Raw Common Component's code has changed.
+' This is a property exclusively for a used or hosted Common Component.
+' It returns True when the component's public/raw Common Component in the
+' Common-Components folder differs and the component's Last-Modified-Date is
+' less then the Last-Modified-Date of the public/raw Common Component in the
+' Common-Components folder.
+' Note: In case the component is not outdated but just the opposite, i.e. the
+'       component differs but has a more recent Last-Modified-Date the component
+'       is a Release candidate and collected as such
 ' ------------------------------------------------------------------------------
-    Const PROC = "Outdated"
-    Const BTTN_RESET_REV_NO As String = "Reset the Revision Number" & vbLf & "of the used Common Component"
+    Const PROC                  As String = "Outdated"
+    Const BTTN_ADJUST_IT        As String = "Adjust it"
+    Const BTTN_IGNORE_IT        As String = "Ignore it"
     
     On Error GoTo eh
-    Dim sRevNoCommCompFolder    As String
-    Dim bExpFilesDiffer         As Boolean
-    Dim sRegStat                As String
-    Dim i                       As Long
+    Dim sCommCompLastModDateTime    As String
+    Dim bCodeDiffers                   As Boolean
+    Dim sRegStat                    As String
+    Dim i                           As Long
     
     mBasic.BoP ErrSrc(PROC)
-    With Me
-        sRevNoCommCompFolder = CommComps.LastModifiedAtDatTime(.CompName)
-        bExpFilesDiffer = Services.FilesDiffer(f_file_1:=.ExpFile _
-                                             , f_file_2:=CommComps.LastModExpFile(.CompName) _
-                                             , f_ignore_export_header:=True)
-        
-        mCompMan.MsgInit
-        i = 0
-        i = i + 1
-        With Msg.Section(i)
-            .Label.Text = "Attention!"
-            .Label.FontColor = rgbRed
-            .Label.FontBold = True
-        End With
-        
-        Select Case True
-            Case .LastModifiedAtDatTime <> vbNullString And .LastModifiedAtDatTime < sRevNoCommCompFolder
-                '~~ The used Common Component has a last-mod-dat-time less than the Common Component in the Common Components folder
-                If bExpFilesDiffer Then
-                    Outdated = True
-                Else
-                    '~~ The export files are equal although the last-mod-dat-time differs !
-                    i = i + 1
-                    Msg.Section(i).Text.Text = _
-                        "While the Export-File of the used Common Component   " & _
-                        mBasic.Spaced(Me.CompName) & "   is identical with the " & _
-                        "Export File in the Common-Components folder the Revision " & _
-                        "numbers differ! This is a severe logic error which " & _
-                        "requires further investigation regarding the cause " & _
-                        "(code inspection and testing)."
-                    CommCompFacts i, .LastModifiedAtDatTime, sRevNoCommCompFolder
-                    mMsg.Dsply dsply_title:="Severe inconsistent Common-Component facts!" _
-                             , dsply_msg:=Msg _
-                             , dsply_label_spec:="R130" _
-                             , dsply_width_min:=30 _
-                             , dsply_buttons:=vbOKOnly
-                    GoTo xt
-                End If
-            
-            Case .LastModifiedAtDatTime = sRevNoCommCompFolder
-                If bExpFilesDiffer Then
-                    '~~ The used Common Component has a last-mod-dat-time equal with the Common Component in the Common Components folder
-                    '~~ but the export files differ. This is regarded a severe logic error!
-                    i = i + 1
-                    Msg.Section(i).Text.Text = _
-                        "While the Export-File of the of the " & CompManDat.RegStateString(Me.CompName) & _
-                        "Common Component   " & mBasic.Spaced(Me.CompName) & "   differs from the " & _
-                        "Export File in the Common-Components folder, the Revision numbers are equal." & vbLf & _
-                        "This is a severe logic error which requires further investigation regarding " & _
-                        "the cause (code inspection and testing)." & vbLf & _
-                        "See facts below."
-                    CommCompFacts i, .LastModifiedAtDatTime, sRevNoCommCompFolder
-                    Do
-                        Select Case mMsg.Dsply(dsply_title:="Severe inconsistent Common-Component facts!" _
-                                             , dsply_msg:=Msg _
-                                             , dsply_label_spec:="R130" _
-                                             , dsply_width_min:=30 _
-                                             , dsply_buttons:=mMsg.Buttons(BTTN_DSPLY_DIFF, vbLf, vbOKOnly))
-                            Case vbOK: GoTo xt
-                            Case BTTN_DSPLY_DIFF
-                                 Services.ExpFilesDiffDisplay e_file_left_full_name:=Me.ExpFileFullName _
-                                , e_file_left_title:="Export File of the Used Common Component  " & mBasic.Spaced(Me.CompName) & "  (" & Me.ExpFileFullName & ")" _
-                                , e_file_right_full_name:=CommComps.LastModExpFileFullName(Me.CompName) _
-                                , e_file_right_title:="Export File of the Common Component  " & mBasic.Spaced(Me.CompName) & _
-                                                      "  in the Common Components folder (" & CommComps.LastModExpFileFullName(Me.CompName) & ")"
-                        End Select
-                    Loop
-                End If
-            Case .LastModifiedAtDatTime > sRevNoCommCompFolder
-                '~~ The Common-Components folder appears to be outdated
-                If bExpFilesDiffer Then
-                    With Msg
-                        i = i + 1
-                        .Section(i).Text.Text = _
-                            "The 'Revision Number' of the " & CompManDat.RegStateString(Me.CompName) & _
-                            " Common Component   " & mBasic.Spaced(Me.CompName) & "   is greater than " & _
-                            "the 'Revision Number' of the Common Component in the Common-Components folder " & _
-                            "and the Export-Files differ." & vbLf & _
-                            "The content of the Common-Components folder may be outdated!!!" & vbLf & _
-                            "The fact that the Export-Files differ will be ignored but this requires " & _
-                            "further investigation in order to identify the cause." & vbLf & _
-                            "See facts below."
-                        i = i + 1
-                        .Section(i).Text.Text = _
-                            "Any check for outdated Common Components will be discontinued!"
-                        o_discontinue = False
-                    End With
-                    CommCompFacts i, .LastModifiedAtDatTime, sRevNoCommCompFolder
+    CommComps.CompName = sCompName
+    sCommCompLastModDateTime = CommComps.LastModAtDateTime(sCompName)
+    CodePublic.Source = CommComps.CurrentPublicExpFileFullName
+    CodeCurrent.Source = Me.ExpFileFullName
     
-                    Do
-                        Select Case mMsg.Dsply(dsply_title:="The Common-Components folder may be outdated!" _
-                                             , dsply_msg:=Msg _
-                                             , dsply_label_spec:="R100" _
-                                             , dsply_width_min:=30 _
-                                             , dsply_buttons:=mMsg.Buttons(BTTN_DSPLY_DIFF, vbLf, vbOKOnly))
-                            Case BTTN_DSPLY_DIFF
-                                 Services.ExpFilesDiffDisplay e_file_left_full_name:=Me.ExpFileFullName _
-                                , e_file_left_title:="Export File of the Used Common Component  " & mBasic.Spaced(Me.CompName) & "  (" & Me.ExpFileFullName & ")" _
-                                , e_file_right_full_name:=CommComps.LastModExpFileFullName(Me.CompName) _
-                                , e_file_right_title:="Export File of the Common Component  " & mBasic.Spaced(Me.CompName) & _
-                                                      "  in the Common Components folder (" & CommComps.LastModExpFileFullName(Me.CompName) & ")"
-                            Case vbOK: GoTo xt
-                        End Select
-                    Loop
-            Else
-                '~~ When the Export-Files are equal it will not do any harm when the
-                '~~ Revision-Number of the used Common Component is re-set to the
-                '~~ Revision-Numer of the Common Component in the Common Components folder.
-                .LastModifiedAtDatTime = sRevNoCommCompFolder
-                With Services
-                    .ServicedItem = Me.VBComp
-                    .ServicedItemLogEntry "The Revision-Number has been re-set to " & sRevNoCommCompFolder
-                End With
-                GoTo xt
-            End If
-            
-        End Select
-        
-        If Not Outdated Then
-            If .LastModifiedAtDatTime <> sRevNoCommCompFolder Then
-                .LastModifiedAtDatTime = sRevNoCommCompFolder
-            End If
-            With Services
-                .ServicedItem = Me.VBComp
-                .ServicedItemLogEntry "Component is up-to-date! Revision-Number has been set to to " & sRevNoCommCompFolder & " (the raw's in the Common Components Folder)"
-            End With
+    '~~ Note: Outdated is only considered when a public code exists
+    '~~       and this component's code differs from the current public code
+    If Not CodePublic.IsNone Then
+        bCodeDiffers = Me.CodeCurrent.DiffersFrom(CodePublic, True)
+    End If
+    
+    mCompMan.MsgInit
+    Select Case True
+        Case bCodeDiffers And LastModAtDateTime = sCommCompLastModDateTime
+            '~~ The Common Component in the Common-Components folder and the used/hosted Common Component
+            '~~ do have equal last modified information although the code differs.
+            '~~ This is regarded a severe logic error!
+            i = i + 1
+            Msg.Section(i).Text.Text = _
+                "While the Export-File of the of the " & CompManDat.RegStateString(Me.CompName) & _
+                "Common Component   " & mBasic.Spaced(Me.CompName) & "   differs from the " & _
+                "Export File in the Common-Components folder, the Revision numbers are equal." & vbLf & _
+                "This is a severe logic error which requires further investigation regarding " & _
+                "the cause (code inspection and testing)." & vbLf & _
+                "See facts below."
+            CommCompFacts i, LastModAtDateTime, sCommCompLastModDateTime
+            Do
+                Select Case mMsg.Dsply(dsply_title:="Severe inconsistent Common-Component facts!" _
+                                     , dsply_msg:=Msg _
+                                     , dsply_Label_spec:="R130" _
+                                     , dsply_width_min:=30 _
+                                     , dsply_buttons:=mMsg.Buttons(BTTN_DSPLY_DIFF, vbLf, vbOKOnly))
+                    Case vbOK: GoTo xt
+                    Case BTTN_DSPLY_DIFF
+                         CodeCurrent.DiffFromDsply d_this_file_name:="CurrentCode" _
+                                                 , d_this_file_title:="The Common Component's current code" _
+                                                 , d_from_code:=CodePublic _
+                                                 , d_from_file_name:="CurrentPublic" _
+                                                 , d_from_file_title:="The Common Component's current public code"
+                End Select
+            Loop
+        Case bCodeDiffers And LastModAtDateTime < sCommCompLastModDateTime
+            Outdated = True
+        Case LastModAtDateTime > sCommCompLastModDateTime
+            '~~ When the used/hosted Common Component's last modified date-time is after the last modified date-time
+            '~~ of the public/raw Common Component this is regarded a pending Release of a code modification,
+            '~~ provided there isn't one registered with a modification in another Workbook.
+            CommComps.PendingReleaseManagement Me
+            GoTo xt
+    End Select
+    
+    If Not Outdated Then
+        If LastModAtDateTime <> sCommCompLastModDateTime Then
+            LastModAtDateTime = sCommCompLastModDateTime
         End If
-    End With
+        With Services
+            .ServicedItem = Me.VBComp
+            .ServicedItemLogEntry "Component is up-to-date! Revision-Number has been set to to " & sCommCompLastModDateTime & " (the raw's in the Common Components Folder)"
+        End With
+    End If
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Property
@@ -559,9 +453,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Property
 
                           
-Friend Property Get LastModifiedAtDatTime() As String:             LastModifiedAtDatTime = CompManDat.LastModifiedAtDatTime(sCompName): End Property
+Friend Property Get LastModAtDateTime() As String:             LastModAtDateTime = CompManDat.LastModAtDateTime(sCompName): End Property
 
-Friend Property Let LastModifiedAtDatTime(ByVal s As String):      CompManDat.LastModifiedAtDatTime(sCompName) = s:              End Property
+Friend Property Let LastModAtDateTime(ByVal s As String):      CompManDat.LastModAtDateTime(sCompName) = s:              End Property
 
 Friend Property Get Service() As String
     If sService = vbNullString Then
@@ -591,7 +485,7 @@ Friend Property Let VBComp(ByRef vb_comp As VBComponent)
     Set vbc = vb_comp
     If sCompName = vbNullString Then
         '~~ When the component's name has yet not been set
-        Me.CompName = vb_comp.Name
+        CompName = vb_comp.Name
     End If
 End Property
 
@@ -678,11 +572,11 @@ Private Sub CommCompFacts(ByVal c_sect As Long, _
             .Label.FontColor = rgbBlack
             .Label.FontBold = True
             .Label.MonoSpaced = True
-            .Text.Text = "Revision Number of the Common Component in the Common Components folder."
+            .Text.Text = "Revision Number of the Common Component in the Common-Components folder."
         End With
         c_sect = c_sect + 1
         With .Section(c_sect)
-            .Label.Text = CommComps.LastModWbkName(Me.CompName) & " ="
+            .Label.Text = CommComps.LastModInWbkName(sCompName) & " ="
             .Label.FontColor = rgbBlack
             .Label.FontBold = True
             .Label.MonoSpaced = True
@@ -697,21 +591,14 @@ Private Function ErrSrc(ByVal sProc As String) As String
 End Function
 
 Private Function Exists(ByVal x_wbk As Workbook, _
-              Optional ByRef x_vbc As VBComponent) As Boolean
-    Dim v As VBComponent
-    If Not x_wbk Is Nothing Then
-        On Error Resume Next
-        Set v = x_wbk.VBProject.VBComponents(sCompName)
-        Exists = Not v Is Nothing
-    ElseIf vbc Is Nothing Then
-        On Error Resume Next
-        Set vbc = wbk.VBProject.VBComponents(sCompName)
-        Exists = Not vbc Is Nothing
-    Else
-        Exists = Not vbc Is Nothing
-    End If
-    If Exists Then Set x_vbc = wbk.VBProject.VBComponents(sCompName)
-    
+                        ByVal x_comp_name As String, _
+               Optional ByRef x_vbc As VBComponent) As Boolean
+' ------------------------------------------------------------------------------
+' The function returns TRUE and the corresponding VBComponent (x_vbc) when a
+' named component (x_comp_name) exists in the Workbook (x_wbk).
+' ------------------------------------------------------------------------------
+    Exists = Not IsError(x_wbk.VBProject.VBComponents(x_comp_name))
+    If Exists Then Set x_vbc = x_wbk.VBProject.VBComponents(x_comp_name)
 End Function
 
 Public Sub Export()
@@ -726,22 +613,14 @@ Public Sub Export()
     Const PROC = "Export"
     
     On Error GoTo eh
-    Dim sLastModifiedDateTime As String
     
-    With Me
-        .VBComp.Export .ExpFileFullName   ' 1. The 'system' export
-        Select Case .KindOfComp
-            Case enCommCompHosted, enCommCompUsed
-                '~~ The last Workbook in which a Common Component is modified becomes
-                '~~ the current "Raw host" regardless of which Workbook claims hosting it.
-                CommComps.SaveToCommonComponentsFolder .CompName, .ExpFile
-                CommComps.LastModExpFileFullNameOrigin(.CompName) = .ExpFileFullName
-                CommComps.LastModWbk(.CompName) = .Wrkbk
-                sLastModifiedDateTime = CompMan.UTC
-                CommComps.LastModifiedAtDatTime(.CompName) = sLastModifiedDateTime
-                CompManDat.LastModifiedAtDatTime(.CompName) = sLastModifiedDateTime
-        End Select
-    End With
+    VBComp.Export ExpFileFullName   ' 1. The 'system' export
+    
+    If KindOfComp = enCommCompHosted _
+    Or KindOfComp = enCommCompUsed Then
+        LastModAtDateTime = mCompMan.UTC
+        CommComps.PendingReleaseManagement Me
+    End If
 
 xt: Exit Sub
 

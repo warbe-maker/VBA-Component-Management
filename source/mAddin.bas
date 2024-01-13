@@ -122,7 +122,7 @@ Public Sub ReferencesRemove(Optional ByRef rr_dct As Dictionary, _
         Set dct = mWbk.Opened ' Returns a Dictionary with all open Workbooks in any application instance
         Set rr_dct = New Dictionary
         For Each v In dct
-            Set wbk = dct.Item(v)
+            Set wbk = dct.item(v)
             For Each ref In wbk.VBProject.References
                 If InStr(ref.Name, fso.GetBaseName(mAddin.WbkName)) <> 0 Then
                     rr_dct.Add wbk, ref
@@ -186,4 +186,3 @@ End Function
 Public Function WbkRemove(ByVal wr_wbk_full_name As String) As Boolean
     If fso.FileExists(wr_wbk_full_name) Then fso.DeleteFile wr_wbk_full_name
 End Function
-

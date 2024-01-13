@@ -89,7 +89,7 @@ Private Sub OutdatedUpdate2Choice()
     Qoutdated.First Comp ' Get the next outdated component from the queue
     
     With Comp
-        sModWbkName = CommComps.LastModWbkName(.CompName)
+        sModWbkName = CommComps.LastModInWbkName(.CompName)
         Select Case .KindOfComp
             Case enCommCompHosted
                 UpdateTitle = "Hosted Common Component apparently modified within a Worbook using it!"
@@ -217,8 +217,9 @@ Private Sub OutdatedUpdate2Choice2DsplyDiffs()
     
     mBasic.BoP ErrSrc(PROC)
     Qoutdated.First Comp
-    With Comp
-        Services.ExpFilesDiffDisplay .ExpFileFullName, CommComps.LastModExpFile(.CompName), "Currently used (" & .ExpFileFullName & ")", "Up-to-date (" & CommComps.LastModExpFile(.CompName).Path & ")"
+    With CommComps
+        .CompName = Comp.CompName
+        .DsplyDiffsOfTheCurrentModificationsVersusTheCurrentPubliicCode Comp
     End With
     Set Comp = Nothing
     
@@ -243,7 +244,7 @@ Private Sub OutdatedUpdate2Choice4SkipForever(ByVal u_comp_name)
     mBasic.BoP ErrSrc(PROC)
     CompManDat.RegistrationState(u_comp_name) = enRegStatePrivate
     Qoutdated.DeQueue
-    Set wbk = Services.Serviced
+    Set wbk = Services.ServicedWbk
     With New clsComp
         .Wrkbk = wbk
         .CompName = u_comp_name
@@ -251,7 +252,7 @@ Private Sub OutdatedUpdate2Choice4SkipForever(ByVal u_comp_name)
     End With
     
     With Services
-        .NoOfItemsIgnored = .NoOfItemsIgnored + 1
+        .NoOfItemsSkipped = .NoOfItemsSkipped + 1
         .ServicedItemLogEntry "Outdated used Commpon Component: Update skipped forever!"
     End With
     
@@ -277,7 +278,7 @@ Private Sub OutdatedUpdate2Choice3SkipForNow(ByVal u_comp_name As String)
     
     mBasic.BoP ErrSrc(PROC)
     Qoutdated.DeQueue
-    Set wbk = Services.Serviced
+    Set wbk = Services.ServicedWbk
     With New clsComp
         .Wrkbk = wbk
         .CompName = u_comp_name
@@ -285,7 +286,7 @@ Private Sub OutdatedUpdate2Choice3SkipForNow(ByVal u_comp_name As String)
     End With
     
     With Services
-        .NoOfItemsIgnored = .NoOfItemsIgnored + 1
+        .NoOfItemsSkipped = .NoOfItemsSkipped + 1
         .ServicedItemLogEntry "Outdated used Commpon Component: Update skipped for now!"
     End With
     
@@ -314,14 +315,15 @@ Private Sub OutdatedUpdate2Choice1Update(ByVal u_comp_name As String)
     
     mBasic.BoP ErrSrc(PROC)
     Qoutdated.First Comp
-    Set wbk = Services.Serviced
+    Set wbk = Services.ServicedWbk
     Set Comp = New clsComp
     With Comp
         .Wrkbk = wbk
         .CompName = u_comp_name
+        CommComps.CompName = u_comp_name
         Services.ServicedItem = .VBComp
         v = .KindOfComp
-        sFile = CommComps.LastModExpFileFullName(.CompName)
+        sFile = CommComps.LastModExpFileFullName
         mUpdate.ByReImport b_wbk_target:=wbk _
                          , b_vbc_name:=u_comp_name _
                          , b_exp_file:=sFile
@@ -334,12 +336,12 @@ Private Sub OutdatedUpdate2Choice1Update(ByVal u_comp_name As String)
     
         Select Case .KindOfComp
             Case enCommCompHosted
-                Services.ServicedItemLogEntry "Outdated hosted Common Component - last modified in   " & mBasic.Spaced(CommComps.LastModWbkName) & "   - updated by re-import of the Export-File in the Common-Components folder"
+                Services.ServicedItemLogEntry "Outdated hosted Common Component - last modified in   " & mBasic.Spaced(CommComps.LastModInWbkName) & "   - updated by re-import of the Export-File in the Common-Components folder"
                 '~~ When a hosted Common Component is updated it "again" becomes the raw host!"
-                CommComps.LastModWbk(.CompName) = .Wrkbk
-                CommComps.LastModExpFileFullNameOrigin(.CompName) = .ExpFileFullName
+                CommComps.LastModInWbk = .Wrkbk
+                CommComps.LastModExpFileFullNameOrigin = .ExpFileFullName
             Case enCommCompUsed
-                Services.ServicedItemLogEntry "Outdated used Common Component - last modified in   " & mBasic.Spaced(CommComps.LastModWbkName) & "   - updated by re-import of the Export-File in the Common-Components folder"
+                Services.ServicedItemLogEntry "Outdated used Common Component - last modified in   " & mBasic.Spaced(CommComps.LastModInWbkName) & "   - updated by re-import of the Export-File in the Common-Components folder"
         End Select
     
     End With
@@ -373,13 +375,14 @@ Private Sub OutdatedUpdate1Collect()
     Dim bOutdated       As Boolean
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbk = Services.Serviced
+    Set wbk = Services.ServicedWbk
     Set Qoutdated = New clsQ
     Set dct = Comps.All ' all = all relevant for the current service
     
     For Each v In dct
         Set Comp = dct(v)
         With Comp
+            CommComps.CompName = .CompName
             Services.ServicedItem = .VBComp
             If (.KindOfComp = enCommCompHosted Or .KindOfComp = enCommCompUsed) Then
                 bOutdated = .Outdated(bDiscontinue)
@@ -395,12 +398,11 @@ Private Sub OutdatedUpdate1Collect()
                         .NoOfItemsOutdated = Qoutdated.Size
                     End With
                 Else
-                    '~~ When not outdated due to a code difference the revision numbers ought to be equal
-                    If .LastModifiedAtDatTime <> CommComps.LastModifiedAtDatTime(.CompName) Then
-                        .LastModifiedAtDatTime = CommComps.LastModifiedAtDatTime(.CompName)
+                    If .LastModAtDateTime < CommComps.LastModAtDateTime Then
+                        .LastModAtDateTime = CommComps.LastModAtDateTime
                     End If
                     With Services
-                        .NoOfItemsIgnored = .NoOfItemsIgnored + 1
+                        .NoOfItemsSkipped = .NoOfItemsSkipped + 1
                         .ServicedItemLogEntry "Used Common Component is up-to-date"
                     End With
                 End If ' .Outdated
@@ -412,6 +414,7 @@ Private Sub OutdatedUpdate1Collect()
         Services.Progress "Common Components outdated"
     Next v
     Services.Progress "Common Components outdated"
+    mCompManMenu.Setup
     
 xt: If wsService.CommonComponentsUsed = 0 Then wsService.CommonComponentsUsed = Services.NoOfCommonComponents
     If wsService.CommonComponentsOutdated = 0 Then wsService.CommonComponentsOutdated = Qoutdated.Size

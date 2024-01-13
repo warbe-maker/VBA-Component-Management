@@ -107,7 +107,7 @@ Public Enum enSyncOption
     SyncByKind
 End Enum
 
-Public Property Get source() As Workbook
+Public Property Get Source() As Workbook
     Dim s As String
     
     On Error Resume Next
@@ -115,11 +115,11 @@ Public Property Get source() As Workbook
     If Err.Number <> 0 Then
         Set wbkSyncSource = mWbk.GetOpen(wsService.SyncSourceFullName)
     End If
-    Set source = wbkSyncSource
+    Set Source = wbkSyncSource
 
 End Property
 
-Public Property Let source(ByVal wbk As Workbook)
+Public Property Let Source(ByVal wbk As Workbook)
     Set wbkSyncSource = wbk
     wsService.SyncSourceFullName = wbk.FullName
 End Property
@@ -133,7 +133,7 @@ Public Property Get Target() As Workbook
         Set wbkSyncTarget = mWbk.GetOpen(wsService.CurrentServicedWorkbookFullName)
     End If
     Set Target = wbkSyncTarget
-    Services.Serviced = wbkSyncTarget
+    Services.ServicedWbk = wbkSyncTarget
     
 End Property
 
@@ -149,7 +149,7 @@ Public Property Get TargetWorkingCopy() As Workbook
         Set wbkSyncTargetWorkingCopy = mWbk.GetOpen(wsService.SyncTargetFullNameCopy)
     End If
     Set TargetWorkingCopy = wbkSyncTargetWorkingCopy
-    Services.Serviced = wbkSyncTargetWorkingCopy
+    Services.ServicedWbk = wbkSyncTargetWorkingCopy
     
 End Property
 
@@ -244,9 +244,9 @@ Private Sub AppRunSyncAll()
     Dim wbkTarget   As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     Set wbkTarget = mSync.TargetWorkingCopy
-    Services.Serviced = wbkTarget
+    Services.ServicedWbk = wbkTarget
     Services.MessageUnload TITLE_SYNC_ALL ' allow watching the sync log
     
     If DueSyncKindOfObjects.IsQueued(enSyncObjectKindReference) Then
@@ -646,7 +646,7 @@ Private Sub Finalize()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     
     Set MsgButtons = mMsg.Buttons(BTTN_FINALIZE, vbLf, BTTN_ABORT)
     With MsgText
@@ -787,7 +787,7 @@ Public Sub MonitorStep(ByVal ms_text As String)
     ActiveWindow.WindowState = xlMaximized
     mCompManClient.Progress p_service_name:=mCompManClient.SRVC_SYNCHRONIZE _
                           , p_by_servicing_wbk_name:=ThisWorkbook.Name _
-                          , p_serviced_wbk_name:=Services.Serviced.Name _
+                          , p_serviced_wbk_name:=Services.ServicedWbk.Name _
                           , p_service_info:=ms_text
     
 End Sub
@@ -1179,15 +1179,15 @@ Private Function ProgressOf(ByVal p_kind As enSyncKindOfObject, _
     Select Case p_sync_step
         Case enSyncStepCollecting
             Select Case p_kind
-                Case enSyncObjectKindName:          lOfSource = mSync.source.Names.Count
+                Case enSyncObjectKindName:          lOfSource = mSync.Source.Names.Count
                                                     lOfTarget = mSync.TargetWorkingCopy.Names.Count
-                Case enSyncObjectKindWorksheet:     lOfSource = mSync.source.Worksheets.Count
+                Case enSyncObjectKindWorksheet:     lOfSource = mSync.Source.Worksheets.Count
                                                     lOfTarget = mSync.TargetWorkingCopy.Worksheets.Count
-                Case enSyncObjectKindVBComponent:   lOfSource = mSync.source.VBProject.VBComponents.Count
+                Case enSyncObjectKindVBComponent:   lOfSource = mSync.Source.VBProject.VBComponents.Count
                                                     lOfTarget = mSync.TargetWorkingCopy.VBProject.VBComponents.Count
-                Case enSyncObjectKindReference:     lOfSource = mSync.source.VBProject.References.Count
+                Case enSyncObjectKindReference:     lOfSource = mSync.Source.VBProject.References.Count
                                                     lOfTarget = mSync.TargetWorkingCopy.VBProject.References.Count
-                Case enSyncObjectKindShape:         lOfSource = mSyncShapes.NoOfShapes(mSync.source)
+                Case enSyncObjectKindShape:         lOfSource = mSyncShapes.NoOfShapes(mSync.Source)
                                                     lOfTarget = mSyncShapes.NoOfShapes(mSync.TargetWorkingCopy)
             End Select
             
@@ -1228,10 +1228,10 @@ Public Sub RunSync()
     Dim wbkTarget   As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     Set wbkTarget = mSync.TargetWorkingCopy
     
-    Services.Serviced = wbkTarget
+    Services.ServicedWbk = wbkTarget
     Set cllDueSyncs = Nothing: Set cllDueSyncs = New Collection
     
     If AllDueSyncsDone(wbkSource, wbkTarget) Then

@@ -18,6 +18,7 @@ Private sTestItem       As String
 Private sTestedByTheWay As String
 
 Friend Property Let TestedByTheWay(ByVal btw As String):    sTestedByTheWay = btw:              End Property
+
 Friend Property Get details() As String:                    details = sDetails:                 End Property
 
 Friend Property Let details(ByVal s As String):             sDetails = s:                       End Property

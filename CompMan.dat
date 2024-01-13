@@ -2,7 +2,7 @@
 UsedExportFolder=source
 [clsLog]
 KindOfComponent=used
-LastModifiedAtDatTime=2023-08-28.009
+LastModifiedAtDatTime=2024-01-13-15-15-57 (UTC)
 [clsQ]
 KindOfComponent=used
 LastModifiedAtDatTime=2023-02-17.001
@@ -11,28 +11,28 @@ KindOfComponent=used
 LastModifiedAtDatTime=2023-08-26.001
 [fMsg]
 KindOfComponent=used
-LastModifiedAtDatTime=2023-12-08-12-19-08 (UTC)
+LastModifiedAtDatTime=2023-12-15-18-45-36 (UTC)
 [mBasic]
 KindOfComponent=used
 LastModifiedAtDatTime=2023-12-08-12-19-08 (UTC)
 [mCodingRegulations]
-KindOfComponent=used
+KindOfComponent=hosted
 LastModifiedAtDatTime=2023-08-06.001
 [mCodingRules]
-KindOfComponent=used
+KindOfComponent=hosted
 LastModifiedAtDatTime=2023-08-06.001
 [mCompManClient]
 KindOfComponent=hosted
-LastModifiedAtDatTime=2023-12-08-12-19-08 (UTC)
+LastModifiedAtDatTime=2023-12-28-08-43-41 (UTC)
 [mDct]
 KindOfComponent=used
 LastModifiedAtDatTime=2023-12-08-12-19-08 (UTC)
 [mErH]
 KindOfComponent=used
-LastModifiedAtDatTime=2023-12-08-12-19-08 (UTC)
+LastModifiedAtDatTime=2023-12-23-14-40-18 (UTC)
 [mFso]
 KindOfComponent=used
-LastModifiedAtDatTime=2023-07-10.006
+LastModifiedAtDatTime=2024-01-13-15-15-58 (UTC)
 [mMsg]
 KindOfComponent=used
 LastModifiedAtDatTime=2023-12-08-13-52-06 (UTC)
@@ -41,15 +41,18 @@ KindOfComponent=used
 LastModifiedAtDatTime=23-02-15.001
 [mReg]
 KindOfComponent=used
-LastModifiedAtDatTime=2023-03-06.002
+LastModifiedAtDatTime=2023-08-06.001
 [mRng]
 KindOfComponent=used
 LastModifiedAtDatTime=2023-08-23.002
 [mTrc]
 KindOfComponent=used
-LastModifiedAtDatTime=2023-06-23.002
+LastModifiedAtDatTime=2023-08-06.001
 [mWbk]
 KindOfComponent=used
+LastModifiedAtDatTime=2023-08-06.001
 [mWsh]
 KindOfComponent=used
 LastModifiedAtDatTime=2023-08-19.001
+[@NamesHousekeeping]
+DoneNamesHskpng=LastModifiedAtDatTime:LastModAtDateTime:RevisionNumber:RawRevisionNumber;KindOfComponent;UsedExportFolder;:DueModificationWarning

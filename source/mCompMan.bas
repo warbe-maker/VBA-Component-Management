@@ -68,13 +68,14 @@ Public Const BTTN_DSPLY_DIFF                    As String = "Display difference"
 Public Const SRVC_PROGRESS_SCHEME               As String = "<srvc> <by> <serviced>: <n> of <m> <op> <comps> <dots>"
 
 Public LogServiced                              As clsLog ' log writen for the serviced Workbook
-Public LogServicing                             As clsLog ' the servicing Workbooks own log
+Public LogService                               As clsLog ' the servicing Workbooks own log
 Public Comps                                    As clsComps
 Public Services                                 As clsServices
 Public CompManDat                               As clsCompManDat
 Public CommComps                                As clsCommComps
 Public Msg                                      As udtMsg
 Public fso                                      As New FileSystemObject
+Public Prgrss                                   As clsProgress
 
 #If XcTrc_clsTrc = 1 Then
     Public Trc                                  As clsTrc
@@ -93,72 +94,51 @@ Public Enum siCounter
     sic_used_comm_vbc_outdated
 End Enum
 
-Private Function ErrSrc(ByVal es_proc As String) As String
-    ErrSrc = "mCompMan" & "." & es_proc
+Private sLogFileService         As String
+Private sLogFileServicedSummary  As String
+
+Public Property Get LogFileService() As String:         LogFileService = sLogFileService:   End Property
+
+Public Property Let LogFileService(ByVal s As String):  sLogFileService = s:                End Property
+
+Public Property Get LogFileServicedSummary() As String:         LogFileServicedSummary = sLogFileServicedSummary:   End Property
+
+Public Property Let LogFileServicedSummary(ByVal s As String):  sLogFileServicedSummary = s:                End Property
+
+Public Sub CheckForUnusedPublicItems()
+' ----------------------------------------------------------------
+' Attention! The service requires the VBPUnusedPublic.xlsb
+'            Workbook open. When not open the service terminates
+'            without notice.
+' ----------------------------------------------------------------
+    Const COMPS_EXCLUDED = "clsQ,mRng,fMsg,mBasic,mDct,mErH,mFso,mMsg,mNme,mReg,mTrc,mWbk,mWsh"
+    Const LINES_EXCLUDED = "Select Case mBasic.ErrMsg(ErrSrc(PROC))" & vbLf & _
+                           "Case vbResume:*Stop:*Resume" & vbLf & _
+                           "Case Else:*GoTo xt"
+    On Error Resume Next
+    '~~ Providing all (optional) arguments saves the Workbook selection dialog and the VBComponents selection dialog
+    Application.Run "VBPUnusedPublic.xlsb!mUnused.Unused", ThisWorkbook, COMPS_EXCLUDED, LINES_EXCLUDED
+
+End Sub
+
+Public Function CommCompRegStateEnum(ByVal s As String) As enCommCompRegState
+    Select Case s
+        Case "hosted":  CommCompRegStateEnum = enRegStateHosted
+        Case "used":    CommCompRegStateEnum = mComp.enRegStateUsed
+        Case "private": CommCompRegStateEnum = mComp.enRegStatePrivate
+    End Select
 End Function
 
-Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
-                                 Optional ByVal u_hosted As String = vbNullString)
-' ------------------------------------------------------------------------------
-' Presents the serviced Workbook's outdated components in a modeless dialog with
-' two buttons for each component. One button executes Application.Run mRenew.Run
-' for a component to update it, the other executes Application.Run
-' Services.ExpFilesDiffDisplay to display the code changes.
-' Note: u_unused is for backwards compatibility only.
-'
-' Precondition: The service has been checked by the client to be able to run.
-' ------------------------------------------------------------------------------
-    Const PROC = "UpdateOutdatedCommonComponents"
-    
-    On Error GoTo eh
-'    mCompManClient.Events ErrSrc(PROC), False
-'    '~~ When the Open event is raised through the VBE Immediate Window or when
-'    '~~ the open houskeeping has registered new used Common Components ...
-'    Set Services = Nothing
-'    mCompMan.ExportChangedComponents u_wbk_serviced, u_hosted
-    
-    Set Services = Nothing
-    Set Services = New clsServices
-    With Services
-        .Serviced = u_wbk_serviced
-        .CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED
-        .EstablishExecTraceFile
-    End With
-    
-    mBasic.BoP ErrSrc(PROC)
-    Services.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, u_wbk_serviced, u_hosted
-    CommComps.Hosted = u_hosted
-    CompManDat.Hosted = u_hosted
-    Set Qoutdated = Nothing
-    
-    mCommComps.OutdatedUpdate ' Dialog to update/renew one by one
-    
-xt: mBasic.EoP ErrSrc(PROC)
-'    mCompManClient.Events ErrSrc(PROC), True
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
+Public Function CommCompRegStateString(ByVal en As enCommCompRegState) As String
+    Select Case en
+        Case enRegStateHosted:  CommCompRegStateString = "hosted"
+        Case enRegStateUsed:    CommCompRegStateString = "used"
+        Case enRegStatePrivate: CommCompRegStateString = "private"
     End Select
-End Sub
+End Function
 
-Public Sub README(Optional ByVal r_bookmark As String = vbNullString)
-    
-    If r_bookmark = vbNullString Then
-        mBasic.ShellRun GITHUB_REPO_URL
-    Else
-        r_bookmark = Replace("#" & r_bookmark, "##", "#") ' add # if missing
-        mBasic.ShellRun GITHUB_REPO_URL & r_bookmark
-    End If
-        
-End Sub
-
-Public Function UTC() As String
-    Dim dt As Object
-    Set dt = CreateObject("WbemScripting.SWbemDateTime")
-    dt.SetVarDate Now
-    UTC = Format(dt.GetVarDate(False), "YYYY-MM-DD-hh-mm-ss") & " (UTC)"
+Private Function ErrSrc(ByVal es_proc As String) As String
+    ErrSrc = "mCompMan" & "." & es_proc
 End Function
 
 Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
@@ -186,7 +166,7 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     
     Set Services = New clsServices
     With Services
-        .Serviced = e_wbk_serviced
+        .ServicedWbk = e_wbk_serviced
         .CurrentService = mCompManClient.SRVC_EXPORT_CHANGED
         .EstablishExecTraceFile
     End With
@@ -216,6 +196,31 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Function
+
+Public Sub MsgInit()
+    Dim i As Long
+    
+    For i = 1 To mMsg.NoOfMsgSects
+        With Msg.Section(i)
+            .Label.Text = vbNullString
+            .Label.FontColor = rgbBlue
+            .Text.Text = vbNullString
+            .Text.MonoSpaced = False
+        End With
+    Next i
+
+End Sub
+
+Public Sub README(Optional ByVal r_bookmark As String = vbNullString)
+    
+    If r_bookmark = vbNullString Then
+        mBasic.ShellRun GITHUB_REPO_URL
+    Else
+        r_bookmark = Replace("#" & r_bookmark, "##", "#") ' add # if missing
+        mBasic.ShellRun GITHUB_REPO_URL & r_bookmark
+    End If
+        
+End Sub
 
 Public Function RunTest(ByVal r_service_proc As String, _
                         ByRef r_serviced_wbk As Workbook) As Variant
@@ -292,7 +297,7 @@ Public Sub SynchronizeVBProjects(ByVal sync_wbk_opened As Workbook)
     On Error GoTo eh
     Set Services = New clsServices
     With Services
-        .Serviced = sync_wbk_opened
+        .ServicedWbk = sync_wbk_opened
         .CurrentService = mCompManClient.SRVC_SYNCHRONIZE
         .EstablishExecTraceFile
     End With
@@ -321,22 +326,58 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function CommCompRegStateEnum(ByVal s As String) As enCommCompRegState
-    Select Case s
-        Case "hosted":  CommCompRegStateEnum = enRegStateHosted
-        Case "used":    CommCompRegStateEnum = mComp.enRegStateUsed
-        Case "private": CommCompRegStateEnum = mComp.enRegStatePrivate
-    End Select
-End Function
+Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
+                                 Optional ByVal u_hosted As String = vbNullString)
+' ------------------------------------------------------------------------------
+' Presents the serviced Workbook's outdated components in a modeless dialog with
+' two buttons for each component. One button executes Application.Run mRenew.Run
+' for a component to update it, the other executes Application.Run
+' Services.ExpFilesDiffDisplay to display the code changes.
+' Note: u_unused is for backwards compatibility only.
+'
+' Precondition: The service has been checked by the client to be able to run.
+' ------------------------------------------------------------------------------
+    Const PROC = "UpdateOutdatedCommonComponents"
+    
+    On Error GoTo eh
+'    mCompManClient.Events ErrSrc(PROC), False
+'    '~~ When the Open event is raised through the VBE Immediate Window or when
+'    '~~ the open houskeeping has registered new used Common Components ...
+'    Set Services = Nothing
+'    mCompMan.ExportChangedComponents u_wbk_serviced, u_hosted
+    
+    Set Services = Nothing
+    Set Services = New clsServices
+    With Services
+        .ServicedWbk = u_wbk_serviced
+        .CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED
+        .EstablishExecTraceFile
+    End With
+    
+    mBasic.BoP ErrSrc(PROC)
+    Services.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, u_wbk_serviced, u_hosted
+    CommComps.Hosted = u_hosted
+    CompManDat.Hosted = u_hosted
+    Set Qoutdated = Nothing
+    
+    mCommComps.OutdatedUpdate ' Dialog to update/renew one by one
+    
+xt: mBasic.EoP ErrSrc(PROC)
+'    mCompManClient.Events ErrSrc(PROC), True
+    Exit Sub
 
-Public Function CommCompRegStateString(ByVal en As enCommCompRegState) As String
-    Select Case en
-        Case enRegStateHosted:  CommCompRegStateString = "hosted"
-        Case enRegStateUsed:    CommCompRegStateString = "used"
-        Case enRegStatePrivate: CommCompRegStateString = "private"
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
     End Select
-End Function
+End Sub
 
+Public Function UTC() As String
+    Dim dt As Object
+    Set dt = CreateObject("WbemScripting.SWbemDateTime")
+    dt.SetVarDate Now
+    UTC = Format(dt.GetVarDate(False), "YYYY-MM-DD-hh-mm-ss") & " (UTC)"
+End Function
 
 Public Function WbkGetOpen(ByVal go_wbk_full_name As String) As Workbook
 ' ----------------------------------------------------------------------------
@@ -399,32 +440,3 @@ Public Function WinMergeIsInstalled() As Boolean
     WinMergeIsInstalled = AppIsInstalled("WinMerge")
 End Function
 
-Public Sub MsgInit()
-    Dim i As Long
-    
-    For i = 1 To mMsg.NoOfMsgSects
-        With Msg.Section(i)
-            .Label.Text = vbNullString
-            .Label.FontColor = rgbBlue
-            .Text.Text = vbNullString
-            .Text.MonoSpaced = False
-        End With
-    Next i
-
-End Sub
-
-Public Sub CheckForUnusedPublicItems()
-' ----------------------------------------------------------------
-' Attention! The service requires the VBPUnusedPublic.xlsb
-'            Workbook open. When not open the service terminates
-'            without notice.
-' ----------------------------------------------------------------
-    Const COMPS_EXCLUDED = "clsQ,mRng,fMsg,mBasic,mDct,mErH,mFso,mMsg,mNme,mReg,mTrc,mWbk,mWsh"
-    Const LINES_EXCLUDED = "Select Case mBasic.ErrMsg(ErrSrc(PROC))" & vbLf & _
-                           "Case vbResume:*Stop:*Resume" & vbLf & _
-                           "Case Else:*GoTo xt"
-    On Error Resume Next
-    '~~ Providing all (optional) arguments saves the Workbook selection dialog and the VBComponents selection dialog
-    Application.Run "VBPUnusedPublic.xlsb!mUnused.Unused", ThisWorkbook, COMPS_EXCLUDED, LINES_EXCLUDED
-
-End Sub

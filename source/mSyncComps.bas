@@ -168,7 +168,7 @@ Private Sub AppRunChanged()
     Dim sId         As String
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     Set wbkTarget = mSync.TargetWorkingCopy
     mSync.AppRunInit
     va = Split(AppRunIdsChanged(enSyncObjectKindVBComponent), ",")
@@ -238,7 +238,7 @@ Private Sub AppRunNew()
     Dim sId         As String
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     Set wbkTarget = mSync.TargetWorkingCopy
     va = Split(AppRunNewIds(enSyncObjectKindVBComponent), ",")
     mSync.Progress p_kind:=enSyncObjectKindVBComponent _
@@ -297,7 +297,7 @@ Private Sub AppRunObsolete()
     mBasic.BoP ErrSrc(PROC)
     Services.MessageUnload TITLE_SYNC_COMPS ' for the next display
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
     va = Split(AppRunObsoleteIds(enSyncObjectKindVBComponent), ",")
     mSync.Progress p_kind:=enSyncObjectKindVBComponent _
                  , p_sync_step:=enSyncStepSyncing _
@@ -557,7 +557,7 @@ Private Function Corresponding(ByVal c_this_vbc As VBComponent, _
     
     mBasic.BoP ErrSrc(PROC)
     Set wbkTarget = mSync.TargetWorkingCopy
-    Set wbkSource = mSync.source
+    Set wbkSource = mSync.Source
 
 '    Debug.Print wbkTarget.CodeName
 '    Debug.Print wbkSource.CodeName

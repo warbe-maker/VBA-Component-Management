@@ -927,7 +927,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -974,7 +974,7 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsLog" & "." & sProc
 End Function
 
-Private Property Let FileTxt(Optional ByVal f_file As Variant, _
+Private Property Let FileAsString(Optional ByVal f_file As Variant, _
                              Optional ByVal f_append As Boolean = True, _
                              Optional ByRef f_split As String, _
                                       ByVal f_string As String)
@@ -983,7 +983,7 @@ Private Property Let FileTxt(Optional ByVal f_file As Variant, _
 ' object or a file's full name.
 ' Note: f_split is not used but specified to comply with Property Get.
 ' ----------------------------------------------------------------------------
-    Const PROC = "FileTxt-Let"
+    Const PROC = "FileAsString-Let"
     
     On Error GoTo eh
     Dim ts  As TextStream
@@ -1035,7 +1035,7 @@ Private Property Let FileArry(Optional ByVal f_file As String, _
 ' is optionally returned by Arry-Get.
 ' ----------------------------------------------------------------------------
                     
-    FileTxt(f_file:=f_file _
+    FileAsString(f_file:=f_file _
           , f_append:=f_append _
           , f_split:=f_split _
            ) = Join(f_ar, f_split)
@@ -1067,7 +1067,7 @@ Private Property Get FileArry(Optional ByVal f_file As String, _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named '" & f_file & "' does not exist!"
     
     '~~ Unload file to a string
-    sFile = FileTxt(f_file:=f_file _
+    sFile = FileAsString(f_file:=f_file _
                     , f_split:=sSplit _
                      )
     If sFile = vbNullString Then GoTo xt
@@ -1099,7 +1099,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Private Property Get FileTxt(Optional ByVal f_file As Variant, _
+Private Property Get FileAsString(Optional ByVal f_file As Variant, _
                              Optional ByVal f_append As Boolean = True, _
                              Optional ByRef f_split As String) As String
 ' ----------------------------------------------------------------------------
@@ -1107,7 +1107,7 @@ Private Property Get FileTxt(Optional ByVal f_file As Variant, _
 ' in (f_split). When the file doesn't exist a vbNullString is returned.
 ' Note: f_append is not used but specified to comply with Property Let.
 ' ----------------------------------------------------------------------------
-    Const PROC = "FileTxt-Get"
+    Const PROC = "FileAsString-Get"
     
     On Error GoTo eh
     Dim ts      As TextStream
@@ -1135,9 +1135,9 @@ Private Property Get FileTxt(Optional ByVal f_file As Variant, _
             s = VBA.Left$(s, Len(s) - 2)
         End If
     Else
-        FileTxt = vbNullString
+        FileAsString = vbNullString
     End If
-    If FileTxt = vbCrLf Then FileTxt = vbNullString Else FileTxt = s
+    If FileAsString = vbCrLf Then FileAsString = vbNullString Else FileAsString = s
 
 xt: Exit Property
 

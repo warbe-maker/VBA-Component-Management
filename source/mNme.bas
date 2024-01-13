@@ -239,7 +239,7 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
         '~~ and the add_key already exists the add_item is updated
         If bOrderByKey And Not bStayWithFirst Then
             If .Exists(add_key) Then
-                If VarType(add_item) = vbObject Then Set .Item(add_key) = add_item Else .Item(add_key) = add_item
+                If VarType(add_item) = vbObject Then Set .item(add_key) = add_item Else .item(add_key) = add_item
                 GoTo xt
             End If
         End If
@@ -283,9 +283,9 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
     
     For Each vKeyExisting In add_dct
         
-        If VarType(add_dct.Item(vKeyExisting)) = vbObject _
-        Then Set vItemExisting = add_dct.Item(vKeyExisting) _
-        Else vItemExisting = add_dct.Item(vKeyExisting)
+        If VarType(add_dct.item(vKeyExisting)) = vbObject _
+        Then Set vItemExisting = add_dct.item(vKeyExisting) _
+        Else vItemExisting = add_dct.item(vKeyExisting)
         
         With dctTemp
             If bDone Then
@@ -412,7 +412,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
     If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.source
+    If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
     
@@ -885,7 +885,7 @@ Private Function FoundInFormulas(ByVal fif_str As String, _
     Dim cel As Range
     Dim cll As New Collection
     Dim wsh As Worksheet
-    Dim Rng As Range
+    Dim rng As Range
     
     BoP PROC
     For Each wsh In fif_wbk.Worksheets
@@ -894,9 +894,9 @@ Private Function FoundInFormulas(ByVal fif_str As String, _
         End If
         
         On Error Resume Next
-        Set Rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
+        Set rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
         If Err.Number <> 0 Then GoTo ws
-        For Each cel In Rng
+        For Each cel In rng
             If InStr(1, cel.Formula, fif_str) > 0 Then
                 FoundInFormulas = True
                 If IsMissing(fif_cll) Then

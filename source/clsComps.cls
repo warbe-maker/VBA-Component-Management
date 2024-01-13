@@ -21,7 +21,7 @@ Private Sub Class_Initialize()
     If Services.CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED Then
         Set dctAll = CollectAllCommComps
     Else
-        Set dctAll = CollectAll
+'        Set dctAll = CollectAll
     End If
 End Sub
 
@@ -47,7 +47,7 @@ Private Function CollectAll() As Dictionary
     Dim dct     As New Dictionary
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbk = Services.Serviced
+    Set wbk = Services.ServicedWbk
     
     With wbk.VBProject
         For Each vbc In .VBComponents
@@ -60,7 +60,7 @@ Private Function CollectAll() As Dictionary
                 lMaxLenServicedType = Max(lMaxLenServicedType, Len(.TypeString))
                 dct.Add vbc.Name, Comp
                 mCompManClient.Progress p_service_name:=mCompManClient.ServiceName(Services.CurrentService) _
-                                      , p_serviced_wbk_name:=Services.Serviced.Name _
+                                      , p_serviced_wbk_name:=Services.ServicedWbk.Name _
                                       , p_by_servicing_wbk_name:=ThisWorkbook.Name _
                                       , p_progress_figures:=True _
                                       , p_no_comps_total:=dct.Count
@@ -123,7 +123,7 @@ Private Function CollectAllCommComps() As Dictionary
     Dim dct     As New Dictionary
     
     mBasic.BoP ErrSrc(PROC)
-    Set wbk = Services.Serviced
+    Set wbk = Services.ServicedWbk
     
     With wbk.VBProject
         For Each vbc In .VBComponents
@@ -141,7 +141,7 @@ Private Function CollectAllCommComps() As Dictionary
                         .NoOfItemsTotal = dct.Count
                         .NoOfCommonComponents = .NoOfCommonComponents + 1
                         mCompManClient.Progress p_service_name:=mCompManClient.ServiceName(Services.CurrentService) _
-                                              , p_serviced_wbk_name:=.Serviced.Name _
+                                              , p_serviced_wbk_name:=.ServicedWbk.Name _
                                               , p_by_servicing_wbk_name:=ThisWorkbook.Name _
                                               , p_progress_figures:=True _
                                               , p_no_comps_total:=dct.Count
