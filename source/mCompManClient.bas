@@ -502,11 +502,12 @@ Public Sub Progress(ByVal p_service_name As String, _
 ' Export ... (by CompMan....) for ......: 1 of 50 exported (clsServices)
 ' --------------------------------------------------------------------------
     Const PROC                  As String = "Progress"
-    Const SRVC_PROGRESS_SCHEME  As String = "<srvc> <by> <serviced>: <n> of <m> <dots> <op> <info>"
+    Const SRVC_PROGRESS_SCHEME  As String = "<srvc> <by> <serviced>: <n> of <m> <op> <info> <dots>"
     
     On Error GoTo eh
     Dim sMsg    As String
     Dim lDots   As Long
+    Dim sFormat As String
     
     sMsg = Replace(SRVC_PROGRESS_SCHEME, "<srvc>", p_service_name)
     sMsg = Replace(sMsg, "<serviced>", "for " & p_serviced_wbk_name)
@@ -514,12 +515,13 @@ Public Sub Progress(ByVal p_service_name As String, _
     Then sMsg = Replace(sMsg, "<by>", "(by " & p_by_servicing_wbk_name & ")") _
     Else sMsg = Replace(sMsg, "<by>", vbNullString)
     
+    If p_no_comps_total < 100 Then sFormat = "#0" Else sFormat = "##0"
     If p_progress_figures Then
-        sMsg = Replace(sMsg, "<n>", p_no_comps_serviced)
+        sMsg = Replace(sMsg, "<n>", Format(p_no_comps_serviced, sFormat))
         If p_no_comps_outdated <> 0 Then
-            sMsg = Replace(sMsg, "<m>", p_no_comps_outdated)
+            sMsg = Replace(sMsg, "<m>", Format(p_no_comps_outdated, sFormat))
         Else
-            sMsg = Replace(sMsg, "<m>", p_no_comps_total)
+            sMsg = Replace(sMsg, "<m>", Format(p_no_comps_total, sFormat))
         End If
         sMsg = Replace(sMsg, "<op>", p_service_op)
         lDots = p_no_comps_total - p_no_comps_skipped - p_no_comps_serviced

@@ -444,7 +444,12 @@ Public Sub ComponentRemove(ByVal s As String)
 End Sub
 
 Public Function Components() As Dictionary
+    Const PROC = "Components"
+    
+    mBasic.BoP ErrSrc(PROC)
     Set Components = mFso.PPsections(pp_file:=sCommCompsDatFile)
+    mBasic.EoP ErrSrc(PROC)
+    
 End Function
 
 Public Property Get CurrentPublicExpFileFullName() As String
@@ -972,6 +977,7 @@ Public Function ExistsPending(ByVal e_comp_name As String, _
             ExistsPending = True
         End If
     End If
+    
 End Function
 
 Public Function PendingReleaseRegistered(Optional ByVal p_comp_name As String = vbNullString) As Boolean
@@ -999,6 +1005,7 @@ Public Function PendingReleases(Optional ByVal p_wbk As Workbook = Nothing) As C
     Dim v           As Variant
     Dim sComp       As String
     
+    mBasic.BoP ErrSrc(PROC)
     Set dctComps = CommComps.Components
     For Each v In dctComps
         sComp = v
@@ -1015,13 +1022,13 @@ Public Function PendingReleases(Optional ByVal p_wbk As Workbook = Nothing) As C
     Next v
     Set PendingReleases = cllPending
 
-xt: Exit Function
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-    
 End Function
 
 Public Sub Reorg()

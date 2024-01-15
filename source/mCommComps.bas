@@ -92,13 +92,13 @@ Private Sub OutdatedUpdate2Choice()
         sModWbkName = CommComps.LastModInWbkName(.CompName)
         Select Case .KindOfComp
             Case enCommCompHosted
-                UpdateTitle = "Hosted Common Component apparently modified within a Worbook using it!"
+                UpdateTitle = "Hosted Common Component has been modified within a Worbook/VB-Project using it!"
                 sUpdateNote = "The Common Component   " & mBasic.Spaced(.CompName) & "   hosted in this " & _
                               "Workbook has been modified by/within the Workbook/VB-Project   " & _
                               mBasic.Spaced(sModWbkName) & " .   The extent of the modification may be " & _
-                              "displayed in order to allow an estimation wether or not or to which extent " & _
-                              "re-testing is appropriate - provided the ""hosting"" Workbook provides " & _
-                              "a test environment."
+                              "displayed in order to allow an estimation wether or not (or to which extent) " & _
+                              "re-testing or performing a regression test is appropriate - suposed the ""hosting"" " & _
+                              "Workbook provides such a test environment."
                 sSkipForNow = "The update will be postponed and proposed with the next Workbook open."
                 sSkipForNowNote = "Please note: In contrast to a ""used"" Common Component it is not possible " & _
                                   "to skip this update forever. The only way to achieve this is to remove the " & _

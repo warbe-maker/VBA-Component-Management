@@ -78,6 +78,7 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                             .ServicedItemLogEntry "Modified Common Component: Last modification info changed from " & sLastModDateTimeOld & " to " & Comp.LastModAtDateTime
                             .ServicedItemLogEntry "Modified Common Component: Pending Release registered"
                         End With
+                        .CodeExported.Source = .ExpFileFullName ' re-load the recent export
                         CommComps.PendingReleaseManagement Comp
                     Case Else
                         '~~ The code of another but a used/hosted Common Component has changed
