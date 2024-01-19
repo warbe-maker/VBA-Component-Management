@@ -511,42 +511,40 @@ Public Sub Progress(ByVal p_service_name As String, _
     
     sMsg = Replace(SRVC_PROGRESS_SCHEME, "<srvc>", p_service_name)
     sMsg = Replace(sMsg, "<serviced>", "for " & p_serviced_wbk_name)
+    
     If p_by_servicing_wbk_name <> vbNullString _
     Then sMsg = Replace(sMsg, "<by>", "(by " & p_by_servicing_wbk_name & ")") _
     Else sMsg = Replace(sMsg, "<by>", vbNullString)
     
     If p_no_comps_total < 100 Then sFormat = "#0" Else sFormat = "##0"
+    
+    lDots = p_no_comps_total - p_no_comps_skipped - p_no_comps_serviced
+    If lDots >= 0 Then
+        sMsg = Replace(sMsg, "<dots>", String(lDots, "."))
+    Else
+        sMsg = Replace(sMsg, "<dots>", vbNullString)
+    End If
+    
+    If p_service_op <> vbNullString _
+    Then sMsg = Replace(sMsg, "<op>", p_service_op) _
+    Else sMsg = Replace(sMsg, "<op>", "please wait!")
+    
     If p_progress_figures Then
         sMsg = Replace(sMsg, "<n>", Format(p_no_comps_serviced, sFormat))
-        If p_no_comps_outdated <> 0 Then
-            sMsg = Replace(sMsg, "<m>", Format(p_no_comps_outdated, sFormat))
-        Else
-            sMsg = Replace(sMsg, "<m>", Format(p_no_comps_total, sFormat))
-        End If
-        sMsg = Replace(sMsg, "<op>", p_service_op)
-        lDots = p_no_comps_total - p_no_comps_skipped - p_no_comps_serviced
-        If lDots >= 0 Then
-            sMsg = Replace(sMsg, "<dots>", String(lDots, "."))
-        Else
-            sMsg = Replace(sMsg, "<dots>", vbNullString)
-        End If
+        If p_no_comps_outdated <> 0 _
+        Then sMsg = Replace(sMsg, "<m>", Format(p_no_comps_outdated, sFormat)) _
+        Else sMsg = Replace(sMsg, "<m>", Format(p_no_comps_total, sFormat))
     Else
-        sMsg = Replace(sMsg, "<n>", vbNullString)
-        sMsg = Replace(sMsg, "of <m>", vbNullString)
-        sMsg = Replace(sMsg, "<op>", vbNullString)
-        sMsg = Replace(sMsg, "<dots>", vbNullString)
-        sMsg = sMsg & " please wait!"
+        sMsg = Replace(sMsg, "<n> of <m>", vbNullString)
     End If
     
     sMsg = Replace(sMsg, "<info>", p_service_info)
     sMsg = Replace(sMsg, "  ", " ")
     If Len(sMsg) > 255 Then sMsg = Left(sMsg, 250) & " ..."
     With Application
-        .ScreenUpdating = False
+        .StatusBar = vbNullString
         .StatusBar = Trim(sMsg)
-        .ScreenUpdating = True
     End With
-    
 xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

@@ -61,8 +61,8 @@ Public Sub ReleaseService(Optional ByVal r_wbk As Workbook = Nothing, _
     Dim i                   As Long
     Dim sComp               As String
     Dim cllPending          As Collection
-    Dim CodePublic          As clsCodeOfSource
-    Dim CodePending         As clsCodeOfSource
+    Dim CodePublic          As clsCode
+    Dim CodePending         As clsCode
     
     Set CommComps = New clsCommComps
     If r_pending Is Nothing _
@@ -81,8 +81,8 @@ Public Sub ReleaseService(Optional ByVal r_wbk As Workbook = Nothing, _
     Do While cllPending.Count <> 0
         sComp = cllPending(1)
         CommComps.CompName = sComp
-        Set CodePublic = New clsCodeOfSource
-        Set CodePending = New clsCodeOfSource
+        Set CodePublic = New clsCode
+        Set CodePending = New clsCode
         CodePublic.Source = CommComps.CurrentPublicExpFileFullName
         CodePending.Source = CommComps.PendingReleaseModExpFileFullName
         With Msg
@@ -158,7 +158,7 @@ Public Sub ReleaseService(Optional ByVal r_wbk As Workbook = Nothing, _
                              , dsply_width_min:=50)
             Case BTTN_RELEASE:      CommComps.ReleaseComp sComp
                                     cllPending.Remove 1
-            Case BTTN_DSPLY_DIFF:   CodePublic.DiffFromDsply d_this_file_name:="CurrentPublic" _
+            Case BTTN_DSPLY_DIFF:   CodePublic.DsplyDiffs d_this_file_name:="CurrentPublic" _
                                                            , d_this_file_title:="Code in the current ""public"" Common Component in the Common-Components folder" _
                                                            , d_from_code:=CodePending _
                                                            , d_from_file_name:="PendingReleaseModifications" _

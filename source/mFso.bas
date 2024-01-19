@@ -408,26 +408,30 @@ Public Property Get PPsections(Optional ByVal pp_file As Variant, _
         
     If pp_sections = vbNullString Then
         '~~ Return all sections
-        For Each vName In mFso.PPsectionNames(fl)
-            If Not dct.Exists(vName) Then
-                Set dctValues = mFso.PPvalues(pp_file:=fl, pp_section:=vName)
-                dct.Add vName, dctValues
-            Else
-                Debug.Print "Duplicate section name '" & vName & "' ignored!"
-            End If
-        Next vName
-    Else
-        '~~ Return named sections
-        For Each vName In NamesInArg(pp_sections)
-            If mFso.PPsectionExists(pp_file, vName) Then
-                If Not dct.Exists(vName) Then
-                    Set dctValues = mFso.PPvalues(pp_file, vName)
-                    dct.Add vName, dctValues
+        With dct
+            For Each vName In mFso.PPsectionNames(fl)
+                If Not .Exists(vName) Then
+                    Set dctValues = mFso.PPvalues(pp_file:=fl, pp_section:=vName)
+                    .Add vName, dctValues
                 Else
                     Debug.Print "Duplicate section name '" & vName & "' ignored!"
                 End If
-            End If
-        Next vName
+            Next vName
+        End With
+    Else
+        '~~ Return named sections
+        With dct
+            For Each vName In ArgStrings(pp_sections)
+                If mFso.PPsectionExists(pp_file, vName) Then
+                    If Not .Exists(vName) Then
+                        Set dctValues = mFso.PPvalues(pp_file, vName)
+                        .Add vName, dctValues
+                    Else
+                        Debug.Print "Duplicate section name '" & vName & "' ignored!"
+                    End If
+                End If
+            Next vName
+        End With
     End If
 
 xt: Set PPsections = KeySort(dct)
@@ -1738,44 +1742,49 @@ Private Function Min(ParamArray va() As Variant) As Variant
     
 End Function
 
-Private Function NamesInArg(Optional ByVal v As Variant = Nothing) As Collection
+Private Function ArgStrings(Optional ByVal n_v As Variant = Nothing) As Collection
 ' ----------------------------------------------------------------------------
-' Returns the provided argument (v) as Collection of string items whereby (v)
-' may be: not provided, a comma delimited string, a Dictionary, or a
-' Collection of string items.
+' Returns the strings provided in argument (n_v) as a Collection of string
+' items whereby (n_v) may be not provided, a comma delimited string, a
+' Dictionary, or a Collection of string items.
 ' ----------------------------------------------------------------------------
-    Const PROC = "NamesInArg"
+    Const PROC = "ArgStrings"
     
     On Error GoTo eh
     Dim cll     As New Collection
     Dim dct     As Dictionary
-    Dim vName   As Variant
+    Dim vString As Variant
     
-    Select Case VarType(v)
+    Select Case VarType(n_v)
         Case vbObject
-            Select Case TypeName(v)
+            Select Case TypeName(n_v)
                 Case "Dictionary"
-                    Set dct = v
-                    For Each v In dct
-                        cll.Add dct.item(v)
-                    Next v
+                    Set dct = n_v
+                    With dct
+                        For Each vString In dct
+                            cll.Add .item(vString)
+                        Next vString
+                    End With
+                    Set ArgStrings = cll
                 Case "Collection"
-                    Set cll = v
+                    Set ArgStrings = n_v
                 Case Else: GoTo xt ' likely Nothing
             End Select
         Case vbString
-            If v <> vbNullString Then
-                For Each vName In Split(v, ",")
-                    cll.Add VBA.Trim$(vName)
-                Next vName
+            If n_v <> vbNullString Then
+                With cll
+                    For Each vString In Split(n_v, ",")
+                        .Add VBA.Trim$(vString)
+                    Next vString
+                End With
+                Set ArgStrings = cll
             End If
         Case Is >= vbArray
         Case Else
             Err.Raise AppErr(1), ErrSrc(PROC), "The argument is neither a string, an arry, a Collecton, or a Dictionary!"
     End Select
             
-xt: Set NamesInArg = cll
-    Exit Function
+xt: Exit Function
 
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -1894,7 +1903,7 @@ Public Sub PPremoveSections(ByVal pp_file As Variant, _
     If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     pp_file_result = fl
     
-    For Each v In NamesInArg(pp_sections)
+    For Each v In ArgStrings(pp_sections)
         DeletePrivateProfileSection Section:=v _
                                   , NoKey:=0 _
                                   , NoSetting:=0 _
@@ -2039,18 +2048,18 @@ Public Sub PPsectionsCopy(ByVal pp_source As String, _
     Dim vName       As Variant
     Dim vSection    As Variant
     
-    For Each vSection In NamesInArg(pp_sections)
+    For Each vSection In ArgStrings(pp_sections)
         If Not pp_merge Then
             '~~ Section will be replaced
             mFso.PPremoveSections pp_file:=pp_target _
-                               , pp_sections:=vSection
+                                , pp_sections:=vSection
         End If
         Set dct = mFso.PPvalues(pp_file:=pp_source _
                             , pp_section:=vSection)
         For Each vName In dct
             mFso.PPvalue(pp_file:=pp_target _
-                      , pp_section:=vSection _
-                      , pp_value_name:=vName) = dct(vName)
+                       , pp_section:=vSection _
+                       , pp_value_name:=vName) = dct(vName)
         Next vName
      Next vSection
 
@@ -2174,7 +2183,7 @@ Public Function PPvalueNames(ByVal pp_file As Variant, _
     If PPfile(pp_file, ErrSrc(PROC), fl) = vbNullString Then GoTo xt
     pp_file_result = fl
     
-    Set vNames = NamesInArg(pp_section)
+    Set vNames = ArgStrings(pp_section)
     If vNames.Count = 0 Then Set vNames = mFso.PPsectionNames(fl)
     
     For Each v In vNames
@@ -2255,18 +2264,20 @@ Public Function PPvalues(ByVal pp_file As Variant, _
 
     If sNames <> vbNullString Then                                         ' If there were any names
         asNames = Split(sNames, vbNullChar)                      ' have them split into an array
-        For i = LBound(asNames) To UBound(asNames)
-            sName = asNames(i)
-            If Len(sName) <> 0 Then
-                If Not dct.Exists(sName) Then
-                    dct.Add sName, mFso.PPvalue(pp_file:=fl _
-                                              , pp_section:=pp_section _
-                                              , pp_value_name:=sName)
-                Else
-                    Debug.Print "Duplicate Name '" & sName & "' in section '" & pp_section & "' ignored!"
+        With dct
+            For i = LBound(asNames) To UBound(asNames)
+                sName = asNames(i)
+                If Len(sName) <> 0 Then
+                    If Not .Exists(sName) Then
+                        .Add sName, mFso.PPvalue(pp_file:=fl _
+                                               , pp_section:=pp_section _
+                                               , pp_value_name:=sName)
+                    Else
+                        Debug.Print "Duplicate Name '" & sName & "' in section '" & pp_section & "' ignored!"
+                    End If
                 End If
-            End If
-        Next i
+            Next i
+        End With
     End If
 
 xt: Set PPvalues = KeySort(dct)

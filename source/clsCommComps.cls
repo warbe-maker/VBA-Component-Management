@@ -56,7 +56,7 @@ Private dctHosted                                       As Dictionary
 Private sFolderPath                                     As String
 Private sCompName                                       As String
 Private sCommCompsDatFile                               As String
-Private CodePending                                     As New clsCodeOfSource
+Private CodePending                                     As New clsCode
 
 Private Sub Class_Initialize()
     Const PROC = "Class_Initialize"
@@ -546,7 +546,7 @@ Private Sub DsplyDiffsOfTheCurrentPendingReleaseModificationsVersusTheCurrentPub
 '
 ' ----------------------------------------------------------------------------
     With d_comp.CodePublic
-        .DiffFromDsply d_this_file_name:="CurrentPublicCommonComponent" _
+        .DsplyDiffs d_this_file_name:="CurrentPublicCommonComponent" _
                      , d_this_file_title:="Current public code of the Common Component  " & mBasic.Spaced(sCompName) _
                      , d_from_code:=CodePending _
                      , d_from_file_name:="CurrentPendingReleaseModifications" _
@@ -562,7 +562,7 @@ Public Sub DsplyDiffsOfTheCurrentModificationsVersusTheCurrentPubliicCode(ByVal 
                     
     With d_comp
         .CodeCurrent.Source = .ExpFileFullName
-        .CodeCurrent.DiffFromDsply d_this_file_name:="ModificationsInThisWorkbook" _
+        .CodeCurrent.DsplyDiffs d_this_file_name:="ModificationsInThisWorkbook" _
                                  , d_this_file_title:="Current exported last modifications of the Common Component  " & mBasic.Spaced(sCompName) _
                                  , d_from_code:=.CodePublic _
                                  , d_from_file_name:="CurrentPublicCommonComponent" _
@@ -579,7 +579,7 @@ Private Sub DsplyDiffsOfTheCurrentModificationsVersusThePendingReleaseModificati
     With d_comp
         .CodeCurrent.Source = .ExpFileFullName
         .CodePublic.Source = PendingReleaseModExpFileFullName
-        .CodeCurrent.DiffFromDsply d_this_file_name:="ModificationsInThisWorkbook" _
+        .CodeCurrent.DsplyDiffs d_this_file_name:="ModificationsInThisWorkbook" _
                                  , d_this_file_title:="Current exported last modifications of the Common Component  " & mBasic.Spaced(sCompName) _
                                  , d_from_code:=CodePending _
                                  , d_from_file_name:="CurrentPendingReleaseModifications" _
@@ -613,19 +613,49 @@ Public Sub Hskpng()
     Const PROC = "Hskpng"
     
     On Error GoTo eh
+    Dim dct As Dictionary
+    Dim wbk As Workbook
+    Dim fld As Folder
+    Dim fls As New Dictionary
+    Dim fl  As File
+    Dim s   As String
     
     mBasic.BoP ErrSrc(PROC)
     If Services Is Nothing Then
         Set Services = New clsServices
         Services.Initiate i_service_proc:=mCompManClient.SRVC_RELEASE_PENDING_CHANGES _
                         , i_serviced_wbk:=ThisWorkbook
-    Else
-        HskpngSectionsObsolete
-        HskpngSectionsMissing
-        HskpngUsedOrPrivate
-        HskpngHosted
-        Reorg
     End If
+    
+    '~~ Collect the base-name of all files in the folder each representing
+    '~~ an available public Common Component's code
+    Set fld = fso.GetFolder(sFolderPath)
+    With fls
+        For Each fl In fld.Files
+            s = fso.GetBaseName(fl.Path)
+            If Not .Exists(s) _
+            Then .Add s, vbNullString
+        Next fl
+    End With
+
+    Set wbk = Services.ServicedWbk
+    Set dct = Components
+    
+    Set Prgrss = New clsProgress
+    With Prgrss
+        .Operation = "Hskpng"
+        .ItemsTotal = dct.Count _
+                    + fld.Files.Count _
+                    + wbk.VBProject.VBComponents.Count _
+                    + dctHosted.Count
+        .Figures = False
+        .DoneItems = False
+    End With
+    HskpngSectionsObsolete dct, fls
+    HskpngSectionsMissing fld, dct
+    HskpngUsedOrPrivate wbk
+    HskpngHosted
+    Reorg
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -653,14 +683,10 @@ Private Sub HskpngHosted()
     Dim sHostBaseName   As String
     Dim wbk             As Workbook
     Dim Comp            As clsComp
-    Dim Prgrss          As clsProgress
     
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.ServicedWbk
     sHostBaseName = fso.GetBaseName(wbk.FullName)
-    Set Prgrss = New clsProgress
-    Prgrss.ItemsTotal = dctHosted.Count
-    Prgrss.Operation = "housekeeping hosted"
     
     For Each v In dctHosted
         If Not mComp.Exists(v, wbk) Then
@@ -692,7 +718,8 @@ eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub HskpngSectionsMissing()
+Private Sub HskpngSectionsMissing(ByVal h_fld As Folder, _
+                                  ByVal h_comps As Dictionary)
 ' ------------------------------------------------------------------------------
 ' Adds for any Export-File in the Common-Components folder a section in the
 ' Common-Component folder's CommComps.dat file a section.
@@ -709,22 +736,17 @@ Private Sub HskpngSectionsMissing()
     
     On Error GoTo eh
     Dim fle         As File
-    Dim dct         As Dictionary
     Dim sCompName   As String
     Dim sExt        As String
     
     mBasic.BoP ErrSrc(PROC)
-    Set Prgrss = New clsProgress
-    Set dct = Me.Components
     With fso
-        Prgrss.ItemsTotal = .GetFolder(sFolderPath).Files.Count
-        Prgrss.Operation = "Common Components housekeeping new components"
-        For Each fle In .GetFolder(sFolderPath).Files
+        For Each fle In h_fld.Files
             sExt = .GetExtensionName(fle.Path)
             Select Case sExt
                 Case "bas", "frm", "cls"
                     sCompName = .GetBaseName(fle.Path)
-                    If Not dct.Exists(sCompName) Then
+                    If Not h_comps.Exists(sCompName) Then
                         '~~ The Export-File is yet not registered as a known Common Component
                         '~~ It most likely has been copied manually into the Common-Components
                         '~~ folder. I.e. its "raw host" is unknown - and registered as such.
@@ -732,17 +754,20 @@ Private Sub HskpngSectionsMissing()
                         '~~ modified in a Workbook using it and exported.
                         LastModInWbk(sCompName) = Nothing
                         LastModAtDateTime(sCompName) = CompMan.UTC
+                        Prgrss.ItemDone = sCompName
                     Else
+                        Prgrss.ItemSkipped
                         If LastModExpFileFullNameOrigin(sCompName) = vbNullString Then
 '                            Debug.Print "The property ""LastModExpFileFullNameOrigin"" of component " & sCompName & " is not available, i.e. its origin is unknown or simply yet not registered respectively!"
                         End If
                     End If
+                Case Else
+                    Prgrss.ItemSkipped
             End Select
         Next fle
     End With
     
-xt: Set dct = Nothing
-    mBasic.EoP ErrSrc(PROC)
+xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -751,7 +776,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub HskpngSectionsObsolete()
+Private Sub HskpngSectionsObsolete(ByVal h_comps As Dictionary, _
+                                   ByVal h_files As Dictionary)
 ' ------------------------------------------------------------------------------
 ' Removes in the Common-Component folder's CommComps.dat file any section of
 ' which no corresponding Export-File exists in the folder
@@ -761,41 +787,30 @@ Private Sub HskpngSectionsObsolete()
     On Error GoTo eh
     Dim bExists         As Boolean
     Dim dctComponents   As Dictionary
-    Dim dctFiles        As New Dictionary
     Dim fl              As File
-    Dim Prgrss          As clsProgress
     Dim sBaseName       As String
     Dim sSection        As String
     Dim v               As Variant
     
     mBasic.BoP ErrSrc(PROC)
-    Set dctComponents = Components
-    Set Prgrss = New clsProgress
-    Prgrss.Operation = "Common-Components folder housekeeping"
-    Prgrss.ItemsTotal = dctComponents.Count
-    
-    For Each fl In fso.GetFolder(sFolderPath).Files
-        '~~ Collect the base-name of all files in the folder each representing
-        '~~ an available public Common Component's code
-        sBaseName = fso.GetBaseName(fl.Path)
-        If Not dctFiles.Exists(sBaseName) _
-        Then dctFiles.Add sBaseName, vbNullString
-    Next fl
-    
-    For Each v In dctComponents
+        
+    '~~ Remove any component of which the corresponding Export-File
+    '~~ not exists in the Common-Components folde
+    For Each v In h_comps
         sSection = v
         If sSection <> PP.NamesHousekeepingSection Then
-            If Not dctFiles.Exists(v) Then
+            If Not h_files.Exists(v) Then
                 PP.ComponentRemove sSection
                 Prgrss.ItemDone = sSection
             Else
                 Prgrss.ItemSkipped
             End If
+        Else
+            Prgrss.ItemSkipped
         End If
     Next v
     
-xt: Set dctFiles = Nothing
-    mBasic.EoP ErrSrc(PROC)
+xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -804,7 +819,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub HskpngUsedOrPrivate()
+Private Sub HskpngUsedOrPrivate(ByVal h_wbk As Workbook)
 ' ----------------------------------------------------------------------------
 ' Manages the registration of used Common Components, done before change
 ' components are exported and used changed Common Components are updated.
@@ -818,12 +833,10 @@ Private Sub HskpngUsedOrPrivate()
     
     On Error GoTo eh
     Dim vbc                     As VBComponent
-    Dim wbk                     As Workbook
     Dim BttnConfirmedUsed       As String
     Dim BttnConfirmedPrivate    As String
     Dim Msg                     As mMsg.udtMsg
     Dim Comp                    As clsComp
-    Dim PrgrssDsply             As clsProgress
     Dim lRegState               As Long
     
     mBasic.BoP ErrSrc(PROC)
@@ -836,16 +849,11 @@ Private Sub HskpngUsedOrPrivate()
                            "This is a VBComponent which just" & vbLf & _
                            "by chance has the same name."
     
-    Set wbk = Services.ServicedWbk
-    Set PrgrssDsply = New clsProgress
-    PrgrssDsply.Operation = "Used/private Common Components housekeeping"
-    PrgrssDsply.ItemsTotal = wbk.VBProject.VBComponents.Count
-    
-    For Each vbc In wbk.VBProject.VBComponents
+    For Each vbc In h_wbk.VBProject.VBComponents
         If ExistsPublic(vbc.Name) Then
             Set Comp = New clsComp
             With Comp
-                .Wrkbk = wbk
+                .Wrkbk = h_wbk
                 .VBComp = vbc
                 '~~ The component is a known Common Component
                 lRegState = CompManDat.RegistrationState(.CompName)
@@ -877,14 +885,14 @@ Private Sub HskpngUsedOrPrivate()
                                                     CompManDat.LastModAtDateTime(.CompName) = vbNullString ' yet unknown will force update when outdated
                         Case BttnConfirmedPrivate:  CompManDat.RegistrationState(.CompName) = enRegStatePrivate
                     End Select
-                    PrgrssDsply.ItemDone = .CompName
+                    Prgrss.ItemDone = .CompName
                 Else
-                    PrgrssDsply.ItemSkipped
+                    Prgrss.ItemSkipped
                 End If
             End With
             Set Comp = Nothing
         Else
-            PrgrssDsply.ItemSkipped
+            Prgrss.ItemSkipped
         End If
     Next vbc
 
@@ -1032,7 +1040,10 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub Reorg()
+    Const PROC = "Reorg"
+    mBasic.BoP ErrSrc(PROC)
     PP.Reorg
+    mBasic.EoP ErrSrc(PROC)
 End Sub
 
 Public Sub SaveToCommonComponentsFolder(ByVal s_file As Variant)

@@ -70,9 +70,9 @@ Private lMaxLenComp         As Long
 Private wsh                 As Worksheet
 
 Public Raw                  As clsRaw       ' The raw component's properties for a Used Common Component
-Public CodeExported         As New clsCodeOfSource
-Public CodeCurrent          As New clsCodeOfSource
-Public CodePublic           As New clsCodeOfSource
+Public CodeExported         As New clsCode
+Public CodeCurrent          As New clsCode
+Public CodePublic           As New clsCode
 
 Private Sub Class_Initialize()
     If dctType Is Nothing Then Set dctType = New Dictionary Else dctType.RemoveAll
@@ -362,11 +362,11 @@ Friend Property Get MaxLenComp() As Long:                   MaxLenComp = lMaxLen
 
 Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
 ' ------------------------------------------------------------------------------
-' This is a property exclusively for a used or hosted Common Component.
-' It returns True when the component's public/raw Common Component in the
-' Common-Components folder differs and the component's Last-Modified-Date is
-' less then the Last-Modified-Date of the public/raw Common Component in the
-' Common-Components folder.
+' Returns (exclusively for a used or hosted Common Component) TRUE when the
+' component's public Common Component (in the Common-Components folder) differs
+' from the current code and the component's Last-Modified-Date is less then the
+' Last-Modified-Date of the public Common Component in the Common-Components
+' folder.
 ' Note: In case the component is not outdated but just the opposite, i.e. the
 '       component differs but has a more recent Last-Modified-Date the component
 '       is a Release candidate and collected as such
@@ -376,14 +376,14 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
     Const BTTN_IGNORE_IT        As String = "Ignore it"
     
     On Error GoTo eh
-    Dim sCommCompLastModDateTime    As String
-    Dim bCodeDiffers                   As Boolean
-    Dim sRegStat                    As String
-    Dim i                           As Long
+    Dim sCommCompPublicLastModDateTime  As String
+    Dim bCodeDiffers                    As Boolean
+    Dim sRegStat                        As String
+    Dim i                               As Long
     
     mBasic.BoP ErrSrc(PROC)
     CommComps.CompName = sCompName
-    sCommCompLastModDateTime = CommComps.LastModAtDateTime(sCompName)
+    sCommCompPublicLastModDateTime = CommComps.LastModAtDateTime(sCompName)
     CodePublic.Source = CommComps.CurrentPublicExpFileFullName
     CodeCurrent.Source = Me.ExpFileFullName
     
@@ -391,11 +391,22 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
     '~~       and this component's code differs from the current public code
     If Not CodePublic.IsNone Then
         bCodeDiffers = Me.CodeCurrent.DiffersFrom(CodePublic, True)
+        If bCodeDiffers Then Me.CodeCurrent.DiffersFromDebug CodePublic, True
     End If
     
     mCompMan.MsgInit
+    ' Cases: --------------------------------1-2-3-4-5-6--------------
+    ' C1 This code differs from the public   y y y . . .
+    ' C1 This LastModInf = LastModinf public y - - . . . .
+    ' C1 This LastModInf < LastModinf public - y - . . . .
+    ' C1 This LastModInf > LastModinf public - - y . . . .
+    ' --------------------------------------
+    '    Inconsistency message               x
+    '    Outdated = TRUE                       x
+    '    Manage Pending Release                  x
+    ' ---------------------------------------------
     Select Case True
-        Case bCodeDiffers And LastModAtDateTime = sCommCompLastModDateTime
+        Case bCodeDiffers And LastModAtDateTime = sCommCompPublicLastModDateTime
             '~~ The Common Component in the Common-Components folder and the used/hosted Common Component
             '~~ do have equal last modified information although the code differs.
             '~~ This is regarded a severe logic error!
@@ -407,7 +418,7 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
                 "This is a severe logic error which requires further investigation regarding " & _
                 "the cause (code inspection and testing)." & vbLf & _
                 "See facts below."
-            CommCompFacts i, LastModAtDateTime, sCommCompLastModDateTime
+            CommCompFacts i, LastModAtDateTime, sCommCompPublicLastModDateTime
             Do
                 Select Case mMsg.Dsply(dsply_title:="Severe inconsistent Common-Component facts!" _
                                      , dsply_msg:=Msg _
@@ -416,16 +427,16 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
                                      , dsply_buttons:=mMsg.Buttons(BTTN_DSPLY_DIFF, vbLf, vbOKOnly))
                     Case vbOK: GoTo xt
                     Case BTTN_DSPLY_DIFF
-                         CodeCurrent.DiffFromDsply d_this_file_name:="CurrentCode" _
+                         CodeCurrent.DsplyDiffs d_this_file_name:="CurrentCode" _
                                                  , d_this_file_title:="The Common Component's current code" _
                                                  , d_from_code:=CodePublic _
                                                  , d_from_file_name:="CurrentPublic" _
                                                  , d_from_file_title:="The Common Component's current public code"
                 End Select
             Loop
-        Case bCodeDiffers And LastModAtDateTime < sCommCompLastModDateTime
+        Case bCodeDiffers And LastModAtDateTime < sCommCompPublicLastModDateTime
             Outdated = True
-        Case LastModAtDateTime > sCommCompLastModDateTime
+        Case LastModAtDateTime > sCommCompPublicLastModDateTime
             '~~ When the used/hosted Common Component's last modified date-time is after the last modified date-time
             '~~ of the public/raw Common Component this is regarded a pending Release of a code modification,
             '~~ provided there isn't one registered with a modification in another Workbook.
@@ -434,12 +445,12 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
     End Select
     
     If Not Outdated Then
-        If LastModAtDateTime <> sCommCompLastModDateTime Then
-            LastModAtDateTime = sCommCompLastModDateTime
+        If LastModAtDateTime <> sCommCompPublicLastModDateTime Then
+            LastModAtDateTime = sCommCompPublicLastModDateTime
         End If
         With Services
             .ServicedItem = Me.VBComp
-            .ServicedItemLogEntry "Component is up-to-date! Revision-Number has been set to to " & sCommCompLastModDateTime & " (the raw's in the Common Components Folder)"
+            .ServicedItemLogEntry "Component is up-to-date! Revision-Number has been set to to " & sCommCompPublicLastModDateTime & " (the raw's in the Common Components Folder)"
         End With
     End If
     

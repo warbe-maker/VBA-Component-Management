@@ -8,93 +8,100 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
+' ---------------------------------------------------------------------------
+' Class Module clsCode: Provides methods and properties for the code of
+' ========================== a CodeModule or an Export-File.
 
+' Public Methods:
+' ----------------
+' AsFile                Returns the mere code of a source as file, i.e. any
+'                       leading or trailing empty code lines excluded. An
+'                       option exclude empty code lines may be used to
+'                       exclude any empty code line.
+' DiffersFrom           Returns TRUE when the code differs from the code of
+'                       another source.
+' DsplyDiffs            Displays the difference of the code of two sources
+'                       by means of WinMerge.
+'
+' Public Properties:
+' ------------------
+' AsString          get Provides the code as a single string with the code
+'                       lines delimited by a vbCrLf
+' CompName          get Name of the component for which the code is provided.
+' IsNone            get Returns TRUE when the provided source did not contain
+'                       any code lines or none other than empty lines.
+' Source            let The source from which the code is to be provided,
+'                       either an Export-File, an Export-Files full name or
+'                       a CodeModule.
+'
+' W. Rauschenberger, Berlin Jan 2024
+' ---------------------------------------------------------------------------
 Private Const NO_SOURCE As String = "Obtaining the code as array or string when the source 'is none' is useless!" & vbLf & _
                                     "The Property 'IsNone' may be used to avoid this. The Property is TRUE when " & _
                                     "there are no known code lines for whichever reason, no source ever provided, " & _
                                     "the source does not contain any code lines, or just empty code lines)."
-Private aAsArray                As Variant  ' Code as a trimmed array (without leading and trailing empty code lines)
-Private aAsArrayEmptyExcluded    As Variant  ' Code as array with any empty code lines excluded
 Private sAsString               As String   ' Code as a single timmed string (without leading and trailing empty code lines)
-Private sAsStringEmptyExcluded   As String   ' Code as a single timmed string (without leading and trailing empty code lines)
+Private sAsStringEmptyExcluded  As String   ' Code as a single timmed string (without leading and trailing empty code lines)
 Private vSource                 As Variant
 Private sCompName               As String
 Private bSourceIsNone           As Boolean
-Private flCode                  As File
+Private dctTempFiles            As New Dictionary
 
-Public Property Get AsArrayEmptyExcluded() As Variant
-' ----------------------------------------------------------------------------
-' Code as a array without leading and trailing empty code lines.
-' ----------------------------------------------------------------------------
-    Const PROC = "AsArray/Get"
-    Dim s As String
-    
-    If bSourceIsNone Then Err.Raise AppErr(1), ErrSrc(PROC), NO_SOURCE
-    If Not ArrayIsAllocated(aAsArrayEmptyExcluded) Then
-        s = Join(aAsArray, vbCrLf)
-        
-    End If
-    AsArrayEmptyExcluded = aAsArrayEmptyExcluded
+Private Sub Class_Initialize()
+    bSourceIsNone = True
+End Sub
 
-End Property
+Private Sub Class_Terminate()
+    FileTempRemove
+End Sub
 
-Public Property Get AsArray() As Variant
+Private Property Get AsArray(Optional ByVal a_empty_excluded As Boolean = False) As Variant
 ' ----------------------------------------------------------------------------
 ' Code as a array without leading and trailing empty code lines.
 ' ----------------------------------------------------------------------------
     Const PROC = "AsArray/Get"
     If bSourceIsNone Then Err.Raise AppErr(1), ErrSrc(PROC), NO_SOURCE
-    AsArray = aAsArray
+    If Not a_empty_excluded _
+    Then AsArray = Split(sAsString, vbCrLf) _
+    Else AsArray = Split(sAsStringEmptyExcluded, vbCrLf)
     
 End Property
 
-Public Property Get AsStringEmptyExcluded() As String
-' ----------------------------------------------------------------------------
-' Returns the code as a single string with any empty code line excluded.
-' ----------------------------------------------------------------------------
-    Const PROC = "AsStringEmptyExcluded"
-    
-    Dim i As Long
-    Dim j As Long
-    Dim s As String
-    
-    If bSourceIsNone Then Err.Raise AppErr(1), ErrSrc(PROC), NO_SOURCE
-    If sAsStringEmptyExcluded = vbNullString Then
-        sAsStringEmptyExcluded = StringEmptyExcluded(AsString)
-    End If
-    AsStringEmptyExcluded = sAsStringEmptyExcluded
-    
-End Property
-
-Private Function StringEmptyExcluded(ByVal s_s As String) As String
-    Dim i   As Long
-    
-    i = InStr(s_s, vbCrLf & vbCrLf)
-    Do While i <> 0
-        s_s = Replace(s_s, vbCrLf & vbCrLf, vbCrLf)
-        i = InStr(s_s, vbCrLf & vbCrLf)
-    Loop
-    StringEmptyExcluded = s_s
-    
-End Function
-
-Public Property Get AsString() As String
+Public Property Get AsString(Optional ByVal a_empty_excluded As Boolean = False) As String
 ' ----------------------------------------------------------------------------
 ' Returns the code as a single string only without leading and trailing empty
 ' code lines.
 ' ----------------------------------------------------------------------------
     Const PROC = "AsString/Get"
     If bSourceIsNone Then Err.Raise AppErr(1), ErrSrc(PROC), NO_SOURCE
-    If sAsString = vbNullString Then
-        sAsString = Join(aAsArray, vbCrLf)
-    End If
-    AsString = sAsString
+    
+    If Not a_empty_excluded _
+    Then AsString = sAsString _
+    Else AsString = sAsStringEmptyExcluded
     
 End Property
 
 Public Property Get CompName() As String:           CompName = sCompName:   End Property
 
-Public Property Let CompName(ByVal s As String):    sCompName = s:          End Property
+Private Property Get FileString(Optional ByVal f_file_path As String) As String
+
+    Open f_file_path For Input As #1
+    FileString = Input$(lOf(1), 1)
+    Close #1
+
+End Function
+
+Private Property Let FileString(Optional ByVal f_file_path As String, _
+                                         ByVal s As String)
+    
+    Open f_file_path For Output As #1
+    Print #1, s
+    Close #1
+    
+    If Not dctTempFiles.Exists(f_file_path) _
+    Then dctTempFiles.Add f_file_path, vbNullString
+    
+End Property
 
 Public Property Get IsNone() As Boolean:            IsNone = bSourceIsNone: End Property
 
@@ -113,7 +120,6 @@ Public Property Let Source(ByVal f_v As Variant)
     Const PROC = "Source/Let"
     
     Dim fl      As File
-    Dim vbc     As VBComponent
     Dim vbcm    As CodeModule
     
     Select Case TypeName(f_v)
@@ -122,130 +128,38 @@ Public Property Let Source(ByVal f_v As Variant)
                 With New FileSystemObject
                     If .FileExists(f_v) Then
                         vSource = f_v
-                        sCompName = fso.GetBaseName(f_v)
-                        aAsArray = ArrayFromExpFile(.GetFile(f_v))
+                        Set fl = .GetFile(f_v)
+                        sCompName = fso.GetBaseName(fl)
+                        sAsString = StringFromExpFile(fl)
                     End If
                 End With
             End If
         Case "VBComponent"
-            Set vbc = f_v
-            Set vbcm = vbc.CodeModule
-            If vbcm.CountOfLines > 0 Then
-                aAsArray = ArrayFromComp(vbcm)
-            Else
-                bSourceIsNone = True
-            End If
+            Set vSource = f_v
+            Set vbcm = f_v.CodeModule
+            If sCompName = "wbCompMan" Then Stop
+            If vbcm.CountOfLines > 0 _
+            Then sAsString = StringFromComp(vbcm)
         Case "CodeModule"
+            Set vSource = f_v
             Set vbcm = f_v
             sCompName = vbcm.Parent.Name
-            If vbcm.CountOfLines > 0 Then
-                aAsArray = ArrayFromComp(vbcm)
-            Else
-                bSourceIsNone = True
-            End If
+'            If sCompName = "wbCompMan" Then Stop
+            If vbcm.CountOfLines > 0 _
+            Then sAsString = StringFromComp(vbcm)
         Case "File"
-            Set fl = f_v
             Set vSource = f_v
+            Set fl = f_v
             sCompName = fso.GetBaseName(fl.Path)
-            aAsArray = ArrayFromExpFile(fl)
-        Case Else
-            bSourceIsNone = True
+            sAsString = StringFromExpFile(f_v)
     End Select
+    If sAsString <> vbNullString Then
+        sAsStringEmptyExcluded = StringEmptyExcluded(sAsString)
+    End If
     
 End Property
 
-Private Function ArrayFromComp(ByVal c_vbcm As CodeModule) As Variant
-' ----------------------------------------------------------------------------
-' Returns an array with the code lines in the CodeModule (c_cbcm) whereby
-' any empty leading and trailing code lines are already excempted.
-' ----------------------------------------------------------------------------
-
-    Dim iEmpty              As Long
-    Dim sCode               As String ' code without any leading and trailing empty code lines
-    
-    With c_vbcm
-        If .CountOfLines > 0 Then
-            Set vSource = c_vbcm
-            sCode = .Lines(1, .CountOfLines)
-            '~~ Eliminate leading empty code lines
-            Do While Left(sCode, 2) = vbCrLf
-                sCode = Right(sCode, Len(sCode) - 2)
-            Loop
-            '~~ Eliminate trailing empty code lines
-            Do While Right(sCode, 2) = vbCrLf
-                sCode = Left(sCode, Len(sCode) - 2)
-            Loop
-            If Len(sCode) >= 1 Then
-                '~~ The component not only contains empty code lines
-                sAsString = sCode ' already done on the fly
-                aAsArray = ArrayTrimmed(Split(sCode, vbCrLf))
-                bSourceIsNone = False
-                '~~ Eliminate any empty code lines
-                sAsStringEmptyExcluded = StringEmptyExcluded(sCode)
-                aAsArrayEmptyExcluded = Split(sAsStringEmptyExcluded, vbCrLf)
-            End If
-        End If
-    End With
-    
-End Function
-
-Private Function ArrayFromExpFile(ByVal a_fl As File) As Variant
-' ----------------------------------------------------------------------------
-' Returns an array with the code lines in the Export-File (a_fl) whereby
-' any empty leading and trailing code lines are already excempted.
-' ----------------------------------------------------------------------------
-    Const PROC = "ArrayFromExpFile"
-    
-    On Error GoTo eh
-    Dim sCode       As String
-    Dim aLines()    As String
-    Dim i           As Integer
-    Dim j           As Integer
-    Dim arr         As Variant
-    
-    Open a_fl For Input As #1
-    sCode = Input$(lOf(1), 1)
-    Close #1
-    
-    aLines = Split(sCode, vbCrLf)
-    '~~ Skip all lines before any "Attribute VB_...." line
-    Do While Not aLines(i) Like "Attribute VB_*"
-        i = i + 1
-        If i > UBound(aLines) Then Exit Do
-    Loop
-    
-    '~~ Skip all "Attribute VB_...." lines
-    Do Until Not aLines(i) Like "Attribute VB_*"
-        i = i + 1
-        If i > UBound(aLines) Then Exit Do
-    Loop
-    
-    '~~ Move all remaining code lines up - disregarding any empty lines
-    j = 0
-    For i = i To UBound(aLines)
-        aLines(j) = aLines(i)
-        j = j + 1
-    Next i
-    
-    '~~ Redim the array to the - now shortend content
-    If ArrayIsAllocated(aLines) And j <> 0 Then
-        ReDim Preserve aLines(j - 1)
-        arr = ArrayTrimmed(aLines)
-        bSourceIsNone = False
-    End If
-    ArrayFromExpFile = arr
-    sAsString = Join(arr, vbCrLf)
-    sAsStringEmptyExcluded = StringEmptyExcluded(sAsString)
-    
-xt: Exit Function
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Function ArrayIsAllocated(a_v As Variant) As Boolean
+Private Function ArrayIsAllocated(a_v As Variant) As Boolean
     On Error Resume Next
     ArrayIsAllocated = Not IsError(UBound(a_v))
 End Function
@@ -271,38 +185,50 @@ Private Function ArrayTrimmed(ByVal t_v As Variant) As Variant
         If Len(Trim(t_v(i))) > 0 Then Exit For
     Next i
     
-    '~~ Get last code line not empty
-    For j = UBound(t_v) To LBound(t_v) Step -1
-        If Len(Trim(t_v(j))) > 0 Then Exit For
-    Next j
-    
-    If i < 0 Or j < 0 Then
+    If i < 0 Then
         bSourceIsNone = True
     Else
-        ReDim arr(j)
-        For i = i To j
-            arr(k) = t_v(i)
+        '~~ Mode all items up
+        For i = i To UBound(t_v)
+            t_v(k) = t_v(i)
             k = k + 1
         Next i
+        arr = t_v
+        '~~ Eliminate trailing empty items
+        Do While Trim(arr(UBound(arr))) = vbNullString
+            ReDim Preserve arr(UBound(arr) - 1)
+        Loop
         ArrayTrimmed = arr
         bSourceIsNone = False
     End If
     
 End Function
 
-Public Function AsFile(ByVal a_file_name As String) As File
-' ----------------------------------------------------------------------------
-' Returns the code in a VBcomponent or an Export-File as a File with leading
-' and trailing empty code lines eliminated. The function is used to display
-' a code difference.
-' ----------------------------------------------------------------------------
-    Set AsFile = FileFromArray(aAsArray, a_file_name)
+Public Function AsFile(ByVal a_name As String, _
+              Optional ByVal a_empty_excluded As Boolean = False) As File
+' ------------------------------------------
+' Returns the code from the Source as
+' temporary file with a given name (a_name),
+' optionally with empty code lines excluded.
+' ------------------------------------------
+    Dim sTempFile As String
+    
+    sTempFile = FileTempName(a_name)
+    With New FileSystemObject
+        If .FileExists(sTempFile) _
+        Then .DeleteFile sTempFile
+    End With
+    
+    If Not a_empty_excluded _
+    Then FileString(sTempFile) = sAsString _
+    Else FileString(sTempFile) = sAsStringEmptyExcluded
+    
 End Function
 
-Public Function DiffersFrom(ByVal d_from As clsCode, _
-                   Optional ByVal d_empty_included As Boolean = True) As Boolean
+Public Function DiffersFrom(ByVal d_from_code As clsCode, _
+                   Optional ByVal d_empty_excluded As Boolean = False) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns TRUE when this code lines differ from those (d_from) code lines
+' Returns TRUE when this code lines differ from those (d_from_code) code lines
 ' ----------------------------------------------------------------------------
     Const PROC = "DiffersFrom"
     
@@ -312,50 +238,13 @@ Public Function DiffersFrom(ByVal d_from As clsCode, _
     Dim arrFrom As Variant
     
     Select Case True
-        Case Not IsNone And Not d_from.IsNone
-            If d_empty_included Then
-                DiffersFrom = StrComp(AsString, d_from.AsString, vbTextCompare)
-                Debug.Print "changed (empty included): " & sCompName
-                If DiffersFrom Then
-                    Debug.Print "changed (empty included): " & sCompName & vbLf & "The first detected difference:"
-                    arr = Split(AsString, vbCrLf)
-                    arrFrom = Split(d_from.AsString, vbCrLf)
-                    For i = 1 To Min(UBound(arr), UBound(arrFrom))
-                        If StrComp(arr(i), arrFrom(i), vbTextCompare) <> 0 Then
-                            Debug.Print "Line " & i & """" & arr(i) & """"
-                            Debug.Print "Line " & i & """ & arrFrom(i) & """""
-                            Exit For
-                        End If
-                    Next i
-                End If
-            Else
-                DiffersFrom = StrComp(AsStringEmptyExcluded, d_from.AsStringEmptyExcluded, vbTextCompare)
-                If DiffersFrom Then
-                    Debug.Print "changed (empty excluded): " & sCompName & vbLf & "The first detected difference:"
-                    arr = Split(AsStringEmptyExcluded, vbCrLf)
-                    arrFrom = Split(d_from.AsStringEmptyExcluded, vbCrLf)
-                    For i = 1 To Min(UBound(arr), UBound(arrFrom))
-                        If StrComp(arr(i), arrFrom(i), vbTextCompare) <> 0 Then
-                            Debug.Print "Line " & i & """" & arr(i) & """"
-                            Debug.Print "Line " & i & """ & arrFrom(i) & """""
-                            Exit For
-                        End If
-                    Next i
-                End If
-            End If
-            
-        Case Not Me.IsNone And d_from.IsNone
-            DiffersFrom = True
-        Case Me.IsNone And Not d_from.IsNone
-            DiffersFrom = True
-        Case Me.IsNone And d_from.IsNone
-            Err.Raise AppErr(1), ErrSrc(PROC), NO_SOURCE
+        Case Not IsNone And Not d_from_code.IsNone
+            DiffersFrom = StrComp(AsString(d_empty_excluded), d_from_code.AsString(d_empty_excluded), vbTextCompare)
+        Case Not Me.IsNone And d_from_code.IsNone:   DiffersFrom = True
+        Case Me.IsNone And Not d_from_code.IsNone:   DiffersFrom = True
+        Case Me.IsNone And d_from_code.IsNone:       Err.Raise AppErr(1), ErrSrc(PROC), NO_SOURCE
     End Select
     
-    If DiffersFrom Then
-    Else
-        Debug.Print "unchanged: " & sCompName
-    End If
 xt: Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -364,27 +253,53 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub DiffFromDsply(ByVal d_this_file_name As String, _
+Public Sub DiffersFromDebug(ByVal d_from_code As clsCode, _
+                   Optional ByVal d_empty_excluded As Boolean = False)
+
+    Dim i       As Long
+    Dim arr     As Variant
+    Dim arrFrom As Variant
+    
+    If d_empty_excluded _
+    Then Debug.Print "changed (empty excluded)   : " & sCompName _
+    Else Debug.Print "changed (empty included)   : " & sCompName
+    arr = Split(AsString(d_empty_excluded), vbCrLf)
+    arrFrom = Split(d_from_code.AsString(d_empty_excluded), vbCrLf)
+    For i = 1 To Min(UBound(arr), UBound(arrFrom))
+        If StrComp(arr(i), arrFrom(i), vbTextCompare) <> 0 Then
+            Debug.Print "                             The first difference has been detected in line " & i & ":"
+            Debug.Print "                             Line " & i & " """ & arr(i) & """"
+            Debug.Print "                             Line " & i & " """ & arrFrom(i) & """"
+            Exit For
+        End If
+    Next i
+
+End Sub
+
+Public Sub DsplyDiffs(ByVal d_this_file_name As String, _
                          ByVal d_this_file_title As String, _
-                         ByVal d_from As clsCode, _
+                         ByVal d_from_code As clsCode, _
                          ByVal d_from_file_name As String, _
                          ByVal d_from_file_title As String)
 ' ----------------------------------------------------------------------------
 ' Left is the current code, Right is the changed code
 ' ----------------------------------------------------------------------------
-    Const PROC As String = "DiffFromDsply"
+    Const PROC As String = "DsplyDiffs"
     
     On Error GoTo eh
-    Dim flThis As File
-    Dim flFrom As File
+    Dim sFileThis   As String
+    Dim sFileFrom   As String
     
-    Set flThis = AsFile("CurrentPublic")
-    Set flFrom = d_from.AsFile("PendingRelease")
+    sFileThis = FileTempName(d_this_file_name)
+    sFileFrom = FileTempName(d_from_file_name)
     
-    DsplyFilesDiff d_file_left_full_name:=flThis.Path _
-                 , d_file_right_full_name:=flFrom.Path _
-                 , d_file_left_title:="The current public code (in Common-Components folder)" _
-                 , d_file_right_title:="The changed code pending release"
+    FileString(sFileFrom) = d_from_code.AsString
+    FileString(sFileThis) = AsString
+    
+    DsplyFilesDiff d_file_left_full_name:=sFileThis _
+                 , d_file_right_full_name:=sFileFrom _
+                 , d_file_left_title:=d_this_file_title _
+                 , d_file_right_title:=d_from_file_title
     
 xt: Exit Sub
 
@@ -394,45 +309,10 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "clsCode" & "." & sProc
-End Function
-
-Private Function FileFromArray(ByVal a_v As Variant, _
-                               ByVal a_file_name As String, _
-                      Optional ByVal f_ignore_empty As Boolean = True) As File
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Dim ts          As TextStream
-    Dim sFileName   As String
-    
-    With New FileSystemObject
-        sFileName = .GetSpecialFolder(2) & "\" & a_file_name & ".txt"
-        Set ts = .CreateTextFile(sFileName, True)
-        If ArrayIsAllocated(a_v) Then
-            ts.Write Join(a_v, vbCrLf)
-        End If
-        ts.Close
-        Set FileFromArray = .GetFile(sFileName)
-   End With
-
-End Function
-
-Private Sub Class_Initialize()
-    bSourceIsNone = True
-End Sub
-
-Private Sub Class_Terminate()
-    If Not flCode Is Nothing Then
-        If fso.FileExists(flCode) Then fso.DeleteFile (flCode.Path)
-    End If
-End Sub
-
-Public Function DsplyFilesDiff(ByVal d_file_left_full_name As String, _
-                               ByVal d_file_right_full_name As String, _
-                               ByVal d_file_left_title As String, _
-                               ByVal d_file_right_title As String) As Boolean
+Private Function DsplyFilesDiff(ByVal d_file_left_full_name As String, _
+                                ByVal d_file_right_full_name As String, _
+                                ByVal d_file_left_title As String, _
+                                ByVal d_file_right_title As String) As Boolean
 ' ----------------------------------------------------------------------------
 ' Displays the differences between export file 1 and 2 by means of WinMerge!
 ' Note: CompMan ignores any differences caused by empty code lines or case.
@@ -494,4 +374,191 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "clsCode" & "." & sProc
+End Function
+
+Private Function FileTemp(ByVal f_name As String) As File
+    Dim sFileName   As String
+    Dim ts          As TextStream
+    
+    With New FileSystemObject
+        sFileName = .GetSpecialFolder(2) & "\" & f_name & ".txt"
+        Set ts = .CreateTextFile(sFileName, True)
+        ts.Close
+   End With
+
+End Function
+
+Private Function FileTempName(ByVal f_name As String) As String
+' ------------------------------------------
+' Returns a temporary file's full name with
+' a given nam (f_name).
+' ------------------------------------------
+    
+    If UBound(Split(f_name, ".")) = 0 Then
+        f_name = f_name & ".txt"
+    End If
+    With New FileSystemObject
+        FileTempName = .GetSpecialFolder(2).Path & "\" & f_name
+    End With
+    
+End Function
+
+Private Sub FileTempRemove()
+' ------------------------------------------
+' Remives all temporary files created.
+' ------------------------------------------
+    Dim v As Variant
+    
+    With New FileSystemObject
+        For Each v In dctTempFiles
+            If .FileExists(v) _
+            Then .DeleteFile v
+        Next v
+    End With
+    
+End Sub
+
+Private Function StringEmptyExcluded(ByVal s_s As String) As String
+    Dim i   As Long
+    
+    i = InStr(s_s, vbCrLf & vbCrLf)
+    Do While i <> 0
+        s_s = Replace(s_s, vbCrLf & vbCrLf, vbCrLf)
+        i = InStr(s_s, vbCrLf & vbCrLf)
+    Loop
+    StringEmptyExcluded = s_s
+    
+End Function
+
+Private Function StringFromComp(ByVal c_vbcm As CodeModule) As Variant
+' ----------------------------------------------------------------------------
+' Returns a string with all the code lines in the CodeModule (c_cbcm) whereby
+' any empty leading and trailing code lines are already excempted.
+' ----------------------------------------------------------------------------
+
+    Dim iEmpty              As Long
+    Dim sCode               As String ' code without any leading and trailing empty code lines
+    
+    With c_vbcm
+        If .CountOfLines > 0 Then
+            Set vSource = c_vbcm
+            sCode = .Lines(1, .CountOfLines)
+            '~~ Eliminate leading empty code lines
+            Do While Left(sCode, 2) = vbCrLf
+                sCode = Right(sCode, Len(sCode) - 2)
+            Loop
+            '~~ Eliminate trailing empty code lines
+            Do While Right(sCode, 2) = vbCrLf
+                sCode = Left(sCode, Len(sCode) - 2)
+            Loop
+            If Len(sCode) >= 1 Then
+                '~~ The component not only contains empty code lines
+                bSourceIsNone = False
+                StringFromComp = sCode
+            End If
+        End If
+    End With
+    
+End Function
+
+Private Function StringFromExpFile(ByVal a_fl As File) As String
+' ----------------------------------------------------------------------------
+' Returns an array with the code lines in the Export-File (a_fl) whereby
+' any empty leading and trailing code lines are already excempted.
+' ----------------------------------------------------------------------------
+    Const PROC = "StringFromExpFile"
+    
+    On Error GoTo eh
+    Dim sCode       As String
+    Dim aLines()    As String
+    Dim i           As Integer
+    Dim j           As Integer
+    Dim arr         As Variant
+    
+    Open a_fl For Input As #1
+    sCode = Input$(lOf(1), 1)
+    Close #1
+    
+    '~~ Eliminate trailing empty lines
+    Do While Right(sCode, 4) = vbCrLf & vbCrLf
+        sCode = Left(sCode, Len(sCode) - 2)
+    Loop
+    
+    aLines = Split(sCode, vbCrLf)
+    '~~ Skip all lines before any "Attribute VB_...." line
+    Do While Not aLines(i) Like "Attribute VB_*"
+        i = i + 1
+        If i > UBound(aLines) Then Exit Do
+    Loop
+    
+    '~~ Skip all "Attribute VB_...." lines
+    Do Until Not aLines(i) Like "Attribute VB_*" _
+         And Not aLines(i) = vbCrLf & vbCrLf
+        i = i + 1
+        If i > UBound(aLines) Then Exit Do
+    Loop
+    
+    '~~ Move all remaining code lines up - disregarding any empty lines
+    j = 0
+    For i = i To UBound(aLines)
+        aLines(j) = aLines(i)
+        j = j + 1
+    Next i
+    
+    '~~ Redim the array to the - now shortend content
+    If ArrayIsAllocated(aLines) And j <> 0 Then
+        ReDim Preserve aLines(j - 1)
+        arr = ArrayTrimmed(aLines)
+        bSourceIsNone = False
+    End If
+    If ArrayIsAllocated(arr) _
+    Then StringFromExpFile = Join(arr, vbCrLf) _
+    Else StringFromExpFile = vbNullString
+    
+xt: Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function StringTrimmed(ByVal s_s As String, _
+                      Optional ByRef s_as_dict As Dictionary = Nothing) As String
+' ----------------------------------------------------------------------------
+' Returns the code (s_s) provided as a single string without leading and
+' trailing empty lines. When a Dictionary is provided the string is returned
+' as items with the line number as key.
+' ----------------------------------------------------------------------------
+    Dim s As String
+    Dim i As Long
+    Dim v As Variant
+    
+    s = s_s
+    '~~ Eliminate leading empty code lines
+    Do While Left(s, 2) = vbCrLf
+        s = Right(s, Len(s) - 2)
+    Loop
+    '~~ Eliminate trailing eof
+    If Right(s, 1) = VBA.Chr(26) _
+    Then s = Left(s, Len(s) - 1)
+    
+    '~~ Eliminate trailing empty code lines
+    Do While Right(s, 2) = vbCrLf
+        s = Left(s, Len(s) - 2)
+    Loop
+    
+    StringTrimmed = s
+    If Not s_as_dict Is Nothing Then
+        With s_as_dict
+            For Each v In Split(s, vbCrLf)
+                i = i + 1
+                .Add i, v
+            Next v
+        End With
+    End If
+    
+End Function
 

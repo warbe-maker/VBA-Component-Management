@@ -210,7 +210,9 @@ Private Function StringFromExpFile(ByVal a_fl As File) As String
         arr = ArrayTrimmed(aLines)
         bSourceIsNone = False
     End If
-    StringFromExpFile = Join(arr, vbCrLf)
+    If ArrayIsAllocated(arr) _
+    Then StringFromExpFile = Join(arr, vbCrLf) _
+    Else StringFromExpFile = vbNullString
     
 xt: Exit Function
 

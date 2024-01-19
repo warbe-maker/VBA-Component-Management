@@ -46,8 +46,12 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
     If Services.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
     Set wbk = Services.ServicedWbk
     Set Prgrss = New clsProgress
-    Prgrss.Operation = "exported"
-    Prgrss.ItemsTotal = wbk.VBProject.VBComponents.Count
+    With Prgrss
+        .Operation = "exported"
+        .ItemsTotal = wbk.VBProject.VBComponents.Count
+        .Figures = True
+        .DoneItems = True
+    End With
     
     For Each vbc In wbk.VBProject.VBComponents
         Set Comp = New clsComp
