@@ -184,7 +184,7 @@ Public Sub Setup()
     
 xt: Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -219,7 +219,7 @@ Private Sub SetupItem(ByVal s_caption As String, _
     
 xt: Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

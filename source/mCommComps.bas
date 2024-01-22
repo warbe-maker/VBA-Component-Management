@@ -40,8 +40,10 @@ Public Sub OutdatedUpdate()
     Const PROC = "OutdatedUpdate"
     
     On Error GoTo eh
+    
     If Qoutdated Is Nothing Then
         OutdatedUpdate1Collect
+                
         If Not Qoutdated.IsEmpty Then sUpdateDone = "updated" Else sUpdateDone = "outdated"
     End If
     If Not Qoutdated.IsEmpty Then
@@ -52,7 +54,7 @@ Public Sub OutdatedUpdate()
     
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -200,7 +202,7 @@ Private Sub OutdatedUpdate2Choice()
     
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -226,7 +228,7 @@ Private Sub OutdatedUpdate2Choice2DsplyDiffs()
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -261,7 +263,7 @@ xt: Services.MessageUnload UpdateTitle
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -295,7 +297,7 @@ xt: Services.MessageUnload UpdateTitle
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -353,7 +355,7 @@ xt: Services.MessageUnload UpdateTitle
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -378,6 +380,8 @@ Private Sub OutdatedUpdate1Collect()
     Set wbk = Services.ServicedWbk
     Set Qoutdated = New clsQ
     Set dct = Comps.All ' all = all relevant for the current service
+    Prgrss.ItemsTotal = dct.Count
+    Prgrss.Operation = "outdated"
     
     For Each v In dct
         Set Comp = dct(v)
@@ -393,11 +397,13 @@ Private Sub OutdatedUpdate1Collect()
                 If bOutdated Then
                     Qoutdated.EnQueue Comp
                     sName = .CompName
+                    Prgrss.ItemDone = .CompName
                     With Services
                         .NoOfItemsServicedNames = sName
                         .NoOfItemsOutdated = Qoutdated.Size
                     End With
                 Else
+                    Prgrss.ItemSkipped
                     If .LastModAtDateTime < CommComps.LastModAtDateTime Then
                         .LastModAtDateTime = CommComps.LastModAtDateTime
                     End If
@@ -406,22 +412,23 @@ Private Sub OutdatedUpdate1Collect()
                         .ServicedItemLogEntry "Used Common Component is up-to-date"
                     End With
                 End If ' .Outdated
+            Else
+                Prgrss.ItemSkipped
             End If
         End With
         Set Comp = Nothing
         Application.StatusBar = vbNullString
         DoEvents
-        Services.Progress "Common Components outdated"
     Next v
-    Services.Progress "Common Components outdated"
     mCompManMenu.Setup
+    Prgrss.Dsply
     
 xt: If wsService.CommonComponentsUsed = 0 Then wsService.CommonComponentsUsed = Services.NoOfCommonComponents
     If wsService.CommonComponentsOutdated = 0 Then wsService.CommonComponentsOutdated = Qoutdated.Size
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

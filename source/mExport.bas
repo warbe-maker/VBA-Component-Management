@@ -50,7 +50,7 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
         .Operation = "exported"
         .ItemsTotal = wbk.VBProject.VBComponents.Count
         .Figures = True
-        .DoneItems = True
+        .DoneItemsInfo = True
     End With
     
     For Each vbc In wbk.VBProject.VBComponents
@@ -92,9 +92,10 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
                 Prgrss.ItemSkipped
             End If
         End With
-nxt:    Set Comp = Nothing
+
+nxt:    Prgrss.Dsply
+        Set Comp = Nothing
     Next vbc
-    Prgrss.Dsply
     Set Comps = Nothing
     Set Prgrss = Nothing
     
@@ -108,7 +109,7 @@ nxt:    Set Comp = Nothing
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -164,7 +165,7 @@ xt: Set fl = Nothing
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -219,7 +220,7 @@ Public Function ExpFileFolderPath(ByVal v As Variant) As String
 xt: ExpFileFolderPath = sPath
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -250,7 +251,7 @@ Private Function AnExportFolderExists(ByVal oef_path As String, _
     
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

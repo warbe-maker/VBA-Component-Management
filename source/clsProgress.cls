@@ -19,7 +19,7 @@ Private sServiceName    As String
 Private sWbkServiced    As String
 Private sWbkServicing   As String
 Private bFigures        As Boolean
-Private bDoneItems      As Boolean
+Private bDoneItemsInfo  As Boolean
 
 Private Sub Class_Initialize()
     sServiceName = mCompManClient.ServiceName(Services.CurrentService)
@@ -27,16 +27,15 @@ Private Sub Class_Initialize()
     sWbkServicing = ThisWorkbook.Name
 End Sub
 
-Public Property Let DoneItems(ByVal d_b As Boolean):    bDoneItems = d_b:               End Property
+Public Property Let DoneItemsInfo(ByVal d_b As Boolean):    bDoneItemsInfo = d_b:               End Property
 
 Public Property Let Figures(ByVal f_b As Boolean):      bFigures = f_b:                 End Property
 
 Public Property Let ItemDone(ByVal i_name As String)
-    If ArrayIsAllocated(aDone) Then
-        ReDim Preserve aDone(UBound(aDone) + 1)
-    Else
-        ReDim aDone(0)
-    End If
+
+    If ArrayIsAllocated(aDone) _
+    Then ReDim Preserve aDone(UBound(aDone) + 1) _
+    Else ReDim aDone(0)
     aDone(UBound(aDone)) = i_name
     lItemsDone = UBound(aDone) + 1
     Dsply
@@ -44,6 +43,7 @@ Public Property Let ItemDone(ByVal i_name As String)
 End Property
 
 Public Property Get ItemsSkipped() As Long:             ItemsSkipped = lItemsSkipped:   End Property
+
 Public Property Get ItemsDone() As Long:                ItemsDone = lItemsDone:         End Property
 
 Public Property Let ItemsTotal(ByVal i As Long)
@@ -71,7 +71,7 @@ Public Sub Dsply()
 End Sub
 
 Private Function ItemsDoneInfo() As String
-    If bDoneItems Then
+    If bDoneItemsInfo Then
         If ArrayIsAllocated(aDone) _
         Then ItemsDoneInfo = "(" & Join(aDone, ", ") & ")"
     End If

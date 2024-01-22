@@ -49,19 +49,18 @@ Option Base 1 ' ensures the index conforms with the column number
 '
 ' Properties:
 ' -----------
-' - FileFullName  r/w     Specifies the full name of the log-file. The location
-'                         defaults to the ActiveWorkbook's parent folder, the name
-'                         defaults to the ActiveWorkbook's BaseName with a .log
-'                         file extention.
-' - FileName      w       Specifies the log-file's name, defaults to the
-'                         ActiveWorkbook's BaseName with a .log file extention.
-' - KeepDays      w       Specifies the number of days a new created log-file is
-'                         kept before it is deleted and re-created, defaults to 1.
-' - LogFile       r       The log-file as file object
-' - Path          w       Sepcifies the log-file's location/folder, defaults to the
-'                         ActiveWorkbook's parent folder
+' - FileFullName  r/w Specifies the full name of the log-file. The location defaults
+'                     to the ActiveWorkbook's parent folder, the name defaults to the
+'                     ActiveWorkbook's BaseName with a .log file extention.
+' - FileName      w   Specifies the log-file's name, defaults to the ActiveWorkbook's
+'                     BaseName with a .log file extention.
+' - KeepDays      w   Specifies the number of days a new created log-file is kept
+'                     before it is deleted and re-created, defaults to 1.
+' - LogFile       r   The log-file as file object
+' - Path          w   Sepcifies the log-file's location/folder, defaults to the
+'                     ActiveWorkbook's parent folder
 '
-' W. Rauschenberger, Berlin Apr 2023
+' W. Rauschenberger, Berlin Jan 2024
 ' See: https://github.com/warbe-maker/VBA-Log-Service
 ' -----------------------------------------------------------------------------------
 Private aAlignmentsHeader   As Variant
@@ -93,7 +92,7 @@ Private sServicedItemName   As String
 Private sServicedItemType   As String
 Private sTitleFill          As String
 
-#If Not MsgComp = 1 Then
+#If Not mMsg = 1 Then
     ' -------------------------------------------------------------------------------
     ' The 'minimum error handling' aproach implemented with this module and
     ' provided by the ErrMsg function uses the VBA.MsgBox to display an error
@@ -101,7 +100,7 @@ Private sTitleFill          As String
     ' provided the Conditional Compile Argument 'Debugging = 1'.
     ' This declaration allows the mTrc module to work completely autonomous.
     ' It becomes obsolete when the mMsg/fMsg module is installed which must
-    ' be indicated by the Conditional Compile Argument MsgComp = 1.
+    ' be indicated by the Conditional Compile Argument mMsg = 1.
     ' See https://github.com/warbe-maker/Common-VBA-Message-Service
     ' -------------------------------------------------------------------------------
     Private Const vbResumeOk As Long = 7 ' Buttons value in mMsg.ErrMsg (pass on not supported)
@@ -887,8 +886,8 @@ Private Function ErrMsg(ByVal err_source As String, _
 ' optional additional "About:" section when the err_dscrptn has an additional
 ' string concatenated by two vertical bars (||), and displays the error message
 ' by means of VBA.MsgBox when neither the Common Component mErH (indicated by
-' the Conditional Compile Argument "ErHComp = 1", nor the Common Component mMsg
-' (idicated by the Conditional Compile Argument "MsgComp = 1") is installed.
+' the Conditional Compile Argument "mErH = 1", nor the Common Component mMsg
+' (idicated by the Conditional Compile Argument "mMsg = 1") is installed.
 '
 ' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
 '               to turn them into a negative and in the error message back into
@@ -900,12 +899,12 @@ Private Function ErrMsg(ByVal err_source As String, _
 '
 ' See: https://github.com/warbe-maker/Common-VBA-Error-Services
 ' ------------------------------------------------------------------------------' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt
-#ElseIf MsgComp = 1 Then
+#ElseIf mMsg = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
     '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
     ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
@@ -960,12 +959,8 @@ Private Function ErrMsg(ByVal err_source As String, _
     ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
     If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
     
-#If Debugging Then
     ErrBttns = vbYesNo
     ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
     ErrMsg = MsgBox(Title:=ErrTitle, Prompt:=ErrText, Buttons:=ErrBttns)
 xt:
 End Function

@@ -2,6 +2,7 @@ Attribute VB_Name = "mDct"
 Option Explicit
 ' ----------------------------------------------------------------------------
 ' Standard Module mDct: Procedures for Dictionaries
+' =====================
 '
 ' Note: 1. Procedures of the mDct module do not use the Common VBA Error Handler.
 '          However, test module uses the mErrHndlr module for test purpose.
@@ -21,7 +22,7 @@ Option Explicit
 '               Note: The reference to "Microsoft Visual Basic Application Extensibility .."
 '               is for the mMsgTest module only!
 '
-' W. Rauschenberger, Berlin Sept 2020
+' W. Rauschenberger, Berlin Jan 2024
 ' ----------------------------------------------------------------------------
 Private bAddedAfter     As Boolean
 Private bAddedBefore    As Boolean
@@ -392,7 +393,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function ErrMsg(ByVal err_source As String, _
+Private Function ErrMsg(ByVal err_source As String, _
               Optional ByVal err_no As Long = 0, _
               Optional ByVal err_dscrptn As String = vbNullString, _
               Optional ByVal err_line As Long = 0) As Variant
@@ -405,7 +406,7 @@ Public Function ErrMsg(ByVal err_source As String, _
 '             an additional string concatenated by two vertical bars (||)
 '           - the error message by means of the Common VBA Message Service
 '             (fMsg/mMsg) when installed and active (Cond. Comp. Arg.
-'             `MsgComp = 1`)
+'             `mMsg = 1`)
 '
 ' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
 '               to turn them into a negative and in the error message back into
@@ -414,12 +415,12 @@ Public Function ErrMsg(ByVal err_source As String, _
 ' W. Rauschenberger Berlin, June 2023
 ' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is avaiLabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt
-#ElseIf MsgComp = 1 Then
+#ElseIf mMsg = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
     '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
     ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
@@ -474,12 +475,8 @@ Public Function ErrMsg(ByVal err_source As String, _
     ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
     If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
     
-#If Debugging = 1 Then
     ErrBttns = vbYesNo
     ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
     ErrMsg = MsgBox(Title:=ErrTitle, Prompt:=ErrText, Buttons:=ErrBttns)
 xt:
 End Function

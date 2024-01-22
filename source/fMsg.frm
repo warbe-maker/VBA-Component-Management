@@ -1,9 +1,9 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} fMsg 
-   ClientHeight    =   14796
+   ClientHeight    =   14805
    ClientLeft      =   240
-   ClientTop       =   396
-   ClientWidth     =   15156
+   ClientTop       =   390
+   ClientWidth     =   15150
    OleObjectBlob   =   "fMsg.frx":0000
 End
 Attribute VB_Name = "fMsg"
@@ -43,10 +43,8 @@ Option Explicit
 '
 ' Requires:     Reference to "Microsoft Scripting Runtime"
 '
-' See details at:
-' https://warbe-maker.github.io/warbe-maker.github.io/vba/common/2020/11/17/Common-VBA-Message-Services.html
-'
 ' W. Rauschenberger Berlin, Jan 2024
+' See https://warbe-maker.github.io/warbe-maker.github.io/vba/common/2020/11/17/Common-VBA-Message-Services.html
 ' --------------------------------------------------------------------------
 Private Const DFLT_BTTN_MIN_WIDTH           As Single = 70              ' Default minimum reply button width
 Private Const DFLT_LBL_MONOSPACED_FONT_NAME As String = "Courier New"   ' Default monospaced Font name
@@ -1784,17 +1782,12 @@ Private Function ErrMsg(ByVal err_source As String, _
                   "About: " & vbLf & _
                   ErrAbout
     
-#If Debugging Then
     ErrBttns = vbYesNoCancel
     ErrText = ErrText & vbLf & vbLf & _
               "Debugging:" & vbLf & _
               "Yes    = Resume error line" & vbLf & _
               "No     = Resume Next (skip error line)" & vbLf & _
               "Cancel = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
-    
     ErrMsg = MsgBox(Title:=ErrTitle _
                   , Prompt:=ErrText _
                   , Buttons:=ErrBttns)

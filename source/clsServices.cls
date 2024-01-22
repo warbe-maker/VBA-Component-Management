@@ -128,7 +128,7 @@ Friend Property Get ServicedWbk() As Workbook
     
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -201,7 +201,7 @@ Friend Property Let ServicedItem(Optional ByRef s_max_len_name As Long, _
 
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -280,7 +280,7 @@ Public Function Denied(ByVal d_service As String) As Boolean
     
 xt: Exit Function
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -313,22 +313,21 @@ End Function
 Public Sub EstablishExecTraceFile()
 ' --------------------------------------------------------------------------
 ' Establishes a trace log file in the serviced Workbook's parent folder
-' provided either the Cond. Comp. Arg. `XcTrc_mTrc = 1` or XcTrc_clsTrc = 1`
+' provided either the Cond. Comp. Arg. `mTrc = 1` or `clsTrc = 1`
 ' Note: A new trace-log-file is provided with the SRVC_UPDATE_OUTDATED which
 '       is the service performed when a serviced Workbook is opened.
 ' --------------------------------------------------------------------------
     Const PROC = "EstablishExecTraceFile"
     Const TRACE_FILE_NAME   As String = "CompMan.Services.ExecTrace.log"
 
-#If XcTrc_mTrc = 1 Then
+#If mTrc = 1 Then
     mTrc.FileName = TRACE_FILE_NAME
     mTrc.Path = ServicedWbk.Path
     If CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED Then
         mTrc.NewFile
     End If
     sExecTraceFile = mTrc.FileFullName
-
-#ElseIf XcTrc_clsTrc = 1 Then
+#ElseIf clsTrc = 1 Then
     Set Trc = New clsTrc
     With Trc
         .FileName = TRACE_FILE_NAME
@@ -340,6 +339,7 @@ Public Sub EstablishExecTraceFile()
         sExecTraceFile = .FileFullName
     End With
 #End If
+
 End Sub
 
 Public Sub ExportChangedComponents(ByVal e_hosted As String)
@@ -363,7 +363,7 @@ Public Sub ExportChangedComponents(ByVal e_hosted As String)
 xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -445,7 +445,7 @@ End Function
 '    End If
 'xt: Exit Function
 '
-'eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+'eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
 '        Case vbResume:  Stop: Resume
 '        Case Else:      GoTo xt
 '    End Select
@@ -490,7 +490,7 @@ Public Function FilesDifference(ByVal f_file_1 As File, _
                             
 xt: Exit Function
                             
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -577,7 +577,7 @@ Public Sub Initiate(ByVal i_service_proc As String, _
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -660,7 +660,7 @@ Public Function Progress(ByVal p_operation_performed As String) As String
     
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -687,7 +687,7 @@ Public Sub RemoveTempRenamed()
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

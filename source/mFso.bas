@@ -2,10 +2,10 @@ Attribute VB_Name = "mFso"
 Option Explicit
 Option Compare Text
 ' ----------------------------------------------------------------------------
-' Standard  Module mFso: Common services regarding files system objects
-' ====================== (files and folders). The module makes extensive use
-' of the FileSystemObject by extending and supplementing its services. The
-' componet works autonomous and does not require any other components.
+' Standard  Module mFso: Common services regarding files and folders. The
+' ====================== module makes extensive use of the FileSystemObject
+' by extending and supplementing its services. The componet works autonomous
+' and does not require any other components.
 '
 ' Public properties and services:
 ' -------------------------------
@@ -31,24 +31,24 @@ Option Compare Text
 '                       Let Creates a shortcut at a provided location with a
 '                       provided path
 '
-' Public PrivateProfile file (PP) properties and services:
+' Public PrivateProfile file (PPCommComps) properties and services:
 ' ---------------------------------------------------
 ' Exists            see above
-' PPreorg           Reorganizes all sections and their value-names in a PP
+' PPreorg           Reorganizes all sections and their value-names in a PPCommComps
 '                   by ordering sections and names in ascending sequence.
 ' PPremoveNames     Removes provided value names, in a given Private
 '                   Properties File, when provided in a specific section,
 '                   else in all sections.
-' PPsectionExists   Returns TRUE when a given section exists in a given PP
-' PPsectionNames    Returns a Dictionary of all section names [...] in a PP.
+' PPsectionExists   Returns TRUE when a given section exists in a given PPCommComps
+' PPsectionNames    Returns a Dictionary of all section names [...] in a PPCommComps.
 ' PPsections    r/w Returns named (or if no names are provideds all) sections
 '                   as Dictionary with the section name as the key and the
 '                   Values Dictionary as item or writes from the returned
-'                   Dictionary all sections provided with all names to a PP.
+'                   Dictionary all sections provided with all names to a PPCommComps.
 ' PPremoveSections  Removes the sections provided via by their given name.
 '                   Sections not existing are ignored.
-' PPvalue       r/w Reads from or writes to a name from/to a PP.
-' PPvalueNameExists Returns TRUE when a value-name exists in a PP under a
+' PPvalue       r/w Reads from or writes to a name from/to a PPCommComps.
+' PPvalueNameExists Returns TRUE when a value-name exists in a PPCommComps under a
 '                   given section.
 ' PPvalueNameRename Function replaces an old value name with a new one
 '                   either in a specific section or in all sections when no
@@ -56,13 +56,13 @@ Option Compare Text
 '                   file, returns True when at least one name has been
 '                   replaced.
 ' PPvalueNames      Returns a Dictionary of all value-names within given
-'                   sections in a PP with the value-name and the section name
+'                   sections in a PPCommComps with the value-name and the section name
 '                   as key (<name>[section]) and the value as item, the names
 '                   in ascending order in a Dictionary. Section names may be
 '                   provided as a comma delimited string, a Dictionary or
 '                   Collection. Non existing sections are ignored.
 ' PPvalues          Returns the value-names and values of a given section
-'                   in a PP as Dictionary with the value-name as the key
+'                   in a PPCommComps as Dictionary with the value-name as the key
 '                   (in ascending order) and the value as item.
 '
 ' Requires References to:
@@ -71,7 +71,7 @@ Option Compare Text
 ' Windows Script Host Object Model
 '
 ' Uses no other components. Will use optionally mErH, fMsg/mMsg when installed and
-' activated (Cond. Comp. Args. `ErHComp = 1 : MsgComp = 1`).
+' activated (Cond. Comp. Args. `mErH = 1 : mMsg = 1`).
 '
 ' W. Rauschenberger, Berlin Jan 2024
 ' See also https://github.com/warbe-maker/VBA-File-System-Objects.
@@ -79,7 +79,7 @@ Option Compare Text
 Private Const GITHUB_REPO_URL   As String = "https://github.com/warbe-maker/VBA-File-System-Objects"
 Private fso                     As New FileSystemObject
 
-#If MsgComp = 0 Then
+#If mMsg = 0 Then
     ' ------------------------------------------------------------------------
     ' The 'minimum error handling' approach implemented with this module and
     ' provided by the ErrMsg function uses the VBA.MsgBox to display an error
@@ -87,7 +87,7 @@ Private fso                     As New FileSystemObject
     ' provided the Conditional Compile Argument 'Debugging = 1'.
     ' This declaration allows the mTrc module to work completely autonomous.
     ' It becomes obsolete when the mMsg/fMsg module is installed 1) which must
-    ' be indicated by the Conditional Compile Argument MsgComp = 1
+    ' be indicated by the Conditional Compile Argument mMsg = 1
     '
     ' 1) See https://github.com/warbe-maker/Common-VBA-Message-Service for
     '    how to install an use.
@@ -893,9 +893,9 @@ Private Function ErrMsg(ByVal err_source As String, _
 ' (On error Goto eh).
 '
 ' The function considers the Common VBA Error Handling Component (ErH) which
-' may be installed (Conditional Compile Argument 'ErHComp = 1') and/or the
+' may be installed (Conditional Compile Argument 'mErH = 1') and/or the
 ' Common VBA Message Display Component (mMsg) installed (Conditional Compile
-' Argument 'MsgComp = 1'). Only when none of the two is installed the error
+' Argument 'mMsg = 1'). Only when none of the two is installed the error
 ' message is displayed by means of the VBA.MsgBox.
 '
 ' Usage: Example with the Conditional Compile Argument 'Debugging = 1'
@@ -929,7 +929,7 @@ Private Function ErrMsg(ByVal err_source As String, _
 '
 ' W. Rauschenberger Berlin, Nov 2021
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     '~~ ------------------------------------------------------------------------
     '~~ When the Common VBA Error Handling Component (mErH) is installed in the
     '~~ VB-Project (which includes the mMsg component) the mErh.ErrMsg service
@@ -938,7 +938,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     '~~ ------------------------------------------------------------------------
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line)
     GoTo xt
-#ElseIf MsgComp = 1 Then
+#ElseIf mMsg = 1 Then
     '~~ ------------------------------------------------------------------------
     '~~ When only the Common Message Services Component (mMsg) is installed but
     '~~ not the mErH component the mMsg.ErrMsg service is preferred since it
@@ -1004,16 +1004,11 @@ Private Function ErrMsg(ByVal err_source As String, _
                   "About: " & vbLf & _
                   ErrAbout
     
-#If Debugging Then
     ErrBttns = vbYesNo
     ErrText = ErrText & vbLf & vbLf & _
               "Debugging:" & vbLf & _
               "Yes    = Resume Error Line" & vbLf & _
               "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
-    
     ErrMsg = MsgBox(Title:=ErrTitle _
                   , Prompt:=ErrText _
                   , Buttons:=ErrBttns)
@@ -1505,8 +1500,10 @@ Public Function FilePicked(Optional ByVal p_title As String = "Select a file", _
         For Each v In Split(p_filters, ";")
             .Filters.Add Description:=Trim(Split(v, ",")(0)), Extensions:=Trim(Split(v, ",")(1))
         Next v
-#If ExecTrace = 1 Then  ' exclude the time spent for the selection dialog execution
+#If mTrc = 1 Then  ' exclude the time spent for the selection dialog execution
         mTrc.Pause      ' from the trace
+#ElseIf clsTrc = 1 Then
+        Trc.Pause
 #End If                 ' when the execution trace is active
         If .Show = -1 Then
             FilePicked = True
@@ -1514,8 +1511,10 @@ Public Function FilePicked(Optional ByVal p_title As String = "Select a file", _
         Else
             Set p_file = Nothing
         End If
-#If ExecTrace = 1 Then
+#If mTrc = 1 Then
         mTrc.Continue
+#ElseIf clsTrc = 1 Then
+        Trc.Continue
 #End If
      End With
      

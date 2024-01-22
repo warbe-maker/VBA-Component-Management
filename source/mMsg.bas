@@ -21,7 +21,7 @@ Option Explicit
 '
 ' Requires:   Reference to "Microsoft Scripting Runtime"
 '
-' W. Rauschenberger, Berlin Sep 2023
+' W. Rauschenberger, Berlin Jan 2024
 ' See: https://github.com/warbe-maker/VBA-Message
 ' ------------------------------------------------------------------------------
 Public Const MSG_LIMIT_WIDTH_MIN_PERCENTAGE     As Long = 15
@@ -703,8 +703,10 @@ Public Function Dsply(ByVal dsply_title As String, _
     Dim i       As Long
     Dim MsgForm As fMsg
 
-#If ExecTrace = 1 Then
+#If mTrc = 1 Then
     mTrc.Pause
+#ElseIf clsTrc = 1 Then
+    Trc.Pause
 #End If
     
     If Not BttnArgsAreValid(dsply_buttons) _
@@ -764,8 +766,10 @@ Public Function Dsply(ByVal dsply_title As String, _
     Dsply = mMsg.RepliedWith
     
 xt:
-#If ExecTrace = 1 Then
+#If mTrc = 1 Then
     mTrc.Continue
+#ElseIf clsTrc = 1 Then
+    Trc.Continue
 #End If
     Exit Function
 
@@ -831,11 +835,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     ErrTitle = ErrType & " " & ErrNo & " in: '" & err_source & "'" & ErrAtLine
     
     '~~ Prepare the Error Reply Buttons
-#If Debugging = 1 Then
     Set ErrButtons = mMsg.Buttons(vbResumeOk)
-#Else
-    Set ErrButtons = mMsg.Buttons(err_buttons)
-#End If
         
     '~~ Display the error message by means of the mMsg's Dsply function
     iSect = 1
@@ -872,7 +872,6 @@ Public Function ErrMsg(ByVal err_source As String, _
             .Text.Text = ErrAbout
         End If
     End With
-#If Debugging = 1 Then
     iSect = iSect + 1
     With ErrMsgText.Section(iSect)
         With .Label
@@ -883,7 +882,6 @@ Public Function ErrMsg(ByVal err_source As String, _
                      "Cond. Comp. Argument 'Debugging = 1'. Pressing this button " & _
                      "and twice F8 leads straight to the code line which raised the error."
     End With
-#End If
     mMsg.Dsply dsply_title:=ErrTitle _
              , dsply_msg:=ErrMsgText _
              , dsply_Label_spec:="R40" _
@@ -1305,10 +1303,9 @@ Private Function StackPop(ByVal stck As Collection) As Variant
     On Error GoTo eh
     If StackIsEmpty(stck) Then GoTo xt
     
-    On Error Resume Next
-    Set StackPop = stck(stck.Count)
-    If Err.Number <> 0 _
-    Then StackPop = stck(stck.Count)
+    If IsObject(stck(stck.Count)) _
+    Then Set StackPop = stck(stck.Count) _
+    Else StackPop = stck(stck.Count)
     stck.Remove stck.Count
 
 xt: Exit Function

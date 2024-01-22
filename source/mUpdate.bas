@@ -61,7 +61,7 @@ Public Sub ByCodeReplace(ByVal b_source_comp As clsComp, _
         
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -157,7 +157,7 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -248,7 +248,7 @@ Private Sub OutCommentCode(ByVal o_wbk As Workbook, _
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

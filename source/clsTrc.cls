@@ -14,7 +14,7 @@ Option Explicit
 ' highest possible precision. The trace log is written to a file which ensures
 ' at least a partial trace in case the execution terminates by exception. When
 ' this module is installed the availability of the sevice is triggered/
-' activated by the Conditional Compile Argument 'XcTrc_clsTrc = 1'. When the
+' activated by the Conditional Compile Argument 'clsTrc = 1'. When the
 ' Cond. Comp. Arg. is 0 all services are disabled even when the module is
 ' installed, avoiding any negative effect on the performance though this
 ' effect very little anyway.
@@ -64,13 +64,13 @@ Option Explicit
 ' ---------
 ' Reference to 'Microsoft Scripting Runtime'
 '
-' W. Rauschenberger, Berlin, Aug 2023
+' W. Rauschenberger, Berlin, Jan 2024
 ' See: https://github.com/warbe-maker/VBA-Trace
 ' ----------------------------------------------------------------------------
 Private Const GITHUB_REPO_URL   As String = "https://github.com/warbe-maker/VBA-Trace"
 Private fso                     As New FileSystemObject
 
-#If Not MsgComp = 1 Then
+#If Not mMsg = 1 Then
     ' ------------------------------------------------------------------------
     ' The 'minimum error handling' aproach implemented with this module and
     ' provided by the ErrMsg function uses the VBA.MsgBox to display an error
@@ -78,7 +78,7 @@ Private fso                     As New FileSystemObject
     ' provided the Cond. Comp. Arg. 'Debugging = 1'.
     ' This declaration allows the mTrc module to work completely autonomous.
     ' It becomes obsolete when the mMsg/fMsg module is installed 1) which must
-    ' be indicated by the Cond. Comp. Arg. MsgComp = 1
+    ' be indicated by the Cond. Comp. Arg. mMsg = 1
     '
     ' 1) See https://github.com/warbe-maker/Common-VBA-Message-Service for
     '    how to install an use.
@@ -515,9 +515,9 @@ Private Function ErrMsg(ByVal err_source As String, _
 ' (On error Goto eh).
 '
 ' The function considers the Common VBA Error Handling Component (ErH) which
-' may be installed (Cond. Comp. Arg. 'ErHComp = 1') and/or the
+' may be installed (Cond. Comp. Arg. 'mErH = 1') and/or the
 ' Common VBA Message Display Component (mMsg) installed (Conditional Compile
-' Argument 'MsgComp = 1'). Only when none of the two is installed the error
+' Argument 'mMsg = 1'). Only when none of the two is installed the error
 ' message is displayed by means of the VBA.MsgBox.
 '
 ' Usage: Example with the Cond. Comp. Arg. 'Debugging = 1'
@@ -551,12 +551,12 @@ Private Function ErrMsg(ByVal err_source As String, _
 '
 ' W. Rauschenberger Berlin, Nov 2021
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt
-#ElseIf MsgComp = 1 Then
+#ElseIf mMsg = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
     '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
     ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
@@ -619,16 +619,11 @@ Private Function ErrMsg(ByVal err_source As String, _
                   "About: " & vbLf & _
                   ErrAbout
     
-#If Debugging Then
     ErrBttns = vbYesNo
     ErrText = ErrText & vbLf & vbLf & _
               "Debugging:" & vbLf & _
               "Yes    = Resume Error Line" & vbLf & _
               "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
-    
     ErrMsg = MsgBox(Title:=ErrTitle _
                   , Prompt:=ErrText _
                   , Buttons:=ErrBttns)

@@ -27,7 +27,7 @@ Private Property Let Value(Optional ByVal pp_value_name As String, _
 
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

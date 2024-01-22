@@ -143,7 +143,7 @@ Public Function AllDone(ByVal d_wbk_source As Workbook, _
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -270,7 +270,7 @@ xt: mBasic.EoP ErrSrc(PROC)
     End If
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -356,7 +356,7 @@ xt: Services.MessageUnload TITLE_SYNC_NAMES
     mBasic.BoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -439,7 +439,7 @@ xt: mBasic.EoP ErrSrc(PROC)
     End If
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -484,7 +484,7 @@ xt: Services.MessageUnload TITLE_SYNC_NAMES
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -521,7 +521,7 @@ xt: mBasic.EoP ErrSrc(PROC)
     End If
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -719,7 +719,7 @@ Public Sub Collect(ByVal c_wbk_source As Workbook, _
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -755,7 +755,7 @@ Private Sub CollectChanged(ByVal c_source As Name, _
     
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -805,7 +805,7 @@ xt: CollectInSync = dctKnownInSync.Count
     mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -872,7 +872,7 @@ Private Sub CollectMultiple(ByVal dct_corresp_source As Dictionary, _
     
 xt: Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -960,7 +960,7 @@ xt: Corresponding = sSource & sRelate & sTarget
     mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1026,7 +1026,7 @@ Private Function CorrespondingNames(ByVal c_nme As Name, _
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1057,7 +1057,7 @@ Private Function CorrespondingRange(ByVal c_nme_source As Name, _
     
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1090,7 +1090,7 @@ Private Function CorrespondingScope(ByVal c_nme_source As Name, _
     
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1139,7 +1139,7 @@ Private Function DueNameSync(ByVal d_index As Long, _
     
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1186,7 +1186,7 @@ Private Function Exists(ByVal x_nme As Name, _
                             
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1219,7 +1219,7 @@ Private Function GetName(ByVal gn_sync_id As String, _
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1269,7 +1269,7 @@ Public Sub MaxLenNameId(ByVal ml_wbk_source As Workbook, _
 xt: wsService.MaxLenNameSyncId = lMax
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1418,7 +1418,7 @@ Public Sub RemoveAllOfSheet(ByVal rn_wsh As Worksheet)
 
 xt: Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1473,7 +1473,7 @@ Public Sub RemoveDuplicatesCreatedBySheetClone(ByVal r_in_dct As Dictionary, _
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1702,7 +1702,7 @@ xt: mBasic.EoP ErrSrc(PROC)
     mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1728,7 +1728,7 @@ Private Sub SyncProperties(ByVal p_nme_source As Name, _
 
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

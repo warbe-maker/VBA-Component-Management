@@ -8,15 +8,15 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
-' ----------------------------------------------------------------------------
 ' Class Module clsQ: FiFo (queue) services based on a Collection as queue
-'                        serving Null, Empty, Nothing, and all the other type
-'                        of variables.
+' ================== serving Null, Empty, Nothing, and all the other type
+'                    of variables.
 '
 ' Note: A queue is like a tube which is open at both ends. The first
 '       item put into it (add/enqued) is the first one dequeued.
 '
 ' Public services:
+' ----------------
 ' - DeQueue   Returns the first (first added) item from the queue and removes
 '             it
 ' - EnQueue   Queues (adds) an item
@@ -91,8 +91,8 @@ Private Function ErrMsg(ByVal err_source As String, _
 '
 ' Extendend service when other Common Components are installed and indicated via
 ' Conditional Compile Arguments:
-' - Invokes mErH.ErrMsg when the Conditional Compile Argument ErHComp = 1
-' - Invokes mMsg.ErrMsg when the Conditional Compile Argument MsgComp = 1 (and
+' - Invokes mErH.ErrMsg when the Conditional Compile Argument mErH = 1
+' - Invokes mMsg.ErrMsg when the Conditional Compile Argument `mMsg = 1` (and
 '   the mErH module is not installed / MsgComp not set)
 '
 ' Uses:
@@ -106,12 +106,12 @@ Private Function ErrMsg(ByVal err_source As String, _
 '
 ' W. Rauschenberger Berlin, May 2022
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt
-#ElseIf MsgComp = 1 Then
+#ElseIf mMsg = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
     '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
     ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
@@ -166,12 +166,8 @@ Private Function ErrMsg(ByVal err_source As String, _
     ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
     If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
     
-#If Debugging Then
     ErrBttns = vbYesNo
     ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
     ErrMsg = MsgBox(Title:=ErrTitle, Prompt:=ErrText, Buttons:=ErrBttns)
 xt:
 End Function

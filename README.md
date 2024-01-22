@@ -178,7 +178,7 @@ CompMan maintains for_Common Components a _Revision Number_, increased whenever 
 | File                        | Location             | Description               |
 |-----------------------------|----------------------|---------------------------|
 | _***CompMan.dat***_         | The <u>serviced</u> Workbook's parent folder | PrivateProfile file for the registration of all  _Hosted&nbsp;Common&nbsp;Components_ and all _Used&nbsp;Common&nbsp;Components_. |
-| _***CompMan.Service.trc***_ | The <u>serviced</u> Workbook's parent folder | Execution trace of the performed CompMan service, available only when the VB-Project's _Conditional Compile Argument_<br><nobr>`XcTrc_mTrc = 1` (mTrc is installed/used) or<br>`XcTrc_clsTrc = 1` (clsTrc is installed/used) is set. |
+| _***CompMan.Service.trc***_ | The <u>serviced</u> Workbook's parent folder | Execution trace of the performed CompMan service, available only when the VB-Project's _Conditional Compile Argument_<br><nobr>`mTrc = 1` (mTrc is installed/used) or<br>`clsTrc = 1` (clsTrc is installed/used) is set. |
 |  _***CompMan.Service.log***_| The <u>serviced</u> Workbook's parent folder | Log file for the executed CompMan services.|
 | _***CommComp.dat***_        | The [Common-Components](#the-common-components-folder) folder | A _PrivateProfile_ file with sections representing Common Components with various information like the hosting Workbook and the _[Revision-Number](#the-revision-number)_ for instance.|
 

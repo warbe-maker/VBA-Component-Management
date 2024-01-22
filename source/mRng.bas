@@ -267,11 +267,11 @@ Public Sub BoP(ByVal b_proc As String, _
 ' Obligatory copy Private for any VB-Component using the service but not having
 ' the mBasic common component installed.
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then          ' serves the mTrc/clsTrc when installed and active
+#If mErH = 1 Then          ' serves the mTrc/clsTrc when installed and active
     mErH.BoP b_proc, b_args
-#ElseIf XcTrc_clsTrc = 1 Then ' when only clsTrc is installed and active
+#ElseIf clsTrc = 1 Then ' when only clsTrc is installed and active
     Trc.BoP b_proc, b_args
-#ElseIf XcTrc_mTrc = 1 Then   ' when only mTrc is installed and activate
+#ElseIf mTrc = 1 Then   ' when only mTrc is installed and activate
     mTrc.BoP b_proc, b_args
 #End If
 End Sub
@@ -311,19 +311,19 @@ Public Sub EoP(ByVal e_proc As String, _
 ' Obligatory copy Private for any VB-Component using the service but not having
 ' the mBasic common component installed.
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then          ' serves the mTrc/clsTrc when installed and active
+#If mErH = 1 Then          ' serves the mTrc/clsTrc when installed and active
     mErH.EoP e_proc, e_args
-#ElseIf XcTrc_clsTrc = 1 Then ' when only clsTrc is installed and active
+#ElseIf clsTrc = 1 Then ' when only clsTrc is installed and active
     Trc.EoP e_proc, e_args
-#ElseIf XcTrc_mTrc = 1 Then   ' when only mTrc is installed and activate
+#ElseIf mTrc = 1 Then   ' when only mTrc is installed and activate
     mTrc.EoP e_proc, e_args
 #End If
 End Sub
 
-Public Function ErrMsg(ByVal err_source As String, _
-              Optional ByVal err_no As Long = 0, _
-              Optional ByVal err_dscrptn As String = vbNullString, _
-              Optional ByVal err_line As Long = 0) As Variant
+Private Function ErrMsg(ByVal err_source As String, _
+               Optional ByVal err_no As Long = 0, _
+               Optional ByVal err_dscrptn As String = vbNullString, _
+               Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
 ' Universal error message display service. Obligatory copy Private for any
 ' VB-Component using the common error service but not having the mBasic common
@@ -333,21 +333,21 @@ Public Function ErrMsg(ByVal err_source As String, _
 '             an additional string concatenated by two vertical bars (||)
 '           - the error message by means of the Common VBA Message Service
 '             (fMsg/mMsg) when installed and active (Cond. Comp. Arg.
-'             `MsgComp = 1`)
+'             `mMsg = 1`)
 '
 ' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
 '               to turn them into a negative and in the error message back into
 '               its origin positive number.
 '
-' W. Rauschenberger Berlin, June 2023
+' W. Rauschenberger Berlin, Jan 2024
 ' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt
-#ElseIf MsgComp = 1 Then
+#ElseIf mMsg = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
     '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
     ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
@@ -402,12 +402,8 @@ Public Function ErrMsg(ByVal err_source As String, _
     ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
     If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
     
-#If Debugging = 1 Then
     ErrBttns = vbYesNo
     ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
     ErrMsg = MsgBox(Title:=ErrTitle, Prompt:=ErrText, Buttons:=ErrBttns)
 xt:
 End Function

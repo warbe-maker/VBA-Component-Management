@@ -36,10 +36,10 @@ Private Sub Class_Initialize()
     Set dctNames = New Dictionary
 End Sub
 
-Friend Property Let Names(ByVal n_dct As Dictionary)
-    Set dctNames = n_dct
-    HskpngValueNames
-End Property
+Private Sub Class_Terminate()
+    Set fso = Nothing
+    Set dctNames = Nothing
+End Sub
 
 Friend Property Let FileFullName(ByVal s As String)
     sFileFullName = s
@@ -50,14 +50,12 @@ End Property
 
 Public Property Get Name(Optional ByVal s As String) As String: Name = Split(dctNames(s), ":")(0):   End Property
 
-Private Sub Class_Terminate()
-    Set fso = Nothing
-    Set dctNames = Nothing
-End Sub
+Friend Property Let Names(ByVal n_dct As Dictionary)
+    Set dctNames = n_dct
+    HskpngValueNames
+End Property
 
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "clsPP" & "." & sProc
-End Function
+Public Property Get NamesHousekeepingSection() As String: NamesHousekeepingSection = "@NamesHousekeeping":  End Property
 
 Friend Property Get Value(Optional ByVal pp_section As String, _
                           Optional ByVal pp_value_name As String) As Variant
@@ -74,15 +72,11 @@ Friend Property Get Value(Optional ByVal pp_section As String, _
                        )
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Property
-
-Public Function Components() As Dictionary
-    Set Components = mFso.PPsectionNames(sFileFullName)
-End Function
 
 Friend Property Let Value(Optional ByVal pp_section As String, _
                           Optional ByVal pp_value_name As String, _
@@ -101,13 +95,27 @@ Friend Property Let Value(Optional ByVal pp_section As String, _
 
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Property
 
-Public Property Get NamesHousekeepingSection() As String: NamesHousekeepingSection = "@NamesHousekeeping":  End Property
+Friend Property Get ValueSections() As Dictionary
+    Set ValueSections = mFso.PPsections(sFileFullName)
+End Property
+
+Public Sub ComponentRemove(ByVal r_comp_name As String)
+    mFso.PPremoveSections pp_file:=sFileFullName, pp_sections:=r_comp_name
+End Sub
+
+Public Function Components() As Dictionary
+    Set Components = mFso.PPsectionNames(sFileFullName)
+End Function
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "clsPP" & "." & sProc
+End Function
 
 Private Sub HskpngValueNames()
 ' ----------------------------------------------------------------------------
@@ -163,15 +171,15 @@ Private Sub HskpngValueNames()
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Sub
 
-Friend Property Get ValueSections() As Dictionary
-    Set ValueSections = mFso.PPsections(sFileFullName)
-End Property
+Public Sub Reorg()
+    mFso.PPreorg sFileFullName
+End Sub
 
 Private Function ValueNameRemoveInAllSections(ByVal pp_name As String) As Boolean
 ' ----------------------------------------------------------------------------
@@ -210,12 +218,4 @@ Private Function ValueNameRenameInAllSections(ByVal v_old As String, _
     mBasic.EoP ErrSrc(PROC)
     
 End Function
-
-Public Sub Reorg()
-    mFso.PPreorg sFileFullName
-End Sub
-
-Public Sub ComponentRemove(ByVal r_comp_name As String)
-    mFso.PPremoveSections pp_file:=sFileFullName, pp_sections:=r_comp_name
-End Sub
 

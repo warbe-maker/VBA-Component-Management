@@ -59,7 +59,7 @@ Private Sub Test_99_mSyncShapeProperties_Name_Property()
 xt: Test_EnvironmentCleanup
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -77,7 +77,7 @@ Private Sub Test_99_mSyncShapes_ShapeName()
 xt: Test_EnvironmentCleanup
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -111,7 +111,7 @@ Private Sub Test_EnvironmentCleanup()
 xt: mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -137,7 +137,7 @@ Private Sub Test_EnvironmentProvide()
 xt: mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -198,7 +198,7 @@ xt: mBasic.EoP ErrSrc(PROC)
     End If
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -274,7 +274,7 @@ Private Sub Test_ProvideControls(ByVal tpc_wbk As Workbook, _
     End If
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

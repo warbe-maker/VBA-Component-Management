@@ -62,7 +62,7 @@ Public Sub GiveUp()
 
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -90,7 +90,7 @@ Public Function IsOpen(Optional ByRef i_wbk As Workbook) As Boolean
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

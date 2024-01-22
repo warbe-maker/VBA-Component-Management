@@ -28,7 +28,7 @@ Option Compare Text
 ' W. Rauschenberger, Berlin June 2022
 ' See: https://github.com/warbe-maker/VBA-Excel-Workbook
 ' -----------------------------------------------------------------------------------
-#If Not MsgComp = 1 Then
+#If Not mMsg = 1 Then
     ' ------------------------------------------------------------------------
     ' The 'minimum error handling' aproach implemented with this module and
     ' provided by the ErrMsg function uses the VBA.MsgBox to display an error
@@ -36,7 +36,7 @@ Option Compare Text
     ' provided the Conditional Compile Argument 'Debugging = 1'.
     ' This declaration allows the mTrc module to work completely autonomous.
     ' It becomes obsolete when the mMsg/fMsg module is installed which must
-    ' be indicated by the Conditional Compile Argument MsgComp = 1.
+    ' be indicated by the Conditional Compile Argument mMsg = 1.
     ' See https://github.com/warbe-maker/Common-VBA-Message-Service
     ' ------------------------------------------------------------------------
     Private Const vbResumeOk As Long = 7 ' Buttons value in mMsg.ErrMsg (pass on not supported)
@@ -251,21 +251,21 @@ Private Function ErrMsg(ByVal err_source As String, _
 '             an additional string concatenated by two vertical bars (||)
 '           - the error message by means of the Common VBA Message Service
 '             (fMsg/mMsg) when installed and active (Cond. Comp. Arg.
-'             `MsgComp = 1`)
+'             `mMsg = 1`)
 '
 ' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
 '               to turn them into a negative and in the error message back into
 '               its origin positive number.
 '
-' W. Rauschenberger Berlin, June 2023
+' W. Rauschenberger Berlin, Jan 2024
 ' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt
-#ElseIf MsgComp = 1 Then
+#ElseIf mMsg = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
     '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
     ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
@@ -320,12 +320,8 @@ Private Function ErrMsg(ByVal err_source As String, _
     ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
     If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
     
-#If Debugging = 1 Then
     ErrBttns = vbYesNo
     ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
     ErrMsg = MsgBox(Title:=ErrTitle, Prompt:=ErrText, Buttons:=ErrBttns)
 xt:
 End Function

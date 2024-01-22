@@ -141,9 +141,7 @@ Public Sub CompManService(ByVal c_service_proc As String, _
     
     On Error GoTo eh
     Dim sServicingWbkName   As String
-        
-'    If c_service_proc = mCompManClient.SRVC_EXPORT_CHANGED And ThisWorkbook.Saved Then GoTo xt
-    
+           
     Progress p_service_name:=ServiceName(c_service_proc) _
            , p_serviced_wbk_name:=ThisWorkbook.Name
     
@@ -179,13 +177,6 @@ Public Sub CompManService(ByVal c_service_proc As String, _
                , p_serviced_wbk_name:=ThisWorkbook.Name _
                , p_service_info:="Workbook saved (CompMan-Service not applicable)"
     End If
-'    If Not ThisWorkbook.Saved Then
-'        With Application
-'            .DisplayAlerts = False
-'            ThisWorkbook.Save
-'            .DisplayAlerts = True
-'        End With
-'    End If
     
 xt: Busy = False
     mCompManClient.Events ErrSrc(PROC) & "." & c_service_proc, True
@@ -211,9 +202,9 @@ Private Function ErrMsg(ByVal err_source As String, _
 ' (On error Goto eh).
 '
 ' The function considers the Common VBA Error Handling Component (ErH) which
-' may be installed (Conditional Compile Argument 'ErHComp = 1') and/or the
+' may be installed (Conditional Compile Argument 'mErH = 1') and/or the
 ' Common VBA Message Display Component (mMsg) installed (Conditional Compile
-' Argument 'MsgComp = 1'). Only when none of the two is installed the error
+' Argument 'mMsg = 1'). Only when none of the two is installed the error
 ' message is displayed by means of the VBA.MsgBox.
 '
 ' Usage: Example with the Conditional Compile Argument 'Debugging = 1'
@@ -245,14 +236,15 @@ Private Function ErrMsg(ByVal err_source As String, _
 '          specific function ErrSrc(PROC) which adds the module name to the
 '          procedure name.
 '
-' W. Rauschenberger Berlin, Nov 2021
+' W. Rauschenberger Berlin, Jan 2024
+' See https://github.com/warbe-maker/VBA-Component-Management/blob/master/README.md#usage
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line)
     GoTo xt
-#ElseIf MsgComp = 1 Then
+#ElseIf mMsg = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
     '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
     ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line)
@@ -313,16 +305,11 @@ Private Function ErrMsg(ByVal err_source As String, _
                   "About: " & vbLf & _
                   ErrAbout
     
-#If Debugging Then
     ErrBttns = vbYesNo
     ErrText = ErrText & vbLf & vbLf & _
               "Debugging:" & vbLf & _
               "Yes    = Resume Error Line" & vbLf & _
               "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
-    
     ErrMsg = MsgBox(Title:=ErrTitle _
                   , Prompt:=ErrText _
                   , Buttons:=ErrBttns)
@@ -547,7 +534,7 @@ Public Sub Progress(ByVal p_service_name As String, _
     End With
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

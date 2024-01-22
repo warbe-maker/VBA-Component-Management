@@ -98,7 +98,7 @@ End Sub
 
 Public Function Changed() As Boolean
 ' ------------------------------------------------------------------------------
-' Returns TRUE when the Component's Export-File does not exist or or the
+' Returns TRUE when the Component's Export-File does not exist or the
 ' Export-File's code differs from the current code of the component.
 ' ------------------------------------------------------------------------------
     Const PROC = "Changed"
@@ -119,7 +119,7 @@ Public Function Changed() As Boolean
     
 xt: Exit Function
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -146,7 +146,7 @@ xt: Set CodeLines = dct
     Set dct = Nothing
     Exit Property
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -211,7 +211,7 @@ Friend Property Let CompName(ByVal s As String)
     
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -288,7 +288,7 @@ Friend Property Get ExpFileTempFullName() As String
     
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -345,7 +345,7 @@ Friend Property Get KindOfComp() As enKindOfComp
 xt: KindOfComp = lKindOfComp
     Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -390,7 +390,7 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
     '~~ Note: Outdated is only considered when a public code exists
     '~~       and this component's code differs from the current public code
     If Not CodePublic.IsNone Then
-        bCodeDiffers = Me.CodeCurrent.DiffersFrom(CodePublic, True)
+        bCodeDiffers = CodeCurrent.DiffersFrom(CodePublic, True)
         If bCodeDiffers Then Me.CodeCurrent.DiffersFromDebug CodePublic, True
     End If
     
@@ -457,7 +457,7 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Property
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -515,7 +515,7 @@ Friend Property Get Wrkbk() As Workbook
     
 xt: Exit Property
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -635,7 +635,7 @@ Public Sub Export()
 
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -663,7 +663,7 @@ Private Sub RemoveLeadingTrailingEmptyLines(ByRef dct As Dictionary)
     
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

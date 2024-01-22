@@ -4,11 +4,11 @@ Exceptions are the implication of rules (otherwise they would be called laws). E
 ## Avoiding defaults
 | What | Why |
 |------|---------|
-|Option&nbsp;Explicite| Enforcing declaration of variables avoids default Variant declaration|
+|Option&nbsp;Explicit| Enforcing declaration of variables avoids default Variant declaration|
 |Public or Private| Avoiding the default Public when a procedure is used only within the component |
-|ByVal or ByRef| The explicit specification of a read-only argument versus a returned-value argument clearly shows the intention |
+|ByVal or ByRef| The explicit specification of a read-only argument versus a returned-value argument clearly shows the intention. |
 
-## Case rules for declarations
+## Upper/Lower case rules for declarations
 | What | Reason, details |
 |------|---------|
 |UPPER_CASE_CONSTANTS| Clearly separate them from variables, underscores support readability|
@@ -20,11 +20,11 @@ Exceptions are the implication of rules (otherwise they would be called laws). E
 ## Other
 | What | Reason, details |
 |------|---------|
-Named arguments| When more than one: a:=xxxxx makes the code independent from the position, supports optional arguments|
+Named arguments| When a Sub, Function, or Property has more than one argument, named arguments (`argument:=xxxxx`) makes the code independent from the arguments position which may change when modified.|
 |Object existence checks| Preferably in dedicated functions, not only return True or False but also the existing object as a ByRef argument.<br>
 | Worksheet identification | Exclusively by their CodeName. Makes it independent from the position and from the Name, both may be changed by the user|
-|Error Handling| An elaborated error handling supports the path to the error, the line where the error occured, and regression testing by not displaying asserted errors|
+|Error Handling| An elaborated error handling supports the path to the error, the line where the error occured and regression testing by not displaying asserted errors|
 |Execution Trace| A built-in execution trace, activated via a Conditional Compile Argument supports performance issues|
-|Common Components| Developed, supplemented, and carefully regression tested, they became a true efficiency boost for VB-Proje TS development.|
+|Common Components| Developed, supplemented, and carefully regression tested, they became a true efficiency boost for VB-Project TS development.|
 
 

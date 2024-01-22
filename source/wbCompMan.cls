@@ -18,7 +18,7 @@ Option Explicit
 '
 ' W. Rauschenberger, Berlin Dec 2020
 ' ------------------------------------------------------------------------------
-Private Const HOSTED_RAWS = "mCompManClient,mCodingRegulations,mCodingRules"
+Private Const HOSTED_RAWS = "mCompManClient,mCodingGuidelines,mCodingRules"
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = Me.CodeName & "." & sProc
@@ -47,7 +47,6 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     Const PROC = "Workbook_BeforeSave"
     
     If mMe.AssertedServicingEnabled Then
-'        mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS
         If Not wsConfig.Verified Then
             wsConfig.Activate
             Cancel = True
@@ -99,7 +98,7 @@ Private Sub Workbook_Open()
     
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

@@ -15,6 +15,10 @@ Option Private Module
 ' ControlItemRenewRemove         Removes the 'Renew___AddIn' control item
 '                                from the 'Add-Ins' poupup menu when the
 '                                Workbook is closed.
+' ErrMsg                         Used throughout the VB-Project, keeps the
+'                                usage of the components mErH, mMsg/fMsg
+'                                optional through Conditional Compile
+'                                Arguments.
 ' Renew___AddIn                  Called via the 'Renew___AddIn' control
 '                                item in the 'Add-Ins' popup menu or
 '                                executed via the corresponding Command
@@ -42,7 +46,7 @@ Option Private Module
 '                                RenewAddin,  Renew_1_ConfirmConfig service
 ' mErH                           Common VBA Error Handling
 '
-' W. Rauschenberger, Berlin Nov 2020
+' W. Rauschenberger, Berlin Jan 2024
 ' ---------------------------------------------------------------------------
 Private Const DEVLP_WORKBOOK_EXTENSION  As String = "xlsb"              ' Extension may depend on Excel version
 Private bAllRemoved             As Boolean
@@ -87,7 +91,7 @@ Public Function AssertedServicingEnabled() As Boolean
     
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -144,7 +148,7 @@ xt: Set Services = Nothing
     Application.EnableEvents = True
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -319,7 +323,7 @@ Private Function Config(Optional ByVal cfg_silent As Boolean = False, _
     
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -345,7 +349,7 @@ Private Sub DevInstncWorkbookClose()
     
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -376,11 +380,101 @@ Private Sub DevInstncWorkbookDelete()
 
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Public Function ErrMsg(ByVal err_source As String, _
+              Optional ByVal err_no As Long = 0, _
+              Optional ByVal err_dscrptn As String = vbNullString, _
+              Optional ByVal err_line As Long = 0) As Variant
+' ------------------------------------------------------------------------------
+' Universal error message display service which displays:
+' - a debugging option button (Conditional Compile Argument 'Debugging = 1')
+' - an optional additional "About:" section when the err_dscrptn has an
+'   additional string concatenated by two vertical bars (||)
+' - the error message by means of the Common VBA Message Service (fMsg/mMsg)
+'   Common Component
+'   mMsg (Conditional Compile Argument "mMsg = 1") is installed.
+'
+' Uses:
+' - AppErr  For programmed application errors (Err.Raise mBasic.AppErr(n), ....)
+'           to turn them into a negative and in the error message back into
+'           its origin positive number.
+' - ErrSrc  To provide an unambiguous procedure name by prefixing is with
+'           the module name.
+'
+' W. Rauschenberger Berlin, Apr 2023
+'
+' See: https://github.com/warbe-maker/VBA-Error
+' ------------------------------------------------------------------------------
+#If mErH = 1 Then
+    '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
+    '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
+    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
+    GoTo xt
+#ElseIf mMsg = 1 Then
+    '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
+    '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
+    ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
+    GoTo xt
+#End If
+    '~~ When neither of the Common Component is available in the VB-Project
+    '~~ the error message is displayed by means of the VBA.MsgBox
+    Dim ErrBttns    As Variant
+    Dim ErrAtLine   As String
+    Dim ErrDesc     As String
+    Dim ErrLine     As Long
+    Dim ErrNo       As Long
+    Dim ErrSrc      As String
+    Dim ErrText     As String
+    Dim ErrTitle    As String
+    Dim ErrType     As String
+    Dim ErrAbout    As String
+        
+    '~~ Obtain error information from the Err object for any argument not provided
+    If err_no = 0 Then err_no = Err.Number
+    If err_line = 0 Then ErrLine = Erl
+    If err_source = vbNullString Then err_source = Err.Source
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
+    
+    '~~ Consider extra information is provided with the error description
+    If InStr(err_dscrptn, "||") <> 0 Then
+        ErrDesc = Split(err_dscrptn, "||")(0)
+        ErrAbout = Split(err_dscrptn, "||")(1)
+    Else
+        ErrDesc = err_dscrptn
+    End If
+    
+    '~~ Determine the type of error
+    Select Case err_no
+        Case Is < 0
+            ErrNo = mBasic.AppErr(err_no)
+            ErrType = "Application Error "
+        Case Else
+            ErrNo = err_no
+            If err_dscrptn Like "*DAO*" _
+            Or err_dscrptn Like "*ODBC*" _
+            Or err_dscrptn Like "*Oracle*" _
+            Then ErrType = "Database Error " _
+            Else ErrType = "VB Runtime Error "
+    End Select
+    
+    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
+    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
+    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
+       
+    ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
+    If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
+    
+    ErrBttns = vbYesNo
+    ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
+    ErrMsg = MsgBox(Title:=ErrTitle, Prompt:=ErrText, Buttons:=ErrBttns)
+xt:
+End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mMe" & "." & sProc
@@ -451,7 +545,7 @@ Private Sub Renew_03_SaveAndRemoveAddInReferences()
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -474,7 +568,7 @@ Private Sub Renew_04_DevInstncWorkbookSave()
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -495,7 +589,7 @@ Private Sub Renew_05_Set_IsAddin_ToFalse()
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -524,7 +618,7 @@ Private Function Renew_06_CloseCompManAddinWorkbook() As Boolean
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -561,7 +655,7 @@ Private Function Renew_07_DeleteAddInInstanceWorkbook() As Boolean
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -601,7 +695,7 @@ xt: mBasic.EoP ErrSrc(PROC)
     mCompManClient.Events ErrSrc(PROC), True
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -623,7 +717,7 @@ Private Function Renew_09_OpenAddinInstncWorkbook() As Boolean
         If fso.FileExists(mAddin.WbkFullName) Then
             mMe.RenewAction = "Re-open the 'CompMan Add-in' (" & mAddin.WbkName & ")"
             On Error Resume Next
-            Set wb = Application.Workbooks.Open(WbkFullName)
+            Set wb = Application.Workbooks.Open(mAddin.WbkFullName, False, True)
             If Err.Number = 0 Then
                 With New FileSystemObject
                     sBaseAddinName = .GetBaseName(wb.Name)
@@ -638,12 +732,14 @@ Private Function Renew_09_OpenAddinInstncWorkbook() As Boolean
                                       ) = "Failed"
             End If
         End If
+    Else
+        Renew_09_OpenAddinInstncWorkbook = True
     End If
 
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -661,7 +757,7 @@ Private Sub Renew_11_SetupAutoOpen()
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -677,7 +773,7 @@ Private Sub Renew_12_SetupWinMergeIni()
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -710,7 +806,7 @@ Private Sub Renew_10_RestoreReferencesToAddIn()
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -768,8 +864,7 @@ Public Sub Renew___AddIn()
     '~~ Attempt to save the development instance as Add-in
     If Not Renew_08_SaveDevInstncWorkbookAsAddin Then GoTo xt
     
-    '~~ Saving the development instance as Add-in may also open the Add-in.
-    '~~ So if not already open it is re-opened and thus re-activated
+    '~~ Re-open, re-activate the Add-in
     If Not Renew_09_OpenAddinInstncWorkbook Then GoTo xt
         
     '~~ Re-instate references to the Add-in which had been removed
@@ -791,7 +886,7 @@ xt: RenewFinalResult bSucceeded
     mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

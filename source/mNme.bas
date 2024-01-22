@@ -330,7 +330,7 @@ Private Sub BoP(ByVal b_proc As String, ParamArray b_arguments() As Variant)
 ' Arguments are 0 or not set at all.
 ' ------------------------------------------------------------------------------
     Dim s As String: If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     mErH.BoP b_proc, s
 #ElseIf ExecTrace = 1 Then
     mTrc.BoP b_proc, s
@@ -345,7 +345,7 @@ Private Sub EoP(ByVal e_proc As String, _
 ' the Common VBA Execution Trace Service. Has no effect when Conditional Compile
 ' Arguments are 0 or not set at all.
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     mErH.EoP e_proc
 #ElseIf ExecTrace = 1 Then
     mTrc.EoP e_proc, e_inf
@@ -370,8 +370,8 @@ Private Function ErrMsg(ByVal err_source As String, _
 '
 ' Extendend service when other Common Components are installed and indicated via
 ' Conditional Compile Arguments:
-' - Invokes mErH.ErrMsg when the Conditional Compile Argument ErHComp = 1
-' - Invokes mMsg.ErrMsg when the Conditional Compile Argument MsgComp = 1 (and
+' - Invokes mErH.ErrMsg when the Conditional Compile Argument mErH = 1
+' - Invokes mMsg.ErrMsg when the Conditional Compile Argument `mMsg = 1` (and
 '   the mErH module is not installed / MsgComp not set)
 '
 ' Uses:
@@ -380,17 +380,16 @@ Private Function ErrMsg(ByVal err_source As String, _
 '          number.
 ' - ErrSrc To provide an unambiguous procedure name by prefixing is with the
 '          module name.
-'
+''
+' W. Rauschenberger Berlin, Jan 2024
 ' See: https://github.com/warbe-maker/Common-VBA-Error-Services
-'
-' W. Rauschenberger Berlin, May 2022
 ' ------------------------------------------------------------------------------' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt
-#ElseIf MsgComp = 1 Then
+#ElseIf mMsg = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
     '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
     ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
@@ -445,12 +444,8 @@ Private Function ErrMsg(ByVal err_source As String, _
     ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
     If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
     
-#If Debugging Then
     ErrBttns = vbYesNo
     ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
     ErrMsg = MsgBox(Title:=ErrTitle, Prompt:=ErrText, Buttons:=ErrBttns)
 xt:
 End Function
@@ -614,7 +609,7 @@ Public Function HasChangedName(ByVal hc_nme As Name, _
 xt: Set dct = Nothing
     Exit Function
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -678,7 +673,7 @@ Public Function HasChangedReferredRange(ByVal hc_nme As Name, _
     
 xt: Exit Function
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -914,7 +909,7 @@ xt: Set fif_cll = cll
     EoP PROC
     Exit Function
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -983,7 +978,7 @@ Public Function IsInUse(ByVal iu_nme As Name, _
     
 xt: Exit Function
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

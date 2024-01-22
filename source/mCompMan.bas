@@ -15,17 +15,17 @@ Option Compare Text
 ' Public services:
 ' ----------------
 ' DisplayCodeChange       Displays the current difference between a
-'                           component's code and its current Export-File
+'                         component's code and its current Export-File
 ' ExportAll               Exports all components into the Workbook's
-'                           dedicated folder (created when not existing)
+'                         dedicated folder (created when not existing)
 ' ExportChangedComponents Exports all components of which the code in the
-'                           Export-File differs from the current code.
+'                         Export-File differs from the current code.
 ' Service
 '
-' Uses Common Components: - mBasic
-'                         - mErrhndlr
-'                         - mFso
-'                         - mWrkbk
+' Uses Common Components: mBasic
+'                         mErrhndlr
+'                         mFso
+'                         mWrkbk
 ' Requires:
 ' - Reference to: - "Microsoft Visual Basic for Applications Extensibility ..."
 '                 - "Microsoft Scripting Runtime"
@@ -55,7 +55,7 @@ Option Compare Text
 ' https://warbe-maker.github.io/warbe-maker.github.io/vba/excel/code/component/management/2021/03/02/Programatically-updating-Excel-VBA-code.html
 ' ----------------------------------------------------------------------------
 '
-' W. Rauschenberger Berlin August 2019
+' W. Rauschenberger Berlin Jan 2024
 ' -------------------------------------------------------------------------------
 Public Const GITHUB_REPO_URL                    As String = "https://github.com/warbe-maker/VBA-Component-Management"
 Public Const README_SYNC_CHAPTER                As String = "#using-the-synchronization-service"
@@ -77,7 +77,7 @@ Public Msg                                      As udtMsg
 Public fso                                      As New FileSystemObject
 Public Prgrss                                   As clsProgress
 
-#If XcTrc_clsTrc = 1 Then
+#If clsTrc = 1 Then
     Public Trc                                  As clsTrc
 #End If
 
@@ -112,7 +112,7 @@ Public Sub CheckForUnusedPublicItems()
 '            without notice.
 ' ----------------------------------------------------------------
     Const COMPS_EXCLUDED = "clsQ,mRng,fMsg,mBasic,mDct,mErH,mFso,mMsg,mNme,mReg,mTrc,mWbk,mWsh"
-    Const LINES_EXCLUDED = "Select Case mBasic.ErrMsg(ErrSrc(PROC))" & vbLf & _
+    Const LINES_EXCLUDED = "Select Case mMe.ErrMsg(ErrSrc(PROC))" & vbLf & _
                            "Case vbResume:*Stop:*Resume" & vbLf & _
                            "Case Else:*GoTo xt"
     On Error Resume Next
@@ -175,23 +175,16 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     Services.Initiate mCompManClient.SRVC_EXPORT_CHANGED, e_wbk_serviced, e_hosted
     If Services.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
         
-    On Error Resume Next
     Services.ExportChangedComponents e_hosted
-    If Err.Number <> 0 Then
-        DoEvents
-        On Error GoTo eh
-        Services.ExportChangedComponents e_hosted
-    End If
     ExportChangedComponents = True
     ExportChangedComponents = Application.StatusBar
     
 xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Services.LogEntrySummary Application.StatusBar
     Set Services = Nothing
-'    mCompManClient.Events ErrSrc(PROC), True
     Exit Function
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -270,7 +263,7 @@ Public Function RunTest(ByVal r_service_proc As String, _
 
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -320,7 +313,7 @@ xt: mBasic.EoP ErrSrc(PROC)
     Set Services = Nothing
     Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -359,14 +352,18 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     CommComps.Hosted = u_hosted
     CompManDat.Hosted = u_hosted
     Set Qoutdated = Nothing
+    Set Prgrss = New clsProgress
+    With Prgrss
+        .Figures = True
+        .DoneItemsInfo = True
+    End With
     
     mCommComps.OutdatedUpdate ' Dialog to update/renew one by one
     
 xt: mBasic.EoP ErrSrc(PROC)
-'    mCompManClient.Events ErrSrc(PROC), True
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -396,7 +393,7 @@ Public Function WbkGetOpen(ByVal go_wbk_full_name As String) As Workbook
     
 xt: Exit Function
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -430,7 +427,7 @@ Private Function WbkIsOpen(Optional ByVal io_name As String = vbNullString, _
 
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

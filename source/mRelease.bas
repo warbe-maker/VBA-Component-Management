@@ -179,7 +179,7 @@ Public Sub ReleaseService(Optional ByVal r_wbk As Workbook = Nothing, _
     
 xt: Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

@@ -1,10 +1,10 @@
 Attribute VB_Name = "mReg"
 Option Explicit
 ' ----------------------------------------------------------------------------
-' Standard Module mReg
-' Services for working with the Registry, i.e. write values to and read values
-' from the Registry within a VB-Project. For a maximum simplicity all services
-' use the following named arguments:
+' Standard Module mReg: Services for working with the Registry, i.e. write
+' ===================== values to and read values from the Registry within a
+' VB-Project. For a maximum simplicity all services use the following named
+' arguments:
 ' reg_key           String expression, obligatory, starts with
 '                   "HKEY_CURRENT_USER" or "HKEY_LOCAL_MACHINE" followed by
 '                   sub-keys. The reg_key may well function as the base-key
@@ -84,16 +84,16 @@ Private Sub BoP(ByVal b_proc As String, _
 ' ------------------------------------------------------------------------------
 ' Common 'Begin of Procedure' service. When neither the Common Execution Trace
 ' Component (mTrc) nor the Common Error Handling Component (mErH) is installed
-' (indicated by the Conditional Compile Arguments 'ExecTrace = 1' and/or the
-' Conditional Compile Argument 'ErHComp = 1') this procedure does nothing.
+' (indicated by the Conditional Compile Arguments `mTrc = 1' or `clsTrc = 1` and/or the
+' Conditional Compile Argument 'mErH = 1') this procedure does nothing.
 ' Else the service is handed over to the corresponding procedures.
 ' May be copied as Private Sub into any module or directly used when mBasic is
 ' installed.
 ' ------------------------------------------------------------------------------
     Dim s As String
     If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
-#If ErHComp = 1 Then
-    '~~ The error handling also hands over to the mTrc component when 'ExecTrace = 1'
+#If mErH = 1 Then
+    '~~ The error handling also hands over to the mTrc component when `mTrc = 1' or `clsTrc = 1`
     '~~ so the Else is only for the case only the mTrc is installed but not the merH.
     mErH.BoP b_proc, s
 #ElseIf ExecTrace = 1 Then
@@ -135,18 +135,20 @@ Private Sub EoP(ByVal e_proc As String, _
 ' ------------------------------------------------------------------------------
 ' Common 'End of Procedure' service. When neither the Common Execution Trace
 ' Component (mTrc) nor the Common Error Handling Component (mErH) is installed
-' (indicated by the Conditional Compile Arguments 'ExecTrace = 1' and/or the
-' Conditional Compile Argument 'ErHComp = 1') this procedure does nothing.
+' (indicated by the Conditional Compile Arguments 'mTrc = 1' and/or the
+' Conditional Compile Argument 'mErH = 1') this procedure does nothing.
 ' Else the service is handed over to the corresponding procedures.
 ' May be copied as Private Sub into any module or directly used when mBasic is
 ' installed.
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
-    '~~ The error handling also hands over to the mTrc component when 'ExecTrace = 1'
+#If mErH = 1 Then
+    '~~ The error handling also hands over to the mTrc component when `mTrc = 1' or `clsTrc = 1`
     '~~ so the Else is only for the case the mTrc is installed but the merH is not.
     mErH.EoP e_proc
-#ElseIf ExecTrace = 1 Then
+#ElseIf mTrace = 1 Then
     mTrc.EoP e_proc, e_inf
+#ElseIf clsTrace = 1 Then
+    Trc.EoP e_proc, e_inf
 #End If
 End Sub
 
@@ -431,9 +433,9 @@ Public Function ErrMsg(ByVal err_source As String, _
 ' (On error Goto eh).
 '
 ' The function considers the Common VBA Error Handling Component (ErH) which
-' may be installed (Conditional Compile Argument 'ErHComp = 1') and/or the
+' may be installed (Conditional Compile Argument 'mErH = 1') and/or the
 ' Common VBA Message Display Component (mMsg) installed (Conditional Compile
-' Argument 'MsgComp = 1'). Only when none of the two is installed the error
+' Argument 'mMsg = 1'). Only when none of the two is installed the error
 ' message is displayed by means of the VBA.MsgBox.
 '
 ' Usage: Example with the Conditional Compile Argument 'Debugging = 1'
@@ -467,7 +469,7 @@ Public Function ErrMsg(ByVal err_source As String, _
 '
 ' W. Rauschenberger Berlin, Nov 2021
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     '~~ ------------------------------------------------------------------------
     '~~ When the Common VBA Error Handling Component (mErH) is installed in the
     '~~ VB-Project (which includes the mMsg component) the mErh.ErrMsg service
@@ -476,7 +478,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     '~~ ------------------------------------------------------------------------
     ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line)
     GoTo xt
-#ElseIf MsgComp = 1 Then
+#ElseIf mMsg = 1 Then
     '~~ ------------------------------------------------------------------------
     '~~ When only the Common Message Services Component (mMsg) is installed but
     '~~ not the mErH component the mMsg.ErrMsg service is preferred since it
@@ -542,16 +544,11 @@ Public Function ErrMsg(ByVal err_source As String, _
                   "About: " & vbLf & _
                   ErrAbout
     
-#If Debugging Then
     ErrBttns = vbYesNo
     ErrText = ErrText & vbLf & vbLf & _
               "Debugging:" & vbLf & _
               "Yes    = Resume Error Line" & vbLf & _
               "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
-    
     ErrMsg = MsgBox(Title:=ErrTitle _
                   , Prompt:=ErrText _
                   , Buttons:=ErrBttns)

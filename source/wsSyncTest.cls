@@ -60,7 +60,7 @@ Private Property Get ItemRange(ByVal i_wbk As Workbook) As Range
 
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -72,122 +72,28 @@ Private Sub EoP(ByVal e_proc As String, Optional ByVal e_inf As String = vbNullS
 ' the 'Common VBA Execution Trace Service' (only in case the first one is not
 ' installed/activated).
 ' Note 1: The services, when installed, are activated by the
-'         | Cond. Comp. Arg.        | Installed component |
-'         |-------------------------|---------------------|
-'         | ErHComp = 1             | mErH                |
-'         | XcTrc_mTrc = 1          | mTrc                |
-'         | XcTrc_clsTrc = 1        | clsTrc              |
+'         | Cond. Comp. Arg. | Installed component |
+'         |------------------|---------------------|
+'         | mErH = 1         | mErH                |
+'         | mTrc = 1         | mTrc                |
+'         | clsTrc = 1       | clsTrc              |
 '         I.e. both components are independant from each other!
 ' Note 2: This procedure is obligatory for any VB-Component using either the
 '         the 'Common VBA Error Services' and/or the 'Common VBA Execution
 '         Trace Service'.
 ' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
+#If mErH = 1 Then
     '~~ The error handling will also hand over to the Common VBA Execution Trace
     '~~ provided one is installed  (mTrc/clsTrc) and activated
 
     mErH.EoP e_proc
-#ElseIf XcTrc_clsTrc = 1 Then
+#ElseIf clsTrc = 1 Then
     Trc.EoP e_proc, e_inf
-#ElseIf XcTrc_mTrc = 1 Then
+#ElseIf mTrc = 1 Then
     mTrc.EoP e_proc, e_inf
 #End If
 
 End Sub
-
-Private Function ErrMsg(ByVal err_source As String, _
-               Optional ByVal err_no As Long = 0, _
-               Optional ByVal err_dscrptn As String = vbNullString, _
-               Optional ByVal err_line As Long = 0) As Variant
-' ------------------------------------------------------------------------------
-' Universal error message display service which displays:
-' - a debugging option button (Conditional Compile Argument 'Debugging = 1')
-' - an optional additional "About:" section when the err_dscrptn has an
-'   additional string concatenated by two vertical bars (||)
-' - the error message by means of the Common VBA Message Service (fMsg/mMsg)
-'   Common Component
-'   mMsg (Conditional Compile Argument "MsgComp = 1") is installed.
-'
-' Uses:
-' - AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
-'           to turn them into a negative and in the error message back into
-'           its origin positive number.
-' - ErrSrc  To provide an unambiguous procedure name by prefixing is with
-'           the module name.
-'
-' W. Rauschenberger Berlin, Apr 2023
-'
-' See: https://github.com/warbe-maker/VBA-Error
-' ------------------------------------------------------------------------------
-#If ErHComp = 1 Then
-    '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
-    '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
-    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
-    GoTo xt
-#ElseIf MsgComp = 1 Then
-    '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the
-    '~~ VB-Project, mMsg.ErrMsg is invoked for the display of the error message.
-    ErrMsg = mMsg.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
-    GoTo xt
-#End If
-    '~~ When neither of the Common Component is available in the VB-Project
-    '~~ the error message is displayed by means of the VBA.MsgBox
-    Dim ErrBttns    As Variant
-    Dim ErrAtLine   As String
-    Dim ErrDesc     As String
-    Dim ErrLine     As Long
-    Dim ErrNo       As Long
-    Dim ErrSrc      As String
-    Dim ErrText     As String
-    Dim ErrTitle    As String
-    Dim ErrType     As String
-    Dim ErrAbout    As String
-        
-    '~~ Obtain error information from the Err object for any argument not provided
-    If err_no = 0 Then err_no = Err.Number
-    If err_line = 0 Then ErrLine = Erl
-    If err_source = vbNullString Then err_source = Err.Source
-    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
-    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
-    
-    '~~ Consider extra information is provided with the error description
-    If InStr(err_dscrptn, "||") <> 0 Then
-        ErrDesc = Split(err_dscrptn, "||")(0)
-        ErrAbout = Split(err_dscrptn, "||")(1)
-    Else
-        ErrDesc = err_dscrptn
-    End If
-    
-    '~~ Determine the type of error
-    Select Case err_no
-        Case Is < 0
-            ErrNo = mBasic.AppErr(err_no)
-            ErrType = "Application Error "
-        Case Else
-            ErrNo = err_no
-            If err_dscrptn Like "*DAO*" _
-            Or err_dscrptn Like "*ODBC*" _
-            Or err_dscrptn Like "*Oracle*" _
-            Then ErrType = "Database Error " _
-            Else ErrType = "VB Runtime Error "
-    End Select
-    
-    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
-    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
-    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
-       
-    ErrText = "Error: " & vbLf & ErrDesc & vbLf & vbLf & "Source: " & vbLf & err_source & ErrAtLine
-    If ErrAbout <> vbNullString Then ErrText = ErrText & vbLf & vbLf & "About: " & vbLf & ErrAbout
-    
-#If Debugging = 1 Then
-    ErrBttns = vbYesNo
-    ErrText = ErrText & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"
-#Else
-    ErrBttns = vbCritical
-#End If
-    ErrMsg = MsgBox(Title:=ErrTitle, Prompt:=ErrText, Buttons:=ErrBttns)
-xt:
-End Function
 
 Private Property Get ItemScope(ByVal i_wbk As Workbook) As Variant
     Dim s   As String
@@ -310,7 +216,7 @@ Public Sub Setup(ByVal s_source_or_target As String, _
     
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -361,7 +267,7 @@ Private Sub SetupComp(ByVal c_source_or_target As String, _
     
 xt: Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -435,7 +341,7 @@ Private Function SetupCompFromFile(ByVal s_source_or_target As String, _
 xt: SetupCompFromFile = sFromFile
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -484,7 +390,7 @@ Private Function SetupName(ByVal n_name As String, _
 
 xt: Exit Function
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -511,7 +417,7 @@ Private Sub SetupReference(ByVal r_name As String, _
 
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -563,7 +469,7 @@ Private Function SetupSheet(ByVal s_name As String, _
     
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -601,7 +507,7 @@ Private Sub SetupTestWorkbooksCleanup(ByVal s_sync_source As String, _
     
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -675,7 +581,7 @@ Public Sub SetupTestWorkbooksEstablish(Optional ByVal s_regression As Boolean = 
         
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select

@@ -39,7 +39,7 @@ Option Explicit
 ' "<current-name>:<old-name>" = rename in all sections
 ' "<current>"                 = no action
 ' ":<remove-name>"            = remove in all sections
-Private Const LAST_MODIFIED_EXP_FILE_FULL_NAME          As String = "LAST_MODIFIED_EXP_FILE_FULL_NAME"
+Private Const EXP_FILE_EXTENTION                        As String = "EXP_FILE_EXTENTION"
 Private Const LAST_MODIFIED_EXP_FILE_FULL_NAME_ORIGIN   As String = "LAST_MODIFIED_EXP_FILE_FULL_NAME_ORIGIN"
 Private Const LAST_MODIFIED_AT_DATE_TIME                As String = "LAST_MODIFIED_AT_DATE_TIME"
 Private Const LAST_MODIFIED_ON_MACHINE                  As String = "LAST_MODIFIED_ON_MACHINE"
@@ -51,7 +51,7 @@ Private Const PENDING_RELEASE_MODIFIED_IN_WBK_FULL_NAME As String = "PENDING_REL
 Private Const PENDING_RELEASE_MODIFIED_LAST_DATE_TIME   As String = "PENDING_RELEASE_MODIFIED_LAST_DATE_TIME"
 Private Const PENDING_RELEASE_MODIFIED_EXP_FILE         As String = "PENDING_RELEASE_EXP_FILE"
 
-Private PP                                              As clsPP
+Private PPCommComps                                     As clsPP
 Private dctHosted                                       As Dictionary
 Private sFolderPath                                     As String
 Private sCompName                                       As String
@@ -65,13 +65,13 @@ Private Sub Class_Initialize()
     
     mBasic.BoP ErrSrc(PROC)
 '    Set dctHosted = New Dictionary
-    Set PP = New clsPP
+    Set PPCommComps = New clsPP
     
     sFolderPath = wsConfig.FolderCommonComponentsPath
 
-    '~~> Full name of the PP-File
+    '~~> Full name of the PPCommComps-File
     sCommCompsDatFile = sFolderPath & "\" & "CommComps.dat"
-    PP.FileFullName = sCommCompsDatFile
+    PPCommComps.FileFullName = sCommCompsDatFile
         
     '~~> Value Names with the syntax (allows the on-the-fly-change of value names as well as their removal):
     '~~> "<current>"                 = no action
@@ -79,9 +79,9 @@ Private Sub Class_Initialize()
     '~~> ":<remove>"                 = remove in all sections
     With dct
         .Add "Obsolete_1", ":RawRevisionNumber"
+        .Add EXP_FILE_EXTENTION, "ExportFileExtention"
         .Add LAST_MODIFIED_AT_DATE_TIME, "Last_Modified_AtDateTime:LastModifiedAtDateTime:RevisionNumber"
-        .Add LAST_MODIFIED_EXP_FILE_FULL_NAME, "Last_Modified_ExpFileFullName:LastModExpFileFullName"
-        .Add LAST_MODIFIED_EXP_FILE_FULL_NAME_ORIGIN, ":LastModExpFileFullNameOrigin"
+        .Add LAST_MODIFIED_EXP_FILE_FULL_NAME_ORIGIN, "LastModExpFileFullNameOrigin:LastModExpFileFullName"
         .Add LAST_MODIFIED_IN_WBK_FULL_NAME, "Last_Modified_InWbkFullName:LastModifiedInWbkFullName:LastModWbkFullName"
         .Add LAST_MODIFIED_IN_WBK_NAME, "Last_Modified_InWbkName:LastModifiedInWbkName"
         .Add LAST_MODIFIED_ON_MACHINE, "Last_Modified_OnMachine:LastModifiedOnMachine"
@@ -91,14 +91,14 @@ Private Sub Class_Initialize()
         .Add PENDING_RELEASE_MODIFIED_LAST_DATE_TIME, "PendingRelease_Modified_AtDateTime"
         .Add PENDING_RELEASE_MODIFIED_ON_MACHINE, "PendingRelease_Modified_OnMachine"
     End With
-    PP.Names = dct
+    PPCommComps.Names = dct
     Set dct = Nothing
     mBasic.EoP ErrSrc(PROC)
 
 End Sub
 
 Private Sub Class_Terminate()
-    Set PP = Nothing
+    Set PPCommComps = Nothing
 End Sub
 
 Friend Property Get BttnDsplyDiff() As String: BttnDsplyDiff = "Display difference" & vbLf & "(of Export-Files)":   End Property
@@ -162,6 +162,17 @@ Friend Property Get LastModAtDateTime(Optional ByVal l_comp_name As String = vbN
     LastModAtDateTime = Value(LAST_MODIFIED_AT_DATE_TIME, l_comp_name)
 End Property
 
+Friend Property Let ExportFileExtention(Optional ByVal l_comp_name As String = vbNullString, _
+                                                 ByVal l_ext As String)
+    If l_comp_name = vbNullString Then l_comp_name = sCompName
+    Value(EXP_FILE_EXTENTION, l_comp_name) = l_ext
+End Property
+                                                 
+Friend Property Get ExportFileExtention(Optional ByVal l_comp_name As String = vbNullString) As String
+    If l_comp_name = vbNullString Then l_comp_name = sCompName
+    ExportFileExtention = Value(EXP_FILE_EXTENTION, l_comp_name)
+End Property
+
 Friend Property Let LastModAtDateTime(Optional ByVal l_comp_name As String = vbNullString, _
                                                ByVal l_comp_rev_no As String)
 ' ------------------------------------------------------------------------------
@@ -196,7 +207,7 @@ Friend Property Get LastModExpFile(Optional ByVal l_comp_name As String = vbNull
     
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -219,8 +230,8 @@ Friend Property Get LastModExpFileFullName(Optional ByVal l_comp_name As String 
 ' Returns the Common-Component folder's Export-File Full Name.
 ' ---------------------------------------------------------------------------
     If l_comp_name = vbNullString Then l_comp_name = sCompName
-    With New FileSystemObject
-        LastModExpFileFullName = sFolderPath & "\" & .GetFileName(LastModExpFileFullNameOrigin(l_comp_name))
+    With fso
+        LastModExpFileFullName = sFolderPath & "\" & l_comp_name & "." & ExportFileExtention(l_comp_name)
     End With
 End Property
 
@@ -294,17 +305,18 @@ Public Property Let PendingReleaseRegister(ByVal c_comp As clsComp)
 '    Stop
     With c_comp
         CompName = .CompName
-        PendingReleaseModInWbkName = c_comp.Wrkbk.Name
-        PendingReleaseModInWbkFullName = c_comp.Wrkbk.FullName
-        PendingReleaseModExpFileFullName = c_comp.ExpFileFullName
-        PendingReleaseModAtDateTime = c_comp.LastModAtDateTime
+        PendingReleaseModInWbkName = .Wrkbk.Name
+        PendingReleaseModInWbkFullName = .Wrkbk.FullName
+        PendingReleaseModExpFileFullName = .ExpFileFullName
+        PendingReleaseModAtDateTime = .LastModAtDateTime
         PendingReleaseModOnMachine = Environ("COMPUTERNAME")
+        ExportFileExtention = fso.GetExtensionName(.ExpFileFullName)
         Debug.Print "Pending release registered: " & sCompName
     End With
     
 xt: Exit Property
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -345,7 +357,7 @@ Friend Property Let PendingReleaseModInWbk(Optional ByVal p_comp_name As String 
     
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -399,13 +411,13 @@ Private Property Get Value(Optional ByVal v_value_name As String = vbNullString,
             v_comp_name = sCompName
         End If
     End If
-    With PP
+    With PPCommComps
         Value = .Value(pp_section:=v_comp_name, pp_value_name:=.Name(v_value_name))
     End With
 
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -427,20 +439,20 @@ Private Property Let Value(Optional ByVal v_value_name As String, _
             v_comp_name = sCompName
         End If
     End If
-    With PP
+    With PPCommComps
         .Value(pp_section:=v_comp_name, pp_value_name:=.Name(v_value_name)) = v_value
     End With
                                     
 xt: Exit Property
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
 End Property
 
 Public Sub ComponentRemove(ByVal s As String)
-     PP.ComponentRemove s
+     PPCommComps.ComponentRemove s
 End Sub
 
 Public Function Components() As Dictionary
@@ -649,7 +661,7 @@ Public Sub Hskpng()
                     + wbk.VBProject.VBComponents.Count _
                     + dctHosted.Count
         .Figures = False
-        .DoneItems = False
+        .DoneItemsInfo = False
     End With
     HskpngSectionsObsolete dct, fls
     HskpngSectionsMissing fld, dct
@@ -660,7 +672,7 @@ Public Sub Hskpng()
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -770,7 +782,7 @@ Private Sub HskpngSectionsMissing(ByVal h_fld As Folder, _
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -798,9 +810,9 @@ Private Sub HskpngSectionsObsolete(ByVal h_comps As Dictionary, _
     '~~ not exists in the Common-Components folde
     For Each v In h_comps
         sSection = v
-        If sSection <> PP.NamesHousekeepingSection Then
+        If sSection <> PPCommComps.NamesHousekeepingSection Then
             If Not h_files.Exists(v) Then
-                PP.ComponentRemove sSection
+                PPCommComps.ComponentRemove sSection
                 Prgrss.ItemDone = sSection
             Else
                 Prgrss.ItemSkipped
@@ -813,7 +825,7 @@ Private Sub HskpngSectionsObsolete(ByVal h_comps As Dictionary, _
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -899,7 +911,7 @@ Private Sub HskpngUsedOrPrivate(ByVal h_wbk As Workbook)
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -932,7 +944,7 @@ Private Function MaxRawLenght() As Long
     
 xt: Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -951,7 +963,7 @@ Public Sub PendingReleaseRemove(Optional ByVal p_comp_name As String = vbNullStr
     If p_comp_name = vbNullString _
     Then Err.Raise AppErr(2), ErrSrc(PROC), "No component name provided, section name is missing!"
     
-    With PP
+    With PPCommComps
         mFso.PPremoveNames pp_file:=sCommCompsDatFile _
                           , pp_section:=p_comp_name _
                           , pp_value_names:=.Name(PENDING_RELEASE_MODIFIED_ON_MACHINE) _
@@ -964,7 +976,7 @@ Public Sub PendingReleaseRemove(Optional ByVal p_comp_name As String = vbNullStr
     
 xt: Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1033,7 +1045,7 @@ Public Function PendingReleases(Optional ByVal p_wbk As Workbook = Nothing) As C
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Function
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1042,7 +1054,7 @@ End Function
 Public Sub Reorg()
     Const PROC = "Reorg"
     mBasic.BoP ErrSrc(PROC)
-    PP.Reorg
+    PPCommComps.Reorg
     mBasic.EoP ErrSrc(PROC)
 End Sub
 
@@ -1078,7 +1090,7 @@ Public Sub SaveToCommonComponentsFolder(ByVal s_file As Variant)
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1105,7 +1117,7 @@ Public Sub ReleaseComp(ByVal r_comp_name As String)
 
 xt: Exit Sub
     
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
@@ -1127,15 +1139,18 @@ Public Sub PendingReleaseManagement(ByVal p_comp As clsComp)
     Dim bDiffMachine    As Boolean
     Dim bEqulMachine
     
-    CompName = p_comp.CompName
-    If sCompName = "mWsh" Then Stop
-    p_comp.CodePublic.Source = CurrentPublicExpFileFullName
-    bModified = p_comp.CodeExported.DiffersFrom(p_comp.CodePublic, True)
-    bNotModified = Not bModified
-    bPending = CommComps.PendingReleaseRegistered
-    bNotPending = Not bPending
-        
     With p_comp
+        CompName = .CompName
+        If CurrentPublicExpFileFullName <> vbNullString Then
+            .CodePublic.Source = CurrentPublicExpFileFullName
+            bModified = .CodeExported.DiffersFrom(p_comp.CodePublic, True)
+        Else
+            bModified = True
+        End If
+            bNotModified = Not bModified
+        bPending = CommComps.PendingReleaseRegistered
+        bNotPending = Not bPending
+
         If bPending Then
             CodePending.Source = PendingReleaseModExpFileFullName
             bDiffWbk = LastModInWbkFullName <> vbNullString And LastModInWbkFullName <> "unknown" And .WrkbkFullName <> PendingReleaseModInWbkFullName

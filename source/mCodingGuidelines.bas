@@ -1,10 +1,11 @@
-Attribute VB_Name = "mCodingRegulations"
+Attribute VB_Name = "mCodingGuidelines"
 Option Explicit
 ' ------------------------------------------------------------------------
-' Standard-Module mCodingRegulations:
+' Standard-Module mCodingGuidelines:
 ' ===================================
-' 1. No defaults
 '
 ' W. Rauschenberger, Berlin Jan 2024
+' See also
+' https://github.com/warbe-maker/VBA-Component-Management/blob/master/CODING_RULES.md
 ' ------------------------------------------------------------------------
 
