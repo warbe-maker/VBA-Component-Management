@@ -29,7 +29,7 @@ KindOfComponent=used
 LastModifiedAtDatTime=2024-01-22-14-42-22 (UTC)
 [mErH]
 KindOfComponent=used
-LastModifiedAtDatTime=2024-01-22-14-42-22 (UTC)
+LastModifiedAtDatTime=2024-01-23-13-40-40 (UTC)
 [mFso]
 KindOfComponent=used
 LastModifiedAtDatTime=2024-01-22-14-44-00 (UTC)
@@ -56,3 +56,6 @@ KindOfComponent=used
 LastModifiedAtDatTime=2024-01-22-14-42-20 (UTC)
 [@NamesHousekeeping]
 DoneNamesHskpng=LastModifiedAtDatTime:LastModAtDateTime:RevisionNumber:RawRevisionNumber;KindOfComponent;UsedExportFolder;:DueModificationWarning
+[mCodingGuidelines]
+KindOfComponent=used
+LastModifiedAtDatTime=2024-01-22-15-39-06 (UTC)

@@ -24,9 +24,10 @@ Option Explicit
 '
 ' Uses components:
 ' ----------------
-' fMsg/mMsg   Used only when installed and activated by the Cond. Comp. Arg. `mMsg = 1`
-' mTrc        Used only by the test environment and only when activated by the Cond. Comp.
-'             Arg. `mTrc = 1`
+' fMsg/mMsg   Used only when installed and activated by the Cond. Comp. Arg.
+'             `mMsg = 1`
+' mTrc/clsTrc Used only by the test environment and only when activated by the
+'             Cond. Comp. Arg. `mTrc = 1`
 '
 ' Requires:
 ' ---------
