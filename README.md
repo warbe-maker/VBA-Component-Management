@@ -1,13 +1,16 @@
 ## Component Management Services focusing on Excel VB-Projects
 
-> The services **Export** (any _Component_ the code has changed), **Update** (any outdated _Used&nbsp;[Common Components](#common-components)_), and **Synchronize** (the VB-Project of two Workbooks) only requires one component installed/imported with a single code line for each service, by guaranteeing that a productive Workbook is not bothered by these services at all.
+- **Exports** any _Component_ the code has changed along with each Workbook save. 
+- **Updates** any outdated _Used/Hosted&nbsp;[Common Component](#common-components)_). 
+- **Synchronizes** the VB-Project of two Workbooks. 
+> All services only require one component installed/imported plus a single code line for each service, still guaranteeing that a productive Workbook is not bothered by any of the configured services at all.
 
 ## Disambiguation
 
 | Term             | Meaning                  |
 |------------------|------------------------- |
 | _Component_       | Generic term for a _VB-Project's_ _VBComponent_ (_Class Module_,  _Data Module_, _Standard Module_, or _UserForm_) |
-| _Common&nbsp;Component_ | A _Component_ providing services for a certain subject, dedicated for being used in any VB-Project<br>|
+| _[Common&nbsp;Component](#common-components)_ | A _Component_ providing services for a certain subject, dedicated for being used in any VB-Project<br>|
 | _Procedure_           | Generic term for any _VB-Component's_ (public or private) `Property`, `Sub`, or `Function`|
 |_Service_             | Generic term for any _Public Property_, _Public Sub_, or _Public Function_ of a _Component_ |
 | _Servicing&nbsp;Workbook_ | The service providing Workbook, either the _[CompMan.xlsb][1]_ Workbook (when it is open) or the _CompMan Add-in_ when it is set up and open. |
