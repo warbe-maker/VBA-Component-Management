@@ -624,7 +624,7 @@ xt: mCompManClient.Events ErrSrc(PROC), True
 
 End Sub
 
-Private Function Wrkbk(ByVal w_source_or_target As String) As Workbook
+Public Function Wrkbk(ByVal w_source_or_target As String) As Workbook
     Select Case w_source_or_target
         Case "Sync_SourceWorkbook"
             Set wbkSource = mWbk.GetOpen(wsSyncTest.SyncTestSourceFullName)

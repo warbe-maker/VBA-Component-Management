@@ -32,8 +32,7 @@ Private Function ErrSrc(ByVal s As String) As String
     ErrSrc = "mSyncRefs." & s
 End Function
 
-Public Function MaxLenRefId(ByVal ml_wbk_source As Workbook, _
-                            ByVal ml_wbk_target As Workbook) As Long
+Public Function MaxLenRefId() As Long
     Const PROC = "MaxLenRefId"
     
     On Error GoTo eh

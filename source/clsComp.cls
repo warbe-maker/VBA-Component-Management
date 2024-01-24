@@ -351,16 +351,11 @@ eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Let KindOfComp(ByVal en As enKindOfComp)
-' ------------------------------------------------------------------------------
-' For the "self-set-up" only
-' ------------------------------------------------------------------------------
-    lKindOfComp = en
-End Property
+Friend Property Let KindOfComp(ByVal en As enKindOfComp):   lKindOfComp = en:           End Property
 
 Friend Property Get MaxLenComp() As Long:                   MaxLenComp = lMaxLenComp:   End Property
 
-Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
+Friend Property Get Outdated() As Boolean
 ' ------------------------------------------------------------------------------
 ' Returns (exclusively for a used or hosted Common Component) TRUE when the
 ' component's public Common Component (in the Common-Components folder) differs
@@ -372,13 +367,10 @@ Friend Property Get Outdated(ByRef o_discontinue As Boolean) As Boolean
 '       is a Release candidate and collected as such
 ' ------------------------------------------------------------------------------
     Const PROC                  As String = "Outdated"
-    Const BTTN_ADJUST_IT        As String = "Adjust it"
-    Const BTTN_IGNORE_IT        As String = "Ignore it"
     
     On Error GoTo eh
     Dim sCommCompPublicLastModDateTime  As String
     Dim bCodeDiffers                    As Boolean
-    Dim sRegStat                        As String
     Dim i                               As Long
     
     mBasic.BoP ErrSrc(PROC)

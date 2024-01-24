@@ -131,12 +131,10 @@ Private Sub HskpngValueNames()
     Const PROC = "HskpngValueNames"
     
     On Error GoTo eh
-    Dim dctSects    As Dictionary
     Dim i           As Long
     Dim j           As Long
     Dim sNew        As String
     Dim sOld        As String
-    Dim v           As Variant
     Dim vName       As Variant
     Dim sValueNames As String
     

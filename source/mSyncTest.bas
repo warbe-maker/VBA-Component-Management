@@ -146,9 +146,15 @@ End Sub
 Private Sub TestSelectedOnly(): TestSync False:         End Sub
 
 Public Sub TestSync(Optional ByVal t_regression As Boolean = False)
+' ----------------------------------------------------------------------------
+'
+' ----------------------------------------------------------------------------
     Const PROC = "TestSync"
     
     On Error GoTo eh
+    Dim wbkSource As Workbook
+    Dim wbkTarget As Workbook
+    
     Set Services = New clsServices
     
     wsService.CurrentServiceName = ErrSrc(PROC)
@@ -158,17 +164,16 @@ Public Sub TestSync(Optional ByVal t_regression As Boolean = False)
     With wsSyncTest
         .SetupTestWorkbooksEstablish t_regression
         .Setup "Sync_SourceWorkbook", t_regression
-        .wbkSource.Save
-        If t_regression Then .wbkSource.Close ' will be re-opened by the service
+        Set wbkSource = .Wrkbk("Sync_SourceWorkbook")
+        wbkSource.Save
+        If t_regression Then .Wrkbk("Sync_SourceWorkbook").Close ' will be re-opened by the service
         .Setup "Sync_TargetWorkbook", t_regression
+        Set wbkTarget = .Wrkbk("Sync_TargetWorkbook")
     End With
     
     If Not t_regression Then
-        With Services
-            .Initiate mCompManClient.SRVC_SYNCHRONIZE, wsSyncTest.wbkTarget, False
-            
-        End With
-        wsSyncTest.wbkSource.Save
+        Services.Initiate mCompManClient.SRVC_SYNCHRONIZE, wbkTarget, False
+        wbkTarget.Save
         mSync.Source = mWbk.GetOpen(wsSyncTest.SyncTestSourceFullName)
         mSync.TargetWorkingCopy = mWbk.GetOpen(wsSyncTest.SyncTestTargetFullName)
     End If

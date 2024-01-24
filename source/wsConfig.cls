@@ -38,35 +38,6 @@ Public Property Let ButtonCaption(Optional ByVal b_cmb As Button, _
 
 End Property
 
-Private Property Let ButtonEnabled(Optional ByVal b_cmb As Button, _
-                                            ByVal b_enabled As Boolean)
-' ----------------------------------------------------------------------------
-' Because the Enabled property does not what is expected the button is hidden
-' or displayed instead.
-' ----------------------------------------------------------------------------
-    Dim bProtected  As Boolean
-    Dim wsh         As Worksheet
-    
-    Set wsh = b_cmb.Parent
-    If wsh.ProtectContents Then
-        bProtected = True
-        wsh.Unprotect
-    End If
-                                           
-    With b_cmb
-        If b_enabled Then
-            .Visible = True
-            .Font.Color = rgbBlack
-        Else
-            .Visible = False
-            .Font.Color = rgbGrey
-        End If
-    End With
-    
-    If bProtected Then wsh.Protect
-
-End Property
-
 Private Property Let ButtonHelpUrlAddinSetup(ByVal s As String):    UrlButton(Me.Range("ButtonHelpUrlAddinSetup")) = s:                     End Property
 
 Private Property Let ButtonHelpUrlPauseContinue(ByVal s As String): UrlButton(Me.Range("ButtonHelpUrlPauseContinue")) = s:                  End Property
@@ -84,10 +55,6 @@ Private Property Let CompManAddInStatusUrl(ByVal s As String):      UrlLabel(Me.
 Private Property Let CompManWrkbkStatusUrl(ByVal s As String):      UrlLabel(Me.Range("CompManWrkbkStatusUrl")) = s:                        End Property
 
 Public Property Let ConfigInfo(ByVal s As String):                  mWsh.Value(Me, "ConfigInfo") = s:                                       End Property
-
-Private Property Let FolderAddInInfo(ByVal s As String):            MaintainMinRowHeight Me.Range("FolderAddInInfo"), s:                    End Property
-
-Private Property Let FolderAddInUrl(ByVal s As String):             UrlLabel(Me.Range("FolderAddInUrl")) = s:                               End Property
 
 Public Property Get FolderCommonComponentsName() As String
     FolderCommonComponentsName = fso.GetFolder(FolderCommonComponentsPath).Name
@@ -136,14 +103,14 @@ Private Property Get MonitorAnchor() As Range:                      Set MonitorA
 Private Property Let UrlButton(ByVal url_rng As Range, _
                                ByVal url_chapter As String)
                         
-    mWsh.Url(Me, url_rng, xlUnderlineStyleNone, 11) = Replace(Replace(mCompMan.GITHUB_REPO_URL & url_chapter, "##", "#"), "?", vbNullString)
+    mWsh.url(Me, url_rng, xlUnderlineStyleNone, 11) = Replace(Replace(mCompMan.GITHUB_REPO_URL & url_chapter, "##", "#"), "?", vbNullString)
     
 End Property
 
 Private Property Let UrlLabel(ByVal url_rng As Range, _
                               ByVal url_chapter As String)
                         
-    mWsh.Url(Me, url_rng, xlUnderlineStyleNone, 9) = Replace(Replace(mCompMan.GITHUB_REPO_URL & url_chapter, "##", "#"), "?", vbNullString)
+    mWsh.url(Me, url_rng, xlUnderlineStyleNone, 9) = Replace(Replace(mCompMan.GITHUB_REPO_URL & url_chapter, "##", "#"), "?", vbNullString)
     
 End Property
 
@@ -291,7 +258,6 @@ Public Sub CurrentStatus()
     Dim cll         As New Collection
     Dim i           As Long
     Dim sShortcut   As String
-    Dim sAddin      As String
     Dim sComma      As String
     
     If mMe.IsAddinInstnc Then GoTo xt

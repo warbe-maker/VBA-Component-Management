@@ -193,51 +193,20 @@ Private Function ErrMsg(ByVal err_source As String, _
                Optional ByVal err_dscrptn As String = vbNullString, _
                Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Universal error message display service including a debugging option active
-' when the Conditional Compile Argument 'Debugging = 1' and an optional
-' additional "About the error:" section displaying text connected to an error
-' message by two vertical bars (||).
+' Universal error message display service which displays:
+' - a debugging option button
+' - an "About:" section when the err_dscrptn has an additional string
+'   concatenated by two vertical bars (||)
+' - the error message either by means of the Common VBA Message Service
+'   (fMsg/mMsg) when installed (indicated by Cond. Comp. Arg. `mMsg = 1` or by
+'   means of the VBA.MsgBox in case not.
 '
-' A copy of this function is used in each procedure with an error handling
-' (On error Goto eh).
-'
-' The function considers the Common VBA Error Handling Component (ErH) which
-' may be installed (Conditional Compile Argument 'mErH = 1') and/or the
-' Common VBA Message Display Component (mMsg) installed (Conditional Compile
-' Argument 'mMsg = 1'). Only when none of the two is installed the error
-' message is displayed by means of the VBA.MsgBox.
-'
-' Usage: Example with the Conditional Compile Argument 'Debugging = 1'
-'
-'        Private/Public <procedure-name>
-'            Const PROC = "<procedure-name>"
-'
-'            On Error Goto eh
-'            ....
-'        xt: Exit Sub/Function/Property
-'
-'        eh: Select Case ErrMsg(ErrSrc(PROC))
-'               Case vbResume:  Stop: Resume
-'               Case Else:      GoTo xt
-'            End Select
-'        End Sub/Function/Property
-'
-'        The above may appear a lot of code lines but will be a godsend in case
-'        of an error!
-'
-' Uses:  - For programmed application errors (Err.Raise AppErr(n), ....) the
-'          function AppErr will be used which turns the positive number into a
-'          negative one. The error message will regard a negative error number
-'          as an 'Application Error' and will use AppErr to turn it back for
-'          the message into its original positive number. Together with the
-'          ErrSrc there will be no need to maintain numerous different error
-'          numbers for a VB-Project.
-'        - The caller provides the source of the error through the module
-'          specific function ErrSrc(PROC) which adds the module name to the
-'          procedure name.
+' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
+'               to turn them into a negative and in the error message back into
+'               its origin positive number.
 '
 ' W. Rauschenberger Berlin, Jan 2024
-' See https://github.com/warbe-maker/VBA-Component-Management/blob/master/README.md#usage
+' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
 #If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
@@ -333,9 +302,6 @@ Public Sub Events(ByVal e_src As String, _
     
     On Error GoTo eh
     Static sLastExecWrkbk   As String
-    Dim v                   As Variant
-    Dim wbk                 As Workbook
-    Dim dct                 As Dictionary
     
     If e_reset Then
         sEventsLvl = vbNullString

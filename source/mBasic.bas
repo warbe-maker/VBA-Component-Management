@@ -86,7 +86,6 @@ Public Const DSPACE     As String = " "
 Public Const DEXCL      As String = "!"
 Public Const DQUOTE     As String = """"    ' one " character
 
-Private Const GITHUB_REPO_URL = "https://github.com/warbe-maker/VBA-Basics"
 ' Common xl constants grouped ----------------------------
 Public Enum YesNo   ' ------------------------------------
     xlYes = 1       ' System constants (identical values)
@@ -146,8 +145,6 @@ Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
 
 '***App Window Constants***
 Private Const WIN_NORMAL = 1         'Open Normal
-Private Const WIN_MAX = 3            'Open Maximized
-Private Const WIN_MIN = 2            'Open Minimized
 
 '***Error Codes***
 Private Const ERROR_SUCCESS = 32&
@@ -159,7 +156,6 @@ Private Const ERROR_BAD_FORMAT = 11&
 Private Const WS_THICKFRAME As Long = &H40000
 Private Const GWL_STYLE As Long = -16
 
-Private vMsgReply               As Variant
 Private cyTimerTicksBegin       As Currency
 Private cyTimerTicksEnd         As Currency
 Private TimerSystemFrequency    As Currency
@@ -181,7 +177,6 @@ Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
     Dim vKey    As Variant
     Dim arr()   As Variant
     Dim Temp    As Variant
-    Dim Txt     As String
     Dim i       As Long
     Dim j       As Long
     
@@ -238,8 +233,7 @@ Public Function Align(ByVal a_strng As String, _
 ' Returns a string (a_strng) with a lenght (a_lngth) aligned (a_mode) filled
 ' with characters (a_fill).
 ' ----------------------------------------------------------------------------
-    Dim SpaceLeft       As Long
-    Dim LengthRemaining As Long
+    Dim SpaceLeft As Long
     
     Select Case a_mode
         Case AlignLeft
@@ -288,8 +282,6 @@ End Function
 Public Function ArrayCompare(ByVal ac_v1 As Variant, _
                              ByVal ac_v2 As Variant, _
                     Optional ByVal ac_stop_after As Long = 0, _
-                    Optional ByVal ac_id1 As String = vbNullString, _
-                    Optional ByVal ac_id2 As String = vbNullString, _
                     Optional ByVal ac_ignore_case As Boolean = True, _
                     Optional ByVal ac_ignore_empty As Boolean = True) As Dictionary
 ' --------------------------------------------------------------------------
@@ -302,7 +294,6 @@ Public Function ArrayCompare(ByVal ac_v1 As Variant, _
     Const PROC = "ArrayCompare"
     
     On Error GoTo eh
-    Dim j       As Long
     Dim l       As Long
     Dim i       As Long
     Dim lMethod As VbCompareMethod
@@ -378,8 +369,6 @@ Public Function ArrayDiffers(ByVal ad_v1 As Variant, _
     Dim i       As Long
     Dim j       As Long
     Dim va()    As Variant
-    Dim s1      As String
-    Dim s2      As String
     
     On Error GoTo eh
     
@@ -762,21 +751,19 @@ Public Function ErrMsg(ByVal err_source As String, _
               Optional ByVal err_dscrptn As String = vbNullString, _
               Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Universal error message display service. Obligatory copy Private for any
-' VB-Component using the common error service but not having the mBasic common
-' component installed.
-' Displays: - a debugging option button
-'           - an optional additional "About:" section when the err_dscrptn has
-'             an additional string concatenated by two vertical bars (||)
-'           - the error message by means of the Common VBA Message Service
-'             (fMsg/mMsg) when installed and active (Cond. Comp. Arg.
-'             `mMsg = 1`)
+' Universal error message display service which displays:
+' - a debugging option button
+' - an "About:" section when the err_dscrptn has an additional string
+'   concatenated by two vertical bars (||)
+' - the error message either by means of the Common VBA Message Service
+'   (fMsg/mMsg) when installed (indicated by Cond. Comp. Arg. `mMsg = 1` or by
+'   means of the VBA.MsgBox in case not.
 '
 ' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
 '               to turn them into a negative and in the error message back into
 '               its origin positive number.
 '
-' W. Rauschenberger Berlin, June 2023
+' W. Rauschenberger Berlin, Jan 2024
 ' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
 #If mErH = 1 Then
@@ -956,21 +943,21 @@ Public Function ProgramIsInstalled(ByVal sProgram As String) As Boolean
         ProgramIsInstalled = InStr(Environ$(18), sProgram) <> 0
 End Function
 
-Public Sub README(Optional ByVal r_url As String = vbNullString, _
+Public Sub README(Optional ByVal r_base_url As String = vbNullString, _
                   Optional ByVal r_bookmark As String = vbNullString)
 ' ----------------------------------------------------------------------------
-' Displays the given url (r_url) with the given bookmark (r_bookmark) in the
+' Displays the given url (r_base_url) with the given bookmark (r_bookmark) in the
 ' computer's default browser. When no url is provided it defaults to this
 ' component's README url in the public GitHub repo.
 ' ----------------------------------------------------------------------------
-    If r_url = vbNullString _
-    Then r_url = "https://github.com/warbe-maker/VBA-Basics"
+    If r_base_url = vbNullString _
+    Then r_base_url = "https://github.com/warbe-maker/VBA-Basics"
     
     If r_bookmark = vbNullString Then
-        mBasic.ShellRun r_url
+        mBasic.ShellRun r_base_url
     Else
         r_bookmark = Replace("#" & r_bookmark, "##", "#") ' add # if missing
-        mBasic.ShellRun r_url & r_bookmark
+        mBasic.ShellRun r_base_url & r_bookmark
     End If
         
 End Sub

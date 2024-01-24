@@ -373,7 +373,6 @@ Private Sub OutdatedUpdate1Collect()
     Dim dct             As Dictionary
     Dim v               As Variant
     Dim sName           As String
-    Dim bDiscontinue    As Boolean
     Dim bOutdated       As Boolean
     
     mBasic.BoP ErrSrc(PROC)
@@ -389,11 +388,7 @@ Private Sub OutdatedUpdate1Collect()
             CommComps.CompName = .CompName
             Services.ServicedItem = .VBComp
             If (.KindOfComp = enCommCompHosted Or .KindOfComp = enCommCompUsed) Then
-                bOutdated = .Outdated(bDiscontinue)
-                If bDiscontinue Then
-                    Services.Progress " !!! collecting outdated Common Components discontinued !!!"
-                    GoTo xt
-                End If
+                bOutdated = .Outdated
                 If bOutdated Then
                     Qoutdated.EnQueue Comp
                     sName = .CompName

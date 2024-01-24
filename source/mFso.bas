@@ -153,8 +153,6 @@ Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
 
 '***App Window Constants***
 Private Const WIN_NORMAL = 1         'Open Normal
-Private Const WIN_MAX = 3            'Open Maximized
-Private Const WIN_MIN = 2            'Open Minimized
 
 '***Error Codes***
 Private Const ERROR_SUCCESS = 32&
@@ -163,8 +161,6 @@ Private Const ERROR_OUT_OF_MEM = 0&
 Private Const ERROR_FILE_NOT_FOUND = 2&
 Private Const ERROR_PATH_NOT_FOUND = 3&
 Private Const ERROR_BAD_FORMAT = 11&
-Private Const WS_THICKFRAME As Long = &H40000
-Private Const GWL_STYLE As Long = -16
 
 
 Public Property Let FileArry(Optional ByVal f_file_full_name As String, _
@@ -176,7 +172,7 @@ Public Property Let FileArry(Optional ByVal f_file_full_name As String, _
 ' string using the line break string (f_split) which defaults to vbCrLf and
 ' is optionally returned by Arry-Get.
 ' ----------------------------------------------------------------------------
-                    
+    f_excl_empty_lines = f_excl_empty_lines
     mFso.FileFromString f_string:=Join(f_ar, f_split) _
                       , f_file:=f_file_full_name _
                       , f_split:=f_split
@@ -627,7 +623,6 @@ Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
     Dim vKey    As Variant
     Dim arr()   As Variant
     Dim Temp    As Variant
-    Dim Txt     As String
     Dim i       As Long
     Dim j       As Long
     
@@ -884,50 +879,20 @@ Private Function ErrMsg(ByVal err_source As String, _
                Optional ByVal err_dscrptn As String = vbNullString, _
                Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Universal error message display service including a debugging option active
-' when the Conditional Compile Argument 'Debugging = 1' and an optional
-' additional "About the error:" section displaying text connected to an error
-' message by two vertical bars (||).
+' Universal error message display service which displays:
+' - a debugging option button
+' - an "About:" section when the err_dscrptn has an additional string
+'   concatenated by two vertical bars (||)
+' - the error message either by means of the Common VBA Message Service
+'   (fMsg/mMsg) when installed (indicated by Cond. Comp. Arg. `mMsg = 1` or by
+'   means of the VBA.MsgBox in case not.
 '
-' A copy of this function is used in each procedure with an error handling
-' (On error Goto eh).
+' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
+'               to turn them into a negative and in the error message back into
+'               its origin positive number.
 '
-' The function considers the Common VBA Error Handling Component (ErH) which
-' may be installed (Conditional Compile Argument 'mErH = 1') and/or the
-' Common VBA Message Display Component (mMsg) installed (Conditional Compile
-' Argument 'mMsg = 1'). Only when none of the two is installed the error
-' message is displayed by means of the VBA.MsgBox.
-'
-' Usage: Example with the Conditional Compile Argument 'Debugging = 1'
-'
-'        Private/Public <procedure-name>
-'            Const PROC = "<procedure-name>"
-'
-'            On Error Goto eh
-'            ....
-'        xt: Exit Sub/Function/Property
-'
-'        eh: Select Case ErrMsg(ErrSrc(PROC))
-'               Case vbResume:  Stop: Resume
-'               Case Else:      GoTo xt
-'            End Select
-'        End Sub/Function/Property
-'
-'        The above may appear a lot of code lines but will be a godsend in case
-'        of an error!
-'
-' Uses:  - For programmed application errors (Err.Raise AppErr(n), ....) the
-'          function AppErr will be used which turns the positive number into a
-'          negative one. The error message will regard a negative error number
-'          as an 'Application Error' and will use AppErr to turn it back for
-'          the message into its original positive number. Together with the
-'          ErrSrc there will be no need to maintain numerous different error
-'          numbers for a VB-Project.
-'        - The caller provides the source of the error through the module
-'          specific function ErrSrc(PROC) which adds the module name to the
-'          procedure name.
-'
-' W. Rauschenberger Berlin, Nov 2021
+' W. Rauschenberger Berlin, Jan 2024
+' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
 #If mErH = 1 Then
     '~~ ------------------------------------------------------------------------
@@ -1045,17 +1010,11 @@ Public Function Exists(Optional ByVal x_folder As String = vbNullString, _
     Const PROC  As String = "Exists"
     
     On Error GoTo eh
-    Dim sTest           As String
     Dim sFile           As String
     Dim fo              As Folder   ' Folder
     Dim sfo             As Folder   ' Sub-Folder
     Dim fl              As File
     Dim queue           As New Collection
-    Dim FolderExists    As Boolean
-    Dim FileExists      As Boolean
-    Dim SectionExists   As Boolean
-    Dim ValueNameExists As Boolean
-    Dim sFolder         As String
     
     Set x_result_files = New Collection
 
@@ -1392,7 +1351,6 @@ Public Function FileIsValidName(ivf_name As String) As Boolean
     Dim a()     As String
     Dim i       As Long
     Dim v       As Variant
-    Dim FolderIsValidName   As Boolean
     
     '~~ Check each element of the argument whether it can be created as file
     '~~ !!! this is the brute force method to check valid file names
@@ -1442,10 +1400,6 @@ Public Sub FilePathSplit(ByRef f_path As String, _
     Const PROC = "FilePathSplit"
     
     On Error GoTo eh
-    Dim aPath() As String
-    Dim i       As Long
-    Dim sFolder As String
-    Dim sFile   As String
     
     With fso
         Select Case True
@@ -1489,7 +1443,6 @@ Public Function FilePicked(Optional ByVal p_title As String = "Select a file", _
     Const PROC = "FilePicked"
    
     On Error GoTo eh
-    Dim fd  As FileDialog
     Dim v   As Variant
     
     With Application.FileDialog(msoFileDialogFilePicker)
@@ -1529,8 +1482,7 @@ End Function
 
 Public Function FilesSearch(ByVal fs_root As String, _
                    Optional ByVal fs_mask As String = "*", _
-                   Optional ByVal fs_in_subfolders As Boolean = True, _
-                   Optional ByVal fs_stop_after As Long = 100) As Collection
+                   Optional ByVal fs_in_subfolders As Boolean = True) As Collection
 ' ---------------------------------------------------------------------
 ' Returns a collection of all file names which meet the criteria:
 ' - in any subfolder of the root (fs_root)
@@ -1552,9 +1504,11 @@ Public Function FilesSearch(ByVal fs_root As String, _
     Do While queue.Count > 0
         Set fo = queue(queue.Count)
         queue.Remove queue.Count ' dequeue the processed subfolder
-        For Each sfo In fo.SubFolders
-            queue.Add sfo ' enqueue (collect) all subfolders
-        Next sfo
+        If fs_in_subfolders Then
+            For Each sfo In fo.SubFolders
+                queue.Add sfo ' enqueue (collect) all subfolders
+            Next sfo
+        End If
         For Each fl In fo.Files
             If VBA.Left$(fl.Name, 1) <> "~" _
             And fl.Name Like fs_mask _
@@ -1579,7 +1533,6 @@ Public Function FolderIsValidName(ivf_name As String) As Boolean
     
     On Error GoTo eh
     Dim a() As String
-    Dim i   As Long
     Dim v   As Variant
     Dim fo  As String
     
@@ -1636,8 +1589,6 @@ Public Function Folders(Optional ByVal fo_spec As String = vbNullString, _
     Static Stack    As Collection   ' LiFo stack for recursive calls
     Static foStart  As Folder
     Dim aFolders()  As Variant
-    Dim fl          As File
-    Dim flStart     As Folder
     Dim fo1         As Folder
     Dim fo2         As Folder
     Dim i           As Long
@@ -2109,7 +2060,6 @@ Public Function PPvalueNameRename(ByVal pp_name_old As String, _
     On Error GoTo eh
     Dim dct         As Dictionary
     Dim v           As Variant
-    Dim sSect       As String
     Dim vValue      As Variant
     Dim dctSects    As Dictionary
     Dim vSect       As Variant

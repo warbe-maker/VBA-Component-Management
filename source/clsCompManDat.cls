@@ -216,7 +216,6 @@ Private Sub HskpngHosted()
     On Error GoTo eh
     Dim wbk         As Workbook
     Dim v           As Variant
-    Dim Comp        As clsComp
     
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.ServicedWbk

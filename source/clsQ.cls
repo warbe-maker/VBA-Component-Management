@@ -78,33 +78,20 @@ Private Function ErrMsg(ByVal err_source As String, _
                Optional ByVal err_dscrptn As String = vbNullString, _
                Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Universal error message display service. See:
-' https://warbe-maker.github.io/vba/common/2022/02/15/Personal-and-public-Common-Components.html
+' Universal error message display service which displays:
+' - a debugging option button
+' - an "About:" section when the err_dscrptn has an additional string
+'   concatenated by two vertical bars (||)
+' - the error message either by means of the Common VBA Message Service
+'   (fMsg/mMsg) when installed (indicated by Cond. Comp. Arg. `mMsg = 1` or by
+'   means of the VBA.MsgBox in case not.
 '
-' Basic service:
-' - Displays a debugging option button when the Conditional Compile Argument
-'   'Debugging = 1'
-' - Displays an optional additional "About the error:" section when a string is
-'   concatenated with the error message by two vertical bars (||)
-' - Displays the error message by means of VBA.MsgBox when neither of the
-'   following is installed
+' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
+'               to turn them into a negative and in the error message back into
+'               its origin positive number.
 '
-' Extendend service when other Common Components are installed and indicated via
-' Conditional Compile Arguments:
-' - Invokes mErH.ErrMsg when the Conditional Compile Argument mErH = 1
-' - Invokes mMsg.ErrMsg when the Conditional Compile Argument `mMsg = 1` (and
-'   the mErH module is not installed / MsgComp not set)
-'
-' Uses:
-' - AppErr For programmed application errors (Err.Raise AppErr(n), ....) to turn
-'          them into negative and in the error message back into a positive
-'          number.
-' - ErrSrc To provide an unambiguous procedure name by prefixing is with the
-'          module name.
-'
-' See: https://github.com/warbe-maker/Common-VBA-Error-Services
-'
-' W. Rauschenberger Berlin, May 2022
+' W. Rauschenberger Berlin, Jan 2024
+' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
 #If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project

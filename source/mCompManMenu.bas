@@ -8,29 +8,8 @@ Option Explicit
 Private Const MENU_NAME                         As String = "CompMan"
 Private Const MENU_ITEM_RELEASE_SERVICE         As String = "Release Common Component changes"
 Private Const MENU_ITEM_HELP_RELEASE_SERVICE    As String = "Help Release"
-Private Const MENU_ITEM_HELP_SERVICED           As String = "Help Serviced"
-Private Const MENU_ITEM_HELP_CONFIGURE          As String = "Help Configure"
-Private Const MENU_ITEM_ABOUT                   As String = "About"
 Private Const README_SERVICED                   As String = "#enabling-the-services-serviced-or-not-serviced"
-Private Const README_RELEASE                    As String = "#the-release-service"
 Private Const MENU_ITEM_TAG                     As String = "COMPMAN_MENU_ITEM"
-
-Private objPopUp                                As CommandBarPopup
-Private dctPendingRelease                       As New Dictionary
-Private CmdBarItem                              As CommandBarControl
-Private cllEventHandlers                        As New Collection
-
-Private Sub DeleteMenuItems()
-' ------------------------------------------------------------------------------
-' Delete all controls that have a tag of MENU_ITEM_TAG.
-' ------------------------------------------------------------------------------
-    Dim Ctrl As Office.CommandBarControl
-    Set Ctrl = Application.VBE.CommandBars.FindControl(Tag:=MENU_ITEM_TAG)
-    Do Until Ctrl Is Nothing
-        Ctrl.Delete
-        Set Ctrl = Application.VBE.CommandBars.FindControl(Tag:=MENU_ITEM_TAG)
-    Loop
-End Sub
 
 Public Sub Procedure_One()
     MsgBox "Procedure One"
@@ -45,23 +24,23 @@ Public Property Get ThisMenuBar() As CommandBar
 '    Set ThisMenuBar = Application.VBE.CommandBars("Menüleiste") ' unfortunately not possible
 End Property
 
-Private Sub Explore()
-    Dim cmb     As CommandBar
-    Dim cbp1    As Variant
-    Dim cbp2    As Variant
-    
-    For Each cmb In Application.VBE.CommandBars
-        For Each cbp1 In cmb.Controls
-            Debug.Print "   " & TypeName(cbp1) & ": '" & cbp1.Caption & "' Id: " & cbp1.id
-            If TypeOf cbp1 Is CommandBarPopup Then
-                For Each cbp2 In cbp1.Controls
-                    Debug.Print "      " & TypeName(cbp2) & ": '" & cbp2.Caption & "' Id: " & cbp2.id
-                Next cbp2
-            End If
-        Next cbp1
-    Next cmb
-xt:
-End Sub
+'Private Sub Explore()
+'    Dim cmb     As CommandBar
+'    Dim cbp1    As Variant
+'    Dim cbp2    As Variant
+'
+'    For Each cmb In Application.VBE.CommandBars
+'        For Each cbp1 In cmb.Controls
+'            Debug.Print "   " & TypeName(cbp1) & ": '" & cbp1.Caption & "' Id: " & cbp1.id
+'            If TypeOf cbp1 Is CommandBarPopup Then
+'                For Each cbp2 In cbp1.Controls
+'                    Debug.Print "      " & TypeName(cbp2) & ": '" & cbp2.Caption & "' Id: " & cbp2.id
+'                Next cbp2
+'            End If
+'        Next cbp1
+'    Next cmb
+'xt:
+'End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mMenu." & sProc
@@ -71,9 +50,8 @@ Private Function CompMan() As CommandBarPopup
 ' ------------------------------------------------------------------------------
 ' Returns the CompMan CommandBarPopup.
 ' ------------------------------------------------------------------------------
-    Dim cmb     As CommandBar
-    Dim cbp     As CommandBarPopup
-    Dim cbr     As CommandBar
+    Dim cbp As CommandBarPopup
+    Dim cbr As CommandBar
     
     Set cbr = ThisMenuBar
     For Each cbp In cbr.Controls
@@ -129,13 +107,13 @@ End Sub
 
 Public Sub HelpConfigure()
     Debug.Print "HelpConfigure performed"
-    mBasic.README r_url:=GITHUB_REPO_URL _
+    mBasic.README r_base_url:=GITHUB_REPO_URL _
                 , r_bookmark:=README_CONFIG_CHANGES
 End Sub
 
 Public Sub HelpServiced()
     Debug.Print "HelpServiced performed"
-    mBasic.README r_url:=GITHUB_REPO_URL _
+    mBasic.README r_base_url:=GITHUB_REPO_URL _
                 , r_bookmark:=README_SERVICED
 End Sub
 

@@ -249,7 +249,6 @@ Public Sub SelfSetupDefaultEnvironment()
     Const PROC = "SelfSetupDefaultEnvironment"
         
     On Error GoTo eh
-    Dim FldrExport          As String
         
     With fso
         If Not .FolderExists(ServicedRootFolderNameDefault) Then .CreateFolder ServicedRootFolderNameDefault

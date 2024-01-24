@@ -34,8 +34,6 @@ Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
 
 '***App Window Constants***
 Private Const WIN_NORMAL = 1         'Open Normal
-Private Const WIN_MAX = 3            'Open Maximized
-Private Const WIN_MIN = 2            'Open Minimized
 
 '***Error Codes***
 Private Const ERROR_SUCCESS = 32&
@@ -44,8 +42,6 @@ Private Const ERROR_OUT_OF_MEM = 0&
 Private Const ERROR_FILE_NOT_FOUND = 2&
 Private Const ERROR_PATH_NOT_FOUND = 3&
 Private Const ERROR_BAD_FORMAT = 11&
-Private Const WS_THICKFRAME As Long = &H40000
-Private Const GWL_STYLE As Long = -16
 
 Public Enum enExistenceQuality
     enNameOrCodeName
@@ -177,7 +173,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Property Let Url(Optional ByVal su_wsh As Worksheet, _
+Public Property Let url(Optional ByVal su_wsh As Worksheet, _
                         Optional ByVal su_rng As Range, _
                         Optional ByVal url_underline As XlUnderlineStyle = xlUnderlineStyleSingle, _
                         Optional ByVal url_font_size As Long = 11, _
@@ -191,7 +187,6 @@ Public Property Let Url(Optional ByVal su_wsh As Worksheet, _
     Dim sAddress    As String
     Dim sSubAddress As String
     Dim bProtected  As Boolean
-    Dim rng         As Range
     
     Application.ScreenUpdating = False
     bProtected = su_wsh.ProtectContents
@@ -351,15 +346,13 @@ Private Function ErrMsg(ByVal err_source As String, _
                Optional ByVal err_dscrptn As String = vbNullString, _
                Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Universal error message display service. Obligatory copy Private for any
-' VB-Component using the common error service but not having the mBasic common
-' component installed.
-' Displays: - a debugging option button when the Cond. Comp. Arg. 'Debugging = 1'
-'           - an optional additional "About:" section when the err_dscrptn has
-'             an additional string concatenated by two vertical bars (||)
-'           - the error message by means of the Common VBA Message Service
-'             (fMsg/mMsg) when installed and active (Cond. Comp. Arg.
-'             `mMsg = 1`)
+' Universal error message display service which displays:
+' - a debugging option button
+' - an "About:" section when the err_dscrptn has an additional string
+'   concatenated by two vertical bars (||)
+' - the error message either by means of the Common VBA Message Service
+'   (fMsg/mMsg) when installed (indicated by Cond. Comp. Arg. `mMsg = 1` or by
+'   means of the VBA.MsgBox in case not.
 '
 ' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
 '               to turn them into a negative and in the error message back into

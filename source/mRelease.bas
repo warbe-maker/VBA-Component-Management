@@ -6,14 +6,10 @@ Public Module
 ' ========================== Common Components.
 '
 ' ------------------------------------------------------------------------------
-Private cbcReleaseItem      As CommandBarControl
-Private cbpMenu             As CommandBarPopup
-Private dctPendingReleases  As New Dictionary
+Private Const README_PENDING_RELEASE    As String = "#pending-release-management"
 
 Public Sub HelpRelease()
-    Debug.Print "HelpRelease performed"
-'    mBasic.README r_url:=GITHUB_REPO_URL _
-'                , r_bookmark:=README_RELEASE
+    mCompMan.README r_url_bookmark:=README_PENDING_RELEASE
 End Sub
 
 Public Sub ReleaseCommComps(Optional ByVal r_verbose As Boolean = True)
@@ -55,10 +51,8 @@ Public Sub ReleaseService(Optional ByVal r_wbk As Workbook = Nothing, _
     Const BTTN_TERMINATE    As String = "Terminate"
     
     On Error GoTo eh
-    Dim sBttnRelease        As String
     Dim cllButtons          As Collection
     Dim Msg                 As mMsg.udtMsg
-    Dim i                   As Long
     Dim sComp               As String
     Dim cllPending          As Collection
     Dim CodePublic          As clsCode

@@ -238,10 +238,6 @@ Private Property Get DevInstncName() As String
     End With
 End Property
 
-Private Property Get DEVLP_FORMAT() As XlFileFormat  ' = .xlsb ! may require adjustment when the above is changed
-    DEVLP_FORMAT = xlExcel12
-End Property
-
 Public Property Get IsAddinInstnc() As Boolean
     IsAddinInstnc = Extension = "xlam"
 End Property
@@ -276,14 +272,6 @@ End Property
 Public Property Let RenewTerminatedByUser(ByVal b As Boolean)
     bRenewTerminatedByUser = b
 End Property
-
-Private Sub CompManConfig()
-' ----------------------------------------------------------------------------
-' Invoked by the corresponding button in the wsAddin (Manage CompMan addin)
-' Worksheet.
-' ----------------------------------------------------------------------------
-    mMe.Config cfg_silent:=False, cfg_addin:=False, cfg_sync:=False
-End Sub
 
 Private Function Config(Optional ByVal cfg_silent As Boolean = False, _
                        Optional ByVal cfg_addin As Boolean = False, _

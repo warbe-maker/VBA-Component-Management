@@ -135,14 +135,11 @@ eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
 End Property
 
 Friend Property Let ServicedWbk(ByVal ws_wbk As Workbook)
-    Const PROC = "ServicedWbk-Let"
     Set wbkServiced = ws_wbk
     wsService.CurrentServicedWorkbookFullName = wbkServiced.FullName
 End Property
 
-Friend Property Let ServicedItem(Optional ByRef s_max_len_name As Long, _
-                                 Optional ByRef s_max_len_type As Long, _
-                                 Optional ByVal s_type As String, _
+Friend Property Let ServicedItem(Optional ByVal s_type As String, _
                                           ByVal v As Variant)
 ' -----------------------------------------------------------------------------------
 ' Determines the serviced item's type and name string for logging and computes the
@@ -317,7 +314,6 @@ Public Sub EstablishExecTraceFile()
 ' Note: A new trace-log-file is provided with the SRVC_UPDATE_OUTDATED which
 '       is the service performed when a serviced Workbook is opened.
 ' --------------------------------------------------------------------------
-    Const PROC = "EstablishExecTraceFile"
     Const TRACE_FILE_NAME   As String = "CompMan.Services.ExecTrace.log"
 
 #If mTrc = 1 Then
@@ -342,7 +338,7 @@ Public Sub EstablishExecTraceFile()
 
 End Sub
 
-Public Sub ExportChangedComponents(ByVal e_hosted As String)
+Public Sub ExportChangedComponents()
 ' ------------------------------------------------------------------------------
 ' Exclusively called by mCompMan.ExportChangedComponents, triggered by the
 ' Before_Save event.
@@ -358,7 +354,7 @@ Public Sub ExportChangedComponents(ByVal e_hosted As String)
     If Me.ServicedWbk Is Nothing _
     Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The procedure '" & ErrSrc(PROC) & "' has been called without a prior set of the 'ServicedWbk' Workbook. " & _
                                             "(it may have been called directly via the 'Immediate Window'"
-    mExport.ChangedComponents e_hosted
+    mExport.ChangedComponents
     
 xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
     Exit Sub
@@ -369,34 +365,34 @@ eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function ExportHeaderRemoved(ByVal ehr_fle As File) As Dictionary
-' ----------------------------------------------------------------------------
+'Private Function ExportHeaderRemoved(ByVal ehr_fle As File) As Dictionary
+'' ----------------------------------------------------------------------------
+''
+'' ----------------------------------------------------------------------------
+'    Dim bAttribReached  As Boolean
+'    Dim bAttribPassed   As Boolean
+'    Dim dct             As Dictionary
+'    Dim v               As Variant
+'    Dim s               As String
 '
-' ----------------------------------------------------------------------------
-    Dim bAttribReached  As Boolean
-    Dim bAttribPassed   As Boolean
-    Dim dct             As Dictionary
-    Dim v               As Variant
-    Dim s               As String
-    
-    Set dct = mFso.FileDict(ehr_fle)
-    For Each v In dct
-        s = dct(v) & "               "
-        If Not bAttribReached Then bAttribReached = Left(s, 12) = "Attribute VB"
-        If Not bAttribPassed Then bAttribPassed = bAttribReached And Left(s, 12) <> "Attribute VB"
-        
-        If Not bAttribPassed _
-        Or (bAttribReached And bAttribPassed And Trim(s) = vbNullString) Then
-            dct.Remove v
-        End If
-        If bAttribReached And bAttribPassed And Trim(s) <> vbNullString Then Exit For
-    Next v
-    
-    Set ExportHeaderRemoved = dct
-    Set dct = Nothing
-    
-End Function
-
+'    Set dct = mFso.FileDict(ehr_fle)
+'    For Each v In dct
+'        s = dct(v) & "               "
+'        If Not bAttribReached Then bAttribReached = Left(s, 12) = "Attribute VB"
+'        If Not bAttribPassed Then bAttribPassed = bAttribReached And Left(s, 12) <> "Attribute VB"
+'
+'        If Not bAttribPassed _
+'        Or (bAttribReached And bAttribPassed And Trim(s) = vbNullString) Then
+'            dct.Remove v
+'        End If
+'        If bAttribReached And bAttribPassed And Trim(s) <> vbNullString Then Exit For
+'    Next v
+'
+'    Set ExportHeaderRemoved = dct
+'    Set dct = Nothing
+'
+'End Function
+'
 'Public Function FilesDiffer(ByVal f_file_1 As File, _
 '                            ByVal f_file_2 As File, _
 '                   Optional ByVal f_ignore_export_header = False) As Boolean
@@ -637,10 +633,9 @@ Public Function Progress(ByVal p_operation_performed As String) As String
 ' Example:
 ' Export ... (by CompMan....) for ......: 1 of 50 exported (clsServices)
 ' --------------------------------------------------------------------------
-    Const PROC          As String = "Progress"
+    Const PROC = "Progress"
     
     On Error GoTo eh
-    Dim sMsg    As String
     Dim lTotalComps As Long
     
     If lNoOfItemsOutdated <> 0 Then

@@ -183,145 +183,6 @@ Public Function Scope(ByVal scp_nme As Name, _
 
 End Function
                           
-Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
-                           ByVal add_key As Variant, _
-                           ByVal add_item As Variant)
-' ----------------------------------------------------------------------------
-' Adds to the Dictionary (add_dct) an item (add_item) in ascending order by
-' the key (add_key). When the key is an object with no Name property an error
-' is raised.
-'
-' Note: This is a copy of the DctAdd procedure with fixed options which may be
-'       copied into any VBProject's module in order to have it independant
-'       from this Common Component.
-'
-' W. Rauschenberger, Berlin Jan 2022
-' ----------------------------------------------------------------------------
-    Const PROC = "DctAdd"
-    Dim bDone           As Boolean
-    Dim dctTemp         As Dictionary
-    Dim vItem           As Variant
-    Dim vItemExisting   As Variant
-    Dim vKeyExisting    As Variant
-    Dim vValueExisting  As Variant ' the entry's add_key/add_item value for the comparison with the vValueNew
-    Dim vValueNew       As Variant ' the argument add_key's/add_item's value
-    Dim vValueTarget    As Variant ' the add before/after add_key/add_item's value
-    Dim bStayWithFirst  As Boolean
-    Dim bOrderByItem    As Boolean
-    Dim bOrderByKey     As Boolean
-    Dim bSeqAscending   As Boolean
-    Dim bCaseIgnored    As Boolean
-    Dim bCaseSensitive  As Boolean
-    Dim bEntrySequence  As Boolean
-    
-    On Error GoTo eh
-    
-    If add_dct Is Nothing Then Set add_dct = New Dictionary
-    
-    '~~ Plausibility checks
-    bOrderByItem = False
-    bOrderByKey = True
-    bSeqAscending = True
-    bCaseIgnored = False
-    bCaseSensitive = True
-    bStayWithFirst = True
-    bEntrySequence = False
-    
-    With add_dct
-        '~~ When it is the very first add_item or the add_order option
-        '~~ is entry sequence the add_item will just be added
-        If .Count = 0 Or bEntrySequence Then
-            .Add add_key, add_item
-            GoTo xt
-        End If
-        
-        '~~ When the add_order is by add_key and not stay with first entry added
-        '~~ and the add_key already exists the add_item is updated
-        If bOrderByKey And Not bStayWithFirst Then
-            If .Exists(add_key) Then
-                If VarType(add_item) = vbObject Then Set .item(add_key) = add_item Else .item(add_key) = add_item
-                GoTo xt
-            End If
-        End If
-    End With
-        
-    '~~ When the add_order argument is an object but does not have a name property raise an error
-    If bOrderByKey Then
-        If VarType(add_key) = vbObject Then
-            On Error Resume Next
-            add_key.Name = add_key.Name
-            If Err.Number <> 0 _
-            Then Err.Raise AppErr(7), ErrSrc(PROC), "The add_order option is by add_key, the add_key is an object but does not have a name property!"
-        End If
-    ElseIf bOrderByItem Then
-        If VarType(add_item) = vbObject Then
-            On Error Resume Next
-            add_item.Name = add_item.Name
-            If Err.Number <> 0 _
-            Then Err.Raise AppErr(8), ErrSrc(PROC), "The add_order option is by add_item, the add_item is an object but does not have a name property!"
-        End If
-    End If
-    
-    vValueNew = AddAscByKeyValue(add_key)
-    
-    With add_dct
-        '~~ Get the last entry's add_order value
-        vValueExisting = AddAscByKeyValue(.Keys()(.Count - 1))
-        
-        '~~ When the add_order mode is ascending and the last entry's add_key or add_item
-        '~~ is less than the add_order argument just add it and exit
-        If bSeqAscending And vValueNew > vValueExisting Then
-            .Add add_key, add_item
-            GoTo xt
-        End If
-    End With
-        
-    '~~ Since the new add_key/add_item couldn't simply be added to the Dictionary it will
-    '~~ be inserted before or after the add_key/add_item as specified.
-    Set dctTemp = New Dictionary
-    bDone = False
-    
-    For Each vKeyExisting In add_dct
-        
-        If VarType(add_dct.item(vKeyExisting)) = vbObject _
-        Then Set vItemExisting = add_dct.item(vKeyExisting) _
-        Else vItemExisting = add_dct.item(vKeyExisting)
-        
-        With dctTemp
-            If bDone Then
-                '~~ All remaining items just transfer
-                .Add vKeyExisting, vItemExisting
-            Else
-                vValueExisting = AddAscByKeyValue(vKeyExisting)
-            
-                If vValueExisting = vValueNew And bOrderByItem And bSeqAscending And Not .Exists(add_key) Then
-                    If bStayWithFirst Then
-                        .Add vKeyExisting, vItemExisting:   bDone = True ' not added
-                    Else
-                        '~~ The add_item already exists. When the add_key doesn't exist and bStayWithFirst is False the add_item is added
-                        .Add vKeyExisting, vItemExisting:   .Add add_key, add_item:                     bDone = True
-                    End If
-                ElseIf bSeqAscending And vValueExisting > vValueNew Then
-                    .Add add_key, add_item:                     .Add vKeyExisting, vItemExisting:   bDone = True
-                Else
-                    .Add vKeyExisting, vItemExisting ' transfer existing add_item, wait for the one which fits within sequence
-                End If
-            End If
-        End With ' dctTemp
-    Next vKeyExisting
-    
-    '~~ Return the temporary dictionary with the new add_item added and all exiting items in add_dct transfered to it
-    Set add_dct = dctTemp
-    Set dctTemp = Nothing
-
-xt: Exit Sub
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
 Private Sub BoP(ByVal b_proc As String, ParamArray b_arguments() As Variant)
 ' ------------------------------------------------------------------------------
 ' (B)egin-(o)f-(P)rocedure named (b_proc). Procedure to be copied as Private
@@ -357,33 +218,21 @@ Private Function ErrMsg(ByVal err_source As String, _
                Optional ByVal err_dscrptn As String = vbNullString, _
                Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Universal error message display service. See:
-' https://warbe-maker.github.io/vba/common/2022/02/15/Personal-and-public-Common-Components.html
+' Universal error message display service which displays:
+' - a debugging option button
+' - an "About:" section when the err_dscrptn has an additional string
+'   concatenated by two vertical bars (||)
+' - the error message either by means of the Common VBA Message Service
+'   (fMsg/mMsg) when installed (indicated by Cond. Comp. Arg. `mMsg = 1` or by
+'   means of the VBA.MsgBox in case not.
 '
-' Basic service:
-' - Displays a debugging option button when the Conditional Compile Argument
-'   'Debugging = 1'
-' - Displays an optional additional "About the error:" section when a string is
-'   concatenated with the error message by two vertical bars (||)
-' - Displays the error message by means of VBA.MsgBox when neither of the
-'   following is installed
+' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
+'               to turn them into a negative and in the error message back into
+'               its origin positive number.
 '
-' Extendend service when other Common Components are installed and indicated via
-' Conditional Compile Arguments:
-' - Invokes mErH.ErrMsg when the Conditional Compile Argument mErH = 1
-' - Invokes mMsg.ErrMsg when the Conditional Compile Argument `mMsg = 1` (and
-'   the mErH module is not installed / MsgComp not set)
-'
-' Uses:
-' - AppErr For programmed application errors (Err.Raise AppErr(n), ....) to turn
-'          them into negative and in the error message back into a positive
-'          number.
-' - ErrSrc To provide an unambiguous procedure name by prefixing is with the
-'          module name.
-''
 ' W. Rauschenberger Berlin, Jan 2024
-' See: https://github.com/warbe-maker/Common-VBA-Error-Services
-' ------------------------------------------------------------------------------' ------------------------------------------------------------------------------
+' See: https://github.com/warbe-maker/VBA-Error
+' ------------------------------------------------------------------------------
 #If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
@@ -499,12 +348,9 @@ Public Function Corresponding(ByVal cn_nme As Name, _
 '
 ' Note: The error handling is to be provided by the caller.
 ' ----------------------------------------------------------------------------
-    Const PROC = "Corresponding"
-    
     Dim nme             As Name
     Dim dct             As New Dictionary
     Dim sId             As String
-    Dim wbk             As Workbook
     Dim bCorrespName    As Boolean
     Dim bCorrespRange   As Boolean
     Dim nmeCorresp      As Name
@@ -552,8 +398,7 @@ Public Function UnifiedId(ByVal ui_nme As Name, _
 End Function
 
 Public Function Exists(ByVal ex_nme As Name, _
-                       ByVal ex_wbk As Workbook, _
-              Optional ByRef ex_nme_result As Name) As Boolean
+                       ByVal ex_wbk As Workbook) As Boolean
 ' ------------------------------------------------------------------------
 ' Returns TRUE when a Name object exists in the provided Workbook (ex_wbk)
 ' which corresponds with the provided Name object whereby 'corresponding'
@@ -585,8 +430,7 @@ Public Function IsValidUserRangeName(ByVal iv_nme As Name) As Boolean
 End Function
 
 Public Function HasChangedName(ByVal hc_nme As Name, _
-                               ByVal hc_wbk As Workbook, _
-                      Optional ByRef hc_nme_result As Name) As Boolean
+                               ByVal hc_wbk As Workbook) As Boolean
 ' ------------------------------------------------------------------------
 ' Returns TRUE when the Name objects (hc_nme_source) in the Workbook
 ' (hc_wbk_source) corresponds with exactly one Name object in the Workbook
@@ -625,8 +469,7 @@ Public Function Create(ByVal c_name As String, _
 ' ------------------------------------------------------------------------
     Const PROC = "Create"
     
-    Dim nme     As Name
-    Dim Scope As Variant
+    Dim nme As Name
     Dim wbk As Workbook
     Dim wsh As Worksheet
          
@@ -679,15 +522,15 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function IsNotUnique(ByVal ia_nme As Name, _
-                            ByVal ia_wbk As Workbook) As Boolean
+Public Function IsNotUnique(ByVal ia_nme As Name) As Boolean
 ' ------------------------------------------------------------------------
 ' Returns TRUE when at least one Name  in Workbook (in_wbk) refers to the
 ' same range as the Name (in_nme) but none is identical with the Name
 ' (ia_nme).
 ' ------------------------------------------------------------------------
-    Dim dct As Dictionary:  Set dct = mRng.HasNames(ia_nme.RefersTo)
+    Dim dct As Dictionary
     
+    Set dct = mRng.HasNames(ia_nme.RefersTo)
     IsNotUnique = dct.Count > 0 And Not dct.Exists(ia_nme.Name)
 
 End Function
@@ -750,7 +593,6 @@ Public Sub ChangeProperties(ByRef p_target_nme As Name, _
     Dim OldName             As String
     Dim OldRefersTo         As String
     Dim OldScopeName        As String
-    Dim SourceScopeSheet    As String
     Dim SourceWbk           As Workbook
     Dim wsh                 As Worksheet
     

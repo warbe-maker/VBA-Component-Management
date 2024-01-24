@@ -9,8 +9,8 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 ' ---------------------------------------------------------------------------
-' Class Module clsCode: Provides methods and properties for the code of
-' ========================== a CodeModule or an Export-File.
+' Class Module clsCode: Provides methods and properties for the code of/in
+' ===================== a CodeModule or an Export-File.
 
 ' Public Methods:
 ' ----------------
@@ -22,6 +22,9 @@ Option Explicit
 '                       another source.
 ' DsplyDiffs            Displays the difference of the code of two sources
 '                       by means of WinMerge.
+' ReplaceWith           Replaces the code in the provided CodeModule with the
+'                       code provided through another instance of this Class
+'                       Module
 '
 ' Public Properties:
 ' ------------------
@@ -106,6 +109,20 @@ End Property
 
 Public Property Get IsNone() As Boolean:            IsNone = bSourceIsNone: End Property
 
+Public Sub ReplaceWith(ByVal r_target_vbcm As CodeModule, _
+                       ByVal r_source_code As clsCode)
+' ----------------------------------------------------------------------------
+' Replaces the code lines - if any - in the provided CodeModule (r_this_vbcm)
+' with the code of the provided source (r_source_code).
+' ----------------------------------------------------------------------------
+    
+    With r_target_vbcm
+        If .CountOfLines > 0 Then .DeleteLines 1, .CountOfLines
+        .InsertLines 1, r_source_code.AsTrimmedString
+    End With
+
+End Sub
+
 Public Property Let Source(ByVal f_v As Variant)
 ' ----------------------------------------------------------------------------
 ' Depending on the provided argument's (f_v) type the code is saved as an
@@ -118,8 +135,6 @@ Public Property Let Source(ByVal f_v As Variant)
 '       FALSE when a Source had been provided which contains at least one non
 '       non empty code line.
 ' ----------------------------------------------------------------------------
-    Const PROC = "Source/Let"
-    
     Dim fl      As File
     Dim vbcm    As CodeModule
     
@@ -169,10 +184,7 @@ Private Function ArrayTrimmed(ByVal t_v As Variant) As Variant
 ' ----------------------------------------------------------------------------
 '
 ' ----------------------------------------------------------------------------
-    Const PROC = "ArrayTrimmed"
-    
     Dim i   As Long
-    Dim j   As Long
     Dim k   As Long
     Dim arr As Variant
     
@@ -239,9 +251,6 @@ Public Function DiffersFrom(ByVal d_from_code As clsCode, _
     Const PROC = "DiffersFrom"
     
     On Error GoTo eh
-    Dim i       As Long
-    Dim arr     As Variant
-    Dim arrFrom As Variant
     
     Select Case True
         Case Not IsNone And Not d_from_code.IsNone
@@ -384,18 +393,6 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsCode" & "." & sProc
 End Function
 
-Private Function FileTemp(ByVal f_name As String) As File
-    Dim sFileName   As String
-    Dim ts          As TextStream
-    
-    With New FileSystemObject
-        sFileName = .GetSpecialFolder(2) & "\" & f_name & ".txt"
-        Set ts = .CreateTextFile(sFileName, True)
-        ts.Close
-   End With
-
-End Function
-
 Private Function FileTempName(ByVal f_name As String) As String
 ' ------------------------------------------
 ' Returns a temporary file's full name with
@@ -443,9 +440,7 @@ Private Function StringFromComp(ByVal c_vbcm As CodeModule) As Variant
 ' Returns a string with all the code lines in the CodeModule (c_cbcm) whereby
 ' any empty leading and trailing code lines are already excempted.
 ' ----------------------------------------------------------------------------
-
-    Dim iEmpty              As Long
-    Dim sCode               As String ' code without any leading and trailing empty code lines
+    Dim sCode As String ' code without any leading and trailing empty code lines
     
     With c_vbcm
         If .CountOfLines > 0 Then

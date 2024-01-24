@@ -52,14 +52,6 @@ Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (des
 
 Private Const HKEY_CURRENT_USER      As Long = &H80000001
 Private Const HKEY_LOCAL_MACHINE     As Long = &H80000002
-Private Const HKEY_CLASSES_ROOT      As Long = &H80000000
-Private Const HKEY_CURRENT_CONFIG    As Long = &H80000005
-Private Const HKEY_DYN_DATA          As Long = &H80000006
-Private Const HKEY_PERFORMANCE_DATA  As Long = &H80000004
-Private Const HKEY_USERS             As Long = &H80000003
-
-Private Const HKCU                   As Long = HKEY_CURRENT_USER
-Private Const HKLM                   As Long = HKEY_LOCAL_MACHINE
 
 Private Const REG_SZ = 1
 Private Const REG_EXPAND_SZ = 2
@@ -73,7 +65,6 @@ Private Const REG_VALUE_MAX_VALUE       As Long = 2147483647
 Private Const REG_VALUE_MAX_LENGTH      As Long = &H2048
 Private Const REG_KEY_MAX_LENGTH        As Long = &H255
 
-Private Const KEY_WRITE                 As Long = 131078
 Private Const KEY_READ                  As Long = &H20019  ' ((READ_CONTROL Or KEY_QUERY_VALUE Or
                                                            ' KEY_ENUMERATE_SUB_KEYS Or KEY_NOTIFY) And (Not
                                                            ' SYNCHRONIZE))
@@ -218,12 +209,10 @@ Private Sub DctAddAscByKey(ByRef add_dct As Dictionary, _
     Const PROC = "DctAdd"
     Dim bDone           As Boolean
     Dim dctTemp         As Dictionary
-    Dim vItem           As Variant
     Dim vItemExisting   As Variant
     Dim vKeyExisting    As Variant
     Dim vValueExisting  As Variant ' the entry's add_key/add_item value for the comparison with the vValueNew
     Dim vValueNew       As Variant ' the argument add_key's/add_item's value
-    Dim vValueTarget    As Variant ' the add before/after add_key/add_item's value
     Dim bStayWithFirst  As Boolean
     Dim bOrderByItem    As Boolean
     Dim bOrderByKey     As Boolean
@@ -358,9 +347,7 @@ Public Function Delete(ByVal reg_key As String, _
     Const PROC = "Delete"
     
     On Error GoTo eh
-    Dim s       As String
     Dim rString As String
-    Dim sCmd    As String
     
     If reg_value_name <> vbNullString Then
         rString = RegString(reg_key, reg_value_name)
@@ -569,7 +556,6 @@ Public Function Exists(ByVal reg_key As String, _
     Const PROC = "Exists"
     
     On Error GoTo eh
-    Dim s       As String
     Dim rString As String
     
     rString = RegString(reg_key, reg_value_name)
@@ -647,7 +633,6 @@ Private Function HasAccess(ByVal reg_key As String, ByVal reg_access As Long)
     Dim HKey        As Long
     Dim oRegistry   As Object
     Dim oInParam    As Object
-    Dim hAccess     As Long
     Dim oOutParam   As Object
     Dim oMethod     As Object
     

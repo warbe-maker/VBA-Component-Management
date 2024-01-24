@@ -47,6 +47,3 @@ Friend Property Let LastModAtDateTime(ByVal s As String):        sLastModAtDateT
 
 Friend Property Get LastModWbkBaseName() As String:             LastModWbkBaseName = CommComps.LastModInWbkBaseName:            End Property
 
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "clsRaw" & "." & sProc
-End Function

@@ -87,7 +87,6 @@ Public Sub DctAdd(ByRef add_dct As Dictionary, _
     On Error GoTo eh
     Dim bDone           As Boolean
     Dim dctTemp         As Dictionary
-    Dim vItem           As Variant
     Dim vItemExisting   As Variant
     Dim vKeyExisting    As Variant
     Dim vValueExisting  As Variant ' the entry's add_key/add_item value for the comparison with the vValueNew
@@ -273,12 +272,10 @@ Private Sub AddAscByKey(ByRef add_dct As Dictionary, _
     On Error GoTo eh
     Dim bDone           As Boolean
     Dim dctTemp         As Dictionary
-    Dim vItem           As Variant
     Dim vItemExisting   As Variant
     Dim vKeyExisting    As Variant
     Dim vValueExisting  As Variant ' the entry's add_key/add_item value for the comparison with the vValueNew
     Dim vValueNew       As Variant ' the argument add_key's/add_item's value
-    Dim vValueTarget    As Variant ' the add before/after add_key/add_item's value
     Dim bStayWithFirst  As Boolean
     Dim bOrderByItem    As Boolean
     Dim bOrderByKey     As Boolean
@@ -398,21 +395,19 @@ Private Function ErrMsg(ByVal err_source As String, _
               Optional ByVal err_dscrptn As String = vbNullString, _
               Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' Universal error message display service. Obligatory copy Private for any
-' VB-Component using the common error service but not having the mBasic common
-' component installed.
-' Displays: - a debugging option button when the Cond. Comp. Arg. 'Debugging = 1'
-'           - an optional additional "About:" section when the err_dscrptn has
-'             an additional string concatenated by two vertical bars (||)
-'           - the error message by means of the Common VBA Message Service
-'             (fMsg/mMsg) when installed and active (Cond. Comp. Arg.
-'             `mMsg = 1`)
+' Universal error message display service which displays:
+' - a debugging option button
+' - an "About:" section when the err_dscrptn has an additional string
+'   concatenated by two vertical bars (||)
+' - the error message either by means of the Common VBA Message Service
+'   (fMsg/mMsg) when installed (indicated by Cond. Comp. Arg. `mMsg = 1` or by
+'   means of the VBA.MsgBox in case not.
 '
 ' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
 '               to turn them into a negative and in the error message back into
 '               its origin positive number.
 '
-' W. Rauschenberger Berlin, June 2023
+' W. Rauschenberger Berlin, Jan 2024
 ' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
 #If mErH = 1 Then
@@ -527,7 +522,6 @@ Public Function DctDiffers(ByVal dd_dct1 As Dictionary, _
     
     On Error GoTo eh
     Dim i       As Long
-    Dim v       As Variant
     
     If dd_ignore_items_empty Then
         '~~ Remove empty items (items with a lenght = 0) from both Dictionaries
@@ -544,8 +538,7 @@ Public Function DctDiffers(ByVal dd_dct1 As Dictionary, _
             For i = 0 To dd_dct1.Count - 1
                 If Differs(v1:=dd_dct1.Items()(i) _
                          , v2:=dd_dct2.Items()(i) _
-                         , ignore_case:=dd_ignore_case _
-                         , ignore_empty:=dd_ignore_items_empty) Then
+                         , ignore_case:=dd_ignore_case) Then
                     DctDiffers = True
                     Exit For
                 End If
@@ -556,8 +549,7 @@ Public Function DctDiffers(ByVal dd_dct1 As Dictionary, _
             For i = 0 To dd_dct1.Count - 1
                 If Differs(v1:=dd_dct1.Keys()(i) _
                          , v2:=dd_dct2.Keys()(i) _
-                         , ignore_case:=dd_ignore_case _
-                         , ignore_empty:=dd_ignore_items_empty) Then
+                         , ignore_case:=dd_ignore_case) Then
                     DctDiffers = True
                     Exit For
                 End If
@@ -568,12 +560,10 @@ Public Function DctDiffers(ByVal dd_dct1 As Dictionary, _
             For i = 0 To dd_dct1.Count - 1
                 DctDiffers = Differs(v1:=dd_dct1.Keys()(i) _
                                    , v2:=dd_dct2.Keys()(i) _
-                                   , ignore_case:=dd_ignore_case _
-                                   , ignore_empty:=dd_ignore_items_empty) _
+                                   , ignore_case:=dd_ignore_case) _
                          And Differs(v1:=dd_dct1.Items()(i) _
                                    , v2:=dd_dct2.Items()(i) _
-                                   , ignore_case:=dd_ignore_case _
-                                   , ignore_empty:=dd_ignore_items_empty)
+                                   , ignore_case:=dd_ignore_case)
                 If DctDiffers Then Exit For
             Next i
     End Select
@@ -603,8 +593,7 @@ End Sub
 
 Private Function Differs(ByVal v1 As Variant, _
                          ByVal v2 As Variant, _
-                Optional ByVal ignore_case As Boolean = False, _
-                Optional ByVal ignore_empty As Boolean = False) As Boolean
+                Optional ByVal ignore_case As Boolean = False) As Boolean
 ' ------------------------------------------------------------------------------
 ' Returns TRUE when v1 is not identical with v2. I.e when they are objects,
 ' TRUE is returned when the object's Name differ. When only one of the two
@@ -690,7 +679,6 @@ Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
     Dim vKey    As Variant
     Dim arr()   As Variant
     Dim Temp    As Variant
-    Dim Txt     As String
     Dim i       As Long
     Dim j       As Long
     

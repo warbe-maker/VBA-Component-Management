@@ -18,7 +18,7 @@ Option Explicit
 '                   exists, i.e. one with an outdated name, this one is
 '                   renamed instead.
 ' ----------------------------------------------------------------------------
-Public Sub ChangedComponents(ByVal c_hosted As String)
+Public Sub ChangedComponents()
 ' ----------------------------------------------------------------------------
 ' - Exports all components the code had been modified
 ' - Removes all Export Files of which the corresponding component no longer
@@ -32,14 +32,9 @@ Public Sub ChangedComponents(ByVal c_hosted As String)
     
     On Error GoTo eh
     Dim Comp                    As clsComp
-    Dim v                       As Variant
     Dim wbk                     As Workbook
-    Dim dct                     As Dictionary
     Dim sLastModDateTimeOld     As String
     Dim vbc                     As VBComponent
-    Dim lItemsTotal             As Long
-    Dim lItemsServiced          As Long
-    Dim lItemsSkipped           As Long
     
     mBasic.BoP ErrSrc(PROC)
     '~~ Prevent any action when the required preconditins are not met

@@ -175,7 +175,7 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     Services.Initiate mCompManClient.SRVC_EXPORT_CHANGED, e_wbk_serviced, e_hosted
     If Services.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
         
-    Services.ExportChangedComponents e_hosted
+    Services.ExportChangedComponents
     ExportChangedComponents = True
     ExportChangedComponents = Application.StatusBar
     
@@ -204,15 +204,14 @@ Public Sub MsgInit()
 
 End Sub
 
-Public Sub README(Optional ByVal r_bookmark As String = vbNullString)
+Public Sub README(Optional ByVal r_url_subject As String = "/blob/master/README.md", _
+                  Optional ByVal r_url_bookmark As String = vbNullString)
     
-    If r_bookmark = vbNullString Then
-        mBasic.ShellRun GITHUB_REPO_URL
-    Else
-        r_bookmark = Replace("#" & r_bookmark, "##", "#") ' add # if missing
-        mBasic.ShellRun GITHUB_REPO_URL & r_bookmark
-    End If
-        
+    If r_url_bookmark <> vbNullString _
+    Then r_url_bookmark = Replace("#" & r_url_bookmark, "##", "#") ' add # if missing
+
+    mBasic.ShellRun GITHUB_REPO_URL & r_url_subject & r_url_bookmark
+    
 End Sub
 
 Public Function RunTest(ByVal r_service_proc As String, _

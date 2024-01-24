@@ -781,7 +781,6 @@ Public Sub Initiate(Optional ByVal i_sync_refs As Boolean = True, _
 End Sub
 
 Public Sub MonitorStep(ByVal ms_text As String)
-    Dim s As String
     
     On Error Resume Next
     ActiveWindow.WindowState = xlMaximized
@@ -1547,11 +1546,11 @@ Private Sub SyncKind(ByVal s_wbk_source As Workbook, _
 ' Synchronizes the next still due kind of synchronization object.
 ' ------------------------------------------------------------------------------
     Select Case True
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindReference):   mSyncRefs.SyncKind s_wbk_source, s_wbk_target
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindName):  mSyncNames.SyncKind s_wbk_source, s_wbk_target
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindWorksheet): mSyncSheets.SyncKind s_wbk_source, s_wbk_target
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindShape): mSyncShapes.SyncKind
-        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindVBComponent):  mSyncComps.SyncKind s_wbk_source, s_wbk_target
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindReference):      mSyncRefs.SyncKind s_wbk_source, s_wbk_target
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindName):           mSyncNames.SyncKind s_wbk_source, s_wbk_target
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindWorksheet):      mSyncSheets.SyncKind s_wbk_source, s_wbk_target
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindShape):          mSyncShapes.SyncKind
+        Case DueSyncKindOfObjects.IsQueued(enSyncObjectKindVBComponent):    mSyncComps.SyncKind s_wbk_source, s_wbk_target
     End Select
     
 End Sub

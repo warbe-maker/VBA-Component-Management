@@ -6,14 +6,7 @@ Option Explicit
 '
 ' W. Rauschenberger Berlin, Jan 2021
 ' ------------------------------------------------------------------------------
-Private Const TEST_CHANGE = "' Test code change"
-
 Private cTest   As clsTestService
-Private wbTest  As Workbook
-Private wbSrc   As Workbook
-Private wbTrgt  As Workbook
-Private vbc     As VBComponent
-Private vbcm    As CodeModule
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCompManTest" & "." & sProc
@@ -95,21 +88,3 @@ eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub Test_Template_Proc()
-
-    Const PROC = "Test_RevNoIncrease"
-        
-    If Trc Is Nothing Then ' if not executed within a regression-test
-        Set Trc = New clsTrc
-        Trc.NewFile ' temp trace-log-file, with default name for this test only
-    End If
-    mBasic.BoP ErrSrc(PROC)
-    
-xt: mBasic.EoP ErrSrc(PROC)
-    '~~ show trace and delete trace-log-file
-    Trc.Dsply
-    Stop ' continue when display is closed
-    fso.DeleteFile Trc.FileFullName
-    Set Trc = Nothing
-    
-End Sub

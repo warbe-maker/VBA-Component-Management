@@ -113,8 +113,6 @@ Private Const SM_CMONITORS              As Long = 80    ' number of display moni
 Private Const MONITOR_CCHDEVICENAME     As Long = 32    ' device name fixed length
 Private Const MONITOR_PRIMARY           As Long = 1
 Private Const MONITOR_DEFAULTTONULL     As Long = 0
-Private Const MONITOR_DEFAULTTOPRIMARY  As Long = 1
-Private Const MONITOR_DEFAULTTONEAREST  As Long = 2
 Private Type RECT
     Left As Long
     Top As Long
@@ -133,11 +131,8 @@ Private Enum DevCap     ' GetDeviceCaps nIndex (video displays)
     VERTSIZE = 6        ' height in millimeters
     HORZRES = 8         ' width in pixels
     VERTRES = 10        ' height in pixels
-    BITSPIXEL = 12      ' color bits per pixel
     LOGPIXELSX = 88     ' horizontal DPI (assumed by Windows)
     LOGPIXELSY = 90     ' vertical DPI (assumed by Windows)
-    COLORRES = 108      ' actual color resolution (bits per pixel)
-    VREFRESH = 116      ' vertical refresh rate (Hz)
 End Enum
 
 Private Const ERROR_BAD_FORMAT = 11&
@@ -147,10 +142,6 @@ Private Const ERROR_OUT_OF_MEM = 0&
 Private Const ERROR_PATH_NOT_FOUND = 3&
 Private Const ERROR_SUCCESS = 32&
 Private Const GITHUB_REPO_URL       As String = "https://github.com/warbe-maker/VBA-Message"
-Private Const SM_CXVIRTUALSCREEN    As Long = &H4E&     ' calculating
-Private Const SM_CYVIRTUALSCREEN    As Long = &H4F&     ' the
-Private Const SM_XVIRTUALSCREEN     As Long = &H4C&     ' display's
-Private Const SM_YVIRTUALSCREEN     As Long = &H4D&     ' DPI in points
 Private Const TWIPSPERINCH          As Long = 1440      ' -------------
 
 Private Declare PtrSafe Function CreateDC Lib "gdi32" Alias "CreateDCA" (ByVal lpDriverName As String, ByVal lpDeviceName As String, ByVal lpOutput As String, lpInitData As LongPtr) As LongPtr
@@ -170,7 +161,6 @@ Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As LongPtr, 
 #Else
     Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal ms As Long)
 #End If
-Private Declare PtrSafe Function GetSystemMetrics32 Lib "user32" Alias "GetSystemMetrics" (ByVal nIndex As Long) As Long
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
     (ByVal hWnd As Long, _
@@ -184,8 +174,6 @@ Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
 Private Const WIN_NORMAL = 1         'Open Normal
 '***Error Codes***
 Private bModeLess           As Boolean
-Private lPixelsPerInchX     As Long
-Private lPixelsPerInchY     As Long
 Private fMonitor            As fMsg
 Public MsgInstances         As Dictionary    ' Collection of (possibly still)  active form instances
 
@@ -1168,7 +1156,6 @@ Public Function Screen(ByVal item As enScreen) As Variant
     Dim tMonitorInfo    As MONITORINFOEX
     Dim nMonitors       As Integer
     Dim vResult         As Variant
-    Dim sItem           As String
     
     Application.Volatile
     nMonitors = GetSystemMetrics(SM_CMONITORS)

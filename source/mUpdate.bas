@@ -25,30 +25,22 @@ End Function
 Public Sub ByCodeReplace(ByVal b_source_comp As clsComp, _
                          ByVal b_target_comp As clsComp)
 ' ----------------------------------------------------------------------------
-' Updates a VBComponent named (b_source_comp) in the Workbook (b_target_wbk)
-' by replacing the code lines of the target component with those from the
-' source component.
-' Note 1: Code replacement is the only update method applicable for Data
-'         Modules
-' Note 2: Code replacement is not an applicable update method for UserForms.
+' Replaces the code in a target component's (b_target_comp) CodeModule with
+' the code provided through a source component (b_source_comp).
+' Attention: This method is not applicable for UserForms since they have a
+'            design component connected
+' Note ....: Code replacement is the only update method applicable for Data
+'            Modules but may as well be used for Standard- and Class-Modules.
 ' ----------------------------------------------------------------------------
     Const PROC = "ByCodeReplace"
 
     On Error GoTo eh
-    Dim i           As Long
-    Dim SourceCode  As Dictionary
-    Dim v           As Variant
-        
-    '~~ Obtain the new code lines from the Sync-source-Workbook's component
-    Set SourceCode = b_source_comp.CodeLines
+    Dim CodeTarget  As New clsCode
+    Dim CodeSource  As New clsCode
     
-    With b_target_comp.VBComp.CodeModule
-        If .CountOfLines > 0 Then .DeleteLines 1, .CountOfLines     ' Remove all lines from the cloned raw component
-        For Each v In SourceCode                                    ' Insert the raw component's code lines
-            i = i + 1
-            .InsertLines i, SourceCode(v)
-        Next v
-    End With
+    CodeSource.Source = b_source_comp.VBComp.CodeModule
+    CodeTarget.ReplaceWith r_target_vbcm:=b_target_comp.VBComp.CodeModule _
+                         , r_source_code:=CodeSource
     
     With b_target_comp
         Select Case .KindOfComp

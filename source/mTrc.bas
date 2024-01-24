@@ -63,22 +63,6 @@ Private Const GITHUB_REPO_URL As String = "https://github.com/warbe-maker/VBA-Tr
 
 Private fso As New FileSystemObject
 
-#If Not mMsg = 1 Then
-    ' ------------------------------------------------------------------------
-    ' The 'minimum error handling' aproach implemented with this module and
-    ' provided by the ErrMsg function uses the VBA.MsgBox to display an error
-    ' message which includes a debugging option to resume the error line
-    ' provided the Cond. Comp. Arg. 'Debugging = 1'.
-    ' This declaration allows the mTrc module to work completely autonomous.
-    ' It becomes obsolete when the mMsg/fMsg module is installed 1) which must
-    ' be indicated by the Cond. Comp. Arg. mMsg = 1
-    '
-    ' 1) See https://github.com/warbe-maker/VBA-Message for install and use.
-    ' ------------------------------------------------------------------------
-    Private Const vbResumeOk As Long = 7 ' Buttons value in mMsg.ErrMsg (pass on not supported)
-    Private Const vbResume   As Long = 6 ' return value (equates to vbYes)
-#End If
-
 Public Enum enDsplydInfo
     Detailed = 1
     Compact = 2
@@ -119,7 +103,6 @@ Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
 
 Private Const DIR_BEGIN_ID      As String = ">"     ' Begin procedure or code trace indicator
 Private Const DIR_END_ID        As String = "<"     ' End procedure or code trace indicator
-Private Const TRC_INFO_DELIM    As String = " !!! "
 Private Const TRC_LOG_SEC_FRMT  As String = "00.0000 "
 
 Private bLogToFileSuspended As Boolean
@@ -134,7 +117,6 @@ Private dtTraceBegin        As Date             ' Initialized at start of execut
 Private iTrcLvl             As Long             ' Increased with each begin entry and decreased with each end entry
 Private LastNtry            As Collection       '
 Private lKeepDays           As Long
-Private oLogFile            As TextStream
 Private sFileFullName       As String           ' Defaults to the When vbNullString the trace is written into file and the display is suspended
 Private sFileName           As String
 Private sFirstTraceItem     As String
@@ -514,19 +496,16 @@ Private Function ErrMsg(ByVal err_source As String, _
                Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
 ' Universal error message display service which displays:
-' - a debugging option button (Conditional Compile Argument 'Debugging = 1')
-' - an optional additional "About:" section when the err_dscrptn has an
-'   additional string concatenated by two vertical bars (||)
-' - the error message by means of the Common VBA Message Service (fMsg/mMsg)
-'   Common Component
-'   mMsg (Conditional Compile Argument "mMsg = 1") is installed.
+' - a debugging option button
+' - an "About:" section when the err_dscrptn has an additional string
+'   concatenated by two vertical bars (||)
+' - the error message either by means of the Common VBA Message Service
+'   (fMsg/mMsg) when installed (indicated by Cond. Comp. Arg. `mMsg = 1` or by
+'   means of the VBA.MsgBox in case not.
 '
-' Uses:
-' - AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
-'           to turn them into a negative and in the error message back into
-'           its origin positive number.
-' - ErrSrc  To provide an unambiguous procedure name by prefixing is with
-'           the module name.
+' Uses: AppErr  For programmed application errors (Err.Raise AppErr(n), ....)
+'               to turn them into a negative and in the error message back into
+'               its origin positive number.
 '
 ' W. Rauschenberger Berlin, Jan 2024
 ' See: https://github.com/warbe-maker/VBA-Error
@@ -644,7 +623,6 @@ Private Sub LogBgn(ByVal l_ntry As Collection, _
     Const PROC = "LogBgn"
     
     On Error GoTo eh
-    Dim sLogText            As String
     Dim ElapsedSecsTotal    As String
     Dim ElapsedSecs         As String
     Dim TopNtry             As Collection
@@ -702,8 +680,7 @@ Private Function LogElapsedSecsTotal(ByVal et_ticks As Currency) As String
     LogElapsedSecsTotal = Format(CDec(et_ticks - cyTcksAtStart) / CDec(SysFrequency), TRC_LOG_SEC_FRMT)
 End Function
 
-Private Sub LogEnd(ByVal l_ntry As Collection, _
-          Optional ByVal l_args As String = vbNullString)
+Private Sub LogEnd(ByVal l_ntry As Collection)
 ' ------------------------------------------------------------------------------
 ' Write an end trace line to the trace-log-file (sFileFullName) - provided one
 ' had been specified - with the execution time calculated in seconds. When the
@@ -713,7 +690,6 @@ Private Sub LogEnd(ByVal l_ntry As Collection, _
     
     On Error GoTo eh
     Dim BgnNtry             As Collection
-    Dim sLogText            As String
     Dim ElapsedSecs         As String
     Dim ElapsedSecsTotal    As String
     
@@ -787,7 +763,7 @@ Private Sub LogEntry(ByVal t_id As String, _
         Set t_ntry = Ntry(n_tcks:=t_tcks, n_dir:=t_dir, n_id:=t_id, n_lvl:=t_lvl, n_args:=t_args)
         If t_dir Like DIR_BEGIN_CODE & "*" _
         Then LogBgn t_ntry, t_args _
-        Else LogEnd t_ntry, t_args
+        Else LogEnd t_ntry
         
         Set LastNtry = t_ntry
         sLastDrctv = t_dir

@@ -29,8 +29,7 @@ Private Sub Workbook_BeforeClose(Cancel As Boolean)
 ' Ensure the CompMan Add-in is not (no longer) paused when the Development
 ' Instance Workbook is closed.
 ' ------------------------------------------------------------------------------
-    Const PROC = "Workbook_BeforeClose"
-    
+   
     If mMe.IsDevInstnc Then
         If mAddin.IsOpen Then
             mAddin.Paused = False
@@ -44,8 +43,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
 ' ------------------------------------------------------------------------------
 ' Prevents a Workbook with an invalid configuration is saved.
 ' ------------------------------------------------------------------------------
-    Const PROC = "Workbook_BeforeSave"
-    
+   
     If mMe.AssertedServicingEnabled Then
         If Not wsConfig.Verified Then
             wsConfig.Activate
@@ -54,6 +52,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     End If
     Application.CutCopyMode = False
     Application.StatusBar = "Workbook is being saved"
+    
 End Sub
 
 Private Sub Workbook_AfterSave(ByVal Success As Boolean)

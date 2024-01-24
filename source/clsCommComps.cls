@@ -104,33 +104,24 @@ End Sub
 Friend Property Get BttnDsplyDiff() As String: BttnDsplyDiff = "Display difference" & vbLf & "(of Export-Files)":   End Property
 
 Friend Property Get BttnDsplyThatDiff() As String
-    BttnDsplyThatDiff = "Display the already made" & "modifications" & vbLf & "(other Workbook and/or other Machine)"
+    BttnDsplyThatDiff = "Display the modifications" & vbLf & "already made in Workbook" & vbLf & PendingReleaseModInWbkName
 End Property
 
 Friend Property Get BttnDsplyThisModifications() As String
-    BttnDsplyThisModifications = "Display this modifications"
+    BttnDsplyThisModifications = "Display the modifications" & vbLf & "made in this Workbook"
 End Property
 
 Friend Property Get BttnDsplyThisThatDiff() As String
-    BttnDsplyThisThatDiff = "Display modification difference"
+    BttnDsplyThisThatDiff = "Display modification difference" & vbLf & "this Workbook versus" & vbLf & "in " & PendingReleaseModInWbkName
 End Property
 
 Private Property Get BttnIgnoreThatChanges() As String
-    BttnIgnoreThatChanges = "Ignore the modifications" & vbLf & "made in Workbook" & vbLf & CommComps.LastModInWbkName & ")"
+    BttnIgnoreThatChanges = "Ignore the modifications" & vbLf & "made in Workbook" & vbLf & PendingReleaseModInWbkName & ")"
 End Property
 
 Friend Property Get BttnIgnoreThisChanges() As String
-    BttnIgnoreThisChanges = "Ignore the modifications" & vbLf & "made in Workbook" & vbLf & LastModInWbkName
+    BttnIgnoreThisChanges = "Ignore the modifications" & vbLf & "made in Workbook" & vbLf & Services.ServicedWbk.Name
 End Property
-
-Private Property Get BttnTerminate() As String
-    BttnTerminate = "Terminate releasing any modifications!"
-End Property
-
-'Friend Property Let Comp(ByVal c_comp As clsComp)
-'    Set cComp = c_comp
-'    sCompName = c_comp.CompName
-'End Property
 
 Public Property Let CompName(ByVal c_name As String): sCompName = c_name: End Property
 
@@ -192,8 +183,7 @@ Friend Property Get LastModExpFile(Optional ByVal l_comp_name As String = vbNull
     Const PROC = "LastModExpFile Get"
     
     On Error GoTo eh
-    Dim FileName    As String
-    Dim fl          As File
+    Dim fl As File
     
     If l_comp_name = vbNullString Then l_comp_name = sCompName
     With fso
@@ -344,25 +334,6 @@ Friend Property Let PendingReleaseModExpFileFullName(Optional ByVal p_comp_name 
     Value(PENDING_RELEASE_MODIFIED_EXP_FILE, p_comp_name) = p_mod_exp_file
 End Property
 
-Friend Property Let PendingReleaseModInWbk(Optional ByVal p_comp_name As String = vbNullString, _
-                                                    ByVal p_wbk As Workbook)
-    Const PROC = "PendingReleaseModInWbk/Let"
-    On Error GoTo eh
-    
-    If p_comp_name = vbNullString Then p_comp_name = sCompName
-    With p_wbk
-        PendingReleaseModInWbkFullName = .FullName
-        PendingReleaseModInWbkName = .Name
-    End With
-    
-xt: Exit Property
-
-eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Property
-
 Friend Property Get PendingReleaseModInWbkFullName(Optional ByVal p_comp_name As String = vbNullString) As String
     If p_comp_name = vbNullString Then p_comp_name = sCompName
     PendingReleaseModInWbkFullName = Value(PENDING_RELEASE_MODIFIED_IN_WBK_FULL_NAME, p_comp_name)
@@ -474,57 +445,62 @@ Public Property Get CurrentPublicExpFileFullName() As String
     End With
 End Property
 
-Public Function ConcurrentModification(ByVal c_comp As clsComp, _
-                                       ByVal c_diff_wbk As Boolean, _
-                                       ByVal c_diff_machine As Boolean) As Variant
+Public Function ConcurrentModification(ByVal c_comp As clsComp) As Variant
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
     
     Dim Msg As mMsg.udtMsg
     
-    CompName = c_comp.CompName
+    sCompName = c_comp.CompName
     
     With Msg
         With .Section(1)
-            .Label.Text = "Attention!"
+            .Label.Text = "Concurrent modification"
             .Label.FontBold = True
             .Label.FontColor = rgbRed
             .Text.Text = _
-            "The Common Component has already been modified in a different Workbook and/or on a different computer." & _
-            "When the modifications made in this Workbook are confirmed, the changes made in a different Workboo " & _
-            "and/or on a different computer are ignored. I.e. these modifications are given priority over those made " & _
-            "already elsewhere. Comparing the modifications made in this Workbook with those made in the other " & _
-            "Workbook and/or on the other computer may support the decision on how to proceed."
+            "The Common Component  " & mBasic.Spaced(sCompName) & "  has already been modified in Workbook  " & _
+            mBasic.Spaced(PendingReleaseModInWbkName) & " on computer  " & PendingReleaseModOnMachine & "." & _
+            "When the modifications made in this Workbook are confirmed, all changes made for the Common " & _
+            "Component in the other Workbook are ignored. I.e. these modifications are given priority over those made " & _
+            "already elsewhere. Comparing the modifications may support the decision on how to proceed."
         End With
-        With .Section(2)
-            .Label.Text = "Already modified in Workbook:"
+        With .Section(3)
+            .Label.Text = "-----------------------------"
+            .Text.Text = "The already made modification facts:"
+        End With
+        With .Section(3)
+            .Label.Text = "Modified in Workbook:"
             .Label.FontBold = True
             .Label.FontColor = rgbBlue
             .Text.Text = CommComps.LastModInWbkFullName
             .Text.MonoSpaced = True
         End With
-        With .Section(3)
-            .Label.Text = "Already modified on Machine:"
+        With .Section(4)
+            .Label.Text = "Modified on Machine:"
             .Label.FontBold = True
             .Label.FontColor = rgbBlue
             .Text.Text = LastModOnMachine
             .Text.MonoSpaced = True
         End With
-        With .Section(3)
-            .Label.Text = "Already modified at:"
+        With .Section(5)
+            .Label.Text = "Modified (exported) at:"
             .Label.FontBold = True
             .Label.FontColor = rgbBlue
             .Text.Text = LastModAtDateTime
             .Text.MonoSpaced = True
         End With
-        .Section(4).Text.Text = "Please note that either of the below options need to be taken!"
-        With .Section(5)
+        With .Section(6)
+            .Label.Text = "-----------------------------"
+            .Text.Text = "The options (of which finally one will to be taken)!"
+        End With
+        With .Section(7)
             .Label.Text = BttnIgnoreThisChanges
             .Label.FontColor = rgbBlue
             .Text.Text = "The changes already made in the other Workbook and/or the other machine remain those pending release."
         End With
-        With .Section(6)
+        With .Section(8)
             .Label.Text = BttnIgnoreThatChanges
             .Label.FontColor = rgbBlue
             .Text.Text = "The changes made in this Workbook become those pending release. I.e. the " & _
@@ -691,7 +667,6 @@ Private Sub HskpngHosted()
     
     On Error GoTo eh
     Dim v               As Variant
-    Dim CommCompHosted  As clsComp
     Dim sHostBaseName   As String
     Dim wbk             As Workbook
     Dim Comp            As clsComp
@@ -797,12 +772,8 @@ Private Sub HskpngSectionsObsolete(ByVal h_comps As Dictionary, _
     Const PROC = "HskpngSectionsObsolete"
     
     On Error GoTo eh
-    Dim bExists         As Boolean
-    Dim dctComponents   As Dictionary
-    Dim fl              As File
-    Dim sBaseName       As String
-    Dim sSection        As String
-    Dim v               As Variant
+    Dim sSection    As String
+    Dim v           As Variant
     
     mBasic.BoP ErrSrc(PROC)
         
@@ -1162,7 +1133,7 @@ Public Sub PendingReleaseManagement(ByVal p_comp As clsComp)
     End With
         
     ' Cases: -------------1-2-3-4-5-6--------------
-    ' C1 Code modified    y y y y y n
+    ' C1 Code modified *) y y y y y n
     ' C2 Pending          n y y y y y
     ' C3 Diff Wbk.        - n y n y n
     ' C4 Diff Machine.    - n n y y n
@@ -1172,9 +1143,8 @@ Public Sub PendingReleaseManagement(ByVal p_comp As clsComp)
     ' A3 Manage conc.         x x x
     ' A4 Remove pending.            x
     ' ----------------------------------------
-    ' C1: The exported code differs from the public
-    '     code in the Common-Components folder
-    ' ---------------------------------------------
+    ' *) The exported code differs from the public
+    '    code in the Common-Components folder
     Select Case True
         Case bModified And bNotPending                                  ' Case 1        > A1
             PendingReleaseRegister = p_comp
@@ -1184,7 +1154,7 @@ Public Sub PendingReleaseManagement(ByVal p_comp As clsComp)
             End If
             Debug.Print "Pending Release mod at updated: " & sCompName
         Case bModified And bPending And (bDiffWbk Or bDiffMachine)      ' Cases 3,4,5   > A3
-            ConcurrentModification p_comp, bDiffWbk, bDiffMachine
+            ConcurrentModification p_comp
         Case bNotModified And bPending And bEqulWbk And bEqulMachine    ' Case 6        > A4
             PendingReleaseRemove
     End Select

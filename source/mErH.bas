@@ -52,8 +52,6 @@ Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     As Long
 ' Window Constants
 Private Const WIN_NORMAL = 1         'Open Normal
-Private Const WIN_MAX = 3            'Open Maximized
-Private Const WIN_MIN = 2            'Open Minimized
 ' ShellRun Error Codes
 Private Const ERROR_SUCCESS = 32&
 Private Const ERROR_NO_ASSOC = 31&
@@ -61,12 +59,9 @@ Private Const ERROR_OUT_OF_MEM = 0&
 Private Const ERROR_FILE_NOT_FOUND = 2&
 Private Const ERROR_PATH_NOT_FOUND = 3&
 Private Const ERROR_BAD_FORMAT = 11&
-Private Const WS_THICKFRAME As Long = &H40000
-Private Const GWL_STYLE As Long = -16
 ' End of ShellRun declarations ---------------------------------------------
 
 
-Private Const ErrMsgDefaultButton   As Long = vbOKOnly
 Private Const GITHUB_REPO_URL       As String = "https://github.com/warbe-maker/VBA-Error"
 
 Private cllErrPath          As Collection   ' managed by ErrPath... procedures exclusively
@@ -240,10 +235,7 @@ Private Property Get BoPArguments() As String
     Const PROC = "BoPArguments-Get"
     
     On Error GoTo eh
-    Dim i       As Long
-    Dim sL      As String
-    Dim sR      As String
-    Dim s       As String
+    Dim s As String
     
     If ArrayIsAllocated(vArguments) Then
         s = Join(vArguments, ", ")
@@ -499,7 +491,6 @@ Private Function ErrMsgDsply(ByVal err_source As String, _
     Dim sType       As String
     Dim lNo         As Long
     Dim ErrMsgText  As udtMsg
-    Dim SctnText    As udtMsgText
     Dim sMsg        As String ' The MsgBox Prompt string
     Dim lBttns      As Long
     
@@ -617,10 +608,6 @@ xt:
 
 End Function
 
-Private Function ErrMsgDsplyMyMsgBox(b) As Variant
-
-End Function
-
 Private Sub ErrMsgMatter(ByVal err_source As String, _
                          ByVal err_no As Long, _
                          ByVal err_line As Long, _
@@ -690,7 +677,6 @@ Private Function ErrPathErrMsg(ByVal msg_details As String) As String
 ' ----------------------------------------------------------------------------
     Dim i   As Long
     Dim j   As Long
-    Dim s   As String
     
     ErrPathErrMsg = vbNullString
     If Not ErrPathIsEmpty Then

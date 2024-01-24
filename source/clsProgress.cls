@@ -14,7 +14,6 @@ Private lItemsDone      As Long
 Private lItemsSkipped   As Long
 Private lItemsTotal     As Long
 Private sOperation      As String
-Private sDone           As String
 Private sServiceName    As String
 Private sWbkServiced    As String
 Private sWbkServicing   As String
