@@ -10,7 +10,7 @@
 | Term             | Meaning                  |
 |------------------|------------------------- |
 | _Component_       | Generic term for a _VB-Project's_ _VBComponent_ (_Class Module_,  _Data Module_, _Standard Module_, or _UserForm_) |
-| _Common&nbsp;Component_ | A _Component_ providing services for a certain subject, dedicated for being used in any VB-Project<br>|
+| _[Common&nbsp;Component](#common-components)_ | A _Component_ providing services for a certain subject, dedicated for being used in any VB-Project<br>|
 | _Procedure_           | Generic term for any _VB-Component's_ (public or private) `Property`, `Sub`, or `Function`|
 |_Service_             | Generic term for any _Public Property_, _Public Sub_, or _Public Function_ of a _Component_ |
 | _Servicing&nbsp;Workbook_ | The service providing Workbook, either the _[CompMan.xlsb][1]_ Workbook (when it is open) or the _CompMan Add-in_ when it is set up and open. |
