@@ -1,9 +1,9 @@
 ## Component Management Services focusing on Excel VB-Projects
 
-- **Exports** any _Component_ the code has changed). 
+- **Exports** any _Component_ the code has changed along with each Workbook save. 
 - **Updates** any outdated _Used/Hosted&nbsp;[Common Component](#common-components)_). 
-- **Synchronizes** the VB-Project of two Workbooks.  
-All services only require one component installed/imported plus a single code line for each service, still guaranteeing that a productive Workbook is not bothered by any of the configured services at all.
+- **Synchronizes** the VB-Project of two Workbooks. 
+> All services only require one component installed/imported plus a single code line for each service, still guaranteeing that a productive Workbook is not bothered by any of the configured services at all.
 
 ## Disambiguation
 
