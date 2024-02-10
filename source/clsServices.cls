@@ -365,141 +365,14 @@ eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-'Private Function ExportHeaderRemoved(ByVal ehr_fle As File) As Dictionary
-'' ----------------------------------------------------------------------------
-''
-'' ----------------------------------------------------------------------------
-'    Dim bAttribReached  As Boolean
-'    Dim bAttribPassed   As Boolean
-'    Dim dct             As Dictionary
-'    Dim v               As Variant
-'    Dim s               As String
-'
-'    Set dct = mFso.FileDict(ehr_fle)
-'    For Each v In dct
-'        s = dct(v) & "               "
-'        If Not bAttribReached Then bAttribReached = Left(s, 12) = "Attribute VB"
-'        If Not bAttribPassed Then bAttribPassed = bAttribReached And Left(s, 12) <> "Attribute VB"
-'
-'        If Not bAttribPassed _
-'        Or (bAttribReached And bAttribPassed And Trim(s) = vbNullString) Then
-'            dct.Remove v
-'        End If
-'        If bAttribReached And bAttribPassed And Trim(s) <> vbNullString Then Exit For
-'    Next v
-'
-'    Set ExportHeaderRemoved = dct
-'    Set dct = Nothing
-'
-'End Function
-'
-'Public Function FilesDiffer(ByVal f_file_1 As File, _
-'                            ByVal f_file_2 As File, _
-'                   Optional ByVal f_ignore_export_header = False) As Boolean
-'' ----------------------------------------------------------------------------
-'' Returns TRUE when file 1 and file 2 are different whereby case differences
-'' and empty lines are ignored. This function guarantees a uniform comparison of
-'' export files throughout CompMan.
-'' ----------------------------------------------------------------------------
-'    Const PROC = "FilesDiffer"
-'
-'    On Error GoTo eh
-'    Dim fl1 As File
-'    Dim fl2 As File
-'
-'    With fso
-'        If TypeName(f_file_1) = "File" Then
-'            If Not .FileExists(f_file_1) _
-'            Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The provided 'f_file_1' does not exist!"
-'            Set fl1 = fso.GetFile(f_file_1)
-'        ElseIf TypeName(f_file_1) = "Nothing" _
-'            Then Err.Raise mBasic.AppErr(2), ErrSrc(PROC), "File 'f_file_1' is not provided!"
-'        Else
-'            Set fl1 = f_file_1
-'        End If
-'
-'        If TypeName(f_file_2) = "File" Then
-'            If Not .FileExists(f_file_2) _
-'            Then Err.Raise mBasic.AppErr(2), ErrSrc(PROC), "The provided 'f_file_2' does not exist!"
-'            Set fl2 = fso.GetFile(f_file_2)
-'        ElseIf TypeName(f_file_2) = "Nothing" Then
-'            FilesDiffer = True
-'            GoTo xt
-'        Else
-'            Set fl2 = f_file_2
-'        End If
-'    End With
-'
-'    If f_ignore_export_header Then
-'        FilesDiffer = DifferentWithExpHeaderExcluded(fl1, fl2)
-'    Else
-'        FilesDiffer = mFso.FileDiffers(f_file1:=fl1 _
-'                                     , f_file2:=fl2 _
-'                                     , f_stop_after:=1 _
-'                                     , f_ignore_empty_records:=True _
-'                                     , f_compare:=vbTextCompare).Count <> 0
-'    End If
-'xt: Exit Function
-'
-'eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
-'        Case vbResume:  Stop: Resume
-'        Case Else:      GoTo xt
-'    End Select
-'End Function
-
-Public Function FilesDifference(ByVal f_file_1 As File, _
-                                ByVal f_file_2 As File) As Dictionary
-' ----------------------------------------------------------------------------
-' Returns a Dictionary with either 0 items when file 1 and file 2 are
-' identical or with one item when the two files differ. Empty lines and case
-' differences are ignored because the do not constitute a relevant code change
-' ----------------------------------------------------------------------------
-    Const PROC = "FilesDifference"
-    
-    On Error GoTo eh
-    Dim fl1 As File
-    Dim fl2 As File
-    
-    With fso
-        If VarType(f_file_1) = vbString Then
-            If Not .FileExists(f_file_1) _
-            Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The provided 'f_file_1' is a string not identifying an existing file!"
-            Set fl1 = fso.GetFile(f_file_1)
-        Else
-            Set fl1 = f_file_1
-        End If
-        
-        If VarType(f_file_2) = vbString Then
-            If Not .FileExists(f_file_2) _
-            Then Err.Raise mBasic.AppErr(2), ErrSrc(PROC), "The provided 'f_file_2' is a string not identifying an existing file!"
-            Set fl2 = fso.GetFile(f_file_2)
-        Else
-            Set fl2 = f_file_2
-        End If
-    End With
-    
-    Set FilesDifference = mFso.FileDiffersFromFile(f_file_this:=fl1 _
-                                                 , f_file_from:=fl2 _
-                                                 , f_stop_after:=1 _
-                                                 , f_exclude_empty:=True _
-                                                 , f_compare:=vbTextCompare)
-                            
-xt: Exit Function
-                            
-eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
 Private Function FolderNotVbProjectExclusive() As Boolean
 
     Dim fl  As File
     
-    For Each fl In fso.GetFolder(Me.ServicedWbk.Path).Files
-        If VBA.Left$(fso.GetFileName(fl.Path), 2) = "~$" Then GoTo next_fl
+    For Each fl In FSo.GetFolder(Me.ServicedWbk.Path).Files
+        If VBA.Left$(FSo.GetFileName(fl.Path), 2) = "~$" Then GoTo next_fl
         If VBA.StrComp(fl.Path, Me.ServicedWbk.FullName, vbTextCompare) <> 0 Then
-            Select Case fso.GetExtensionName(fl.Path)
+            Select Case FSo.GetExtensionName(fl.Path)
                 Case "xlsm", "xlam", "xlsb" ' may contain macros, a VB-Project repsectively
                     FolderNotVbProjectExclusive = True
                     Exit For
@@ -540,7 +413,7 @@ Public Sub Initiate(ByVal i_service_proc As String, _
     With LogServiced
         .KeepDays = 2 ' a new log-file is created after 48 hours
         .WithTimeStamp
-        .FileFullName = i_serviced_wbk.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".Services.log"
+        .FileFullName = i_serviced_wbk.Path & "\" & FSo.GetBaseName(ThisWorkbook.Name) & ".Services.log"
         .MaxItemLengths Comps.MaxLenServicedType, Comps.MaxLenServicedItem
         .AlignmentItems "|L|L.:|L|"
         mCompMan.LogFileService = .FileName
@@ -552,7 +425,7 @@ Public Sub Initiate(ByVal i_service_proc As String, _
     With LogService
         .WithTimeStamp
         .KeepDays = 10
-        .FileFullName = ThisWorkbook.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".ServicesSummary.log"
+        .FileFullName = ThisWorkbook.Path & "\" & FSo.GetBaseName(ThisWorkbook.Name) & ".ServicesSummary.log"
         .NewLog True ' suppresses delimiter line
         .MaxItemLengths Comps.MaxLenServicedType, Comps.MaxLenServicedItem
         .AlignmentItems "|L|L.:|L|"

@@ -186,7 +186,7 @@ Friend Property Get LastModExpFile(Optional ByVal l_comp_name As String = vbNull
     Dim fl As File
     
     If l_comp_name = vbNullString Then l_comp_name = sCompName
-    With fso
+    With FSo
         For Each fl In .GetFolder(sFolderPath).Files
             If .GetBaseName(fl.Path) = l_comp_name Then
                 Set LastModExpFile = fl
@@ -220,7 +220,7 @@ Friend Property Get LastModExpFileFullName(Optional ByVal l_comp_name As String 
 ' Returns the Common-Component folder's Export-File Full Name.
 ' ---------------------------------------------------------------------------
     If l_comp_name = vbNullString Then l_comp_name = sCompName
-    With fso
+    With FSo
         LastModExpFileFullName = sFolderPath & "\" & l_comp_name & "." & ExportFileExtention(l_comp_name)
     End With
 End Property
@@ -246,7 +246,7 @@ End Property
 
 Friend Property Get LastModInWbkBaseName(Optional ByVal l_comp_name As String = vbNullString) As String
     If l_comp_name = vbNullString Then l_comp_name = sCompName
-    LastModInWbkBaseName = fso.GetBaseName(Value(LAST_MODIFIED_IN_WBK_FULL_NAME, l_comp_name))
+    LastModInWbkBaseName = FSo.GetBaseName(Value(LAST_MODIFIED_IN_WBK_FULL_NAME, l_comp_name))
 End Property
 
 Friend Property Get LastModInWbkFullName(Optional ByVal l_comp_name As String = vbNullString) As String
@@ -264,7 +264,7 @@ Friend Property Get LastModInWbkName(Optional ByVal l_comp_name As String = vbNu
     If l_comp_name = vbNullString Then l_comp_name = sCompName
     LastModInWbkName = Value(LAST_MODIFIED_IN_WBK_NAME, l_comp_name)
     If LastModInWbkName = vbNullString Then
-        LastModInWbkName = fso.GetFileName(Value(LAST_MODIFIED_IN_WBK_FULL_NAME, l_comp_name))
+        LastModInWbkName = FSo.GetFileName(Value(LAST_MODIFIED_IN_WBK_FULL_NAME, l_comp_name))
     End If
 End Property
 
@@ -300,7 +300,7 @@ Public Property Let PendingReleaseRegister(ByVal c_comp As clsComp)
         PendingReleaseModExpFileFullName = .ExpFileFullName
         PendingReleaseModAtDateTime = .LastModAtDateTime
         PendingReleaseModOnMachine = Environ("COMPUTERNAME")
-        ExportFileExtention = fso.GetExtensionName(.ExpFileFullName)
+        ExportFileExtention = FSo.GetExtensionName(.ExpFileFullName)
         Debug.Print "Pending release registered: " & sCompName
     End With
     
@@ -436,7 +436,7 @@ Public Function Components() As Dictionary
 End Function
 
 Public Property Get CurrentPublicExpFileFullName() As String
-    With fso
+    With FSo
         Select Case True
             Case .FileExists(sFolderPath & "\" & sCompName & ".bas"): CurrentPublicExpFileFullName = sFolderPath & "\" & sCompName & ".bas"
             Case .FileExists(sFolderPath & "\" & sCompName & ".cls"): CurrentPublicExpFileFullName = sFolderPath & "\" & sCompName & ".cls"
@@ -535,10 +535,10 @@ Private Sub DsplyDiffsOfTheCurrentPendingReleaseModificationsVersusTheCurrentPub
 ' ----------------------------------------------------------------------------
     With d_comp.CodePublic
         .DsplyDiffs d_this_file_name:="CurrentPublicCommonComponent" _
-                     , d_this_file_title:="Current public code of the Common Component  " & mBasic.Spaced(sCompName) _
-                     , d_from_code:=CodePending _
-                     , d_from_file_name:="CurrentPendingReleaseModifications" _
-                     , d_from_file_title:="Pending release modifications for Common Component  " & mBasic.Spaced(sCompName) & "   already made in Workbook " & PendingReleaseModInWbkName
+                  , d_this_file_title:="Current public code of the Common Component  " & mBasic.Spaced(sCompName) _
+                  , d_from_code:=CodePending _
+                  , d_from_file_name:="CurrentPendingReleaseModifications" _
+                  , d_from_file_title:="Pending release modifications for Common Component  " & mBasic.Spaced(sCompName) & "   already made in Workbook " & PendingReleaseModInWbkName
     End With
     
 End Sub
@@ -617,10 +617,10 @@ Public Sub Hskpng()
     
     '~~ Collect the base-name of all files in the folder each representing
     '~~ an available public Common Component's code
-    Set fld = fso.GetFolder(sFolderPath)
+    Set fld = FSo.GetFolder(sFolderPath)
     With fls
         For Each fl In fld.Files
-            s = fso.GetBaseName(fl.Path)
+            s = FSo.GetBaseName(fl.Path)
             If Not .Exists(s) _
             Then .Add s, vbNullString
         Next fl
@@ -673,7 +673,7 @@ Private Sub HskpngHosted()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.ServicedWbk
-    sHostBaseName = fso.GetBaseName(wbk.FullName)
+    sHostBaseName = FSo.GetBaseName(wbk.FullName)
     
     For Each v In dctHosted
         If Not mComp.Exists(v, wbk) Then
@@ -727,7 +727,7 @@ Private Sub HskpngSectionsMissing(ByVal h_fld As Folder, _
     Dim sExt        As String
     
     mBasic.BoP ErrSrc(PROC)
-    With fso
+    With FSo
         For Each fle In h_fld.Files
             sExt = .GetExtensionName(fle.Path)
             Select Case sExt
@@ -1044,7 +1044,7 @@ Public Sub SaveToCommonComponentsFolder(ByVal s_file As Variant)
     Dim sFileFullName   As String
     
     mBasic.BoP ErrSrc(PROC)
-    With fso
+    With FSo
         If TypeName(s_file) = "File" _
         Then Set fl = s_file _
         Else Set fl = .GetFile(s_file)

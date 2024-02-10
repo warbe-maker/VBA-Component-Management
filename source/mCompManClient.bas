@@ -142,6 +142,8 @@ Public Sub CompManService(ByVal c_service_proc As String, _
     On Error GoTo eh
     Dim sServicingWbkName   As String
            
+    If ActiveWindow.Caption <> ThisWorkbook.Name Then Exit Sub ' Any restored, e.g. (Version ..) is ignored
+    
     Progress p_service_name:=ServiceName(c_service_proc) _
            , p_serviced_wbk_name:=ThisWorkbook.Name
     

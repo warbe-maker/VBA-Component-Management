@@ -115,10 +115,10 @@ End Function
 Public Sub README(Optional ByVal r_bookmark As String = vbNullString)
     
     If r_bookmark = vbNullString Then
-        mBasic.ShellRun GITHUB_REPO_URL
+        ShellRun GITHUB_REPO_URL
     Else
         r_bookmark = Replace("#" & r_bookmark, "##", "#") ' add # if missing
-        mBasic.ShellRun GITHUB_REPO_URL & r_bookmark
+        ShellRun GITHUB_REPO_URL & r_bookmark
     End If
 
 End Sub

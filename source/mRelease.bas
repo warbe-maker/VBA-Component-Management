@@ -67,7 +67,7 @@ Public Sub ReleaseService(Optional ByVal r_wbk As Workbook = Nothing, _
     With LogService
         .WithTimeStamp
         .KeepDays = 10
-        .FileFullName = ThisWorkbook.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".ServicesSummary.log"
+        .FileFullName = ThisWorkbook.Path & "\" & FSo.GetBaseName(ThisWorkbook.Name) & ".ServicesSummary.log"
         .NewLog True ' suppresses delimiter line
         mCompMan.LogFileServicedSummary = .FileName
     End With
@@ -83,10 +83,11 @@ Public Sub ReleaseService(Optional ByVal r_wbk As Workbook = Nothing, _
             With .Section(1)
                 If CodePublic.IsNone Then
                     .Label.Text = "Common Component:" & vbLf & "(initial release)"
-                Else
+                    .Text.Text = CodePending.CompName
+               Else
                     .Label.Text = "Common Component:" & vbLf & "(pending release of modifications)"
+                    .Text.Text = CodePublic.CompName
                 End If
-                .Text.Text = CodePending.CompName
                 .Text.FontBold = True
                 .Text.MonoSpaced = True
             End With
@@ -153,10 +154,10 @@ Public Sub ReleaseService(Optional ByVal r_wbk As Workbook = Nothing, _
             Case BTTN_RELEASE:      CommComps.ReleaseComp sComp
                                     cllPending.Remove 1
             Case BTTN_DSPLY_DIFF:   CodePublic.DsplyDiffs d_this_file_name:="CurrentPublic" _
-                                                           , d_this_file_title:="Code in the current ""public"" Common Component in the Common-Components folder" _
-                                                           , d_from_code:=CodePending _
-                                                           , d_from_file_name:="PendingReleaseModifications" _
-                                                           , d_from_file_title:="The Common Component's code recently modified in Workbook " & CommComps.PendingReleaseModInWbkName
+                                                        , d_this_file_title:="Code in the current ""public"" Common Component in the Common-Components folder" _
+                                                        , d_from_code:=CodePending _
+                                                        , d_from_file_name:="PendingReleaseModifications" _
+                                                        , d_from_file_title:="The Common Component's code recently modified in Workbook " & CommComps.PendingReleaseModInWbkName
 
             Case BTTN_SKIP_FOR_NOW: cllPending.Remove 1
             Case BTTN_SKIP_FOREVER: CompManDat.RegistrationState(sComp) = enRegStatePrivate

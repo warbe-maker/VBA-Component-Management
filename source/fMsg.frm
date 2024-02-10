@@ -1940,7 +1940,8 @@ Private Function FrameHeightExeedsThreshold(ByVal m_percentage_threshold As Sing
         '~~ is the one with the dominating height
         For i = 1 To lMaxNoOfMsgSects
             If MsectFrmIsActive(i, frm) Then
-                If MsectTextFrmIsActive(i, , frm) Then
+                If MsectTextFrmIsActive(m_sect:=i _
+                                      , m_text_frm:=frm) Then
                     If frm.Height >= siThresholdHeight Then
                         If frm.Height - siThresholdHeight > 100 Then
                             '~~ Only when the height can be reduced with a positive heoght result
@@ -2966,21 +2967,17 @@ End Function
 Private Function MsectTextFrm(ByVal m_sect As Long, _
                      Optional ByVal m_properties As Boolean = True) As MsForms.Frame
 ' ------------------------------------------------------------------------------
-' Returns the frame of the TextBox of the section (m_sect), created in the
-' corresponding MsectFrm when not yet existing. The Frame's top
+' Returns the frame of the TextBox of the section (m_sect). The Frame's top
 ' position is 0 or, when there is a visible above Label underneath it.
 ' ------------------------------------------------------------------------------
     Const PROC = "MsectTextFrm"
     
-    On Error GoTo eh
     Dim si As Single
+    
     If Not MsectTextFrmExists(m_sect, MsectTextFrm) _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "Userform design does not conform with expectations! " & vbLf & _
                                             "(section provided = " & m_sect & ")"
-    If MsectHasOnlyLabel(m_sect) _
-    Then Err.Raise AppErr(2), ErrSrc(PROC), "Obtaining a section's text frame when it has only a Label is regarded a severe logic error!"
-
-    
+    On Error GoTo eh
     If m_properties Then
         With MsectTextFrm
             .Visible = True
@@ -3037,8 +3034,8 @@ Private Function MsectTextFrmExists(ByVal m_sect As Long, _
 End Function
 
 Private Function MsectTextFrmIsActive(ByVal m_sect As Long, _
-                             Optional ByRef m_sect_frm As MsForms.Frame, _
-                             Optional ByRef m_text_frm As MsForms.Frame) As Boolean
+                             Optional ByRef m_sect_frm As MsForms.Frame = Nothing, _
+                             Optional ByRef m_text_frm As MsForms.Frame = Nothing) As Boolean
 ' ------------------------------------------------------------------------------
 '
 ' ------------------------------------------------------------------------------
@@ -3047,10 +3044,10 @@ Private Function MsectTextFrmIsActive(ByVal m_sect As Long, _
     
     Set frmSect = MsectFrm(m_sect)
     If frmSect.Visible Then
-        Set m_sect_frm = frmSect
+        Set m_sect_frm = frmSect ' return the visible section frame
         Set frmText = MsectTextFrm(m_sect)
         If frmText.Visible Then
-            Set m_text_frm = frmText
+            Set m_text_frm = frmText ' return the visible text frame
             MsectTextFrmIsActive = True
         End If
     End If

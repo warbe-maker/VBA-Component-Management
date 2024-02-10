@@ -429,13 +429,14 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function ArrayIsAllocated(arr As Variant) As Boolean
+Public Function ArrayIsAllocated(ByVal arry As Variant) As Boolean
+' ----------------------------------------------------------------------------
+' Retunrs TRUE when the array (arry) is allocated, i.e. has at least one item.
+' ----------------------------------------------------------------------------
     
     On Error Resume Next
-    ArrayIsAllocated = _
-    IsArray(arr) _
-    And Not IsError(LBound(arr, 1)) _
-    And LBound(arr, 1) <= UBound(arr, 1)
+    ArrayIsAllocated = UBound(arry) >= LBound(arry)
+    On Error GoTo -1
     
 End Function
 
@@ -609,10 +610,9 @@ Public Function BaseName(ByVal v As Variant) As String
     Const PROC  As String = "BaseName"
     
     On Error GoTo eh
-    Dim fso As New FileSystemObject
     Dim fle As File
     
-    With fso
+    With New FileSystemObject
         Select Case TypeName(v)
             Case "String":      BaseName = .GetBaseName(v)
             Case "Workbook":    BaseName = .GetBaseName(v.FullName)
@@ -653,8 +653,8 @@ Public Sub BoP(ByVal b_proc As String, _
 ' Obligatory copy Private for any VB-Component using the service but not having
 ' the mBasic common component installed.
 ' ------------------------------------------------------------------------------
-#If mErH Then          ' serves the mTrc/clsTrc when installed and active
-    mErH.BoP b_proc, b_args
+#If mErh Then          ' serves the mTrc/clsTrc when installed and active
+    mErh.BoP b_proc, b_args
 #ElseIf XcTrc_clsTrc Then ' when only clsTrc is installed and active
     If Trc Is Nothing Then Set Trc = New clsTrc
     Trc.BoP b_proc, b_args
@@ -737,8 +737,8 @@ Public Sub EoP(ByVal e_proc As String, _
 ' Obligatory copy Private for any VB-Component using the service but not having
 ' the mBasic common component installed.
 ' ------------------------------------------------------------------------------
-#If mErH = 1 Then          ' serves the mTrc/clsTrc when installed and active
-    mErH.EoP e_proc, e_args
+#If mErh = 1 Then          ' serves the mTrc/clsTrc when installed and active
+    mErh.EoP e_proc, e_args
 #ElseIf clsTrc = 1 Then ' when only clsTrc is installed and active
     Trc.EoP e_proc, e_args
 #ElseIf mTrc = 1 Then   ' when only mTrc is installed and activate
@@ -766,10 +766,10 @@ Public Function ErrMsg(ByVal err_source As String, _
 ' W. Rauschenberger Berlin, Jan 2024
 ' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
-#If mErH = 1 Then
+#If mErh = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
-    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
+    ErrMsg = mErh.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt
 #ElseIf mMsg = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the

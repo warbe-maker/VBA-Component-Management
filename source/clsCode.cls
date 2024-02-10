@@ -145,7 +145,7 @@ Public Property Let Source(ByVal f_v As Variant)
                     If .FileExists(f_v) Then
                         vSource = f_v
                         Set fl = .GetFile(f_v)
-                        sCompName = fso.GetBaseName(fl)
+                        sCompName = FSo.GetBaseName(fl)
                         sAsTrimmedString = StringTrimmed(StringFromExpFile(fl))
                     End If
                 End With
@@ -166,7 +166,7 @@ Public Property Let Source(ByVal f_v As Variant)
         Case "File"
             Set vSource = f_v
             Set fl = f_v
-            sCompName = fso.GetBaseName(fl.Path)
+            sCompName = FSo.GetBaseName(fl.Path)
             sAsTrimmedString = StringTrimmed(StringFromExpFile(f_v))
     End Select
     If sAsTrimmedString <> vbNullString Then
@@ -292,10 +292,10 @@ Public Sub DiffersFromDebug(ByVal d_from_code As clsCode, _
 End Sub
 
 Public Sub DsplyDiffs(ByVal d_this_file_name As String, _
-                         ByVal d_this_file_title As String, _
-                         ByVal d_from_code As clsCode, _
-                         ByVal d_from_file_name As String, _
-                         ByVal d_from_file_title As String)
+                      ByVal d_this_file_title As String, _
+                      ByVal d_from_code As clsCode, _
+                      ByVal d_from_file_name As String, _
+                      ByVal d_from_file_title As String)
 ' ----------------------------------------------------------------------------
 ' Left is the current code, Right is the changed code
 ' ----------------------------------------------------------------------------
@@ -350,18 +350,18 @@ Private Function DsplyFilesDiff(ByVal d_file_left_full_name As String, _
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
-    If Not fso.FileExists(d_file_left_full_name) _
+    If Not FSo.FileExists(d_file_left_full_name) _
     Then Err.Raise Number:=AppErr(2) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & d_file_left_full_name & """ does not exist!"
     
-    If Not fso.FileExists(d_file_right_full_name) _
+    If Not FSo.FileExists(d_file_right_full_name) _
     Then Err.Raise Number:=AppErr(3) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & d_file_right_full_name & """ does not exist!"
         
     '~~ Guarantee an ini-File which meets CompMan's specifics
-    With fso
+    With FSo
         If .FileExists(mWinMergeIni.WinMergeIniFullName) Then .DeleteFile (mWinMergeIni.WinMergeIniFullName)
         mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
     End With

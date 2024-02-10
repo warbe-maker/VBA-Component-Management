@@ -229,8 +229,8 @@ Friend Property Get ExpFile() As File
         
     With Me
         If flExpFile Is Nothing Then
-            If fso.FileExists(.ExpFileFullName) Then
-                Set flExpFile = fso.GetFile(.ExpFileFullName)
+            If FSo.FileExists(.ExpFileFullName) Then
+                Set flExpFile = FSo.GetFile(.ExpFileFullName)
             Else
                 '~~ When the component has yet no never been exported
                 '~~ it will be along with the Export changed service
@@ -254,7 +254,7 @@ Friend Property Get ExpFileFullName() As String
 End Property
 
 Friend Property Get ExpFileTemp() As File
-    With fso
+    With FSo
         If Not .FileExists(Me.ExpFileTempFullName) Then
             Me.VBComp.Export Me.ExpFileTempFullName
         End If
@@ -271,7 +271,7 @@ Friend Property Get ExpFileTempFullName() As String
     
     On Error GoTo eh
     If Not wbk Is Nothing Then
-        With fso
+        With FSo
             If sTmpFolder = vbNullString Then
                 sTmpFolder = Services.TempExportFolder
             End If
@@ -420,10 +420,10 @@ Friend Property Get Outdated() As Boolean
                     Case vbOK: GoTo xt
                     Case BTTN_DSPLY_DIFF
                          CodeCurrent.DsplyDiffs d_this_file_name:="CurrentCode" _
-                                                 , d_this_file_title:="The Common Component's current code" _
-                                                 , d_from_code:=CodePublic _
-                                                 , d_from_file_name:="CurrentPublic" _
-                                                 , d_from_file_title:="The Common Component's current public code"
+                                              , d_this_file_title:="The Common Component's current code" _
+                                              , d_from_code:=CodePublic _
+                                              , d_from_file_name:="CurrentPublic" _
+                                              , d_from_file_title:="The Common Component's current public code"
                 End Select
             Loop
         Case bCodeDiffers And LastModAtDateTime < sCommCompPublicLastModDateTime
@@ -462,7 +462,7 @@ Friend Property Let LastModAtDateTime(ByVal s As String):      CompManDat.LastMo
 
 Friend Property Get Service() As String
     If sService = vbNullString Then
-        sService = fso.GetFileName(Me.Wrkbk.Path)
+        sService = FSo.GetFileName(Me.Wrkbk.Path)
     End If
     Service = sService
 End Property
@@ -498,7 +498,7 @@ Friend Property Get Wrkbk() As Workbook
     On Error GoTo eh
     
     If wbk Is Nothing Then
-        If Not fso.FileExists(sWrkbkFullName) _
+        If Not FSo.FileExists(sWrkbkFullName) _
         Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
         Set wbk = mCompMan.WbkGetOpen(sWrkbkFullName)
     Else
@@ -526,7 +526,7 @@ Friend Property Let Wrkbk(ByRef w_wbk As Workbook)
     
     Set wbk = w_wbk
     sWrkbkFullName = wbk.FullName
-    With fso
+    With FSo
         sWrkbkBaseName = .GetBaseName(sWrkbkFullName)
         sExpFilePath = .GetParentFolderName(sWrkbkFullName)
         sService = .GetFileName(wbk.Path)

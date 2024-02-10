@@ -74,7 +74,6 @@ Public Services                                 As clsServices
 Public CompManDat                               As clsCompManDat
 Public CommComps                                As clsCommComps
 Public Msg                                      As udtMsg
-Public fso                                      As New FileSystemObject
 Public Prgrss                                   As clsProgress
 
 #If clsTrc = 1 Then
@@ -384,7 +383,7 @@ Public Function WbkGetOpen(ByVal go_wbk_full_name As String) As Workbook
     
     On Error GoTo eh
     
-    If fso.FileExists(go_wbk_full_name) Then
+    If FSo.FileExists(go_wbk_full_name) Then
         If mCompMan.WbkIsOpen(io_name:=go_wbk_full_name) _
         Then Set WbkGetOpen = Application.Workbooks(go_wbk_full_name) _
         Else Set WbkGetOpen = Application.Workbooks.Open(go_wbk_full_name)
@@ -413,8 +412,8 @@ Private Function WbkIsOpen(Optional ByVal io_name As String = vbNullString, _
     
     If io_full_name <> vbNullString Then
         '~~ With the full name the open test spans all application instances
-        If Not fso.FileExists(io_full_name) Then GoTo xt
-        If io_name = vbNullString Then io_name = fso.GetFileName(io_full_name)
+        If Not FSo.FileExists(io_full_name) Then GoTo xt
+        If io_name = vbNullString Then io_name = FSo.GetFileName(io_full_name)
         On Error Resume Next
         Set xlApp = GetObject(io_full_name).Application
         WbkIsOpen = Err.Number = 0
