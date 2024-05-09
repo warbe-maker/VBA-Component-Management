@@ -89,7 +89,7 @@ Private Sub Test_EnvironmentCleanup()
     Dim wbk         As Workbook
     Dim sTargetWorkingCopy As String
     
-    With fso
+    With FSo
         sTargetWorkingCopy = mSync.TargetWorkingCopyFullName(TestSyncTargetFullName)
         If .FileExists(sTargetWorkingCopy) Then
             If mWbk.IsOpen(sTargetWorkingCopy, wbk) Then wbk.Close False

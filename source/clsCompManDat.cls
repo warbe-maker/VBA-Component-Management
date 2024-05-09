@@ -35,7 +35,7 @@ Option Explicit
 '                              file.
 ' RecentlyUsedExportFolder r/w .
 ' RegistrationState        r/w .
-' LastModAtDateTime           r/w .
+' LastModAtDateTimeUTC           r/w .
 '
 ' W. Rauschenberger Berlin, Jul. 2023
 ' ---------------------------------------------------------------------------
@@ -117,16 +117,16 @@ Friend Property Let Hosted(ByVal s As String)
     
 End Property
 
-Friend Property Get LastModAtDateTime(Optional ByVal r_comp_name As String) As String
+Friend Property Get LastModAtDateTimeUTC(Optional ByVal r_comp_name As String) As String
 ' ----------------------------------------------------------------------------
 ' Returns the revision number in the format YYYY-MM-DD.n
 ' ----------------------------------------------------------------------------
     With PPCommComps
-        LastModAtDateTime = .Value(pp_section:=r_comp_name, pp_value_name:=.Name(VALUE_NAME_LAST_MODIFIED_DATE_TIME))
+        LastModAtDateTimeUTC = .Value(pp_section:=r_comp_name, pp_value_name:=.Name(VALUE_NAME_LAST_MODIFIED_DATE_TIME))
     End With
 End Property
 
-Friend Property Let LastModAtDateTime(Optional ByVal r_comp_name As String, _
+Friend Property Let LastModAtDateTimeUTC(Optional ByVal r_comp_name As String, _
                                             ByVal r_rev_no As String)
     With PPCommComps: .Value(pp_section:=r_comp_name, pp_value_name:=.Name(VALUE_NAME_LAST_MODIFIED_DATE_TIME)) = r_rev_no: End With
 End Property
@@ -224,8 +224,8 @@ Private Sub HskpngHosted()
         If mComp.Exists(v, wbk) Then
             If Me.RegistrationState(v) <> enRegStateHosted _
             Then Me.RegistrationState(v) = enRegStateHosted
-            If Me.LastModAtDateTime(v) = vbNullString _
-            Then Me.LastModAtDateTime(v) = CompMan.UTC
+            If Me.LastModAtDateTimeUTC(v) = vbNullString _
+            Then Me.LastModAtDateTimeUTC(v) = CompMan.UTC & " (UTC)"
         End If
     Next v
     

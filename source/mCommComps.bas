@@ -244,7 +244,7 @@ Private Sub OutdatedUpdate2Choice4SkipForever(ByVal u_comp_name)
     Dim wbk As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    CompManDat.RegistrationState(u_comp_name) = enRegStatePrivate
+    PPCompManDat.RegistrationState(u_comp_name) = enRegStatePrivate
     Qoutdated.DeQueue
     Set wbk = Services.ServicedWbk
     With New clsComp
@@ -399,8 +399,8 @@ Private Sub OutdatedUpdate1Collect()
                     End With
                 Else
                     Prgrss.ItemSkipped
-                    If .LastModAtDateTime < CommComps.LastModAtDateTime Then
-                        .LastModAtDateTime = CommComps.LastModAtDateTime
+                    If .LastModAtDateTimeUTC < CommComps.LastModAtDateTimeUTC Then
+                        .LastModAtDateTimeUTC = CommComps.LastModAtDateTimeUTC
                     End If
                     With Services
                         .NoOfItemsSkipped = .NoOfItemsSkipped + 1

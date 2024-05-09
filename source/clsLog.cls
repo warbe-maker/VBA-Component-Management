@@ -75,7 +75,7 @@ Private bInitialized        As Boolean
 Private bNewLog             As Boolean
 Private bWithTimeStamp      As Boolean
 Private bReorganized        As Boolean
-Private fso                 As New FileSystemObject
+Private FSo                 As New FileSystemObject
 Private lColumns            As Long
 Private lKeepDays           As Long
 Private lLenTitle           As Long
@@ -119,14 +119,14 @@ Private Sub Class_Initialize()
     NewLogInit
     lKeepDays = 1
     bWithTimeStamp = False
-    sFileName = fso.GetBaseName(ActiveWorkbook.Name) & ".log"
+    sFileName = FSo.GetBaseName(ActiveWorkbook.Name) & ".log"
     sPath = ActiveWorkbook.Path
     FileFullName = sPath & "\" & sFileName
     NewLog
 End Sub
 
 Private Sub Class_Terminate()
-    Set fso = Nothing
+    Set FSo = Nothing
     Set aAlignmentsHeader = Nothing
     Set aAlignmentsItem = Nothing
     Set aHeaders = Nothing
@@ -294,7 +294,7 @@ Friend Property Let FileFullName(ByVal s As String)
 ' ----------------------------------------------------------------------------
     Dim lDaysAge    As Long
     
-    With fso
+    With FSo
         If sFileFullName <> s Then
             '~~ The log file's name is not/no longer the one previously used
             If .FileExists(sFileFullName) Then .DeleteFile sFileFullName
@@ -318,7 +318,7 @@ End Property
 Friend Property Get FileName() As String:       FileName = sFileName:           End Property
 
 Friend Property Let FileName(ByVal s As String)
-    If fso.GetExtensionName(s) = vbNullString Then
+    If FSo.GetExtensionName(s) = vbNullString Then
         s = s & ".log"
     End If
     sFileName = s
@@ -740,17 +740,31 @@ Private Sub ArryRedim(ByRef a_arry As Variant, _
     Else ReDim Preserve a_arry(Max(UBound(a_arry), a_items))
 End Sub
 
-Public Function AsArray(ByVal a_string As String, _
-                        ByVal a_split_by As String) As String()
+Private Function SplitString(ByVal s_s As String) As String
+    
+    Select Case True
+        Case InStr(s_s, vbCrLf) <> 0: SplitString = vbCrLf
+        Case InStr(s_s, vbCr) <> 0:   SplitString = vbCr
+        Case InStr(s_s, vbLf) <> 0:   SplitString = vbLf
+    End Select
+    If Len(SplitString) = 0 Then SplitString = vbCrLf
+    
+End Function
+
+Public Function AsArray(ByVal a_string As String) As String()
 ' -----------------------------------------------------------------------------------
-' Returns a string (a_string) as an array of strings considering a split character
-' (a_split_by). Any leading or trailing split character is removed before the split.
+' Returns a string (a_string) as an array of strings. Any leading or trailing split
+' character is removed before the split.
 ' -----------------------------------------------------------------------------------
-    If InStr(a_string, a_split_by) <> 0 Then
-        If Left(a_string, 1) = a_split_by Then a_string = Right(a_string, Len(a_string) - 1)
-        If Right(a_string, 1) = a_split_by Then a_string = Left(a_string, Len(a_string) - 1)
-    End If
-    AsArray = Split(a_string, a_split_by)
+    Dim sSplit As String
+    
+    '~~ Obtain (and return) the used line terminating string (vbCrLf) or character
+    sSplit = SplitString(a_string)
+    
+    If Left(a_string, 1) = sSplit Then a_string = Right(a_string, Len(a_string) - 1)
+    If Right(a_string, 1) = sSplit Then a_string = Left(a_string, Len(a_string) - 1)
+    AsArray = Split(a_string, sSplit)
+
 End Function
 
 Private Function ColWidthFinal(ByVal c_col As Long) As Long
@@ -959,22 +973,19 @@ Private Function ErrSrc(ByVal sProc As String) As String
 End Function
 
 Private Property Let FileAsString(Optional ByVal f_file As Variant, _
-                             Optional ByVal f_append As Boolean = True, _
-                             Optional ByRef f_split As String, _
-                                      ByVal f_string As String)
+                                  Optional ByVal f_append As Boolean = True, _
+                                           ByVal f_string As String)
 ' ----------------------------------------------------------------------------
 ' Writes the string (f_string) into the file (f_file) which might be a file
 ' object or a file's full name.
-' Note: f_split is not used but specified to comply with Property Get.
 ' ----------------------------------------------------------------------------
     Const PROC = "FileAsString-Let"
     
     On Error GoTo eh
-    Dim ts  As TextStream
-    Dim sFl As String
-   
-    f_split = f_split ' not used! just for coincidence with Get
-    With fso
+    Dim ts      As TextStream
+    Dim sFl     As String
+    
+    With FSo
         If TypeName(f_file) = "File" Then
             sFl = f_file.Path
             If f_append _
@@ -998,7 +1009,7 @@ Private Property Let FileAsString(Optional ByVal f_file As Variant, _
     ts.WriteLine f_string
 
 xt: ts.Close
-    Set fso = Nothing
+    Set FSo = Nothing
     Set ts = Nothing
     Exit Property
     
@@ -1010,29 +1021,30 @@ End Property
 
 Private Property Let FileArry(Optional ByVal f_file As String, _
                               Optional ByVal f_excl_empty_lines As Boolean = False, _
-                              Optional ByRef f_split As String = vbCrLf, _
                               Optional ByVal f_append As Boolean = False, _
                                        ByVal f_ar As Variant)
 ' ----------------------------------------------------------------------------
 ' Writes array (f_ar) to file (f_file) whereby the array is joined to a text
-' string using the line break string (f_split) which defaults to vbCrLf and
-' is optionally returned by Arry-Get.
+' string using vbCrLf as line break string.
 ' ----------------------------------------------------------------------------
+    Dim sSplit As String
+    
+    '~~ Obtain (and return) the used line terminating string (vbCrLf) or character
+    sSplit = SplitString(f_file)
+
     f_excl_empty_lines = f_excl_empty_lines
     FileAsString(f_file:=f_file _
-          , f_append:=f_append _
-          , f_split:=f_split _
-           ) = Join(f_ar, f_split)
+               , f_append:=f_append _
+                ) = Join(f_ar, sSplit)
              
 End Property
 
 Private Property Get FileArry(Optional ByVal f_file As String, _
                               Optional ByVal f_excl_empty_lines As Boolean = False, _
-                              Optional ByRef f_split As String, _
                               Optional ByVal f_append As Boolean = False) As Variant
 ' ----------------------------------------------------------------------------
-' Returns the content of the file (f_file) - a files full name - as array,
-' with the used line break string returned in (f_split).
+' Returns the content of the file string (f_file) - a files full name - as
+' array, with the used line break string.
 ' ----------------------------------------------------------------------------
     Const PROC  As String = "FileArry"
     
@@ -1040,7 +1052,7 @@ Private Property Get FileArry(Optional ByVal f_file As String, _
     Dim cll     As New Collection
     Dim a       As Variant
     Dim a1()    As String
-    Dim fso     As New FileSystemObject
+    Dim FSo     As New FileSystemObject
     Dim sSplit  As String
     Dim sFile   As String
     Dim i       As Long
@@ -1048,16 +1060,17 @@ Private Property Get FileArry(Optional ByVal f_file As String, _
     Dim v       As Variant
     
     f_append = f_append
-    If Not fso.FileExists(f_file) _
+    If Not FSo.FileExists(f_file) _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named '" & f_file & "' does not exist!"
     
     '~~ Unload file to a string
-    sFile = FileAsString(f_file:=f_file _
-                    , f_split:=sSplit _
-                     )
+    sFile = FileAsString(f_file)
     If sFile = vbNullString Then GoTo xt
-    a = Split(sFile, sSplit)
     
+    '~~ Obtain (and return) the used line terminating string (vbCrLf) or character
+    sSplit = SplitString(sFile)
+
+    a = Split(sFile, sSplit)
     If Not f_excl_empty_lines Then
         a1 = a
     Else
@@ -1073,9 +1086,8 @@ Private Property Get FileArry(Optional ByVal f_file As String, _
     End If
     
 xt: FileArry = a1
-    f_split = sSplit
     Set cll = Nothing
-    Set fso = Nothing
+    Set FSo = Nothing
     Exit Property
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
@@ -1085,11 +1097,10 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Property
 
 Private Property Get FileAsString(Optional ByVal f_file As Variant, _
-                             Optional ByVal f_append As Boolean = True, _
-                             Optional ByRef f_split As String) As String
+                                  Optional ByVal f_append As Boolean = True) As String
 ' ----------------------------------------------------------------------------
-' Returns the text file's (f_file) content as string with VBA.Split() string
-' in (f_split). When the file doesn't exist a vbNullString is returned.
+' Returns the text file's (f_file) content as string. When the file doesn't
+' exist a vbNullString is returned.
 ' Note: f_append is not used but specified to comply with Property Let.
 ' ----------------------------------------------------------------------------
     Const PROC = "FileAsString-Get"
@@ -1098,11 +1109,10 @@ Private Property Get FileAsString(Optional ByVal f_file As Variant, _
     Dim ts      As TextStream
     Dim s       As String
     Dim sFl As String
-   
-    f_split = f_split  ' not used! for declaration compliance and dead code check only
+    
     f_append = f_append ' not used! for declaration compliance and dead code check only
     
-    With fso
+    With FSo
         If TypeName(f_file) = "File" Then
             sFl = f_file.Path
         Else
@@ -1115,7 +1125,6 @@ Private Property Get FileAsString(Optional ByVal f_file As Variant, _
     
     If Not ts.AtEndOfStream Then
         s = ts.ReadAll
-        f_split = SplitStr(s)
         If VBA.Right$(s, 2) = vbCrLf Then
             s = VBA.Left$(s, Len(s) - 2)
         End If
@@ -1347,7 +1356,7 @@ Public Sub NewFile()
 ' Explicitely starts a series of log entries with a new file (mainly for test purpose
 ' only)
 ' -----------------------------------------------------------------------------------
-    With fso
+    With FSo
         If .FileExists(sFileFullName) Then .DeleteFile sFileFullName
         .CreateTextFile sFileFullName
     End With
@@ -1443,7 +1452,7 @@ Public Sub Reorg()
     Dim i           As Long
     
     '~~ 1. Unload log to array
-    aLog = FileArry(sFileFullName, , sSplit)
+    aLog = FileArry(sFileFullName)
     If Not IsAllocated(aLog) Then GoTo xt
     
     '~~ 2. Transfer days to Dictionary, the day' s log entries in a Collection
@@ -1483,9 +1492,9 @@ Public Sub Reorg()
             dct.Remove (dct.Keys()(0))
         Wend
         '~~ 3.2 (Re-)write log-file
-        fso.DeleteFile sFileFullName
+        FSo.DeleteFile sFileFullName
         For Each vDay In dct
-            FileArry(sFileFullName, , sSplit, True) = dct(vDay)
+            FileArry(sFileFullName, True) = dct(vDay)
         Next vDay
     End If
     
@@ -1630,7 +1639,7 @@ Private Sub WriteDelimiterLine(ByVal w_width_entry As Long)
 ' -----------------------------------------------------------------------------------
     Dim s As String
     
-    If DelimiterLineDue Or fso.GetFile(sFileFullName).Size = 0 Then
+    If DelimiterLineDue Or FSo.GetFile(sFileFullName).Size = 0 Then
         If Not bWithTimeStamp Then
             s = Format(Now(), "yy-mm-dd-hh ")
             WriteLine s & String(w_width_entry - Len(s), "=")
@@ -1685,7 +1694,7 @@ Private Sub WriteLine(ByVal w_string As String)
     On Error GoTo eh
     Dim ts  As TextStream
    
-    Set ts = fso.OpenTextFile(FileName:=sFileFullName, IOMode:=ForAppending)
+    Set ts = FSo.OpenTextFile(FileName:=sFileFullName, IOMode:=ForAppending)
     ts.WriteLine TimeStamp & w_string
 
 xt: ts.Close

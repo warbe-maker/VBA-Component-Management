@@ -686,7 +686,7 @@ Private Sub Finalize()
                          , dsply_msg:=MsgText _
                          , dsply_buttons:=MsgButtons)
         Case BTTN_FINALIZE
-            fso.DeleteFile mSync.TargetOriginFullName(mSync.TargetWorkingCopy)
+            FSo.DeleteFile mSync.TargetOriginFullName(mSync.TargetWorkingCopy)
             wbkTarget.SaveAs FileName:=mSync.TargetOriginFullName(mSync.TargetWorkingCopy)
             mSync.TargetWorkingCopyDelete
         Case BTTN_ABORT
@@ -979,14 +979,14 @@ Private Sub OpnDcsnPreparationTarget()
         
     mMsg.MsgInstance OpnDcsnMsgTitle, True ' Close/unload the mode-less open dialog
     If OpenedIsTarget Then
-        With fso
+        With FSo
             If .FileExists(wsService.SyncTargetFullNameCopy) _
             Then .DeleteFile wsService.SyncTargetFullNameCopy
         End With
     ElseIf OpenedIsTargetWorkingCopy Then
         ActiveWorkbook.Close False
         mSync.SourceClose
-        With fso
+        With FSo
             If .FileExists(wsService.SyncTargetFullNameCopy) _
             Then .DeleteFile wsService.SyncTargetFullNameCopy
         End With
@@ -1629,7 +1629,7 @@ Private Sub TargetArchive()
     Dim sExt                    As String
     
     sTargetFullName = wsService.CurrentServicedWorkbookFullName
-    With fso
+    With FSo
         sExt = .GetExtensionName(sTargetFullName)
         '~~ Establish the archive root folder
         sArchiveFolderRoot = .GetParentFolderName(wsConfig.FolderSyncTarget) & "\SyncArchive"
@@ -1655,7 +1655,7 @@ Private Sub TargetClearExportFiles()
     Dim sTargetFullName As String
     
     sTargetFullName = wsService.CurrentServicedWorkbookFullName
-    With fso
+    With FSo
         sFolder = .GetParentFolderName(sTargetFullName) & "\" & wsConfig.FolderExport
         If .FolderExists(sFolder) Then .DeleteFolder sFolder
     End With
@@ -1809,7 +1809,7 @@ Private Function TargetWorkingCopyDelete() As Boolean
     Dim sTargetWorkingCopyFullName As String
     
     sTargetWorkingCopyFullName = wsService.SyncTargetFullNameCopy
-    With fso
+    With FSo
         If .FileExists(sTargetWorkingCopyFullName) Then .DeleteFile sTargetWorkingCopyFullName
     End With
 
@@ -1819,7 +1819,7 @@ Private Function TargetWorkingCopyExists() As Boolean
     Dim sTargetWorkingCopyFullName As String
     
     sTargetWorkingCopyFullName = wsService.SyncTargetFullNameCopy
-    TargetWorkingCopyExists = fso.FileExists(sTargetWorkingCopyFullName)
+    TargetWorkingCopyExists = FSo.FileExists(sTargetWorkingCopyFullName)
 
 End Function
 
@@ -1869,11 +1869,11 @@ Private Sub TargetWorkingCopyOpen(Optional ByVal tco_new As Boolean = True, _
     
     If tco_new Then
         '~~ Delete an already existing working copy
-        If fso.FileExists(sTargetWorkingCopy) Then
+        If FSo.FileExists(sTargetWorkingCopy) Then
             If mWbk.IsOpen(sTargetWorkingCopy, wbk) Then
                 wbk.Close False
             End If
-            fso.DeleteFile (sTargetWorkingCopy)
+            FSo.DeleteFile (sTargetWorkingCopy)
         End If
         ' Save the provided Workbook under the copy name and set it as the current working copy
         mWbk.GetOpen(sTarget).SaveAs FileName:=sTargetWorkingCopy, AccessMode:=xlExclusive

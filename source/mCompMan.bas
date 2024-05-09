@@ -71,7 +71,7 @@ Public LogServiced                              As clsLog ' log writen for the s
 Public LogService                               As clsLog ' the servicing Workbooks own log
 Public Comps                                    As clsComps
 Public Services                                 As clsServices
-Public CompManDat                               As clsCompManDat
+Public PPCompManDat                             As clsPPCompManDat
 Public CommComps                                As clsCommComps
 Public Msg                                      As udtMsg
 Public Prgrss                                   As clsProgress
@@ -92,6 +92,33 @@ Public Enum siCounter
     sic_comps_changed
     sic_used_comm_vbc_outdated
 End Enum
+
+Private Type SYSTEM_TIME
+    wYear As Integer
+    wMonth As Integer
+    wDayOfWeek As Integer
+    wDay As Integer
+    wHour As Integer
+    wMinute As Integer
+    wSecond As Integer
+    wMilliseconds As Integer
+End Type
+
+Private Type TIME_ZONE_INFORMATION
+    Bias As Long
+    StandardName(0 To 31) As Integer
+    StandardDate As SYSTEM_TIME
+    StandardBias As Long
+    DaylightName(0 To 31) As Integer
+    DaylightDate As SYSTEM_TIME
+    DaylightBias As Long
+End Type
+
+Private Declare PtrSafe Function GetTimeZoneInformation Lib "kernel32" _
+    (lpTimeZoneInformation As TIME_ZONE_INFORMATION) As Long
+
+Private Declare PtrSafe Function TzSpecificLocalTimeToSystemTime Lib "kernel32" _
+    (lpTimeZoneInformation As TIME_ZONE_INFORMATION, lpLocalTime As SYSTEM_TIME, lpUniversalTime As SYSTEM_TIME) As Integer
 
 Private sLogFileService         As String
 Private sLogFileServicedSummary  As String
@@ -348,7 +375,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     mBasic.BoP ErrSrc(PROC)
     Services.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, u_wbk_serviced, u_hosted
     CommComps.Hosted = u_hosted
-    CompManDat.Hosted = u_hosted
+    PPCompManDat.Hosted = u_hosted
     Set Qoutdated = Nothing
     Set Prgrss = New clsProgress
     With Prgrss
@@ -367,11 +394,47 @@ eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function UTC() As String
-    Dim dt As Object
-    Set dt = CreateObject("WbemScripting.SWbemDateTime")
-    dt.SetVarDate Now
-    UTC = Format(dt.GetVarDate(False), "YYYY-MM-DD-hh-mm-ss") & " (UTC)"
+'Public Function UTC() As String
+'    Dim dt As Object
+'    Set dt = CreateObject("WbemScripting.SWbemDateTime")
+'    dt.SetVarDate Now
+'    UTC = Format(dt.GetVarDate(False), "YYYY-MM-DD-hh-mm-ss") & " (UTC)"
+'End Function
+Public Function UTC(Optional ByVal u_time As Variant = 0) As String
+' ------------------------------------------------------------------------------
+' Returns the UTC of a given date-time or Now().
+' ------------------------------------------------------------------------------
+    Dim timeZoneInfo    As TIME_ZONE_INFORMATION
+    Dim utcSystemTime   As SYSTEM_TIME
+    Dim localSystemTime As SYSTEM_TIME
+    Dim utcResult       As Date
+    
+    GetTimeZoneInformation timeZoneInfo
+
+    If u_time = 0 Then u_time = Now()
+    With localSystemTime
+        .wYear = Year(u_time)
+        .wMonth = Month(u_time)
+        .wDay = Day(u_time)
+        .wHour = Hour(u_time)
+        .wMinute = Minute(u_time)
+        .wSecond = Second(u_time)
+    End With
+
+    If TzSpecificLocalTimeToSystemTime(timeZoneInfo, localSystemTime, utcSystemTime) <> 0 Then
+        utcResult = SystemTimeToVBTime(utcSystemTime)
+        UTC = Format(utcResult, "YYYY-MM-DD hh:mm:ss") & " (UTC)"
+    Else
+        Err.Raise 1, "WINAPI", "Windows API call failed"
+    End If
+
+End Function
+
+Private Function SystemTimeToVBTime(systemTime As SYSTEM_TIME) As Date
+    With systemTime
+        SystemTimeToVBTime = DateSerial(.wYear, .wMonth, .wDay) + _
+                TimeSerial(.wHour, .wMinute, .wSecond)
+    End With
 End Function
 
 Public Function WbkGetOpen(ByVal go_wbk_full_name As String) As Workbook
@@ -383,7 +446,7 @@ Public Function WbkGetOpen(ByVal go_wbk_full_name As String) As Workbook
     
     On Error GoTo eh
     
-    If FSo.FileExists(go_wbk_full_name) Then
+    If fso.FileExists(go_wbk_full_name) Then
         If mCompMan.WbkIsOpen(io_name:=go_wbk_full_name) _
         Then Set WbkGetOpen = Application.Workbooks(go_wbk_full_name) _
         Else Set WbkGetOpen = Application.Workbooks.Open(go_wbk_full_name)
@@ -412,8 +475,8 @@ Private Function WbkIsOpen(Optional ByVal io_name As String = vbNullString, _
     
     If io_full_name <> vbNullString Then
         '~~ With the full name the open test spans all application instances
-        If Not FSo.FileExists(io_full_name) Then GoTo xt
-        If io_name = vbNullString Then io_name = FSo.GetFileName(io_full_name)
+        If Not fso.FileExists(io_full_name) Then GoTo xt
+        If io_name = vbNullString Then io_name = fso.GetFileName(io_full_name)
         On Error Resume Next
         Set xlApp = GetObject(io_full_name).Application
         WbkIsOpen = Err.Number = 0

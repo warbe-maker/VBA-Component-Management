@@ -61,7 +61,7 @@ Option Explicit
 ' ----------------------------------------------------------------------------
 Private Const GITHUB_REPO_URL As String = "https://github.com/warbe-maker/VBA-Trace"
 
-Private fso As New FileSystemObject
+Private FSo As New FileSystemObject
 
 Public Enum enDsplydInfo
     Detailed = 1
@@ -138,7 +138,7 @@ Public Property Get FileFullName() As String
     Then FileFullName = Path & "\" & FileName _
     Else FileFullName = sFileFullName
     
-    With fso
+    With FSo
         If Not .FileExists(FileFullName) Then .CreateTextFile FileFullName
     End With
 
@@ -151,7 +151,7 @@ Public Property Let FileFullName(ByVal s As String)
 ' ----------------------------------------------------------------------------
     Dim lDaysAge As Long
     
-    With fso
+    With FSo
         If sFileFullName <> s Then
             '~~ Either the trace-log-file's name has yet not been initialized
             '~~ or the name is not/no longer the one previously used
@@ -182,7 +182,7 @@ Public Property Get FileName() As String
 End Property
 
 Public Property Let FileName(ByVal s As String)
-    If fso.GetExtensionName(s) = vbNullString Then
+    If FSo.GetExtensionName(s) = vbNullString Then
         s = s & ".log"
     End If
     sFileName = s
@@ -228,7 +228,7 @@ Private Property Let Log(ByVal tl_string As String)
     On Error GoTo eh
     Dim oFile   As TextStream
     
-    With fso
+    With FSo
         If Not .FileExists(FileFullName) Then .CreateTextFile (FileFullName)
         Set oFile = .OpenTextFile(FileFullName, ForAppending)
         oFile.WriteLine tl_string
@@ -641,7 +641,7 @@ Private Sub LogBgn(ByVal l_ntry As Collection, _
         s = LogText(l_elpsd_total:="Elapsed " _
                   , l_elpsd_secs:="Length  " _
                   , l_strng:="Execution trace by 'Common VBA Execution Trace Service (mTrc)' (" & GITHUB_REPO_URL & ")")
-        If fso.GetFile(FileFullName).Size > 0 Then Log = String(Len(s), "=")
+        If FSo.GetFile(FileFullName).Size > 0 Then Log = String(Len(s), "=")
         Log = s
         
         '~~ Trace-Log title
@@ -841,7 +841,7 @@ Public Sub NewFile()
 ' testing where a new trace-log-file is usually appropriate.
 ' ----------------------------------------------------------------------------
     
-    With fso
+    With FSo
         If .FileExists(FileFullName) Then .DeleteFile FileFullName, True
         .CreateTextFile FileFullName
     End With

@@ -241,7 +241,7 @@ Private Sub SetupComp(ByVal c_source_or_target As String, _
     '~~ dedicated test sync workbook source or target folder
     sFromFile = SetupCompFromFile(c_source_or_target, c_from_file)
     
-    Select Case fso.GetExtensionName(sFromFile)
+    Select Case FSo.GetExtensionName(sFromFile)
         Case "cls", "frm", "bas"
             c_wbk.VBProject.VBComponents.Import sFromFile
         Case Else ' content from data/file
@@ -306,7 +306,7 @@ Private Function SetupCompFromFile(ByVal s_source_or_target As String, _
     Dim sPath2      As String
     
     sPath1 = ThisWorkbook.Path & "\source\"
-    sExt = fso.GetExtensionName(s_from_file)
+    sExt = FSo.GetExtensionName(s_from_file)
     Select Case s_source_or_target
         Case "Sync_SourceWorkbook"
             sPath2 = ThisWorkbook.Path & "\SyncTestSource\setup\"
@@ -328,9 +328,9 @@ Private Function SetupCompFromFile(ByVal s_source_or_target As String, _
                 sFromFile2 = sPath2 & s_from_file
             End If
     End Select
-    If fso.FileExists(sFromFile2) Then ' preferred when both exist
+    If FSo.FileExists(sFromFile2) Then ' preferred when both exist
         sFromFile = sFromFile2
-    ElseIf fso.FileExists(sFromFile1) Then
+    ElseIf FSo.FileExists(sFromFile1) Then
         sFromFile = sFromFile1
     Else
         Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "The provided file (" & s_from_file & ") neither exist in " & vbLf & vbLf & _
@@ -486,7 +486,7 @@ Private Sub SetupTestWorkbooksCleanup(ByVal s_sync_source As String, _
     On Error GoTo eh
     Dim wbk As Workbook
     
-    With fso
+    With FSo
         If .FileExists(s_sync_source) Then
             If mWbk.IsOpen(s_sync_source, wbk) Then wbk.Close False
             .DeleteFile s_sync_source
@@ -533,7 +533,7 @@ Public Sub SetupTestWorkbooksEstablish(Optional ByVal s_regression As Boolean = 
     Dim sExt                As String
     
     Application.ScreenUpdating = False
-    With fso
+    With FSo
         If s_regression Then
             '~~ For the regression test the source Workbook is established
             '~~ in the configured "Serviced Development and Test folder"

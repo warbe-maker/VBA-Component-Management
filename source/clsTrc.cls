@@ -18,6 +18,8 @@ Option Explicit
 ' Cond. Comp. Arg. is 0 all services are disabled even when the module is
 ' installed, avoiding any negative effect on the performance though this
 ' effect very little anyway.
+' Please note that only the main component using this component will declare
+' it: `Public Trc As clsTrc`.
 '
 ' Public Methods:
 ' ----------------
@@ -64,11 +66,11 @@ Option Explicit
 ' ---------
 ' Reference to 'Microsoft Scripting Runtime'
 '
-' W. Rauschenberger, Berlin, Jan 2024
+' W. Rauschenberger, Berlin, Apr 2024
 ' See: https://github.com/warbe-maker/VBA-Trace
 ' ----------------------------------------------------------------------------
 Private Const GITHUB_REPO_URL   As String = "https://github.com/warbe-maker/VBA-Trace"
-Private fso                     As New FileSystemObject
+Private FSo                     As New FileSystemObject
 
 #If Not mMsg = 1 Then
     ' ------------------------------------------------------------------------
@@ -135,30 +137,26 @@ Private cyTcksPauseStart    As Currency         ' Set with procedure Pause
 Private dtTraceBegin        As Date             ' Initialized at start of execution trace
 Private iTrcLvl             As Long             ' Increased with each begin entry and decreased with each end entry
 Private sFileFullName       As String
-Private sFileName           As String
 Private sFirstTraceItem     As String
 Private sTitle              As String
-Private sPath               As String
 Private TraceStack          As Collection       ' Trace stack for the trace log written to a file
 Private bLogToFileSuspended As Boolean
 Private lKeepDays           As Long
 
 Private Sub Class_Initialize()
 
-    sFileName = "ExecTrace.log"
-    sPath = ThisWorkbook.Path
-    FileFullName = sPath & "\" & sFileName ' (re)creates the file if not existing
     Set LastNtry = Nothing
     dtTraceBegin = Now()
     cyTcksOvrhdItm = 0
     iTrcLvl = 0
     cySysFrequency = 0
     sFirstTraceItem = vbNullString
-
+    sFileFullName = ThisWorkbook.Path & "\" & "Exec.trc" ' the default name
+    
 End Sub
 
 Private Sub Class_Terminate()
-    Set fso = Nothing
+    Set FSo = Nothing
 End Sub
 
 Private Property Get DIR_BEGIN_CODE() As String:            DIR_BEGIN_CODE = DIR_BEGIN_ID:                  End Property
@@ -170,7 +168,12 @@ Private Property Get DIR_END_CODE() As String:              DIR_END_CODE = DIR_E
 Private Property Get DIR_END_PROC() As String:              DIR_END_PROC = VBA.String$(2, DIR_END_ID):      End Property
 
 Friend Property Get FileFullName() As String
+    Const PROC = "FileFullName-Get"
+    
+    If sFileFullName = vbNullString _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "A full namne of the trace log file has yet not been specified!"
     FileFullName = sFileFullName
+
 End Property
 
 Friend Property Let FileFullName(ByVal s As String)
@@ -180,36 +183,20 @@ Friend Property Let FileFullName(ByVal s As String)
 ' ----------------------------------------------------------------------------
     Dim lDaysAge As Long
     
-    With fso
-        If sFileFullName <> s Then
-            '~~ Either the trace-log-file's name has yet not been initialized
-            '~~ or the name is not/no longer the one previously used
-            If .FileExists(sFileFullName) Then .DeleteFile sFileFullName
-        End If
+    With FSo
         sFileFullName = s
-        sPath = .GetParentFolderName(s)
-        If Not .FileExists(sFileFullName) Then
-            .CreateTextFile sFileFullName
-        End If
-        sFileName = .GetFileName(s)
-        
-        '~~ In case the file already existed it may have passed the KeepDays limit
-        lDaysAge = VBA.DateDiff("d", .GetFile(sFileFullName).DateLastAccessed, Now())
-        If lDaysAge > lKeepDays Then
-            .DeleteFile sFileFullName
+        If .FileExists(sFileFullName) Then
+            '~~ In case the file already existed it may have passed the KeepDays limit
+            lDaysAge = VBA.DateDiff("d", .GetFile(sFileFullName).DateLastAccessed, Now())
+            If lDaysAge > lKeepDays Then
+                .DeleteFile sFileFullName
+                .CreateTextFile sFileFullName
+            End If
+        Else
             .CreateTextFile sFileFullName
         End If
     End With
 
-End Property
-
-Private Property Get FileName() As String:          FileName = sFileName:   End Property
-
-Friend Property Let FileName(ByVal s As String)
-    If fso.GetExtensionName(s) = vbNullString Then
-        s = s & ".log"
-    End If
-    FileFullName = Path & "\" & s
 End Property
 
 Private Property Get ItmArgs(Optional ByRef t_entry As Collection) As Variant
@@ -239,12 +226,10 @@ Private Property Let Log(ByVal l_line As String)
 ' Writes the string (l_line) to the FileFullName.
 ' ----------------------------------------------------------------------------
     Const PROC = "Log-Let"
-    
-    On Error GoTo eh
-    Dim oFile   As TextStream
-            
-    Set oFile = fso.OpenTextFile(FileFullName, ForAppending)
-    oFile.WriteLine l_line
+                
+    Open FileFullName For Append As #1
+    Print #1, l_line
+    Close #1
     
 xt: Exit Property
     
@@ -285,36 +270,6 @@ End Property
 Private Property Let NtryTcksOvrhdNtry(Optional ByRef t_entry As Collection, ByRef cy As Currency)
     If t_entry Is Nothing Then Set t_entry = New Collection
     t_entry.Add cy, "TON"
-End Property
-
-Private Property Get Path() As Variant:                     Path = sPath:                               End Property
-
-Friend Property Let Path(ByVal v As Variant)
-' -----------------------------------------------------------------------------------
-' Specifies the location (folder) for the log file based on the provided information
-' which may be a string, a Workbook, or a folder object.
-' -----------------------------------------------------------------------------------
-    Const PROC = "Path-Let"
-    Dim wbk As Workbook
-    Dim fld As Folder
-    
-    Select Case VarType(v)
-        Case VarType(v) = vbString
-            sPath = v
-        Case VarType(v) = vbObject
-            If TypeOf v Is Workbook Then
-                Set wbk = v
-                sPath = wbk.Path
-            ElseIf TypeOf v Is Folder Then
-                Set fld = v
-                sPath = fld.Path
-            Else
-                Err.Raise AppErr(1), ErrSrc(PROC), "The provided argument is neither a string specifying a " & _
-                                                   "folder's path, nor a Workbook object, nor a Folder object!"
-            End If
-    End Select
-    FileFullName = Path & "\" & FileName ' re-establishes it when not already existing
-    
 End Property
 
 Private Property Get SplitStr(ByRef s As String)
@@ -412,7 +367,7 @@ Public Sub Dsply()
     If FileFullName <> vbNullString Then
         ShellRun FileFullName, WIN_NORMAL
     Else
-        ShellRun sFileFullName, WIN_NORMAL
+        ShellRun FileFullName, WIN_NORMAL
     End If
 End Sub
 
@@ -645,11 +600,15 @@ Private Sub LogBgn(ByVal l_ntry As Collection, _
         cyTcksAtStart = ItmTcks(l_ntry)
     
         '~~ Trace-Log header
-        s = LogText(l_elpsd_total:="Elapsed " _
-                  , l_elpsd_secs:="Length  " _
-                  , l_strng:="Execution trace by 'Common VBA Execution Trace Service (mTrc)' (" & GITHUB_REPO_URL & ")")
-        If fso.GetFile(FileFullName).Size > 0 Then Log = String(Len(s), "=")
-        Log = s
+        If sFileFullName <> vbNullString Then
+            If FSo.FileExists(sFileFullName) Then
+                s = LogText(l_elpsd_total:="Elapsed " _
+                          , l_elpsd_secs:="Length  " _
+                          , l_strng:="Execution trace by 'Common VBA Execution Trace Service (mTrc)' (" & GITHUB_REPO_URL & ")")
+                If FSo.GetFile(sFileFullName).Size > 0 Then Log = String(Len(s), "=")
+                Log = s
+            End If
+        End If
         
         '~~ Trace-Log title
         If sTitle = vbNullString Then
@@ -848,7 +807,7 @@ Public Sub NewFile()
 ' Creates a new trace-log-file, either with the defaults or the provided
 ' properties. Mainly used for test where a new trace-log-file is appropriate.
 ' ------------------------------------------------------------------------------
-    With fso
+    With FSo
         If .FileExists(FileFullName) Then .DeleteFile FileFullName
         .CreateTextFile FileFullName
     End With
@@ -1022,9 +981,9 @@ Private Sub StckPop(ByRef stck As Collection, _
     While ItmId(cll) <> ItmId(cllTop) And Not StckIsEmpty(TraceStack)
         '~~ Finish any unfinished code trace still on the stack which needs to be finished first
         If NtryIsCode(cllTop) Then
-            mTrc.EoC eoc_id:=ItmId(cllTop), eoc_inf:="ended by stack!!"
+            EoC eoc_id:=ItmId(cllTop), eoc_inf:="ended by stack!!"
         Else
-            mTrc.EoP e_id:=ItmId(cllTop), e_args:="ended by stack!!"
+            EoP e_id:=ItmId(cllTop), e_args:="ended by stack!!"
         End If
         If Not StckIsEmpty(TraceStack) Then Set cllTop = StckTop(stck)
     Wend

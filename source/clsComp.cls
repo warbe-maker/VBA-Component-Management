@@ -229,8 +229,8 @@ Friend Property Get ExpFile() As File
         
     With Me
         If flExpFile Is Nothing Then
-            If FSo.FileExists(.ExpFileFullName) Then
-                Set flExpFile = FSo.GetFile(.ExpFileFullName)
+            If fso.FileExists(.ExpFileFullName) Then
+                Set flExpFile = fso.GetFile(.ExpFileFullName)
             Else
                 '~~ When the component has yet no never been exported
                 '~~ it will be along with the Export changed service
@@ -254,7 +254,7 @@ Friend Property Get ExpFileFullName() As String
 End Property
 
 Friend Property Get ExpFileTemp() As File
-    With FSo
+    With fso
         If Not .FileExists(Me.ExpFileTempFullName) Then
             Me.VBComp.Export Me.ExpFileTempFullName
         End If
@@ -271,7 +271,7 @@ Friend Property Get ExpFileTempFullName() As String
     
     On Error GoTo eh
     If Not wbk Is Nothing Then
-        With FSo
+        With fso
             If sTmpFolder = vbNullString Then
                 sTmpFolder = Services.TempExportFolder
             End If
@@ -329,11 +329,11 @@ Friend Property Get KindOfComp() As enKindOfComp
         If CommComps.ExistsPublic(sCompName) Then
             '~~ The component is known as a public Common Component.
             '~~ I.e. the component's Export-File exists in the Common-Components folder.
-            If CompManDat.RegistrationState(Me.CompName) = enRegStateHosted Then
+            If PPCompManDat.RegistrationState(Me.CompName) = enRegStateHosted Then
                 '~~ The Common Component is currently registered as beeing hosted in the service Workbook
                 lKindOfComp = mCompMan.enCommCompHosted
             Else
-                If Not CompManDat.RegistrationState(Me.CompName) = enRegStatePrivate Then
+                If Not PPCompManDat.RegistrationState(Me.CompName) = enRegStatePrivate Then
                     lKindOfComp = mCompMan.enCommCompUsed
                 End If
             End If
@@ -375,7 +375,7 @@ Friend Property Get Outdated() As Boolean
     
     mBasic.BoP ErrSrc(PROC)
     CommComps.CompName = sCompName
-    sCommCompPublicLastModDateTime = CommComps.LastModAtDateTime(sCompName)
+    sCommCompPublicLastModDateTime = CommComps.LastModAtDateTimeUTC(sCompName)
     CodePublic.Source = CommComps.CurrentPublicExpFileFullName
     CodeCurrent.Source = Me.ExpFileFullName
     
@@ -398,19 +398,19 @@ Friend Property Get Outdated() As Boolean
     '    Manage Pending Release                  x
     ' ---------------------------------------------
     Select Case True
-        Case bCodeDiffers And LastModAtDateTime = sCommCompPublicLastModDateTime
+        Case bCodeDiffers And LastModAtDateTimeUTC = sCommCompPublicLastModDateTime
             '~~ The Common Component in the Common-Components folder and the used/hosted Common Component
             '~~ do have equal last modified information although the code differs.
             '~~ This is regarded a severe logic error!
             i = i + 1
             Msg.Section(i).Text.Text = _
-                "While the Export-File of the of the " & CompManDat.RegStateString(Me.CompName) & _
+                "While the Export-File of the of the " & PPCompManDat.RegStateString(Me.CompName) & _
                 "Common Component   " & mBasic.Spaced(Me.CompName) & "   differs from the " & _
                 "Export File in the Common-Components folder, the Revision numbers are equal." & vbLf & _
                 "This is a severe logic error which requires further investigation regarding " & _
                 "the cause (code inspection and testing)." & vbLf & _
                 "See facts below."
-            CommCompFacts i, LastModAtDateTime, sCommCompPublicLastModDateTime
+            CommCompFacts i, LastModAtDateTimeUTC, sCommCompPublicLastModDateTime
             Do
                 Select Case mMsg.Dsply(dsply_title:="Severe inconsistent Common-Component facts!" _
                                      , dsply_msg:=Msg _
@@ -426,9 +426,9 @@ Friend Property Get Outdated() As Boolean
                                               , d_from_file_title:="The Common Component's current public code"
                 End Select
             Loop
-        Case bCodeDiffers And LastModAtDateTime < sCommCompPublicLastModDateTime
+        Case bCodeDiffers And LastModAtDateTimeUTC < sCommCompPublicLastModDateTime
             Outdated = True
-        Case LastModAtDateTime > sCommCompPublicLastModDateTime
+        Case LastModAtDateTimeUTC > sCommCompPublicLastModDateTime
             '~~ When the used/hosted Common Component's last modified date-time is after the last modified date-time
             '~~ of the public/raw Common Component this is regarded a pending Release of a code modification,
             '~~ provided there isn't one registered with a modification in another Workbook.
@@ -437,8 +437,8 @@ Friend Property Get Outdated() As Boolean
     End Select
     
     If Not Outdated Then
-        If LastModAtDateTime <> sCommCompPublicLastModDateTime Then
-            LastModAtDateTime = sCommCompPublicLastModDateTime
+        If LastModAtDateTimeUTC <> sCommCompPublicLastModDateTime Then
+            LastModAtDateTimeUTC = sCommCompPublicLastModDateTime
         End If
         With Services
             .ServicedItem = Me.VBComp
@@ -454,22 +454,21 @@ eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Property
+                         
+Friend Property Get LastModAtDateTimeUTC() As String:           LastModAtDateTimeUTC = PPCompManDat.LastModAtDateTimeUTC(sCompName):  End Property
 
-                          
-Friend Property Get LastModAtDateTime() As String:             LastModAtDateTime = CompManDat.LastModAtDateTime(sCompName): End Property
-
-Friend Property Let LastModAtDateTime(ByVal s As String):      CompManDat.LastModAtDateTime(sCompName) = s:              End Property
+Friend Property Let LastModAtDateTimeUTC(ByVal s As String):    PPCompManDat.LastModAtDateTimeUTC(sCompName) = s:                     End Property
 
 Friend Property Get Service() As String
     If sService = vbNullString Then
-        sService = FSo.GetFileName(Me.Wrkbk.Path)
+        sService = fso.GetFileName(Me.Wrkbk.Path)
     End If
     Service = sService
 End Property
 
-Friend Property Get Sheet() As Worksheet:                   Set Sheet = wsh:            End Property
+Friend Property Get Sheet() As Worksheet:                       Set Sheet = wsh:                                                    End Property
 
-Friend Property Let Sheet(ByRef s_wsh As Worksheet):        Set wsh = s_wsh:            End Property
+Friend Property Let Sheet(ByRef s_wsh As Worksheet):            wsh = s_wsh:                                                        End Property
 
 Friend Property Get TypeString() As String
 ' ------------------------------------------------------------------------------
@@ -482,7 +481,7 @@ Friend Property Get TypeString() As String
     End If
 End Property
 
-Friend Property Get VBComp() As VBComponent:                Set VBComp = vbc:           End Property
+Friend Property Get VBComp() As VBComponent:                    Set VBComp = vbc:                                                   End Property
 
 Friend Property Let VBComp(ByRef vb_comp As VBComponent)
     Set vbc = vb_comp
@@ -498,7 +497,7 @@ Friend Property Get Wrkbk() As Workbook
     On Error GoTo eh
     
     If wbk Is Nothing Then
-        If Not FSo.FileExists(sWrkbkFullName) _
+        If Not fso.FileExists(sWrkbkFullName) _
         Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "A Workbook '" & sWrkbkFullName & "' does not exist!"
         Set wbk = mCompMan.WbkGetOpen(sWrkbkFullName)
     Else
@@ -526,7 +525,7 @@ Friend Property Let Wrkbk(ByRef w_wbk As Workbook)
     
     Set wbk = w_wbk
     sWrkbkFullName = wbk.FullName
-    With FSo
+    With fso
         sWrkbkBaseName = .GetBaseName(sWrkbkFullName)
         sExpFilePath = .GetParentFolderName(sWrkbkFullName)
         sService = .GetFileName(wbk.Path)
@@ -538,11 +537,11 @@ Friend Property Let Wrkbk(ByRef w_wbk As Workbook)
     
 End Property
 
-Friend Property Get WrkbkBaseName() As String:                 WrkbkBaseName = BaseName(sWrkbkFullName):        End Property
+Friend Property Get WrkbkBaseName() As String:                  WrkbkBaseName = BaseName(sWrkbkFullName):                           End Property
 
-Friend Property Get WrkbkFullName() As String:                 WrkbkFullName = sWrkbkFullName:                  End Property
+Friend Property Get WrkbkFullName() As String:                  WrkbkFullName = sWrkbkFullName:                                     End Property
 
-Friend Property Let WrkbkFullName(ByVal s As String):          sWrkbkFullName = s:                              End Property
+Friend Property Let WrkbkFullName(ByVal s As String):           sWrkbkFullName = s:                                                 End Property
 
 Private Function BaseName(ByVal s As String) As String
     With New FileSystemObject:  BaseName = .GetBaseName(s): End With
@@ -589,9 +588,7 @@ Private Sub CommCompFacts(ByVal c_sect As Long, _
                           
 End Sub
 
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "clsComp" & "." & sProc
-End Function
+Private Function ErrSrc(ByVal sProc As String) As String:   ErrSrc = "clsComp" & "." & sProc:   End Function
 
 Private Function Exists(ByVal x_wbk As Workbook, _
                         ByVal x_comp_name As String, _
@@ -621,7 +618,7 @@ Public Sub Export()
     
     If KindOfComp = enCommCompHosted _
     Or KindOfComp = enCommCompUsed Then
-        LastModAtDateTime = mCompMan.UTC
+        LastModAtDateTimeUTC = mCompMan.UTC(FileDateTime(ExpFileFullName))
         CommComps.PendingReleaseManagement Me
     End If
 

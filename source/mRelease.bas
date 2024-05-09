@@ -67,7 +67,7 @@ Public Sub ReleaseService(Optional ByVal r_wbk As Workbook = Nothing, _
     With LogService
         .WithTimeStamp
         .KeepDays = 10
-        .FileFullName = ThisWorkbook.Path & "\" & FSo.GetBaseName(ThisWorkbook.Name) & ".ServicesSummary.log"
+        .FileFullName = ThisWorkbook.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".ServicesSummary.log"
         .NewLog True ' suppresses delimiter line
         mCompMan.LogFileServicedSummary = .FileName
     End With
@@ -104,9 +104,9 @@ Public Sub ReleaseService(Optional ByVal r_wbk As Workbook = Nothing, _
                 .Text.MonoSpaced = True
             End With
             With .Section(4)
-                .Label.Text = "Last modified at Date-Time:"
+                .Label.Text = "Last modified/exported at Date-Time (UTC):"
                 .Label.FontColor = rgbBlue
-                .Text.Text = CommComps.PendingReleaseModAtDateTime
+                .Text.Text = CommComps.PendingReleaseModAtDateTimeUTC
                 .Text.MonoSpaced = True
             End With
             With .Section(5)
@@ -160,7 +160,7 @@ Public Sub ReleaseService(Optional ByVal r_wbk As Workbook = Nothing, _
                                                         , d_from_file_title:="The Common Component's code recently modified in Workbook " & CommComps.PendingReleaseModInWbkName
 
             Case BTTN_SKIP_FOR_NOW: cllPending.Remove 1
-            Case BTTN_SKIP_FOREVER: CompManDat.RegistrationState(sComp) = enRegStatePrivate
+            Case BTTN_SKIP_FOREVER: PPCompManDat.RegistrationState(sComp) = enRegStatePrivate
                                     cllPending.Remove 1
                                     If CommComps.PendingReleaseRegistered Then
                                         CommComps.PendingReleaseRemove

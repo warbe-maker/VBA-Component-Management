@@ -1277,8 +1277,8 @@ End Sub
 
 Private Function ParentWbk(ByVal p_nme As Name) As String
     If TypeOf p_nme.Parent Is Worksheet _
-    Then ParentWbk = fso.GetBaseName(p_nme.Parent.Parent.Name) _
-    Else ParentWbk = fso.GetBaseName(p_nme.Parent.Name)
+    Then ParentWbk = FSo.GetBaseName(p_nme.Parent.Parent.Name) _
+    Else ParentWbk = FSo.GetBaseName(p_nme.Parent.Name)
 End Function
 
 Private Sub PropertiesDiffer(ByVal p_nme_source As Name, _
@@ -1532,10 +1532,10 @@ Private Function ScopeName(ByVal s_nme As Name) As String
     If TypeOf s_nme.Parent Is Worksheet Then
         Set wsh = s_nme.Parent
         Set wbk = wsh.Parent
-        ScopeName = ScopeName & "Worksheet " & fso.GetBaseName(wbk.Name) & "." & wsh.Name
+        ScopeName = ScopeName & "Worksheet " & FSo.GetBaseName(wbk.Name) & "." & wsh.Name
     Else
         Set wbk = s_nme.Parent
-        ScopeName = ScopeName & "Workbook " & fso.GetBaseName(wbk.Name)
+        ScopeName = ScopeName & "Workbook " & FSo.GetBaseName(wbk.Name)
     End If
     
 End Function
@@ -1573,10 +1573,10 @@ Public Function SyncId(ByVal s_nme As Name) As String
     If TypeOf s_nme.Parent Is Worksheet Then
         Set wsh = s_nme.Parent
         Set wbk = wsh.Parent
-        sScopeName = sScopeName & "Worksheet " & fso.GetBaseName(wbk.Name) & "." & wsh.Name
+        sScopeName = sScopeName & "Worksheet " & FSo.GetBaseName(wbk.Name) & "." & wsh.Name
     Else
         Set wbk = s_nme.Parent
-        sScopeName = sScopeName & "Workbook " & fso.GetBaseName(wbk.Name)
+        sScopeName = sScopeName & "Workbook " & FSo.GetBaseName(wbk.Name)
     End If
     
     SyncId = sMereName & SYNC_ID_SEPARATOR & s_nme.RefersTo & SYNC_ID_SEPARATOR & sScopeName

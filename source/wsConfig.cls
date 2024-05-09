@@ -57,7 +57,7 @@ Private Property Let CompManWrkbkStatusUrl(ByVal s As String):      UrlLabel(Me.
 Public Property Let ConfigInfo(ByVal s As String):                  mWsh.Value(Me, "ConfigInfo") = s:                                       End Property
 
 Public Property Get FolderCommonComponentsName() As String
-    FolderCommonComponentsName = fso.GetFolder(FolderCommonComponentsPath).Name
+    FolderCommonComponentsName = FSo.GetFolder(FolderCommonComponentsPath).Name
 End Property
 
 Public Property Get FolderCommonComponentsPath() As String:         FolderCommonComponentsPath = mWsh.Value(Me, "FolderCommonComponents"):  End Property
@@ -140,7 +140,7 @@ Public Sub AutoOpenAddinSetup()
     
     If mMe.IsAddinInstnc Then GoTo xt
     sShortcut = mAddin.AutoOpenShortCut
-    If AutoOpenAddinIsSetup Then fso.DeleteFile sShortcut
+    If AutoOpenAddinIsSetup Then FSo.DeleteFile sShortcut
     Set oShell = CreateObject("Wscript.shell")
     Set oShortcut = oShell.CreateShortcut(sShortcut)
     With oShortcut
@@ -263,7 +263,7 @@ Public Sub CurrentStatus()
     If mMe.IsAddinInstnc Then GoTo xt
     
     '~~ CompMan Add-in setup status
-    If fso.FileExists(mAddin.WbkFullName) Then
+    If FSo.FileExists(mAddin.WbkFullName) Then
         cll.Add "provided"
         
         '~~ CompMan Addin Paused status
@@ -283,7 +283,7 @@ Public Sub CurrentStatus()
 
         '~~ CompMan Addin AutoOpen status
         sShortcut = mAddin.AutoOpenShortCut
-        If fso.FileExists(sShortcut) Then
+        If FSo.FileExists(sShortcut) Then
             '~~ Update the shortcut in case the location of the Add-in Workbook has changed
             If ShortCutTargetPath(sShortcut) <> mAddin.WbkFullName _
             Then ShortCutTargetPath(sShortcut) = mAddin.WbkFullName
@@ -304,7 +304,7 @@ Public Sub CurrentStatus()
     
     '~~ CompMan Workbook AutoOpen status
     sStatus = vbNullString
-    If fso.FileExists(AutoOpenShortCutCompManWbk) Then
+    If FSo.FileExists(AutoOpenShortCutCompManWbk) Then
         '~~ Update the shortcut in case the location of the CompMan Workbook has changed
         If ShortCutTargetPath(AutoOpenShortCutCompManWbk) <> ThisWorkbook.FullName _
         Then ShortCutTargetPath(AutoOpenShortCutCompManWbk) = ThisWorkbook.FullName
@@ -347,7 +347,7 @@ Public Function FolderCompManRootIsValid() As Boolean
     CommonComponentsFolderUrl = mCompMan.README_DEFAULT_FILES_AND_FOLDERS
     
     If FolderCompManRoot <> vbNullString Then
-        If fso.FolderExists(FolderCompManRoot) Then
+        If FSo.FolderExists(FolderCompManRoot) Then
             FolderCompManRootInfo = "Folder serviced by CompMan. I.e. CompMan provides its services for any Workbook " & _
                                     "located (opened, saved) in this folder - provided the Workbook has one or more " & _
                                     "services enabled."
@@ -438,7 +438,7 @@ Private Function FolderSyncArchiveIsValid() As Boolean
     With Me
         FolderSyncArchiveUrl = mCompMan.README_CONFIG_CHANGES
         If FolderSyncArchive <> vbNullString Then
-            If fso.FolderExists(FolderSyncTarget) Then
+            If FSo.FolderExists(FolderSyncTarget) Then
                 FolderSyncArchiveIsValid = True
             Else
                 FolderSyncArchive = vbNullString
@@ -478,7 +478,7 @@ Public Function FolderSyncTargetIsValid() As Boolean
         FolderSyncTargetIsValid = FolderSyncTarget = vbNullString
         FolderSyncTargetUrl = mCompMan.README_CONFIG_CHANGES
         If FolderSyncTarget <> vbNullString Then
-            If fso.FolderExists(FolderSyncTarget) Then
+            If FSo.FolderExists(FolderSyncTarget) Then
                 FolderSyncTargetIsValid = True
                 FolderSyncTargetInfo = "CompMan's folder for the 'Synchronization VB-Project' service. The service is " & _
                                        "provided for any Workbook prepared for the service and opened from within this folder."
@@ -677,6 +677,4 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         End Select
     End With
 
-
 End Sub
-

@@ -122,34 +122,6 @@ Public Function AllDone(ByVal d_wbk_source As Workbook, _
 
 End Function
 
-Public Sub AppRunSyncAll()
-' ------------------------------------------------------------------------------
-' Called via Application.Run by CommonButton: Synchronizes all VB-Components
-' in the Sync-Target-Workbook with those in the Sync-Source-Workbook by
-' removing obsolete, adding new, and updating changed VB-Components.
-' ------------------------------------------------------------------------------
-    Const PROC = "AppRunSyncAll"
-    
-    On Error GoTo eh
-    
-    mBasic.BoP ErrSrc(PROC)
-    If dctKnownChanged.Count > 0 Then mSyncComps.AppRunChanged     ' Synchronize changed VB-Components
-    If dctKnownNew.Count > 0 Then mSyncComps.AppRunNew             ' Synchronize new VB-Components
-    If dctKnownObsolete.Count > 0 Then mSyncComps.AppRunObsolete   ' Synchronize obsolete VB-Components
-
-xt: mBasic.EoP ErrSrc(PROC)
-    If lSyncMode <> SyncSummarized Then
-        Services.MessageUnload TITLE_SYNC_COMPS
-        mSync.RunSync
-    End If
-    Exit Sub
-    
-eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
 Private Sub AppRunChanged()
 ' ------------------------------------------------------------------------------
 ' Called via Application.Run by CommonButton: Synchronizes a code change in the
@@ -278,6 +250,7 @@ eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
                      
 Private Sub AppRunObsolete()
 ' ------------------------------------------------------------------------------
@@ -319,6 +292,34 @@ Private Sub AppRunObsolete()
     
 xt: Services.MessageUnload TITLE_SYNC_COMPS
     mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+    
+eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Sub AppRunSyncAll()
+' ------------------------------------------------------------------------------
+' Called via Application.Run by CommonButton: Synchronizes all VB-Components
+' in the Sync-Target-Workbook with those in the Sync-Source-Workbook by
+' removing obsolete, adding new, and updating changed VB-Components.
+' ------------------------------------------------------------------------------
+    Const PROC = "AppRunSyncAll"
+    
+    On Error GoTo eh
+    
+    mBasic.BoP ErrSrc(PROC)
+    If dctKnownChanged.Count > 0 Then mSyncComps.AppRunChanged     ' Synchronize changed VB-Components
+    If dctKnownNew.Count > 0 Then mSyncComps.AppRunNew             ' Synchronize new VB-Components
+    If dctKnownObsolete.Count > 0 Then mSyncComps.AppRunObsolete   ' Synchronize obsolete VB-Components
+
+xt: mBasic.EoP ErrSrc(PROC)
+    If lSyncMode <> SyncSummarized Then
+        Services.MessageUnload TITLE_SYNC_COMPS
+        mSync.RunSync
+    End If
     Exit Sub
     
 eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
@@ -481,12 +482,12 @@ eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function IsWrkbkDocMod(ByVal i_vbc As VBComponent, _
-                               ByVal i_wbk As Workbook) As Boolean
-' ------------------------------------------------------------------------------
-' Retunrs True when the VBComponent represents the Workbook.
-' ------------------------------------------------------------------------------
-    IsWrkbkDocMod = i_vbc.Type = vbext_ct_Document And i_vbc.Name = i_wbk.CodeName
+Private Function Collected(ByVal c_action As enSyncAction) As Long
+    Select Case True
+        Case mSync.SyncActionIsChange(c_action):    Collected = dctKnownChanged.Count
+        Case c_action = enSyncActionRemoveObsolete: Collected = dctKnownObsolete.Count
+        Case c_action = enSyncActionAddNew:         Collected = dctKnownNew.Count
+    End Select
 End Function
 
 Private Function CollectInSync(ByVal c_wbk_source As Workbook, _
@@ -656,10 +657,7 @@ Private Function GetCodeAsArray(ByVal gf_vbc As VBComponent) As Variant
     With gf_vbc.CodeModule
         If .CountOfLines > 0 Then
             s = .Lines(1, .CountOfLines)
-            If InStr(s, vbCrLf) <> 0 Then sSplit = vbCrLf
-            If sSplit = vbNullString Then
-                If InStr(s, vbLf) <> 0 Then sSplit = vbLf
-            End If
+            sSplit = SplitString(s)
             GetCodeAsArray = Split(s, sSplit)
         End If
     End With
@@ -671,6 +669,7 @@ eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Function
+
               
 Private Function GetComp(ByVal g_wbk As Workbook, _
                 Optional ByVal g_vbc_id As String = vbNullString, _
@@ -721,12 +720,12 @@ Public Sub Initialize()
     Set dctKnownSkppdTarget = Nothing
 End Sub
 
-Private Function Collected(ByVal c_action As enSyncAction) As Long
-    Select Case True
-        Case mSync.SyncActionIsChange(c_action):    Collected = dctKnownChanged.Count
-        Case c_action = enSyncActionRemoveObsolete: Collected = dctKnownObsolete.Count
-        Case c_action = enSyncActionAddNew:         Collected = dctKnownNew.Count
-    End Select
+Private Function IsWrkbkDocMod(ByVal i_vbc As VBComponent, _
+                               ByVal i_wbk As Workbook) As Boolean
+' ------------------------------------------------------------------------------
+' Retunrs True when the VBComponent represents the Workbook.
+' ------------------------------------------------------------------------------
+    IsWrkbkDocMod = i_vbc.Type = vbext_ct_Document And i_vbc.Name = i_wbk.CodeName
 End Function
 
 Private Function KnownSource(ByVal k_id As String) As Boolean
@@ -741,6 +740,17 @@ Private Function KnownTarget(ByVal k_id As String) As Boolean
                Or KnownObsolete(k_id) _
                Or KnownChanged(k_id) _
                Or KnownSkppdTarget(k_id)
+End Function
+
+Private Function SplitString(ByVal s_s As String) As String
+    
+    Select Case True
+        Case InStr(s_s, vbCrLf) <> 0: SplitString = vbCrLf
+        Case InStr(s_s, vbCr) <> 0:   SplitString = vbCr
+        Case InStr(s_s, vbLf) <> 0:   SplitString = vbLf
+    End Select
+    If Len(SplitString) = 0 Then SplitString = vbCrLf
+    
 End Function
 
 Private Function SyncId(ByVal s_vbc As VBComponent, _

@@ -64,7 +64,7 @@ Public Sub ChangedComponents()
                 GoTo nxt
             ElseIf .Changed Then
                 If .KindOfComp = enCommCompHosted _
-                Or .KindOfComp = enCommCompUsed Then sLastModDateTimeOld = .LastModAtDateTime
+                Or .KindOfComp = enCommCompUsed Then sLastModDateTimeOld = .LastModAtDateTimeUTC
                 .Export
                 Debug.Print "exported: " & .CompName
                 Prgrss.ItemDone = .CompName
@@ -74,7 +74,7 @@ Public Sub ChangedComponents()
                         .CodePublic.Source = CommComps.CurrentPublicExpFileFullName
                         With Services
                             .ServicedItemLogEntry "Modified Common Component: e x p o r t e d !"
-                            .ServicedItemLogEntry "Modified Common Component: Last modification info changed from " & sLastModDateTimeOld & " to " & Comp.LastModAtDateTime
+                            .ServicedItemLogEntry "Modified Common Component: Last modification info changed from " & sLastModDateTimeOld & " to " & Comp.LastModAtDateTimeUTC
                             .ServicedItemLogEntry "Modified Common Component: Pending Release registered"
                         End With
                         .CodeExported.Source = .ExpFileFullName ' re-load the recent export
@@ -131,15 +131,15 @@ Private Sub Hskpng()
     '~~ Rename the export folder when the one last used is no longe the one currently configured
     sExpFldrCurrentPath = mExport.ExpFileFolderPath(Services.ServicedWbk)
     sExpFldrCurrentName = wsConfig.FolderExport
-    sExpFldrRecentName = CompManDat.RecentlyUsedExportFolder
+    sExpFldrRecentName = PPCompManDat.RecentlyUsedExportFolder
     If sExpFldrRecentName = vbNullString Then
-        CompManDat.RecentlyUsedExportFolder = sExpFldrCurrentName
+        PPCompManDat.RecentlyUsedExportFolder = sExpFldrCurrentName
         sExpFldrRecentName = sExpFldrCurrentName
     End If
     If sExpFldrRecentName <> sExpFldrCurrentName Then
         sExpFldrRecentPath = Replace(sExpFldrCurrentPath, "\" & sExpFldrCurrentName, "\" & sExpFldrRecentName)
         fso.GetFolder(sExpFldrRecentPath).Name = sExpFldrCurrentName
-        CompManDat.RecentlyUsedExportFolder = sExpFldrCurrentName
+        PPCompManDat.RecentlyUsedExportFolder = sExpFldrCurrentName
     End If
     
     '~~ Remove all Export-Files not corresponding to an existing VBComponet

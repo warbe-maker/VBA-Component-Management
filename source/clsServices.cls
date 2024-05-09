@@ -66,7 +66,7 @@ Private Sub Class_Terminate()
     Set LogServiced = Nothing
     Set LogService = Nothing
     Set Comps = Nothing
-    Set CompManDat = Nothing
+    Set PPCompManDat = Nothing
 End Sub
 
 Friend Property Get CurrentService() As String:             CurrentService = sCurrentService:                   End Property
@@ -317,8 +317,7 @@ Public Sub EstablishExecTraceFile()
     Const TRACE_FILE_NAME   As String = "CompMan.Services.ExecTrace.log"
 
 #If mTrc = 1 Then
-    mTrc.FileName = TRACE_FILE_NAME
-    mTrc.Path = ServicedWbk.Path
+    mTrc.FileFullName = ServicedWbk.Path & "\" & TRACE_FILE_NAME
     If CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED Then
         mTrc.NewFile
     End If
@@ -326,8 +325,7 @@ Public Sub EstablishExecTraceFile()
 #ElseIf clsTrc = 1 Then
     Set Trc = New clsTrc
     With Trc
-        .FileName = TRACE_FILE_NAME
-        .Path = ServicedWbk.Path
+        .FileFullName = ServicedWbk.Path & "\" & TRACE_FILE_NAME
         .Title = CurrentServiceStatusBar
         If Services.CurrentService = mCompManClient.SRVC_UPDATE_OUTDATED Then
             .NewFile
@@ -400,8 +398,8 @@ Public Sub Initiate(ByVal i_service_proc As String, _
     wsService.ClearDataAllServices
     ServicedWbk = i_serviced_wbk
         
-    Set CompManDat = New clsCompManDat
-    CompManDat.Hosted = i_hosted ' must be initialized first !
+    Set PPCompManDat = New clsPPCompManDat
+    PPCompManDat.Hosted = i_hosted ' must be initialized first !
     Set CommComps = New clsCommComps
     CommComps.Hosted = i_hosted
     CommComps.Hskpng
@@ -478,8 +476,11 @@ Public Sub ServicedItemLogEntry(ByVal l_s As String)
         
 End Sub
 
-Public Sub LogEntrySummary(ByVal s As String)
-    CompMan.LogService.Entry s, "  (see " & mCompMan.LogFileService & " for log details)"
+Public Sub LogEntrySummary(ByVal l_s As String)
+    Dim s As String
+    s = l_s & "  (see " & mCompMan.LogFileService & " for log details)"
+    s = Replace(s, " ", Chr$(160))
+    CompMan.LogService.Entry s
 End Sub
 
 Public Sub MessageUnload(ByVal sm_title As String)

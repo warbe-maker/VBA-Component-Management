@@ -35,21 +35,18 @@ Option Explicit
 '
 ' ---------------------------------------------------------------------------
 
-' Housekeeping syntax: (allows the on-the-fly-change of value names as well as their removal)
-' "<current-name>:<old-name>" = rename in all sections
-' "<current>"                 = no action
-' ":<remove-name>"            = remove in all sections
-Private Const EXP_FILE_EXTENTION                        As String = "EXP_FILE_EXTENTION"
-Private Const LAST_MODIFIED_EXP_FILE_FULL_NAME_ORIGIN   As String = "LAST_MODIFIED_EXP_FILE_FULL_NAME_ORIGIN"
-Private Const LAST_MODIFIED_AT_DATE_TIME                As String = "LAST_MODIFIED_AT_DATE_TIME"
-Private Const LAST_MODIFIED_ON_MACHINE                  As String = "LAST_MODIFIED_ON_MACHINE"
-Private Const LAST_MODIFIED_IN_WBK_FULL_NAME            As String = "LAST_MODIFIED_IN_WBK_FULL_NAME"
-Private Const LAST_MODIFIED_IN_WBK_NAME                 As String = "LAST_MODIFIED_IN_WBK_NAME"
-Private Const PENDING_RELEASE_MODIFIED_ON_MACHINE       As String = "PENDING_RELEASE_MODIFIED_ON_MACHINE"
-Private Const PENDING_RELEASE_MODIFIED_IN_WBK_NAME      As String = "PENDING_RELEASE_MODIFIED_IN_WBK_NAME"
-Private Const PENDING_RELEASE_MODIFIED_IN_WBK_FULL_NAME As String = "PENDING_RELEASE_MODIFIED_IN_WBK_FULL_NAME"
-Private Const PENDING_RELEASE_MODIFIED_LAST_DATE_TIME   As String = "PENDING_RELEASE_MODIFIED_LAST_DATE_TIME"
-Private Const PENDING_RELEASE_MODIFIED_EXP_FILE         As String = "PENDING_RELEASE_EXP_FILE"
+' Attention: To change any value names check syntax
+Private Const EXP_FILE_EXTENTION                        As String = "ExportFileExtention"
+Private Const LAST_MODIFIED_AT_DATE_TIME                As String = "Last_Modified_AtDateTime"
+Private Const LAST_MODIFIED_EXP_FILE_FULL_NAME_ORIGIN   As String = "LastModExpFileFullNameOrigin"
+Private Const LAST_MODIFIED_IN_WBK_FULL_NAME            As String = "Last_Modified_InWbkFullName"
+Private Const LAST_MODIFIED_IN_WBK_NAME                 As String = "Last_Modified_InWbkName"
+Private Const LAST_MODIFIED_ON_MACHINE                  As String = "Last_Modified_OnMachine"
+Private Const PENDING_RELEASE_MODIFIED_IN_WBK_NAME      As String = "PendingRelease_Modified_InWorkbookName"
+Private Const PENDING_RELEASE_MODIFIED_IN_WBK_FULL_NAME As String = "PendingRelease_Modified_InWorkbookFullName"
+Private Const PENDING_RELEASE_MODIFIED_EXP_FILE         As String = "PendingRelease_Modified_ExportFileFullName"
+Private Const PENDING_RELEASE_MODIFIED_LAST_DATE_TIME   As String = "PendingRelease_Modified_AtDateTime"
+Private Const PENDING_RELEASE_MODIFIED_ON_MACHINE       As String = "PendingRelease_Modified_OnMachine"
 
 Private PPCommComps                                     As clsPP
 Private dctHosted                                       As Dictionary
@@ -57,11 +54,13 @@ Private sFolderPath                                     As String
 Private sCompName                                       As String
 Private sCommCompsDatFile                               As String
 Private CodePending                                     As New clsCode
+Private PP                                              As New clsPrivProf
 
 Private Sub Class_Initialize()
     Const PROC = "Class_Initialize"
     
-    Dim dct As New Dictionary
+    Dim dct         As New Dictionary
+    Dim sHskpngNms  As String
     
     mBasic.BoP ErrSrc(PROC)
 '    Set dctHosted = New Dictionary
@@ -71,28 +70,32 @@ Private Sub Class_Initialize()
 
     '~~> Full name of the PPCommComps-File
     sCommCompsDatFile = sFolderPath & "\" & "CommComps.dat"
+    
     PPCommComps.FileFullName = sCommCompsDatFile
-        
-    '~~> Value Names with the syntax (allows the on-the-fly-change of value names as well as their removal):
-    '~~> "<current>"                 = no action
-    '~~> "<current>:<old>[:<old>].." = rename any <old> to <new> in all sections
-    '~~> ":<remove>"                 = remove in all sections
-    With dct
-        .Add "Obsolete_1", ":RawRevisionNumber"
-        .Add EXP_FILE_EXTENTION, "ExportFileExtention"
-        .Add LAST_MODIFIED_AT_DATE_TIME, "Last_Modified_AtDateTime:LastModifiedAtDateTime:RevisionNumber"
-        .Add LAST_MODIFIED_EXP_FILE_FULL_NAME_ORIGIN, "LastModExpFileFullNameOrigin:LastModExpFileFullName"
-        .Add LAST_MODIFIED_IN_WBK_FULL_NAME, "Last_Modified_InWbkFullName:LastModifiedInWbkFullName:LastModWbkFullName"
-        .Add LAST_MODIFIED_IN_WBK_NAME, "Last_Modified_InWbkName:LastModifiedInWbkName"
-        .Add LAST_MODIFIED_ON_MACHINE, "Last_Modified_OnMachine:LastModifiedOnMachine"
-        .Add PENDING_RELEASE_MODIFIED_IN_WBK_NAME, "PendingRelease_Modified_InWorkbookName"
-        .Add PENDING_RELEASE_MODIFIED_IN_WBK_FULL_NAME, "PendingRelease_Modified_InWorkbookFullName"
-        .Add PENDING_RELEASE_MODIFIED_EXP_FILE, "PendingRelease_Modified_ExportFileFullName:PendingRelease_Modified_ExportFile"
-        .Add PENDING_RELEASE_MODIFIED_LAST_DATE_TIME, "PendingRelease_Modified_AtDateTime"
-        .Add PENDING_RELEASE_MODIFIED_ON_MACHINE, "PendingRelease_Modified_OnMachine"
-    End With
-    PPCommComps.Names = dct
-    Set dct = Nothing
+    PP.FileName = sCommCompsDatFile
+    
+    ' Housekeeping names syntax:
+    ' [[sect:][sect:]][current-name]<prev-name<prev-name
+    ' [[sect:][sect:]]prev-name>prev-name>[current-name]
+    ' Rule 1: > or < indicate the history sequence
+    ' Rule 2: One ot more sections are optional. When specified, the names history
+    '         applies only for those, when omitted for all sections the name any
+    '         of the names in the history is used.
+    ' Rule 3: The > and the < character point to the predecessor of a name. I.e.
+    '         both syntaxes are valid.
+    ' Rule 4: The current name is optional. I.e. when > or < is not followed by a
+    '         name (the current new name), the life any history name has ended.
+    '         I. e. the name is no longer used at all and thus any in use history
+    '         name is removed - in the specified or all sections.
+    
+    PP.HskpngNames PP.FileName, _
+                   "RawRevisionNumber>" _
+                 , LAST_MODIFIED_AT_DATE_TIME & "<LastModifiedAtDateTime<RevisionNumber" _
+                 , LAST_MODIFIED_EXP_FILE_FULL_NAME_ORIGIN & "<LastModExpFileFullName" _
+                 , LAST_MODIFIED_IN_WBK_FULL_NAME & "<LastModifiedInWbkFullName<LastModWbkFullName" _
+                 , LAST_MODIFIED_IN_WBK_NAME & "<LastModifiedInWbkFullName<LastModWbkFullName" _
+                 , LAST_MODIFIED_ON_MACHINE & "<LastModifiedOnMachine" _
+                 , PENDING_RELEASE_MODIFIED_EXP_FILE & "<PendingRelease_Modified_ExportFile"
     mBasic.EoP ErrSrc(PROC)
 
 End Sub
@@ -103,24 +106,24 @@ End Sub
 
 Friend Property Get BttnDsplyDiff() As String: BttnDsplyDiff = "Display difference" & vbLf & "(of Export-Files)":   End Property
 
-Friend Property Get BttnDsplyThatDiff() As String
-    BttnDsplyThatDiff = "Display the modifications" & vbLf & "already made in Workbook" & vbLf & PendingReleaseModInWbkName
+Friend Property Get BttnDsplyTheOtherAlreadyMadeChanges() As String
+    BttnDsplyTheOtherAlreadyMadeChanges = "Display the modifications" & vbLf & "already made in Workbook" & vbLf & PendingReleaseModInWbkName & vbLf & "on computer " & vbLf & PendingReleaseModOnMachine
 End Property
 
-Friend Property Get BttnDsplyThisModifications() As String
-    BttnDsplyThisModifications = "Display the modifications" & vbLf & "made in this Workbook"
+Friend Property Get BttnDsplyTheseModifications() As String
+    BttnDsplyTheseModifications = "Display these modifications" & vbLf & "made in this Workbook"
 End Property
 
-Friend Property Get BttnDsplyThisThatDiff() As String
-    BttnDsplyThisThatDiff = "Display modification difference" & vbLf & "this Workbook versus" & vbLf & "in " & PendingReleaseModInWbkName
+Friend Property Get BttnDsplyTheDiffBetweenTheseAndTheOtherModifications() As String
+    BttnDsplyTheDiffBetweenTheseAndTheOtherModifications = "Display modification difference" & vbLf & "this Workbook versus" & vbLf & "in " & PendingReleaseModInWbkName
 End Property
 
-Private Property Get BttnIgnoreThatChanges() As String
-    BttnIgnoreThatChanges = "Ignore the modifications" & vbLf & "made in Workbook" & vbLf & PendingReleaseModInWbkName & ")"
+Private Property Get BttnIgnoreTheOtherAlreadyMadeChanges() As String
+    BttnIgnoreTheOtherAlreadyMadeChanges = "Ignore the other modifications" & vbLf & "made in Workbook" & vbLf & PendingReleaseModInWbkName & vbLf & "on computer " & vbLf & PendingReleaseModOnMachine
 End Property
 
-Friend Property Get BttnIgnoreThisChanges() As String
-    BttnIgnoreThisChanges = "Ignore the modifications" & vbLf & "made in Workbook" & vbLf & Services.ServicedWbk.Name
+Friend Property Get BttnIgnoreTheseChanges() As String
+    BttnIgnoreTheseChanges = "Ignore the modifications" & vbLf & "made in this Workbook" & vbLf & Services.ServicedWbk.Name
 End Property
 
 Public Property Let CompName(ByVal c_name As String): sCompName = c_name: End Property
@@ -145,12 +148,12 @@ Friend Property Let Hosted(ByVal s As String)
     
 End Property
 
-Friend Property Get LastModAtDateTime(Optional ByVal l_comp_name As String = vbNullString) As String
+Friend Property Get LastModAtDateTimeUTC(Optional ByVal l_comp_name As String = vbNullString) As String
 ' ----------------------------------------------------------------------------
 ' Returns the revision number in the format YYYY-MM-DD.n
 ' ----------------------------------------------------------------------------
     If l_comp_name = vbNullString Then l_comp_name = sCompName
-    LastModAtDateTime = Value(LAST_MODIFIED_AT_DATE_TIME, l_comp_name)
+    LastModAtDateTimeUTC = Value(LAST_MODIFIED_AT_DATE_TIME, l_comp_name)
 End Property
 
 Friend Property Let ExportFileExtention(Optional ByVal l_comp_name As String = vbNullString, _
@@ -164,14 +167,14 @@ Friend Property Get ExportFileExtention(Optional ByVal l_comp_name As String = v
     ExportFileExtention = Value(EXP_FILE_EXTENTION, l_comp_name)
 End Property
 
-Friend Property Let LastModAtDateTime(Optional ByVal l_comp_name As String = vbNullString, _
+Friend Property Let LastModAtDateTimeUTC(Optional ByVal l_comp_name As String = vbNullString, _
                                                ByVal l_comp_rev_no As String)
 ' ------------------------------------------------------------------------------
 ' Returns a revision number in the form yy-mm-dd.00. Plus one when an existing
 ' revision number is provided (comp_rev-no) or the current date with .01.
 ' ------------------------------------------------------------------------------
     If l_comp_name = vbNullString Then l_comp_name = sCompName
-    If l_comp_rev_no = vbNullString Then l_comp_rev_no = CompMan.UTC
+    If l_comp_rev_no = vbNullString Then l_comp_rev_no = CompMan.UTC & " (UTC)"
     Value(LAST_MODIFIED_AT_DATE_TIME, l_comp_name) = l_comp_rev_no
 End Property
 
@@ -239,9 +242,13 @@ End Property
 Friend Property Let LastModInWbk(Optional ByVal l_comp_name As String = vbNullString, _
                                           ByVal l_wbk As Workbook)
     If l_comp_name = vbNullString Then l_comp_name = sCompName
-    Value(LAST_MODIFIED_IN_WBK_FULL_NAME, l_comp_name) = l_wbk.FullName
-    Value(LAST_MODIFIED_IN_WBK_NAME, l_comp_name) = l_wbk.Name
-    
+    If Not l_wbk Is Nothing Then
+        Value(LAST_MODIFIED_IN_WBK_FULL_NAME, l_comp_name) = l_wbk.FullName
+        Value(LAST_MODIFIED_IN_WBK_NAME, l_comp_name) = l_wbk.Name
+    Else
+        Value(LAST_MODIFIED_IN_WBK_FULL_NAME, l_comp_name) = vbNullString
+        Value(LAST_MODIFIED_IN_WBK_NAME, l_comp_name) = vbNullString
+    End If
 End Property
 
 Friend Property Get LastModInWbkBaseName(Optional ByVal l_comp_name As String = vbNullString) As String
@@ -298,7 +305,7 @@ Public Property Let PendingReleaseRegister(ByVal c_comp As clsComp)
         PendingReleaseModInWbkName = .Wrkbk.Name
         PendingReleaseModInWbkFullName = .Wrkbk.FullName
         PendingReleaseModExpFileFullName = .ExpFileFullName
-        PendingReleaseModAtDateTime = .LastModAtDateTime
+        PendingReleaseModAtDateTimeUTC = .LastModAtDateTimeUTC
         PendingReleaseModOnMachine = Environ("COMPUTERNAME")
         ExportFileExtention = FSo.GetExtensionName(.ExpFileFullName)
         Debug.Print "Pending release registered: " & sCompName
@@ -312,12 +319,12 @@ eh: Select Case mMe.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Friend Property Get PendingReleaseModAtDateTime(Optional ByVal p_comp_name As String = vbNullString) As String
+Friend Property Get PendingReleaseModAtDateTimeUTC(Optional ByVal p_comp_name As String = vbNullString) As String
     If p_comp_name = vbNullString Then p_comp_name = sCompName
-    PendingReleaseModAtDateTime = Value(PENDING_RELEASE_MODIFIED_LAST_DATE_TIME, p_comp_name)
+    PendingReleaseModAtDateTimeUTC = Value(PENDING_RELEASE_MODIFIED_LAST_DATE_TIME, p_comp_name)
 End Property
 
-Friend Property Let PendingReleaseModAtDateTime(Optional ByVal p_comp_name As String = vbNullString, _
+Friend Property Let PendingReleaseModAtDateTimeUTC(Optional ByVal p_comp_name As String = vbNullString, _
                                                          ByVal p_mod_last As String)
     If p_comp_name = vbNullString Then p_comp_name = sCompName
     Value(PENDING_RELEASE_MODIFIED_LAST_DATE_TIME, p_comp_name) = p_mod_last
@@ -383,7 +390,7 @@ Private Property Get Value(Optional ByVal v_value_name As String = vbNullString,
         End If
     End If
     With PPCommComps
-        Value = .Value(pp_section:=v_comp_name, pp_value_name:=.Name(v_value_name))
+        Value = .Value(pp_section:=v_comp_name, pp_value_name:=v_value_name)
     End With
 
 xt: Exit Property
@@ -411,7 +418,7 @@ Private Property Let Value(Optional ByVal v_value_name As String, _
         End If
     End If
     With PPCommComps
-        .Value(pp_section:=v_comp_name, pp_value_name:=.Name(v_value_name)) = v_value
+        .Value(pp_section:=v_comp_name, pp_value_name:=v_value_name) = v_value
     End With
                                     
 xt: Exit Property
@@ -430,7 +437,7 @@ Public Function Components() As Dictionary
     Const PROC = "Components"
     
     mBasic.BoP ErrSrc(PROC)
-    Set Components = mFso.PPsections(pp_file:=sCommCompsDatFile)
+    Set Components = PP.Sections
     mBasic.EoP ErrSrc(PROC)
     
 End Function
@@ -460,50 +467,48 @@ Public Function ConcurrentModification(ByVal c_comp As clsComp) As Variant
             .Label.FontBold = True
             .Label.FontColor = rgbRed
             .Text.Text = _
-            "The Common Component  " & mBasic.Spaced(sCompName) & "  has already been modified in Workbook  " & _
-            mBasic.Spaced(PendingReleaseModInWbkName) & " on computer  " & PendingReleaseModOnMachine & "." & _
-            "When the modifications made in this Workbook are confirmed, all changes made for the Common " & _
-            "Component in the other Workbook are ignored. I.e. these modifications are given priority over those made " & _
-            "already elsewhere. Comparing the modifications may support the decision on how to proceed."
+            "Component:  """ & sCompName & """ has already been modified" & vbLf & _
+            "in Workbook: " & PendingReleaseModInWbkName & vbLf & _
+            "on computer: " & PendingReleaseModOnMachine & "." & vbLf & _
+            "at date(utc): " & Me.PendingReleaseModAtDateTimeUTC & vbLf & vbLf & _
+            "When the modifications most recently made in" & vbLf & vbLf & _
+            "this Workbook: " & ThisWorkbook.Name & vbLf & _
+            "this computer: " & VBA.Environ$("computername") & vbLf & _
+            "are confirmed, all the other changes made in the other Workbook are ignored. I.e. " & _
+            "these modifications are given priority over the others already made. " & _
+            "Comparing the modifications may support the decision on how to proceed."
         End With
-        With .Section(3)
-            .Label.Text = "-----------------------------"
-            .Text.Text = "The already made modification facts:"
-        End With
-        With .Section(3)
-            .Label.Text = "Modified in Workbook:"
-            .Label.FontBold = True
+        With .Section(2)
+            .Label.Text = "Option Display this most recently made modifications:"
             .Label.FontColor = rgbBlue
-            .Text.Text = CommComps.LastModInWbkFullName
-            .Text.MonoSpaced = True
+            .Text.Text = "Displays the difference between the current valid/released code versus these most resently made."
+        End With
+        With .Section(3)
+            .Label.Text = "Option Display the already made modifications:"
+            .Label.FontColor = rgbBlue
+            .Text.Text = "Displays the difference between the current valid/released code versus those currently regigsterd waiting for rease."
         End With
         With .Section(4)
-            .Label.Text = "Modified on Machine:"
-            .Label.FontBold = True
+            .Label.Text = "Option Display the difference between the most recently made versus the already made modifications:"
             .Label.FontColor = rgbBlue
-            .Text.Text = LastModOnMachine
-            .Text.MonoSpaced = True
+            .Text.Text = "This difference will enable to integrate (merge) the already made modifications with those most recently made in " & _
+                         "order not to loose the others when finally the option ignore them is used."
         End With
         With .Section(5)
-            .Label.Text = "Modified (exported) at:"
-            .Label.FontBold = True
-            .Label.FontColor = rgbBlue
-            .Text.Text = LastModAtDateTime
-            .Text.MonoSpaced = True
+            .Text.Text = "Please note that one of the below two choices need to be made. While the first one implies the risk that the most " & _
+                         "recently made modifications will get lost because not released, the second choice is final in the sense that the " & _
+                         "already made modifications will get lost unless integrated/merged with these most curretly made ones."
         End With
         With .Section(6)
-            .Label.Text = "-----------------------------"
-            .Text.Text = "The options (of which finally one will to be taken)!"
+            .Label.Text = "Option Ignore the modifications made here and now:"
+            .Label.FontColor = rgbBlue
+            .Text.Text = "The changes already made in the other Workbook and/or the other machine remain those pending release." & vbLf & _
+                         "This message will be repeated with each Workbook save event until either of the modifications has been released!"
         End With
         With .Section(7)
-            .Label.Text = BttnIgnoreThisChanges
+            .Label.Text = "Option Ignore the other modifications already made before:"
             .Label.FontColor = rgbBlue
-            .Text.Text = "The changes already made in the other Workbook and/or the other machine remain those pending release."
-        End With
-        With .Section(8)
-            .Label.Text = BttnIgnoreThatChanges
-            .Label.FontColor = rgbBlue
-            .Text.Text = "The changes made in this Workbook become those pending release. I.e. the " & _
+            .Text.Text = "The modifications made in this Workbook's VB-Project will become those pending release. I.e. the " & _
                          "other changes are ignored and will be replaced by thsi changes once released."
         End With
     End With
@@ -512,20 +517,20 @@ Public Function ConcurrentModification(ByVal c_comp As clsComp) As Variant
                              , dsply_msg:=Msg _
                              , dsply_Label_spec:="R130" _
                              , dsply_width_min:=30 _
-                             , dsply_buttons:=mMsg.Buttons(BttnDsplyThisModifications, vbLf, _
-                                                           BttnDsplyThatDiff, vbLf, _
-                                                           BttnDsplyThisThatDiff, vbLf, _
-                                                           BttnIgnoreThisChanges, vbLf, _
-                                                           BttnIgnoreThatChanges))
+                             , dsply_buttons:=mMsg.Buttons(BttnDsplyTheseModifications, vbLf, _
+                                                           BttnDsplyTheOtherAlreadyMadeChanges, vbLf, _
+                                                           BttnDsplyTheDiffBetweenTheseAndTheOtherModifications, vbLf, _
+                                                           BttnIgnoreTheseChanges, vbLf, _
+                                                           BttnIgnoreTheOtherAlreadyMadeChanges))
 
-                    Case BttnDsplyThisModifications:    DsplyDiffsOfTheCurrentModificationsVersusTheCurrentPubliicCode c_comp
-                    Case BttnDsplyThatDiff:             DsplyDiffsOfTheCurrentPendingReleaseModificationsVersusTheCurrentPublicCode c_comp
-                    Case BttnDsplyThisThatDiff:         DsplyDiffsOfTheCurrentModificationsVersusThePendingReleaseModifications c_comp
-                    Case BttnIgnoreThatChanges:         PendingReleaseRegister = c_comp
-                                                        Exit Do
-                    Case BttnIgnoreThisChanges:         Exit Do ' changes made in the other Workbook remain pending release
-                End Select
-            Loop
+            Case BttnDsplyTheseModifications:                           DsplyDiffsOfTheCurrentModificationsVersusTheCurrentPubliicCode c_comp
+            Case BttnDsplyTheOtherAlreadyMadeChanges:                   DsplyDiffsOfTheCurrentPendingReleaseModificationsVersusTheCurrentPublicCode c_comp
+            Case BttnDsplyTheDiffBetweenTheseAndTheOtherModifications:  DsplyDiffsOfTheCurrentModificationsVersusThePendingReleaseModifications c_comp
+            Case BttnIgnoreTheOtherAlreadyMadeChanges:                  PendingReleaseRegister = c_comp ' register these modifications for being released instead
+                                                                                Exit Do
+            Case BttnIgnoreTheseChanges:                                Exit Do ' changes made in the other Workbook remain pending release
+        End Select
+    Loop
     
 End Function
 
@@ -627,7 +632,7 @@ Public Sub Hskpng()
     End With
 
     Set wbk = Services.ServicedWbk
-    Set dct = Components
+    Set dct = PP.Sections
     
     Set Prgrss = New clsProgress
     With Prgrss
@@ -740,7 +745,7 @@ Private Sub HskpngSectionsMissing(ByVal h_fld As Folder, _
                         '~- The raw host will remain unknown until the Common Component is
                         '~~ modified in a Workbook using it and exported.
                         LastModInWbk(sCompName) = Nothing
-                        LastModAtDateTime(sCompName) = CompMan.UTC
+                        LastModAtDateTimeUTC(sCompName) = CompMan.UTC & " (UTC)"
                         Prgrss.ItemDone = sCompName
                     Else
                         Prgrss.ItemSkipped
@@ -778,12 +783,12 @@ Private Sub HskpngSectionsObsolete(ByVal h_comps As Dictionary, _
     mBasic.BoP ErrSrc(PROC)
         
     '~~ Remove any component of which the corresponding Export-File
-    '~~ not exists in the Common-Components folde
+    '~~ not exists in the Common-Components folder
     For Each v In h_comps
         sSection = v
-        If sSection <> PPCommComps.NamesHousekeepingSection Then
+        If sSection <> PP.NameHskpngSection Then ' management section does not have a corresponding file
             If Not h_files.Exists(v) Then
-                PPCommComps.ComponentRemove sSection
+                PP.SectionRemove sSection
                 Prgrss.ItemDone = sSection
             Else
                 Prgrss.ItemSkipped
@@ -839,7 +844,7 @@ Private Sub HskpngUsedOrPrivate(ByVal h_wbk As Workbook)
                 .Wrkbk = h_wbk
                 .VBComp = vbc
                 '~~ The component is a known Common Component
-                lRegState = CompManDat.RegistrationState(.CompName)
+                lRegState = PPCompManDat.RegistrationState(.CompName)
                 If Not lRegState = enRegStatePrivate _
                 And Not lRegState = enRegStateUsed _
                 And Not lRegState = enRegStateHosted _
@@ -863,10 +868,10 @@ Private Sub HskpngUsedOrPrivate(ByVal h_wbk As Workbook)
                     Select Case mMsg.Dsply(dsply_title:="Not yet registered ""Common Component""" _
                                          , dsply_msg:=Msg _
                                          , dsply_Label_spec:="R25" _
-                                         , dsply_buttons:=mMsg.Buttons(BttnConfirmedUsed, vbLf, BttnConfirmedPrivate))
-                        Case BttnConfirmedUsed:     CompManDat.RegistrationState(.CompName) = enRegStateUsed
-                                                    CompManDat.LastModAtDateTime(.CompName) = vbNullString ' yet unknown will force update when outdated
-                        Case BttnConfirmedPrivate:  CompManDat.RegistrationState(.CompName) = enRegStatePrivate
+                                         , dsply_buttons:=mMsg.Buttons(BttnConfirmedUsed, BttnConfirmedPrivate))
+                        Case BttnConfirmedUsed:     PPCompManDat.RegistrationState(.CompName) = enRegStateUsed
+                                                    PPCompManDat.LastModAtDateTimeUTC(.CompName) = vbNullString ' yet unknown will force update when outdated
+                        Case BttnConfirmedPrivate:  PPCompManDat.RegistrationState(.CompName) = enRegStatePrivate
                     End Select
                     Prgrss.ItemDone = .CompName
                 Else
@@ -935,13 +940,12 @@ Public Sub PendingReleaseRemove(Optional ByVal p_comp_name As String = vbNullStr
     Then Err.Raise AppErr(2), ErrSrc(PROC), "No component name provided, section name is missing!"
     
     With PPCommComps
-        mFso.PPremoveNames pp_file:=sCommCompsDatFile _
-                          , pp_section:=p_comp_name _
-                          , pp_value_names:=.Name(PENDING_RELEASE_MODIFIED_ON_MACHINE) _
-                                    & "," & .Name(PENDING_RELEASE_MODIFIED_IN_WBK_NAME) _
-                                    & "," & .Name(PENDING_RELEASE_MODIFIED_IN_WBK_FULL_NAME) _
-                                    & "," & .Name(PENDING_RELEASE_MODIFIED_LAST_DATE_TIME) _
-                                    & "," & .Name(PENDING_RELEASE_MODIFIED_EXP_FILE)
+        PP.ValueRemove name_section:=p_comp_name _
+                     , name_value:=PENDING_RELEASE_MODIFIED_ON_MACHINE _
+                        & vbCrLf & PENDING_RELEASE_MODIFIED_IN_WBK_NAME _
+                        & vbCrLf & PENDING_RELEASE_MODIFIED_IN_WBK_FULL_NAME _
+                        & vbCrLf & PENDING_RELEASE_MODIFIED_LAST_DATE_TIME _
+                        & vbCrLf & PENDING_RELEASE_MODIFIED_EXP_FILE
     End With
     Debug.Print "Pending Release removed for " & p_comp_name
     
@@ -978,7 +982,7 @@ Public Function PendingReleaseRegistered(Optional ByVal p_comp_name As String = 
     If p_comp_name = vbNullString _
     Then Err.Raise AppErr(2), ErrSrc(PROC), "No component name provided, section name is missing!"
     
-    PendingReleaseRegistered = PendingReleaseModAtDateTime <> vbNullString
+    PendingReleaseRegistered = PendingReleaseModAtDateTimeUTC <> vbNullString
     
 End Function
 
@@ -1082,7 +1086,7 @@ Public Sub ReleaseComp(ByVal r_comp_name As String)
     LastModExpFileFullNameOrigin = PendingReleaseModExpFileFullName
     LastModInWbkName = PendingReleaseModInWbkName
     LastModInWbkFullName = PendingReleaseModInWbkFullName
-    LastModAtDateTime = PendingReleaseModAtDateTime
+    LastModAtDateTimeUTC = PendingReleaseModAtDateTimeUTC
     '~~ Remove any pending release info for the Common Component in the CommComps.dat file (Common-Components folder)
     PendingReleaseRemove r_comp_name
 
@@ -1149,8 +1153,8 @@ Public Sub PendingReleaseManagement(ByVal p_comp As clsComp)
         Case bModified And bNotPending                                  ' Case 1        > A1
             PendingReleaseRegister = p_comp
         Case bModified And bPending And bEqulWbk And bEqulMachine       ' Case 2        > A2
-            If PendingReleaseModAtDateTime <> p_comp.LastModAtDateTime Then
-                PendingReleaseModAtDateTime = p_comp.LastModAtDateTime
+            If PendingReleaseModAtDateTimeUTC <> p_comp.LastModAtDateTimeUTC Then
+                PendingReleaseModAtDateTimeUTC = p_comp.LastModAtDateTimeUTC
             End If
             Debug.Print "Pending Release mod at updated: " & sCompName
         Case bModified And bPending And (bDiffWbk Or bDiffMachine)      ' Cases 3,4,5   > A3

@@ -353,13 +353,13 @@ Public Function Exists(ByVal ex_wbk As Variant, _
     Dim sTest       As String
     Dim wbk         As Workbook
     Dim wsh         As Worksheet
-    Dim fso         As New FileSystemObject
+    Dim FSo         As New FileSystemObject
     Dim nme         As Name
     Dim sWsName     As String
     Dim sWsCodeName As String
     
     If IsFullName(ex_wbk) Then
-        Exists = fso.FileExists(ex_wbk)
+        Exists = FSo.FileExists(ex_wbk)
     ElseIf IsName(ex_wbk) Then
         If Not mWbk.IsOpen(ex_wbk, wbk) Then
             Err.Raise AppErr(1), ErrSrc(PROC), "The existence of a Workbook provided just by its file name (" & ex_wbk & ") " & _
@@ -420,7 +420,7 @@ Public Function Exists(ByVal ex_wbk As Variant, _
         End If
     End If
             
-xt: Set fso = Nothing
+xt: Set FSo = Nothing
     Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
@@ -491,7 +491,7 @@ Public Function GetOpen(ByVal go_wbk As Variant, _
     Dim sWbName     As String
     Dim sWbFullName As String
     Dim wbOpen      As Workbook
-    Dim fso         As New FileSystemObject
+    Dim FSo         As New FileSystemObject
         
     Set wbOpen = Nothing
        
@@ -499,7 +499,7 @@ Public Function GetOpen(ByVal go_wbk As Variant, _
         sWbName = go_wbk.Name
         sWbFullName = go_wbk.FullName
     ElseIf mWbk.IsFullName(go_wbk) Then
-        sWbName = fso.GetFileName(go_wbk)
+        sWbName = FSo.GetFileName(go_wbk)
         sWbFullName = go_wbk
     ElseIf mWbk.IsName(go_wbk) Then
         sWbName = go_wbk
@@ -521,7 +521,7 @@ Public Function GetOpen(ByVal go_wbk As Variant, _
             Set wbOpen = .item(sWbName)
             If wbOpen.FullName = sWbFullName Then GoTo xt
             '~~ A Workbook with the Name is open but it has a different FullName
-            If fso.FileExists(sWbFullName) Then
+            If FSo.FileExists(sWbFullName) Then
                 '~~ When the Workbook file still exists at the provided location the one which is open is the wromg one
                 Err.Raise AppErr(2), ErrSrc(PROC), "A Workbook named '" & sWbName & "' is open but its location differs." & vbLf & vbLf & _
                                                    "'" & wbOpen.FullName & "'" & vbLf & vbLf & _
@@ -533,14 +533,14 @@ Public Function GetOpen(ByVal go_wbk As Variant, _
             '~~ A Workbook with the provided name is yet not open
             If sWbFullName = vbNullString _
             Then Err.Raise AppErr(3), ErrSrc(PROC), "A Workbook named '" & sWbName & "' is not open - and cannot be opened because this requires the full file name!"
-            If Not fso.FileExists(sWbFullName) _
+            If Not FSo.FileExists(sWbFullName) _
             Then Err.Raise AppErr(4), ErrSrc(PROC), "A Workbook named '" & sWbFullName & "' does not exist!"
             Set GetOpen = Workbooks.Open(sWbFullName, , go_read_only)
             GoTo xt
         End If
     End With
         
-xt: Set fso = Nothing
+xt: Set FSo = Nothing
     Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))
@@ -585,7 +585,7 @@ Public Function IsOpen(ByVal wbk As Variant, _
     On Error GoTo eh
     Dim OpenWbks As Dictionary
     Dim OpenWbk  As Workbook
-    Dim fso      As New FileSystemObject
+    Dim FSo      As New FileSystemObject
     Dim WbName As String
     
     If Not mWbk.IsWbObject(wbk) And Not mWbk.IsFullName(wbk) And Not mWbk.IsName(wbk) And Not TypeName(wbk) = "String" _
@@ -594,22 +594,22 @@ Public Function IsOpen(ByVal wbk As Variant, _
     Set OpenWbks = mWbk.Opened
     If mWbk.IsName(wbk) Then
         '~~ wbk is a Workbook's Name including its extension
-        WbName = fso.GetFileName(wbk)
+        WbName = FSo.GetFileName(wbk)
         If OpenWbks.Exists(WbName) Then
             '~~ A Workbook with the same 'WbName' is open
             Set OpenWbk = OpenWbks.item(WbName)
             '~~ When a Workbook's Name is provided the Workbook is only regarde open when the open
             '~~ Workbook has the same name (i.e. including its extension)
-            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wbk) Then Set OpenWbk = Nothing
+            If FSo.GetFile(OpenWbk.FullName).Name <> FSo.GetFileName(wbk) Then Set OpenWbk = Nothing
         End If
     ElseIf mWbk.IsFullName(wbk) Then
-        WbName = fso.GetFileName(wbk)
+        WbName = FSo.GetFileName(wbk)
         If OpenWbks.Exists(WbName) Then
             '~~ A Workbook with the same 'WbName' is open
             Set OpenWbk = OpenWbks.item(WbName)
             '~~ The provided (wbk) specifies an exist Workbook file. This Workbook is regarded open (and returned as opject)
             '~~ when a Workbook with its Name (including the extension!) is open regardless in which location
-            If fso.GetFile(OpenWbk.FullName).Name <> fso.GetFileName(wbk) Then Set OpenWbk = Nothing
+            If FSo.GetFile(OpenWbk.FullName).Name <> FSo.GetFileName(wbk) Then Set OpenWbk = Nothing
         End If
     ElseIf mWbk.IsWbObject(wbk) Then
         WbName = wbk.Name
@@ -626,7 +626,7 @@ xt: If mWbk.IsWbObject(OpenWbk) Then
         IsOpen = True
         Set wbk_result = OpenWbk
     End If
-    Set fso = Nothing
+    Set FSo = Nothing
     Exit Function
     
 eh: Select Case ErrMsg(ErrSrc(PROC))

@@ -31,7 +31,7 @@ Private Property Get CommonCompsFolderNameCurrent() As String:      CommonCompsF
 
 Private Property Get CommonCompsFolderNameDefault() As String:      CommonCompsFolderNameDefault = ServicedRootFolderNameDefault & "\" & DEFAULT_FOLDER_COMMON_COMPONENTS:                  End Property
 
-Private Property Get CompManParentFolderNameCurrent() As String:    CompManParentFolderNameCurrent = fso.GetFile(ThisWorkbook.FullName).ParentFolder:                                       End Property
+Private Property Get CompManParentFolderNameCurrent() As String:    CompManParentFolderNameCurrent = FSo.GetFile(ThisWorkbook.FullName).ParentFolder:                                       End Property
 
 Public Property Get CompManParentFolderNameDefault() As String:     CompManParentFolderNameDefault = ServicedRootFolderNameDefault & "\" & DEFAULT_FOLDER_COMPMAN_PARENT:                   End Property
 
@@ -39,9 +39,9 @@ Private Property Get ExportFolderNameCurrent() As String:           ExportFolder
 
 Private Property Get ExportFolderNameDefault() As String:           ExportFolderNameDefault = CompManParentFolderNameDefault & "\" & DEFAULT_FOLDER_EXPORT:                                 End Property
 
-Public Property Get ServicedRootFolderNameCurrent() As String:      ServicedRootFolderNameCurrent = fso.GetFile(ThisWorkbook.FullName).ParentFolder.ParentFolder:                           End Property
+Public Property Get ServicedRootFolderNameCurrent() As String:      ServicedRootFolderNameCurrent = FSo.GetFile(ThisWorkbook.FullName).ParentFolder.ParentFolder:                           End Property
 
-Private Property Get ServicedRootFolderNameDefault() As String:     ServicedRootFolderNameDefault = fso.GetFile(ThisWorkbook.FullName).ParentFolder & "\" & DEFAULT_FOLDER_COMPMAN_ROOT:    End Property
+Private Property Get ServicedRootFolderNameDefault() As String:     ServicedRootFolderNameDefault = FSo.GetFile(ThisWorkbook.FullName).ParentFolder & "\" & DEFAULT_FOLDER_COMPMAN_ROOT:    End Property
 
 Public Property Get VBCompManAddinFolderNameCurrent() As String:   VBCompManAddinFolderNameCurrent = CompManParentFolderNameCurrent & "\" & "Addin":                                        End Property
 
@@ -144,8 +144,8 @@ Public Function EnvIsMissing() As Boolean
 ' Returns TRUE when the current ThisWorkbook parent folder has no Addin and
 ' ThisWorkbooks parent.parent folder has no Common-Components folder
 ' ----------------------------------------------------------------------------
-    EnvIsMissing = Not fso.FolderExists(VBCompManAddinFolderNameCurrent) _
-               And Not fso.FolderExists(CommonCompsFolderNameCurrent)
+    EnvIsMissing = Not FSo.FolderExists(VBCompManAddinFolderNameCurrent) _
+               And Not FSo.FolderExists(CommonCompsFolderNameCurrent)
 End Function
 
 Private Function ErrSrc(ByVal es_proc As String) As String
@@ -159,21 +159,21 @@ Public Sub SetupConfirmed()
     Dim Msg             As mMsg.udtMsg
     Dim sSetupLocation  As String
     
-    sSetupLocation = fso.GetFolder(ServicedRootFolderNameCurrent).ParentFolder.ParentFolder
+    sSetupLocation = FSo.GetFolder(ServicedRootFolderNameCurrent).ParentFolder.ParentFolder
     
     With Msg
         .Section(1).Text.Text = "CompMan's default environment has been setup at the location the Workbook " & _
                                 "had been opened (" & sSetupLocation & ") as follows:"
         With .Section(2).Text
             .MonoSpaced = True
-            .Text = fso.GetFolder(ServicedRootFolderNameCurrent).Name & vbLf & _
+            .Text = FSo.GetFolder(ServicedRootFolderNameCurrent).Name & vbLf & _
                     " |                                       " & vbLf & _
-                    " +--" & fso.GetFolder(CompManParentFolderNameCurrent).Name & vbLf & _
+                    " +--" & FSo.GetFolder(CompManParentFolderNameCurrent).Name & vbLf & _
                     " |  +--" & ThisWorkbook.Name & vbLf & _
                     " |  +--" & wsConfig.FolderExport & vbLf & _
                     " |  +--WinMerge.ini                      " & vbLf & _
                     " |                                       " & vbLf & _
-                    " +--" & fso.GetFolder(CommonCompsFolderNameCurrent).Name & vbLf & _
+                    " +--" & FSo.GetFolder(CommonCompsFolderNameCurrent).Name & vbLf & _
                     "    +--mCompManClient.bas                 "
         End With
         .Section(3).Text.Text = "CompMan is now ready for servicing any Workbook with an enabled service. When " & _
@@ -212,7 +212,7 @@ Public Sub SelfSetupExportCompManClient()
                 With LogServiced
                     .KeepDays = 2 ' a new log-file is created after 48 hours
                     .WithTimeStamp
-                    .FileFullName = Services.ServicedWbk.Path & "\" & fso.GetBaseName(Services.ServicedWbk.Name) & ".Services.log"
+                    .FileFullName = Services.ServicedWbk.Path & "\" & FSo.GetBaseName(Services.ServicedWbk.Name) & ".Services.log"
                     .MaxItemLengths Len(Comp.TypeString), Len(vbc.Name)
                     .AlignmentItems "|L|L.:|L|"
                     mCompMan.LogFileService = .FileName
@@ -227,7 +227,7 @@ Public Sub SelfSetupExportCompManClient()
                     .ServicedItem = vbc
                     .NoOfItemsServiced = .NoOfItemsServiced + 1
                     .ServicedItemLogEntry "Common Component hosted: initially exported by the ""self-setup"" process!"
-                    .ServicedItemLogEntry "Common Component hosted: Revision Number initialized with " & Comp.LastModAtDateTime
+                    .ServicedItemLogEntry "Common Component hosted: Revision Number initialized with " & Comp.LastModAtDateTimeUTC
                     .ServicedItemLogEntry "Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
                 End With
             End With
@@ -250,7 +250,7 @@ Public Sub SelfSetupDefaultEnvironment()
         
     On Error GoTo eh
         
-    With fso
+    With FSo
         If Not .FolderExists(ServicedRootFolderNameDefault) Then .CreateFolder ServicedRootFolderNameDefault
         If Not .FolderExists(mConfig.CommonCompsFolderNameDefault) Then .CreateFolder mConfig.CommonCompsFolderNameDefault
         If Not .FolderExists(CompManParentFolderNameDefault) Then .CreateFolder CompManParentFolderNameDefault

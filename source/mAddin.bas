@@ -38,7 +38,7 @@ Private Sub AutoOpenShortCutRemove()
     Dim s   As String
     
     s = AutoOpenShortCut
-    With fso
+    With FSo
         If .FileExists(s) Then .DeleteFile s
     End With
     
@@ -124,7 +124,7 @@ Public Sub ReferencesRemove(Optional ByRef rr_dct As Dictionary, _
         For Each v In dct
             Set wbk = dct.item(v)
             For Each ref In wbk.VBProject.References
-                If InStr(ref.Name, fso.GetBaseName(mAddin.WbkName)) <> 0 Then
+                If InStr(ref.Name, FSo.GetBaseName(mAddin.WbkName)) <> 0 Then
                     rr_dct.Add wbk, ref
                     rr_wbks = wbk.Name & ", " & rr_wbks
                 End If
@@ -184,5 +184,5 @@ xt: mCompManClient.Events ErrSrc(PROC), True
 End Function
     
 Public Function WbkRemove(ByVal wr_wbk_full_name As String) As Boolean
-    If fso.FileExists(wr_wbk_full_name) Then fso.DeleteFile wr_wbk_full_name
+    If FSo.FileExists(wr_wbk_full_name) Then FSo.DeleteFile wr_wbk_full_name
 End Function

@@ -17,14 +17,14 @@ Option Explicit
 ' CompName                w
 ' LastModByWbkName      r/w
 ' LastModWbkBaseName    r
-' LastModAtDateTime r/w
+' LastModAtDateTimeUTC r/w
 ' LastModExpFile        r
 ' ----------------------------------------------------------------------------------------
 Private fSavedExpFile           As File
 Private sCompName               As String
 Private sLastModByWbkFullName   As String
 Private sLastModByWbkName       As String
-Private sLastModAtDateTime      As String
+Private sLastModAtDateTimeUTC      As String
 
 Friend Property Let CompName(ByVal s As String)
     sCompName = s
@@ -41,9 +41,9 @@ Friend Property Get LastModExpFile() As File:                   Set LastModExpFi
 
 Friend Property Let LastModExpFile(ByVal f As File):            Set fSavedExpFile = f:                                          End Property
 
-Friend Property Get LastModAtDateTime() As String:               LastModAtDateTime = sLastModAtDateTime:                           End Property
+Friend Property Get LastModAtDateTimeUTC() As String:               LastModAtDateTimeUTC = sLastModAtDateTimeUTC:                           End Property
 
-Friend Property Let LastModAtDateTime(ByVal s As String):        sLastModAtDateTime = s:                                          End Property
+Friend Property Let LastModAtDateTimeUTC(ByVal s As String):        sLastModAtDateTimeUTC = s:                                          End Property
 
 Friend Property Get LastModWbkBaseName() As String:             LastModWbkBaseName = CommComps.LastModInWbkBaseName:            End Property
 

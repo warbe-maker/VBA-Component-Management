@@ -653,12 +653,12 @@ Public Sub BoP(ByVal b_proc As String, _
 ' Obligatory copy Private for any VB-Component using the service but not having
 ' the mBasic common component installed.
 ' ------------------------------------------------------------------------------
-#If mErh Then          ' serves the mTrc/clsTrc when installed and active
-    mErh.BoP b_proc, b_args
-#ElseIf XcTrc_clsTrc Then ' when only clsTrc is installed and active
+#If mErH Then          ' serves the mTrc/clsTrc when installed and active
+    mErH.BoP b_proc, b_args
+#ElseIf clsTrc Then ' when only clsTrc is installed and active
     If Trc Is Nothing Then Set Trc = New clsTrc
     Trc.BoP b_proc, b_args
-#ElseIf XcTrc_mTrc Then   ' when only mTrc is installed and activate
+#ElseIf mTrc Then   ' when only mTrc is installed and activate
     mTrc.BoP b_proc, b_args
 #End If
 End Sub
@@ -737,8 +737,8 @@ Public Sub EoP(ByVal e_proc As String, _
 ' Obligatory copy Private for any VB-Component using the service but not having
 ' the mBasic common component installed.
 ' ------------------------------------------------------------------------------
-#If mErh = 1 Then          ' serves the mTrc/clsTrc when installed and active
-    mErh.EoP e_proc, e_args
+#If mErH = 1 Then          ' serves the mTrc/clsTrc when installed and active
+    mErH.EoP e_proc, e_args
 #ElseIf clsTrc = 1 Then ' when only clsTrc is installed and active
     Trc.EoP e_proc, e_args
 #ElseIf mTrc = 1 Then   ' when only mTrc is installed and activate
@@ -766,10 +766,10 @@ Public Function ErrMsg(ByVal err_source As String, _
 ' W. Rauschenberger Berlin, Jan 2024
 ' See: https://github.com/warbe-maker/VBA-Error
 ' ------------------------------------------------------------------------------
-#If mErh = 1 Then
+#If mErH = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
     '~~ (which includes the mMsg component) the mErh.ErrMsg service is invoked.
-    ErrMsg = mErh.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
+    ErrMsg = mErH.ErrMsg(err_source, err_no, err_dscrptn, err_line): GoTo xt
     GoTo xt
 #ElseIf mMsg = 1 Then
     '~~ When (only) the Common Message Service (mMsg, fMsg) is available in the

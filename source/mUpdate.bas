@@ -135,13 +135,13 @@ Public Sub ByReImport(ByVal b_wbk_target As Workbook, _
         .CompName = b_vbc_name
         CommComps.CompName = b_vbc_name
         '~~ Export the re-imported component to ensure an up-to-date Export-File
-        fso.CopyFile b_exp_file, .ExpFileFullName, True
+        FSo.CopyFile b_exp_file, .ExpFileFullName, True
         '~~ Update the Revision-Number
-        sLastModAtDateTime = CommComps.LastModAtDateTime
+        sLastModAtDateTime = CommComps.LastModAtDateTimeUTC
         Select Case .KindOfComp
             Case enCommCompUsed, enCommCompHosted
-                If .LastModAtDateTime <> sLastModAtDateTime Then
-                    .LastModAtDateTime = sLastModAtDateTime
+                If .LastModAtDateTimeUTC <> sLastModAtDateTime Then
+                    .LastModAtDateTimeUTC = sLastModAtDateTime
                 End If
         End Select
     End With

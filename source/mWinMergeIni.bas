@@ -10,6 +10,7 @@ Option Explicit
 Private Const VALUE_NAME_IGNORE_BLANKS  As String = "Settings/IgnoreBlankLines"
 Private Const VALUE_NAME_IGNORE_CASE    As String = "Settings/IgnoreCase"
 Private Const SECTION_NAME              As String = "WinMerge"
+Private PP                              As New clsPrivProf
 
 Private Property Let Value(Optional ByVal pp_value_name As String, _
                            Optional ByVal pp_file As String, _
@@ -20,10 +21,10 @@ Private Property Let Value(Optional ByVal pp_value_name As String, _
     Const PROC = "Value"
     
     On Error GoTo eh
-    mFso.PPvalue(pp_file:=pp_file _
-              , pp_section:=SECTION_NAME _
-              , pp_value_name:=pp_value_name _
-               ) = pp_value
+    PP.Value(name_file:=pp_file _
+           , name_section:=SECTION_NAME _
+           , name_value:=pp_value_name _
+            ) = pp_value
 
 xt: Exit Property
 

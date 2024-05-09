@@ -43,12 +43,12 @@ Private Const NO_SOURCE As String = "Obtaining the code as array or string when 
                                     "The Property 'IsNone' may be used to avoid this. The Property is TRUE when " & _
                                     "there are no known code lines for whichever reason, no source ever provided, " & _
                                     "the source does not contain any code lines, or just empty code lines)."
-Private sAsTrimmedString               As String   ' Code as a single timmed string (without leading and trailing empty code lines)
-Private sAsTrimmedStringEmptyExcluded  As String   ' Code as a single timmed string (without leading and trailing empty code lines)
-Private vSource                 As Variant
-Private sCompName               As String
-Private bSourceIsNone           As Boolean
-Private dctTempFiles            As New Dictionary
+Private sAsTrimmedString                As String   ' Code as a single timmed string (without leading and trailing empty code lines)
+Private sAsTrimmedStringEmptyExcluded   As String   ' Code as a single timmed string (without leading and trailing empty code lines)
+Private vSource                         As Variant
+Private sCompName                       As String
+Private bSourceIsNone                   As Boolean
+Private dctTempFiles                    As New Dictionary
 
 Private Sub Class_Initialize()
     bSourceIsNone = True
@@ -57,33 +57,6 @@ End Sub
 Private Sub Class_Terminate()
     FileTempRemove
 End Sub
-
-Private Property Get AsTrimmedArray(Optional ByVal a_empty_excluded As Boolean = False) As Variant
-' ----------------------------------------------------------------------------
-' Returns th code as a trimmed array, i.e. without any leading and trailing
-' empty code lines.
-' ----------------------------------------------------------------------------
-    Const PROC = "AsTrimmedArray/Get"
-    If bSourceIsNone Then Err.Raise AppErr(1), ErrSrc(PROC), NO_SOURCE
-    If Not a_empty_excluded _
-    Then AsTrimmedArray = Split(sAsTrimmedString, vbCrLf) _
-    Else AsTrimmedArray = Split(sAsTrimmedStringEmptyExcluded, vbCrLf)
-    
-End Property
-
-Public Property Get AsTrimmedString(Optional ByVal a_empty_excluded As Boolean = False) As String
-' ----------------------------------------------------------------------------
-' Returns the code as a single string only without leading and trailing empty
-' code lines.
-' ----------------------------------------------------------------------------
-    Const PROC = "AsString/Get"
-    If bSourceIsNone Then Err.Raise AppErr(1), ErrSrc(PROC), NO_SOURCE
-    
-    If Not a_empty_excluded _
-    Then AsTrimmedString = sAsTrimmedString _
-    Else AsTrimmedString = sAsTrimmedStringEmptyExcluded
-    
-End Property
 
 Public Property Get CompName() As String:           CompName = sCompName:   End Property
 
@@ -108,20 +81,6 @@ Private Property Let FileString(Optional ByVal f_file_path As String, _
 End Property
 
 Public Property Get IsNone() As Boolean:            IsNone = bSourceIsNone: End Property
-
-Public Sub ReplaceWith(ByVal r_target_vbcm As CodeModule, _
-                       ByVal r_source_code As clsCode)
-' ----------------------------------------------------------------------------
-' Replaces the code lines - if any - in the provided CodeModule (r_this_vbcm)
-' with the code of the provided source (r_source_code).
-' ----------------------------------------------------------------------------
-    
-    With r_target_vbcm
-        If .CountOfLines > 0 Then .DeleteLines 1, .CountOfLines
-        .InsertLines 1, r_source_code.AsTrimmedString
-    End With
-
-End Sub
 
 Public Property Let Source(ByVal f_v As Variant)
 ' ----------------------------------------------------------------------------
@@ -243,6 +202,36 @@ Public Function AsFile(ByVal a_name As String, _
     
 End Function
 
+Private Function AsTrimmedArray(Optional ByVal a_empty_excluded As Boolean = False) As Variant
+' ----------------------------------------------------------------------------
+' Returns th code as a trimmed array, i.e. without any leading and trailing
+' empty code lines.
+' ----------------------------------------------------------------------------
+    Const PROC = "AsTrimmedArray"
+    
+    If bSourceIsNone Then Err.Raise AppErr(1), ErrSrc(PROC), NO_SOURCE
+    If Not a_empty_excluded _
+    Then AsTrimmedArray = Split(sAsTrimmedString, vbCrLf) _
+    Else AsTrimmedArray = Split(sAsTrimmedStringEmptyExcluded, vbCrLf)
+    
+End Function
+
+Public Function AsTrimmedString(Optional ByVal a_empty_excluded As Boolean = False) As String
+' ----------------------------------------------------------------------------
+' Returns the code as a single string only without leading and trailing empty
+' code lines.
+' ----------------------------------------------------------------------------
+    Const PROC = "AsTrimmedString"
+    If bSourceIsNone Then Err.Raise AppErr(1), ErrSrc(PROC), NO_SOURCE
+    
+    If Not a_empty_excluded Then
+        AsTrimmedString = StringTrimmed(sAsTrimmedString)
+    Else
+        AsTrimmedString = sAsTrimmedStringEmptyExcluded
+    End If
+    
+End Function
+
 Public Function DiffersFrom(ByVal d_from_code As clsCode, _
                    Optional ByVal d_empty_excluded As Boolean = False) As Boolean
 ' ----------------------------------------------------------------------------
@@ -251,10 +240,14 @@ Public Function DiffersFrom(ByVal d_from_code As clsCode, _
     Const PROC = "DiffersFrom"
     
     On Error GoTo eh
+    Dim s1  As String
+    Dim s2  As String
     
     Select Case True
         Case Not IsNone And Not d_from_code.IsNone
-            DiffersFrom = StrComp(AsTrimmedString(d_empty_excluded), d_from_code.AsTrimmedString(d_empty_excluded), vbTextCompare)
+            s1 = AsTrimmedString(d_empty_excluded)
+            s2 = d_from_code.AsTrimmedString(d_empty_excluded)
+            DiffersFrom = StrComp(s1, s2, vbTextCompare)
         Case Not Me.IsNone And d_from_code.IsNone:   DiffersFrom = True
         Case Me.IsNone And Not d_from_code.IsNone:   DiffersFrom = True
         Case Me.IsNone And d_from_code.IsNone:       Err.Raise AppErr(1), ErrSrc(PROC), NO_SOURCE
@@ -423,13 +416,45 @@ Private Sub FileTempRemove()
     
 End Sub
 
-Private Function StringEmptyExcluded(ByVal s_s As String) As String
-    Dim i   As Long
+Public Sub ReplaceWith(ByVal r_target_vbcm As CodeModule, _
+                       ByVal r_source_code As clsCode)
+' ----------------------------------------------------------------------------
+' Replaces the code lines - if any - in the provided CodeModule (r_this_vbcm)
+' with the code of the provided source (r_source_code).
+' ----------------------------------------------------------------------------
     
-    i = InStr(s_s, vbCrLf & vbCrLf)
-    Do While i <> 0
-        s_s = Replace(s_s, vbCrLf & vbCrLf, vbCrLf)
-        i = InStr(s_s, vbCrLf & vbCrLf)
+    With r_target_vbcm
+        If .CountOfLines > 0 Then .DeleteLines 1, .CountOfLines
+        .InsertLines 1, r_source_code.AsTrimmedString
+    End With
+
+End Sub
+
+Private Function SplitString(ByVal s_s As String) As String
+    
+    Select Case True
+        Case InStr(s_s, vbCrLf) <> 0: SplitString = vbCrLf
+        Case InStr(s_s, vbCr) <> 0:   SplitString = vbCr
+        Case InStr(s_s, vbLf) <> 0:   SplitString = vbLf
+    End Select
+    If Len(SplitString) = 0 Then SplitString = vbCrLf
+    
+End Function
+
+Public Function StringEmptyExcluded(ByVal s_s As String) As String
+' ----------------------------------------------------------------------------
+' Returns a string (s_s) with any empty elements excluded. I.e. the string
+' returned begins and ends with a non vbNullString character and has no
+' ----------------------------------------------------------------------------
+    Dim sSplit As String
+    
+    '~~ Get line terminating string
+    sSplit = SplitString(s_s)
+    
+    s_s = StringTrimmed(s_s) ' leading and trailing empty already excluded
+    
+    Do While InStr(s_s, sSplit & sSplit) <> 0
+        s_s = Replace(s_s, sSplit & sSplit, sSplit)
     Loop
     StringEmptyExcluded = s_s
     
@@ -468,6 +493,9 @@ Private Function StringFromExpFile(ByVal a_fl As File) As String
 ' ----------------------------------------------------------------------------
 ' Returns an array with the code lines in the Export-File (a_fl) whereby
 ' any empty leading and trailing code lines are already excempted.
+'
+' Note: Disregarding the used line terminating charcter/string in the input
+'       file (a_fl), the result line terminating string will be vbCrLf.
 ' ----------------------------------------------------------------------------
     Const PROC = "StringFromExpFile"
     
@@ -477,37 +505,47 @@ Private Function StringFromExpFile(ByVal a_fl As File) As String
     Dim i           As Integer
     Dim j           As Integer
     Dim arr         As Variant
+    Dim sSplit      As String
     
     Open a_fl For Input As #1
     sCode = Input$(lOf(1), 1)
     Close #1
     
+    '~~ Get line terminating string
+    sSplit = SplitString(sCode)
+    
     '~~ Eliminate trailing empty lines
-    Do While Right(sCode, 4) = vbCrLf & vbCrLf
+    Do While Right(sCode, 4) = sSplit & sSplit
         sCode = Left(sCode, Len(sCode) - 2)
     Loop
     
-    aLines = Split(sCode, vbCrLf)
+    If sCompName = "mVaritems" Then Stop
+    aLines = Split(sCode, sSplit)
     '~~ Skip all lines before any "Attribute VB_...." line
     Do While Not aLines(i) Like "Attribute VB_*"
+        If i = UBound(aLines) Then Exit Do
         i = i + 1
-        If i > UBound(aLines) Then Exit Do
     Loop
     
-    '~~ Skip all "Attribute VB_...." lines
-    Do Until Not aLines(i) Like "Attribute VB_*" _
-         And Not aLines(i) = vbCrLf & vbCrLf
-        i = i + 1
-        If i > UBound(aLines) Then Exit Do
-    Loop
+    If aLines(i) Like "Attribute VB_*" Then
+        '~~ Skip all "Attribute VB_...." lines
+        Do Until Not aLines(i) Like "Attribute VB_*" _
+             And Not aLines(i) = sSplit & sSplit
+            i = i + 1
+            If i > UBound(aLines) Then Exit Do
+        Loop
+    Else
+        i = LBound(aLines) ' in case the export file did not have any Attribute line
+    End If
     
     '~~ Move all remaining code lines up - disregarding any empty lines
     j = 0
-    For i = i To UBound(aLines)
-        aLines(j) = aLines(i)
-        j = j + 1
-    Next i
-    
+    If i > LBound(aLines) Then
+        For i = i To UBound(aLines)
+            aLines(j) = aLines(i)
+            j = j + 1
+        Next i
+    End If
     '~~ Redim the array to the - now shortend content
     If ArrayIsAllocated(aLines) And j <> 0 Then
         ReDim Preserve aLines(j - 1)
@@ -533,9 +571,9 @@ Private Function StringTrimmed(ByVal s_s As String, _
 ' trailing empty lines. When a Dictionary is provided the string is returned
 ' as items with the line number as key.
 ' ----------------------------------------------------------------------------
-    Dim s As String
-    Dim i As Long
-    Dim v As Variant
+    Dim s       As String
+    Dim i       As Long
+    Dim v       As Variant
     
     s = s_s
     '~~ Eliminate leading empty code lines
@@ -543,15 +581,27 @@ Private Function StringTrimmed(ByVal s_s As String, _
         s = Right(s, Len(s) - 2)
     Loop
     '~~ Eliminate trailing eof
-    If Right(s, 1) = VBA.Chr(26) _
-    Then s = Left(s, Len(s) - 1)
+    If Right(s, 1) = VBA.Chr(26) Then
+        s = Left(s, Len(s) - 1)
+    End If
     
     '~~ Eliminate trailing empty code lines
     Do While Right(s, 2) = vbCrLf
         s = Left(s, Len(s) - 2)
     Loop
+    Do While Right(s, 2) = vbCr & vbLf
+        s = Left(s, Len(s) - 2)
+    Loop
     
-    StringTrimmed = s
+    Do While Right(s, 1) = vbCr Or Right(s, 1) = vbLf
+        s = Left(s, Len(s) - 1)
+    Loop
+    
+    If Right(s, 2) = vbCrLf Then Stop
+    If Right(s, 1) = vbCr Then Stop
+    If Right(s, 1) = vbLf Then Stop
+    
+    StringTrimmed = Trim(s)
     If Not s_as_dict Is Nothing Then
         With s_as_dict
             For Each v In Split(s, vbCrLf)

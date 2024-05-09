@@ -78,8 +78,8 @@ Public Function AssertedServicingEnabled() As Boolean
     On Error GoTo eh
     
     If Trc Is Nothing Then Set Trc = New clsTrc
-    BaseName = fso.GetBaseName(ThisWorkbook.Name)
-    Extension = fso.GetExtensionName(ThisWorkbook.Name)
+    BaseName = FSo.GetBaseName(ThisWorkbook.Name)
+    Extension = FSo.GetExtensionName(ThisWorkbook.Name)
     If mMe.IsAddinInstnc Then
         ServicingEnabled = True ' for the Addin servicing is enabled by default
     Else
@@ -124,7 +124,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
             AssertedFilesAndFldrsStructure = True
             DoEvents
             On Error Resume Next
-            fso.DeleteFile sWrkbkOpnd
+            FSo.DeleteFile sWrkbkOpnd
             mConfig.SelfSetupExportCompManClient
             mConfig.SetupConfirmed
         End If
@@ -209,7 +209,7 @@ Private Function AssertedWinMerge() As Boolean
     
         AssertedWinMerge = mCompMan.WinMergeIsInstalled     ' May have been downloaded and installed along with the displayed message
         If AssertedWinMerge Then
-            If Not fso.FileExists(mWinMergeIni.WinMergeIniFullName) Then
+            If Not FSo.FileExists(mWinMergeIni.WinMergeIniFullName) Then
                 mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName ' ensures that the required options are established
             End If
         End If
@@ -228,7 +228,7 @@ End Property
 Public Property Get DevInstncFullName() As String
     DevInstncFullName = wsConfig.FolderCompManRoot _
                       & DBSLASH _
-                      & fso.GetBaseName(DevInstncName) & DBSLASH _
+                      & FSo.GetBaseName(DevInstncName) & DBSLASH _
                       & DevInstncName
 End Property
 
@@ -350,7 +350,7 @@ Private Sub DevInstncWorkbookDelete()
     
     mMe.RenewAction = "Delete the 'Development-Instance-Workbook' (" & DevInstncName & ")"
     
-    With fso
+    With FSo
         If .FileExists(DevInstncFullName) Then
             On Error Resume Next
             .DeleteFile DevInstncFullName
@@ -662,7 +662,7 @@ Private Function Renew_08_SaveDevInstncWorkbookAsAddin() As Boolean
     mMe.RenewAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ") as 'CompMan Add-in' (" & mAddin.WbkName & ")"
     
     With Application
-        If Not fso.FileExists(mAddin.WbkFullName) Then
+        If Not FSo.FileExists(mAddin.WbkFullName) Then
             '~~ At this point the Add-in must no longer exist at its location
             On Error Resume Next
             wbkSource.SaveAs WbkFullName, FileFormat:=ADDIN_FORMAT
@@ -702,7 +702,7 @@ Private Function Renew_09_OpenAddinInstncWorkbook() As Boolean
     
     mBasic.BoP ErrSrc(PROC)
     If Not mAddin.IsOpen Then
-        If fso.FileExists(mAddin.WbkFullName) Then
+        If FSo.FileExists(mAddin.WbkFullName) Then
             mMe.RenewAction = "Re-open the 'CompMan Add-in' (" & mAddin.WbkName & ")"
             On Error Resume Next
             Set wb = Application.Workbooks.Open(mAddin.WbkFullName, False, True)
