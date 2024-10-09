@@ -113,16 +113,16 @@ Public Sub Test_0100_FirstTimeServiced()
         .TestedType = "Sub"
         
         '~~ Assert precondition
-        .Verification = "Precondition: 0 Common Components registered in CompMan.dat"
+        .Verification = "Precondition: 0 Common Components registered in CommComps.dat"
         .ResultExpected = 0
-        .Result = CompManDat.Components.Count
+        .Result = CommonServiced.Components.Count
         '-------------------------------------
         .RequiredInteraction = "Confirm ""mBasic"" as  u s e d  Common Component!"
         mHskpng.CommCompsServicedKindOf
         '-------------------------------------
         .Verification = "Verification: Houskeeping resulted in ""mBasic"" registered as ""used"" Common Component"
         .ResultExpected = True
-        .Result = CompManDat.IsUsedCommComp("mBasic")
+        .Result = CommonServiced.IsUsedCommComp("mBasic")
         
         '==========================================================================
         .TestNumber = "0100-2"
@@ -143,9 +143,9 @@ Public Sub Test_0100_FirstTimeServiced()
         Comp.CompName = "mBasic"
         .Result = Comp.CodeCrrent.Meets(Comp.CodePublic)
         
-        .Verification = "Verification: CompMan.dat has been updated accordingly"
+        .Verification = "Verification: CommComps.dat has been updated accordingly"
         .ResultExpected = CommonPublic.LastModAt("mBasic")
-        .Result = CompManDat.LastModAt("mBasic")
+        .Result = CommonServiced.LastModAt("mBasic")
           
         '==========================================================================
         .TestNumber = "0100-3"
@@ -155,13 +155,13 @@ Public Sub Test_0100_FirstTimeServiced()
         
         .Verification = "Precondition: ""mBasic.bas"" is the only export file in the export folder"
         .ResultExpected = True ' from the above update test
-        .Result = FSo.GetFolder(Environment.ExportServiceFolderPath).Files.Count = 1 And FSo.GetFolder(Environment.ExportServiceFolderPath).Files("mBasic.bas").Name = "mBasic.bas"
+        .Result = FSo.GetFolder(mEnvironment.ExportServiceFolderPath).Files.Count = 1 And FSo.GetFolder(mEnvironment.ExportServiceFolderPath).Files("mBasic.bas").Name = "mBasic.bas"
         '-------------------------------
         Services.ExportChangedComponents
         '-------------------------------
         .Verification = "Verification: Exported number of components corresponds with the VBProject components"
         .ResultExpected = VBProjectExportFiles
-        .Result = FSo.GetFolder(Environment.ExportServiceFolderPath).Files.Count
+        .Result = FSo.GetFolder(mEnvironment.ExportServiceFolderPath).Files.Count
         
         '==========================================================================
     End With
@@ -182,22 +182,10 @@ Private Sub Test_0100_2CleanUp()
 
 End Sub
 
-Private Sub Test_0010_Timer()
-' ------------------------------------------------------------------------------
-' Maximum precision timer test. The timer considers the time which the time
-' taking itself consumes and deducts it from the final result. I.e. when nothing
-' is measured between TimerStart and TimerElapsedMsecs the result likely will be
-' 0 milliseconds. It will rarely happen that an (unavoidable) precision lack
-' results in a timer failure of 0,0042 milliseconds.
-' ------------------------------------------------------------------------------
-    Dim c As Currency
+Private Sub Test_Timer()
     With New clsTestAid
-        .TimerStart
-        ' no time to be taken
-        c = .TimerElapsedMsecs
-        Debug.Print "Timer overhead considered: " & mBasic.Max(0, c) & " milliseconds (an average timer overhead of " & .TimerOverhead & " milliseconds had been deducted"
+        Debug.Print .TimerOverhead
     End With
-    
 End Sub
 
 Private Sub Test_0100_1SetUp()
@@ -262,7 +250,7 @@ Private Sub Test_0300_1SetUp_1()
                                , s_service:=TestAid.TestHeadLine
         With New clsComp
             .CompName = sTestComp
-            FSo.CopyFile .ExpFileFullName, CommonPublic.FolderPath & "\" & sTestComp & ".cls"
+            FSo.CopyFile .ExpFileFullName, mEnvironment.CommCompsPath & "\" & sTestComp & ".cls"
         End With
     End With
         
@@ -278,7 +266,7 @@ Private Sub Test_0300_1SetUp_2()
     
     mCompMan.ServiceInitiate s_serviced_wbk:=ThisWorkbook _
                            , s_service:=TestAid.TestHeadLine
-    FSo.DeleteFile CommonPublic.FolderPath & "\" & sTestComp & ".cls"
+    FSo.DeleteFile mEnvironment.CommCompsPath & "\" & sTestComp & ".cls"
         
 End Sub
 
@@ -387,9 +375,9 @@ Public Sub Test_0300_CommCompManuallyCopiedRemoved()
         .Verification = "Precondition 1: The test component " & sTestComp & " does not exist in the Common-Components folder"
         .ResultExpected = True
         With New clsCommonPublic
-            TestAid.Result = Not FSo.FileExists(.FolderPath & "\" & sTestComp & ".cls")
+            TestAid.Result = Not FSo.FileExists(mEnvironment.CommCompsPath & "\" & sTestComp & ".cls")
         End With
-        .Verification = "Precondition 2: The test component " & sTestComp & " does not exist in the serviced Workbooks CompMan.dat file"
+        .Verification = "Precondition 2: The test component " & sTestComp & " does not exist in the serviced Workbooks CommComps.dat file"
         .ResultExpected = True
         With New clsCommonServiced
             TestAid.Result = Not .Components.Exists(sTestComp)
@@ -398,15 +386,15 @@ Public Sub Test_0300_CommCompManuallyCopiedRemoved()
         .Verification = "Precondition: The test component " & sTestComp & " exist in the Common-Components folder"
         .ResultExpected = True
         With New clsCommonPublic
-            TestAid.Result = FSo.FileExists(.FolderPath & "\" & sTestComp & ".cls")
+            TestAid.Result = FSo.FileExists(mEnvironment.CommCompsPath & "\" & sTestComp & ".cls")
         End With
         mHskpng.CommComps
         .Verification = "Test result 1: Test component " & sTestComp & " registered as new Common Component"
         .ResultExpected = True
         .Result = CommonPublic.Exists(sTestComp)
-        .Verification = "Test result 2: Test component " & sTestComp & " registered as ""used"" in CompMan.dat file"
+        .Verification = "Test result 2: Test component " & sTestComp & " registered as ""used"" in CommComps.dat file"
         .ResultExpected = True
-        .Result = CompManDat.KindOfComponent(sTestComp) = enCompCommonUsed
+        .Result = CommonServiced.KindOfComponent(sTestComp) = enCompCommonUsed
         .Verification = "Test result 3: Test component " & sTestComp & " properties serviced equal public"
         .ResultExpected = True
         With New clsComp

@@ -10,8 +10,8 @@ Attribute VB_Exposed = False
 Option Explicit
 ' ---------------------------------------------------------------------------
 ' Clss Module clsCommonServiced: Methods and Properties for the maintenance
-' ============================== of the Private Profile File CompMan.dat in
-' each serviced Workbook's CompMan folder with the following structure:
+' ============================== of the Private Profile File CommComps.dat
+' in each serviced Workbook's CompMan folder with the following structure:
 '
 ' [<component-name>]
 ' KindOfComponent=used|hosted
@@ -31,11 +31,11 @@ Option Explicit
 ' Public Properties:
 ' ------------------
 ' Components               r   Dictionary of all components/sections in the
-'                              CompMan.dat
+'                              CommComps.dat
 ' Hosted                     w Provides the hosted components, provided as a
 '                              comma delimited string in a Dictionary
 '                              (dctHosted) and performs the housekeeping for
-'                              the serviced Workbook's CompMan.dat file
+'                              the serviced Workbook's CommComps.dat file
 '                              file.
 ' RecentlyUsedExportFolder r/w Keeps a record of the last used export folder.
 '                              Used in case the configured name changes.
@@ -50,16 +50,27 @@ Private Const SECTION_NAME_RECENT_EXPORT        As String = "_MostRecentExport" 
 Private Const VALUE_NAME_REG_STAT_OF_COMPONENT  As String = "KindOfComponent"
 Private Const VALUE_NAME_USED_EXPORT_FOLDER     As String = "UsedExportFolder"
 
-Public PPFile                                   As clsPrivProf
+Public PPFile                                   As New clsPrivProf
 
 Private Sub Class_Initialize()
     Const PROC = "Class_Initialize"
         
     On Error GoTo eh
-    Dim DatOld As String
     
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
+    With PPFile
+        .FileName = mEnvironment.CommCompsServicedPrivProfFileFullName
+        .HskpngNames .FileName _
+                    , VALUE_NAME_LAST_MOD_AT & "<LastUpdateAtDatTime<LastModAtDatTime<LastModifiedAtDatTime<RawRevisionNumber" _
+                    , VALUE_NAME_LAST_MOD_EXP_FILE_ORIG & "<RawExpFileFullName" _
+                    , VALUE_NAME_LAST_MOD_IN & "<LastModInWrkbook<LastUpdateModIn<LastUpdateModIn<LastModInWrkbkFullName" _
+                    , VALUE_NAME_LAST_MOD_ON & "<LastUpdateModOn<LastModOnMachine" _
+                    , "DueModificationWarning>" _
+                    , "UsedExportFolder>"
+        .FileHeader = FileHeader
+        .FileFooter = mEnvironment.PrivateProfileFileFooter
+    End With
+
+xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -70,6 +81,17 @@ End Sub
 Private Sub Class_Terminate()
     Set PPFile = Nothing
 End Sub
+
+Private Function FileHeader() As String
+    FileHeader = "Common Components used/hosted/private in the serviced Workbook. The values are maintained for any Common Component used or hosted when it is exported due" & vbCrLf & _
+                 "to a modification. In case, these values are copied to the pending release registered Common Component." & vbLf & _
+                 "- LastModAt           : Date/time of the last modification date/time (the export file's creation date repectively)" & vbCrLf & _
+                 "- LastModBy           : User, which had made the last modification" & vbCrLf & _
+                 "- LastModExpFileOrigin: Indicates the 'origin'! of the export file (may point to an export file not available on or not accessable by the used compunter)" & vbCrLf & _
+                 "- LastModIn           : The Workbook/VB-Project in which the last code modification had been made (may point to a Workbook om another computer)" & vbCrLf & _
+                 "- LastModOn           : The computer on which the last modification had been made in the above Workbook."
+
+End Function
 
 Public Property Let CompName(ByVal c_comp As String)
     PPFile.Section = c_comp

@@ -55,7 +55,7 @@ Public Sub ByCodeReplace(ByVal b_source As clsComp, _
     b_target.CodeCrrent.ReplaceWith b_source.CodeCrrent
     
     With b_target
-        Select Case CompManDat.KindOfComponent(b_source.CompName)
+        Select Case CommonServiced.KindOfComponent(b_source.CompName)
             Case enCompCommonHosted:  Services.Log(sComp) = "Serviced Common Component  h o s t e d  updated by code replace"
             Case enCompCommonUsed:    Services.Log(sComp) = "Serviced Common Component  u s e d  updated by code replace"
         End Select
@@ -141,7 +141,7 @@ Public Sub ByReImport(ByVal b_comp_name As String, _
         '~~ Export the re-imported component to ensure an up-to-date Export-File
         FSo.CopyFile b_export_file, .ExpFileFullName, True
         '~~ Update the Revision-Number
-        Select Case CompManDat.KindOfComponent(.CompName)
+        Select Case CommonServiced.KindOfComponent(.CompName)
             Case enCompCommonUsed, enCompCommonHosted
                 If .ServicedLastModAt <> .PublicLastModAt Then
                     .ServicedLastModAt = .PublicLastModAt

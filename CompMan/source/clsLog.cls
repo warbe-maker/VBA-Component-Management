@@ -120,9 +120,6 @@ Private Sub Class_Initialize()
     NewLogInit
     lKeepLogs = 10 ' default
     bWithTimeStamp = False
-    sFileName = FSo.GetBaseName(ActiveWorkbook.Name) & ".log"
-    sPath = ActiveWorkbook.Path
-    FileFullName = sPath & "\" & sFileName
     bNewLog = True
     lBase = ArrayBase
     

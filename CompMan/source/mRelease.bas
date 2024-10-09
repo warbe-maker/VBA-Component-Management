@@ -19,11 +19,10 @@ Public Sub ReleaseCommComps(Optional ByVal r_verbose As Boolean = True)
 ' Export-File from the CommonPending folder into the Common-Components folder.
 ' ------------------------------------------------------------------------------
     
+    mEnvironment.Provide ActiveWorkbook
     mCompMan.ServiceInitiate s_serviced_wbk:=ActiveWorkbook _
                            , s_service:="Release Modified Common Components"
         
-    Set CommonPending = New clsCommonPending
-    
     Set CommCompsPendingRelease = CommonPending.Components
     If CommCompsPendingRelease.Count <> 0 Then
         ReleaseService
@@ -55,22 +54,22 @@ Public Sub ReleaseService()
     Const BTTN_TERMINATE    As String = "Terminate"
     
     On Error GoTo eh
-    Dim cllButtons          As Collection
-    Dim CodePnding         As clsCode
-    Dim CodePublic          As clsCode
-    Dim Comp                As clsComp
-    Dim i                   As Long
-    Dim lOtherPending       As Long
-    Dim Msg                 As mMsg.udtMsg
-    Dim qPending            As New clsQ
-    Dim sBttnRelease        As String
-    Dim sComp               As String
-    Dim sTitle              As String
-    Dim v                   As Variant
+    Dim cllButtons      As Collection
+    Dim CodePnding      As clsCode
+    Dim CodePublic      As clsCode
+    Dim Comp            As clsComp
+    Dim i               As Long
+    Dim lOtherPending   As Long
+    Dim Msg             As mMsg.udtMsg
+    Dim qPending        As New clsQ
+    Dim sBttnRelease    As String
+    Dim sComp           As String
+    Dim sTitle          As String
+    Dim v               As Variant
     
     mCompMan.CurrentServiceName = "Release pending Common Compoents"
     mCompMan.ServicedWrkbk = ActiveWorkbook
-    Set Environment = New clsEnvironment
+    mEnvironment.Provide ActiveWorkbook
 
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=ActiveWorkbook _
@@ -82,13 +81,13 @@ Public Sub ReleaseService()
         qPending.EnQueue Comp
     Next v
     
-    lOtherPending = CommCompsPendingRelease.Count = qPending.Size
+    lOtherPending = CommCompsPendingRelease.Count - qPending.Size
     
     Do While Not qPending.IsEmpty
         qPending.First Comp
         sComp = Comp.CompName
         CommonPending.CompName = sComp
-        If Comp.PendingLastModBy = Environment.ThisComputersUser _
+        If Comp.PendingLastModBy = mEnvironment.ThisComputersUser _
         Then sBttnRelease = BTTN_RELEASE _
         Else sBttnRelease = BTTN_RELEASE & " explicitely confirmed"
         If Comp.CodePublic.IsNone _
@@ -126,7 +125,7 @@ Public Sub ReleaseService()
             With .Section(5)
                 .Label.Text = sBttnRelease & ":"
                 .Label.FontColor = rgbBlue
-                If Comp.PendingLastModBy = Environment.ThisComputersUser Then
+                If Comp.PendingLastModBy = mEnvironment.ThisComputersUser Then
                     .Text.Text = "Release will move the Export-File from the PendingReleases folder into the Common-Components folder."
                 Else
                     .Text.Text = "Because the current logged-in user is not identical with the user who registered the modified " & _
@@ -167,7 +166,7 @@ Public Sub ReleaseService()
 
             Case BTTN_SKIP_FOR_NOW: qPending.DeQueue
 
-            Case BTTN_SKIP_FOREVER: CompManDat.KindOfComponent(sComp) = enCompCommonPrivate
+            Case BTTN_SKIP_FOREVER: CommonServiced.KindOfComponent(sComp) = enCompCommonPrivate
                                     CommCompsPendingRelease.Remove 1
                                     If CommonPending.Exists(sComp) _
                                     Then CommonPending.Remove sComp

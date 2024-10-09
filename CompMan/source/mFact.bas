@@ -7,7 +7,7 @@ Option Explicit
 ' ----------------------------------------------------------------------------
 
 Public Function IsServicedCommonComponent(ByVal i_comp As String) As Boolean
-    IsServicedCommonComponent = CompManDat.Components.Exists(i_comp)
+    IsServicedCommonComponent = CommonServiced.Components.Exists(i_comp)
 End Function
 
 Public Function IsServicedComponent(ByVal i_comp As String) As Boolean
@@ -30,7 +30,9 @@ Public Function CommCompHasModificationPendingRelease(ByVal p_comp As String, _
                                              Optional ByRef p_last_mod_in_wbk_name As String, _
                                              Optional ByRef p_last_mod_on_machine As String) As Boolean
     
-    If CommonPending Is Nothing Then Set CommonPending = New clsCommonPending
+    If CommonPending Is Nothing Then
+        Set CommonPending = New clsCommonPending
+    End If
     CommCompHasModificationPendingRelease = CommonPending.Exists(p_comp _
                                                   , p_last_mod_at_datetime_utc _
                                                   , p_last_mod_export_filename _
@@ -49,10 +51,10 @@ Public Function CommCompUsed(ByVal c_comp As String, _
     
     If Serviced Is Nothing _
     Then Err.Raise mBasic.AppErr(1), ErrSrc(PROC), "Then function cannot be used prior any service has been initiated!"
-    If CompManDat Is Nothing _
+    If CommonServiced Is Nothing _
     Then Err.Raise mBasic.AppErr(2), ErrSrc(PROC), "Then function cannot be used prior any service has been initiated!"
     
-    CommCompUsed = CompManDat.IsUsedCommComp(c_comp, c_last_mod_at_datetime)
+    CommCompUsed = CommonServiced.IsUsedCommComp(c_comp, c_last_mod_at_datetime)
     
 End Function
 
@@ -149,7 +151,7 @@ Public Function CommCompHasEffectiveManageGap(ByVal c_comp As clsComp, _
         
         bCodeCurrentDiffersFromCodePublic = .CodeExprtd.Meets(.CodePublic) = False
         bExportFileExists = FSo.FileExists(.ExpFileFullName)
-        bLastModDateTimeIsAvailable = CompManDat.LastModAt(sComp) <> vbNullString ' possibly first time serviced
+        bLastModDateTimeIsAvailable = CommonServiced.LastModAt(sComp) <> vbNullString ' possibly first time serviced
         bCommCompIsPendingByServicedWorkbook = .CommCompIsPendingByServicedWorkbook
         If bCommCompIsPendingByServicedWorkbook Then
             bCodeCurrentDiffersFromCodePending = .CodeExprtd.Meets(.CodePnding) = False
@@ -160,11 +162,11 @@ Public Function CommCompHasEffectiveManageGap(ByVal c_comp As clsComp, _
             Case bExportFileExists = True _
              And bLastModDateTimeIsAvailable = True
                 Select Case True
-                    Case CompManDat.LastModAt(sComp) = CommonPublic.LastModAt(sComp)
+                    Case CommonServiced.LastModAt(sComp) = CommonPublic.LastModAt(sComp)
                         CommCompHasEffectiveManageGap = True
-                    Case CompManDat.LastModAt(sComp) < CommonPublic.LastModAt(sComp)
+                    Case CommonServiced.LastModAt(sComp) < CommonPublic.LastModAt(sComp)
                         CommCompHasEffectiveManageGap = True
-                    Case CompManDat.LastModAt(sComp) > CommonPublic.LastModAt(sComp)
+                    Case CommonServiced.LastModAt(sComp) > CommonPublic.LastModAt(sComp)
                         CommCompHasEffectiveManageGap = True
                 End Select
                 

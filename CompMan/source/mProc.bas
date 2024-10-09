@@ -383,7 +383,7 @@ Public Function ProcsCollect(Optional ByVal p_wbk As Workbook = Nothing, _
     Dim lLines          As Long
     
     If p_wbk Is Nothing Then Set p_wbk = ActiveWorkbook
-    If p_common Then Set dctCommComps = CompManDat.Components
+    If p_common Then Set dctCommComps = CommonServiced.Components
     
     For Each vbc In p_wbk.VBProject.VBComponents
         sCompName = vbc.Name

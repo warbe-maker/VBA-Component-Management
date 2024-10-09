@@ -57,7 +57,7 @@ Private Sub ChoiceLoop()
         With Comp
             sComp = .CompName
             sModWbkName = CommonPublic.LastModInWrkbkFullName(sComp)
-            Select Case CompManDat.KindOfComponent(sComp)
+            Select Case CommonServiced.KindOfComponent(sComp)
                 Case enCompCommonHosted
                     UpdateTitle = "Hosted Common Component is not/no longer up-to-date!"
                     sUpdateNote = "The hosted Common Component   " & mBasic.Spaced(sComp) & "   is outdated."
@@ -118,7 +118,7 @@ Private Sub ChoiceLoop()
                 .Text = sSkipForNowNote
                 .FontBold = True
             End With
-            If CompManDat.KindOfComponent(sComp) = enCompCommonUsed Then
+            If CommonServiced.KindOfComponent(sComp) = enCompCommonUsed Then
                 '~~ Skip forever is an option only for used Common Components (hosted need to be de-registered as such first)
                 With .Section(NextSect(i))
                     .Label.Text = "Skip forever:"
@@ -200,7 +200,7 @@ Private Sub ChoiceSkipForever(ByVal u_comp As String)
     On Error GoTo eh
     
     mBasic.BoP ErrSrc(PROC)
-    CompManDat.KindOfComponent(u_comp) = enCompCommonPrivate
+    CommonServiced.KindOfComponent(u_comp) = enCompCommonPrivate
     
     With Services
         .NoOfItemsSkipped = .NoOfItemsSkipped + 1
@@ -240,11 +240,11 @@ End Sub
 
 Public Sub UpdateCompManDat(ByVal u_comp As String)
 ' ------------------------------------------------------------------------------
-' Update the properties in the CompMan.dat Private Profile file with the
+' Update the properties in the CommComps.dat Private Profile file with the
 ' properties from the CommComp.dat Private Profile file.
 ' ------------------------------------------------------------------------------
 
-    With CompManDat
+    With CommonServiced
         .LastModAt(u_comp) = CommonPublic.LastModAt(u_comp)
         .LastModBy(u_comp) = CommonPublic.LastModBy(u_comp)
         .LastModInWrkbkFullName(u_comp) = CommonPublic.LastModInWrkbkFullName(u_comp)
@@ -267,7 +267,7 @@ Private Sub ChoiceUpdate(ByVal o_comp As String)
                      , b_monitor:=False
     UpdateCompManDat o_comp
     
-    '~~ Update the properties in the CompMan.dat file with those from the CommComps.dat file
+    '~~ Update the properties in the CommComps.dat file with those from the CommComps.dat file
     With New clsComp
         .CompName = o_comp
         .SetServicedEqualPublic
@@ -321,7 +321,7 @@ Public Sub CollectOutdated(Optional ByRef c_outdated As clsQ)
 ' ------------------------------------------------------------------------------
 ' Collects all outdated Used Common Components and enqueues them in Qoutdated.
 ' For any up-to-date Common Component the last update datetime is maintained in
-' the CompMan.dat Private Profile file.
+' the CommComps.dat Private Profile file.
 ' ------------------------------------------------------------------------------
     Const PROC = "CollectOutdated"
     
@@ -345,7 +345,7 @@ Public Sub CollectOutdated(Optional ByRef c_outdated As clsQ)
         With Comp
             .CompName = sComp
             Services.LogItem = Serviced.Wrkbk.VBProject.VBComponents(.CompName)
-            Select Case CompManDat.KindOfComponent(sComp)
+            Select Case CommonServiced.KindOfComponent(sComp)
                 Case enCompCommonHosted, enCompCommonUsed
                     If .CodeCrrent.Meets(.CodePublic) = False _
                     And Not .CommCompIsPendingByServicedWorkbook Then ' outdated

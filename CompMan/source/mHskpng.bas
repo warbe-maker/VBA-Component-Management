@@ -49,15 +49,16 @@ Public Sub CommComps()
     mBasic.BoP ErrSrc(PROC)
     '~~ Housekeeping Common Components public
     If CommonPublic Is Nothing Then Set CommonPublic = New clsCommonPublic
+    If CommonServiced Is Nothing Then Set CommonServiced = New clsCommonServiced
     Set dctFiles = CommonPublic.ExportFiles
     Set dctComps = CommonPublic.Components
     
     lTotalItems = dctFiles.Count                                                    ' CommCompsPublicObsolete
     lTotalItems = lTotalItems + dctComps.Count                                      ' CommCompsPublicNew
     lTotalItems = lTotalItems + Serviced.Hosted.Count                               ' CommCompsServicedHosted
-    lTotalItems = lTotalItems + CompManDat.Components.Count                         ' CommCompsServicedNotHosted
+    lTotalItems = lTotalItems + CommonServiced.Components.Count                     ' CommCompsServicedNotHosted
     lTotalItems = lTotalItems + Serviced.CompsCommon.Count                          ' CommCompsServicedKindOf
-    lTotalItems = lTotalItems + CompManDat.Components.Count                         ' CommCompsServicedObsolete
+    lTotalItems = lTotalItems + CommonServiced.Components.Count                     ' CommCompsServicedObsolete
     If CommonPending.Components.Count <> 0 _
     Then lTotalItems = lTotalItems + Serviced.Wrkbk.VBProject.VBComponents.Count    ' CommCompsServicedPendingRelease
     lTotalItems = lTotalItems + Serviced.CompsCommon.Count                          ' CommCompsServicedPendingReleaseOutstanding
@@ -69,25 +70,25 @@ Public Sub CommComps()
     End With
     
     CommCompsPublicObsolete dctFiles, dctComps
-    If CompManDat.Components.Exists("clsCode") Then Stop
+    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsPublicNew dctFiles, dctComps
-    If CompManDat.Components.Exists("clsCode") Then Stop
+    If CommonServiced.Components.Exists("clsCode") Then Stop
     
     '~~ Housekeeping Common Components serviced
     CommCompsServicedHosted
-    If CompManDat.Components.Exists("clsCode") Then Stop
+    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedNotHosted
-    If CompManDat.Components.Exists("clsCode") Then Stop
+    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedKindOf
-    If CompManDat.Components.Exists("clsCode") Then Stop
+    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedObsolete
-    If CompManDat.Components.Exists("clsCode") Then Stop
+    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedPendingRelease
-    If CompManDat.Components.Exists("clsCode") Then Stop
+    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedPendingReleaseOutstanding
-    If CompManDat.Components.Exists("clsCode") Then Stop
+    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedProperties
-    If CompManDat.Components.Exists("clsCode") Then Stop
+    If CommonServiced.Components.Exists("clsCode") Then Stop
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -130,7 +131,7 @@ Private Sub CommCompsPublicNew(ByVal h_files As Dictionary, _
                     .CompName = sCompName
                     If .CodeExprtd.Meets(.CodePublic) Then
                         .SetServicedProperties
-                        CompManDat.KindOfComponent(sCompName) = enCompCommonUsed
+                        CommonServiced.KindOfComponent(sCompName) = enCompCommonUsed
                         .SetPublicEqualServiced
                     End If
                 End With
@@ -153,7 +154,7 @@ Private Sub CommCompsPublicObsolete(ByVal h_files As Dictionary, _
 ' ------------------------------------------------------------------------------
 ' - Removes in the Common-Component folder's CommComps.dat file any section of
 '   which no corresponding Export-File exists in the folder.
-' - Removes the corresponding section in the seviced Workbook's CompMan.dat file
+' - Removes the corresponding section in the seviced Workbook's CommComps.dat file
 ' ------------------------------------------------------------------------------
     Const PROC = "CommCompsPublicObsolete"
     
@@ -169,8 +170,8 @@ Private Sub CommCompsPublicObsolete(ByVal h_files As Dictionary, _
             With CommonPublic
                 .Remove v
                 If .Components.Exists(v) Then .Components.Remove v
-                CompManDat.RemoveComponent v
-                If CompManDat.Components.Exists("clsCode") Then Stop
+                CommonServiced.RemoveComponent v
+                If CommonServiced.Components.Exists("clsCode") Then Stop
             End With
         End If
         Prgrss.ItemDone = v
@@ -217,7 +218,7 @@ End Sub
 
 Private Sub CommCompsServicedHosted()
 ' ------------------------------------------------------------------------------
-' Maintains in the serviced Workbook's CompMan.dat file for any component
+' Maintains in the serviced Workbook's CommComps.dat file for any component
 ' claimed hosted the corresponding KindOfComponent and the Revision-Number
 ' (when missing).
 ' ------------------------------------------------------------------------------
@@ -230,7 +231,7 @@ Private Sub CommCompsServicedHosted()
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Serviced.Wrkbk
     
-    With CompManDat
+    With CommonServiced
         For Each v In Serviced.Hosted
             If Serviced.CompExists(v) Then
                 .KindOfComponent(v) = enCompCommonHosted
@@ -279,7 +280,7 @@ Public Sub CommCompsServicedKindOf()
     Set dct = CommonPublic.All
     For Each v In Serviced.CompsCommon
         sComp = v
-        Select Case CompManDat.KindOfComponent(sComp)
+        Select Case CommonServiced.KindOfComponent(sComp)
             Case enCompCommonPrivate, enCompCommonUsed, enCompCommonHosted
             Case Else
                 sKnownAs = vbNullString
@@ -304,7 +305,7 @@ Public Sub CommCompsServicedKindOf()
                     '~~ The component is a known as a public hosted or pending release Common Component
                     With New clsComp
                         .CompName = sComp
-                        Select Case CompManDat.KindOfComponent(sComp)
+                        Select Case CommonServiced.KindOfComponent(sComp)
                             Case enCompCommonPrivate, enCompCommonUsed, enCompCommonHosted
                             Case Else
                                 '~~ Once an equally named VBComponent is registered as private it will no longer be regarded as "used" and therefore not updated
@@ -332,13 +333,13 @@ Public Sub CommCompsServicedKindOf()
                                                      , dsply_msg:=Msg _
                                                      , dsply_Label_spec:="L30" _
                                                      , dsply_buttons:=mMsg.Buttons(BttnUsed, BttnPrivate))
-                                    Case BttnUsed:  CompManDat.KindOfComponent(.CompName) = enCompCommonUsed
-                                                    CompManDat.LastModAt(.CompName) = vbNullString ' yet unknown will force update when outdated
+                                    Case BttnUsed:  CommonServiced.KindOfComponent(.CompName) = enCompCommonUsed
+                                                    CommonServiced.LastModAt(.CompName) = vbNullString ' yet unknown will force update when outdated
                                                     If .IsCommCompUpToDate Then
                                                         .Wrkbk.VBProject.VBComponents(.CompName).Export .ExpFileFullName
                                                         .SetServicedEqualPublic
                                                     End If
-                                    Case BttnPrivate:  CompManDat.KindOfComponent(.CompName) = enCompCommonPrivate
+                                    Case BttnPrivate:  CommonServiced.KindOfComponent(.CompName) = enCompCommonPrivate
                                 End Select
                         End Select
                     End With
@@ -359,7 +360,7 @@ End Sub
 Private Sub CommCompsServicedNotHosted()
 ' ----------------------------------------------------------------------------
 ' When a former hosting Workbook not or no longer claims a Common Component
-' hosted the KindOfComponent in the serviced Workbook's CompMan.dat file
+' hosted the KindOfComponent in the serviced Workbook's CommComps.dat file
 ' is changed to enCompCommonUsed.
 ' ----------------------------------------------------------------------------
     Const PROC      As String = "CommCompsServicedNotHosted"
@@ -370,10 +371,10 @@ Private Sub CommCompsServicedNotHosted()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.ServicedWbk
-    For Each v In CompManDat.Components
+    For Each v In CommonServiced.Components
         If Not Serviced.Hosted.Exists(v) Then
             If mComp.Exists(v, wbk) Then
-                CompManDat.KindOfComponent(v) = enCompCommonUsed
+                CommonServiced.KindOfComponent(v) = enCompCommonUsed
             End If
         End If
         Prgrss.ItemDone = v
@@ -400,7 +401,7 @@ Private Sub CommCompsServicedObsolete()
     Dim wbk As Workbook
     
     mBasic.BoP ErrSrc(PROC)
-    With CompManDat
+    With CommonServiced
         For Each v In .Components
             If Not .IsSystemSection(v) Then
                 If Not CommonPublic.Exists(v) Or Not Serviced.CompExists(v) Then
@@ -491,8 +492,8 @@ Private Sub CommCompsServicedPendingRelease()
             End If
             Prgrss.ItemDone = v
         Next v
-        If dctPendingExpFiles.Count = 0 And FSo.FolderExists(Environment.CommCompsPendingPath) _
-        Then FSo.DeleteFolder Environment.CommCompsPendingPath
+        If dctPendingExpFiles.Count = 0 And FSo.FolderExists(mEnvironment.CommCompsPendingPath) _
+        Then FSo.DeleteFolder mEnvironment.CommCompsPendingPath
     
         '~~ 3. Remove entries in the Pending.dat file without a corresponding Export-
         '~~    File in the Common-Components\Pending folder - may have been moved manually to
@@ -591,7 +592,7 @@ End Sub
 Private Sub CommCompsServicedProperties()
 ' ------------------------------------------------------------------------------
 ' Maintains for all serviced Common Components the properties in the serviced
-' workbook's CompMan.dat file - specifically when different from the public
+' workbook's CommComps.dat file - specifically when different from the public
 ' versions properties differ from the serviced component's properties although
 ' the code is identical with the public version.
 ' ------------------------------------------------------------------------------
@@ -613,7 +614,7 @@ Private Sub CommCompsServicedProperties()
                 '~~ For the Common Component exists a public version in the Common-Components folder
                 If Not .ServicedMeetPublicProperties Then
                     '~~ Just in case the "local" serviced component's properties
-                    '~~ in the CompMan.dat file differ from those public
+                    '~~ in the CommComps.dat file differ from those public
                     If .CodeCrrent.Meets(.CodePublic) Then
                         '~~ The public version (Export-File in th Common-Components folder) has obviously been manually imported
                         .SetServicedEqualPublic

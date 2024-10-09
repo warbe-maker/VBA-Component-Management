@@ -70,7 +70,8 @@ Option Compare Text
 '                 names in ascending order.
 ' SectionRemove   Removes one or more specified sections in a Private Profile
 '                 file whereby several sections may be provided as a comma
-'                 separated string.
+'                 separated string. When all "user" sections had been removed
+'                 the Private Profile file is also removed *).
 ' ValueNames      Returns a Dictionary with all value-names as key, whereby
 '                 the item is a Collection with two items: the first is a
 '                 Collection of the value comment lines, the second is the
@@ -83,18 +84,26 @@ Option Compare Text
 ' ValueRemove     Removes a specified value from an (optionally) specified
 '                 section in an (optionally) specified Private Profile file.
 '                 When the section is omitted, the value is removed from all
-'                 sections, when the file name is omitted it defaults to the
+'                 sections. When the file name is omitted it defaults to the
 '                 file specified by the FileName property.
+'
+' *) The Private Profile file may contain a "names housekeeping section"
+'    which is not regarded a "user" but a "system" section. I.e. when it is
+'    the only section left, the file will be removed as well. This coinsides
+'    with the fact that the file is written when the very first value is
+'    written.
 '
 ' Requires:
 ' ---------
 ' Reference to Microsoft Scripting Runtine
 ' Reference to Microsoft VBScript Regular Expressions 5.5
 '
-' Uses no other components. Will use optionally mErH, fMsg/mMsg when installed
+' Uses:
+' -----
+' No other components. Will use optionally mErH, fMsg/mMsg when installed
 ' and activated (Cond. Comp. Args. `mErH = 1 : mMsg = 1`).
 '
-' W. Rauschenberger, Berlin Sep 2024
+' W. Rauschenberger, Berlin Oct 2024
 ' See also https://github.com/warbe-maker/VBA-Private-Profile.
 ' ----------------------------------------------------------------------------
 Public FSo                      As FileSystemObject
@@ -137,14 +146,16 @@ Private Declare PtrSafe Function apiShellExecute _
                 ByVal lpDirectory As String, _
                 ByVal nShowCmd As Long) As Long
 
-Private dctPPtwinsAsString          As Dictionary ' file as string
+Private bBooleanAsTrueFalseString   As Boolean      ' option, when TRUE a Boolean value is saved as a TRUE or FALSE string
+Private bSectionsSeparated          As Boolean      ' section separator line option, defaults to TRUE
+Private dctPPtwinsAsString          As Dictionary   ' file as string
 Private Reg                         As RegExp
-Private sFileName                   As String   ' the current default Private Profile file's full name
-Private sSection                    As String   ' the current section of the above Private Profile file
-Private sDelimCharHeader            As String   ' the header delimiter character
-Private sDelimCharFooter            As String   ' the footer delimiter character (must be different from the above)
-Private bBooleanAsTrueFalseString   As Boolean  ' option, when TRUE a Boolean value is saved as a TRUE or FALSE string
-Private bSectionsSeparated          As Boolean  ' section separator line option, defaults to TRUE
+Private sFileFooter                 As String
+Private sFileFooterDelimiterChar    As String       ' the footer delimiter character (must be different from the above)
+Private sFileHeader                 As String
+Private sFileHeaderDelimiterChar    As String       ' the header delimiter character
+Private sFileName                   As String       ' the current default Private Profile file's full name
+Private sSection                    As String       ' the current section of the above Private Profile file
 ' -----------------------------------------------------------------------------------------------------------------------------------------
 ' Private elements of Private Profile file twins structure used throughout this component for twin actions (indentaions = structure)
 Private dctPPtwins                                     As Dictionary ' All Private Profile file twins in a class instance (key = file-name)
@@ -177,8 +188,8 @@ Private Sub Class_Initialize()
                                                                        "and any other application is yet not supported!"
         End Select
     End If
-    sDelimCharHeader = "="
-    sDelimCharFooter = "-"
+    sFileHeaderDelimiterChar = "="
+    sFileFooterDelimiterChar = "-"
     bBooleanAsTrueFalseString = True
     bSectionsSeparated = True
     
@@ -189,7 +200,6 @@ Private Sub Class_Terminate()
     Set dctPPtwins = Nothing
 End Sub
 
-' Origin: Common Component "mBasic" ==========================================
 Private Property Get Arry(Optional ByRef c_arr As Variant, _
                           Optional ByVal c_index As Long = -1) As Variant
 ' ----------------------------------------------------------------------------
@@ -209,7 +219,6 @@ Private Property Get Arry(Optional ByRef c_arr As Variant, _
     
 End Property
 
-' Origin: Common Component "mBasic" ==========================================
 Private Property Let Arry(Optional ByRef c_arr As Variant, _
                           Optional ByVal c_index As Long = -99, _
                                    ByVal c_var As Variant)
@@ -282,41 +291,69 @@ Public Property Get FileFooter(Optional ByVal name_file As String = vbNullString
 ' ------------------------------------------------------------------------------
     Const PROC = "SectionComment-Get"
     
+    Dim cll As New Collection
+    Dim v   As Variant
+    
     If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-                                     
-    FileFooter = CollectionAsString(PPtwinFileFooter(name_file))
+    
+    For Each v In PPtwinFileFooter(name_file)
+        If Not IsDelimiterFileFooter(v) Then
+            cll.Add Replace(v, "; ", vbNullString, , 1)
+        End If
+    Next v
+    
+    FileFooter = CollectionAsString(cll)
+    Set cll = Nothing
 
 End Property
 
 Public Property Let FileFooter(Optional ByVal name_file As String = vbNullString, _
-                                        ByVal comments As String)
+                                        ByVal file_footer As String)
 ' ------------------------------------------------------------------------------
 ' Write a header for a file (name_fiel) provided as a strings delimited by
 ' vbCrLf, ",", ", ", ";", or "; ".
 ' ------------------------------------------------------------------------------
     Const PROC = "SectionComment-Get"
     
+    Dim sFooter As String
+    
     If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-                                     
-    PPtwinFileFooter(name_file) = StringAsCollection(comments)
+    If Not FileIsActive(name_file) Then GoTo xt
 
+    '~~ Make sure the provided footer lines are delimeted by vbCrLf
+    sFooter = Replace(Replace(file_footer, vbLf, vbCrLf), vbCr & vbCrLf, vbCrLf)
+    
+    If sFileFooter <> sFooter Then
+        PPtwinFileFooter(name_file) = FileFooterDelimiterAdd(StringAsCollection(sFooter))
+        PPmanage name_file ' in case no value is changed or new
+        sFileFooter = sFooter ' will be set when the file has become active
+    End If
+    
+xt: Exit Property
 End Property
 
 Public Property Get FileHeader(Optional ByVal name_file As String = vbNullString) As String
 ' ------------------------------------------------------------------------------
 ' Returns the header of a file as a strings delimited by vbCrLf, ",", ", ", ";",
-' or "; ".
+' or "; " without a header delimiter.
 ' ------------------------------------------------------------------------------
     Const PROC = "FileHeader-Get"
     
     On Error GoTo eh
-    Dim cll As Collection
+    Dim cll As New Collection
+    Dim v   As Variant
     
     If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    Set cll = PPtwinFileHeader(name_file)
-    If cll.Count <> 0 Then cll.Remove cll.Count ' removes the delimiter line
+    
+    For Each v In PPtwinFileHeader(name_file)
+        If Not IsDelimiterFileHeader(v) Then
+            cll.Add Replace(v, "; ", vbNullString, , 1)
+        End If
+    Next v
+    
     FileHeader = CollectionAsString(cll)
-
+    Set cll = Nothing
+    
 xt: Exit Property
 
 eh: Select Case ErrMsg(ErrSrc(PROC))
@@ -325,24 +362,52 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
+Private Function FileIsActive(ByVal name_file As String) As Boolean
+' ------------------------------------------------------------------------------
+' The function returns TRUE when the file (name_file) exists and has at least
+' one user section - with at least one value.
+' ------------------------------------------------------------------------------
+    Dim dctSects As Dictionary
+    
+    If Not FSo.FileExists(name_file) Then Exit Function
+    PPmanage name_file
+    Set dctSects = SectionNames(name_file)
+    Select Case True
+        Case dctSects.Count = 0
+        Case dctSects.Count = 1 And dctSects.Keys(0) = NAMES_HSKPNG_SECT_NAME
+            ValueRemove NAMES_HSKPNG_VALUE_NAME, NAMES_HSKPNG_SECT_NAME, name_file ' without any user section history is obsolete
+        Case Else
+            FileIsActive = True
+    End Select
+    Set dctSects = Nothing
+    
+End Function
+
 Public Property Let FileHeader(Optional ByVal name_file As String, _
                                         ByVal file_header As String)
 ' ------------------------------------------------------------------------------
 ' Write a header for a file (name_fiel) provided as a strings delimited by
-' vbCrLf, ",", ", ", ";", or "; ".
+' vbCrLf, ",", ", ", ";", or "; " by adding a header delimiter when not alrteady
+' provided.
 ' ------------------------------------------------------------------------------
     Const PROC = "FileHeader-Let"
     
-    On Error GoTo eh
+    Dim sHeader As String
+    Dim i       As Long
+    
     If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    PPtwinFileHeader(name_file) = StringAsCollection(file_header)
-
+    If Not FileIsActive(name_file) Then GoTo xt
+        
+    '~~ Make sure the provided header lines are delimeted by vbCrLf
+    sHeader = Replace(Replace(file_header, vbLf, vbCrLf), vbCr & vbCrLf, vbCrLf)
+    
+    If sFileHeader <> sHeader Then
+        PPtwinFileHeader(name_file) = FileHeaderDelimiterAdd(StringAsCollection(sHeader))
+        PPmanage name_file ' in case no value is changed or new
+        sFileHeader = sHeader ' will be set when the file has become active
+    End If
+    
 xt: Exit Property
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
 End Property
 
 Public Property Get FileName() As String:               FileName = sFileName:       End Property
@@ -360,13 +425,14 @@ Public Property Let FileName(ByVal f_file As String)
     Dim sInvalidLine    As String
     Dim arr             As Variant
     
-    Select Case True
-        Case Not IsValidFileName(f_file): Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(f_file)
-        Case Not IsEmptyFile(f_file) _
-         And Not IsValidFileContent(f_file, arr, sInvalidLine): Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidFileContent(f_file, sInvalidLine)
-    End Select
+    If Not IsEmptyFile(f_file) _
+    And Not IsValidFileContent(f_file, arr, sInvalidLine) _
+    Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidFileContent(f_file, sInvalidLine)
+    
     sFileName = f_file
     PPmanage f_file
+    sFileHeader = FileHeader(f_file) ' current header
+    sFileFooter = FileFooter(f_file) ' current footer
 
 xt: Exit Property
 
@@ -459,7 +525,7 @@ Private Property Let PPtwinFileHeader(Optional ByVal p_file As String = vbNullSt
 ' ----------------------------------------------------------------------------
         
     If PPtwinExists(p_file) Then                        ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
-        Set cllPPtwinHeader = PPtwinFileHeaderPrepare(p_comments)
+        Set cllPPtwinHeader = FileHeaderDelimiterAdd(p_comments)
         PPtwinReplace p_file
         PPmanage p_file
     End If
@@ -565,6 +631,7 @@ Private Property Let PPtwinValue(Optional ByVal p_name As String, _
                 dctPPtwinValues.Add p_name, PPtwinNewValue(PPvalue(p_valu))
                 PPtwinReplaceSection p_sect
                 PPtwinReplace p_file
+                
             End If
         Else
             '~~ New section, new value
@@ -575,6 +642,19 @@ Private Property Let PPtwinValue(Optional ByVal p_name As String, _
     Else
         ' New file, new section, new value
         dctPPtwins.Add p_file, PPtwinNew(p_name, p_sect, p_valu)
+    End If
+    
+    If FileIsActive(p_file) Then
+        '~~ When the file has become active for the very first time - i.e. when the first user value is written -
+        '~~ a provided file header/footer is inserted.
+        '~~ !! For an active file this is done immediately when the header/footer is provided. Only !!
+        '~~ !! when the file at that point was not active the insertion is postponed to this point. !!
+        If FileHeader(p_file) <> sFileHeader Then
+            FileHeader(p_file) = sFileHeader
+        End If
+        If FileFooter(p_file) <> sFileFooter Then
+            FileFooter(p_file) = sFileFooter
+        End If
     End If
 
 xt: Exit Property
@@ -969,7 +1049,6 @@ Private Function CollectionAsFile(ByVal c_coll As Collection, _
 
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function CollectionAsString(ByVal c_coll As Collection, _
                            Optional ByVal c_delimiter As String = vbCrLf) As String
 ' ----------------------------------------------------------------------------
@@ -985,12 +1064,14 @@ Private Function CollectionAsString(ByVal c_coll As Collection, _
     Dim sName   As String
     Dim v       As Variant
     
-    For Each v In c_coll
-        If IsObject(v, sName) _
-        Then s = s & sDelim & sName _
-        Else s = s & sDelim & v
-        sDelim = c_delimiter
-    Next v
+    If Not c_coll Is Nothing Then
+        For Each v In c_coll
+            If IsObject(v, sName) _
+            Then s = s & sDelim & sName _
+            Else s = s & sDelim & v
+            sDelim = c_delimiter
+        Next v
+    End If
     CollectionAsString = s
 
 End Function
@@ -1049,14 +1130,6 @@ Private Function CommentsOfItem(ByVal h_arr As Variant, _
 xt: Set CommentsOfItem = RevertOrder(cll)
     Set cll = Nothing
     
-End Function
-
-Private Function DelimiterFileFooter(Optional ByVal lMax As Long = 2) As String
-    DelimiterFileFooter = "; " & String(lMax, sDelimCharFooter)
-End Function
-
-Private Function DelimiterFileHeader(Optional ByVal lMax As Long = 2) As String
-    DelimiterFileHeader = "; " & String(lMax, sDelimCharHeader)
 End Function
 
 Public Function DictionaryAsArray(ByVal v_dict As Dictionary) As Variant
@@ -1302,7 +1375,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function FileAsArray(ByVal f_file As Variant, _
                     Optional ByVal f_empty_excluded As Boolean = False) As String()
 ' ----------------------------------------------------------------------------
@@ -1492,7 +1564,6 @@ xt: Exit Function
 
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function FileAsStringEmptyExcluded(ByVal s_s As String) As String
 ' ----------------------------------------------------------------------------
 ' Returns a string (s_s) with any empty elements excluded. I.e. the string
@@ -1507,7 +1578,95 @@ Private Function FileAsStringEmptyExcluded(ByVal s_s As String) As String
     
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
+Private Function FileFooterDelimiter(Optional ByVal d_length As Long = 2) As String
+    FileFooterDelimiter = "; " & String(d_length, sFileFooterDelimiterChar)
+End Function
+
+Private Function FileHeaderDelimiter(Optional ByVal d_length As Long = 2) As String
+    FileHeaderDelimiter = "; " & String(d_length, sFileHeaderDelimiterChar)
+End Function
+
+Private Function FileFooterDelimiterAdd(ByVal f_cll As Collection) As Collection
+' ----------------------------------------------------------------------------
+' Returns a provided collection of file footer-lines/comments with an added
+' delimiter line in the length of the longest comment line.
+' ----------------------------------------------------------------------------
+    Dim l   As Long
+    Dim v   As Variant
+    Dim cll As New Collection
+    
+    If f_cll Is Nothing Then GoTo xt
+    If f_cll.Count <= 1 Then GoTo xt
+    FileFooterDelimiterRemove f_cll
+    
+    For Each v In f_cll
+        If Left(v, 2) <> "; " Then v = "; " & v
+'        cll.Add v
+        l = Max(l, Len(v))
+    Next v
+    
+    cll.Add FileFooterDelimiter(l - 2)
+    For Each v In f_cll
+        cll.Add v
+    Next v
+    Set FileFooterDelimiterAdd = cll
+    
+xt: Exit Function
+End Function
+
+Private Function FileFooterDelimiterRemove(ByRef f_cll As Collection) As Collection
+    Dim l As Long
+    Dim v As Variant
+    
+    If f_cll Is Nothing Then GoTo xt
+    If f_cll.Count <= 1 Then GoTo xt
+    If f_cll(1) Like FileFooterDelimiter(2) & "*" Then
+        f_cll.Remove 1
+    End If
+    Set FileFooterDelimiterRemove = f_cll
+    
+xt: Exit Function
+End Function
+
+Private Function FileHeaderDelimiterAdd(ByVal f_cll As Collection) As Collection
+' ----------------------------------------------------------------------------
+' Returns a provided collection of file header lines/comments with an added
+' delimiter line in the length of the longest comment line.
+' ----------------------------------------------------------------------------
+    Dim l   As Long
+    Dim v   As Variant
+    Dim cll As New Collection
+    
+    If f_cll Is Nothing Then GoTo xt
+    If f_cll.Count <= 1 Then GoTo xt
+    FileHeaderDelimiterRemove f_cll
+    
+    For Each v In f_cll
+        If Left(v, 2) <> "; " Then v = "; " & v
+        cll.Add v
+        l = Max(l, Len(v))
+    Next v
+    
+    cll.Add FileHeaderDelimiter(l - 2)
+    Set FileHeaderDelimiterAdd = cll
+    
+xt: Exit Function
+End Function
+
+Private Function FileHeaderDelimiterRemove(ByRef f_cll As Collection) As Collection
+    Dim l As Long
+    Dim v As Variant
+    
+    If f_cll Is Nothing Then GoTo xt
+    If f_cll.Count <= 1 Then GoTo xt
+    If f_cll(f_cll.Count) Like FileHeaderDelimiter(2) & "*" Then
+        f_cll.Remove f_cll.Count
+    End If
+    Set FileHeaderDelimiterRemove = f_cll
+    
+xt: Exit Function
+End Function
+
 Private Function FileStringTrimmed(ByVal s_s As String, _
                           Optional ByRef s_as_dict As Dictionary = Nothing) As String
 ' ----------------------------------------------------------------------------
@@ -1577,19 +1736,17 @@ Public Sub HskpngNames(ByVal h_file As String, _
     Dim sSects      As String
     Dim v           As Variant
     Dim dctHist     As Dictionary
-    Dim dctHistInv  As Dictionary
     Dim dctValsInv  As Dictionary
+    Dim dctSects    As Dictionary
     
     If Not IsValidFile(h_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(h_file)
-    
+    If Not FileIsActive(h_file) Then GoTo xt
     If Not ArrayIsAllocated(h_hist) Then GoTo xt
-    ValueRemove NAMES_HSKPNG_VALUE_NAME, NAMES_HSKPNG_SECT_NAME, h_file ' obsolete since history is saved in value names with sequ no suffix
     
     Set dctHist = ArrayAsDictionary(h_hist)
-    Set dctHistInv = DictionaryInverted(dctHist)
     Set dctValsInv = DictionaryInverted(ValueNames(FileName, NAMES_HSKPNG_SECT_NAME))
     For Each v In dctValsInv
-        If Not dctHistInv.Exists(v) Then ValueRemove dctValsInv(v), NAMES_HSKPNG_SECT_NAME
+        If Not dctHist.Exists(v) Then ValueRemove dctValsInv(v), NAMES_HSKPNG_SECT_NAME
     Next v
     
     For Each v In dctHist
@@ -1647,8 +1804,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-                     
+                 
 Private Function IsComment(ByVal i_item As String) As Boolean
     IsComment = Len(Trim(i_item)) = 0 ' considers an empty line as a valid (separator) comment
     If Not IsComment Then
@@ -1657,11 +1813,11 @@ Private Function IsComment(ByVal i_item As String) As Boolean
 End Function
 
 Private Function IsDelimiterFileFooter(ByVal i_item As String) As Boolean
-    IsDelimiterFileFooter = i_item Like DelimiterFileFooter & "*"
+    IsDelimiterFileFooter = i_item Like "; " & String(3, sFileFooterDelimiterChar) & "*"
 End Function
 
 Private Function IsDelimiterFileHeader(ByVal i_item As String) As Boolean
-    IsDelimiterFileHeader = i_item Like DelimiterFileHeader & "*"
+    IsDelimiterFileHeader = i_item Like "; " & String(3, sFileHeaderDelimiterChar) & "*"
 End Function
 
 Private Function IsEmptyFile(ByVal f_file_name As String, _
@@ -1744,10 +1900,6 @@ Private Function IsValidFile(ByRef i_file As String, _
     '~~ have a file name provided as argument.
     IsValidFile = True
     Select Case True
-        Case Not IsValidFileName(i_file)
-            IsValidFile = False
-            i_error = ErrInvalidFileName(i_file)
-            GoTo xt
         Case Not IsValidFileContent(i_file, i_arr, sInvalidLine)
             '~~ The file is valid when it has a valid content (may be empty however)
             IsValidFile = False
@@ -1816,31 +1968,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
-End Function
-
-Private Function IsValidFileName(ByVal i_file As String) As Boolean
-' ----------------------------------------------------------------------------
-' Returns TRUE when the file either exists or does not exist but may be
-' created.
-' ----------------------------------------------------------------------------
-    
-    With FSo
-        If Not .FileExists(i_file) Then
-            '~~ The file is valid when it may be created (will immediately be deleted again however)
-            On Error Resume Next
-            .CreateTextFile i_file
-            If Err.Number = 0 Then
-                .DeleteFile i_file
-                IsValidFileName = True
-            Else
-                IsValidFileName = False
-                Exit Function
-            End If
-        Else
-            IsValidFileName = True
-        End If
-    End With
-
 End Function
 
 Private Function IsValidNameSection(ByRef i_section As String) As Boolean
@@ -2215,7 +2342,9 @@ Private Function PPfileAsPPtwinPPfileHeader(ByVal p_source As Variant) As Collec
             If i = UBound(a) Then Exit Do
             i = i + 1
         Loop
-        If IsDelimiterFileHeader(a(i)) Then cll.Add a(i)
+        If IsDelimiterFileHeader(a(i)) Then
+            cll.Add a(i)
+        End If
     End If
     Set PPfileAsPPtwinPPfileHeader = cll
     
@@ -2340,7 +2469,7 @@ Private Function PPfileIsSection(ByVal i_item As String, _
     
 End Function
 
-Private Sub PPmanage(ByVal p_file As String)
+Public Sub PPmanage(ByVal p_file As String)
 ' ----------------------------------------------------------------------------
 ' Manages a Private Profile by:
 ' - setup a Private Profile twin as a Dictionary structure when a twin doesn't
@@ -2356,6 +2485,8 @@ Private Sub PPmanage(ByVal p_file As String)
     Dim bPPfileHasChanged As Boolean
     
     Select Case True
+        Case Not FSo.FileExists(p_file) And Not PPtwinExists(p_file)
+            GoTo xt
         Case Not FSo.FileExists(p_file) And PPtwinExists(p_file)
             PPtwinAsPPfile p_file
             PPtwinClear
@@ -2451,7 +2582,8 @@ Private Function PPtwinAsString(ByVal p_file As String) As String
     Dim sName       As String
     
     If PPtwinExists(p_file) Then                                        ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
-        PPtwinAsStringComments arrOut, cllPPtwinHeader                  ' File header
+        PPtwinAsStringComments arrOut, cllPPtwinHeader, True            ' File header
+        
         For Each vSect In dctPPtwinSections
             sSect = vSect
             PPtwinSectionSet sSect                                      ' cllPPtwinSection, cllPPtwinSectionComments, dctPPtwinValues
@@ -2465,7 +2597,7 @@ Private Function PPtwinAsString(ByVal p_file As String) As String
             Next vName
         Next vSect
         
-        PPtwinAsStringComments arrOut, cllPPtwinFooter                  ' File footer
+        PPtwinAsStringComments arrOut, cllPPtwinFooter, , True          ' File footer
         If ArrayIsAllocated(arrOut) Then
             PPtwinAsString = Join(arrOut, vbCrLf)
         End If
@@ -2480,15 +2612,33 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Sub PPtwinAsStringComments(ByRef p_arr As Variant, _
-                           ByVal p_cll As Collection)
+                                   ByVal p_cll As Collection, _
+                          Optional ByVal p_header As Boolean = False, _
+                          Optional ByVal p_footer As Boolean = False)
     Dim v As Variant
+    Dim s As String
+    Dim l As Long
+    Dim a As Variant
     
-    For Each v In p_cll
-        '~~ Accepts aan empty line as a valid comment
-        If v = vbNullString _
-        Then Arry(p_arr) = v _
-        Else Arry(p_arr) = Replace(";" & v, ";;", ";")
-    Next v
+    If p_cll.Count > 0 Then
+        If p_footer And Not IsDelimiterFileFooter(p_cll(1)) Then
+            Arry(p_arr) = "; " & String(l - 2, sFileFooterDelimiterChar)
+        End If
+        For Each v In p_cll
+            
+            '~~ Accepts an empty line as a valid comment
+            If v = vbNullString Then
+                Arry(p_arr) = v
+            Else
+                s = Replace(";" & v, ";;", ";")
+                l = Max(l, Len(s))
+                Arry(p_arr) = s
+            End If
+        Next v
+        If p_header And Not IsDelimiterFileHeader(p_arr(UBound(p_arr))) Then
+            Arry(p_arr) = "; " & String(l - 2, sFileHeaderDelimiterChar)
+        End If
+    End If
     
 End Sub
 
@@ -2530,7 +2680,7 @@ Private Function PPtwinFileFooterPrepare(ByVal f_comments As Collection) As Coll
         Next v
         
         '~~ Prepare with footer delimiter
-        cll.Add DelimiterFileFooter(lMax)
+        cll.Add FileFooterDelimiter(lMax)
         For Each v In f_comments
             If Not IsDelimiterFileFooter(v) Then
                 cll.Add Comment(v)
@@ -2539,29 +2689,6 @@ Private Function PPtwinFileFooterPrepare(ByVal f_comments As Collection) As Coll
     End If
     
     Set PPtwinFileFooterPrepare = cll
-    Set cll = Nothing
-    
-End Function
-
-Private Function PPtwinFileHeaderPrepare(ByVal f_comments As Collection) As Collection
-' ----------------------------------------------------------------------------
-' Returns comments (f_comments) as Collection representing a Private Profile
-' file's header - with a header delimiter line at the bottom.
-' ----------------------------------------------------------------------------
-    Dim cll     As New Collection
-    Dim lMax    As Long
-    Dim v       As Variant
-    
-    If f_comments.Count > 0 Then
-        For Each v In f_comments
-            If Not IsDelimiterFileHeader(Comment(v)) Then
-                lMax = Max(lMax, Len(Comment(v)) - 2)
-                cll.Add Comment(v)
-            End If
-        Next v
-        cll.Add Comment(DelimiterFileHeader(lMax))
-    End If
-    Set PPtwinFileHeaderPrepare = cll
     Set cll = Nothing
     
 End Function
@@ -2832,14 +2959,26 @@ Private Sub PPtwinSectionRemove(ByVal p_file As String, _
         dctPPtwinSections.Remove p_section
     End If
     
-    If dctPPtwinSections.Count > 0 Then
-        PPtwinReplace p_file            ' Replace the twin in the twins Directory
-    Else
-        '~~ When all sections had been removed the Private Profile file has become obsolete to and will be removed
-        dctPPtwins.Remove p_file
-        dctPPtwinsAsString.Remove p_file
-        FSo.DeleteFile p_file
-    End If
+    Select Case True
+        Case dctPPtwinSections Is Nothing
+            dctPPtwins.Remove p_file
+            dctPPtwinsAsString.Remove p_file
+            FSo.DeleteFile p_file
+        Case dctPPtwinSections.Count = 0
+            '~~ When all sections had been removed
+            '~~ the Private Profile file has become obsolete to and will be removed
+            dctPPtwins.Remove p_file
+            dctPPtwinsAsString.Remove p_file
+            FSo.DeleteFile p_file
+        Case dctPPtwinSections.Count = 1 And dctPPtwinSections.Keys(0) = NAMES_HSKPNG_SECT_NAME
+            '~~ When the only section left is the names housekeepinfg section
+            '~~ the Private Profile file has become obsolete to and will be removed
+            dctPPtwins.Remove p_file
+            dctPPtwinsAsString.Remove p_file
+            FSo.DeleteFile p_file
+        Case Else
+            PPtwinReplace p_file            ' Replace the twin in the twins Directory
+    End Select
     
 xt: Exit Sub
 
@@ -2939,13 +3078,22 @@ Private Function PPtwinValueRemove(ByVal p_file As String, _
             Next vSect
         
             '~~ When all sections had been removed the Private Profile file has become obsolete to and should be removed
-            If dctPPtwinSections.Count > 0 Then
-                PPtwinReplace p_file            ' Replace the twin in the twins Directory
-            Else
-                dctPPtwins.Remove p_file
-                dctPPtwinsAsString.Remove p_file
-                FSo.DeleteFile p_file
-            End If
+            Select Case True
+                Case dctPPtwinSections Is Nothing
+                    dctPPtwins.Remove p_file
+                    dctPPtwinsAsString.Remove p_file
+                    FSo.DeleteFile p_file
+                Case dctPPtwinSections.Count = 0
+                    dctPPtwins.Remove p_file
+                    dctPPtwinsAsString.Remove p_file
+                    FSo.DeleteFile p_file
+                Case dctPPtwinSections.Count = 1 And dctPPtwinSections.Keys(0) = NAMES_HSKPNG_SECT_NAME
+                    dctPPtwins.Remove p_file
+                    dctPPtwinsAsString.Remove p_file
+                    FSo.DeleteFile p_file
+                Case Else
+                    PPtwinReplace p_file            ' Replace the twin in the twins Directory
+            End Select
         End If
     End If
     
@@ -3192,15 +3340,14 @@ Public Sub SectionRemove(ByVal name_section As String, _
     On Error GoTo eh
     Dim v As Variant
     
+    If name_section = vbNullString Then GoTo xt
     If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
     If Not IsValidNameSection(name_section) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(name_section)
     
-    If name_section <> vbNullString Then
-        For Each v In StringAsArray(name_section)
-            PPtwinSectionRemove name_file, v
-        Next v
-        PPmanage name_file
-    End If
+    For Each v In StringAsArray(name_section)
+        PPtwinSectionRemove name_file, v
+    Next v
+    PPmanage name_file
     
 xt: Exit Sub
 
@@ -3295,7 +3442,6 @@ Private Function SplitIndctr(ByVal s_strng As String, _
 
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function StringAsArray(ByVal s_items As String, _
                       Optional ByVal s_split As String = vbNullString) As Variant
 ' ----------------------------------------------------------------------------
@@ -3310,7 +3456,6 @@ Private Function StringAsArray(ByVal s_items As String, _
 
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function StringAsCollection(ByVal s_items As String, _
                            Optional ByVal s_split As String = vbNullString) As Collection
 ' ----------------------------------------------------------------------------
@@ -3331,7 +3476,6 @@ Private Function StringAsCollection(ByVal s_items As String, _
     
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function StringAsDictionary(ByVal s_items As String, _
                            Optional ByVal s_split As String = vbNullString) As Dictionary
 ' ----------------------------------------------------------------------------
@@ -3364,25 +3508,28 @@ Private Function StringAsDictionary(ByVal s_items As String, _
     
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function StringAsFile(ByVal s_strng As String, _
                      Optional ByRef s_file As Variant = vbNullString, _
                      Optional ByVal s_file_append As Boolean = False) As File
 ' ----------------------------------------------------------------------------
 ' Writes a string (s_strng) to a file (s_file) which might be a file object or
 ' a file's full name. When no file (s_file) is provided, a temporary file is
-' returned.
-' Note 1: Only when the string has sub-strings delimited by vbCrLf the string
-'         is written a records/lines.
-' Note 2: When the string has the alternate split indicator "|&|" this one is
-'         replaced by vbCrLf.
-' Note when copied: Originates in mVarTrans
-'                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
+' returned. When a file's full name is provided any missing folder in the path
+' is created on the fly
+' Note : Only when the string has sub-strings delimited by vbCrLf the string
+'        is written as records/lines.
 ' ----------------------------------------------------------------------------
+    Dim sPath As String
     
     Select Case True
-        Case s_file = vbNullString: s_file = TempFile
-        Case TypeName(s_file) = "File": s_file = s_file.Path
+        Case s_file = vbNullString
+            s_file = TempFile
+        Case TypeName(s_file) = "File"
+            s_file = s_file.Path
+        Case Else
+            sPath = FSo.GetParentFolderName(s_file)
+            '~~ Create any missing folder
+            CreatePath sPath
     End Select
     
     If s_file_append _
@@ -3394,7 +3541,23 @@ Private Function StringAsFile(ByVal s_strng As String, _
     
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
+Private Sub CreatePath(ByVal s_path As String)
+' ----------------------------------------------------------------------------
+' Creates any folder missing in a provided path.
+' Precondition: The given drive exists and the calle has the right to create
+'               any missing folder.
+' ----------------------------------------------------------------------------
+    Dim sParent As String
+
+    If Not FSo.FolderExists(s_path) Then
+        sParent = FSo.GetParentFolderName(s_path)
+        '~~ Create missing parent folder recursively
+        If Not FSo.FolderExists(sParent) _
+        Then CreatePath sParent
+        '~~ Create the current folder
+        FSo.CreateFolder s_path
+    End If
+End Sub
 Private Function StringAsString(ByVal s_items As String, _
                        Optional ByVal s_split As String = vbNullString) As String
 ' ----------------------------------------------------------------------------
@@ -3415,7 +3578,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function TempFile(Optional ByVal f_path As String = vbNullString, _
                           Optional ByVal f_extension As String = ".txt") As String
 ' ------------------------------------------------------------------------------
@@ -3523,7 +3685,6 @@ Public Sub ValueRemove(ByVal name_value As String, _
 xt:
 End Sub
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function VarAsArray(ByVal v_items As Variant) As Variant
 ' ----------------------------------------------------------------------------
 '
@@ -3539,7 +3700,6 @@ Private Function VarAsArray(ByVal v_items As Variant) As Variant
     
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function VarAsCollection(ByVal v_items As Variant) As Collection
 ' ----------------------------------------------------------------------------
 '
@@ -3555,7 +3715,6 @@ Private Function VarAsCollection(ByVal v_items As Variant) As Collection
     
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function VarAsDictionary(ByVal v_items As Variant) As Dictionary
 ' ----------------------------------------------------------------------------
 '
@@ -3572,7 +3731,6 @@ Private Function VarAsDictionary(ByVal v_items As Variant) As Dictionary
     
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function VarAsFile(ByVal v_items As Variant, _
                   Optional ByVal v_file As String) As File
 ' ----------------------------------------------------------------------------
@@ -3590,7 +3748,6 @@ Private Function VarAsFile(ByVal v_items As Variant, _
     
 End Function
 
-' Origin: Common Component "mVarTrans" =======================================
 Private Function VarAsString(ByVal v_items As Variant, _
                     Optional ByVal v_delimiter As String = vbCrLf) As String
 ' ----------------------------------------------------------------------------

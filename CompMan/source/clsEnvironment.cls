@@ -66,8 +66,8 @@ End Function
 
 Private Sub EstablishCommCompsServicedPrivProfFile(ByVal e_full_name)
     
-    Set CompManDat = New clsCommonServiced
-    With CompManDat
+    Set CommonServiced = New clsCommonServiced
+    With CommonServiced
         Set .PPFile = New clsPrivProf
         With .PPFile
             .FileName = e_full_name

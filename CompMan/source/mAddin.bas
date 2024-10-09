@@ -24,9 +24,7 @@ End Property
 
 Public Property Let Paused(ByVal b As Boolean): mReg.Value(PAUSED_REG_KEY, PAUSED_REG_VALUE_NAME) = b:  End Property
 
-Private Property Get AddInFolder() As String:   AddInFolder = mConfig.VBCompManAddinFolderNameCurrent:  End Property
-
-Public Property Get WbkFullName() As String:    WbkFullName = AddInFolder & DBSLASH & WbkName:          End Property
+Public Property Get WbkFullName() As String:    WbkFullName = mEnvironment.AddInFolderPath & DBSLASH & WbkName: End Property
 
 Public Property Get WbkName() As String
     WbkName = FSo.GetBaseName(ThisWorkbook.FullName) & "." & ADDIN_WORKBOOK_EXTENSION
@@ -143,7 +141,7 @@ Public Sub SetupRenew()
 ' Sets up CompMan as Add-in or, when already set up, renews it.
 ' ----------------------------------------------------------------------------
     mCompMan.ServicedWrkbk = ThisWorkbook
-    Set Environment = New clsEnvironment
+    mEnvironment.Provide ThisWorkbook
     mMe.Renew___AddIn
 End Sub
 

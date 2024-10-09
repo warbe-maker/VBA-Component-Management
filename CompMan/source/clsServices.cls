@@ -64,7 +64,7 @@ Private Sub Class_Terminate()
     Set LogServiced = Nothing
     Set LogServicesSummary = Nothing
     Set Comps = Nothing
-    Set CompManDat = Nothing
+    Set CommonServiced = Nothing
 End Sub
 
 Friend Property Get CurrentService() As Variant:           CurrentService = vCurrentService:                   End Property
@@ -183,7 +183,7 @@ Friend Property Get ServicedWbk() As Workbook:              Set ServicedWbk = wb
 Friend Property Let ServicedWbk(ByVal s_wbk As Workbook):   Set wbkServiced = s_wbk:                                    End Property
 
 Public Function TempExportFolder() As String
-    TempExportFolder = Environment.ExportServiceFolderPath & "\Temp"
+    TempExportFolder = mEnvironment.ExportServiceFolderPath & "\Temp"
 End Function
 
 Private Function CodeModuleIsEmpty(ByRef vbc As VBComponent) As Boolean

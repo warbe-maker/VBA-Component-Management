@@ -54,31 +54,20 @@ Private Sub Class_Initialize()
 ' -----------------------------------------------------------------------------------
 ' Provide the "PendingReleases.dat" Private Profile file's name
 ' -----------------------------------------------------------------------------------
-    Dim dct As New Dictionary
-    Dim v   As Variant
     
     Set PPFile = New clsPrivProf
     With PPFile
-        .FileName = Environment.CommCompsPendingPrivProfFileFullName
-        If .FileHeader <> FileHeader Then
-            .FileHeader = FileHeader
-        End If
+        .FileName = mEnvironment.CommCompsPendingPrivProfFileFullName
         .HskpngNames .FileName _
-                   , "Modified_ExportFileFullName>" & VALUE_NAME_LAST_MOD_EXP_FILE_ORIG _
-                   , "Modified_AtDateTime>" & VALUE_NAME_LAST_MOD_AT _
-                   , "Modified_OnMachine>" & VALUE_NAME_LAST_MOD_ON _
-                   , "Modified_BYUser>" & VALUE_NAME_LAST_MOD_BY _
-                   , "Modified_InWorkbookFullName>" & VALUE_NAME_LAST_MOD_IN
-    
-        Set dct = .SectionNames
+                   , VALUE_NAME_LAST_MOD_AT & "<Modified_AtDateTime" _
+                   , VALUE_NAME_LAST_MOD_BY & "<Modified_ByUser" _
+                   , VALUE_NAME_LAST_MOD_EXP_FILE_ORIG & "<Modified_ExportFileFullName" _
+                   , VALUE_NAME_LAST_MOD_IN & "<Modified_InWorkbookFullName" _
+                   , VALUE_NAME_LAST_MOD_ON & "<Modified_OnMachine"
+        .FileHeader = FileHeader
+        .FileFooter = mEnvironment.PrivateProfileFileFooter
     End With
     
-    For Each v In dct
-        If v Like "_*" Then dct.Remove v
-        If v Like "@*" Then dct.Remove v
-    Next v
-    Set dctComponents = mBasic.KeySort(dct)
-
 End Sub
 
 Private Sub Class_Terminate()
@@ -98,7 +87,18 @@ Friend Property Let CompName(ByVal s As String)
 End Property
 
 Public Property Get Components() As Dictionary
+    Dim dct As Dictionary
+    Dim v   As Variant
+    
+    Set dct = PPFile.SectionNames
+    For Each v In dct
+        If v Like "_*" Then dct.Remove v
+        If v Like "@*" Then dct.Remove v
+    Next v
+    Set dctComponents = mBasic.KeySort(dct)
     Set Components = dctComponents
+    Set dct = Nothing
+    
 End Property
 
 Friend Property Get LastModAt(Optional ByVal m_comp As String = vbNullString) As String
@@ -115,7 +115,7 @@ Friend Property Get LastModBy(Optional ByVal m_comp As String = vbNullString) As
 End Property
 
 Friend Property Let LastModBy(Optional ByVal m_comp As String = vbNullString, _
-                                          ByVal p_mod_at As String)
+                                       ByVal p_mod_at As String)
     Value(m_comp, VALUE_NAME_LAST_MOD_BY) = p_mod_at
 End Property
 
@@ -221,7 +221,8 @@ Public Function CommonComponentsPendingReadyForRelease() As Collection
 ' Returns a collection of all pending release Common Components which are ready
 ' for being release. The fact that only the PendingReleases folder and the
 ' PendingReleases.dat file, both in the Common-Components folder, are involved
-' in the release process all are pending regarded ready for release.
+' in the release process, all pending components which are a component of the
+' current serviced Workbook are regarded ready for release.
 ' However, when the logged in user differs from the user who registered the
 ' pending release the release has to be explicitely confirmed.
 ' ------------------------------------------------------------------------------
@@ -324,7 +325,7 @@ Public Sub ConflictResolve(ByVal c_comp As clsComp)
                 Stop
                 mUpdate.ByReImport c_comp, CommonPublic.LastModExpFile(sComp)
                 Serviced.Wrkbk.VBProject.VBComponents(sComp).Export c_comp.ExpFileFullName
-                CompManDat.LastModAt(sComp) = CommonPublic.LastModAt(sComp)
+                CommonServiced.LastModAt(sComp) = CommonPublic.LastModAt(sComp)
                 Services.Log(sComp) = "Serviced Common Component's code modifications discarded by re-intantiating the " & _
                                       "current public version (update by re-import)"
                 Exit Do
@@ -468,8 +469,8 @@ Public Function ExportFiles() As Dictionary
     Dim sName   As String
     Dim sExt    As String
     
-    If FSo.FolderExists(Environment.CommCompsPendingPath) Then
-        Set fld = FSo.GetFolder(Environment.CommCompsPendingPath)
+    If FSo.FolderExists(mEnvironment.CommCompsPendingPath) Then
+        Set fld = FSo.GetFolder(mEnvironment.CommCompsPendingPath)
         With dct
             For Each fle In fld.Files
                 sName = FSo.GetBaseName(fle.Path)
@@ -489,7 +490,7 @@ End Function
 
 Private Function FileHeader() As String
     FileHeader = "Common Components which had been modified and now are pending release to the public Common-Components folder." & vbLf & _
-                 "The values are transferred from the CompMan.dat of the serviced Workbook in which the code had been modified." & vbLf & _
+                 "The values are transferred from the CommComps.dat of the serviced Workbook in which the code had been modified." & vbLf & _
                  "- LastModAt           : Date/time of the last modification date/time (the export file's creation date repectively)" & vbLf & _
                  "- LastModBy           : User, which had made the last modification" & vbLf & _
                  "- LastModExpFileOrigin: Indicates the 'origin'! of the export file (may point to an export file not available on or not accessable by the used compunter)" & vbLf & _
@@ -517,7 +518,7 @@ Public Function LastModExpFile(ByVal e_comp As String) As String
 ' File. Note that this file is identical with the LastModExpFileOrigin which
 ' just points to the origin file.
 ' ----------------------------------------------------------------------------
-    LastModExpFile = Environment.CommCompsPendingPath & "\" & FSo.GetFileName(LastModExpFileOrigin(e_comp))
+    LastModExpFile = mEnvironment.CommCompsPendingPath & "\" & FSo.GetFileName(LastModExpFileOrigin(e_comp))
 
 End Function
 
@@ -573,7 +574,7 @@ Public Sub Manage(ByVal m_comp As clsComp)
         If bCommCompHasModificationPendingRelease Then
             bCommCompPendingModified = CommCompPendingModified(m_comp)
             bModifiedInAnotherWorkbookAndOrAnotherMachine = sPendingModInWbkFullName <> .WrkbkFullName _
-                                        Or sPendingModOnMachine <> Environment.ThisComputersName
+                                        Or sPendingModOnMachine <> mEnvironment.ThisComputersName
             bPendingIsOutdated = sPendingModAtDateTimeUTC <> .ServicedLastModAt
         End If
         
@@ -695,7 +696,7 @@ Public Sub Register(ByVal r_comp As clsComp)
     Dim sTarget As String
     Dim sFolder As String
     
-    sFolder = Environment.CommCompsPendingPath
+    sFolder = mEnvironment.CommCompsPendingPath
     With r_comp
         CompName = .CompName
         sSource = .ExpFileFullName
@@ -733,7 +734,7 @@ Public Sub ReleaseComp(ByVal r_comp As String, _
     Dim sTarget As String
         
     If Not r_skip_service_initiation _
-    Then mCompMan.ServiceInitiate s_serviced_wbk:=ThisWorkbook _
+    Then mCompMan.ServiceInitiate s_serviced_wbk:=mCompMan.ServicedWrkbk _
                                 , s_service:="Release Common Components" _
                                 , s_do_housekeeping:=False
     
@@ -746,8 +747,8 @@ Public Sub ReleaseComp(ByVal r_comp As String, _
     '~~ Move export file from PendingReleases folder to the Common-Components folder
     With FSo
         sName = .GetFileName(LastModExpFileOrigin(r_comp))
-        sSource = Environment.CommCompsPendingPath & "\" & sName
-        sTarget = Environment.CommCompsPath & "\" & sName ' may yet not exist when first time release !
+        sSource = mEnvironment.CommCompsPendingPath & "\" & sName
+        sTarget = mEnvironment.CommCompsPath & "\" & sName ' may yet not exist when first time release !
         If .FileExists(sTarget) Then .DeleteFile sTarget
         .MoveFile sSource, sTarget
     End With
@@ -762,7 +763,8 @@ Public Sub ReleaseComp(ByVal r_comp As String, _
         CommonPublic.Add r_comp
     End If
     
-    Remove r_comp
+    If FSo.FileExists(mEnvironment.CommCompsPendingPrivProfFileFullName) _
+    Then Remove r_comp ' in case the file still exists
     Prgrss.ItemDone = r_comp
 
 xt: Exit Sub
@@ -782,8 +784,8 @@ Public Sub Remove(ByVal r_comp As String)
 ' -----------------------------------------------------------------------------------
     
     PPFile.SectionRemove r_comp
-    If Not FSo.FileExists(PPFile.FileName) _
-    Then FSo.DeleteFolder Environment.CommCompsPendingPath
+    If Not FSo.FileExists(PPFile.FileName) And FSo.FolderExists(mEnvironment.CommCompsPendingPath) _
+    Then FSo.DeleteFolder mEnvironment.CommCompsPendingPath
     
 End Sub
 

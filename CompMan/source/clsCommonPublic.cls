@@ -11,7 +11,7 @@ Option Explicit
 ' ---------------------------------------------------------------------------
 ' Class Module clsCommonPublic: Management of Common (public) Components in
 ' ============================= the Common-Components folder, the
-' CommComps.dat file and the serviced Workbook's CompMan.dat file.
+' CommComps.dat file and the serviced Workbook's CommComps.dat file.
 '
 ' Public Methods:
 ' ----------------
@@ -40,63 +40,48 @@ Option Explicit
 ' Attention: To change any value names check syntax
 Private Const EXP_FILE_EXTENTION            As String = "ExportFileExtention"
 
-Public PPFile                               As New clsPrivProf
-Private sFolderPath                         As String
-Private sFileName                           As String
+Private PPFile                              As New clsPrivProf
 Public CodePublic                           As clsCode
     
 Private dctAll                              As Dictionary
-'Private dctComps                            As New Dictionary ' Components in the CommComps.dat file
 Private dctFiles                            As New Dictionary ' Files in the Common Components folder
 
 Private Sub Class_Initialize()
     Const PROC = "Class_Initialize"
         
     On Error GoTo eh
-    mBasic.BoP ErrSrc(PROC)
     Set PPFile = New clsPrivProf
     
-    sFolderPath = wsConfig.FolderCommonComponentsPath
-
-    '~~> Full name of the PPFile-File
-    sFileName = sFolderPath & "\" & "CommComps.dat"
-    PPFile.FileName = sFileName
+    With PPFile
+        .FileName = mEnvironment.CommCompsPublicPrivProfFileFullName
     
-    ' Housekeeping names syntax:
-    ' [[sect:][sect:]][current-name]<prev-name<prev-name
-    ' [[sect:][sect:]]prev-name>prev-name>[current-name]
-    ' Rule 1: > or < indicate the history sequence
-    ' Rule 2: One ot more sections are optional. When specified, the names history
-    '         applies only for those, when omitted for all sections the name any
-    '         of the names in the history is used.
-    ' Rule 3: The > and the < character point to the predecessor of a name. I.e.
-    '         both syntaxes are valid.
-    ' Rule 4: The current name is optional. I.e. when > or < is not followed by a
-    '         name (the current new name), the life any history name has ended.
-    '         I. e. the name is no longer used at all and thus any in use history
-    '         name is removed - in the specified or all sections.
-    
-    PPFile.HskpngNames sFileName _
-                    , "RawRevisionNumber>" _
-                    , VALUE_NAME_LAST_MOD_AT & "<LastModifiedAtDateTime<RevisionNumber" _
-                    , VALUE_NAME_LAST_MOD_EXP_FILE_ORIG & "<LastModExpFileFullNameOrigin<LastModExpFileFullName" _
-                    , VALUE_NAME_LAST_MOD_IN & "<LastModifiedInWbkFullName<LastModWbkFullName" _
-                    , VALUE_NAME_LAST_MOD_ON & "<LastModifiedOnMachine" _
-                    , "Last_Modified_InWbkName>" _
-                    , "Last_Modified_ExpFileFullNameOrigin>Last_Modified_ExpFile" _
-                    , "Last_Modified_AtDateTime>LastModAt" _
-                    , "Last_Modified_ByUser>LastModBy" _
-                    , "Last_Modified_InWbkFullName>LastModIn" _
-                    , "Last_Modified_OnMachine>LastModOn" _
-                    , "Last_Modified_ExpFile>LastModExpFile" _
-                    , "LastModExpFile>" & VALUE_NAME_LAST_MOD_EXP_FILE_ORIG
+        ' Housekeeping names syntax:
+        ' [[sect:][sect:]][current-name]<prev-name<prev-name
+        ' [[sect:][sect:]]prev-name>prev-name>[current-name]
+        ' Rule 1: > or < indicate the history sequence
+        ' Rule 2: One ot more sections are optional. When specified, the names history
+        '         applies only for those, when omitted for all sections the name any
+        '         of the names in the history is used.
+        ' Rule 3: The > and the < character point to the predecessor of a name. I.e.
+        '         both syntaxes are valid.
+        ' Rule 4: The current name is optional. I.e. when > or < is not followed by a
+        '         name (the current new name), the life any history name has ended.
+        '         I. e. the name is no longer used at all and thus any in use history
+        '         name is removed - in the specified or all sections.
+        
+        .HskpngNames .FileName _
+                   , VALUE_NAME_LAST_MOD_AT & "<LastModifiedAtDateTime<RevisionNumber<Last_Modified_AtDateTime" _
+                   , VALUE_NAME_LAST_MOD_EXP_FILE_ORIG & "<LastModExpFileFullNameOrigin<LastModExpFileFullName<Last_Modified_ExpFileFullNameOrigin<Last_Modified_ExpFile<<LastModExpFile" _
+                   , VALUE_NAME_LAST_MOD_IN & "<LastModifiedInWbkFullName<LastModWbkFullName<Last_Modified_InWbkName<Last_Modified_InWbkFullName" _
+                   , VALUE_NAME_LAST_MOD_ON & "<LastModifiedOnMachine<Last_Modified_OnMachine" _
+                   , VALUE_NAME_LAST_MOD_BY & "<Last_Modified_ByUser" _
+                   , "RawRevisionNumber>"
 
-    If PPFile.FileHeader <> FileHeader Then
-        PPFile.FileHeader = FileHeader
-    End If
+        .FileHeader = FileHeader
+        .FileFooter = mEnvironment.PrivateProfileFileFooter
+    End With
 
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -139,7 +124,7 @@ End Sub
 
 Friend Property Get BttnDsplyDiff() As String:      BttnDsplyDiff = "Display difference" & vbLf & "(of Export-Files)":  End Property
 
-Public Property Get FolderPath() As String:         FolderPath = sFolderPath:                                           End Property
+'Public Property Get FolderPath() As String:         FolderPath = sFolderPath:                                           End Property
 
 Friend Property Get LastModAt(Optional ByVal l_comp_name As String = vbNullString) As String
 ' ----------------------------------------------------------------------------
@@ -274,7 +259,7 @@ Public Sub DsplyCodeDiffVersusPublic(ByVal d_comp As clsComp)
     
     With d_comp
         sComp = .CompName
-        sUsedHosted = mCompMan.RegState(CompManDat.KindOfComponent(sComp))
+        sUsedHosted = mCompMan.RegState(CommonServiced.KindOfComponent(sComp))
         .CodeCrrent.Source = .ExpFileFullName
         .CodeCrrent.DsplyDiffs d_this_file_name:="Current_" & sUsedHosted & "_CommonComponentInServicedWorkbook" _
                               , d_this_file_title:="Current " & sUsedHosted & " Common Component's code (" & sComp & ") in the serviced Workbook (" & .WrkbkBaseName & ")" _
@@ -322,8 +307,7 @@ Public Function LastModExpFile(ByVal e_comp As String) As String
 ' Provides the full name of a component's (e_comp) last modified Export-File.
 ' Note: This file's origin is the LastModExpFileOrigin.
 ' ----------------------------------------------------------------------------
-    
-    LastModExpFile = sFolderPath & "\" & FSo.GetFileName(LastModExpFileOrigin(e_comp))
+    LastModExpFile = mEnvironment.CommCompsPath & "\" & FSo.GetFileName(LastModExpFileOrigin(e_comp))
 
 End Function
 
@@ -339,7 +323,7 @@ Public Function ExportFiles() As Dictionary
     Dim sName   As String
     Dim sExt    As String
     
-    Set fld = FSo.GetFolder(sFolderPath)
+    Set fld = FSo.GetFolder(mEnvironment.CommCompsPath)
     With dct
         For Each fle In fld.Files
             sName = FSo.GetBaseName(fle.Path)

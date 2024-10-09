@@ -66,7 +66,7 @@ Public Const FORMAT_REV_DATE                    As String = "YYYY-MM-DD"
 Public Const FORMAT_REV_NO                      As String = "000"
 Public Const BTTN_DSPLY_DIFF                    As String = "Display difference" & vbLf & "(of Export-Files)"
 Public Const SRVC_PROGRESS_SCHEME               As String = "<srvc> <by> <serviced>: <n> of <m> <op> <comps> <dots>"
-' Values in CompMan.dat, Pending.dat, and ComComp.dat
+' Values in the serviced Workbook's CommComps.dat, the PendigReleases Pending.dat, and the public CommComps.dat file
 Public Const VALUE_NAME_LAST_MOD_EXP_FILE_ORIG  As String = "LastModExpFileOrigin"
 Public Const VALUE_NAME_LAST_MOD_AT             As String = "LastModAt"
 Public Const VALUE_NAME_LAST_MOD_BY             As String = "LastModBy"
@@ -76,9 +76,8 @@ Public Const VALUE_NAME_LAST_MOD_ON             As String = "LastModOn"
 Public CommCompsPendingRelease                  As Dictionary
 Public CommonPending                            As clsCommonPending
 Public CommonPublic                             As clsCommonPublic
-Public CompManDat                               As clsCommonServiced    ' Serviced Workbook's Common Components Private Profile file
+Public CommonServiced                           As clsCommonServiced    ' Serviced Workbook's Common Components Private Profile file
 Public Comps                                    As clsComps
-Public Environment                              As clsEnvironment       ' Initializes, forwards, sets up CompMan's environment
 Public LogServiced                              As clsLog               ' log writen for the serviced Workbook
 Public LogServicesSummary                       As clsLog               ' the servicing Workbooks own log
 Public Msg                                      As udtMsg
@@ -223,7 +222,7 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     
     mCompMan.CurrentServiceName = mCompManClient.SRVC_EXPORT_CHANGED_DSPLY
     mCompMan.ServicedWrkbk = e_wbk_serviced
-    Set Environment = New clsEnvironment
+    mEnvironment.Provide e_wbk_serviced
     
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=e_wbk_serviced _
@@ -405,7 +404,6 @@ Public Sub ServiceInitiate(ByVal s_serviced_wbk As Workbook, _
     Dim lMaxLenType As Long
     Dim lMaxLenItem As Long
     
-    
     mBasic.BoP ErrSrc(PROC)
     Set Services = New clsServices
     With Services
@@ -422,17 +420,15 @@ Public Sub ServiceInitiate(ByVal s_serviced_wbk As Workbook, _
         .PublProcCpys = s_public_proc_copies
     End With
     
-    Set CommonPublic = New clsCommonPublic
     Set Prgrss = New clsProgress
     
-    Set CommonPending = New clsCommonPending
     Set CommCompsPendingRelease = CommonPending.Components
     
     Serviced.MaxLengths
     lMaxLenType = Serviced.MaxLenType
     lMaxLenItem = Serviced.MaxLenItem
-    Environment.EstablishServicesLog lMaxLenType, lMaxLenItem
-    Environment.EstablishServicesSummaryLog lMaxLenType, lMaxLenItem
+    mEnvironment.EstablishServicedServicesLog lMaxLenType, lMaxLenItem
+    mEnvironment.EstablishServicesSummaryLog lMaxLenType, lMaxLenItem
     
     If s_do_housekeeping Then mHskpng.CommComps
     
@@ -466,7 +462,7 @@ Public Sub ServiceTerminate()
     Set CommCompsPendingRelease = Nothing
     Set CommonPending = Nothing
     Set CommonPublic = Nothing
-    Set CompManDat = Nothing
+    Set CommonServiced = Nothing
     Set Comps = Nothing
     Set LogServiced = Nothing
     Set LogServicesSummary = Nothing
@@ -477,6 +473,7 @@ Public Sub ServiceTerminate()
     s = Application.StatusBar
     For i = 5 To 0 Step -1
         mBasic.DelayedAction 0.6
+        On Error Resume Next
         Application.StatusBar = s & " " & String(i, " ") & i
     Next i
     Application.StatusBar = " "
@@ -514,7 +511,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     
     CurrentServiceName = mCompManClient.SRVC_UPDATE_OUTDATED_DSPLY
     mCompMan.ServicedWrkbk = u_wbk_serviced
-    Set Environment = New clsEnvironment
+    mEnvironment.Provide u_wbk_serviced
 
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=u_wbk_serviced _

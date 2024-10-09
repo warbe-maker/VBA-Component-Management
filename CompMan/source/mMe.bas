@@ -110,7 +110,7 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
     
     Application.EnableEvents = False
     Set Services = New clsServices
-    If mConfig.EnvIsMissing() Then
+    If Not FSo.FolderExists(mEnvironment.CompManServicedRootFolder) Then
         '~~ The CompMan Workbook has been opened the very first time at this location.
         '~~ A default folders and files environment is now setup - provided the user confirms it.
         BttnGoAhead = "Ok!" & vbLf & vbLf & _
@@ -777,7 +777,8 @@ xt: RenewFinalResult bSucceeded
     wsConfig.CurrentStatus
     wsConfig.Activate
     DoEvents
-    Application.SendKeys "%{Tab}" ' brings the monitor message to front
+    Application.SendKeys "%{Tab}" ' should bring the monitor message to front
+    ThisWorkbook.Saved = True
     mBasic.EoP ErrSrc(PROC)
     mCompManClient.Events ErrSrc(PROC), True
     Exit Sub

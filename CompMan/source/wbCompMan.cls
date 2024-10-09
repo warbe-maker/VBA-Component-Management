@@ -75,6 +75,10 @@ Private Sub Workbook_Open()
     Const PROC = "Workbook_Open"
        
     On Error GoTo eh
+    If ThisWorkbook.ReadOnly And mMe.IsDevInstnc Then
+        Stop
+        GoTo xt ' under cetain cirumstances Excel may open the Workbook write protected
+    End If
     If Not mMe.AssertedServicingEnabled Then GoTo xt
     
     If mMe.IsDevInstnc Then

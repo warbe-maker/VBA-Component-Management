@@ -60,25 +60,25 @@ Option Explicit
 '       Component and as such the public and the pending code would be provided.
 '
 ' -----------------------------------------------------------------------------------
-Private flExpFile            As File
-Private lKindOfComp          As enKindOfComp
-Private sCompName            As String       ' The class module's global component name
-Private sExpFileExt          As String
-Private sExpFileFullName     As String       ' Full filespec for the Export-File of CompName
-Private sExpFilePath         As String       ' Folder for the Export-File of CompName
-Private sTmpFolder           As String       ' Folder for a temporary Export File
-Private sWrkbkBaseName       As String       ' Common Component host Workbook's base name
-Private sWrkbkFullName       As String       ' Common Component host Workbook's full name
-Private vbc                  As VBComponent  ' VBComponent managed by this Class Module
-Private wbk                  As Workbook     ' The class' Workbook
-Private sService             As String       ' Name of the 'Service' folder, i.e. the folder of the serviced Workbook
-Private dctType              As Dictionary
-Private lMaxLenComp          As Long
-Private wsh                  As Worksheet
+Private flExpFile           As File
+Private lKindOfComp         As enKindOfComp
+Private sCompName           As String       ' The class module's global component name
+Private sExpFileExt         As String
+Private sExpFileFullName    As String       ' Full filespec for the Export-File of CompName
+Private sExpFilePath        As String       ' Folder for the Export-File of CompName
+Private sTmpFolder          As String       ' Folder for a temporary Export File
+Private sWrkbkBaseName      As String       ' Common Component host Workbook's base name
+Private sWrkbkFullName      As String       ' Common Component host Workbook's full name
+Private vbc                 As VBComponent  ' VBComponent managed by this Class Module
+Private wbk                 As Workbook     ' The class' Workbook
+Private sService            As String       ' Name of the 'Service' folder, i.e. the folder of the serviced Workbook
+Private dctType             As Dictionary
+Private lMaxLenComp         As Long
+Private wsh                 As Worksheet
 
-Public CodeExprtd          As clsCode
+Public CodeExprtd           As clsCode
 Public CodeCrrent           As clsCode
-Public CodePublic            As clsCode
+Public CodePublic           As clsCode
 Public CodePnding           As clsCode
 
 Private Sub Class_Initialize()
@@ -167,7 +167,7 @@ Friend Property Let CompName(ByVal s_comp As String)
             Case vbext_ct_MSForm:       sExpFileExt = ".frm"
             Case vbext_ct_Document:     sExpFileExt = ".cls"
         End Select
-        sExpFileFullName = Environment.ExportServiceFolderPath & "\" & sCompName & sExpFileExt
+        sExpFileFullName = mEnvironment.ExportServiceFolderPath & "\" & sCompName & sExpFileExt
     
         '~~ Provide all local info for the serviced component
         If FSo.FileExists(sExpFileFullName) Then
@@ -226,15 +226,15 @@ Friend Property Let KindOfComp(ByVal en As enKindOfComp):   lKindOfComp = en:   
 
 Friend Property Get MaxLenComp() As Long:                   MaxLenComp = lMaxLenComp:                   End Property
 
-Friend Property Get PendingLastModAt() As String:           PendingLastModAt = CompManDat.LastModAt(sCompName):                 End Property
+Friend Property Get PendingLastModAt() As String:           PendingLastModAt = CommonServiced.LastModAt(sCompName):                 End Property
 
-Friend Property Get PendingLastModBy() As String:           PendingLastModBy = CompManDat.LastModBy(sCompName):                 End Property
+Friend Property Get PendingLastModBy() As String:           PendingLastModBy = CommonServiced.LastModBy(sCompName):                 End Property
 
-Friend Property Get PendingLastModIn() As String:           PendingLastModIn = CompManDat.LastModInWrkbkFullName(sCompName):    End Property
+Friend Property Get PendingLastModIn() As String:           PendingLastModIn = CommonServiced.LastModInWrkbkFullName(sCompName):    End Property
 
-Friend Property Get PendingLastModOn() As String:           PendingLastModOn = CompManDat.LastModOn(sCompName):                 End Property
+Friend Property Get PendingLastModOn() As String:           PendingLastModOn = CommonServiced.LastModOn(sCompName):                 End Property
 
-Friend Property Let PendingLastModOn(ByVal s As String):    CompManDat.LastModOn(sCompName) = s:                                End Property
+Friend Property Let PendingLastModOn(ByVal s As String):    CommonServiced.LastModOn(sCompName) = s:                                End Property
 
 Friend Property Get PublicLastModAt() As String:            PublicLastModAt = CommonPublic.LastModAt(sCompName):                End Property
 
@@ -254,30 +254,30 @@ End Property
                          
 Friend Property Get ServicedLastModAt(Optional ByVal l_comp As String = vbNullString) As String
     If l_comp = vbNullString Then l_comp = sCompName
-    ServicedLastModAt = CompManDat.LastModAt(l_comp)
+    ServicedLastModAt = CommonServiced.LastModAt(l_comp)
 End Property
 
 Friend Property Let ServicedLastModAt(Optional ByVal l_comp As String = vbNullString, _
                                                   ByVal s As String)
     If l_comp = vbNullString Then l_comp = sCompName
-    CompManDat.LastModAt(l_comp) = s
+    CommonServiced.LastModAt(l_comp) = s
 End Property
 
-Friend Property Get ServicedLastModBy() As String:           ServicedLastModBy = CompManDat.LastModBy(sCompName):               End Property
+Friend Property Get ServicedLastModBy() As String:           ServicedLastModBy = CommonServiced.LastModBy(sCompName):               End Property
 
-Friend Property Let ServicedLastModBy(ByVal s As String):    CompManDat.LastModBy(sCompName) = s:                               End Property
+Friend Property Let ServicedLastModBy(ByVal s As String):    CommonServiced.LastModBy(sCompName) = s:                               End Property
 
-Friend Property Get ServicedLastModExpFile() As String:          ServicedLastModExpFile = CompManDat.LastModExpFileOrigin(sCompName):   End Property
+Friend Property Get ServicedLastModExpFile() As String:          ServicedLastModExpFile = CommonServiced.LastModExpFileOrigin(sCompName):   End Property
 
-Friend Property Let ServicedLastModExpFile(ByVal s As String):   CompManDat.LastModExpFileOrigin(sCompName) = s:                        End Property
+Friend Property Let ServicedLastModExpFile(ByVal s As String):   CommonServiced.LastModExpFileOrigin(sCompName) = s:                        End Property
 
-Friend Property Get ServicedLastModIn() As String:           ServicedLastModIn = CompManDat.LastModInWrkbkFullName(sCompName):  End Property
+Friend Property Get ServicedLastModIn() As String:           ServicedLastModIn = CommonServiced.LastModInWrkbkFullName(sCompName):  End Property
 
-Friend Property Let ServicedLastModIn(ByVal s As String):    CompManDat.LastModInWrkbkFullName(sCompName) = s:                  End Property
+Friend Property Let ServicedLastModIn(ByVal s As String):    CommonServiced.LastModInWrkbkFullName(sCompName) = s:                  End Property
 
-Friend Property Get ServicedLastModOn() As String:           ServicedLastModOn = CompManDat.LastModOn(sCompName):               End Property
+Friend Property Get ServicedLastModOn() As String:           ServicedLastModOn = CommonServiced.LastModOn(sCompName):               End Property
 
-Friend Property Let ServicedLastModOn(ByVal s As String):    CompManDat.LastModOn(sCompName) = s:                               End Property
+Friend Property Let ServicedLastModOn(ByVal s As String):    CommonServiced.LastModOn(sCompName) = s:                               End Property
 
 Friend Property Get Sheet() As Worksheet:                    Set Sheet = wsh:                                                   End Property
 
@@ -427,7 +427,7 @@ End Function
 
 Public Function ExpFileFullName() As String
     If sExpFileFullName = vbNullString Then
-        sExpFileFullName = Environment.ExportServiceFolderPath & "\" & sCompName & Me.ExpFileExt
+        sExpFileFullName = mEnvironment.ExportServiceFolderPath & "\" & sCompName & Me.ExpFileExt
     End If
     ExpFileFullName = sExpFileFullName
 End Function
@@ -476,6 +476,20 @@ Public Function IsCommCompPending() As Boolean
     IsCommCompPending = CommonPending.Exists(sCompName)
 End Function
 
+Public Sub Export()
+' ------------------------------------------------------------------------------
+' ! This clsComp service is essential. It ensures the update of the CodeExprtd !
+' ! which needs to be updated to represent the current Export File's code.     !
+' ------------------------------------------------------------------------------
+
+    VBComp.Export ExpFileFullName
+    Set CodeExprtd = Nothing
+    Set CodeExprtd = New clsCode
+    CodeExprtd.Source = ExpFileFullName
+    CodeExprtd.CompName = sCompName
+    
+End Sub
+
 Public Function IsCommCompUpToDate() As Boolean
 
     If Not CodePublic.IsNone Then
@@ -514,13 +528,13 @@ Public Function ServicedMeetPublicProperties() As Boolean
         sXf = .LastModExpFileOrigin(sCompName)
     End With
     
-    With CompManDat
+    With CommonServiced
         Select Case True
-            Case sAt <> .LastModAt(sCompName):              Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModAt differs"
-            Case sBy <> .LastModBy(sCompName):              Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModBy differs"
-            Case sXf <> .LastModExpFileOrigin(sCompName):   Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModXf differs"
-            Case sIn <> .LastModInWrkbkFullName(sCompName): Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModIn differs"
-            Case sOn <> .LastModOn(sCompName):              Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModOn differs"
+            Case sAt <> .LastModAt(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModAt differs"
+            Case sBy <> .LastModBy(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModBy differs"
+            Case sXf <> .LastModExpFileOrigin(sCompName):   ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModXf differs"
+            Case sIn <> .LastModInWrkbkFullName(sCompName): ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModIn differs"
+            Case sOn <> .LastModOn(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModOn differs"
             Case Else:  ServicedMeetPublicProperties = True
         End Select
     End With
@@ -578,7 +592,7 @@ End Sub
 Public Sub SetPendingEqualServiced()
 ' ------------------------------------------------------------------------------
 ' Set the pending release Common Component's properties in the Pending.dat file
-' equal to those in the serviced Common Components CompMan.dat file - when the
+' equal to those in the serviced Common Components CommComps.dat file - when the
 ' modified Common Component is registered pending release.
 ' ------------------------------------------------------------------------------
     Dim sAt As String
@@ -587,7 +601,7 @@ Public Sub SetPendingEqualServiced()
     Dim sOn As String
     Dim sXf As String
     
-    With CompManDat
+    With CommonServiced
         sAt = .LastModAt(sCompName)
         sBy = .LastModBy(sCompName)
         sIn = .LastModInWrkbkFullName(sCompName)
@@ -663,7 +677,7 @@ End Sub
 
 Public Sub SetServicedEqualPublic()
 ' ------------------------------------------------------------------------------
-' Set the serviced Common Component's properties in the CompMan.dat file
+' Set the serviced Common Component's properties in the CommComps.dat file
 ' equal to those of the public Common Component's properties in the CommComp.dat
 ' file in the Common-Components folder - when the outdated Common Component had
 ' been updated.
@@ -681,7 +695,7 @@ Public Sub SetServicedEqualPublic()
         sOn = .LastModOn(sCompName)
         sXf = .LastModExpFileOrigin(sCompName)
     End With
-    With CompManDat
+    With CommonServiced
         .LastModAt(sCompName) = sAt
         .LastModBy(sCompName) = sBy
         .LastModExpFileOrigin(sCompName) = sXf
@@ -693,7 +707,7 @@ End Sub
 
 Public Sub SetServicedProperties()
 ' ------------------------------------------------------------------------------
-' Set the serviced Common Component's properties in the CompMan.dat file when
+' Set the serviced Common Component's properties in the CommComps.dat file when
 ' the modified Common Component is exported.
 ' ------------------------------------------------------------------------------
     Dim sAt As String
@@ -703,11 +717,11 @@ Public Sub SetServicedProperties()
     Dim sXf As String
     
     sAt = mCompMan.UTC(FSo.GetFile(Me.ExpFileFullName).DateLastAccessed)
-    sBy = Environment.ThisComputersUser
+    sBy = mEnvironment.ThisComputersUser
     sIn = Serviced.Wrkbk.FullName
-    sOn = Environment.ThisComputersName
+    sOn = mEnvironment.ThisComputersName
     sXf = ExpFileFullName
-    With CompManDat
+    With CommonServiced
         .LastModAt(sCompName) = sAt
         .LastModBy(sCompName) = sBy
         .LastModExpFileOrigin(sCompName) = sXf

@@ -1,13 +1,11 @@
-; Used or hosted Common Components in the corresponding serviced Workbook "CompMan.xlsb".
-; The values are provided when a Common Component's code has been modified in the serviced Workbook or
-; when a used or hosted Common Component has been updated with code modified elsewhere.
+; Common Components used/hosted/private in the serviced Workbook. The values are maintained for any Common Component used or hosted when it is exported due
+; to a modification. In case, these values are copied to the pending release registered Common Component.
 ; - LastModAt           : Date/time of the last modification date/time (the export file's creation date repectively)
 ; - LastModBy           : User, which had made the last modification
 ; - LastModExpFileOrigin: Indicates the 'origin'! of the export file (may point to an export file not available on or not accessable by the used compunter)
 ; - LastModIn           : The Workbook/VB-Project in which the last code modification had been made (may point to a Workbook om another computer)
 ; - LastModOn           : The computer on which the last modification had been made in the above Workbook.
 ; =========================================================================================================================================================
-
 [@NamesHousekeeping]
 DoneNamesHskpng_1=LastModAt<LastUpdateAtDatTime<LastModAtDatTime<LastModifiedAtDatTime<RawRevisionNumber
 DoneNamesHskpng_2=LastModExpFileOrigin<RawExpFileFullName
@@ -18,15 +16,15 @@ DoneNamesHskpng_6=UsedExportFolder>
 
 [clsLog]
 KindOfComponent=used
-LastModAt=2024-08-30 15:07:25 (UTC)
+LastModAt=2024-10-07 17:45:37 (UTC)
 LastModBy=warbe
-LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\source\clsLog.cls
+LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\clsLog.cls
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
 LastModOn=THINKPAD-YOGA
 
 [clsPrivProf]
 KindOfComponent=used
-LastModAt=2024-10-01 09:15:26 (UTC)
+LastModAt=2024-10-09 12:13:27 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\clsPrivProf.cls
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -42,10 +40,10 @@ LastModOn=DELL-VOSTRO
 
 [clsTestAid]
 KindOfComponent=used
-LastModAt=2024-09-17 18:51:09 (UTC)
+LastModAt=2024-10-09 15:50:08 (UTC)
 LastModBy=warbe
-LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\source\clsTestAid.cls
-LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
+LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\PrivProf\CompMan\source\clsTestAid.cls
+LastModIn=E:\Sync\Excel VBA\DevAndTest\PrivProf\PrivProf.xlsb
 LastModOn=THINKPAD-YOGA
 
 [clsTrc]
@@ -73,7 +71,7 @@ LastModIn=E:\Sync\Excel VBA\DevAndTest\Basic\Basic.xlsm
 LastModOn=DELL-VOSTRO
 
 [mCodingGuidelines]
-KindOfComponent=hosted
+KindOfComponent=used
 LastModAt=2024-08-01 12:23:25 (UTC)
 LastModBy=warbe
 LastModExpFile=E:\Sync\Excel VBA\DevAndTest\CompMan\source\mCodingGuidelines.bas
@@ -82,7 +80,7 @@ LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
 LastModOn=THINKPAD-YOGA
 
 [mCodingRules]
-KindOfComponent=hosted
+KindOfComponent=used
 LastModAt=2024-07-15 14:23:16 (UTC)
 LastModBy=
 LastModExpFile=E:\Sync\Excel VBA\DevAndTest\CompMan\source\mCodingRules.bas
@@ -91,7 +89,7 @@ LastModIn=u n k n o w n !
 LastModOn=
 
 [mCompManClient]
-KindOfComponent=hosted
+KindOfComponent=used
 LastModAt=2024-09-17 21:41:53 (UTC)
 LastModBy=warbe
 LastModExpFile=E:\Sync\Excel VBA\DevAndTest\CompMan\source\mCompManClient.bas
@@ -186,3 +184,8 @@ LastModBy=Valdo
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\source\mWsh.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
 LastModOn=DELL-VOSTRO
+; ----------------------------------------------------------------------------------------------
+; This Private Profile file is maintained by services provided by the class module "clsPrivProf"
+; (see the public Common Component in https://github.com/warbe-maker/VBA-Private-Profile).
+; Main services are: Section separation, optional file header/footer, sections and value-names
+; are maintained in alphabetical ascending order, optional section-/value headers/comments.

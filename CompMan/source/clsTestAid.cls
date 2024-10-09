@@ -69,11 +69,14 @@ Option Base 1
 '                       test.
 ' TimerStart            Initiates a maximum precision timer
 ' TimerElapsedTicks     Returns the elapsed ticks since start
-' TimerElapsedMsecs     Returns the elapsed time since start in milliseconds
+' TimerEnd              Returns the elapsed time since start in milliseconds
 '                       whereby the timer overhead is deducted in order to
 '                       return a result of 0 milliseconds when nothing is
-'                       measured between TimerStart and TimerElapsedMsecs.
-' Verification    P   w A string describing the specific result verification.
+'                       measured between TimerStart and TimerEnd.
+' TimerOverhead   P r   Returns the milliseconds the TimerStart/TimerEnd
+'                       itself consumes when no taking any actual measurement.
+' Verification    P   w A string describing the specific verification of a
+'                       test.
 ' BoTP/EoTP       M     Effective only when the execution trace module (mTrc
 '                       or clsTrc) is installed, indicates the begin/end of a
 '                       procedure.
@@ -85,12 +88,13 @@ Option Base 1
 ' mTrc/clsTrc         Only when an execution trace is desired, indicated by
 '                     Cond. Comp. Arg. `mTrc = 1` or `clsTrc = 1`
 '
-' Note: In order to work completely autonomous the module integrates (i.e.
-'       uses code copies) functions from the Common Component "mAlign". This
-'       allows to use this module also for testing the Common Components
-'       "mAlign" and "clsLog".
+' Note 1: In order to work completely autonomous the module integrates code
+'         copies of services from the Common Components "mAlign" and clsLog".
+' Note 2: This Common Component is not "hosted" in a dedicated Workbook.
+'         It is developed, ammendet, modified and tested within the VB-Project
+'         making use of it.
 '
-' W. Rauschenberger, Berlin Sep 2024
+' W. Rauschenberger, Berlin Oct 2024
 ' ----------------------------------------------------------------------------
 Public FSo As New FileSystemObject
 
@@ -152,6 +156,7 @@ Private dctTestSummary          As New Dictionary
 Private lCols                   As Long
 Private lMaxLenTestProc         As Long
 Private sDelim                  As String
+Private cExecTimeMsecs          As Currency
 Private sLogColsDelim           As String
 Private sLogFile                As String
 Private sLogResultSummaryFile   As String
@@ -185,25 +190,35 @@ Private v                       As Variant
 
 Private Sub Class_Initialize()
     
-    Dim i As Long
-    Dim c As Currency
-    Dim j As Long
+    Const lLoop As Long = 1000
+    
+    Dim i               As Long
+    Dim c               As Currency
+    Dim cTicksAtStart   As Currency
+    Dim cElapsedTime    As Double
     
     TestFolder = ThisWorkbook.Path & "\Test"                        ' default test folder
     ResultSummaryLogFile = sTestFolder & "\Regression.Summary.log"  ' default regression test summary log file's full name
     sTestItems = sTestFolder & "\TestItems.dat"                     ' test items for being removed with CleanUp
     sSubTestId = 1
-    QueryPerformanceFrequency cFrequency
     
-    '~~ Maximizing the timer precision by calculating the average time the timer itself consumes
-    '~~ by the TimerStart and the TimerElapeseMsecs services
-    j = 10000
-    For i = 1 To j
+    ' ------------------------------------------------------------------------
+    ' Provide the milliseconds the timer itself consumes when it not does nay
+    ' actual measurement. This overhead is computed when the class is
+    ' initiated and deducted from any measurement result. This is the way the
+    ' timer service provided (TimerStart, TimerEnd) will return a figure with
+    ' an unavoidable precision failure which is a fraction of a milliseconds.
+    ' ------------------------------------------------------------------------
+    QueryPerformanceFrequency cFrequency
+    QueryPerformanceCounter cTicksAtStart
+    For i = 1 To lLoop
         TimerStart
-        c = c + TimerElapsedMsecs
+        ' no time to be taken
+        TimerEnd
     Next i
-    cTimerOverhead = c / j
-
+    QueryPerformanceCounter cTicksCurrent
+    cTimerOverhead = (((cTicksCurrent - cTicksAtStart) / lLoop) / cFrequency) * 1000
+    
 End Sub
 
 Private Sub Class_Terminate()
@@ -215,8 +230,6 @@ Private Sub Class_Terminate()
     If FSo.FileExists(sTestItems) Then FSo.DeleteFile sTestItems
     
 End Sub
-
-Public Property Get TimerOverhead() As Currency: TimerOverhead = cTimerOverhead: End Property
 
 Private Property Get Arry(Optional ByRef c_arr As Variant, _
                           Optional ByVal c_index As Long = -1) As Variant
@@ -655,9 +668,11 @@ Friend Property Let TestNumber(ByVal s As String)
     
 End Property
 
-Friend Property Get TestResult() As String: TestResult = sResultEvaluated:   End Property
+Friend Property Get TestResult() As String:                     TestResult = sResultEvaluated:                  End Property
 
-Friend Property Let Verification(ByVal s As String):   sVerification = s:                    End Property
+Public Property Get TimerOverhead() As Currency:                TimerOverhead = cTimerOverhead:                 End Property
+
+Friend Property Let Verification(ByVal s As String):            sVerification = s:                              End Property
 
 Private Function AlignCntr(ByVal a_string As String, _
                            ByRef a_length As Long, _
@@ -2232,6 +2247,10 @@ Private Sub ResultEvaluation(Optional ByVal r_result As Collection = Nothing, _
             .Add sTestedProc
             .Add sVerification
             .Add sResultEvaluated
+            If cExecTimeMsecs = 0 _
+            Then .Add "n/a" _
+            Else .Add TimerExecTimeFormatted(cExecTimeMsecs)
+            cExecTimeMsecs = 0
         End With
         Dict(dctTestSummary, r_test_id) = cll
 '        Debug.Print ErrSrc(PROC) & ": " & r_test_id & " added to dctTestSummary"
@@ -2267,6 +2286,7 @@ Private Sub ResultFailedLog(Optional ByVal r_result As Collection = Nothing, _
     Dim lMaxResultExpected  As Long
     Dim v                   As Variant
     Dim sLine               As String
+    Dim sPassedFailed       As String
     
     If Not r_result Is Nothing And Not r_result_expected Is Nothing Then
         Set cllResult = r_result
@@ -2291,11 +2311,10 @@ Private Sub ResultFailedLog(Optional ByVal r_result As Collection = Nothing, _
     LogColsHeader = "Verification, P/F, Result, Result Expected"
                   
     For i = 1 To Min(cllResult.Count, cllResultExpected.Count)
-        If StrComp(CStr(cllResult(i)), CStr(cllResultExpected(i)), vbBinaryCompare) = 0 Then
-            sLine = LogColsArrangedItems(sVerification, "Passed", """" & cllResult(i) & """", """" & cllResultExpected(i) & """")
-        Else
-            sLine = LogColsArrangedItems(sVerification, "Failed", """" & cllResult(i) & """", """" & cllResultExpected(i) & """")
-        End If
+        If StrComp(CStr(cllResult(i)), CStr(cllResultExpected(i)), vbBinaryCompare) = 0 _
+        Then sPassedFailed = "Passed" _
+        Else sPassedFailed = "Failed"
+        sLine = LogColsArrangedItems(sVerification, sPassedFailed, """" & Trim(cllResult(i)) & """", """" & Trim(cllResultExpected(i)) & """")
         LogColsHeaderWrite l_file:=sLogFile _
                          , l_title:=sTestHeadLine _
                          , l_title_fill:=" =" _
@@ -2305,11 +2324,11 @@ Private Sub ResultFailedLog(Optional ByVal r_result As Collection = Nothing, _
     Next i
     If cllResult.Count > cllResultExpected.Count Then
         For i = i To cllResult.Count
-            StringAsFile LogColsArrangedItems("Failed", CStr(cllResult(i)), vbNullString), sLogFile, True
+            StringAsFile LogColsArrangedItems(sVerification, "Failed", """" & Trim(CStr(cllResult(i))) & """", """" & vbNullString & """"), sLogFile, True
         Next i
     ElseIf cllResultExpected.Count > cllResult.Count Then
         For i = i To cllResultExpected.Count
-            StringAsFile LogColsArrangedItems("Failed", vbNullString, CStr(cllResultExpected(i))), sLogFile, True
+            StringAsFile LogColsArrangedItems(sVerification, "Failed", """" & vbNullString & """", """" & Trim(CStr(cllResultExpected(i)))) & """", sLogFile, True
         Next i
     End If
     ShellRun sLogFile ' display log
@@ -2339,11 +2358,13 @@ Public Sub ResultSummaryLog()
     Dim lRslt   As Long
     Dim lTtle   As Long
     Dim lType   As Long
+    Dim lMsec   As Long
     Dim s       As String
     Dim sComp   As String
     Dim sSpec   As String
     Dim sTtId   As String
     Dim sLine   As String
+    Dim sMsec   As String
     Dim sProc   As String
     Dim sRslt   As String
     Dim sTtle   As String
@@ -2367,14 +2388,15 @@ Public Sub ResultSummaryLog()
         lProc = Max(lProc, Len(cll(5)))
         lDesc = Max(lDesc, Len(cll(6)))
         lRslt = Max(lRslt, Len(cll(7)))
+        lMsec = Max(lMsec, Len(cll(8)))
     Next v
         
     '~~ Column specs and headers
-    LogColsSpecs = lTtle & ", " & lTtId & ", " & lComp & ", " & lType & ", " & lProc & ", " & lDesc & ", " & lRslt
+    LogColsSpecs = lTtle & ", " & lTtId & ", " & lComp & ", " & lType & ", " & lProc & ", " & lDesc & ", C" & lRslt & ", " & lMsec
     LogColsDelim = "|"
     '~~ Specifiy headers (are all alligned centered)
-    LogColsHeader = "Test,  Test, Component, Component, Procedure, Verification, Test"
-    LogColsHeader = "Title, Id  , Name,      Type,      Name,                  , Result"
+    LogColsHeader = "Test,  Test, Component, Component, Procedure, Verification, Test, Exec time"
+    LogColsHeader = "Title, Id  , Name,      Type,      Name, (expected/tested result), Result, (msec)"
     sTtle = "Regression Test Summary"
     
     For Each v In dctTestSummary
@@ -2386,8 +2408,8 @@ Public Sub ResultSummaryLog()
         sProc = cll(5)
         sSpec = cll(6)
         sRslt = cll(7)
-        
-        sLine = LogColsArrangedItems(sTtle, sTtId, sComp, sType, sProc, sSpec, sRslt)
+        sMsec = cll(8)
+        sLine = LogColsArrangedItems(sTtle, sTtId, sComp, sType, sProc, sSpec, sRslt, sMsec)
         LogColsHeaderWrite l_file:=sLogResultSummaryFile _
                          , l_title:=sTestHeadLineRegression _
                          , l_title_fill:=" =" _
@@ -2716,16 +2738,6 @@ Private Function TestResultFileName(Optional ByVal t_ext As String = "dat", _
     
 End Function
 
-Public Function TimerElapsedMsecs() As Double
-' ----------------------------------------------------------------------------
-' Returns the elapsed time since start in milliseconds whereby the timer
-' overhead is deducted in order to rturn a result of 0 milliseconds when
-' nothing is measured between the TimerStart and TimerElapsedMsecs service.
-' The average timer overhead is calculated when the class is initialized.
-' ----------------------------------------------------------------------------
-    TimerElapsedMsecs = (TimerElapsedTicks() * 1000) - cTimerOverhead
-End Function
-
 Public Function TimerElapsedTicks() As Double
 ' ----------------------------------------------------------------------------
 ' Returns the elapsed number of ticks since start.
@@ -2734,9 +2746,33 @@ Public Function TimerElapsedTicks() As Double
     TimerElapsedTicks = (cTicksCurrent - cTicksStart) / cFrequency
 End Function
 
-Public Sub TimerStart()
-    QueryPerformanceCounter cTicksStart
-End Sub
+Public Function TimerEnd(Optional t_exec_time As Currency) As Currency
+' ----------------------------------------------------------------------------
+' Returns the elapsed time (t_elpsd) since start in milliseconds whereby the
+' timer overhead is deducted in order to rturn a result of 0 milliseconds
+' when nothing is measured between the TimerStart and TimerElapsedMsecs
+' service. The average timer overhead is calculated when the class is
+' initialized.
+' ----------------------------------------------------------------------------
+    t_exec_time = (TimerElapsedTicks() * 1000) - cTimerOverhead
+    If t_exec_time < 0 Then t_exec_time = 0.0001
+    cExecTimeMsecs = t_exec_time
+    TimerEnd = t_exec_time
+End Function
+
+Private Function TimerExecTimeFormatted(ByVal t_exec_time As Currency) As String
+' ------------------------------------------------------------------------------
+' Returns the Currency (t_exec_time) formatted with a length of 11.
+' ------------------------------------------------------------------------------
+    Dim s As String
+    
+    s = Split(FormatCurrency(t_exec_time, 4, vbTrue, vbUseDefault, vbFalse), " ")(0)
+    s = String(11 - Len(s), " ") & s
+    TimerExecTimeFormatted = s
+    
+End Function
+
+Public Sub TimerStart():    QueryPerformanceCounter cTicksStart:    End Sub
 
 Private Function TruncateIfApplicable(ByRef t_string As String, _
                                       ByVal t_length As Long, _
@@ -2891,28 +2927,18 @@ Private Function WbkExists(ByVal ex_wbk As Variant, _
     Const PROC = "WbkExists"
     
     On Error GoTo eh
-    Dim sTest       As String
+'    Dim sTest       As String
     Dim wbk         As Workbook
-    Dim wsh         As Worksheet
-    Dim FSo         As New FileSystemObject
-    Dim nme         As Name
-    Dim sWsName     As String
-    Dim sWsCodeName As String
+'    Dim wsh         As Worksheet
+'    Dim FSo         As New FileSystemObject
+'    Dim nme         As Name
+'    Dim sWsName     As String
+'    Dim sWsCodeName As String
     
-    If IsFullName(ex_wbk) Then
-        WbkExists = FSo.FileExists(ex_wbk)
-    ElseIf IsName(ex_wbk) Then
-        If Not mWbk.IsOpen(ex_wbk, wbk) Then
-            Err.Raise AppErr(1), ErrSrc(PROC), "The existence of a Workbook provided just by its file name (" & ex_wbk & ") " & _
-                                               "cannot be checked when the Workbook is closed. " & _
-                                               "To check a not open Workbook's existence requires its full name!"
-        End If
-        WbkExists = True
-        Set ex_result_wbk = wbk
-    ElseIf mWbk.IsWbObject(ex_wbk) Then
-        Set wbk = ex_wbk
-        Set ex_result_wbk = wbk
-        WbkExists = True
+    WbkExists = FSo.FileExists(ex_wbk)
+    If Not WbkExists Then
+        On Error Resume Next
+        WbkExists = Application.Workbooks(ex_wbk) = Application.Workbooks(ex_wbk).Name
     End If
                 
 xt: Exit Function

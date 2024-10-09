@@ -32,6 +32,12 @@ Private Sub CmdReleaseComp_Click(ByVal m_item As Office.CommandBarButton, _
     Dim cbb     As Office.CommandBarButton
     Dim sComp   As String
     
+    mCompMan.ServicedWrkbk = ActiveWorkbook
+    mEnvironment.Provide ActiveWorkbook
+    If CommonPending Is Nothing Then
+        Set CommonPending = New clsCommonPending
+    End If
+    
     Set cbb = m_item
     sComp = Split(cbb.Caption, " ")(1)
     CommonPending.ReleaseComp sComp

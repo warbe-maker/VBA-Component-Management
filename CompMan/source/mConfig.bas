@@ -43,9 +43,9 @@ Public Property Get ServicedRootFolderNameCurrent() As String:      ServicedRoot
 
 Private Property Get ServicedRootFolderNameDefault() As String:     ServicedRootFolderNameDefault = FSo.GetFile(ThisWorkbook.FullName).ParentFolder & "\" & DEFAULT_FOLDER_COMPMAN_ROOT:    End Property
 
-Public Property Get VBCompManAddinFolderNameCurrent() As String:   VBCompManAddinFolderNameCurrent = CompManParentFolderNameCurrent & "\" & "Addin":                                        End Property
+'Public Property Get VBCompManAddinFolderNameCurrent() As String:   VBCompManAddinFolderNameCurrent = CompManParentFolderNameCurrent & "\" & "Addin":                                        End Property
 
-Private Property Get VBCompManAddinFolderNameDefault() As String:   VBCompManAddinFolderNameDefault = CompManParentFolderNameDefault & "\" & "Addin":                                       End Property
+'Private Property Get VBCompManAddinFolderNameDefault() As String:   VBCompManAddinFolderNameDefault = CompManParentFolderNameDefault & "\" & "Addin":                                       End Property
 
 Public Sub Adjust()
 ' ----------------------------------------------------------------------------
@@ -141,14 +141,14 @@ Public Function DefaultEnvDisplay(ByVal BttnGoAhead As String) As Variant
 
 End Function
 
-Public Function EnvIsMissing() As Boolean
-' ----------------------------------------------------------------------------
-' Returns TRUE when the current ThisWorkbook parent folder has no Addin and
-' ThisWorkbooks parent.parent folder has no Common-Components folder
-' ----------------------------------------------------------------------------
-    EnvIsMissing = Not FSo.FolderExists(VBCompManAddinFolderNameCurrent) _
-               And Not FSo.FolderExists(CommonCompsFolderNameCurrent)
-End Function
+'Public Function EnvIsMissing() As Boolean
+'' ----------------------------------------------------------------------------
+'' Returns TRUE when the current ThisWorkbook parent folder has no Addin and
+'' ThisWorkbooks parent.parent folder has no Common-Components folder
+'' ----------------------------------------------------------------------------
+'    EnvIsMissing = Not FSo.FolderExists(VBCompManAddinFolderNameCurrent) _
+'               And Not FSo.FolderExists(CommonCompsFolderNameCurrent)
+'End Function
 
 Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mConfig" & "." & es_proc
@@ -216,7 +216,7 @@ Public Sub SelfSetupExportCompManClient()
                 With LogServiced
                     .KeepLogs = 2 ' a new log-file is created after 48 hours
                     .WithTimeStamp
-                    .FileFullName = Environment.ServicesLogFileFullName
+                    .FileFullName = mEnvironment.ServicesLogFileFullName
                     .ColsSpecs = "L" & Len(Comp.TypeString) & ", L.:" & Len(vbc.Name) & ",L30"
                     mCompMan.LogFileService = .FileName
                     .NewFile
@@ -251,17 +251,11 @@ Public Sub SelfSetupDefaultEnvironment()
         
     On Error GoTo eh
         
-    With FSo
-        If Not .FolderExists(ServicedRootFolderNameDefault) Then .CreateFolder ServicedRootFolderNameDefault
-        If Not .FolderExists(mConfig.CommonCompsFolderNameDefault) Then .CreateFolder mConfig.CommonCompsFolderNameDefault
-        If Not .FolderExists(CompManParentFolderNameDefault) Then .CreateFolder CompManParentFolderNameDefault
-        If Not .FolderExists(ExportFolderNameDefault) Then .CreateFolder ExportFolderNameDefault
-        If Not .FolderExists(VBCompManAddinFolderNameDefault) Then .CreateFolder VBCompManAddinFolderNameDefault
-    End With
+    mEnvironment.Provide ThisWorkbook
     
     With wsConfig
-        .FolderCompManRoot = ServicedRootFolderNameDefault
-        .FolderCommonComponentsPath = mConfig.CommonCompsFolderNameDefault
+        .FolderCompManRoot = mEnvironment.CompManServicedRootFolder
+        .FolderCommonComponentsPath = mEnvironment.CommCompsPath
         .FolderSyncArchive = vbNullString
         .FolderSyncTarget = vbNullString
         .AutoOpenCompManRemove

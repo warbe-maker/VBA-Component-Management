@@ -116,7 +116,8 @@ Public Sub MenuItemsAddWithVBECommandBarEvents()
     cllCommandBarEvents.Add cbbVBEVBA 'And the event handler to a collection of handlers
     Set cbb = Nothing
         
-    '~~ Direkt release without dialog
+    '~~ Direkt release without dialog.
+    '~~ Note: This works only when the to-be-released component is a component in the current serviced Workbook
     For Each v In CommonPending.CommonComponentsPendingReadyForRelease
         Select Case Serviced.Wrkbk.VBProject.VBComponents(v).Type
             Case vbext_ct_ClassModule:  lFaceId = 229

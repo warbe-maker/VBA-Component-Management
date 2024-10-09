@@ -90,11 +90,7 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
                     ' ***) Backout modification
                     
                     Case Not bChanged And .IsCommComp
-                        If .ServicedLastModExpFile = vbNullString _
-                        Then .ServicedLastModExpFile = .ExpFileFullName
-                        If .ServicedLastModBy = vbNullString _
-                        And .ServicedLastModOn = Environment.ThisComputersName _
-                        Then .ServicedLastModBy = Environment.ThisComputersUser
+                        .SetServicedProperties
                         Prgrss.ItemSkipped
     
                     Case Not bChanged
@@ -102,13 +98,13 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
                     
                     Case Not .IsCommComp
                         '~~ Changed, not a common component
-                        .VBComp.Export .ExpFileFullName
+                        .Export
                         Services.Log(sComp) = "Modified VBComponent e x p o r t e d !"
                         Prgrss.ItemDone = sComp
                     
                     Case Not .IsCommCompPublic And Not .IsCommCompPending
                         '~~ Changed, Common Component, yet no public version, not yet pending
-                        .VBComp.Export .ExpFileFullName
+                        .Export
                         .SetServicedProperties
                         .CodeExprtd.Source = .ExpFileFullName
                         CommonPending.Register Comp
@@ -121,14 +117,15 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
                     Case .IsCommCompPublic And Not .IsCommCompPending
                         '~~ Changed, public, not pending, modification is based on an up-to-date code version
                         '~~ (may as well be up-to-date but never exported)
-                        .VBComp.Export .ExpFileFullName
+                        .Export
                         .SetServicedProperties
-                        .CodeExprtd.Source = .ExpFileFullName
                         If Not .IsCommCompUpToDate Then
+                            '~~ This indicates that the exported Common Component is not the result of
+                            '~~ a manually imported public Common Component's Export File
                             CommonPending.Register Comp
                             With Services
                                 .Log(sComp) = "Serviced Common Component modified: E x p o r t e d !"
-                                .Log(sComp) = "Serviced Common Component modified: Properties in CompMan.dat updated"
+                                .Log(sComp) = "Serviced Common Component modified: Properties in CommComps.dat updated"
                                 .Log(sComp) = "Serviced Common Component modified: Registered pending release"
                             End With
                         End If
@@ -144,7 +141,7 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
                     
                     Case .IsCommCompPublic And Not CommonPending.Conflicts(Comp)
                         '~~ Changed, common public component, pending, not conflicting
-                        .VBComp.Export .ExpFileFullName
+                        .Export
                         .SetServicedProperties
                         CommonPending.Register Comp
                         With Services
