@@ -218,7 +218,7 @@ Public Sub SelfSetupExportCompManClient()
                     .WithTimeStamp
                     .FileFullName = mEnvironment.ServicesLogFileFullName
                     .ColsSpecs = "L" & Len(Comp.TypeString) & ", L.:" & Len(vbc.Name) & ",L30"
-                    mCompMan.LogFileService = .FileName
+                    mCompMan.LogFileService = .FileFullName
                     .NewFile
                 End With
         

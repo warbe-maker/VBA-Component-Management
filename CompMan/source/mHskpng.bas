@@ -55,7 +55,7 @@ Public Sub CommComps()
     
     lTotalItems = dctFiles.Count                                                    ' CommCompsPublicObsolete
     lTotalItems = lTotalItems + dctComps.Count                                      ' CommCompsPublicNew
-    lTotalItems = lTotalItems + Serviced.Hosted.Count                               ' CommCompsServicedHosted
+    lTotalItems = lTotalItems + Serviced.Hosted.Count                               ' CommCompsServiced
     lTotalItems = lTotalItems + CommonServiced.Components.Count                     ' CommCompsServicedNotHosted
     lTotalItems = lTotalItems + Serviced.CompsCommon.Count                          ' CommCompsServicedKindOf
     lTotalItems = lTotalItems + CommonServiced.Components.Count                     ' CommCompsServicedObsolete
@@ -70,25 +70,16 @@ Public Sub CommComps()
     End With
     
     CommCompsPublicObsolete dctFiles, dctComps
-    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsPublicNew dctFiles, dctComps
-    If CommonServiced.Components.Exists("clsCode") Then Stop
     
     '~~ Housekeeping Common Components serviced
     CommCompsServicedHosted
-    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedNotHosted
-    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedKindOf
-    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedObsolete
-    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedPendingRelease
-    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedPendingReleaseOutstanding
-    If CommonServiced.Components.Exists("clsCode") Then Stop
     CommCompsServicedProperties
-    If CommonServiced.Components.Exists("clsCode") Then Stop
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -99,8 +90,8 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub CommCompsPublicNew(ByVal h_files As Dictionary, _
-                                  ByVal h_comps As Dictionary)
+Private Sub CommCompsPublicNew(ByVal c_files As Dictionary, _
+                               ByVal c_comps As Dictionary)
 ' ------------------------------------------------------------------------------
 ' Maintains the consistency between existing Export-Files in the Common-
 ' Components folder and entries/sections in the CommComps.dat file. Any missing
@@ -118,13 +109,15 @@ Private Sub CommCompsPublicNew(ByVal h_files As Dictionary, _
     
     mBasic.BoP ErrSrc(PROC)
     With CommonPublic
-        For Each v In h_files
+        For Each v In c_files
             sCompName = v
-            sExpFile = h_files(v)
-            If Not h_comps.Exists(sCompName) Then
+            sExpFile = c_files(v)
+            If Not c_comps.Exists(sCompName) Then
                 '~~ The Export-File is yet not registered as a known Common Component
                 '~~ It may have been copied manually into the Common-Components folder.
-                '~~ I.e. its origin is unknown and thus registered as such.
+                '~~ I.e. its origin is either the Serviced Workbooks corresponding component
+                '~~ or it is unknown. In the latter case the Export-File in the Common-Components
+                '~~ folder itself is reand thus registered as such.
                 '~- The origin will remain unknown until the Common Component is
                 '~~ modified in a Workbook using or hosting it and exported.
                 With New clsComp
@@ -133,8 +126,14 @@ Private Sub CommCompsPublicNew(ByVal h_files As Dictionary, _
                         .SetServicedProperties
                         CommonServiced.KindOfComponent(sCompName) = enCompCommonUsed
                         .SetPublicEqualServiced
+                    Else
+                        CommonPublic.LastModExpFileOrigin(sCompName) = sExpFile
                     End If
                 End With
+            Else
+                If FSo.GetFileName(CommonPublic.LastModExpFileOrigin(sCompName)) = vbNullString Then
+                    CommonPublic.LastModExpFileOrigin(sCompName) = sExpFile
+                End If
             End If
             Prgrss.ItemDone = v
         Next v
@@ -232,6 +231,7 @@ Private Sub CommCompsServicedHosted()
     Set wbk = Serviced.Wrkbk
     
     With CommonServiced
+        '~~ 1. Hosted
         For Each v In Serviced.Hosted
             If Serviced.CompExists(v) Then
                 .KindOfComponent(v) = enCompCommonHosted
@@ -278,74 +278,76 @@ Public Sub CommCompsServicedKindOf()
                   "(just by chance with the same name)"
     
     Set dct = CommonPublic.All
-    For Each v In Serviced.CompsCommon
-        sComp = v
-        Select Case CommonServiced.KindOfComponent(sComp)
-            Case enCompCommonPrivate, enCompCommonUsed, enCompCommonHosted
-            Case Else
-                sKnownAs = vbNullString
-                Select Case True
-                    Case CommonPublic.Exists(sComp)
-                        sKnownAs = "Common Component public"
-                        BttnUsed = "Yes!" & vbLf & _
-                                   "This is a  u s e d  Common Component" & vbLf & _
-                                   "identical with the corresponding" & vbLf & _
-                                   "VBComponent's Export-File in the" & vbLf & _
-                                   """Common-Components folder"""
-                    Case CommonPending.Exists(sComp)
-                        sKnownAs = "Common Component ""pending release"" (i.e. it will become public once released)"
-                        BttnUsed = "Yes!" & vbLf & _
-                                   "This is a  u s e d  Common Component" & vbLf & _
-                                   "identical with the corresponding" & vbLf & _
-                                   "VBComponent's Export-File in the" & vbLf & _
-                                   """PendingReleases"" folder" & vbLf & _
-                                   "(a public Common Component once released)"
-                End Select
-                If sKnownAs <> vbNullString Then
-                    '~~ The component is a known as a public hosted or pending release Common Component
-                    With New clsComp
-                        .CompName = sComp
-                        Select Case CommonServiced.KindOfComponent(sComp)
-                            Case enCompCommonPrivate, enCompCommonUsed, enCompCommonHosted
-                            Case Else
-                                '~~ Once an equally named VBComponent is registered as private it will no longer be regarded as "used" and therefore not updated
-                                '~~ when the corresponding Common Component has been modified.
-                                Msg.Section(1).Text.Text = "The component   " & mBasic.Spaced(sComp) & "   is known as a """ & sKnownAs & """ " & _
-                                                           "but the component is yet neither registered/known as ""used"" nor as ""private"" !" & vbLf & _
-                                                           "Just a hint by the way: The component may as well be claimed ""hosted"" by this Workbook in case it is yet not " & _
-                                                           "claimed ""hosted"" by another Workbook/VBProject. *)"
-                                    
-                                With Msg.Section(2)
-                                    .Label.Text = "*)"
-                                    With .Text
-                                         .Text = "See README, section ""Enabling the services (serviced or not serviced)"""
-                                         .OnClickAction = "https://github.com/warbe-maker/VBA-Component-Management#enabling-the-services-serviced-or-not-serviced"
-                                         .FontColor = rgbBlue
+    For Each v In Serviced.Wrkbk.VBProject.VBComponents
+        sComp = v.Name
+        If dct.Exists(sComp) Then
+            Select Case CommonServiced.KindOfComponent(sComp)
+                Case enCompCommonPrivate, enCompCommonUsed, enCompCommonHosted
+                Case Else
+                    sKnownAs = vbNullString
+                    Select Case True
+                        Case CommonPublic.Exists(sComp)
+                            sKnownAs = "Common Component public"
+                            BttnUsed = "Yes!" & vbLf & _
+                                       "This is a  u s e d  Common Component" & vbLf & _
+                                       "identical with the corresponding" & vbLf & _
+                                       "VBComponent's Export-File in the" & vbLf & _
+                                       """Common-Components folder"""
+                        Case CommonPending.Exists(sComp)
+                            sKnownAs = "Common Component ""pending release"" (i.e. it will become public once released)"
+                            BttnUsed = "Yes!" & vbLf & _
+                                       "This is a  u s e d  Common Component" & vbLf & _
+                                       "identical with the corresponding" & vbLf & _
+                                       "VBComponent's Export-File in the" & vbLf & _
+                                       """PendingReleases"" folder" & vbLf & _
+                                       "(a public Common Component once released)"
+                    End Select
+                    If sKnownAs <> vbNullString Then
+                        '~~ The component is a known as a public hosted or pending release Common Component
+                        With New clsComp
+                            .CompName = sComp
+                            Select Case CommonServiced.KindOfComponent(sComp)
+                                Case enCompCommonPrivate, enCompCommonUsed, enCompCommonHosted
+                                Case Else
+                                    '~~ Once an equally named VBComponent is registered as private it will no longer be regarded as "used" and therefore not updated
+                                    '~~ when the corresponding Common Component has been modified.
+                                    Msg.Section(1).Text.Text = "The component   " & mBasic.Spaced(sComp) & "   is known as a """ & sKnownAs & """ " & _
+                                                               "but the component is yet neither registered/known as ""used"" nor as ""private"" !" & vbLf & _
+                                                               "Just a hint by the way: The component may as well be claimed ""hosted"" by this Workbook in case it is yet not " & _
+                                                               "claimed ""hosted"" by another Workbook/VBProject. *)"
+                                        
+                                    With Msg.Section(2)
+                                        .Label.Text = "*)"
+                                        With .Text
+                                             .Text = "See README, section ""Enabling the services (serviced or not serviced)"""
+                                             .OnClickAction = "https://github.com/warbe-maker/VBA-Component-Management#enabling-the-services-serviced-or-not-serviced"
+                                             .FontColor = rgbBlue
+                                        End With
                                     End With
-                                End With
-                                With Msg.Section(3)
-                                    .Label.Text = "About:"
-                                    .Label.FontColor = rgbBlue
-                                    .Text.Text = mCompMan.AboutCommComps
-                                End With
-                                
-                                Select Case mMsg.Dsply(dsply_title:="Not yet registered ""Common Component""" _
-                                                     , dsply_msg:=Msg _
-                                                     , dsply_Label_spec:="L30" _
-                                                     , dsply_buttons:=mMsg.Buttons(BttnUsed, BttnPrivate))
-                                    Case BttnUsed:  CommonServiced.KindOfComponent(.CompName) = enCompCommonUsed
-                                                    CommonServiced.LastModAt(.CompName) = vbNullString ' yet unknown will force update when outdated
-                                                    If .IsCommCompUpToDate Then
-                                                        .Wrkbk.VBProject.VBComponents(.CompName).Export .ExpFileFullName
-                                                        .SetServicedEqualPublic
-                                                    End If
-                                    Case BttnPrivate:  CommonServiced.KindOfComponent(.CompName) = enCompCommonPrivate
-                                End Select
-                        End Select
-                    End With
-                End If
-                Prgrss.ItemDone = v
-        End Select
+                                    With Msg.Section(3)
+                                        .Label.Text = "About:"
+                                        .Label.FontColor = rgbBlue
+                                        .Text.Text = mCompMan.AboutCommComps
+                                    End With
+                                    
+                                    Select Case mMsg.Dsply(dsply_title:="Not yet registered ""Common Component""" _
+                                                         , dsply_msg:=Msg _
+                                                         , dsply_Label_spec:="L30" _
+                                                         , dsply_buttons:=mMsg.Buttons(BttnUsed, BttnPrivate))
+                                        Case BttnUsed:  CommonServiced.KindOfComponent(.CompName) = enCompCommonUsed
+                                                        CommonServiced.LastModAt(.CompName) = vbNullString ' yet unknown will force update when outdated
+                                                        If .IsCommCompUpToDate Then
+                                                            .Wrkbk.VBProject.VBComponents(.CompName).Export .ExpFileFullName
+                                                            .SetServicedEqualPublic
+                                                        End If
+                                        Case BttnPrivate:  CommonServiced.KindOfComponent(.CompName) = enCompCommonPrivate
+                                    End Select
+                            End Select
+                        End With
+                    End If
+                    Prgrss.ItemDone = v
+            End Select
+        End If
     Next v
 
 xt: mBasic.EoP ErrSrc(PROC)
@@ -433,6 +435,11 @@ Private Sub CommCompsServicedPendingRelease()
 '    file in the Pending folder
 ' 3. Removing Export-files without a corresponding entry in the Pending.dat file
 '    File in the Common-Components\Pending folder
+' 4. When the housekeeping runs prior the Export Service and an up-to-date
+'    used Common Component is pending release due to a modification in
+'    another Workbook a dialog is displayed which proposes the continuation -
+'    and possibly finalization in the opened Workbook. This will prevent
+'    a possible concurrent modification which will have to be prevented.
 ' ------------------------------------------------------------------------------
     Const PROC = "CommCompsServicedPendingRelease"
     
@@ -534,9 +541,126 @@ Private Sub CommCompsServicedPendingRelease()
         End If
         Prgrss.ItemDone = v
     Next v
-            
+    
+    '~~ Propose continuation of modification in opened serviced Workbook
+    For Each v In CommonPending.Components
+        sComp = v
+        With CommonServiced
+            If .KindOfComponent(sComp) = enCompCommonUsed Or .KindOfComponent(sComp) = enCompCommonHosted Then
+                Select Case True
+                    Case CommonPending.LastModInWrkbkFullName(sComp) = Serviced.Wrkbk.FullName _
+                      And CommonPending.LastModOn(sComp) = mEnvironment.ThisComputersName
+                    Case Else
+                        '~~ Propose switch
+                        ProposeContinuationOfModificationInThisWorkbook sComp
+                End Select
+            End If
+        End With
+    Next v
+    
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Sub ProposeContinuationOfModificationInThisWorkbook(ByVal p_comp As String)
+' ------------------------------------------------------------------------------
+'
+' ------------------------------------------------------------------------------
+    Const PROC = "ProposeContinuationOfModificationInThisWorkbook"
+    
+    On Error GoTo eh
+    Dim Comp            As clsComp
+    Dim Msg             As udtMsg
+    Dim cllBttns        As Collection
+    Dim sTitle          As String
+    Dim sBttnSwitch     As String
+    Dim sBttnDoNotSwitch As String
+    Dim sRegStatePending As String
+    Dim sRegStateSrviced As String
+    
+    sRegStatePending = mCompMan.RegState(CommonPending.LastModKindOfComp(p_comp))
+    sRegStateSrviced = mCompMan.RegState(CommonServiced.KindOfComponent(p_comp))
+    
+    sBttnDoNotSwitch = "Do not switch with modifications" & vbLf & _
+                       "to this Workbook/VBProject" & vbLf & _
+                       "I am aware of the concurrent modification risk"
+    sBttnSwitch = "Pass on the ongoing modifications to" & vbLf & _
+                  "this Workbook. Modifications will be" & vbLf & _
+                  "continued and possibly finalized herein."
+    
+    With Msg.Section(1)
+        .Label.Text = "Please note:"
+        .Label.FontColor = rgbBlue
+        .Text.Text = "The Common Component """ & p_comp & """  " & mBasic.Spaced(sRegStateSrviced) & _
+                     "   in this Workbook hase already been modified in Workbook (""" & CommonPending.LastModInWrkbkName(p_comp) & """) " & _
+                     "and this modification is yet to finalized/public but still pending release."
+    End With
+    With Msg.Section(2)
+        Select Case True
+            Case sRegStatePending = "used" And sRegStateSrviced = "used"
+                '~~ Switch from used to used suggested
+                sTitle = "Modification switch suggested!"
+                .Label.Text = "Recommended:"
+                .Label.FontColor = rgbBlue
+                .Text.Text = "In order to avoid this pending release is concurrently modified in this Workbook " & _
+                             "the continuation is suggested in this Workbook."
+            Case sRegStatePending = "used" And sRegStateSrviced = "hosted"
+                '~~ Switch from used to hosted suggested
+                sTitle = "Modification switch suggested!"
+                .Label.Text = "Modification switch strongly recommened"
+                .Label.FontColor = rgbBlue
+                .Text.Text = "Continuation/finalization of this modification in this current active Workbook is strongly recommended." & vbLf & _
+                             "This not only avoids any concurrent modification in this Workbook by accident but also " & _
+                             "goes with the modification to the development ""home"" where likely the modification can be tested properly before release to public."
+            Case sRegStatePending = "hosted" And sRegStateSrviced = "used"
+                '~~ Switch from hosted to used not suggested
+                sTitle = "Modification warning!"
+                .Label.Text = "Not recommended!"
+                .Label.FontColor = rgbRed
+                .Label.FontBold = True
+                .Text.Text = "In order to avoid an accidential concurrent modification of this pending release " & _
+                             "a continuation of the ongoing modification in this active Workbook may be considered. " & _
+                             "However, this is   " & mBasic.Spaced("not recommended") & "   because the ongoing modification is " & _
+                             "made in the component's ""home"" Workbook, i.e. in the Workbook which claims the component " & _
+                             "is ""hosted"", which is supposed to be the Workbook/VBProject which provides all the testing means."
+
+        End Select
+    End With
+    With Msg.Section(3)
+        .Label.Text = "Attention!"
+        .Label.FontColor = rgbBlue
+        .Text.Text = "When the ongoing modification is not continued in (switched to) this Workbook (because not recommended) " & _
+                     "the Common Component  " & mBasic.Spaced("must not be modified") & "   in this Workbook since this would " & _
+                     "be considered a conflicting code modification which can not become registered pending release."
+        
+    End With
+    With Msg.Section(4)
+        .Label.Text = "Also note"
+        .Label.FontColor = rgbBlue
+        .Text.Text = "This message will be re-displayed until the pending release modification has been released to public. " & _
+                     "Though this is an obvious annoyance, preventing any conflicting code modification is given priority."
+    End With
+    If mMsg.Dsply(dsply_title:=sTitle _
+                , dsply_msg:=Msg _
+                , dsply_Label_spec:="L100" _
+                , dsply_width_min:=500 _
+                , dsply_buttons:=mMsg.Buttons(sBttnSwitch, vbLf, sBttnDoNotSwitch)) = sBttnSwitch Then
+        '~~ Switch ongoing modifications to theis Workbook
+        mUpdate.ByReImport p_comp, CommonPending.LastModExpFile(p_comp)
+        Set Comp = New clsComp
+        With Comp
+            .CompName = p_comp
+            .Export
+        End With
+        CommonPending.Register Comp
+    End If
+                         
+xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

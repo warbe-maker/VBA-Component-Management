@@ -72,6 +72,8 @@ Public Const VALUE_NAME_LAST_MOD_AT             As String = "LastModAt"
 Public Const VALUE_NAME_LAST_MOD_BY             As String = "LastModBy"
 Public Const VALUE_NAME_LAST_MOD_IN             As String = "LastModIn"
 Public Const VALUE_NAME_LAST_MOD_ON             As String = "LastModOn"
+Public Const VALUE_NAME_REG_STAT_COMP           As String = "KindOfComponent"
+Public Const VALUE_NAME_REG_STAT_ORIGIN_COMP    As String = "KindOfOriginComponent"
 
 Public CommCompsPendingRelease                  As Dictionary
 Public CommonPending                            As clsCommonPending

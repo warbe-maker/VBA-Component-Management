@@ -24,27 +24,32 @@ Option Explicit
 '
 ' Public methods:
 ' ---------------
-' Manage     Manages registration, conflicting modification, and removal of bsolete
-'            registrations
-' Register   Registers an Exportfile as pending release by copying it into the
-'            "PendingReleases" folder and updating the corresponding properties in
-'            the CommonPending.dat Private Profile file.
-' Remove     Removes a released component from the Private Profile file
-'            "PendingReleases.dat". Whne the last one registered had been removed
-'            also removes the "PendingReleases" folder.
-' Release    Called by Manage. Moves the pending release Export File from the
-'            "PendingReleases" folder into the Common Components folder by updating
-'            the corresponding Properties in the CommComps.dat Private Profile file.
-' Components Returns a Collection with the name of all registerd pending release
-'            components (sections in the Private Profile file "PendingReleases.dat")
-' ConflictResolve   Called by Manage, displays a dialog providing the following choices:
-'            - Display former modifications
-'            - Continue with former (pending release) modifications. I.e. the
-'              pending release Export File is re-imported to the serviced Workbook in
-'              order to enable continuation with ongoing modifications.
-'            - Display this modifications
-'            - Ignore the former modifications. I.e. this modifications become the
-'              new pending release ones.
+' Manage          Manages registration, conflicting modification, and removal of
+'                 obsolete registrations
+' Register        Registers an Exportfile as pending release by copying it into the
+'                 "PendingReleases" folder and updating the corresponding properties
+'                 in the CommonPending.dat Private Profile file.
+' Remove          Removes a released component from the Private Profile file
+'                 "PendingReleases.dat". Whne the last one registered had been
+'                 removed also removes the "PendingReleases" folder.
+' Release         Called by Manage. Moves the pending release Export File from the
+'                 "PendingReleases" folder into the Common Components folder by
+'                 updating the corresponding Properties in the CommComps.dat Private
+'                 Profile file.
+' -----------------------------------------------------------------------------------
+' Components      Returns a Collection with the component name of all registerd
+'                 pending release components, i.e. sections in the Private Profile
+'                 file "PendingReleases.dat")
+' ConflictResolve Displays a dialog providing the following choices:
+'                 - Display the modifications already made in the other Workbook
+'                 - Continue with former (pending release) modifications. I.e. the
+'                   pending release Export File is re-imported to the serviced
+'                   Workbook in order to enable continuation with ongoing modifi-
+'                   cations.
+'                 - Display the - now conflicting - modifications made in this
+'                   Workbook
+'                 - Ignore the former modifications. I.e. this modifications become the
+'                   new pending release ones.
 ' -----------------------------------------------------------------------------------
 Private PPFile          As clsPrivProf
 Private sComp           As String
@@ -73,14 +78,6 @@ End Sub
 Private Sub Class_Terminate()
     Set PPFile = Nothing
 End Sub
-
-Private Property Get BttnDsplyDiffTheseVersusFormerModifications(ByVal b_comp As String) As String
-    BttnDsplyDiffTheseVersusFormerModifications = "Display the modifications made  in " & vbLf & _
-                                                  "made in this serviced Workbook" & vbLf & _
-                                                  Serviced.Wrkbk.Name & vbLf & _
-                                                  " versus those already made in" & vbLf & _
-                                                  LastModInWrkbkName(b_comp) & vbLf & "on computer" & LastModOn(b_comp)
-End Property
 
 Friend Property Let CompName(ByVal s As String)
     PPFile.Section = s
@@ -137,6 +134,15 @@ Friend Property Let LastModInWrkbkFullName(Optional ByVal m_comp As String = vbN
     Value(m_comp, VALUE_NAME_LAST_MOD_IN) = p_mod_by
 End Property
 
+Friend Property Let LastModKindOfComp(Optional ByVal comp_name As String = vbNullString, _
+                                               ByVal comp_reg_state As enKindOfComp)
+    Value(comp_name, VALUE_NAME_REG_STAT_COMP) = mCompMan.RegState(comp_reg_state)
+End Property
+
+Friend Property Get LastModKindOfComp(Optional ByVal comp_name As String) As enKindOfComp
+    LastModKindOfComp = mCompMan.RegState(Value(comp_name, VALUE_NAME_REG_STAT_COMP))
+End Property
+
 Friend Property Get LastModOn(Optional ByVal m_comp As String = vbNullString) As String
     LastModOn = Value(m_comp, VALUE_NAME_LAST_MOD_ON)
 End Property
@@ -184,14 +190,23 @@ Private Function BtoS(ByVal b As Boolean) As String
     If b Then BtoS = "True" Else BtoS = "False"
 End Function
 
+Private Function BttnDsplyDiffTheseVersusFormerModifications(ByVal b_comp As String) As String
+    BttnDsplyDiffTheseVersusFormerModifications = "Display the modifications made  in " & vbLf & _
+                                                  "this serviced ActiveWorkbook (""" & vbLf & _
+                                                  Serviced.Wrkbk.Name & """) " & vbLf & _
+                                                  "versus those already made in Workbook """ & vbLf & _
+                                                  LastModInWrkbkName(b_comp) & vbLf & """ on computer """ & LastModOn(b_comp) & """"
+End Function
+
 Private Function BttnDsplyFormerModifications(ByVal b_comp As String) As String
-    BttnDsplyFormerModifications = "Display the former modifications made in" & vbLf & _
-                                   LastModInWrkbkName(b_comp) & vbLf & _
-                                   "on computer " & vbLf & LastModOn(b_comp)
+    BttnDsplyFormerModifications = "Display the modifications aleady made in " & vbLf & _
+                                   """ " & LastModInWrkbkName(b_comp) & """" & vbLf & _
+                                   "on computer" & vbLf & _
+                                   """" & LastModOn(b_comp) & """"
 End Function
 
 Private Function BttnDsplyTheseModifications() As String
-    BttnDsplyTheseModifications = "Display these modifications" & vbLf & "made in this Workbook"
+    BttnDsplyTheseModifications = "Display the modifications" & vbLf & "made in this Workbook"
 End Function
 
 Private Function BttnIgnore() As String
@@ -199,7 +214,7 @@ Private Function BttnIgnore() As String
 End Function
 
 Private Function BttnIgnoreTheseModifications() As String
-    BttnIgnoreTheseModifications = "Ignore the modifications" & vbLf & "made in this Workbook" & vbLf & Services.ServicedWbk.Name
+    BttnIgnoreTheseModifications = "Ignore the modifications" & vbLf & "made in Workbook" & vbLf & Services.ServicedWbk.Name
 End Function
 
 Private Function BttnUndoThisModifications() As String
@@ -347,34 +362,36 @@ End Sub
 
 Public Function Conflicts(ByVal c_comp As clsComp)
 ' -----------------------------------------------------------------------------------
-' Returns TRUE when:
-' - The pending release modification conflicts with the serviced Workbooks component.
-'   This is the case when the pending release code is not identical with the
-'   last export file of the serviced Workbook's component export-file - which means
-'   it cannot be the Workbook which's modification is currently pending release. On
-'   the other hand, even when the Workbooks may differ in name and or location, as
-'   long as the pending release code meets the last exported code the modification
-'   continuation is safe.
-' - When the component is not pending release but the export-file is not identical
-'   with the current public component's code. Which means a non up-to-date code
-'   is about to be modified!
-' Note 1: When the pending release code is not identical with the serviced Workbook's
-'         last export file the modification is not based on the last registered
-'         pending release modification. I.e. even in case the Workbook's full name
-'         are identical the difference must have another confliction reason, e.g.
-'         another computer with (obviously) the same file structure.
-' Note 2: The conflict check is performed  b e v o r e  a modification is exported
-'         and the conflict can only be resolved by resetting to code to the current
-'         public code, i.e. by discarding the code modifications.
+' Returns TRUE when the current code of the serviced Common Component differs from
+' the code change which is already pending release but the pending release
+' modification has been made in another Workbook (i.e. the Workbook or the computer
+' of the serviced Common Component (c_comp) is not identical with those of the
+' pending release.
+' Note: The conflict check may be made before or after the export of a code change.
 ' -----------------------------------------------------------------------------------
+    Dim sIn     As String
+    Dim sOn     As String
+    Dim sComp   As String
     
     With c_comp
+        sComp = .CompName
         Select Case True
-            Case .IsCommCompPending And .CodeCrrent.Meets(.CodePnding)
-            Case Not .CodeExprtd.IsNone
-                Conflicts = .IsCommCompPending And Not .CodeExprtd.Meets(.CodePnding)
+            Case Not .IsCommCompPending
+                '~~ Not modification is yet pending releaseYet
+            Case .CodeCrrent.Meets(.CodePnding)
+                '~~ The current pending release code modification is identical with the
+                '~~ code of the service Common Component
             Case Else
-                Conflicts = True
+                '~~ When the code differs and the properties (in Workbook or on Computer)
+                '~~ differs there is a conflicting code modification
+                With CommonPending
+                    sIn = .LastModInWrkbkFullName(sComp)
+                    sOn = .LastModOn(sComp)
+                End With
+                With CommonServiced
+                    Conflicts = sIn <> .LastModInWrkbkFullName(sComp) _
+                             Or sOn <> .LastModOn(sComp)
+                End With
         End Select
     End With
                     
@@ -649,21 +666,7 @@ Public Sub Manage(ByVal m_comp As clsComp)
                 Stop
                 Register m_comp ' re-register a consequtive modification
                 Services.Log(sComp) = "Serviced Common Component's code modification re-registered pending release."
-                
-'            '~~ True, True, True, True
-'            Case bCommCompHasBeenModifiedInTheServicedWorkbook = True _
-'             And bCommCompHasModificationPendingRelease = True _
-'             And bCommCompPendingModified = True _
-'             And bModifiedInAnotherWorkbookAndOrAnotherMachine = True
-'                '~~ 1. The Common Component's code differs from the current public Common Components code,
-'                '~~    i.e. it has been modified since the last update
-'                '~~ 2. The Common Component's code also differs from the current pending release code
-'                '~~ 3. The pending release registration concerns another Workbook and/or another machine
-'                '~~ Conclusion: This concerns a modification which conflicts with one made already in another
-'                '~~             Workbook and/or machine.
-'                Services.Log(sComp) = "Conflicting Common Component modification (already registered pending by another Workbook and/or another machine!"
-'                ConflictResolve m_comp
-            
+                            
             Case Else
                 Debug.Print ErrSrc(PROC) & ": " & Aligned(sComp) & " " & BtoS(bCommCompHasBeenModifiedInTheServicedWorkbook) _
                                                                  & " " & BtoS(bCommCompHasModificationPendingRelease) _
@@ -684,9 +687,9 @@ End Sub
 
 Public Sub Register(ByVal r_comp As clsComp)
 ' -----------------------------------------------------------------------------------
-' Registers an Export-File "pending release" by copying it into the "PendingReleases"
-' folder and updating the corresponding properties in the "PendingReleases.dat"
-' Private Profile file.
+' Registers a Common Component's (r_comp) Export-File as "pending release" by copying
+' it into the "PendingReleases" folder and updating the corresponding properties in
+' the "PendingReleases.dat" Private Profile file.
 ' Note: The PendingReleases folder exists only while there is at least one pending
 '       release component.
 ' -----------------------------------------------------------------------------------

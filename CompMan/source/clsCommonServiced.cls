@@ -47,7 +47,6 @@ Option Explicit
 ' W. Rauschenberger Berlin, Jul. 2023
 ' ---------------------------------------------------------------------------
 Private Const SECTION_NAME_RECENT_EXPORT        As String = "_MostRecentExport"    ' _ avoids conflict with an existing VBComponent
-Private Const VALUE_NAME_REG_STAT_OF_COMPONENT  As String = "KindOfComponent"
 Private Const VALUE_NAME_USED_EXPORT_FOLDER     As String = "UsedExportFolder"
 
 Public PPFile                                   As New clsPrivProf
@@ -99,11 +98,11 @@ End Property
 
 Friend Property Let KindOfComponent(Optional ByVal comp_name As String = vbNullString, _
                                                ByVal comp_reg_state As enKindOfComp)
-    Value(comp_name, VALUE_NAME_REG_STAT_OF_COMPONENT) = mCompMan.RegState(comp_reg_state)
+    Value(comp_name, VALUE_NAME_REG_STAT_COMP) = mCompMan.RegState(comp_reg_state)
 End Property
 
 Friend Property Get KindOfComponent(Optional ByVal comp_name As String) As enKindOfComp
-    KindOfComponent = mCompMan.RegState(Value(comp_name, VALUE_NAME_REG_STAT_OF_COMPONENT))
+    KindOfComponent = mCompMan.RegState(Value(comp_name, VALUE_NAME_REG_STAT_COMP))
 End Property
 
 Friend Property Get LastModAt(Optional ByVal l_comp As String) As String

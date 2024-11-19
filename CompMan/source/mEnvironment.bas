@@ -120,7 +120,7 @@ Public Sub EstablishServicedServicesLog(ByVal e_max_len_type As Long, _
         .FileFullName = mEnvironment.ServicesLogFileFullName
         .Title CurrentServiceStatusBar
         .ColsSpecs = "L" & e_max_len_type & ", L.:" & e_max_len_item & ", L60"
-        mCompMan.LogFileService = .FileName
+        mCompMan.LogFileService = .FileFullName
     End With
     
 End Sub
@@ -137,7 +137,7 @@ Public Sub EstablishServicesSummaryLog(ByVal e_max_len_type As Long, _
         .FileFullName = mEnvironment.ServicesSummaryLogFileFullName
         .NewLog
         .ColsSpecs = "L" & e_max_len_type & ", L.:" & e_max_len_item & ", L60"
-        mCompMan.LogFileServicesSummary = .FileName
+        mCompMan.LogFileServicesSummary = .FileFullName
     End With
 
 End Sub
@@ -259,7 +259,7 @@ Public Sub Provide(ByVal p_wbk_serviced As Workbook)
     Const FILE_NAME_COMMCOMPS_PUBLIC_PRIVPROF   As String = "CommComps.dat"
     Const FILE_NAME_COMMCOMPS_SERVICED_PRIVPROF As String = "CommComps.dat"
     Const FILE_NAME_EXEC_TRACE                  As String = "ExecTrace.log"
-    Const FLDR_NAME_ADDIN                       As String = "Addin"
+    Const FLDR_NAME_ADDIN                       As String = "CompManAddin"
     Const FILE_NAME_SERVICES_LOG                As String = "Services.log"
     Const FLDR_NAME_COMMCOMPS                   As String = "Common-Components"
     Const FLDR_NAME_COMMCOMPS_PENDING           As String = "PendingReleases"

@@ -52,7 +52,7 @@ Option Base 1 ' ensures the index conforms with the column number
 ' - FileFullName r/w Specifies the full name of the log-file. The location defaults
 '                    to the ActiveWorkbook's parent folder, the name defaults to the
 '                    ActiveWorkbook's BaseName with a .log file extention.
-' - FileName       w Specifies the log-file's name, defaults to the ActiveWorkbook's
+' - FileBaseName       w Specifies the log-file's name, defaults to the ActiveWorkbook's
 '                    BaseName with a .log file extention.
 ' - KeepLogs       w Specifies the number of logs, i.e. a set of log entries, is
 '                    kept when the log file is reorganized.
@@ -78,16 +78,23 @@ Private bWithTimeStamp          As Boolean
 Private FSo                     As New FileSystemObject
 Private lBase                   As Long
 Private lCols                   As Long
-Private lCOLUMNS                As Long
+Private lColumns                As Long
 Private lKeepLogs               As Long
 Private sColsDelimiter          As String
 Private sColsMargin             As String
+Private sFileExtension          As String
+Private sFileBaseName           As String
 Private sFileFullName           As String
-Private sFileName               As String
+Private sFileLocation           As String
 Private sLastSpec               As String ' Entry, Title, Header, else
-Private sPath                   As String
 Private sTitleAlign             As String
 Private sTitleFill              As String
+
+Private Enum enAlign
+    enAlignLeft = 1
+    enAlignRight = 2
+    enAlignCentered = 3
+End Enum
 
 #If Not mMsg = 1 Then
     ' -------------------------------------------------------------------------------
@@ -122,7 +129,13 @@ Private Sub Class_Initialize()
     bWithTimeStamp = False
     bNewLog = True
     lBase = ArrayBase
-    
+    ColsDelimiter = " "
+    '~~ Log file name defaults
+    sFileBaseName = FSo.GetBaseName(ActiveWorkbook.FullName)
+    sFileExtension = "log"
+    sFileLocation = ActiveWorkbook.Path
+    sFileFullName = FileFullName
+
 End Sub
 
 Private Sub Class_Terminate()
@@ -145,7 +158,7 @@ Private Property Let AlignmentHeaderCol(Optional ByVal c_col As Long, _
     Arry(aColsAlign, c_col) = c_align
 End Property
 
-Public Property Get AlignmentItemCol(Optional ByVal c_col As Long) As String
+Private Property Get AlignmentItemCol(Optional ByVal c_col As Long) As String
     AlignmentItemCol = Arry(aColsAlign, c_col)
 End Property
 
@@ -281,11 +294,11 @@ Private Property Get ColItem(Optional ByVal c_col As Long) As String
             ColWidth(c_col) = Max(Len(aItems(c_col)), lWidth)
         End If
         
-        If c_col < lCOLUMNS Then
-            ColItem = AlignString(aItems(c_col), ColWidthFinal(c_col), AlignmentItemCol(c_col), sColsMargin, ColFill(c_col))
-        ElseIf c_col = lCOLUMNS Then
+        If c_col < lColumns Then
+            ColItem = Align(aItems(c_col), AlignmentItemCol(c_col), ColWidthFinal(c_col), ColFill(c_col), sColsMargin, True)
+        ElseIf c_col = lColumns Then
             '~~ The width of the rightmost column is unlimited and left aligned.
-            ColItem = AlignString(aItems(c_col), Len(aItems(c_col)) + Len(sColsMargin), "L", sColsMargin, " ")
+            ColItem = Align(aItems(c_col), "L", Len(aItems(c_col)) + Len(sColsMargin), " ", sColsMargin, True)
         End If
     End If
     
@@ -347,7 +360,7 @@ Public Property Let ColsHeader(Optional ByVal c_line As Long, _
         iCol = iCol + 1
         sColHeader = Trim$(v) ' ensure centered regardless any leading or trailing spaces
         ColWidth(iCol) = Len(v)
-        sItem = AlignString(sColHeader, "C", ColWidth(iCol), sColFill, ColsMargin, iCol, True)
+        sItem = Align(sColHeader, "C", ColWidth(iCol), sColFill, ColsMargin, True)
         s = ConcatenateStrings(s, sItem, ColsDelimiter, sDelim)
     Next v
     Arry(aColsHeadersLines) = s ' add s to the array
@@ -358,64 +371,10 @@ Public Property Get ColsMargin() As String
     If sColsDelimiter <> " " Then ColsMargin = " " Else ColsMargin = vbNullString
 End Property
 
-'Private Sub ColsHeaderWrite(ByVal l_file As String, _
-'                   Optional ByRef l_title As String = vbNullString, _
-'                   Optional ByVal l_title_fill As String = " =", _
-'                   Optional ByVal l_with_header_underline As Boolean = False, _
-'                   Optional ByVal l_width As Long)
-'' ------------------------------------------------------------------------------
-'' Write a title (l_title) when one is still specified and write column headers
-'' when one are still specified - both are reset once written to a file (l_file).
-''
-'' Preconditions:
-'' - Columns had been specified (LogColsSpecs) whereby the column width is
-''   mandatory while the alignment defaults to Left when ommited
-'' - A column delimiter has been specified (LogColsDelim)
-'' - One or more header lines had been specified (LogColsHeader).
-'' ------------------------------------------------------------------------------
-'    Const PROC = "LogColsHeaderWrite"
-'
-'    On Error GoTo eh
-'    Dim lDelim      As Long
-'    Dim sColDelimUl As String
-'    Dim sHeaderUl   As String
-'    Dim v           As Variant
-'    Dim vLine       As Variant
-'    Dim i           As Long
-'    Dim s           As String
-'
-'    If l_title <> vbNullString Then
-'        StringAsFile AlignCntr(l_title, l_width, l_title_fill), l_file
-'        l_title = vbNullString
-'    End If
-'
-'    If ArrayIsAllocated(aColHeaders) Then
-'        If l_with_header_underline Then
-'            '~~ Prepare cols header top/bottom line
-'            lDelim = Len(ColsDelim) + Len(ColsMargin)
-'            For Each v In aColsWidth
-'                sHeaderUl = ConcatenateStrings(sHeaderUl, String(v + lDelim, "-"), "+", sColDelimUl)
-'            Next v
-'            StringAsFile sHeaderUl, l_file
-'        End If
-'        For Each v In aColHeaders
-'            StringAsFile CStr(v), l_file
-'        Next v
-'        If l_with_header_underline _
-'        Then StringAsFile sHeaderUl, l_file
-'        ArrayErase aColHeaders
-'    End If
-'
-'xt: Exit Sub
-'
-'eh: Select Case ErrMsg(ErrSrc(PROC))
-'        Case vbResume:  Stop: Resume
-'        Case Else:      GoTo xt
-'    End Select
-'End Sub
-
 Public Property Let ColsSpecs(ByVal c_specs As String)
-
+' ----------------------------------------------------------------------------
+' Specifying columns specifications length, alignment, and fill
+' ----------------------------------------------------------------------------
     Dim aSpecs  As Variant
     Dim iCol    As Long
     Dim v       As Variant
@@ -458,37 +417,40 @@ Public Property Let ColWidth(Optional ByVal c_col As Long, _
     
 End Property
 
-Friend Property Get FileFullName() As String:   FileFullName = sFileFullName:   End Property
+Friend Property Get FileExtension() As String:          FileExtension = sFileExtension: End Property
+
+Friend Property Let FileExtension(ByVal s As String):   sFileExtension = s:             End Property
+
+Friend Property Get FileFullName() As String
+    FileFullName = sFileLocation & "\" & sFileBaseName & "." & sFileExtension
+    FileFullName = Replace(FileFullName, "\\", "\")
+    FileFullName = Replace(FileFullName, "..", ".")
+End Property
 
 Friend Property Let FileFullName(ByVal s As String)
 ' ----------------------------------------------------------------------------
 ' Specifies the log file's name and location, by the way maintaining the Path
-' and the FileName property.
+' and the FileBaseName property.
 ' ----------------------------------------------------------------------------
     
     With FSo
-        If sFileFullName <> s Then
+        If s <> FileFullName Then
             '~~ The log file's name is not/no longer the one previously used
-            If .FileExists(sFileFullName) Then .DeleteFile sFileFullName
+            If .FileExists(FileFullName) Then .DeleteFile FileFullName
         End If
-        sFileFullName = s
-        sPath = .GetParentFolderName(s)
-        sFileName = .GetFileName(s)
+        sFileExtension = .GetExtensionName(s)
+        sFileLocation = .GetParentFolderName(s)
+        sFileBaseName = .GetBaseName(s)
     End With
-
+    sFileFullName = s
+    
 End Property
 
-Friend Property Get FileName() As String:       FileName = sFileName:           End Property
+Friend Property Get FileBaseName() As String:           FileBaseName = sFileBaseName:   End Property
 
-Friend Property Let FileName(ByVal s As String)
-    If FSo.GetExtensionName(s) = vbNullString Then
-        s = s & ".log"
-    End If
-    sFileName = s
-    sFileFullName = Replace(sPath & "\" & sFileName, "\\", "\")
-End Property
+Friend Property Let FileBaseName(ByVal s As String):    sFileBaseName = s:              End Property
 
-Friend Property Let KeepLogs(ByVal l As Long):  lKeepLogs = l:  End Property
+Friend Property Let KeepLogs(ByVal l As Long):          lKeepLogs = l:                  End Property
 
 Friend Property Let Path(ByVal v As Variant)
 ' -----------------------------------------------------------------------------------
@@ -501,14 +463,14 @@ Friend Property Let Path(ByVal v As Variant)
     
     Select Case VarType(v)
         Case VarType(v) = vbString
-            sPath = v
+            sFileLocation = v
         Case VarType(v) = vbObject
             If TypeOf v Is Workbook Then
                 Set wbk = v
-                sPath = wbk.Path
+                sFileLocation = wbk.Path
             ElseIf TypeOf v Is Folder Then
                 Set fld = v
-                sPath = fld.Path
+                sFileLocation = fld.Path
             Else
                 Err.Raise AppErr(1), ErrSrc(PROC), "The provided argument is neither a string specifying a " & _
                                                    "folder's path, nor a Workbook object, nor a Folder object!"
@@ -527,221 +489,12 @@ Private Property Get SplitStr(ByRef s As String)
     Else If InStr(s, vbCr) <> 0 Then SplitStr = vbCr
 End Property
 
-Private Function AlignCntr(ByVal a_string As String, _
-                           ByRef a_length As Long, _
-                  Optional ByVal a_fill As String = " ", _
-                  Optional ByVal a_margin As String = vbNullString, _
-                  Optional ByVal a_col As Long = 0, _
-                  Optional ByVal a_col_arranged = False) As String
-' ----------------------------------------------------------------------------
-' Returns a string (a_string) centered within a guven width (a_length). When
-' truncate (a_truncate) is False (the default), the returned with (a_with)
-' may be extended to the width of the string (a_steing). The result may not be
-' centered exactly.
-' ----------------------------------------------------------------------------
-    Const PROC = "AlignCntr"
-    
-    On Error GoTo eh
-    Dim lLoop       As Long
-    Dim s           As String
-    Dim sLeft       As String
-    Dim sRight      As String
-    Dim sFill       As String
-    Dim lWidth      As Long
-
-    If a_length = 0 _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "A zero length is nor supported by alignment centered!"
-
-    Select Case a_fill
-        Case " ":        sFill = " ": sLeft = " ":          sRight = " "
-        Case "-":        sFill = "-": sLeft = vbNullString: sRight = vbNullString
-        Case " -", "- ": sFill = "-": sLeft = " ":          sRight = " "
-        Case "=":        sFill = "=": sLeft = vbNullString: sRight = vbNullString
-        Case " =", "= ": sFill = "=": sLeft = " ":          sRight = " "
-    End Select
-    
-    s = TruncateIfApplicable(a_string, a_length, a_col, Cols, "C")
-    lWidth = AlignFinalFullColWidthExMargin(a_fill, a_length, "C", a_col_arranged)
-    
-    Do While Len(s) < lWidth
-        lLoop = lLoop + 1
-        Select Case True
-            Case Len(s) = lWidth
-                Exit Do
-            Case Len(s & sRight) <= lWidth
-                s = s & sRight
-                sRight = sFill
-                If Len(s) < lWidth Then
-                    s = sLeft & s ' add fill left
-                    sLeft = sFill
-                End If
-        End Select
-        If lLoop > lWidth Then
-            Stop
-        End If
-    Loop
-    AlignCntr = ColMarginsAdded(a_col, s, a_margin, Cols)
-
-xt: Exit Function
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Private Function AlignFinalFullColWidthExMargin(ByVal a_fill As String, _
-                                                ByVal a_length As Long, _
-                                                ByVal a_align As String, _
-                                       Optional ByVal a_col_arranged As Boolean = False) As Long
-' -----------------------------------------------------------------------------------
-' When another fill but a single space is provided and the alignment is for a string
-' arranged in columns (a_col_arranged = True), the alignment always includes at
-' least one fill - when alignment is Centered two fills. Thus, in this case a final
-' column width is returned which includes the lenght of the fill.
-' -----------------------------------------------------------------------------------
-    Dim l As Long
-    
-    l = a_length ' default
-    If a_fill <> " " And a_col_arranged Then
-        l = l + Len(a_fill)   ' one in any case
-        If a_align = "C" Then l = l + Len(a_fill) ' one fill at the left and another one at the right
-    End If
-    AlignFinalFullColWidthExMargin = l
-  
-End Function
-
-Private Function AlignLeft(ByRef a_string As String, _
-                           ByRef a_length As Long, _
-                  Optional ByVal a_fill As String = " ", _
-                  Optional ByVal a_margin As String = vbNullString, _
-                  Optional ByVal a_col As Long = 0, _
-                  Optional ByVal a_col_arranged As Boolean = False) As String
-' -----------------------------------------------------------------------------------
-' Left aligns a string (a_string) by:
-' - adding fill characters to the right up to the specified length (a_length),
-'   whereby the filling may start with a single space
-' - enclose the result in left and right margins - which default to a vbNullString
-' Specifics:
-' - Spaces provided with a string alrteady (a_string) are preserved
-' - The final length is the specified length plus a left and a right marging - which
-'   may be a vbNullString
-' - It is considered that the string may be an column item which may look ate the end
-'   "| xxxx" when a column delimiter  | is used, else just "xxxx" when the column
-'   delimiter is already a single space. In that case the margin (a_margin) would be
-'   a vbNullString.
-' Precondition: The string (a_string) not/no longer contains any implicit alignment
-'               specs.
-' -----------------------------------------------------------------------------------
-
-    Dim s           As String
-    Dim sFillStart  As String
-    Dim sFill       As String
-    Dim sFillEnd    As String
-    Dim lLoop       As Long
-    Dim lWidth      As Long
-    
-    If a_string = " " Then
-    '~~ Exception! An empty item (one with a single space) is filled with spaces.
-        sFillStart = vbNullString
-        sFill = " "
-        sFillEnd = vbNullString
-    Else
-        Select Case a_fill
-            Case " ":   sFillStart = vbNullString: sFill = " ": sFillEnd = " "
-            Case ".":   sFillStart = vbNullString: sFill = ".": sFillEnd = vbNullString
-            Case " .":  sFillStart = " ":          sFill = ".": sFillEnd = vbNullString
-            Case ".:":  sFillStart = vbNullString: sFill = ".": sFillEnd = ":"
-            Case " .:": sFillStart = " ":          sFill = ".": sFillEnd = ":"
-        End Select
-    End If
-    
-    s = TruncateIfApplicable(a_string, a_length, a_col, Cols, "L")
-    lWidth = AlignFinalFullColWidthExMargin(a_fill, a_length, "L", a_col_arranged)
-    
-    Do
-        lLoop = lLoop + 1
-        Select Case True
-            Case Len(s) >= lWidth:                                Exit Do
-            Case Len(s & sFillEnd) = lWidth:                      s = s & sFillEnd
-            Case Len(s & sFillStart) = lWidth:                    s = s & sFillStart:         sFillStart = vbNullString
-            Case Len(s & sFillStart & sFill & sFillEnd) < lWidth: s = s & sFillStart & sFill: sFillStart = vbNullString
-            Case Else:                                            s = s & sFill
-        End Select
-        If lLoop > lWidth Then
-            Stop
-        End If
-    Loop
-    AlignLeft = ColMarginsAdded(a_col, s, a_margin, Cols)
-    
-End Function
-
-                               
-Private Function AlignRght(ByVal a_string As String, _
-                  Optional ByRef a_length As Long = 0, _
-                  Optional ByVal a_fill As String = " ", _
-                  Optional ByVal a_margin As String = vbNullString, _
-                  Optional ByVal a_col As Long = 0, _
-                  Optional ByVal a_col_arranged As Boolean = False) As String
-' -----------------------------------------------------------------------------------
-' Returns a string (a_string) aligned right with at the left filled (a_fill) in a
-' given length (a_lenght), enclosed in specified margins (a_margin).
-' -----------------------------------------------------------------------------------
-    Const PROC = "AlignRght"
-    
-    On Error GoTo eh
-    Dim lLoop       As Long
-    Dim lWidth      As Long
-    Dim s           As String
-    Dim sFill       As String
-    Dim sFillEnd    As String
-    Dim sFillStart  As String
-    
-    If a_length = 0 _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "A zero length is nor supported by alignment right!"
-    
-    If a_fill = vbNullString Then a_fill = " "
-    Select Case a_fill
-        Case " ":           sFillStart = vbNullString: sFill = " ": sFillEnd = " "
-        Case ".":           sFillStart = vbNullString: sFill = ".": sFillEnd = vbNullString
-        Case " .", ". ":    sFillStart = " ":          sFill = ".": sFillEnd = vbNullString
-        Case "-":           sFillStart = vbNullString: sFill = "-": sFillEnd = vbNullString
-        Case " -", "- ":    sFillStart = " ":          sFill = "-": sFillEnd = vbNullString
-    End Select
-    
-    s = TruncateIfApplicable(a_string, a_length, a_col, Cols, "R")
-    lWidth = AlignFinalFullColWidthExMargin(a_fill, a_length, "R", a_col_arranged)
-    
-    Do
-        lLoop = lLoop + 1
-        Select Case True
-            Case Len(s) >= lWidth:                                Exit Do
-            Case Len(sFillStart & s) = lWidth:                    s = sFillStart & s:           sFillStart = vbNullString
-            Case Len(sFillEnd & s) = lWidth:                      s = sFillEnd & s              ' last fill add
-            Case Len(sFillEnd & sFill & sFillStart & s) < lWidth: s = sFill & sFillStart & s:   sFillStart = vbNullString
-            Case Else:                                            s = sFill & s
-        End Select
-        If lLoop > lWidth Then
-            Stop
-        End If
-    Loop
-    AlignRght = ColMarginsAdded(a_col, s, a_margin, Cols)
-                   
-xt: Exit Function
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Public Function AlignString(ByVal a_string As String, _
-                   Optional ByVal a_align As String = "L", _
-                   Optional ByVal a_length As Long = 0, _
-                   Optional ByVal a_fill As String = " ", _
-                   Optional ByVal a_margin As String = vbNullString, _
-                   Optional ByVal a_col As Long = 0, _
-                   Optional ByVal a_col_arranged As Boolean = False) As String
+Public Function Align(ByVal a_string As String, _
+             Optional ByVal a_align As String = "L", _
+             Optional ByVal a_length As Long = 0, _
+             Optional ByVal a_fill As String = " ", _
+             Optional ByVal a_margin As String = vbNullString, _
+             Optional ByVal a_col_arranged As Boolean = False) As String
 ' ----------------------------------------------------------------------------
 ' Returns a string (a_string)
 ' - in the length (a_length) enclosed in margins (a_margin) whereby a non
@@ -761,12 +514,30 @@ Public Function AlignString(ByVal a_string As String, _
 '   spaces.
 ' - The function is also used to align items arragend in columns.
 '
-' Note: The argument a_col_arranged is only used for a string which is aligned
-'       within a column. See ColsHeader and ColsItems.
+' Attention to column arranged alignment (a_col_arranged = True):
+' ---------------------------------------------------------------
+' - The length is regarded the maximum. I.e. when the string (a_string) is
+'   longer it is  truncated to the right
+' - The final result string has any margin (left and right) added
+' - The final string has of any fill <> vbNullString at least one fill
+'   (a_fill) added, in the example below this is " -"
+'   Example: A string xxx with given length of 10, a single space margin and
+'            a " -" fill, left aligned results in: " xxx -------- " which is
+'            a final lenght of 14.
+'
+' Attention to normal alignment (a_col_arranged = True):
+' ------------------------------------------------------
+' - The provided length is the final length returned. I.e. when the provided
+'   string (a_string) exceeds the length (a_length) the result is truncated
+'   to the right
+' - Any specified margin is ignored
+' - Fills (a_fill) are added to the right to the extent the length of the
+'   provided string (a_string) allows it without exceeding the final length
+'   (a_lenght).
 '
 ' W. Rauschenberger, Berlin Jun 2024
 ' ----------------------------------------------------------------------------
-    Const PROC = "AlignString"
+    Const PROC = "Align"
     
     On Error GoTo eh
     Dim lLength As Long
@@ -774,7 +545,7 @@ Public Function AlignString(ByVal a_string As String, _
     If a_string = vbNullString Then
         '~~ A non provided string results in one filled with a_fill
         '~~ enclosed in margins (a_margin)
-        AlignString = a_margin & String$(a_length, a_fill) & a_margin
+        Align = a_margin & String$(a_length, a_fill) & a_margin
         GoTo xt
     End If
         
@@ -790,9 +561,9 @@ Public Function AlignString(ByVal a_string As String, _
 
     If a_fill = vbNullString Then a_fill = " "
     Select Case a_align
-        Case "L":   AlignString = AlignLeft(a_string, lLength, a_fill, a_margin, a_col, a_col_arranged)
-        Case "R":   AlignString = AlignRght(a_string, lLength, a_fill, a_margin, a_col, a_col_arranged)
-        Case "C":   AlignString = AlignCntr(a_string, lLength, a_fill, a_margin, a_col, a_col_arranged)
+        Case "L":   Align = AlignLeft(a_string, lLength, a_fill, a_margin, a_col_arranged)
+        Case "R":   Align = AlignRght(a_string, lLength, a_fill, a_margin, a_col_arranged)
+        Case "C":   Align = AlignCntr(a_string, lLength, a_fill, a_margin, a_col_arranged)
     End Select
 
 xt: Exit Function
@@ -801,6 +572,260 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Function
+
+Private Function AlignCntr(ByVal a_string As String, _
+                           ByRef a_length As Long, _
+                  Optional ByVal a_fill As String = " ", _
+                  Optional ByVal a_margin As String = vbNullString, _
+                  Optional ByVal a_col_arranged = False) As String
+' ----------------------------------------------------------------------------
+' Returns a string (a_string) centered within a guven width (a_length). When
+' truncate (a_truncate) is False (the default), the returned with (a_with)
+' may be extended to the width of the string (a_steing). The result may not be
+' centered exactly.
+' ----------------------------------------------------------------------------
+    Const PROC = "AlignCntr"
+    
+    On Error GoTo eh
+    Dim lLoop       As Long
+    Dim s           As String
+    Dim sFillLeft   As String
+    Dim sFillRight  As String
+    Dim sFill       As String
+    Dim lWidth      As Long
+    Dim lLoss       As Long
+
+    If a_length = 0 _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "A zero length is nor supported by alignment centered!"
+
+    s = a_string
+    Select Case a_fill
+        Case " ":           sFill = " ": sFillLeft = " ":          sFillRight = " ":            lLoss = 0
+        Case "-":           sFill = "-": sFillLeft = vbNullString: sFillRight = vbNullString:   lLoss = 2
+        Case " -", "- ":    sFill = "-": sFillLeft = " ":          sFillRight = " ":            lLoss = 4
+        Case "=":           sFill = "=": sFillLeft = vbNullString: sFillRight = vbNullString:   lLoss = 2
+        Case " =", "= ":    sFill = "=": sFillLeft = " ":          sFillRight = " ":            lLoss = 4
+        Case Else
+            Err.Raise AppErr(2), ErrSrc(PROC), _
+            "The specified fill is not applicable for a centered alignment! " & _
+            "Accepted is "" "", ""-"", ""="", "" -"", ""- "", "" ="", ""= """
+    End Select
+    
+    '~~ Determine the final width/length of the returned string - excluding margins
+    If a_col_arranged Then
+        lWidth = AlignWidthExMargin(a_fill, a_length, enAlignCentered)
+        s = AlignTruncated(s, enAlignCentered, lWidth - lLoss)
+    Else
+        lWidth = a_length
+        If Len(s) > lWidth Then s = Left(s, lWidth)
+    End If
+    
+    Do While Len(s) < lWidth
+        lLoop = lLoop + 1
+        Select Case True
+            Case Len(s) = lWidth
+                Exit Do
+            Case Len(s & sFillRight) <= lWidth
+                s = s & sFillRight
+                sFillRight = sFill
+                If Len(s) < lWidth Then
+                    s = sFillLeft & s ' add fill left
+                    sFillLeft = sFill
+                End If
+        End Select
+        If lLoop > lWidth Then
+            Stop
+        End If
+    Loop
+    AlignCntr = s
+    If a_col_arranged Then AlignCntr = a_margin & s & a_margin _
+
+xt: Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function AlignLeft(ByRef a_string As String, _
+                           ByRef a_length As Long, _
+                  Optional ByVal a_fill As String = " ", _
+                  Optional ByVal a_margin As String = vbNullString, _
+                  Optional ByVal a_col_arranged As Boolean = False) As String
+' -----------------------------------------------------------------------------------
+' Returns a string (a_strng) left aligned by:
+' - adding fill characters to the right up to the specified length (a_length),
+'   whereby the filling may start with a single space
+' - enclose the result in left and right margins - which default to a vbNullString
+'   when a_col_arranged = True
+' Specifics:
+' - Left spaces provided with the string (a_string) are preserved
+' - The final length is the specified length plus a left and a right marging - which
+'   may be a vbNullString
+' - It is considered that the string may be an column item which may look ate the end
+'   "| xxxx" when a column delimiter  | is used, else just "xxxx" when the column
+'   delimiter is already a single space. In that case the margin (a_margin) would be
+'   a vbNullString.
+' Precondition: The string (a_string) not/no longer contains any implicit alignment
+'               specs.
+' -----------------------------------------------------------------------------------
+
+    Dim s           As String
+    Dim sFillStart  As String
+    Dim sFill       As String
+    Dim sFillEnd    As String
+    Dim lLoop       As Long
+    Dim lWidth      As Long
+    Dim lLoss       As Long
+    
+    '~~ Preparations for the final string which will have the following syntax:
+    '~~ - a_col_arranged = True: <margin><string><fill-start>[<fill>][<fill>]...<fill-end><margin>
+    '~~ - a_col_arranged = False: <margin><string>
+    s = a_string
+    Select Case a_fill
+        Case " ":   sFillStart = vbNullString: sFill = " ": sFillEnd = " ":             lLoss = 0
+        Case "-":   sFillStart = vbNullString: sFill = "-": sFillEnd = vbNullString:    lLoss = 1
+        Case " -":  sFillStart = " ":          sFill = "-": sFillEnd = vbNullString:    lLoss = 2
+        Case ".":   sFillStart = vbNullString: sFill = ".": sFillEnd = vbNullString:    lLoss = 1
+        Case " .":  sFillStart = " ":          sFill = ".": sFillEnd = vbNullString:    lLoss = 2
+        Case ".:":  sFillStart = vbNullString: sFill = ".": sFillEnd = ":":             lLoss = 2
+        Case " .:": sFillStart = " ":          sFill = ".": sFillEnd = ":":             lLoss = 3
+    End Select
+        
+    '~~ Determine the final width/length of the returned string - excluding margins
+    If a_col_arranged Then
+        lWidth = AlignWidthExMargin(a_fill, a_length, enAlignLeft)
+        s = AlignTruncated(s, enAlignLeft, lWidth - lLoss)
+    Else
+        lWidth = a_length
+        If Len(s) > lWidth Then s = Left(s, lWidth)
+    End If
+
+    Do
+        lLoop = lLoop + 1
+        Select Case True
+            Case Len(s) >= lWidth:                                Exit Do
+            Case Len(s & sFillEnd) = lWidth:                      s = s & sFillEnd
+            Case Len(s & sFillStart) = lWidth:                    s = s & sFillStart:         sFillStart = vbNullString
+            Case Len(s & sFillStart & sFill & sFillEnd) < lWidth: s = s & sFillStart & sFill: sFillStart = vbNullString
+            Case Else:                                            s = s & sFill
+        End Select
+        If lLoop > lWidth Then
+            Stop
+        End If
+    Loop
+    AlignLeft = s
+    If a_col_arranged Then AlignLeft = a_margin & s & a_margin _
+    
+End Function
+
+Private Function AlignRght(ByVal a_string As String, _
+                  Optional ByRef a_length As Long = 0, _
+                  Optional ByVal a_fill As String = " ", _
+                  Optional ByVal a_margin As String = vbNullString, _
+                  Optional ByVal a_col_arranged As Boolean = False) As String
+' -----------------------------------------------------------------------------------
+' Returns a string (a_string) aligned right with at the left filled (a_fill) in a
+' given length (a_lenght), enclosed in specified margins (a_margin).
+' -----------------------------------------------------------------------------------
+    Const PROC = "AlignRght"
+    
+    On Error GoTo eh
+    Dim lLoop       As Long
+    Dim lWidth      As Long
+    Dim s           As String
+    Dim sFill       As String
+    Dim sFillEnd    As String
+    Dim sFillStart  As String
+    Dim lLoss       As Long
+    
+    If a_length = 0 _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "A zero length is nor supported by alignment right!"
+    
+    s = a_string
+    If a_fill = vbNullString Then a_fill = " "
+    Select Case a_fill
+        Case " ":           sFillStart = vbNullString: sFill = " ": sFillEnd = " ":             lLoss = 0
+        Case ".":           sFillStart = vbNullString: sFill = ".": sFillEnd = vbNullString:    lLoss = 1
+        Case " .", ". ":    sFillStart = " ":          sFill = ".": sFillEnd = vbNullString:    lLoss = 2
+        Case "-":           sFillStart = vbNullString: sFill = "-": sFillEnd = vbNullString:    lLoss = 1
+        Case " -", "- ":    sFillStart = " ":          sFill = "-": sFillEnd = vbNullString:    lLoss = 2
+    End Select
+    
+    '~~ Determine the final width/length of the returned string - excluding margins
+    If a_col_arranged Then
+        lWidth = AlignWidthExMargin(a_fill, a_length, enAlignRight)
+        s = AlignTruncated(s, enAlignRight, lWidth - lLoss)
+    Else
+        lWidth = a_length
+    End If
+
+    Do
+        lLoop = lLoop + 1
+        Select Case True
+            Case Len(s) >= lWidth:                                Exit Do
+            Case Len(sFillStart & s) = lWidth:                    s = sFillStart & s:           sFillStart = vbNullString
+            Case Len(sFillEnd & s) = lWidth:                      s = sFillEnd & s              ' last fill add
+            Case Len(sFillEnd & sFill & sFillStart & s) < lWidth: s = sFill & sFillStart & s:   sFillStart = vbNullString
+            Case Else:                                            s = sFill & s
+        End Select
+        If lLoop > lWidth Then
+            Stop
+        End If
+    Loop
+    AlignRght = s
+    If a_col_arranged Then AlignRght = a_margin & s & a_margin _
+                   
+xt: Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function AlignTruncated(ByRef a_string As String, _
+                                ByVal a_align As enAlign, _
+                                ByVal a_space As Long) As String
+' -----------------------------------------------------------------------------------
+' Returns a string truncated when the space available (a_space) is less then the
+' width required by the string (a_string).
+' -----------------------------------------------------------------------------------
+    Dim s As String
+    
+    Select Case a_align
+        Case enAlignLeft:       s = RTrim$(a_string)
+        Case enAlignCentered:   s = Trim$(a_string)
+        Case enAlignRight:      s = LTrim$(a_string)
+    End Select
+        
+    If Len(s) > a_space Then s = Left(s, a_space)
+    AlignTruncated = s
+    
+End Function
+
+Private Function AlignWidthExMargin(ByVal a_fill As String, _
+                                    ByVal a_length As Long, _
+                                    ByVal a_align As enAlign) As Long
+' -----------------------------------------------------------------------------------
+' The provided lenght indicates the maximum string length. However, for another fill
+' but a single space the final returned width always includes the fill (one for
+' left or right and two for centered.
+' Note: col arranged assumes that the columns do have a delimiter |, which makes a
+'       margin appropriate provided one is specified - which is the default.
+' -----------------------------------------------------------------------------------
+    Dim l As Long
+    
+    l = a_length ' default
+
+    If a_fill <> " " Then
+        l = l + Len(a_fill)   ' one in any case
+        If a_align = enAlignCentered Then l = l + Len(a_fill) ' one fill at the left and another one at the right
+    End If
+    AlignWidthExMargin = l
+  
 End Function
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
@@ -1033,7 +1058,7 @@ Public Function ColsItems(ParamArray c_items() As Variant) As String
         If iCol = Cols _
         Then ColWidth(iCol) = Len(sColString) ' rightmost column width is maximized on the go
         
-        sItemAlgnd = AlignString(sColItem, ColAlign(iCol), ColWidth(iCol), ColFill(iCol), ColsMargin, iCol, True)
+        sItemAlgnd = Align(sColItem, ColAlign(iCol), ColWidth(iCol), ColFill(iCol), ColsMargin, True)
         s = ConcatenateStrings(s, sItemAlgnd, ColsDelimiter, sColDelim)
     Next v
     
@@ -1509,21 +1534,23 @@ Private Sub NewLogLines(ByVal n_width As Long)
     Const PROC = "NewLogLines"
     
     On Error GoTo eh
-    Dim sHeaderLines        As String
-    Dim sTitleLines         As String
+    Dim sHeaderLines    As String
+    Dim sTitleLines     As String
+    Dim lWidth          As Long
     
     If bNewLog Then
     
         '~~ Assemble header lines (width considered by title)
         If ColsHeadersSpecified Then sHeaderLines = ColsHeadersLines(n_width)
         '~~ Assemble title lines
-        If TitlesSpecified Then sTitleLines = TitlesAssembled(n_width)
+        lWidth = n_width
+        If TitlesSpecified Then sTitleLines = TitlesAssembled(lWidth)
         
-        If FSo.FileExists(sFileFullName) Then WriteLines String(n_width, "=")  ' log delimiter line
+        If FSo.FileExists(sFileFullName) Then WriteLines String(lWidth, "=")  ' log delimiter line
         If sTitleLines <> vbNullString Then
             WriteLines sTitleLines
             If sHeaderLines = vbNullString _
-            Then WriteLines String(n_width, "-")
+            Then WriteLines String(lWidth, "-")
         End If
         If sHeaderLines <> vbNullString _
         Then WriteLines sHeaderLines
@@ -1710,7 +1737,7 @@ Public Function StringAsArray(ByVal s_strng As String, _
 ' "L" the items in the array are returned trimmed accordingly.
 ' Example 1: arr = StringAsArray("this is a string", " ") is returned as an
 '            array with 3 items: "this", "is", "a", "string".
-' Example 2: arr = StringAsArray(FileAsString(FileName),sSplit,False) is
+' Example 2: arr = StringAsArray(FileAsString(FileBaseName),sSplit,False) is
 '            returned as any array with records/lines of the provided file,
 '            whereby the lines are not trimmed, i.e. leading spaces are
 '            preserved.
@@ -1837,13 +1864,12 @@ Private Function TitlesAssembled(Optional ByRef t_width As Long = 0) As String
     Dim v           As Variant
     
     If Not ArrayIsAllocated(aTitleLines) Then GoTo xt
-    
     For Each v In aTitleLines
         t_width = Max(t_width, Len(v))
     Next v
     
     For Each v In aTitleLines
-        s = s & sSplit & AlignString(CStr(v), sTitleAlign, t_width, sTitleFill)
+        s = s & sSplit & Align(CStr(v), sTitleAlign, t_width, sTitleFill)
         sSplit = vbCrLf
     Next v
     TitlesAssembled = s
@@ -2008,7 +2034,7 @@ Private Sub WriteLines(ByVal w_lines As String)
     
     a = Split(w_lines, vbCrLf)
     s = Join(a, vbCrLf & TimeStamp)
-    StringAsFile TimeStamp & s, sFileFullName, True
+    StringAsFile TimeStamp & s, FileFullName, True
     
 End Sub
 

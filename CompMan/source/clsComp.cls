@@ -218,23 +218,25 @@ Friend Property Get ExpFile() As File
     
 End Property
 
-Friend Property Let ExpFile(ByVal fl As File):              Set flExpFile = fl:                         End Property
+Friend Property Let ExpFile(ByVal fl As File):              Set flExpFile = fl:                                                 End Property
 
-Friend Property Get ExpFileExt() As String:                 ExpFileExt = sExpFileExt:                   End Property
+Friend Property Get ExpFileExt() As String:                 ExpFileExt = sExpFileExt:                                           End Property
 
-Friend Property Let KindOfComp(ByVal en As enKindOfComp):   lKindOfComp = en:                           End Property
+Friend Property Let KindOfComp(ByVal en As enKindOfComp):   lKindOfComp = en:                                                   End Property
 
-Friend Property Get MaxLenComp() As Long:                   MaxLenComp = lMaxLenComp:                   End Property
+Friend Property Get MaxLenComp() As Long:                   MaxLenComp = lMaxLenComp:                                           End Property
 
-Friend Property Get PendingLastModAt() As String:           PendingLastModAt = CommonServiced.LastModAt(sCompName):                 End Property
+Friend Property Get PendingLastModAt() As String:           PendingLastModAt = CommonPending.LastModAt(sCompName):              End Property
 
-Friend Property Get PendingLastModBy() As String:           PendingLastModBy = CommonServiced.LastModBy(sCompName):                 End Property
+Friend Property Get PendingLastModBy() As String:           PendingLastModBy = CommonPending.LastModBy(sCompName):              End Property
 
-Friend Property Get PendingLastModIn() As String:           PendingLastModIn = CommonServiced.LastModInWrkbkFullName(sCompName):    End Property
+Friend Property Get PendingLastModIn() As String:           PendingLastModIn = CommonPending.LastModInWrkbkFullName(sCompName): End Property
 
-Friend Property Get PendingLastModOn() As String:           PendingLastModOn = CommonServiced.LastModOn(sCompName):                 End Property
+Friend Property Get PendingLastModOn() As String:           PendingLastModOn = CommonPending.LastModOn(sCompName):              End Property
 
-Friend Property Let PendingLastModOn(ByVal s As String):    CommonServiced.LastModOn(sCompName) = s:                                End Property
+Friend Property Let PendingLastModOn(ByVal s As String):    CommonPending.LastModOn(sCompName) = s:                             End Property
+
+Friend Property Get PendingKindOfComp() As String:          PendingKindOfComp = CommonPending.LastModKindOfComp(sCompName):     End Property
 
 Friend Property Get PublicLastModAt() As String:            PublicLastModAt = CommonPublic.LastModAt(sCompName):                End Property
 
@@ -263,19 +265,21 @@ Friend Property Let ServicedLastModAt(Optional ByVal l_comp As String = vbNullSt
     CommonServiced.LastModAt(l_comp) = s
 End Property
 
-Friend Property Get ServicedLastModBy() As String:           ServicedLastModBy = CommonServiced.LastModBy(sCompName):               End Property
+Friend Property Get ServicedLastModBy() As String:              ServicedLastModBy = CommonServiced.LastModBy(sCompName):                    End Property
 
-Friend Property Let ServicedLastModBy(ByVal s As String):    CommonServiced.LastModBy(sCompName) = s:                               End Property
+Friend Property Let ServicedLastModBy(ByVal s As String):       CommonServiced.LastModBy(sCompName) = s:                                    End Property
 
-Friend Property Get ServicedLastModExpFile() As String:          ServicedLastModExpFile = CommonServiced.LastModExpFileOrigin(sCompName):   End Property
+Friend Property Get ServicedLastModExpFile() As String:         ServicedLastModExpFile = CommonServiced.LastModExpFileOrigin(sCompName):    End Property
 
-Friend Property Let ServicedLastModExpFile(ByVal s As String):   CommonServiced.LastModExpFileOrigin(sCompName) = s:                        End Property
+Friend Property Let ServicedLastModExpFile(ByVal s As String):  CommonServiced.LastModExpFileOrigin(sCompName) = s:                         End Property
 
-Friend Property Get ServicedLastModIn() As String:           ServicedLastModIn = CommonServiced.LastModInWrkbkFullName(sCompName):  End Property
+Friend Property Get ServicedLastModKindOfComp() As String:      ServicedLastModKindOfComp = CommonServiced.KindOfComponent(sCompName):      End Property
 
-Friend Property Let ServicedLastModIn(ByVal s As String):    CommonServiced.LastModInWrkbkFullName(sCompName) = s:                  End Property
+Friend Property Get ServicedLastModIn() As String:              ServicedLastModIn = CommonServiced.LastModInWrkbkFullName(sCompName):       End Property
 
-Friend Property Get ServicedLastModOn() As String:           ServicedLastModOn = CommonServiced.LastModOn(sCompName):               End Property
+Friend Property Let ServicedLastModIn(ByVal s As String):       CommonServiced.LastModInWrkbkFullName(sCompName) = s:                       End Property
+
+Friend Property Get ServicedLastModOn() As String:              ServicedLastModOn = CommonServiced.LastModOn(sCompName):                    End Property
 
 Friend Property Let ServicedLastModOn(ByVal s As String):    CommonServiced.LastModOn(sCompName) = s:                               End Property
 
@@ -598,6 +602,7 @@ Public Sub SetPendingEqualServiced()
     Dim sAt As String
     Dim sBy As String
     Dim sIn As String
+    Dim sKo As String
     Dim sOn As String
     Dim sXf As String
     
@@ -605,6 +610,7 @@ Public Sub SetPendingEqualServiced()
         sAt = .LastModAt(sCompName)
         sBy = .LastModBy(sCompName)
         sIn = .LastModInWrkbkFullName(sCompName)
+        sKo = .KindOfComponent(sCompName)
         sOn = .LastModOn(sCompName)
         sXf = .LastModExpFileOrigin(sCompName)
     End With
@@ -613,6 +619,7 @@ Public Sub SetPendingEqualServiced()
         .LastModBy(sCompName) = sBy
         .LastModExpFileOrigin(sCompName) = sXf
         .LastModInWrkbkFullName(sCompName) = sIn
+        .LastModKindOfComp(sCompName) = sKo
         .LastModOn(sCompName) = sOn
     End With
    
@@ -629,6 +636,7 @@ Public Sub SetPublicEqualPending()
     Dim sBy As String
     Dim sIn As String
     Dim sOn As String
+    Dim sKo As String
     Dim sXf As String
     
     With CommonPending
@@ -636,6 +644,7 @@ Public Sub SetPublicEqualPending()
         sBy = .LastModBy(sCompName)
         sIn = .LastModInWrkbkFullName(sCompName)
         sOn = .LastModOn(sCompName)
+        sKo = .LastModKindOfComp(sCompName)
         sXf = .LastModExpFileOrigin(sCompName)
     End With
     With CommonPublic
@@ -643,6 +652,7 @@ Public Sub SetPublicEqualPending()
         .LastModBy(sCompName) = sBy
         .LastModExpFileOrigin(sCompName) = sXf
         .LastModInWrkbkFullName(sCompName) = sIn
+        .LastModKindOfOriginComp(sCompName) = sKo
         .LastModOn(sCompName) = sOn
     End With
     
@@ -658,18 +668,22 @@ Public Sub SetPublicEqualServiced()
     Dim sBy As String
     Dim sIn As String
     Dim sOn As String
+    Dim sKo As String
     Dim sXf As String
     
     sAt = ServicedLastModAt
     sBy = ServicedLastModBy
     sIn = ServicedLastModIn
     sOn = ServicedLastModOn
+    sKo = ServicedLastModKindOfComp
     sXf = ServicedLastModExpFile
+    
     With CommonPublic
         .LastModAt(sCompName) = sAt
         .LastModBy(sCompName) = sBy
         .LastModExpFileOrigin(sCompName) = sXf
         .LastModInWrkbkFullName(sCompName) = sIn
+        .LastModKindOfOriginComp(sCompName) = sKo
         .LastModOn(sCompName) = sOn
     End With
     
@@ -708,7 +722,7 @@ End Sub
 Public Sub SetServicedProperties()
 ' ------------------------------------------------------------------------------
 ' Set the serviced Common Component's properties in the CommComps.dat file when
-' the modified Common Component is exported.
+' the modified Common Component has been exported.
 ' ------------------------------------------------------------------------------
     Dim sAt As String
     Dim sBy As String

@@ -19,7 +19,10 @@ Option Explicit
 ' W. Rauschenberger, Berlin Dec 2020
 ' ------------------------------------------------------------------------------
 Private Const HOSTED_RAWS        As String = "mCompManClient,mCodingGuidelines,mCodingRules"
-Private Const PUBLIC_PROC_COPIES As String = "clsTestAid.Arr:mBasic, clsTestAid.FileAsArray:mVarTrans"
+
+' Used copies of procedures in Common Components (only relevant for Common Components
+' in order to make them autonomous and not depending from other components
+Private Const COMM_COMP_PROC_COPIES As String = ""
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = Me.CodeName & "." & sProc
@@ -59,7 +62,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
 End Sub
 
 Private Sub Workbook_AfterSave(ByVal Success As Boolean)
-    mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS, PUBLIC_PROC_COPIES
+    mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, HOSTED_RAWS, COMM_COMP_PROC_COPIES
 End Sub
 
 Private Sub Workbook_Open()
@@ -87,7 +90,7 @@ Private Sub Workbook_Open()
         '~~ Executed by the development instance when open or by the Add-in
         '~~ when established and automatically available when referenced by
         '~~ the VB-Project
-        mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, HOSTED_RAWS, PUBLIC_PROC_COPIES
+        mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, HOSTED_RAWS, COMM_COMP_PROC_COPIES
         '~~ ------------------------------------------------------------------
         Application.Wait Now() + 0.0000001
         '~~ ------------------------------------------------------------------

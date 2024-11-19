@@ -90,32 +90,34 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
                     ' ***) Backout modification
                     
                     Case Not bChanged And .IsCommComp
+                        '~~ Common Component which not has changed
                         .SetServicedProperties
                         Prgrss.ItemSkipped
     
                     Case Not bChanged
+                        '~~ Any other component which not has changed
                         Prgrss.ItemSkipped
                     
                     Case Not .IsCommComp
-                        '~~ Changed, not a common component
+                        '~~ Any other but a Common Component the code has changed
                         .Export
                         Services.Log(sComp) = "Modified VBComponent e x p o r t e d !"
                         Prgrss.ItemDone = sComp
                     
                     Case Not .IsCommCompPublic And Not .IsCommCompPending
-                        '~~ Changed, Common Component, yet no public version, not yet pending
+                        '~~ Common Component the code has changed, yet no public version, not yet pending
                         .Export
                         .SetServicedProperties
                         .CodeExprtd.Source = .ExpFileFullName
                         CommonPending.Register Comp
                         With Services
-                            .Log(sComp) = "Serviced Common Component modified: e x p o r t e d !"
-                            .Log(sComp) = "Serviced Common Component modified: registered pending release"
+                            .Log(sComp) = "Serviced Common Component modified: E x p o r t e d !"
+                            .Log(sComp) = "Serviced Common Component modified: Registered pending release"
                         End With
                         Prgrss.ItemDone = sComp
                         
                     Case .IsCommCompPublic And Not .IsCommCompPending
-                        '~~ Changed, public, not pending, modification is based on an up-to-date code version
+                        '~~ Common Component the code has changed, already public, not pending
                         '~~ (may as well be up-to-date but never exported)
                         .Export
                         .SetServicedProperties
@@ -150,7 +152,8 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
                         End With
                         Prgrss.ItemDone = sComp
                     
-                    Case Else                                   ' changed, common component, pending, conflicting
+                    Case Else
+                        '~~ Common Component the code has changed, already pending release, possibly conflicting
                         CommonPending.ConflictResolve Comp
                         Services.Log(sComp) = "Modification conflicting with pending release resolved by update with public common component!"
                         Prgrss.ItemDone = sComp

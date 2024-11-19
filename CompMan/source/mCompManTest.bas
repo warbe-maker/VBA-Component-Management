@@ -101,13 +101,13 @@ Public Sub Test_0100_FirstTimeServiced()
     Test_0100_1SetUp
     
     With TestAid
-        .TestNumber = "0100" ' basic test number for the environment setup
+        .TestId = "0100" ' basic test number for the environment setup
         .TestHeadLine = "First time serviced Workbook/VBProject"
         
         mCompMan.ServiceInitiate wbkServiced, PROC
         
         '==========================================================================
-        .TestNumber = "0100-1"
+        .TestId = "0100-1"
         .TestedComp = "mHskpng"
         .TestedProc = "CommCompsServicedKindOf"
         .TestedType = "Sub"
@@ -125,7 +125,7 @@ Public Sub Test_0100_FirstTimeServiced()
         .Result = CommonServiced.IsUsedCommComp("mBasic")
         
         '==========================================================================
-        .TestNumber = "0100-2"
+        .TestId = "0100-2"
         .TestedComp = "mCommComps"
         .TestedProc = "Update"
         .TestedType = "Sub"
@@ -148,7 +148,7 @@ Public Sub Test_0100_FirstTimeServiced()
         .Result = CommonServiced.LastModAt("mBasic")
           
         '==========================================================================
-        .TestNumber = "0100-3"
+        .TestId = "0100-3"
         .TestedComp = "clsServices"
         .TestedProc = "ExportChangedComponents"
         .TestedType = "Method"
@@ -194,8 +194,8 @@ Private Sub Test_0100_1SetUp()
     
     With TestAid
 '        .FolderZip "0100" ' !!! only when preparation had been changed !!!
-        .FolderUnZip "Test_0100.zip", sTestFolder:                      .TestItem = sTestFolder ' indicate the result folder as a temporary test resuurce
-        Set wbkServiced = Workbooks.Open(TestWorkbook(sTestFolder)):    .TestItem = wbkServiced ' indicate the Workbook as a temporary test resuource closed with CleanUp
+        .FolderUnZip "Test_0100.zip", sTestFolder:                      .TempTestItem = sTestFolder ' indicate the result folder as a temporary test resuurce
+        Set wbkServiced = Workbooks.Open(TestWorkbook(sTestFolder)):    .TempTestItem = wbkServiced ' indicate the Workbook as a temporary test resuource closed with CleanUp
     End With
 
 End Sub
@@ -226,15 +226,15 @@ Private Sub Test_0200_1SetUp()
     With TestAid
         .TestHeadLine = "Conflicts detected and handled by the Export service"
 '        .FolderZip "0200" ' !!! only when preparation had been changed !!!
-        .FolderUnZip "Test_0200.zip", sTestFolder:                      .TestItem = sTestFolder ' indicate the result folder as a temporary test resuurce
+        .FolderUnZip "Test_0200.zip", sTestFolder:                      .TempTestItem = sTestFolder ' indicate the result folder as a temporary test resuurce
         sTestFolder = sTestFolder & "\Test_0200a"
-        Set wbkServiced = Workbooks.Open(TestWorkbook(sTestFolder)):    .TestItem = wbkServiced ' indicate the Workbook as a temporary test resuource closed with CleanUp
+        Set wbkServiced = Workbooks.Open(TestWorkbook(sTestFolder)):    .TempTestItem = wbkServiced ' indicate the Workbook as a temporary test resuource closed with CleanUp
 
         mCompMan.ServiceInitiate s_serviced_wbk:=wbkServiced _
                                , s_service:=TestAid.TestHeadLine _
                                , s_hosted:=sTestComp
         mExport.ChangedComponents
-        .TestItem = CommonPending.LastModExpFile(sTestComp)
+        .TempTestItem = CommonPending.LastModExpFile(sTestComp)
     End With
         
 End Sub
@@ -307,7 +307,7 @@ Public Sub Test_0200_ConflictingExport()
     TestComp = "mTest0200Pending"
         
     With TestAid
-        .TestNumber = "0200" ' basic test number for the environment setup
+        .TestId = "0200" ' basic test number for the environment setup
         .TestHeadLine = "Conflicts detected and handled by the Export service"
         Test_0200_1SetUp
         '~~ Assert precondition 1
@@ -316,9 +316,9 @@ Public Sub Test_0200_ConflictingExport()
         .Result = CommonPending.Exists(sTestComp)
         
         '==========================================================================
-        .TestNumber = "0200-1"
+        .TestId = "0200-1"
         sTestFolder = Replace(sTestFolder, "\Test_0200a", "\Test_0200b")
-        ServicedWrkbk = Workbooks.Open(TestWorkbook(sTestFolder)):    .TestItem = ServicedWrkbk ' indicate the Workbook as a temporary test resuource closed with CleanUp
+        ServicedWrkbk = Workbooks.Open(TestWorkbook(sTestFolder)):    .TempTestItem = ServicedWrkbk ' indicate the Workbook as a temporary test resuource closed with CleanUp
 
         mCompMan.ServiceInitiate s_serviced_wbk:=ServicedWrkbk _
                                , s_service:=TestAid.TestHeadLine _
@@ -370,7 +370,7 @@ Public Sub Test_0300_CommCompManuallyCopiedRemoved()
     sTestComp = "clsCode"
     
     With TestAid
-        .TestNumber = "0300-1" ' basic test number for the environment setup
+        .TestId = "0300-1" ' basic test number for the environment setup
         .TestHeadLine = "Common Component manually copied/removed in/from Common-Components folder"
         .Verification = "Precondition 1: The test component " & sTestComp & " does not exist in the Common-Components folder"
         .ResultExpected = True
@@ -403,7 +403,7 @@ Public Sub Test_0300_CommCompManuallyCopiedRemoved()
         End With
         
         '==========================================================================
-        .TestNumber = "0300-2"
+        .TestId = "0300-2"
         Test_0300_1SetUp_1  ' remove the test component from the Common-Components folder
         mHskpng.CommComps
         .Verification = "Test result 1: Test component " & sTestComp & " removed from CommComps.dat file"

@@ -36,10 +36,6 @@ Option Explicit
 '                            Component are registered 'pending release'.
 '
 ' ---------------------------------------------------------------------------
-
-' Attention: To change any value names check syntax
-Private Const EXP_FILE_EXTENTION            As String = "ExportFileExtention"
-
 Private PPFile                              As New clsPrivProf
 Public CodePublic                           As clsCode
     
@@ -75,7 +71,8 @@ Private Sub Class_Initialize()
                    , VALUE_NAME_LAST_MOD_IN & "<LastModifiedInWbkFullName<LastModWbkFullName<Last_Modified_InWbkName<Last_Modified_InWbkFullName" _
                    , VALUE_NAME_LAST_MOD_ON & "<LastModifiedOnMachine<Last_Modified_OnMachine" _
                    , VALUE_NAME_LAST_MOD_BY & "<Last_Modified_ByUser" _
-                   , "RawRevisionNumber>"
+                   , "RawRevisionNumber>" _
+                   , "ExportFileExtention>"
 
         .FileHeader = FileHeader
         .FileFooter = mEnvironment.PrivateProfileFileFooter
@@ -131,6 +128,15 @@ Friend Property Get LastModAt(Optional ByVal l_comp_name As String = vbNullStrin
 ' Returns the revision number in the format YYYY-MM-DD.n
 ' ----------------------------------------------------------------------------
     LastModAt = Value(VALUE_NAME_LAST_MOD_AT, l_comp_name)
+End Property
+
+Friend Property Let LastModKindOfOriginComp(Optional ByVal comp_name As String = vbNullString, _
+                                                    ByVal comp_reg_state As enKindOfComp)
+    Value(VALUE_NAME_REG_STAT_ORIGIN_COMP, comp_name) = mCompMan.RegState(comp_reg_state)
+End Property
+
+Friend Property Get LastModKindOfOriginComp(Optional ByVal comp_name As String) As enKindOfComp
+    LastModKindOfOriginComp = mCompMan.RegState(Value(VALUE_NAME_REG_STAT_ORIGIN_COMP, comp_name))
 End Property
 
 Friend Property Let LastModAt(Optional ByVal l_comp_name As String = vbNullString, _

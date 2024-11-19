@@ -146,6 +146,12 @@ Private Declare PtrSafe Function apiShellExecute _
                 ByVal lpDirectory As String, _
                 ByVal nShowCmd As Long) As Long
 
+Private Enum enCommentType
+    enComment               ' any comment lines or an empty line including section and value comments
+    enFileHeader
+    enFileFooter
+End Enum
+
 Private bBooleanAsTrueFalseString   As Boolean      ' option, when TRUE a Boolean value is saved as a TRUE or FALSE string
 Private bSectionsSeparated          As Boolean      ' section separator line option, defaults to TRUE
 Private dctPPtwinsAsString          As Dictionary   ' file as string
@@ -2072,7 +2078,7 @@ Private Function KeySort(ByRef k_dct As Dictionary) As Dictionary
     Dim dct     As New Dictionary
     Dim vKey    As Variant
     Dim arr     As Variant
-    Dim Temp    As Variant
+    Dim temp    As Variant
     Dim i       As Long
     Dim j       As Long
     
@@ -2090,9 +2096,9 @@ Private Function KeySort(ByRef k_dct As Dictionary) As Dictionary
     For i = LBound(arr) To UBound(arr) - 1
         For j = i + 1 To UBound(arr)
             If arr(i) > arr(j) Then
-                Temp = arr(j)
+                temp = arr(j)
                 arr(j) = arr(i)
-                arr(i) = Temp
+                arr(i) = temp
             End If
         Next j
     Next i
@@ -2582,7 +2588,7 @@ Private Function PPtwinAsString(ByVal p_file As String) As String
     Dim sName       As String
     
     If PPtwinExists(p_file) Then                                        ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
-        PPtwinAsStringComments arrOut, cllPPtwinHeader, True            ' File header
+        PPtwinAsStringComments arrOut, cllPPtwinHeader, enFileHeader    ' File header
         
         For Each vSect In dctPPtwinSections
             sSect = vSect
@@ -2597,7 +2603,7 @@ Private Function PPtwinAsString(ByVal p_file As String) As String
             Next vName
         Next vSect
         
-        PPtwinAsStringComments arrOut, cllPPtwinFooter, , True          ' File footer
+        PPtwinAsStringComments arrOut, cllPPtwinFooter, enFileFooter    ' File footer
         If ArrayIsAllocated(arrOut) Then
             PPtwinAsString = Join(arrOut, vbCrLf)
         End If
@@ -2613,20 +2619,26 @@ End Function
 
 Private Sub PPtwinAsStringComments(ByRef p_arr As Variant, _
                                    ByVal p_cll As Collection, _
-                          Optional ByVal p_header As Boolean = False, _
-                          Optional ByVal p_footer As Boolean = False)
+                          Optional ByVal p_comment_type As enCommentType = enComment)
+' ----------------------------------------------------------------------------
+' Checks comments in a Collection (p_cll), completes them with a "; " prefix,
+' adds for header and footer comments the corresponding delimiter line when
+' not already included.
+' ----------------------------------------------------------------------------
+    Const PROC = "PPtwinAsStringComments"
+    
+    On Error GoTo eh
     Dim v As Variant
     Dim s As String
     Dim l As Long
     Dim a As Variant
     
     If p_cll.Count > 0 Then
-        If p_footer And Not IsDelimiterFileFooter(p_cll(1)) Then
+        If p_comment_type = enFileFooter And Not IsDelimiterFileFooter(p_cll(1)) Then
             Arry(p_arr) = "; " & String(l - 2, sFileFooterDelimiterChar)
         End If
         For Each v In p_cll
-            
-            '~~ Accepts an empty line as a valid comment
+            '~~ Accepts an empty line as comment
             If v = vbNullString Then
                 Arry(p_arr) = v
             Else
@@ -2635,11 +2647,18 @@ Private Sub PPtwinAsStringComments(ByRef p_arr As Variant, _
                 Arry(p_arr) = s
             End If
         Next v
-        If p_header And Not IsDelimiterFileHeader(p_arr(UBound(p_arr))) Then
+        If p_comment_type = enFileHeader And Not IsDelimiterFileHeader(p_arr(UBound(p_arr))) And l >= 5 Then
+            '~~ The Collection did not contain a header delimiter and there was at least one line with a length > 5
             Arry(p_arr) = "; " & String(l - 2, sFileHeaderDelimiterChar)
         End If
     End If
     
+xt: Exit Sub
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub
 
 Private Sub PPtwinClear()
@@ -2961,9 +2980,9 @@ Private Sub PPtwinSectionRemove(ByVal p_file As String, _
     
     Select Case True
         Case dctPPtwinSections Is Nothing
-            dctPPtwins.Remove p_file
-            dctPPtwinsAsString.Remove p_file
-            FSo.DeleteFile p_file
+            If dctPPtwins.Exists(p_file) Then dctPPtwins.Remove p_file
+            If dctPPtwinsAsString.Exists(p_file) Then dctPPtwinsAsString.Remove p_file
+            If FSo.FileExists(p_file) Then FSo.DeleteFile p_file
         Case dctPPtwinSections.Count = 0
             '~~ When all sections had been removed
             '~~ the Private Profile file has become obsolete to and will be removed
