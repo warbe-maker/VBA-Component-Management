@@ -1,7 +1,7 @@
 ## Component Management Services focusing on Excel VB-Projects
 
 - **Exports** any _Component_ the code has changed along with each Workbook save. 
-- **Updates** any outdated _Used/Hosted&nbsp;[Common Component](#common-components)_). 
+- **Updates** any outdated _Used/Hosted&nbsp;[Common Component][9]. 
 - **Synchronizes** the VB-Project of two Workbooks. 
 > All services only require one component installed/imported plus a single code line for each service, still guaranteeing that a productive Workbook is not bothered by any of the configured services at all.
 
@@ -127,4 +127,5 @@ Contribution of any kind is welcome, raising issues specifically.
 [5]:https://github.com
 [6]:https://warbe-maker.github.io/vba/common/2021/02/19/Common-VBA-Components.html
 [7]:https://warbe-maker.github.io/vba/excel/component/management/common/components/2023/06/12/VB-Project-development-towards-professionalism.html
-[8]:https://github.com/warbe-maker/VBA-Components-Management-Services/SpecsAndUse.md#compmans-environment
+[8]:https://github.com/warbe-maker/VBA-Components-Management/blob/master/SpecsAndUse.md#compmans-environment
+[9]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#common-components
