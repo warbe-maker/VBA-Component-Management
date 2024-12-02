@@ -20,10 +20,10 @@ Used with the _Workbook\_Open_ event all _used or [hosted][7]_  _[Common Compone
 ### Provision of CompMan as a servicing Workbook instance
 > When [CompMan.xlsb][1] is downloaded to whichever location and opened it will setup its [default files and folder structure](#compmans-default-files-and-folders-environment) at the download location (don't worry, it may be moved afterwards). The setup completes with saving the Workbook to its dedicated parent folder and the downloaded Workbook is removed. The setup environment, i.e. the _CompManServiced_ folder may subsequently be moved to any location and even renamed.
 
-1. [Download](#download-from-public-github-repo) and open the [CompMan.xlsb][1] Workbook  
-2. When opened an explicit activation of the macros will be required, except when macros are unconditionally enabled - though not recommended by Microsoft  
+1. <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan.xlsb?raw=true" download>Download</a>  CompMan.xlsb
+2. Move the downloaded Workbook into a folder you will regard as the serviced root folder and open the Workbook. It will perform a dialog based self-setup. Note: When opened an explicit activation of the macros will be required, except when macros are unconditionally enabled - though not recommended by Microsoft  
 3. When WinMerge is not available/installed a corresponding message is displayed. The provided link may be used to download and install it. When continued without having it installed the message will be re-displayed whenever the [CompMan.xlsb][1] Workbook is opened.  
-4. Confirm CompMan's self _default environment_ setup at the location the Workbook is opened (see below).
+4. Confirm CompMan's self-setup _default environment_ at the location the Workbook is opened.
 
 > The CompMan services are now ready for being used by Workbooks which have the service(s) enabled (see below.
 
@@ -84,3 +84,5 @@ Contribution of any kind is welcome, raising issues specifically.
 [8]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#export-folder
 [9]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#common-components-folder
 [10]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#serviced-or-not-serviced
+
+
