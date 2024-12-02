@@ -351,9 +351,9 @@ Public Sub MessageUnload(ByVal sm_title As String)
 ' ----------------------------------------------------------------------------
 ' Save current message window position and terminate the display of it.
 ' ----------------------------------------------------------------------------
-    DialogTop = mMsg.MsgInstance(sm_title).Top
-    DialogLeft = mMsg.MsgInstance(sm_title).Left
-    mMsg.MsgInstance sm_title, True
+    DialogTop = mMsg.Instance(sm_title).Top
+    DialogLeft = mMsg.Instance(sm_title).Left
+    mMsg.Instance sm_title, True
 End Sub
 
 Public Sub NoOfItemsServicedIncrement():                            lNoOfItemsServiced = lNoOfItemsServiced + 1:        End Sub

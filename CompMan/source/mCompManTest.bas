@@ -188,6 +188,14 @@ Private Sub Test_Timer()
     End With
 End Sub
 
+Private Sub Test_0010_Message()
+    Dim Msg As mMsg.udtMsg
+    
+    Msg.Section(1).Text.Text = "Message test"
+    mMsg.Dsply "Message test", Msg, , mMsg.Buttons("Ok", "Not Ok")
+    
+End Sub
+
 Private Sub Test_0100_1SetUp()
     
     Dim sTestFolder As String

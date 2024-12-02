@@ -117,7 +117,7 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
                         Prgrss.ItemDone = sComp
                         
                     Case .IsCommCompPublic And Not .IsCommCompPending
-                        '~~ Common Component the code has changed, already public, not pending
+                        '~~ Common Component the code has changed, already public, yet not pending release
                         '~~ (may as well be up-to-date but never exported)
                         .Export
                         .SetServicedProperties
@@ -125,6 +125,7 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
                             '~~ This indicates that the exported Common Component is not the result of
                             '~~ a manually imported public Common Component's Export File
                             CommonPending.Register Comp
+                            .CodePnding.Source = CommonPending.LastModExpFile(sComp)
                             With Services
                                 .Log(sComp) = "Serviced Common Component modified: E x p o r t e d !"
                                 .Log(sComp) = "Serviced Common Component modified: Properties in CommComps.dat updated"
@@ -146,6 +147,7 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
                         .Export
                         .SetServicedProperties
                         CommonPending.Register Comp
+                        .CodePnding.Source = CommonPending.LastModExpFile(sComp)
                         With Services
                             .Log(sComp) = "Serviced Common Component modified: E x p o r t e d !"
                             .Log(sComp) = "Serviced Common Component modified: Re-registered pending release"
@@ -226,16 +228,12 @@ Public Sub ResolveExportConflict(ByVal c_comp As clsComp)
     
     On Error GoTo eh
     Dim Msg                                     As mMsg.udtMsg
-    Dim sBttnDsplyMyModificationsVersusPublic  As String
-    Dim sBttnDsplyMyRecentModifications         As String
     Dim sBttnIgnore                             As String
     Dim sBttnUnDo                               As String
     Dim sBttnUpdate                             As String
     Dim sComp                                   As String
     Dim sTitle                                  As String
     
-    sBttnDsplyMyModificationsVersusPublic = "Display my modifications" & vbLf & "versus current public version"
-    sBttnDsplyMyRecentModifications = "Display my recent modifications"
     sBttnIgnore = "Ignore the incident"
     sBttnUnDo = "Undo the modifications"
     sBttnUpdate = "Update to current" & vbLf & "public version"
@@ -298,9 +296,11 @@ Public Sub ResolveExportConflict(ByVal c_comp As clsComp)
                              , dsply_msg:=Msg _
                              , dsply_Label_spec:="R130" _
                              , dsply_width_min:=40 _
-                             , dsply_buttons:=mMsg.Buttons(sBttnDsplyMyRecentModifications, sBttnDsplyMyModificationsVersusPublic, vbLf, sBttnIgnore, sBttnUnDo, sBttnUpdate))
-            Case sBttnDsplyMyRecentModifications:       DsplyModificationsRecent c_comp
-            Case sBttnDsplyMyModificationsVersusPublic: DsplyModificationsVersusPublic c_comp
+                             , dsply_buttons:=mMsg.Buttons(mDiff.PublicVersusPendingReleaseBttn(sComp), _
+                                                           mDiff.ServicedExportVersusPublicBttn, _
+                                                           vbLf, sBttnIgnore, sBttnUnDo, sBttnUpdate))
+            Case mDiff.PublicVersusPendingReleaseBttn(sComp):   mDiff.PublicVersusPendingReleaseDsply c_comp
+            Case mDiff.ServicedExportVersusPublicBttn:          mDiff.ServicedExportVersusPublicDsply c_comp
             Case sBttnUpdate
                 '~~ Reset the component to its current public code version
                 mUpdate.ByReImport sComp, CommonPublic.LastModExpFile(sComp)
@@ -332,35 +332,4 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-Private Sub DsplyModificationsRecent(ByVal d_comp As clsComp)
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    
-    With d_comp
-        .CodeCrrent.DsplyDiffs d_this_file_name:="CurrentCommonComponent" _
-                             , d_this_file_title:="Current modified code of the Common Component  " & mBasic.Spaced(.CompName) _
-                             , d_versus_code:=.CodeExprtd _
-                             , d_versus_file_name:="LastExportedCodeVersion" _
-                             , d_versus_file_title:="Last exported code version (before the modification, outdated however)"
-    End With
-    
-End Sub
-
-Private Sub DsplyModificationsVersusPublic(ByVal d_comp As clsComp)
-' ----------------------------------------------------------------------------
-' Displays the current modifications versus the current public code version.
-' ----------------------------------------------------------------------------
-    
-    With d_comp
-        .CodeCrrent.DsplyDiffs d_this_file_name:="CurrentCommonComponentCode" _
-                              , d_this_file_title:="Current modified code of the Common Component  " & mBasic.Spaced(.CompName) _
-                              , d_versus_code:=.CodePublic _
-                              , d_versus_file_name:="CurrentPublicCommonComponentCode" _
-                             , d_versus_file_title:="Code of the current public Common Component"
-    End With
-    
-End Sub
-
 

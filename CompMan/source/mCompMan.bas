@@ -80,6 +80,7 @@ Public CommonPending                            As clsCommonPending
 Public CommonPublic                             As clsCommonPublic
 Public CommonServiced                           As clsCommonServiced    ' Serviced Workbook's Common Components Private Profile file
 Public Comps                                    As clsComps
+Public ConfigLocal                              As clsConfigLocal
 Public LogServiced                              As clsLog               ' log writen for the serviced Workbook
 Public LogServicesSummary                       As clsLog               ' the servicing Workbooks own log
 Public Msg                                      As udtMsg
@@ -167,6 +168,36 @@ Public Function AboutCommComps() As String
                      "becomes ""public"" when it is ""released"" by means of the ""CompMan"" menu in the VBE."
 End Function
 
+Public Sub OpenWbk()
+' ----------------------------------------------------------------------------
+' Enables re-open from VBE direct window.
+' ----------------------------------------------------------------------------
+    Const PROC = "OpenWbk"
+       
+    On Error GoTo eh
+    If ThisWorkbook.ReadOnly And mMe.IsDevInstnc Then
+        Stop
+        GoTo xt ' under cetain cirumstances Excel may open the Workbook write protected
+    End If
+    If Not mMe.IsDevInstnc Then GoTo xt
+    If Not mMe.AssertedServicingEnabled(wbCompMan.COMMON_COMPONENTS_HOSTED) Then GoTo xt
+    
+    '~~ ------------------------------------------------------------------
+    '~~ CompMan Workbook_Open service 'UpdateOutdatedCommonComponents':
+    '~~ Executed by the development instance when open or by the Add-in
+    '~~ when established and automatically available when referenced by
+    '~~ the VB-Project
+    mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, wbCompMan.COMMON_COMPONENTS_HOSTED, wbCompMan.COMMON_COMPONENT_PROC_COPIES
+    Application.Wait Now + TimeValue("00:00:01")
+    
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
 Public Sub CheckForUnusedPublicItems()
 ' ----------------------------------------------------------------
 ' Attention! The service requires the VBPUnusedPublic.xlsb
@@ -199,6 +230,47 @@ Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mCompMan" & "." & es_proc
 End Function
 
+Public Function HistoryItems(ByVal h_str As String, _
+                             ByRef h_current As String) As Collection
+' ----------------------------------------------------------------------------
+' Returns history items as Collection and the most current item (h_current).
+' When there are no history items the returned Collection will be empty.
+' Precondition: With a split character > the last item, with a < the first
+' item is the ' most current.
+' ----------------------------------------------------------------------------
+    Const PROC = "HistoryItemns"
+    
+    Dim cll As New Collection
+    Dim i As Long
+    Dim sSplit As String
+    Dim a As Variant
+    
+    Select Case True
+        Case InStr(h_str, "<") <> 0 _
+         And InStr(h_str, ">") <> 0
+            Err.Raise AppErr(1), ErrSrc(PROC), "Contradictory history direction character detected!" & vbLf & _
+                                               "The character may either be "">"" indicating that the " & _
+                                               "item of the right is the one replacing the item to the " & _
+                                               "left or or ""<"" indicating the the item to the left is " & _
+                                               "replacing the one to the right. When either of the two is " & _
+                                               "not followed by a string means that the item has become obsolete!"
+        Case InStr(h_str, ">") <> 0
+            a = Split(h_str, ">")
+            For i = LBound(a) To UBound(a)
+                cll.Add a(i)
+            Next i
+        Case InStr(h_str, "<") <> 0
+            a = Split(h_str, "<")
+            For i = UBound(a) To LBound(a) Step -1
+                cll.Add a(i)
+            Next i
+    End Select
+    h_current = cll(cll.Count)
+    cll.Remove cll.Count
+    Set HistoryItems = cll
+    
+End Function
+
 Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
                                Optional ByVal e_hosted As String = vbNullString, _
                                Optional ByVal e_public_proc_copies As String = vbNullString) As Variant
@@ -224,7 +296,7 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     
     mCompMan.CurrentServiceName = mCompManClient.SRVC_EXPORT_CHANGED_DSPLY
     mCompMan.ServicedWrkbk = e_wbk_serviced
-    mEnvironment.Provide e_wbk_serviced
+    mEnvironment.Provide e_wbk_serviced, True
     
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=e_wbk_serviced _
@@ -329,7 +401,7 @@ Public Function RunTest(ByVal r_service_proc As String, _
                 Case Not wsConfig.FolderCompManRootIsValid
                     RunTest = mBasic.AppErr(1) ' Configuration for the service is invalid
                     Debug.Print ErrSrc(PROC) & ": " & ErrSrc(PROC) & ": Configuration invalid"
-                Case Not r_serviced_wbk.FullName Like wsConfig.FolderCompManRoot & "*"
+                Case Not r_serviced_wbk.FullName Like wsConfig.FolderCompManServicedRoot & "*"
                     RunTest = mBasic.AppErr(2) ' Denied because outside configured 'Dev and Test' folder
                     Debug.Print ErrSrc(PROC) & ": " & ErrSrc(PROC) & ": Service denied because out of serviced folder"
                 Case r_service_proc = mCompManClient.SRVC_UPDATE_OUTDATED
@@ -473,7 +545,7 @@ Public Sub ServiceTerminate()
     Set Prgrss = Nothing
     
     s = Application.StatusBar
-    For i = 5 To 0 Step -1
+    For i = 3 To 0 Step -1
         mBasic.DelayedAction 0.6
         On Error Resume Next
         Application.StatusBar = s & " " & String(i, " ") & i
@@ -513,7 +585,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     
     CurrentServiceName = mCompManClient.SRVC_UPDATE_OUTDATED_DSPLY
     mCompMan.ServicedWrkbk = u_wbk_serviced
-    mEnvironment.Provide u_wbk_serviced
+    mEnvironment.Provide u_wbk_serviced, True
 
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=u_wbk_serviced _
@@ -630,4 +702,16 @@ End Function
 Public Function WinMergeIsInstalled() As Boolean
     WinMergeIsInstalled = AppIsInstalled("WinMerge")
 End Function
+
+Public Function BttnAsLabel(ByVal b_bttn As String) As String
+    Dim s As String
+    
+    s = Replace(b_bttn, vbLf, " ")
+    s = Replace(s, Chr$(160), " ")
+    s = Replace(s, "  ", " ")
+    s = Replace(s, "  ", " ")
+    BttnAsLabel = s & ":"
+    
+End Function
+
 

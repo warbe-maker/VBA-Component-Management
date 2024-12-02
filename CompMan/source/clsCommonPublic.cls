@@ -21,7 +21,6 @@ Option Explicit
 ' Code
 ' CommCompsDatFileFullName         .
 ' ComponentRemove
-' DsplyCodeDiffVersusPublic
 ' Exists
 ' Public
 '
@@ -118,10 +117,6 @@ End Function
 Private Sub Class_Terminate()
     Set PPFile = Nothing
 End Sub
-
-Friend Property Get BttnDsplyDiff() As String:      BttnDsplyDiff = "Display difference" & vbLf & "(of Export-Files)":  End Property
-
-'Public Property Get FolderPath() As String:         FolderPath = sFolderPath:                                           End Property
 
 Friend Property Get LastModAt(Optional ByVal l_comp_name As String = vbNullString) As String
 ' ----------------------------------------------------------------------------
@@ -252,35 +247,6 @@ Public Function Components() As Dictionary
     
 End Function
 
-Public Sub DsplyCodeDiffVersusPublic(ByVal d_comp As clsComp)
-' ----------------------------------------------------------------------------
-' Displays the difference between the current used/hosted Common Component
-' versus the current public Common Component.
-' ----------------------------------------------------------------------------
-    Const PROC = "DsplyCodeDiffVersusPublic"
-    
-    On Error GoTo eh
-    Dim sUsedHosted As String
-    Dim sComp       As String
-    
-    With d_comp
-        sComp = .CompName
-        sUsedHosted = mCompMan.RegState(CommonServiced.KindOfComponent(sComp))
-        .CodeCrrent.Source = .ExpFileFullName
-        .CodeCrrent.DsplyDiffs d_this_file_name:="Current_" & sUsedHosted & "_CommonComponentInServicedWorkbook" _
-                              , d_this_file_title:="Current " & sUsedHosted & " Common Component's code (" & sComp & ") in the serviced Workbook (" & .WrkbkBaseName & ")" _
-                              , d_versus_code:=.CodePublic _
-                              , d_versus_file_name:="CurrentPublicCommonComponent" _
-                              , d_versus_file_title:="Current public Common Component's code (" & sComp & ") in the Common-Components folder, last modified in " & LastModInWrkbkName(sComp) & "."
-    End With
-    
-xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsCommonPublic" & "." & sProc

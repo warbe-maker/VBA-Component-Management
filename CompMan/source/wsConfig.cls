@@ -9,14 +9,19 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 Option Explicit
 ' ----------------------------------------------------------------------------
-' Data Module wsConfig: Configuration items throughout all services-
+' Data Module wsConfig: Current configuration throughout all services.
 ' =====================
+' When CompMan is initially setup (after a download) the configuration of the
+' Export-Folder name is the default and as such written to the private
+' configuration PrivateProfile file (CompMan.cfg). Once this file exists,
+' any user's private configuration is written to this configuration Worksheet
+' when a new version is downloaded replacing the existing version.
 ' ----------------------------------------------------------------------------
 Private sRenewResult As String
 
-Private Property Let AddInStatus(ByVal s As String):                 MaintainMinRowHeight Me.Range("AddInStatus"), s:                        End Property
+Private Property Let AddInStatus(ByVal s As String):                MaintainMinRowHeight Me.Range("AddInStatus"), s:                        End Property
 
-Private Property Let AutoOpenStatus(ByVal s As String):              MaintainMinRowHeight Me.Range("AutoOpenStatus"), s:                     End Property
+Private Property Let AutoOpenStatus(ByVal s As String):             MaintainMinRowHeight Me.Range("AutoOpenStatus"), s:                     End Property
 
 Private Property Get ButtonAddInProvideGiveUp() As Button:          Set ButtonAddInProvideGiveUp = Me.Buttons("cmbAddInSetUpGiveUp"):       End Property
 
@@ -63,9 +68,9 @@ Public Property Get FolderCommonComponentsPath() As String:         FolderCommon
 
 Public Property Let FolderCommonComponentsPath(ByVal s As String):  mWsh.Value(Me, "FolderCommonComponents") = s:                           End Property
 
-Public Property Get FolderCompManRoot() As String:                  FolderCompManRoot = mWsh.Value(Me, "FolderCompManRoot"):                End Property
+Public Property Get FolderCompManServicedRoot() As String:          FolderCompManServicedRoot = mWsh.Value(Me, "FolderCompManRoot"):        End Property
 
-Public Property Let FolderCompManRoot(ByVal s As String):           mWsh.Value(Me, "FolderCompManRoot") = s:                                End Property
+Public Property Let FolderCompManServicedRoot(ByVal s As String):   mWsh.Value(Me, "FolderCompManRoot") = s:                                End Property
 
 Private Property Let FolderCompManRootInfo(ByVal s As String):      MaintainMinRowHeight Me.Range("FolderCompManRootInfo"), s:              End Property
 
@@ -179,6 +184,7 @@ Public Sub AutoOpenCompManFlipFlop()
         ButtonCaption(ButtonWrkbkAutoOpen) = "Remove Auto-open"
     End If
     Me.Verified
+    CurrentStatus
     
 xt: Exit Sub
  
@@ -314,9 +320,6 @@ Public Sub CurrentStatus()
     ButtonHelpUrlAddinSetup = "#configuration-changes-compmans-config-worksheet"
     ButtonHelpUrlPauseContinue = "#compmanxlsb-versus-compman-as-add-in"
 
-    FolderSyncTargetIsValid
-    FolderSyncArchiveIsValid
-        
 xt: Set cll = Nothing
     Exit Sub
 
@@ -341,12 +344,12 @@ Public Function FolderCompManRootIsValid() As Boolean
     On Error GoTo eh
     Dim bValid  As Boolean
     
-    FolderCompManRootUrl = mCompMan.README_CONFIG_CHANGES
-    CompManWrkbkStatusUrl = mCompMan.README_CONFIG_CHANGES
-    CommonComponentsFolderUrl = mCompMan.README_DEFAULT_FILES_AND_FOLDERS
+    FolderCompManRootUrl = "/blob/master/SpecsAndUse.md#configuration-changes-compmans-config-worksheet"
+    CompManWrkbkStatusUrl = "/blob/master/SpecsAndUse.md#configuration-changes-compmans-config-worksheet"
+    CommonComponentsFolderUrl = "/blob/master/SpecsAndUse.md#public-common-components"
     
-    If FolderCompManRoot <> vbNullString Then
-        If FSo.FolderExists(FolderCompManRoot) Then
+    If FolderCompManServicedRoot <> vbNullString Then
+        If FSo.FolderExists(FolderCompManServicedRoot) Then
             FolderCompManRootInfo = "Folder serviced by CompMan. I.e. CompMan provides its services for any Workbook " & _
                                     "located (opened, saved) in this folder - provided the Workbook has one or more " & _
                                     "services enabled."
@@ -356,7 +359,7 @@ Public Function FolderCompManRootIsValid() As Boolean
             FolderCompManRootInfo = "Not configured! The former configured folder does not exist and thus has been reset!." & vbLf & _
                                     "CompMan 's services are  n o t   a v a i l a b l e !" & vbLf & _
                                     "CompMan only serves Workbooks which are opened from within a configured 'Serviced Development and Test' folder."
-            FolderCompManRoot = vbNullString
+            FolderCompManServicedRoot = vbNullString
         End If
     Else
         FolderCompManRootInfo = "Missing! CompMan's services are  n o t   a v a i l a b l e !" & vbLf & _
@@ -381,10 +384,11 @@ Public Sub FolderExportConfigure()
     Dim sOld    As String
     
     sOld = wsConfig.FolderExport
-    sNew = VBA.InputBox(Prompt:="Enter the name for the folder to which changed components are exported " & _
-                             "by CompMan's 'Export Changed Components' service (for Workbooks which a " & _
-                             "correspondingly configured and reside within the configured serrviced 'Development and Test' folder." & vbLf & vbLf & _
-                             "Attention! When the name of the Export folder is changed, all old named folders are renamed correspondingly." _
+    sNew = VBA.InputBox(Prompt:="Enter the desired name for the folder to which changed components are exported " & _
+                                "by CompMan's 'Export service - for correspondigly configured Workbooks, i.e which " & _
+                                "reside within the serviced root folder (""" & wsConfig.FolderCompManServicedRoot & """)." & vbLf & vbLf & _
+                                "Please note! When the name of the Export folder is changed, any still in use old named " & _
+                                "folder in a serviced Workbook will be renamed." _
                     , Title:="Export folder name" _
                     , Default:=sOld)
     If sNew <> vbNullString Then
@@ -392,7 +396,7 @@ Public Sub FolderExportConfigure()
         If sNew <> sOld And FolderCompManRootIsValid Then
             '~~ Provided a 'Serviced Development And Test' folder is configured,
             '~~ all export folders are renamed in accordance with the name change
-            RenameSubFolders wsConfig.FolderCompManRoot, sOld, sNew
+            RenameSubFolders wsConfig.FolderCompManServicedRoot, sOld, sNew
         End If
     Else
         FolderExport = sOld
@@ -405,11 +409,11 @@ Public Function FolderExportIsValid(Optional ByRef iv_info As String) As Boolean
 ' Verification the name of the Export-Folder
 ' ----------------------------------------------------------------------------
     With Me
-        FolderExportUrl = mCompMan.README_CONFIG_CHANGES
+        FolderExportUrl = "/blob/master/SpecsAndUse.md#compmans-environment"
         If .FolderExport <> vbNullString Then
             FolderExportInfo = "Current configured name of the folder within a serviced Workbook's dedicated folder " & _
-                                "into which CompMan exports new/modified components. The name may be changed only by " & _
-                                "means of the corresponding ""Configure"" button exclusively!"
+                               "into which CompMan exports new/modified components. The name may be changed only by " & _
+                               "means of the corresponding ""Configure"" button exclusively!"
             FolderExportIsValid = True
         Else
             FolderExport = mConfig.DEFAULT_FOLDER_EXPORT
@@ -420,82 +424,6 @@ Public Function FolderExportIsValid(Optional ByRef iv_info As String) As Boolean
         End If
         iv_info = FolderExportInfo
     End With
-End Function
-
-Public Sub FolderSyncArchiveConfigure()
-    FolderSyncArchive = mBasic.SelectFolder("Select the 'Synchronization Archive' folder for CompMan's 'Synchronize VB-Project' service")
-    FolderSyncArchiveIsValid
-    wsConfig.CurrentStatus
-End Sub
-
-Private Function FolderSyncArchiveIsValid() As Boolean
-' ----------------------------------------------------------------------------
-' Returns TRUE when the current configured Synchronization-Archive-Folder is
-' valid.
-' ----------------------------------------------------------------------------
-    
-    With Me
-        FolderSyncArchiveUrl = mCompMan.README_CONFIG_CHANGES
-        If FolderSyncArchive <> vbNullString Then
-            If FSo.FolderExists(FolderSyncTarget) Then
-                FolderSyncArchiveIsValid = True
-            Else
-                FolderSyncArchive = vbNullString
-                FolderSyncTargetInfo = "Not configured! The former configured folder does not exist and thus had been reset." & vbLf & _
-                                        "CompMan's 'VB-Project-Synchronization' service will not be provided even when a Workbook " & _
-                                        "has it enabled." & vbLf & _
-                                        "Important! The folder must not be a sub-folder of the 'Serviced Development and Test' folder!"
-            End If
-        Else ' .FolderSyncArchive = vbNullString
-            If FolderSyncTarget <> vbNullString Then
-                FolderSyncArchiveInfo = "Not configured! When a Sync-Target-Folder is configured the configuration of a Sync-Archive-Folder is obligatory!"
-            Else
-                FolderSyncArchiveInfo = "Configuration only becomes obligatory when a Sync-Target-folder is configured!"
-                FolderSyncArchiveIsValid = True
-            End If
-        End If
-        If FolderSyncArchiveIsValid Then
-            FolderSyncArchiveInfo = "The Sync-Target-Workbook will be copied into this folder before it gets synchronized with its corresponding Sync-Source-Workbook."
-        End If
-    End With
-    
-End Function
-
-Public Sub FolderSyncTargetConfigure()
-    FolderSyncTarget = mBasic.SelectFolder("Select the folder for the CompMan's 'Synchronize VB-Project' service")
-End Sub
-
-Public Function FolderSyncTargetIsValid() As Boolean
-' ----------------------------------------------------------------------------
-' Returns TRUE when the Sync-Target-Folder is either not configured ore the
-' configured ones is valid.
-' Considers that the configured folder does not or no longer exist, in case
-' the Workbook is opened on a different computer for example.
-' ----------------------------------------------------------------------------
-    
-    With wsConfig
-        FolderSyncTargetIsValid = FolderSyncTarget = vbNullString
-        FolderSyncTargetUrl = mCompMan.README_CONFIG_CHANGES
-        If FolderSyncTarget <> vbNullString Then
-            If FSo.FolderExists(FolderSyncTarget) Then
-                FolderSyncTargetIsValid = True
-                FolderSyncTargetInfo = "CompMan's folder for the 'Synchronization VB-Project' service. The service is " & _
-                                       "provided for any Workbook prepared for the service and opened from within this folder."
-            Else
-                FolderSyncTarget = vbNullString
-                FolderSyncTargetInfo = "Not configured! The former configured folder does not exist and thus had been reset." & vbLf & _
-                                       "CompMan's 'Synchronize VB-Project' service will not be provided even when a Workbook " & _
-                                       "has it enabled." & vbLf & _
-                                       "Important! The folder must not be a sub-folder of the 'Serviced Development and Test' folder!"
-            End If
-        Else
-            FolderSyncTargetInfo = "No 'Synchronization-Target' folder configured. CompMan's 'VB-Project Synchronization' service " & _
-                                   "will not be provided even when a Workbook has it enabled." & vbLf & _
-                                   "Important! The folder must not be a sub-folder of the 'Serviced Development and Test' folder!"
-            FolderSyncTargetIsValid = True
-        End If
-    End With
-    
 End Function
 
 Private Sub MaintainMinRowHeight(ByVal mrh_rng As Range, _
@@ -562,7 +490,7 @@ Public Sub MonitorRenewStep(Optional ByVal rn_result As String = vbNullString, _
                 mMsg.MonitorFooter Title, Footer
             Else
                 If Not rn_renew_failed Then
-                    For lSecs = 5 To 1 Step -1
+                    For lSecs = 3 To 1 Step -1
                         Footer.Text = "Renew process  " & mBasic.Spaced("successfully") & "  finished! (Window closes in " & lSecs & " seconds)"
                         mMsg.MonitorFooter Title, Footer
                         mBasic.DelayedAction 1
@@ -607,12 +535,10 @@ Public Function Verified() As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when all configured folders are valid.
 ' ----------------------------------------------------------------------------
-    Verified = FolderCompManRootIsValid _
-           And FolderSyncTargetIsValid _
-           And FolderSyncArchiveIsValid
-    CompManAddInStatusUrl = mCompMan.README_CONFIG_CHANGES
-    CompManWrkbkStatusUrl = mCompMan.README_CONFIG_CHANGES
-    CommonComponentsFolderUrl = mCompMan.README_DEFAULT_FILES_AND_FOLDERS
+    Verified = FolderCompManRootIsValid
+    CompManAddInStatusUrl = "/blob/master/SpecsAndUse.md#configuration-changes-compmans-config-worksheet"
+    CompManWrkbkStatusUrl = "/blob/master/SpecsAndUse.md#configuration-changes-compmans-config-worksheet"
+    CommonComponentsFolderUrl = "/blob/master/SpecsAndUse.md#public-common-components"
     
 End Function
 
@@ -656,31 +582,31 @@ xt: mCompManClient.Events ErrSrc(PROC), True
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-
+    Dim a As Variant
+    
     With Me
         Select Case Target.Address
             Case .Range("FolderCompManRootInfo").Address, _
                  .Range("FolderExportInfo").Address, _
-                 .Range("FolderSyncArchiveInfo").Address, _
-                 .Range("FolderSyncTargetInfo").Address, _
                  .Range("ConfigInfo").Address
                 If InStr(Target.Value, "nvalid!") <> 0 _
                 Or InStr(Target.Value, "issing!") <> 0 _
-                Or InStr(Target.Value, "ot configured!") <> 0 Then
+                Or InStr(Target.Value, "not configured!") <> 0 Then
                     Target.Font.Color = 255
                 Else
                     Target.Font.ColorIndex = xlAutomatic
                 End If
             Case .Range("FolderCompManRoot").Address:   FolderCompManRootIsValid
-            Case .Range("FolderSyncTarget").Address:    FolderSyncTargetIsValid
-            Case .Range("FolderSyncArchive").Address:   FolderSyncArchiveIsValid
         End Select
     
         Select Case Target.Address
-            Case .Range("FolderCompManRoot").Address, _
-                 .Range("FolderExport").Address, _
-                 .Range("FolderSyncTarget").Address, _
-                 .Range("FolderSyncArchive").Address
+            Case .Range("FolderCompManRoot").Address
+            Case .Range("FolderExport").Address
+                If ConfigLocal Is Nothing Then
+                    mEnvironment.Provide ThisWorkbook
+                    Set ConfigLocal = New clsConfigLocal
+                End If
+                ConfigLocal.ExportFolderName = ConfigLocal.ExportFolderName & ">" & Target.Value
         End Select
     End With
 

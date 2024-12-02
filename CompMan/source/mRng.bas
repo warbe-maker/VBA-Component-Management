@@ -36,9 +36,9 @@ Option Compare Text
 ' ------------------------------------------------------------------------------
 ' --- Begin of declarations to get all Workbooks of all running Excel instances
 Private Declare PtrSafe Function FindWindowEx Lib "user32" Alias "FindWindowExA" (ByVal hWnd1 As LongPtr, ByVal hWnd2 As LongPtr, ByVal lpsz1 As String, ByVal lpsz2 As String) As LongPtr
-Private Declare PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameA" (ByVal hWnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As LongPtr) As LongPtr
+Private Declare PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameA" (ByVal hwnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As LongPtr) As LongPtr
 Private Declare PtrSafe Function IIDFromString Lib "ole32" (ByVal lpsz As LongPtr, ByRef lpiid As UUID) As LongPtr
-Private Declare PtrSafe Function AccessibleObjectFromWindow Lib "oleacc" (ByVal hWnd As LongPtr, ByVal dwId As LongPtr, ByRef riid As UUID, ByRef ppvObject As Object) As LongPtr
+Private Declare PtrSafe Function AccessibleObjectFromWindow Lib "oleacc" (ByVal hwnd As LongPtr, ByVal dwId As LongPtr, ByRef riid As UUID, ByRef ppvObject As Object) As LongPtr
 
 Type UUID 'GUID
     Data1 As Long
@@ -56,7 +56,7 @@ Private Const GITHUB_REPO_URL = "https://github.com/warbe-maker/VBA-Excel-Range"
 ' Begin of ShellRun declarations ---------------------------------------------
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
-    (ByVal hWnd As Long, _
+    (ByVal hwnd As Long, _
     ByVal lpOperation As String, _
     ByVal lpFile As String, _
     ByVal lpParameters As String, _
@@ -168,7 +168,7 @@ Private Function AllWbksOpen() As Dictionary
                 lApps = 1
                 ReDim aApps(1 To 1)
                 Set aApps(lApps) = app
-            ElseIf checkHwnds(aApps, app.hWnd) Then
+            ElseIf checkHwnds(aApps, app.hwnd) Then
                 lApps = lApps + 1
                 ReDim Preserve aApps(1 To lApps)
                 Set aApps(lApps) = app
@@ -274,7 +274,7 @@ Public Sub BoP(ByVal b_proc As String, _
 #End If
 End Sub
 
-Private Function checkHwnds(ByRef xlApps() As Application, hWnd As LongPtr) As Boolean
+Private Function checkHwnds(ByRef xlApps() As Application, hwnd As LongPtr) As Boolean
 ' -----------------------------------------------------------------------------------------
 '
 ' -----------------------------------------------------------------------------------------
@@ -286,7 +286,7 @@ Private Function checkHwnds(ByRef xlApps() As Application, hWnd As LongPtr) As B
     If UBound(xlApps) = 0 Then GoTo xt
 
     For i = LBound(xlApps) To UBound(xlApps)
-        If xlApps(i).hWnd = hWnd Then
+        If xlApps(i).hwnd = hwnd Then
             checkHwnds = False
             GoTo xt
         End If
@@ -591,10 +591,10 @@ Private Function GetExcelObjectFromHwnd(ByVal hWndMain As LongPtr) As Applicatio
 
 #If Win64 Then
     Dim hWndDesk As LongPtr
-    Dim hWnd As LongPtr
+    Dim hwnd As LongPtr
 #Else
     Dim hWndDesk As Long
-    Dim hWnd As Long
+    Dim hwnd As Long
 #End If
     
     On Error GoTo eh
@@ -606,19 +606,19 @@ Private Function GetExcelObjectFromHwnd(ByVal hWndMain As LongPtr) As Applicatio
     hWndDesk = FindWindowEx(hWndMain, 0&, "XLDESK", vbNullString)
 
     If hWndDesk <> 0 Then
-        hWnd = FindWindowEx(hWndDesk, 0, vbNullString, vbNullString)
+        hwnd = FindWindowEx(hWndDesk, 0, vbNullString, vbNullString)
 
-        Do While hWnd <> 0
+        Do While hwnd <> 0
             sText = String$(100, Chr$(0))
-            lRet = CLng(GetClassName(hWnd, sText, 100))
+            lRet = CLng(GetClassName(hwnd, sText, 100))
             If Left$(sText, lRet) = "EXCEL7" Then
                 Call IIDFromString(StrPtr(IID_IDispatch), iid)
-                If AccessibleObjectFromWindow(hWnd, OBJID_NATIVEOM, iid, ob) = 0 Then 'S_OK
+                If AccessibleObjectFromWindow(hwnd, OBJID_NATIVEOM, iid, ob) = 0 Then 'S_OK
                     Set GetExcelObjectFromHwnd = ob.Application
                     GoTo xt
                 End If
             End If
-            hWnd = FindWindowEx(hWndDesk, hWnd, vbNullString, vbNullString)
+            hwnd = FindWindowEx(hWndDesk, hwnd, vbNullString, vbNullString)
         Loop
         
     End If
@@ -990,7 +990,7 @@ Private Function WbkIsOpen(ByVal wb As Variant, _
     
     On Error GoTo eh
     Dim OpenWbks As Dictionary
-    Dim OpenWbk  As Workbook
+    Dim wbOpen  As Workbook
     Dim FSo      As New FileSystemObject
     Dim WbName As String
     
@@ -1003,34 +1003,34 @@ Private Function WbkIsOpen(ByVal wb As Variant, _
         WbName = FSo.GetFileName(wb)
         If OpenWbks.Exists(WbName) Then
             '~~ A Workbook with the same 'WbName' is open
-            Set OpenWbk = OpenWbks.Item(WbName)
+            Set wbOpen = OpenWbks.Item(WbName)
             '~~ When a Workbook's Name is provided the Workbook is only regarde open when the open
             '~~ Workbook has the same name (i.e. including its extension)
-            If FSo.GetFile(OpenWbk.FullName).Name <> FSo.GetFileName(wb) Then Set OpenWbk = Nothing
+            If FSo.GetFile(wbOpen.FullName).Name <> FSo.GetFileName(wb) Then Set wbOpen = Nothing
         End If
     ElseIf IsWbkFullName(wb) Then
         WbName = FSo.GetFileName(wb)
         If OpenWbks.Exists(WbName) Then
             '~~ A Workbook with the same 'WbName' is open
-            Set OpenWbk = OpenWbks.Item(WbName)
+            Set wbOpen = OpenWbks.Item(WbName)
             '~~ The provided (wb) specifies an exist Workbook file. This Workbook is regarded open (and returned as opject)
             '~~ when a Workbook with its Name (including the extension!) is open regardless in which location
-            If FSo.GetFile(OpenWbk.FullName).Name <> FSo.GetFileName(wb) Then Set OpenWbk = Nothing
+            If FSo.GetFile(wbOpen.FullName).Name <> FSo.GetFileName(wb) Then Set wbOpen = Nothing
         End If
     ElseIf IsWbkObject(wb) Then
         WbName = wb.Name
         If Opened.Exists(WbName) Then
-            Set OpenWbk = OpenWbks.Item(WbName)
+            Set wbOpen = OpenWbks.Item(WbName)
         End If
     Else
         '~~ If wb is a Workbook's WbName it is regarded open when one with that WbName is open
         '~~ regrdless its extension
-        If OpenWbks.Exists(wb) Then Set OpenWbk = OpenWbks.Item(wb)
+        If OpenWbks.Exists(wb) Then Set wbOpen = OpenWbks.Item(wb)
     End If
     
-xt: If IsWbkObject(OpenWbk) Then
+xt: If IsWbkObject(wbOpen) Then
         WbkIsOpen = True
-        Set wb_result = OpenWbk
+        Set wb_result = wbOpen
     End If
     Set FSo = Nothing
     Exit Function

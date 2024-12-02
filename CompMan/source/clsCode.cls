@@ -48,6 +48,7 @@ Private Const ERR_NO_SOURCE = "Obtaining the code as array or string when the so
 Private sAsTrimmedString                As String   ' Code as a single trimmed string (without leading and trailing empty code lines)
 'Private sAsTrimmedStringEmptyExcluded   As String   ' Code as a single trimmed string (without leading and trailing empty code lines)
 Private vSource                         As Variant
+Private sSourceName                     As String
 Private sCompName                       As String
 Private bSourceIsNone                   As Boolean
 Private dctTempFiles                    As New Dictionary
@@ -159,8 +160,8 @@ Public Property Get IsNone() As Boolean:            IsNone = bSourceIsNone: End 
 
 Public Function CodeAsString() As String
 ' ----------------------------------------------------------------------------
-' Returns the code of the provided source, which is an Export-File or a
-' VBComponent.
+' Returns the code of the provided source, which is an Export-File, a
+' VBComponent or a CodeModule.
 ' ----------------------------------------------------------------------------
     Dim fl      As File
     Dim vbcm    As CodeModule
@@ -191,6 +192,8 @@ Public Function CodeAsString() As String
     
 End Function
 
+Public Property Get SourceName() As String: SourceName = sSourceName:   End Property
+
 Public Property Let Source(ByVal s_src As Variant)
 ' ----------------------------------------------------------------------------
 ' Depending on the provided argument's (s_src) type the code is saved as an
@@ -200,8 +203,7 @@ Public Property Let Source(ByVal s_src As Variant)
 '                               - VBComponent
 '                               - CodeModule
 ' Note: The module is initialized with IsNone = TRUE and this is only set to
-'       FALSE when a Source had been provided which contains at least one non
-'       non empty code line.
+'       FALSE when a Source had been provided.
 ' ----------------------------------------------------------------------------
     Dim fl      As File
     Dim vbcm    As CodeModule
@@ -212,17 +214,22 @@ Public Property Let Source(ByVal s_src As Variant)
                 With New FileSystemObject
                     If .FileExists(s_src) Then
                         vSource = s_src
+                        sSourceName = s_src
                         bSourceIsNone = False
                     End If
                 End With
             End If
         Case "VBComponent": Set vSource = s_src
+                            sSourceName = s_src.Name
                             bSourceIsNone = False
         Case "CodeModule":  Set vSource = s_src
+                            sSourceName = s_src.Parent.Name
                             bSourceIsNone = False
         Case "File":        Set vSource = s_src
+                            sSourceName = s_src.Path
                             bSourceIsNone = False
     End Select
+    If Not bSourceIsNone Then sCodeAsString = vbNullString
     
 End Property
 
@@ -327,14 +334,20 @@ Public Function AsTrimmedString(Optional ByVal a_empty_excluded As Boolean = Fal
 End Function
 
 Public Function DiffersFrom(ByVal d_from_code As clsCode, _
-                   Optional ByVal d_empty_excluded As Boolean = False) As Boolean
+                   Optional ByVal d_empty_excluded As Boolean = False, _
+                   Optional ByRef d_diffs As Variant) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when this class instance's code (AsTrimmedString) differs from
-' those of another's instance (d_from_code).
+' those of another's instance (d_from_code). The function returns the first
+' 5 different code lines as array in the form <line-number> <source> <line>
+' i.e each difference is returnes as two items.
 ' ----------------------------------------------------------------------------
-    Const PROC = "DiffersFrom"
+    Const PROC          As String = "DiffersFrom"
+    Const DIFF_LIMIT    As Long = 5
     
     On Error GoTo eh
+    Dim i       As Long
+    Dim lDiffs  As Long
     
     Select Case True
         Case Not IsNone And Not d_from_code.IsNone
@@ -342,7 +355,8 @@ Public Function DiffersFrom(ByVal d_from_code As clsCode, _
                                 , d_from_code.CodeAsString _
                                 , vbTextCompare) <> 0
             If DiffersFrom _
-            Then DiffersFromDebug d_from_code, d_empty_excluded
+            Then DiffersFromDiffs d_from_code, d_empty_excluded, d_diffs
+            
         Case Not Me.IsNone And d_from_code.IsNone:   DiffersFrom = True
         Case Me.IsNone And Not d_from_code.IsNone:   DiffersFrom = True
         Case Me.IsNone And d_from_code.IsNone
@@ -356,37 +370,49 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub DiffersFromDebug(ByVal d_from_code As clsCode, _
-                   Optional ByVal d_empty_excluded As Boolean = False)
-    Const PROC = "DiffersFromDebug"
+Public Sub DiffersFromDiffs(ByVal d_from_code As clsCode, _
+                   Optional ByVal d_empty_excluded As Boolean = False, _
+                   Optional ByRef d_diffs As Variant = Nothing, _
+                   Optional ByVal d_diffs_limit As Long = 1)
+' ----------------------------------------------------------------------------
+' ----------------------------------------------------------------------------
+                   
+    Const PROC = "DiffersFromDiffs"
     
+    On Error GoTo eh
     Dim i       As Long
-    Dim arr     As Variant
+    Dim arrThis As Variant
     Dim arrFrom As Variant
+    Dim arrDiff As Variant
     Dim j       As Long
+    Dim lMaxSrc As Long
     
-    If d_empty_excluded _
-    Then Debug.Print ErrSrc(PROC) & ": " & "changed (empty excluded)   : " & sCompName _
-    Else Debug.Print ErrSrc(PROC) & ": " & "changed (empty included)   : " & sCompName
-    arr = Split(AsTrimmedString(d_empty_excluded), vbCrLf)
-    arrFrom = Split(d_from_code.AsTrimmedString(d_empty_excluded), vbCrLf)
-    For i = 1 To Min(UBound(arr), UBound(arrFrom))
-        If StrComp(arr(i), arrFrom(i), vbTextCompare) <> 0 Then
-            Debug.Print ErrSrc(PROC) & ": " & "                             The first difference has been detected in line " & i & ":"
-            Debug.Print ErrSrc(PROC) & ": " & "                             Line " & i & " """ & arr(i) & """"
-            Debug.Print ErrSrc(PROC) & ": " & "                             Line " & i & " """ & arrFrom(i) & """"
+    lMaxSrc = Max(Len(sSourceName), Len(d_from_code.SourceName)) + 4
+    arrThis = Split(CodeAsString, vbCrLf)
+    arrFrom = Split(d_from_code.CodeAsString, vbCrLf)
+    For i = 1 To Min(UBound(arrThis), UBound(arrFrom))
+        If StrComp(arrThis(i), arrFrom(i), vbTextCompare) <> 0 Then
+            Arry(arrDiff) = mBasic.AlignLeft("Line " & Format(i, "0000") & " " & sSourceName, lMaxSrc, ".:") & arrThis(i)
+            Arry(arrDiff) = mBasic.AlignLeft("Line " & Format(i, "0000") & " " & d_from_code.SourceName, lMaxSrc, ".:") & arrFrom(i)
             j = j + 1
-            If j = 5 Or i >= Min(UBound(arr), UBound(arrFrom)) Then Exit For
+            If j = d_diffs_limit Or i >= Min(UBound(arrThis), UBound(arrFrom)) Then Exit For
         End If
     Next i
+    d_diffs = arrDiff
+    
+xt: Exit Sub
 
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub
 
-Public Sub DsplyDiffs(ByVal d_this_file_name As String, _
-                      ByVal d_this_file_title As String, _
-                      ByVal d_versus_code As clsCode, _
-                      ByVal d_versus_file_name As String, _
-                      ByVal d_versus_file_title As String)
+Public Sub DsplyDiffs(ByVal d_left_this_file_name As String, _
+                      ByVal d_left_this_file_title As String, _
+                      ByVal d_right_versus_code As clsCode, _
+                      ByVal d_right_versus_file_name As String, _
+                      ByVal d_right_versus_file_title As String)
 ' ----------------------------------------------------------------------------
 ' Left is the current code, Right is the changed code
 ' ----------------------------------------------------------------------------
@@ -396,16 +422,16 @@ Public Sub DsplyDiffs(ByVal d_this_file_name As String, _
     Dim sFileThis   As String
     Dim sFileFrom   As String
     
-    sFileThis = TempFile(d_this_file_name)
-    sFileFrom = TempFile(d_versus_file_name)
+    sFileThis = TempFile(d_left_this_file_name)
+    sFileFrom = TempFile(d_right_versus_file_name)
     
-    StringAsFile d_versus_code.CodeAsString, sFileFrom
+    StringAsFile d_right_versus_code.CodeAsString, sFileFrom
     StringAsFile CodeAsString, sFileThis
     
     DsplyFilesDiff d_file_left_full_name:=sFileThis _
                  , d_file_right_full_name:=sFileFrom _
-                 , d_file_left_title:=d_this_file_title _
-                 , d_file_right_title:=d_versus_file_title
+                 , d_file_left_title:=d_left_this_file_title _
+                 , d_file_right_title:=d_right_versus_file_title
     
 xt: Exit Sub
 
@@ -513,7 +539,7 @@ Public Function Meets(ByVal d_other_code As clsCode) As Boolean
             Meets = True
         Else
 '            Debug.Print ErrSrc(PROC) & ": " & sCompName & " differs!"
-'            DiffersFromDebug d_other_code, d_empty_excluded
+'            DiffersFromDiffs d_other_code, d_empty_excluded
         End If
     Else
         Err.Raise AppErr(1), ErrSrc(PROC), "One of the sources for being compared are none!"

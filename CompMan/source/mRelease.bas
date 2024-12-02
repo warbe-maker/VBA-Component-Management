@@ -19,7 +19,7 @@ Public Sub ReleaseCommComps(Optional ByVal r_verbose As Boolean = True)
 ' Export-File from the CommonPending folder into the Common-Components folder.
 ' ------------------------------------------------------------------------------
     
-    mEnvironment.Provide ActiveWorkbook
+    mEnvironment.Provide ActiveWorkbook, True
     mCompMan.ServiceInitiate s_serviced_wbk:=ActiveWorkbook _
                            , s_service:="Release Modified Common Components"
         
@@ -47,7 +47,6 @@ Public Sub ReleaseService()
 '       first time.
 ' ------------------------------------------------------------------------------
     Const PROC              As String = "ReleaseService"
-    Const BTTN_DSPLY_DIFF   As String = "Display changes/modifications" & vbLf & vbLf & "(close window when done to continue)"
     Const BTTN_RELEASE      As String = "Release"
     Const BTTN_SKIP_FOR_NOW As String = "Skip release for now"
     Const BTTN_SKIP_FOREVER As String = "Skip release forever"
@@ -69,7 +68,7 @@ Public Sub ReleaseService()
     
     mCompMan.CurrentServiceName = "Release pending Common Compoents"
     mCompMan.ServicedWrkbk = ActiveWorkbook
-    mEnvironment.Provide ActiveWorkbook
+    mEnvironment.Provide ActiveWorkbook, True
 
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=ActiveWorkbook _
@@ -147,31 +146,29 @@ Public Sub ReleaseService()
         End With
                 
         Set cllButtons = mMsg.Buttons(sBttnRelease)
-        If Not Comp.CodePublic.IsNone Then Set cllButtons = mMsg.Buttons(cllButtons, BTTN_DSPLY_DIFF)
+        If Not Comp.CodePublic.IsNone Then Set cllButtons = mMsg.Buttons(cllButtons, mDiff.PublicVersusPendingReleaseBttn(sComp))
         Set cllButtons = mMsg.Buttons(cllButtons, vbLf, BTTN_SKIP_FOR_NOW, BTTN_SKIP_FOREVER, vbLf, BTTN_TERMINATE)
         
         Select Case mMsg.Dsply(dsply_title:=sTitle _
                              , dsply_msg:=Msg _
-                             , dsply_Label_spec:="R150" _
+                             , dsply_Label_spec:="R100" _
                              , dsply_buttons:=cllButtons _
-                             , dsply_width_min:=60)
+                             , dsply_width_min:=40)
             Case sBttnRelease:      CommonPending.ReleaseComp sComp, True
                                     CommonPending.Remove sComp
                                     qPending.DeQueue
-            Case BTTN_DSPLY_DIFF:   Comp.CodePublic.DsplyDiffs d_this_file_name:="CurrentPublic" _
-                                                             , d_this_file_title:="The Common Component's current public code in the Common-Components folder's Export-File" _
-                                                             , d_versus_code:=Comp.CodePnding _
-                                                             , d_versus_file_name:="PendingReleaseModifications" _
-                                                             , d_versus_file_title:="The Common Component's code recently modified in Workbook " & FSo.GetFileName(Comp.PendingLastModIn)
-
-            Case BTTN_SKIP_FOR_NOW: qPending.DeQueue
-
-            Case BTTN_SKIP_FOREVER: CommonServiced.KindOfComponent(sComp) = enCompCommonPrivate
-                                    CommCompsPendingRelease.Remove 1
-                                    If CommonPending.Exists(sComp) _
-                                    Then CommonPending.Remove sComp
-                                    qPending.DeQueue
-            Case BTTN_TERMINATE:    Exit Do
+            
+            Case mDiff.PublicVersusPendingReleaseBttn(sComp):   mDiff.PublicVersusPendingReleaseDsply Comp
+            
+            Case BTTN_SKIP_FOR_NOW:                             qPending.DeQueue
+            
+            Case BTTN_SKIP_FOREVER:                             CommonServiced.KindOfComponent(sComp) = enCompCommonPrivate
+                                                                CommCompsPendingRelease.Remove 1
+                                                                If CommonPending.Exists(sComp) _
+                                                                Then CommonPending.Remove sComp
+                                                                qPending.DeQueue
+            
+            Case BTTN_TERMINATE:                                Exit Do
         End Select
         mCompManMenuVBE.Setup
         Set CodePublic = Nothing

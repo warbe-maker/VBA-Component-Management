@@ -5,17 +5,22 @@ Option Explicit
 ' =====================
 ' Public services:
 ' ----------------
-' Box         In analogy to the MsgBox, provides a simple message but with all
-'             the fexibility for the display of up to 49 reply buttons.
-' Buttons     Supports the specification of the buttons displayed in a matrix
-'             of 7 x 7 buttons (max 7 buttons in max 7 rows)
-' Dsply       Exposes all properties and methods for the display of any kind
-'             of message
-' Monitor     Uses modeless instances of the fMsg form - any instance is
-'             identified by the window title - to display the progress of a
-'             process or monitor intermediate results.
-' MsgInstance Creates (when not existing) and returns an fMsg object
-'             identified by the Title
+' Box            In analogy to the MsgBox, provides a simple message but with
+'                all the fexibility for the display of up to 49 reply buttons.
+' Buttons        Supports the specification of the buttons displayed in a
+'                matrix of 7 x 7 buttons (max 7 buttons in max 7 rows)
+' Dsply          Exposes all properties and methods for the display of any kind
+'                of message
+' Monitor        Uses modeless instances of the fMsg form - any instance is
+'                identified by the window title - to display the progress of a
+'                process or monitor intermediate results.
+' Instance       Creates (when not existing) and returns an fMsg object
+'                identified by the Title
+' InstanceUnload Unloads an fMsg instance identified by its title/caption. When
+'                no title is provided the most recent instance is unloaded.
+' Unload         Unloads an fMsg instance identified through ist title.When no
+'                title is provided, the most recently established/displayed
+'                fMsg instance is unloaded.
 '
 ' Uses:       fMsg
 '
@@ -147,14 +152,14 @@ Private Const TWIPSPERINCH          As Long = 1440      ' -------------
 Private Declare PtrSafe Function CreateDC Lib "gdi32" Alias "CreateDCA" (ByVal lpDriverName As String, ByVal lpDeviceName As String, ByVal lpOutput As String, lpInitData As LongPtr) As LongPtr
 Private Declare PtrSafe Function DeleteDC Lib "gdi32" (ByVal hDC As LongPtr) As Long
 Private Declare PtrSafe Function GetActiveWindow Lib "user32" () As LongPtr
-Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As LongPtr) As LongPtr
+Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hwnd As LongPtr) As LongPtr
 Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As LongPtr, ByVal nIndex As Long) As Long
 Private Declare PtrSafe Function getFrequency Lib "kernel32" Alias "QueryPerformanceFrequency" (TimerSystemFrequency As Currency) As Long
 Private Declare PtrSafe Function GetMonitorInfo Lib "user32" Alias "GetMonitorInfoA" (ByVal hMonitor As LongPtr, ByRef lpMI As MONITORINFOEX) As Boolean
 Private Declare PtrSafe Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As Long
 Private Declare PtrSafe Function getTickCount Lib "kernel32" Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
-Private Declare PtrSafe Function MonitorFromWindow Lib "user32" (ByVal hWnd As LongPtr, ByVal dwFlags As Long) As LongPtr
-Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As LongPtr, ByVal hDC As LongPtr) As Long
+Private Declare PtrSafe Function MonitorFromWindow Lib "user32" (ByVal hwnd As LongPtr, ByVal dwFlags As Long) As LongPtr
+Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hwnd As LongPtr, ByVal hDC As LongPtr) As Long
 
 #If VBA7 Then
     Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal ms As LongPtr)
@@ -163,7 +168,7 @@ Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As LongPtr, 
 #End If
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
-    (ByVal hWnd As Long, _
+    (ByVal hwnd As Long, _
     ByVal lpOperation As String, _
     ByVal lpFile As String, _
     ByVal lpParameters As String, _
@@ -173,11 +178,13 @@ Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
 '***App Window Constants***
 Private Const WIN_NORMAL = 1         'Open Normal
 '***Error Codes***
-Private bModeLess           As Boolean
-Private fMonitor            As fMsg
-Private FSo                 As New FileSystemObject
+Private bModeLess        As Boolean
+Private fMonitor         As fMsg
+Private FSo              As New FileSystemObject
+Private siMsgTop         As Single
+Private siMsgLeft        As Single
 
-Public MsgInstances         As Dictionary    ' Collection of (possibly still)  active form instances
+Public Instances         As Dictionary    ' Collection of (possibly still)  active form instances
 
 Public Property Get DsplyWidthDPI() As Variant:         DsplyWidthDPI = Screen(enWidthDPI):                                 End Property
 
@@ -292,7 +299,7 @@ Public Function Box(ByVal Prompt As String, _
     
     '~~ In order to avoid any interferance with modeless displayed fMsg form
     '~~ all services create and use their own instance identified by the message title.
-    Set MsgForm = MsgInstance(Title)
+    Set MsgForm = mMsg.Instance(Title)
     With MsgForm
         .MsgTitle = Title
         .MsgText(enSectText, 1) = Message
@@ -712,7 +719,7 @@ Public Function Dsply(ByVal dsply_title As String, _
                        , dsply_height_min _
                        , dsply_height_max
     
-    Set MsgForm = MsgInstance(dsply_title)
+    Set MsgForm = mMsg.Instance(dsply_title)
     
     With MsgForm
         .LabelAllSpec = dsply_Label_spec    ' !!! has to be provided first
@@ -935,7 +942,7 @@ Public Sub Monitor(ByVal mon_title As String, _
     Const PROC = "Monitor"
     
     On Error GoTo eh
-    Set fMonitor = MsgInstance(mon_title)
+    Set fMonitor = mMsg.Instance(mon_title)
     With fMonitor
         If Not .MonitorIsInitialized Then
             AssertWidthAndHeight a_width_min:=mon_width_min _
@@ -975,7 +982,7 @@ Public Sub MonitorFooter(ByVal mon_title As String, _
     
     On Error GoTo eh
     
-    Set fMonitor = MsgInstance(mon_title)
+    Set fMonitor = mMsg.Instance(mon_title)
     With fMonitor
         If Not .MonitorIsInitialized Then
             AssertWidthAndHeight a_width_min:=mon_width_min _
@@ -1014,7 +1021,7 @@ Public Sub MonitorHeader(ByVal mon_title As String, _
     
     On Error GoTo eh
     
-    Set fMonitor = MsgInstance(mon_title)
+    Set fMonitor = mMsg.Instance(mon_title)
     With fMonitor
         If Not .MonitorIsInitialized Then
             AssertWidthAndHeight a_width_min:=mon_width_min _
@@ -1039,61 +1046,62 @@ xt: Exit Sub
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
-Public Function MsgInstance(ByVal fi_key As String, _
-                   Optional ByVal fi_unload As Boolean = False) As fMsg
+Public Function Instance(ByVal i_title As String, _
+                Optional ByVal i_unload As Boolean = False) As fMsg
 ' -------------------------------------------------------------------------
 ' Returns an instance of the UserForm fMsg which is uniquely identified by
-' a uniqe string (fi_key) which may be the title of the message or anything
+' a uniqe string (i_title) which may be the title of the message or anything
 ' else including an object . An already existing or new created instance is
-' maintained in a static Dictionary with (fi_key) as the key and returned
-' to the caller. When (fi_unload) is TRUE only a possibly already existing
-' Userform identified by (fi_key) is unloaded.
+' maintained in a static Dictionary with (i_title) as the key and returned
+' to the caller. When (i_unload) is TRUE only a possibly already existing
+' Userform identified by (i_title) is unloaded.
 '
 ' Requires: Reference to the "Microsoft Scripting Runtime".
 ' Usage   : The fMsg has to be replaced by the name of the desired UserForm
 ' -------------------------------------------------------------------------
-    Const PROC = "MsgInstance"
+    Const PROC = "Instance"
     
     On Error GoTo eh
     Static cyStart      As Currency
     Dim MsecsElapsed    As Currency
     Dim MsecsWait       As Long
+    Dim fInstance       As fMsg
     
-    If MsgInstances Is Nothing Then Set MsgInstances = New Dictionary
+    If Instances Is Nothing Then Set Instances = New Dictionary
     
-    If fi_unload Then
-        If MsgInstances.Exists(fi_key) Then
+    If i_unload Then
+        If Instances.Exists(i_title) Then
             On Error Resume Next
-            Unload MsgInstances(fi_key) ' The instance may be already unloaded
-            MsgInstances.Remove fi_key
+            Unload Instances(i_title) ' The instance may be already unloaded
+            Instances.Remove i_title
         End If
         Exit Function
     End If
     
-    If Not MsgInstances.Exists(fi_key) Then
+    If Not Instances.Exists(i_title) Then
         '~~ When there is no evidence of an already existing instance a new one is established.
         '~~ In order not to interfere with any prior established instance a minimum wait time
         '~~ of 10 milliseconds is maintained.
         MsecsElapsed = (TicksCount() - cyStart) / CDec(TicksFrequency)
         MsecsWait = 10 - MsecsElapsed
         If MsecsWait > 0 Then Sleep MsecsWait
-        Set MsgInstance = Nothing
-        Set MsgInstance = New fMsg
-        MsgInstances.Add fi_key, MsgInstance
+        Set fInstance = Nothing
+        Set fInstance = New fMsg
+        Instances.Add i_title, fInstance
     Else
-        '~~ An instance identified by fi_key exists in the Dictionary.
+        '~~ An instance identified by i_title exists in the Dictionary.
         '~~ It may however have already been unloaded.
         On Error Resume Next
-        Set MsgInstance = MsgInstances(fi_key)
+        Set Instance = Instances(i_title)
         Select Case Err.Number
             Case 0
             Case 13
-                If MsgInstances.Exists(fi_key) Then
+                If Instances.Exists(i_title) Then
                     '~~ The apparently no longer existing instance is removed from the Dictionarys
-                    MsgInstances.Remove fi_key
+                    Instances.Remove i_title
                 End If
-                Set MsgInstance = New fMsg
-                MsgInstances.Add fi_key, MsgInstance
+                Set fInstance = New fMsg
+                Instances.Add i_title, fInstance
             Case Else
                 '~~ Unknown error!
                 Err.Raise 1 + vbObjectError, ErrSrc(PROC), "Unknown/unrecognized error!"
@@ -1101,7 +1109,8 @@ Public Function MsgInstance(ByVal fi_key As String, _
         On Error GoTo -1
     End If
 
-xt: Exit Function
+xt: If Not fInstance Is Nothing Then Set Instance = fInstance
+    Exit Function
 
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Function
@@ -1154,7 +1163,7 @@ Public Function Screen(ByVal Item As enScreen) As Variant
     Dim xVSizeSq        As Double
     Dim xPix            As Double
     Dim xDot            As Double
-    Dim hWnd            As LongPtr
+    Dim hwnd            As LongPtr
     Dim hDC             As LongPtr
     Dim hMonitor        As LongPtr
     Dim tMonitorInfo    As MONITORINFOEX
@@ -1165,29 +1174,29 @@ Public Function Screen(ByVal Item As enScreen) As Variant
     nMonitors = GetSystemMetrics(SM_CMONITORS)
     If nMonitors < 2 Then
         nMonitors = 1                                       ' in case GetSystemMetrics failed
-        hWnd = 0
+        hwnd = 0
     Else
-        hWnd = GetActiveWindow()
-        hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONULL)
+        hwnd = GetActiveWindow()
+        hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONULL)
         If hMonitor = 0 Then
             Debug.Print ErrSrc(PROC) & ": " & "ActiveWindow does not intersect a monitor"
-            hWnd = 0
+            hwnd = 0
         Else
             tMonitorInfo.cbSize = Len(tMonitorInfo)
             If GetMonitorInfo(hMonitor, tMonitorInfo) = False Then
                 Debug.Print ErrSrc(PROC) & ": " & "GetMonitorInfo failed"
-                hWnd = 0
+                hwnd = 0
             Else
                 hDC = CreateDC(tMonitorInfo.szDevice, 0, 0, 0)
                 If hDC = 0 Then
                     Debug.Print ErrSrc(PROC) & ": " & "CreateDC failed"
-                    hWnd = 0
+                    hwnd = 0
                 End If
             End If
         End If
     End If
-    If hWnd = 0 Then
-        hDC = GetDC(hWnd)
+    If hwnd = 0 Then
+        hDC = GetDC(hwnd)
         tMonitorInfo.dwFlags = MONITOR_PRIMARY
         tMonitorInfo.szDevice = "PRIMARY" & vbNullChar
     End If
@@ -1226,8 +1235,8 @@ Public Function Screen(ByVal Item As enScreen) As Variant
         Case Else:                  vResult = CVErr(xlErrValue)                         ' return #VALUE! error (2015)
     End Select
     
-    If hWnd = 0 _
-    Then ReleaseDC hWnd, hDC _
+    If hwnd = 0 _
+    Then ReleaseDC hwnd, hDC _
     Else DeleteDC hDC
     Screen = vResult
     
@@ -1393,6 +1402,46 @@ Private Function StringAsFile(ByVal s_strng As String, _
     Set StringAsFile = FSo.GetFile(s_file)
     
 End Function
+
+Public Sub InstanceUnload(Optional ByVal i_title As String = vbNullString)
+' ----------------------------------------------------------------------------
+' Unloads an fMsg instance identified by its title/caption (i_title). When no
+' title is provided the most recent instance is unloaded.
+' ----------------------------------------------------------------------------
+    Dim fInstance   As fMsg
+    Dim sTitle      As String
+    
+    If i_title <> vbNullString Then
+        If Instances.Exists(i_title) Then
+            On Error Resume Next
+            Set fInstance = Instances(i_title)
+            If Err.Number = 0 Then
+                With fInstance
+                    siMsgTop = .Top
+                    siMsgLeft = .Left
+                End With
+                On Error Resume Next
+                Unload fInstance
+            End If
+            Instances.Remove i_title
+        End If
+    Else
+        If Not Instances Is Nothing Then
+            If Instances.Count <> 0 Then
+                Set fInstance = Instances.Items(Instances.Count - 1)
+                sTitle = Instances.Keys(Instances.Count - 1)
+                With fInstance
+                    siMsgTop = .Top
+                    siMsgLeft = .Left
+                End With
+                On Error Resume Next
+                Unload fInstance
+                Instances.Remove sTitle
+            End If
+        End If
+    End If
+    
+End Sub
 
 Private Function IsObject(ByVal i_var As Variant, _
                           ByRef i_name As String) As Boolean

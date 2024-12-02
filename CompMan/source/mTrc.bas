@@ -5,9 +5,9 @@ Option Explicit
 ' ====================== execution of procedures and code snippets with the
 ' highest possible precision regarding the measured elapsed execution time.
 ' The trace log is written to a file which ensures at least a partial trace
-' in case the execution terminates by exception. When this module is installed
-' the availability of the sevice is triggered/activated by the Conditional
-' Compile Argument 'mTrc = 1'. When the Conditional Compile
+' in case the execution terminates by exception. When this module is
+' installed the availability of the sevice is triggered/activated by the
+' Conditional Compile Argument 'mTrc = 1'. When the Conditional Compile
 ' Argument is 0 all services are disabled even when the module is installed,
 ' avoiding any effect on the performance though the effect very little anyway.
 '
@@ -24,23 +24,28 @@ Option Explicit
 ' Dsply    Displays the content of the trace-log-file (FileFullName).
 ' EoC      Indicates the (E)nd (o)f the execution trace of a (C)ode snippet.
 ' EoP      Indicates the (E)nd (o)f the execution trace of a (P)rocedure.
-' LogInfo  Explicitly writes an entry to the trace lof file by considering the
-'          current nesting level.
+' LogInfo  Explicitly writes an entry to the trace lof file by considering
+'          the current nesting level.
 ' Pause    Stops the execution traces time taking, e.g. while an error message
 '          is displayed.
 ' README   Displays the README in the corresponding public GitHub rebo.
 '
 ' Public Properties:
 ' ------------------
-' FileFullName r/w Specifies the full name of the trace-log-file, defaults to
-'                  Path & "\" & FileBaseName when not specified.
-' FileBaseName     Specifies the trace-log-file's name, defaults to
-'                  "ExecTrace.log" when not specified.
-' KeepLogs     w   Specifies the number of days a trace-log-file is kept until
-'                  it is deleted and re-created.
-' Path         r/w Specifies the path to the trace-log-file, defaults to
-'                  ThisWorkbook.Path when not specified.
-' Title        w   Specifies a trace-log title
+' FileBaseName  r/w The log-file's base name, defaults to the
+'                   ActiveWorkbook's BaseName.
+' FileExtension r/w The Log-file's file extension
+' FileFullName  r/w w: Specifies the full name of the log-file, thereby
+'                      providing the FileBaseName and the FileExtension.
+'                   r: When no FileFullName ever has been provided, the
+'                      default log-file's full name is assemled from
+'                      FileLocation, FileBaseName and FileExtension.
+' FileBaseName      The ActiveWorkbook's BaseName with a .log file extention.
+' FileLocation  r/w Defaults to the ActiveWorkbook's Path
+' KeepLogs        w Specifies the number of (back) logs kept.
+' Path          r/w Specifies the path to the trace-log-file, defaults to
+'                   ThisWorkbook.Path when not specified.
+' Title           w Specifies a trace-log title
 '
 ' Uses (for test purpose only!):
 ' ------------------------------
@@ -56,7 +61,7 @@ Option Explicit
 ' ---------
 ' Reference to 'Microsoft Scripting Runtime'
 '
-' W. Rauschenberger, Berlin, Oct 2024
+' W. Rauschenberger, Berlin, Nov 2024
 ' See: https://github.com/warbe-maker/VBA-Trace
 ' ----------------------------------------------------------------------------
 Private Const GITHUB_REPO_URL As String = "https://github.com/warbe-maker/VBA-Trace"
@@ -223,6 +228,7 @@ Public Property Get FileBaseName() As String:               FileBaseName = sFile
 Public Property Let FileBaseName(ByVal s As String):        sFileBaseName = s:                              End Property
 
 Public Property Get FileExtension() As String:              FileExtension = sFileExtension:                 End Property
+
     
 Public Property Let FileExtension(ByVal s As String):       sFileExtension = s:                             End Property
 
@@ -255,6 +261,11 @@ Public Property Let FileFullName(ByVal s As String)
     End With
 
 End Property
+
+Public Property Get FileLocation() As String:              FileLocation = sFileLocation:                 End Property
+
+    
+Public Property Let FileLocation(ByVal s As String):       sFileLocation = s:                             End Property
 
 Private Property Get ItmArgs(Optional ByRef t_entry As Collection) As Variant
     ItmArgs = t_entry("I")(enItmArgs)

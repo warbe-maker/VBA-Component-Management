@@ -273,11 +273,11 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub DiffersFromDebug(ByVal d_from_proc As clsProc)
+Public Sub DiffersFromDiffs(ByVal d_from_proc As clsProc)
 ' ----------------------------------------------------------------------------
 '
 ' ----------------------------------------------------------------------------
-    Const PROC = "DiffersFromDebug"
+    Const PROC = "DiffersFromDiffs"
     
     Dim i       As Long
     Dim arr     As Variant

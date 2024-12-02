@@ -43,17 +43,13 @@ Public Property Get ServicedRootFolderNameCurrent() As String:      ServicedRoot
 
 Private Property Get ServicedRootFolderNameDefault() As String:     ServicedRootFolderNameDefault = FSo.GetFile(ThisWorkbook.FullName).ParentFolder & "\" & DEFAULT_FOLDER_COMPMAN_ROOT:    End Property
 
-'Public Property Get VBCompManAddinFolderNameCurrent() As String:   VBCompManAddinFolderNameCurrent = CompManParentFolderNameCurrent & "\" & "Addin":                                        End Property
-
-'Private Property Get VBCompManAddinFolderNameDefault() As String:   VBCompManAddinFolderNameDefault = CompManParentFolderNameDefault & "\" & "Addin":                                       End Property
-
 Public Sub Adjust()
 ' ----------------------------------------------------------------------------
 ' Adjusts the configuration in the "Config" Worksheet when the serviced root
 ' folder has been moved to another location and/or has been renamed.
 ' ----------------------------------------------------------------------------
     With wsConfig
-        .FolderCompManRoot = ServicedRootFolderNameCurrent          ' adjust the root path and
+        .FolderCompManServicedRoot = ServicedRootFolderNameCurrent          ' adjust the root path and
         .FolderCommonComponentsPath = CommonCompsFolderNameCurrent  ' adjust the common components folder
         If .AutoOpenAddinIsSetup Then .AutoOpenAddinSetup           ' re-setup a setup Addin auto-open
         If .AutoOpenCompManIsSetup Then .AutoOpenCompManSetup       ' re-setup a setup CompMan.xlsb auto-open
@@ -61,94 +57,106 @@ Public Sub Adjust()
     
 End Sub
 
-Public Function DefaultEnvDisplay(ByVal BttnGoAhead As String) As Variant
+Private Function DefaultConfig() As Variant
+
+End Function
+
+Public Function DefaultEnvDisplay(ByVal d_bttn_goahead As String, _
+                                  ByVal d_bttn_abort As String) As Variant
 ' ----------------------------------------------------------------------------
 ' Displays the to-be-setup default environment.
 ' ----------------------------------------------------------------------------
+    Const PROC = ""
+    
+    On Error GoTo eh
     Dim lMax    As Long
     Dim Msg     As mMsg.udtMsg
+    Dim a       As Variant
+    
+    mBasic.Arry(a) = FSo.GetFolder(ThisWorkbook.Path).Name
+    mBasic.Arry(a) = " +--" & DEFAULT_FOLDER_COMMON_COMPONENTS
+    mBasic.Arry(a) = " |  +--CompManClient.bas"
+    mBasic.Arry(a) = " | "
+    mBasic.Arry(a) = " +--" & FSo.GetBaseName(ThisWorkbook.Name)
+    mBasic.Arry(a) = " |   +--" & ThisWorkbook.Name
+    mBasic.Arry(a) = " |  +--" & wsConfig.FolderExport
+    mBasic.Arry(a) = " |"
+    mBasic.Arry(a) = " +--WinMerge.ini"
+    lMax = Max(a) + 5
     
     With Msg
         With .Section(1).Text
-            .Text = "CompMan will now setup the below default files and folder environment at the current " & _
-                    "location. Once set up the Workbook is closed. The setup top level folder may then be " & _
-                    "moved to any other location and also renamed to any desired name."
+            .Text = "The " & ThisWorkbook.Name & " Workbook has apparently been opened for the very first time at this location " & _
+                    "which is regarded the future serviced root folder." & vbLf & _
+                    "CompMans ""self-setup"" is now about to setup the below default servicing environment at the current " & _
+                    "location (see """ & Replace(d_bttn_goahead, vbLf, " ") & """. When set up CompMan Workbook may be configured for " & _
+                    """auto-open"" or and/as  is Addin. The serviced root folder may then - and at any time - be moved " & _
+                    "to any other location and/or be renamed. 1)"
         End With
-        With .Section(2).Text
-            .MonoSpaced = True
-            .Text = DEFAULT_FOLDER_COMPMAN_ROOT & vbLf & _
-                    " |                                       " & vbLf & _
-                    " +--" & DEFAULT_FOLDER_COMPMAN_PARENT & vbLf & _
-                    " |  +--CompMan.xlsb                     " & vbLf & _
-                    " |  +--" & wsConfig.FolderExport & vbLf & _
-                    " |  +--WinMerge.ini                     " & vbLf & _
-                    " |                                       " & vbLf & _
-                    " +--" & DEFAULT_FOLDER_COMMON_COMPONENTS & vbLf & _
-                    "    +--CompManClient.bas                "
+        With .Section(2)
+            .Label.Text = "Future servicing environment:"
+            .Label.FontColor = rgbBlue
+            .Text.MonoSpaced = True
+            .Text.FontSize = 8
+            .Text.Text = mBasic.AlignLeft(CStr(a(0)), lMax) & "serviced root folder, defaults to folder the Workbook had been opened in 1)" & vbLf & _
+                         mBasic.AlignLeft(CStr(a(1)), lMax) & "fixed name for Common Components, not re-configurable" & vbLf & _
+                         mBasic.AlignLeft(CStr(a(2)), lMax) & vbLf & _
+                         mBasic.AlignLeft(CStr(a(3)), lMax) & vbLf & _
+                         mBasic.AlignLeft(CStr(a(4)), lMax) & "setup finally moves the Workbook into its dedicated folder 2)" & vbLf & _
+                         mBasic.AlignLeft(CStr(a(5)), lMax) & vbLf & _
+                         mBasic.AlignLeft(CStr(a(6)), lMax) & "default name, may be re-configured 1)" & vbLf & _
+                         mBasic.AlignLeft(CStr(a(7)), lMax) & vbLf & _
+                         mBasic.AlignLeft(CStr(a(8)), lMax)
         End With
         With .Section(3)
+            .Label.Text = "1)"
+            .Label.FontColor = rgbBlue
+            With .Text
+                .Text = "See ""Configuration changes"" for more information"
+                .OnClickAction = "https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#configuration-changes-compmans-config-worksheet"
+                
+            End With
+        End With
+        With .Section(4)
+            .Label.Text = "2)"
+            .Label.FontColor = rgbBlue
+            With .Text
+                .Text = "In order to allow modified Common Components are updated in the " & ThisWorkbook.Name & " itself " & _
+                        "it is enabled for the update service - which can only be provided via the Addin instance when configured."
+                
+            End With
+        End With
+        With .Section(5)
             .Label.FontBold = True
-            .Label.Text = Replace(BttnGoAhead, vbLf, " ")
+            .Label.FontColor = rgbBlue
+            .Label.Text = Replace(d_bttn_goahead, vbLf, " ")
             .Text.Text = "The above files and folders structure will be created and the opened Workbook will be saved into the" & vbLf & _
                          CompManParentFolderNameDefault & vbLf & _
                          "folder and closed. Re-opening it from within its new folder structure will finalize " & _
                          "CompMan's self setup process."
         End With
-        lMax = mBasic.Max(Len(DEFAULT_FOLDER_COMPMAN_ROOT) _
-                        , Len(DEFAULT_FOLDER_COMPMAN_PARENT) _
-                        , Len(ThisWorkbook.Name) _
-                        , Len(wsConfig.FolderExport) _
-                        , Len("CompMan.cfg") _
-                        , Len(DEFAULT_FOLDER_COMMON_COMPONENTS) _
-                        , Len("CompManClient.bas"))
-        
-        With .Section(4).Text
-            .MonoSpaced = True
-            .Text = _
-            mBasic.Align(DEFAULT_FOLDER_COMPMAN_ROOT, enAlignLeft, lMax, ".", " ") & _
-                                                                                          ": CompMan's ""serviced"" folder (only Workbooks when opened from within this folder will be serviced)" & vbLf & _
-            mBasic.Align(DEFAULT_FOLDER_COMPMAN_PARENT, enAlignLeft, lMax, ".", " ") & _
-                                                                                          ": CompMan's dedicated default parent folder" & vbLf & _
-            mBasic.Align("CompMan.xlsb", enAlignLeft, lMax, ".", " ") & _
-                                                                                          ": CompMan's (this) ""servicing"" Workbook" & vbLf & _
-            mBasic.Align(wsConfig.FolderExport, enAlignLeft, lMax, ".", " ") & _
-                                                                                          ": Default folder for exported (changed) components, maintained by CompMan for each serviced" & vbLf & _
-                    String(lMax, " ") & _
-                                                                                          "  Workbook's. The name may be re-configured." & vbLf & _
-            mBasic.Align("CompMan.cfg", enAlignLeft, lMax, ".", " ") & _
-                                                                                          ": Initialized with the self-setup defaults, subsequently maintained through CompMan's configuration" & vbLf & _
-                    String(lMax, " ") & _
-                                                                                          "  Worksheet """ & wsConfig.Name & """." & vbLf & _
-            mBasic.Align(DEFAULT_FOLDER_COMMON_COMPONENTS, enAlignLeft, lMax, ".", " ") & _
-                                                                                          ": The default folder for ""Common Components""" & vbLf & _
-            mBasic.Align("CompManClient.bas", enAlignLeft, lMax, ".", " ") & _
-                                                                                          ": The ""Common Component"" hosted by CompMan for being imported" & vbLf & _
-                    String(lMax, " ") & _
-                                                                                          "  into any Workbook 's VB-Project for being serviced by CompMan." & vbLf & _
-                    String(lMax, " ") & _
-                                                                                          "  Will be provided the first time the Workbook is saved/closed. "
-        End With
-        With .Section(5).Label
-            .FontColor = rgbBlue
-            .Text = "See README chapter 'Files and Folders' for more information"
-            .OnClickAction = mCompMan.GITHUB_REPO_URL & mCompMan.README_DEFAULT_FILES_AND_FOLDERS
+        With .Section(6)
+            .Label.FontBold = True
+            .Label.FontColor = rgbBlue
+            .Label.Text = Replace(d_bttn_abort, vbLf, " ")
+            .Text.Text = "The by default assumed ""serviced root folder"" - the folder the Workbook had been moved into after " & _
+                         "download - is not the one intended. The Workbook needs to be moved to a different location (which " & _
+                         "then may become ""CompMan's serviced root folder"") and the Wotkbook will be re-opened there for its self-setup."
         End With
     End With
     
     DefaultEnvDisplay = mMsg.Dsply(dsply_title:="CompMan's self setup (when opened for the very first time after download)" _
                                  , dsply_msg:=Msg _
-                                 , dsply_buttons:=mMsg.Buttons(BttnGoAhead))
+                                 , dsply_buttons:=mMsg.Buttons(d_bttn_goahead, vbLf, d_bttn_abort) _
+                                 , dsply_Label_spec:="R90")
 
+xt: Exit Function
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
-
-'Public Function EnvIsMissing() As Boolean
-'' ----------------------------------------------------------------------------
-'' Returns TRUE when the current ThisWorkbook parent folder has no Addin and
-'' ThisWorkbooks parent.parent folder has no Common-Components folder
-'' ----------------------------------------------------------------------------
-'    EnvIsMissing = Not FSo.FolderExists(VBCompManAddinFolderNameCurrent) _
-'               And Not FSo.FolderExists(CommonCompsFolderNameCurrent)
-'End Function
 
 Private Function ErrSrc(ByVal es_proc As String) As String
     ErrSrc = "mConfig" & "." & es_proc
@@ -160,104 +168,124 @@ Public Sub SetupConfirmed()
 ' ----------------------------------------------------------------------------
     Dim Msg             As mMsg.udtMsg
     Dim sSetupLocation  As String
+    Dim a               As Variant
+    Dim aComment        As Variant
+    Dim lMax            As Long
     
+    mBasic.Arry(a) = mEnvironment.CompManServicedRootFolder:        mBasic.Arry(aComment) = "current ""CompMan serviced"" root folder 1)"
+    mBasic.Arry(a) = " +--" & mEnvironment.CommCompsPath:           mBasic.Arry(aComment) = "Common Components folder, not re-configurable"
+    mBasic.Arry(a) = " |  +--CommComps.dat":                        mBasic.Arry(aComment) = "Private Profile file documenting the Common Component's origin"
+    mBasic.Arry(a) = " |  +--mCodingGuidLines":                     mBasic.Arry(aComment) = "Common Component hosted in CompMan"
+    mBasic.Arry(a) = " |  +--mCodingRules":                         mBasic.Arry(aComment) = "Common Component hosted in CompMan"
+    mBasic.Arry(a) = " |  +--mCompManClient.bas":                   mBasic.Arry(aComment) = "Common Component hosted in CompMan"
+    mBasic.Arry(a) = " | ":                                         mBasic.Arry(aComment) = ""
+    mBasic.Arry(a) = " +--" & FSo.GetBaseName(ThisWorkbook.Name):   mBasic.Arry(aComment) = "CompMan's own dedicated folder (setup and finally moved into it"
+    mBasic.Arry(a) = " |  +--" & mEnvironment.CompManServiceFolder: mBasic.Arry(aComment) = "CompMan's service folder (as for all serviced Workbooks"
+    mBasic.Arry(a) = " |  |  +--" & ConfigLocal.ExportFolderName:   mBasic.Arry(aComment) = "default Export-Folder name, may be re-configured 1)"
+    mBasic.Arry(a) = " |  |  +--CommComps.dat                  ":   mBasic.Arry(aComment) = "Private Profile file documenting used/hosted Common Components"
+    mBasic.Arry(a) = " |  |  +--CompMan.cfg":                       mBasic.Arry(aComment) = "CompMan's local configuration (used by new CompMan.xlsb versions)"
+    mBasic.Arry(a) = " |  |  +--ExecTrace.log":                     mBasic.Arry(aComment) = "Execution trace log file"
+    mBasic.Arry(a) = " |  +--" & ThisWorkbook.Name:                 mBasic.Arry(aComment) = ""
+    mBasic.Arry(a) = " |":                                          mBasic.Arry(aComment) = ""
+    mBasic.Arry(a) = " +--CompManAddin":                            mBasic.Arry(aComment) = "Folder for CompMan's Addin instance (when configured) 1)"
+    mBasic.Arry(a) = " +--WinMerge.ini":                            mBasic.Arry(aComment) = "WimMerge configuration used to display code changef"
+    lMax = Max(a) + 5
+
     sSetupLocation = FSo.GetFolder(ServicedRootFolderNameCurrent).ParentFolder.ParentFolder
     
     With Msg
-        .Section(1).Text.Text = "CompMan's default environment has been setup at the location the Workbook " & _
-                                "had been opened (" & sSetupLocation & ") as follows:"
+        .Section(1).Label.Text = "CompMan's self-setup environment." & vbLf & _
+                                 "CompMan is now ready for servicing any Workbook with an " & _
+                                 "enabled service when the Workbook islocated in a dedicated " & _
+                                 "folder in the serviced root folder."
         With .Section(2).Text
             .MonoSpaced = True
-            .Text = FSo.GetFolder(ServicedRootFolderNameCurrent).Name & vbLf & _
-                    " |                                       " & vbLf & _
-                    " +--" & FSo.GetFolder(CompManParentFolderNameCurrent).Name & vbLf & _
-                    " |  +--" & ThisWorkbook.Name & vbLf & _
-                    " |  +--" & wsConfig.FolderExport & vbLf & _
-                    " |  +--WinMerge.ini                      " & vbLf & _
-                    " |                                       " & vbLf & _
-                    " +--" & FSo.GetFolder(CommonCompsFolderNameCurrent).Name & vbLf & _
-                    "    +--mCompManClient.bas                 "
-        End With
-        .Section(3).Text.Text = "CompMan is now ready for servicing any Workbook with an enabled service. When " & _
-                                "the Workbook has been closed the ""Serviced Root Folder"" (" & _
-                                ServicedRootFolderNameCurrent & ") may be moved to its final destination and/or renamed."
-        With .Section(4).Label
-            .FontColor = rgbBlue
-            .Text = "See the corresponding README for how to enable a Workbook for being serviced"
-            .OnClickAction = "https://github.com/warbe-maker/VBCompMan/blob/master/README.md?#enabling-the-services-serviced-or-not-serviced"
+            .Text = mBasic.AlignLeft(CStr(a(0)), lMax) & aComment(0) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(1)), lMax) & aComment(1) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(2)), lMax) & aComment(2) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(3)), lMax) & aComment(3) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(4)), lMax) & aComment(4) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(5)), lMax) & aComment(5) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(6)), lMax) & aComment(6) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(7)), lMax) & aComment(7) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(8)), lMax) & aComment(8) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(9)), lMax) & aComment(9) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(10)), lMax) & aComment(10) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(11)), lMax) & aComment(11) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(12)), lMax) & aComment(12) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(13)), lMax) & aComment(13) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(14)), lMax) & aComment(14) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(15)), lMax) & aComment(15) & vbLf & _
+                    mBasic.AlignLeft(CStr(a(16)), lMax) & aComment(16)
+            .FontSize = 9
         End With
     End With
     mMsg.Dsply dsply_title:="Setup of CompMan's default environment completed!" _
              , dsply_msg:=Msg _
-             , dsply_buttons:=vbOKOnly
+             , dsply_buttons:=vbOKOnly _
+             , dsply_Label_spec:="R90"
+             
     
 End Sub
 
-Public Sub SelfSetupExportCompManClient()
+Public Sub SelfSetupPublishHostedCommonComponents(ByVal s_hosted As String)
+' ----------------------------------------------------------------------------
+' Publishes all hosted Common Components by copying their Export-File to the
+' Common-Components folder.
+' ----------------------------------------------------------------------------
 
     Dim Comp    As clsComp
     Dim vbc     As VBComponent
     Dim sComp   As String
+    Dim sTarget As String
+    Dim sName   As String
+    Dim v       As Variant
     
-    '~~ Export the mCompManClient to the Common-Components folder
-    If Services Is Nothing Then Set Services = New clsServices
-    Services.ServicedWbk = ThisWorkbook
-    For Each vbc In Services.ServicedWbk.VBProject.VBComponents
-        sComp = vbc.Name
-        If vbc.Name = "mCompManClient" Then
-            Services.LogItem = vbc
-                    
-            Set Comp = New clsComp
-            With Comp
-                .Wrkbk = ThisWorkbook
-                .CompName = sComp
-                .KindOfComp = enCompCommonHosted
-
-                With LogServiced
-                    .KeepLogs = 2 ' a new log-file is created after 48 hours
-                    .WithTimeStamp
-                    .FileFullName = mEnvironment.ServicesLogFileFullName
-                    .ColsSpecs = "L" & Len(Comp.TypeString) & ", L.:" & Len(vbc.Name) & ",L30"
-                    mCompMan.LogFileService = .FileFullName
-                    .NewFile
-                End With
+    mEnvironment.Provide ThisWorkbook, True
+    Set CommonServiced = New clsCommonServiced
+    Set CommonPublic = New clsCommonPublic
+    
+    For Each v In StringAsArray(s_hosted)
+        sComp = v
+        Set Comp = New clsComp
+        With Comp
+            .CompName = sComp
+            .KindOfComp = enCompCommonHosted
+            .Export
+            .SetServicedProperties
+            sName = FSo.GetFileName(.ExpFileFullName)
+            sTarget = mEnvironment.CommCompsPath & "\" & sName
+            FSo.CopyFile .ExpFileFullName, sTarget
+            .SetPublicEqualServiced
+        End With
+        Set Comp = Nothing
+    Next v
         
-                '~~ Export, initialize the Revision Number of both the hosted and
-                '~~ the raw in the Common-Components folder and register it as hosted.
-                .VBComp.Export .ExpFileFullName
-                With Services
-                    .NoOfItemsServicedIncrement ' = .NoOfItemsServiced + 1
-                    .Log(sComp) = "Serviced Common Component hosted: initially exported by the ""self-setup"" process!"
-                    .Log(sComp) = "Serviced Common Component hosted: Revision Number initialized with " & Comp.ServicedLastModAt
-                    .Log(sComp) = "Serviced Common Component hosted: Export-File copied to " & wsConfig.FolderCommonComponentsPath
-                End With
-            End With
-            Exit For
-        End If
-    Next vbc
-
-    Set Comp = Nothing
-    Set LogServiced = Nothing
-    
 End Sub
 
-Public Sub SelfSetupDefaultEnvironment()
+Public Sub SelfSetupDefaultEnvironment(ByRef s_compman_fldr As String)
 ' ----------------------------------------------------------------------------
-' Sets up CompMan's default environment of files and folders
-'
-' See: https://github.com/warbe-maker/VBCompMan/blob/master/README.md?#compmans-default-files-and-folders-environment
+' Sets up CompMan's default environment of files and folders. This setup is
+' based on the assumption that CompMan.xlsb had been opened from within the
+' future serviced root folder.
 ' ----------------------------------------------------------------------------
     Const PROC = "SelfSetupDefaultEnvironment"
         
     On Error GoTo eh
-        
-    mEnvironment.Provide ThisWorkbook
+    Dim sRoot       As String
+    Dim sCommComps  As String
+    Dim sCompMan    As String
+    
+    sRoot = ThisWorkbook.Path
+    sCommComps = sRoot & "\" & mEnvironment.FLDR_NAME_COMMON_COMPONENTS
+    If Not FSo.FolderExists(sCommComps) Then FSo.CreateFolder sCommComps
+    
+    s_compman_fldr = sRoot & "\CompMan"
+    If Not FSo.FolderExists(s_compman_fldr) Then FSo.CreateFolder s_compman_fldr
     
     With wsConfig
-        .FolderCompManRoot = mEnvironment.CompManServicedRootFolder
-        .FolderCommonComponentsPath = mEnvironment.CommCompsPath
-        .FolderSyncArchive = vbNullString
-        .FolderSyncTarget = vbNullString
+        .FolderCompManServicedRoot = sRoot
+        .FolderCommonComponentsPath = sCommComps
         .AutoOpenCompManRemove
         .AutoOpenAddinRemove
         If Not .Verified Then .Activate

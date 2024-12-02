@@ -53,6 +53,7 @@ Public Sub CommComps()
     Set dctFiles = CommonPublic.ExportFiles
     Set dctComps = CommonPublic.Components
     
+    '~~ Calculate number of progress dots
     lTotalItems = dctFiles.Count                                                    ' CommCompsPublicObsolete
     lTotalItems = lTotalItems + dctComps.Count                                      ' CommCompsPublicNew
     lTotalItems = lTotalItems + Serviced.Hosted.Count                               ' CommCompsServiced
@@ -303,7 +304,7 @@ Public Sub CommCompsServicedKindOf()
                                        "(a public Common Component once released)"
                     End Select
                     If sKnownAs <> vbNullString Then
-                        '~~ The component is a known as a public hosted or pending release Common Component
+                        '~~ The component is known as a public Common Component hosted or pending release
                         With New clsComp
                             .CompName = sComp
                             Select Case CommonServiced.KindOfComponent(sComp)
@@ -656,6 +657,7 @@ Private Sub ProposeContinuationOfModificationInThisWorkbook(ByVal p_comp As Stri
         With Comp
             .CompName = p_comp
             .Export
+            .SetServicedProperties
         End With
         CommonPending.Register Comp
     End If
@@ -743,7 +745,7 @@ Private Sub CommCompsServicedProperties()
                         '~~ The public version (Export-File in th Common-Components folder) has obviously been manually imported
                         .SetServicedEqualPublic
                         If Not FSo.FileExists(.ExpFileFullName) Then
-                            '~~ Apparently the public Common Component's Export-File has manually been imported
+                            '~~ Apparently the public Common Component's Export-File has been imported by the VBE
                             Serviced.Wrkbk.VBProject.VBComponents(v).Export .ExpFileFullName
                             With Services
                                 .Log(sComp) = "Serviced Common Component properties housekeeping:"

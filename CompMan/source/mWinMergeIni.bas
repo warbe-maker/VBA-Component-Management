@@ -39,7 +39,14 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get WinMergeIniFullName() As String:        WinMergeIniFullName = ThisWorkbook.Path & "\WinMerge.ini":      End Property
+Public Property Get WinMergeIniFullName() As String
+' ----------------------------------------------------------------------------
+' In order to have the WinMerge.ini file at a location which is the same for
+' the CompMan.xlsb Workbook as for the Addin when configured, the servicing
+' root folder is returned.
+' ----------------------------------------------------------------------------
+    WinMergeIniFullName = FSo.GetFolder(ThisWorkbook.Path).ParentFolder.Path & "\WinMerge.ini"
+End Property
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mWinMergeIni." & sProc

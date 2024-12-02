@@ -62,7 +62,7 @@ Private sRenewAction                    As String
 Private wbDevlp                         As Workbook
 Private wbkSource                       As Workbook                     ' This development instance as the renew source
 
-Public Function AssertedServicingEnabled() As Boolean
+Public Function AssertedServicingEnabled(ByVal a_hosted As String) As Boolean
 ' ---------------------------------------------------------------------------
 ' When TRUE is returned either the opened Workbook is the Addin instance or
 ' this Workbook is ready for servicing, which means:
@@ -80,15 +80,21 @@ Public Function AssertedServicingEnabled() As Boolean
     If Trc Is Nothing Then Set Trc = New clsTrc
     BaseName = FSo.GetBaseName(ThisWorkbook.Name)
     Extension = FSo.GetExtensionName(ThisWorkbook.Name)
-    If mMe.IsAddinInstnc Then
-        ServicingEnabled = True ' for the Addin servicing is enabled by default
-    Else
-        If Not AssertedOfficeVersion Then GoTo xt
-        If Not AssertedFilesAndFldrsStructure Then GoTo xt
-        If Not AssertedWinMerge Then GoTo xt
-    End If
-    AssertedServicingEnabled = True
-    
+    mEnvironment.Provide ThisWorkbook
+
+    Select Case True
+        Case mMe.IsAddinInstnc
+            AssertedServicingEnabled = True
+        Case Not AssertedOfficeVersion
+            Debug.Print ErrSrc(PROC) & ": Office version not asserted!"
+        Case Not AssertedFilesAndFldrsStructure(a_hosted)
+            Debug.Print ErrSrc(PROC) & ": Files and folders structure not asserted!"
+        Case Not AssertedWinMerge
+            Debug.Print ErrSrc(PROC) & ": WinMerge not installed!"
+        Case Else
+            AssertedServicingEnabled = True
+    End Select
+        
 xt: Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -97,7 +103,15 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function AssertedFilesAndFldrsStructure() As Boolean
+Private Function CurrentName(ByVal c_names As String) As String
+    Dim a As Variant
+    
+    a = Split(c_names, ">")
+    CurrentName = a(UBound(a))
+
+End Function
+
+Private Function AssertedFilesAndFldrsStructure(ByVal a_hosted As String) As Boolean
 ' ---------------------------------------------------------------------------
 ' Performed with each open. Ensures that the Workbook is running from within
 ' the required files and folders structure.
@@ -105,32 +119,40 @@ Private Function AssertedFilesAndFldrsStructure() As Boolean
     Const PROC = "AssertedFilesAndFldrsStructure"
     
     On Error GoTo eh
+    Dim BttnAbort   As String
     Dim BttnGoAhead As String
     Dim sWrkbkOpnd  As String
+    Dim sCompManFldr As String
     
     Application.EnableEvents = False
     Set Services = New clsServices
-    If Not FSo.FolderExists(mEnvironment.CompManServicedRootFolder) Then
+        
+    If Not FSo.FolderExists(mEnvironment.CommCompsPath) Then
         '~~ The CompMan Workbook has been opened the very first time at this location.
-        '~~ A default folders and files environment is now setup - provided the user confirms it.
+        '~~ All default folders and files environment is now setup - provided the user confirms it.
         BttnGoAhead = "Ok!" & vbLf & vbLf & _
                       "Go ahead and set it up"
+        BttnAbort = "Abort!" & vbLf & vbLf & _
+                    "Serviced root folder needs to be changed"
                      
-        If DefaultEnvDisplay(BttnGoAhead) = BttnGoAhead Then
-            mConfig.SelfSetupDefaultEnvironment
+        If mConfig.DefaultEnvDisplay(BttnGoAhead, BttnAbort) = BttnGoAhead Then
+            mConfig.SelfSetupDefaultEnvironment sCompManFldr
+            '~~ Save the Workbook to its dedicated folder withing the servicing environment
             sWrkbkOpnd = ThisWorkbook.FullName
-            ThisWorkbook.SaveAs mConfig.CompManParentFolderNameDefault & "\" & ThisWorkbook.Name
+            ThisWorkbook.SaveAs sCompManFldr & "\" & ThisWorkbook.Name
             mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
             AssertedFilesAndFldrsStructure = True
             DoEvents
             On Error Resume Next
-            FSo.DeleteFile sWrkbkOpnd
-            mConfig.SelfSetupExportCompManClient
+            mEnvironment.Provide ThisWorkbook, True
+            Set ConfigLocal = New clsConfigLocal
+            mConfig.SelfSetupPublishHostedCommonComponents (a_hosted)
             mConfig.SetupConfirmed
+            FSo.DeleteFile sWrkbkOpnd
         End If
     Else
         '~~  The existing folders indicate that CompMan's default environment is already set up
-        If mConfig.ServicedRootFolderNameCurrent <> wsConfig.FolderCompManRoot _
+        If mConfig.ServicedRootFolderNameCurrent <> wsConfig.FolderCompManServicedRoot _
         Then mConfig.Adjust
     End If ' Config exists
     
@@ -226,7 +248,7 @@ Public Property Get AutoOpenShortCutCompManWbk()
 End Property
 
 Public Property Get DevInstncFullName() As String
-    DevInstncFullName = wsConfig.FolderCompManRoot _
+    DevInstncFullName = wsConfig.FolderCompManServicedRoot _
                       & DBSLASH _
                       & FSo.GetBaseName(DevInstncName) & DBSLASH _
                       & DevInstncName
@@ -294,8 +316,7 @@ Private Function Config(Optional ByVal cfg_silent As Boolean = False, _
                            And wsConfig.FolderExportIsValid
     
     If cfg_sync Then Config = wsConfig.FolderCompManRootIsValid _
-                          And wsConfig.FolderExportIsValid _
-                          And wsConfig.FolderSyncTargetIsValid
+                          And wsConfig.FolderExportIsValid
     
     If cfg_silent Then
         If Not wsConfig.FolderCompManRootIsValid _

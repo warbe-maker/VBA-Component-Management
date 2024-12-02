@@ -190,25 +190,6 @@ Private Function BtoS(ByVal b As Boolean) As String
     If b Then BtoS = "True" Else BtoS = "False"
 End Function
 
-Private Function BttnDsplyDiffTheseVersusFormerModifications(ByVal b_comp As String) As String
-    BttnDsplyDiffTheseVersusFormerModifications = "Display the modifications made  in " & vbLf & _
-                                                  "this serviced ActiveWorkbook (""" & vbLf & _
-                                                  Serviced.Wrkbk.Name & """) " & vbLf & _
-                                                  "versus those already made in Workbook """ & vbLf & _
-                                                  LastModInWrkbkName(b_comp) & vbLf & """ on computer """ & LastModOn(b_comp) & """"
-End Function
-
-Private Function BttnDsplyFormerModifications(ByVal b_comp As String) As String
-    BttnDsplyFormerModifications = "Display the modifications aleady made in " & vbLf & _
-                                   """ " & LastModInWrkbkName(b_comp) & """" & vbLf & _
-                                   "on computer" & vbLf & _
-                                   """" & LastModOn(b_comp) & """"
-End Function
-
-Private Function BttnDsplyTheseModifications() As String
-    BttnDsplyTheseModifications = "Display the modifications" & vbLf & "made in this Workbook"
-End Function
-
 Private Function BttnIgnore() As String
     BttnIgnore = "Ignore/suspend this issue"
 End Function
@@ -265,13 +246,15 @@ Public Sub ConflictResolve(ByVal c_comp As clsComp)
     On Error GoTo eh
     Dim Msg         As mMsg.udtMsg
     Dim cllBttns    As Collection
+    Dim sComp       As String
     
     sComp = c_comp.CompName
-    Set cllBttns = mMsg.Buttons(BttnDsplyFormerModifications(sComp) _
-                              , BttnDsplyDiffTheseVersusFormerModifications(sComp))
+    Set cllBttns = mMsg.Buttons(mDiff.PublicVersusPendingReleaseBttn(sComp) _
+                              , mDiff.PendingVersusServicedExportBttn(sComp) _
+                              , mDiff.PublicVersusServicedExportBttn(sComp))
     With Msg
         With .Section(1).Text
-            .Text = "The component  " & mBasic.Spaced(c_comp.CompName) & " is already registered pending release " & _
+            .Text = "The component  " & mBasic.Spaced(sComp) & " is already registered pending release " & _
                          "by another Workbook." & vbLf
             If Not c_comp.IsCommCompPublic Then
                 .Text = .Text & "This issue cannot be resolved because there's yet no public code version " & _
@@ -283,22 +266,22 @@ Public Sub ConflictResolve(ByVal c_comp As clsComp)
             .Label.FontBold = True
             .Label.FontColor = rgbRed
             .Text.MonoSpaced = True
-            .Text.Text = "Component   :  " & mBasic.Spaced(c_comp.CompName) & "  has already been modified" & vbLf & _
+            .Text.Text = "Component   :  " & mBasic.Spaced(sComp) & "  has already been modified" & vbLf & _
                          "in Workbook : " & LastModInWrkbkFullName(sComp) & vbLf & _
                          "at date(utc): " & LastModAt(sComp)
         End With
         With .Section(3)
-            .Label.Text = "Option Display this most recently made modifications:"
+            .Label.Text = BttnAsLabel(mDiff.PendingVersusServicedExportBttn(sComp))
             .Label.FontColor = rgbBlue
-            .Text.Text = "Displays the difference between the current valid/released code versus these most resently made."
+            .Text.Text = "Displays the difference between the pending relase and the most recent modification."
         End With
         With .Section(4)
-            .Label.Text = "Option Display the already made modifications:"
+            .Label.Text = BttnAsLabel(mDiff.PublicVersusPendingReleaseBttn(sComp))
             .Label.FontColor = rgbBlue
-            .Text.Text = "Displays the difference between the current valid/released code versus those currently regigsterd waiting for rease."
+            .Text.Text = "Displays the difference between the public and the pending release code."
         End With
         With .Section(5)
-            .Label.Text = "Option Display the difference between the most recently made versus the already made modifications:"
+            .Label.Text = BttnAsLabel(mDiff.PublicVersusServicedExportBttn(sComp))
             .Label.FontColor = rgbBlue
             .Text.Text = "This difference will enable to integrate (merge) the already made modifications with those most recently made in " & _
                          "order not to loose the others when finally the option ignore them is used."
@@ -330,15 +313,13 @@ Public Sub ConflictResolve(ByVal c_comp As clsComp)
                              , dsply_Label_spec:="R130" _
                              , dsply_width_min:=40 _
                              , dsply_buttons:=cllBttns)
-            Case BttnDsplyTheseModifications
-                DsplyDiffTheseModificationsVersusCurrentPublic c_comp
-            Case BttnDsplyFormerModifications(sComp)
-                DsplyDiffFormerModificationsVersusCurrentPublic c_comp
-            Case BttnDsplyDiffTheseVersusFormerModifications(sComp)
-                DsplyDiffTheseVersusFormerModifications c_comp
+            Case mDiff.ServicedExportVersusPublicBttn:          mDiff.ServicedExportVersusPublicDsply c_comp
+            Case mDiff.PublicVersusPendingReleaseBttn(sComp):   mDiff.PublicVersusPendingReleaseDsply c_comp
+            Case mDiff.PendingVersusServicedExportBttn(sComp):  mDiff.PendingVersusServicedExport c_comp
+            Case mDiff.PublicVersusServicedExportBttn(sComp):   mDiff.PendingVersusServicedExportDsply c_comp
             Case BttnUndoThisModifications
                 Stop
-                mUpdate.ByReImport c_comp, CommonPublic.LastModExpFile(sComp)
+                mUpdate.ByReImport sComp, CommonPublic.LastModExpFile(sComp)
                 Serviced.Wrkbk.VBProject.VBComponents(sComp).Export c_comp.ExpFileFullName
                 CommonServiced.LastModAt(sComp) = CommonPublic.LastModAt(sComp)
                 Services.Log(sComp) = "Serviced Common Component's code modifications discarded by re-intantiating the " & _
@@ -381,72 +362,19 @@ Public Function Conflicts(ByVal c_comp As clsComp)
             Case .CodeCrrent.Meets(.CodePnding)
                 '~~ The current pending release code modification is identical with the
                 '~~ code of the service Common Component
+            Case CommonPending.LastModInWrkbkFullName(sComp) = CommonServiced.LastModInWrkbkFullName(sComp) _
+             And CommonPending.LastModOn(sComp) = CommonServiced.LastModOn(sComp)
+                '~~ The current code differs from the already pending release but its the same
+                '~~ Workbbok on the same computer which registered the already pending release.
             Case Else
-                '~~ When the code differs and the properties (in Workbook or on Computer)
-                '~~ differs there is a conflicting code modification
-                With CommonPending
-                    sIn = .LastModInWrkbkFullName(sComp)
-                    sOn = .LastModOn(sComp)
-                End With
-                With CommonServiced
-                    Conflicts = sIn <> .LastModInWrkbkFullName(sComp) _
-                             Or sOn <> .LastModOn(sComp)
-                End With
+                '~~ The current code differs from the already pending release code.
+                '~~ When the pending release properties (in Workbook or on Computer)
+                '~~ differ this indicates a conflicting code modification
+                Conflicts = True
         End Select
     End With
                     
 End Function
-
-Private Sub DsplyDiffFormerModificationsVersusCurrentPublic(ByVal d_comp As clsComp)
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    
-    With d_comp
-        .CodePublic.DsplyDiffs d_this_file_name:="CurrentPublicCommonComponent" _
-                             , d_this_file_title:="Current public code of the Common Component  " & mBasic.Spaced(.CompName) _
-                             , d_versus_code:=.CodePnding _
-                             , d_versus_file_name:="CurrentPendingReleaseModifications" _
-                             , d_versus_file_title:="Already pending release modifications made in Workbook " & LastModInWrkbkFullName(.CompName) & " (" & LastModOn(.CompName) & ")"
-    End With
-    
-End Sub
-
-Public Sub DsplyDiffTheseModificationsVersusCurrentPublic(ByVal d_comp As clsComp)
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Dim sComp As String
-    sComp = d_comp.CompName
-    With d_comp
-        .CodeCrrent.Source = .ExpFileFullName
-        .CodeCrrent.DsplyDiffs d_this_file_name:="ModificationsInThisWorkbook" _
-                              , d_this_file_title:="Current exported last modifications of the Common Component  " & mBasic.Spaced(sComp) _
-                              , d_versus_code:=.CodePublic _
-                              , d_versus_file_name:="CurrentPublicCommonComponent" _
-                              , d_versus_file_title:="Current public code of Common Component  " & mBasic.Spaced(d_comp.CompName)
-    End With
-    
-End Sub
-
-Private Sub DsplyDiffTheseVersusFormerModifications(ByVal d_comp As clsComp)
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Dim sComp As String
-    
-    With d_comp
-        sComp = .CompName
-        .CodeCrrent.Source = .ExpFileFullName
-        .CodePublic.Source = CommonPublic.LastModExpFile(.CompName)
-        .CodeCrrent.DsplyDiffs d_this_file_name:="ModificationsInThisWorkbook" _
-                                 , d_this_file_title:="Current exported last modifications of the Common Component  " & mBasic.Spaced(sComp) _
-                                 , d_versus_code:=d_comp.CodePnding _
-                                 , d_versus_file_name:="CurrentPendingReleaseModifications" _
-                                 , d_versus_file_title:="Modifications already made for Common Component  " & mBasic.Spaced(sComp) & "   and pending release."
-    End With
-    
-End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsCommonPending" & "." & sProc

@@ -6,6 +6,21 @@ Option Explicit
 ' forwarded to a current state when specified folder/file locations/names have
 ' changed.
 ' ------------------------------------------------------------------------------
+'~~ Current environment file and folder names
+Public Const FILE_NAME_COMMCOMPS_PENDING_PRIVPROF  As String = "PendingReleases.dat"
+Public Const FILE_NAME_COMMCOMPS_PUBLIC_PRIVPROF   As String = "CommComps.dat"
+Public Const FILE_NAME_COMMCOMPS_SERVICED_PRIVPROF As String = "CommComps.dat"
+Public Const FILE_NAME_COMPMAN_LOCAL_CONFIG        As String = "CompMan.cfg"
+Public Const FILE_NAME_EXEC_TRACE                  As String = "ExecTrace.log"
+Public Const FILE_NAME_SERVICES_LOG                As String = "Services.log"
+Public Const FILE_NAME_SERVICES_SUMMARY_LOG        As String = "ServicesSummary.log"
+    
+Public Const FLDR_NAME_ADDIN                       As String = "CompManAddin"
+Public Const FLDR_NAME_COMMON_COMPONENTS           As String = "Common-Components"
+Public Const FLDR_NAME_COMMON_COMPONENTS_PENDING   As String = "PendingReleases"
+Public Const FLDR_NAME_EXPORT                      As String = "source"
+Public Const FLDR_NAME_SERVICED_COMPMAN_SERVICES   As String = "CompMan"
+
 Private sAddInFolderPath                        As String
 Private sCommCompsFolderPath                    As String
 Private sCommCompsPendingFolderPath             As String
@@ -18,8 +33,15 @@ Private sExportServiceFolderPath                As String
 Private sServicedExecTraceLogFileFullName       As String
 Private sServicesLogFileFullName                As String
 Private sServicesSummaryLogFileFullName         As String
+Private sCompManLocalConfigFileFullName         As String
+Private sCompManServicedRoot                    As String
+Private sCompManDedicatedFolder                 As String
 
-Public Property Get CompManServicedRootFolder() As String:              CompManServicedRootFolder = wsConfig.FolderCompManRoot:                         End Property
+Public Property Get CompManDedicatedFolder() As String:                 CompManDedicatedFolder = sCompManDedicatedFolder:                               End Property
+
+Public Property Get CompManLocalConfigFileFullName() As String:         CompManLocalConfigFileFullName = sCompManLocalConfigFileFullName:               End Property
+
+Public Property Get CompManServicedRootFolder() As String:              CompManServicedRootFolder = sCompManServicedRoot:                               End Property
 
 Public Property Get AddInFolderPath() As String:                        AddInFolderPath = sAddInFolderPath:                                             End Property
 
@@ -159,7 +181,7 @@ Private Function History(ByVal e_lctn As String, _
                 '~~ The first location and the first name indicate the current item (folder or file)
                 s = vLctn & "\" & vName
                 cll.Add s
-                Debug.Print "History " & cll.Count & " = " & cll(cll.Count)
+'                Debug.Print "History " & cll.Count & " = " & cll(cll.Count)
                 If .FolderExists(s) Or .FileExists(s) Then Exit For
             Next vName
             If .FolderExists(s) Or .FileExists(s) Then
@@ -233,103 +255,126 @@ Private Function ItemHistory(ByVal e_hist As String) As Collection
 
 End Function
 
-Public Sub Provide(ByVal p_wbk_serviced As Workbook)
+Public Sub Provide(ByVal p_wbk_serviced As Workbook, _
+          Optional ByVal p_create As Boolean = False)
 ' ------------------------------------------------------------------------------
 ' Maintains and provides an up-to-date CompMan environment for CompMan itself
 ' and the serviced Workbook.
 '
 ' Item/structure                            Current name/location
 ' ----------------------------------------- ------------------------------------
-' <compman-serviced-root-folder>
-'  +- common-components-folder>
-'     +- <pending-releases-folder>
-'     |  +- <comm-comps-private-profile-file>
-'     + <commm-comps-private-profile-file>
-'  +- <any-serviced-workbooks-parent-folder>
-'     +- <service-folder>                          <compman-root>\CompMan
-'        +- <service-trace-log-file>              <compman-root>\CompMan\ExecTrace.log
-'        +- <commm-comps-private-profile-file>    <compman-root>\CompMan\CommComps.dat
-'     +- <export-folder>                       <compman-root>\source
-'  +- <service-log-file>                    <compman-root>\CompMan\Service.log
+' <compman-serviced-root-folder>            ThisWorkbook.Path.Parent
+'  +--Common-Components                     public Common Components
+'  |  +--CommComps.dat                      public Common Components' properties
+'  |  +--PendingReleases.dat                only exists when there are pendings
+'  |  +--PendingReleases                    only exists when there are pendings
+'  |  +--<common-component-export-files>
+'  |  +--...
+'  +--CompMan
+'  |  +--CompMan.xlsb
+'  |  +--CompMan
+'  |     +--source                          Export folder
+'  |     +--ExecTrace.log
+'  |     +--CommComps.dat                   Used/hoste Common Components properties
+'  |     +--Service.log
+'  |     +--ServiceSummary.log
+'  |
+'  +--CompManAddin                          when configured
+'  |  +--CompMan.xlam                       when configured
+'  |
+'  +--<any-serviced-workbooks-parent-folder>
+'     +--CompMan                                CompMan-Service-Folder
+'        +--source                              Export folder
+'        +--ExecTrace.log
+'        +--CommComps.dat
+'        +--Service.log
 ' ------------------------------------------------------------------------------
     Const PROC = "Provide"
-    
-    '~~ Current environment file and folder names
-    Const FILE_NAME_COMMCOMPS_PENDING_PRIVPROF  As String = "PendingReleases.dat"
-    Const FILE_NAME_COMMCOMPS_PUBLIC_PRIVPROF   As String = "CommComps.dat"
-    Const FILE_NAME_COMMCOMPS_SERVICED_PRIVPROF As String = "CommComps.dat"
-    Const FILE_NAME_EXEC_TRACE                  As String = "ExecTrace.log"
-    Const FLDR_NAME_ADDIN                       As String = "CompManAddin"
-    Const FILE_NAME_SERVICES_LOG                As String = "Services.log"
-    Const FLDR_NAME_COMMCOMPS                   As String = "Common-Components"
-    Const FLDR_NAME_COMMCOMPS_PENDING           As String = "PendingReleases"
-    Const FLDR_NAME_EXPORT                      As String = "source"
-    Const FLDR_NAME_SERVICED_COMPMAN_SERVICES   As String = "CompMan"
-    Const FILE_NAME_SERVICES_SUMMARY_LOG        As String = "ServicesSummary.log"
-    
+        
     On Error GoTo eh
     Dim sLctn   As String
     Dim sName   As String
     
-    '~~ 1. Common Component folder
-    sLctn = wsConfig.FolderCompManRoot
-    sName = FLDR_NAME_COMMCOMPS
-    sCommCompsFolderPath = HistoryForwarded(sLctn, sName, True)
+    '~~ CompMan-serviced root folder
+    '~~ Attention! This is the only folder which has no fixed configuration. By definition it is
+    '~~            the CurrentWorkbook's parent parent folder. I.e. this folder may be renamed
+    '~~            or moved to another location at any point in time. Also moving the whole content
+    '~~            to another folder is possible.
+    sCompManServicedRoot = FSo.GetFolder(ThisWorkbook.Path).ParentFolder.Path
     
-    '~~ 2. Common Components Public Private Profile file
-    sName = FILE_NAME_COMMCOMPS_PUBLIC_PRIVPROF
+    '~~ CompManServicedRoot: AddIn folder
+    sLctn = sCompManServicedRoot
+    sName = FLDR_NAME_ADDIN
+    sAddInFolderPath = HistoryForwarded(sLctn, sName, p_create)
+    
+    '~~  CompManServicedRoot: CompMan Workbook's own dedicated folder
+    sLctn = sCompManServicedRoot
+    sName = FSo.GetBaseName(ThisWorkbook.Name)
+    sCompManDedicatedFolder = HistoryForwarded(sLctn, sName, p_create)
+    
+    '~~  CompManServicedRoot: Common Components folder
+    sLctn = sCompManServicedRoot
+    sName = FLDR_NAME_COMMON_COMPONENTS
+    sCommCompsFolderPath = HistoryForwarded(sLctn, sName, p_create)
+    
+    '~~ Common Components folder: Common Components Public Private Profile file
     sLctn = sCommCompsFolderPath
+    sName = FILE_NAME_COMMCOMPS_PUBLIC_PRIVPROF
     sCommCompsPublicPrivProfFileFullName = HistoryForwarded(sLctn, sName, False)
     Set CommonPublic = New clsCommonPublic
     
-    '~~ 3. Common Components Peding folder
-    sName = FLDR_NAME_COMMCOMPS_PENDING
+    '~~ Common Components folder: Common Components Peding folder
     sLctn = sCommCompsFolderPath
+    sName = FLDR_NAME_COMMON_COMPONENTS_PENDING
     sCommCompsPendingFolderPath = HistoryForwarded(sLctn, sName, False)
     
-    '~~ 4. Common Components Pending Release Private Profile file
+    '~~ Common Components folder: Common Components Pending Release Private Profile file
     sLctn = sCommCompsFolderPath
     sName = FILE_NAME_COMMCOMPS_PENDING_PRIVPROF
     sCommCompsPendingPrivProfFileFullName = HistoryForwarded(sLctn, sName, False)
     Set CommonPending = New clsCommonPending
 
-    '~~ 5. Serviced Workbook's CompMan service folder
-    sLctn = mCompMan.ServicedWrkbk.Path
-    sName = FLDR_NAME_SERVICED_COMPMAN_SERVICES
-    sCompManServiceFolderPath = HistoryForwarded(sLctn, sName, True)
-
-    '~~ 6. Serviced Workbook's Export folder
-    sLctn = mCompMan.ServicedWrkbk.Path & ">" & sCompManServiceFolderPath
-    sName = "source"
-    sExportServiceFolderPath = HistoryForwarded(sLctn, sName, True)
+    '~~ Serviced Workbook's related environment resources
+    If ActiveWorkbook.Path <> vbNullString Then
+        '~~ Serviced Workbook's CompMan service folder
+        sLctn = ActiveWorkbook.Path
+        sName = FLDR_NAME_SERVICED_COMPMAN_SERVICES
+        sCompManServiceFolderPath = HistoryForwarded(sLctn, sName, p_create)
     
-    '~~ 7. Serviced Workbook's Execution Trace log file
-    sLctn = mCompMan.ServicedWrkbk.Path & ">" & sCompManServiceFolderPath
-    sName = FILE_NAME_EXEC_TRACE & "<CompMan.Service.trc"
-    sServicedExecTraceLogFileFullName = HistoryForwarded(sLctn, sName, False, False)
-    EstablishServicedExecTraceLogFile
+        '~~ CompMan.cfg file
+        sLctn = sCompManServiceFolderPath
+        sName = FILE_NAME_COMPMAN_LOCAL_CONFIG
+        sCompManLocalConfigFileFullName = HistoryForwarded(sLctn, sName, False)
+              
+        '~~ Serviced Workbook's Export folder
+        sLctn = ActiveWorkbook.Path & ">" & sCompManServiceFolderPath
+        sName = "source"
+        sExportServiceFolderPath = HistoryForwarded(sLctn, sName, p_create)
+        
+        '~~ Services Summary log file
+        sLctn = sCompManServiceFolderPath
+        sName = FILE_NAME_SERVICES_SUMMARY_LOG
+        sServicesSummaryLogFileFullName = HistoryForwarded(sLctn, sName, False, False)
     
-    '~~ 8. Serviced Workbook's Common Components Private Profile file
-    sLctn = mCompMan.ServicedWrkbk.Path & ">" & sCompManServiceFolderPath
-    sName = FILE_NAME_COMMCOMPS_SERVICED_PRIVPROF & "<CompMan.dat"
-    sCommCompsServicedPrivProfFileFullName = HistoryForwarded(sLctn, sName, False, False)
-    Set CommonServiced = New clsCommonServiced
+        '~~ Serviced Workbook's Execution Trace log file
+        sLctn = ActiveWorkbook.Path & ">" & sCompManServiceFolderPath
+        sName = FILE_NAME_EXEC_TRACE & "<CompMan.Service.trc"
+        sServicedExecTraceLogFileFullName = HistoryForwarded(sLctn, sName, False, False)
+        EstablishServicedExecTraceLogFile
+        
+        '~~ Serviced Workbook's Common Components Private Profile file
+        sLctn = ActiveWorkbook.Path & ">" & sCompManServiceFolderPath
+        sName = FILE_NAME_COMMCOMPS_SERVICED_PRIVPROF & "<CompMan.dat"
+        sCommCompsServicedPrivProfFileFullName = HistoryForwarded(sLctn, sName, False, False)
+        Set CommonServiced = New clsCommonServiced
+        
+        '~~ Serviced Workbook's Services log file
+        sLctn = ActiveWorkbook.Path & ">" & sCompManServiceFolderPath
+        sName = FILE_NAME_SERVICES_LOG & "<CompMan.Services.log"
+        sServicesLogFileFullName = HistoryForwarded(sLctn, sName, False, False)
     
-    '~~ 9. Serviced Workbook's Services log file
-    sLctn = mCompMan.ServicedWrkbk.Path & ">" & sCompManServiceFolderPath
-    sName = FILE_NAME_SERVICES_LOG & "<CompMan.Services.log"
-    sServicesLogFileFullName = HistoryForwarded(sLctn, sName, False, False)
-
-    '~~ 10. Services Summary log file
-    sLctn = ThisWorkbook.Path & ">" & sCompManServiceFolderPath
-    sName = FILE_NAME_SERVICES_SUMMARY_LOG
-    sServicesSummaryLogFileFullName = HistoryForwarded(sLctn, sName, False, False)
+    End If
     
-    '~~ 11. AddIn folder
-    sLctn = wsConfig.FolderCompManRoot
-    sName = FLDR_NAME_ADDIN
-    sAddInFolderPath = HistoryForwarded(sLctn, sName, True)
-
 xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))

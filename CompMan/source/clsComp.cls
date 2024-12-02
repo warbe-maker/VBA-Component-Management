@@ -88,8 +88,8 @@ Private Sub Class_Initialize()
     dctType.Add vbext_ct_Document, "Document Module"
     dctType.Add vbext_ct_MSForm, "UserForm"
     dctType.Add vbext_ct_StdModule, "Standard Module"
-    Wrkbk = Serviced.Wrkbk
-    sWrkbkFullName = wbk.FullName
+    Wrkbk = ActiveWorkbook
+    sWrkbkFullName = ActiveWorkbook.FullName
 End Sub
 
 Private Sub Class_Terminate()
@@ -320,7 +320,7 @@ Public Function Changed() As Boolean
         Case Not FSo.FileExists(Me.ExpFileFullName)     ' first time export
             Changed = True
         Case Else                                       ' export file exists
-            If Not CodeCrrent.Meets(CodeExprtd) Then
+            If mDiff.ServicedExportVersusServicedCode(Me) Then
                 Changed = True
             End If
     End Select

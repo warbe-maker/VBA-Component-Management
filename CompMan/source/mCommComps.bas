@@ -11,7 +11,6 @@ Option Explicit
 '
 ' W. Rauschenberger, Berlin Jul 18 2023
 ' ------------------------------------------------------------------------
-Private BttnDsplyDiffs                          As String
 Private BttnSkipForever                         As String
 Private BttnSkipForNow                          As String
 Private BttnUpdate                              As String
@@ -48,7 +47,6 @@ Private Sub ChoiceLoop()
     
     Prgrss.ItemsTotal = Qoutdated.Size
     Prgrss.Operation = "outdated updated"
-    BttnDsplyDiffs = "Display the code modifications"
     BttnSkipForNow = "Skip this update" & vbLf & "for now"
     BttnSkipForever = "Skip this update" & vbLf & mBasic.Spaced("forever")
     
@@ -69,7 +67,7 @@ Private Sub ChoiceLoop()
                                       "will be discarded."
                     BttnUpdate = "Update"
                     sUpdateBttnTxt = "With this update the ""hosted"" Common Component will become in sync with all Workbook using this version."
-                    Set cllButtons = mMsg.Buttons(BttnUpdate, BttnDsplyDiffs, vbLf, BttnSkipForNow)
+                    Set cllButtons = mMsg.Buttons(BttnUpdate, mDiff.ServicedExportVersusPublicBttn, vbLf, BttnSkipForNow)
     
                 Case enCompCommonUsed
                     UpdateTitle = "Used ""Common Component"" is not/no longer up-to-date!"
@@ -82,7 +80,7 @@ Private Sub ChoiceLoop()
                                        "Remove the component > Save the Workbook > Re-Import it from the ""Common-Components"" folder."
                     BttnUpdate = "Update"
                     sUpdateBttnTxt = "The outdated ""used"" Common Component becomes up-to-date again."
-                    Set cllButtons = mMsg.Buttons(BttnUpdate, BttnDsplyDiffs, vbLf, BttnSkipForNow, BttnSkipForever)
+                    Set cllButtons = mMsg.Buttons(BttnUpdate, mDiff.ServicedExportVersusPublicBttn, vbLf, BttnSkipForNow, BttnSkipForever)
                 Case Else
                     Stop
             End Select
@@ -145,45 +143,22 @@ Private Sub ChoiceLoop()
                                  , dsply_height_max:=85 _
                                  , dsply_pos:=UpdateDialogTop & ";" & UpdateDialogLeft)
                 
-                Case BttnUpdate:        ChoiceUpdate sComp
-                                        Prgrss.ItemDone = sComp
-                                        Exit Do
-                Case BttnDsplyDiffs:    ChoiceDisplayDiffs
-                Case BttnSkipForNow:    ChoiceSkipForNow sComp
-                                        Prgrss.ItemSkipped
-                                        Exit Do
-                Case BttnSkipForever:   ChoiceSkipForever sComp
-                                        Prgrss.ItemSkipped
-                                        Exit Do
+                Case BttnUpdate:                            ChoiceUpdate sComp
+                                                            Prgrss.ItemDone = sComp
+                                                            Exit Do
+                Case mDiff.ServicedExportVersusPublicBttn:  mDiff.ServicedExportVersusPublicDsply Comp
+                Case BttnSkipForNow:                        ChoiceSkipForNow sComp
+                                                            Prgrss.ItemSkipped
+                                                            Exit Do
+                Case BttnSkipForever:                       ChoiceSkipForever sComp
+                                                            Prgrss.ItemSkipped
+                                                            Exit Do
             End Select
         Loop
         Qoutdated.DeQueue
     Loop
     
 xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub ChoiceDisplayDiffs()
-' ------------------------------------------------------------------------------
-'
-' ------------------------------------------------------------------------------
-    Const PROC = "ChoiceDisplayDiffs"
-    
-    On Error GoTo eh
-    Dim Comp    As clsComp
-    
-    mBasic.BoP ErrSrc(PROC)
-    Qoutdated.First Comp ' obtain a clsComp instance from the queue
-    CommonPublic.DsplyCodeDiffVersusPublic Comp
-    Set Comp = Nothing
-    
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
@@ -337,7 +312,7 @@ Public Sub CollectOutdated(Optional ByRef c_outdated As clsQ)
     Set Qoutdated = New clsQ
     Set dct = Serviced.CompsCommon
     Prgrss.ItemsTotal = dct.Count
-    Prgrss.Operation = "outdated collected"
+    Prgrss.Operation = "outdated"
     
     For Each v In dct
         sComp = v

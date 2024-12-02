@@ -167,8 +167,8 @@ Private Sub MonitorInitiate(ByVal m_title As String, _
         sMonitorTitle = m_title
         tMonitorFooter.FontColor = rgbDarkGreen
         tMonitorFooter.FontSize = 9
-        mMsg.MsgInstance sMonitorTitle, True ' close any previous monitor window
-        mMsg.MsgInstance sMonitorTitle       ' establish a new monitor window
+        mMsg.Instance sMonitorTitle, True ' close any previous monitor window
+        mMsg.Instance sMonitorTitle       ' establish a new monitor window
         tMonitorStep.MonoSpaced = True
         tMonitorStep.FontSize = 9
     End If
@@ -185,7 +185,7 @@ Private Sub MonitorFooter(ByVal m_footer As String, _
         tMonitorFooter.Text = m_footer
         mMsg.MonitorFooter sMonitorTitle, tMonitorFooter
         Application.Wait Now() + TimeValue("0:00:02")
-        mMsg.MsgInstance sMonitorTitle, True
+        mMsg.Instance sMonitorTitle, True
     End If
 
 End Sub

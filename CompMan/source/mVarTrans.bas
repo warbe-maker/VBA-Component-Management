@@ -15,6 +15,7 @@ Option Explicit
 ' ArrayAsFile            Writes all items of an array to a file as records
 '                        /lines. When no file is provided a temporary file is
 '                        written and its name is returned.
+' ArrayAsRange           Transferes the content of an array into the range.
 ' ArrayAsString          Returns an array (a_array) as string with the items
 '                        delimited by a vbCrLf.
 ' CollectionAsArray      Returns a collection's (c_coll) items as array.
@@ -77,6 +78,88 @@ Private dct          As Dictionary
 Private sDelim       As String
 Private FSo          As New FileSystemObject
 Private v            As Variant
+
+Private Property Get Arry(Optional ByRef c_arr As Variant, _
+                          Optional ByVal c_index As Long = -1) As Variant
+' ----------------------------------------------------------------------------
+' Universal array read procedure. Returns Null when a given array (c_arr) is
+' not allocated or a provided index is beyond/outside current dimensions.
+' ----------------------------------------------------------------------------
+    Dim i As Long
+    
+    If IsArray(c_arr) Then
+        On Error Resume Next
+        i = LBound(c_arr)
+        If Err.Number = 0 Then
+            If c_index >= LBound(c_arr) And c_index <= UBound(c_arr) _
+            Then Arry = c_arr(c_index)
+        End If
+    End If
+    
+End Property
+
+Public Property Let Arry(Optional ByRef c_arr As Variant, _
+                         Optional ByVal c_index As Long = -99, _
+                                  ByVal c_var As Variant)
+' ----------------------------------------------------------------------------
+' Universal array add/update procedure, avoiding any prior checks whether
+' allocated, empty not yet existing, etc.
+' - Adds an item (c_var) to an array (c_arr) when no index is provided or when
+'   the index lies beyond UBound
+' - When an index is provided, the item is inserted/updated at the given
+'   index - even when the array yet doesn't exist or is not yet allocated.
+' ----------------------------------------------------------------------------
+    Const PROC = "Arry-Let"
+    
+    Dim bIsAllocated As Boolean
+    Dim s            As String
+    
+    If IsArray(c_arr) Then
+        On Error GoTo -1
+        On Error Resume Next
+        bIsAllocated = UBound(c_arr) >= LBound(c_arr)
+        On Error GoTo eh
+    ElseIf VarType(c_arr) <> 0 Then
+        Err.Raise AppErr(1), ErrSrc(PROC), "Not a Variant type!"
+    End If
+    
+    If bIsAllocated = True Then
+        '~~ The array has at least one item
+        If c_index = -99 Then
+            '~~ When for an allocated array no index is provided, the item is added
+            ReDim Preserve c_arr(UBound(c_arr) + 1)
+            c_arr(UBound(c_arr)) = c_var
+        ElseIf c_index >= 0 And c_index <= UBound(c_arr) Then
+            '~~ Replace an existing item
+            c_arr(c_index) = c_var
+        ElseIf c_index > UBound(c_arr) Then
+            '~~ New item beyond current UBound
+            ReDim Preserve c_arr(c_index)
+            c_arr(c_index) = c_var
+        ElseIf c_index < LBound(c_arr) Then
+            Err.Raise AppErr(2), ErrSrc(PROC), "Index is less than LBound of array!"
+        End If
+        
+    ElseIf bIsAllocated = False Then
+        '~~ The array does yet not exist
+        If c_index = -99 Then
+            '~~ When no index is provided the item is the first of a new array
+            c_arr = Array(c_var)
+        ElseIf c_index >= 0 Then
+            ReDim c_arr(c_index)
+            c_arr(c_index) = c_var
+        Else
+            Err.Raise AppErr(3), ErrSrc(PROC), "the provided index is less than 0!"
+        End If
+    End If
+    
+xt: Exit Property
+
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Property
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ----------------------------------------------------------------------------
@@ -166,6 +249,35 @@ Public Function ArrayAsFile(ByVal a_array As Variant, _
     
 End Function
 
+Public Sub ArrayAsRange(ByVal a_arr As Variant, _
+                        ByVal a_rng As Range, _
+               Optional ByVal a_one_col As Boolean = False)
+' ----------------------------------------------------------------------------
+' Transferes the content of an array (vArr) into the range (a_rng).
+' ----------------------------------------------------------------------------
+    Const PROC = "ArryAsRange"
+    
+    On Error GoTo eh
+    Dim rTarget As Range
+
+    If a_one_col Then
+        '~~ One column, n rows
+        Set rTarget = a_rng.Cells(1, 1).Resize(UBound(a_arr) + 1, 1)
+        rTarget.Value = Application.Transpose(a_arr)
+    Else
+        '~~ One column, n rows
+        Set rTarget = a_rng.Cells(1, 1).Resize(1, UBound(a_arr) + 1)
+        rTarget.Value = a_arr
+    End If
+    
+xt: Exit Sub
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
+End Sub
+
 Public Function ArrayAsString(ByVal a_array As Variant, _
                      Optional ByVal a_delim As String = vbCrLf) As String
 ' ----------------------------------------------------------------------------
@@ -187,87 +299,9 @@ Private Function ArrayIsAllocated(ByVal a_arry As Variant) As Boolean
     
 End Function
 
-Private Property Get Arry(Optional ByRef c_arr As Variant, _
-                          Optional ByVal c_index As Long = -1) As Variant
-' ----------------------------------------------------------------------------
-' Universal array read procedure. Returns Null when a given array (c_arr) is
-' not allocated or a provided index is beyond/outside current dimensions.
-' ----------------------------------------------------------------------------
-    Dim i As Long
-    
-    If IsArray(c_arr) Then
-        On Error Resume Next
-        i = LBound(c_arr)
-        If Err.Number = 0 Then
-            If c_index >= LBound(c_arr) And c_index <= UBound(c_arr) _
-            Then Arry = c_arr(c_index)
-        End If
-    End If
-    
-End Property
-
-Public Property Let Arry(Optional ByRef c_arr As Variant, _
-                         Optional ByVal c_index As Long = -99, _
-                                  ByVal c_var As Variant)
-' ----------------------------------------------------------------------------
-' Universal array add/update procedure, avoiding any prior checks whether
-' allocated, empty not yet existing, etc.
-' - Adds an item (c_var) to an array (c_arr) when no index is provided or when
-'   the index lies beyond UBound
-' - When an index is provided, the item is inserted/updated at the given
-'   index - even when the array yet doesn't exist or is not yet allocated.
-' ----------------------------------------------------------------------------
-    Const PROC = "Arry-Let"
-    
-    Dim bIsAllocated As Boolean
-    Dim s            As String
-    
-    If IsArray(c_arr) Then
-        On Error GoTo -1
-        On Error Resume Next
-        bIsAllocated = UBound(c_arr) >= LBound(c_arr)
-        On Error GoTo eh
-    ElseIf VarType(c_arr) <> 0 Then
-        Err.Raise AppErr(1), ErrSrc(PROC), "Not a Variant type!"
-    End If
-    
-    If bIsAllocated = True Then
-        '~~ The array has at least one item
-        If c_index = -99 Then
-            '~~ When for an allocated array no index is provided, the item is added
-            ReDim Preserve c_arr(UBound(c_arr) + 1)
-            c_arr(UBound(c_arr)) = c_var
-        ElseIf c_index >= 0 And c_index <= UBound(c_arr) Then
-            '~~ Replace an existing item
-            c_arr(c_index) = c_var
-        ElseIf c_index > UBound(c_arr) Then
-            '~~ New item beyond current UBound
-            ReDim Preserve c_arr(c_index)
-            c_arr(c_index) = c_var
-        ElseIf c_index < LBound(c_arr) Then
-            Err.Raise AppErr(2), ErrSrc(PROC), "Index is less than LBound of array!"
-        End If
-        
-    ElseIf bIsAllocated = False Then
-        '~~ The array does yet not exist
-        If c_index = -99 Then
-            '~~ When no index is provided the item is the first of a new array
-            c_arr = Array(c_var)
-        ElseIf c_index >= 0 Then
-            ReDim c_arr(c_index)
-            c_arr(c_index) = c_var
-        Else
-            Err.Raise AppErr(3), ErrSrc(PROC), "the provided index is less than 0!"
-        End If
-    End If
-    
-xt: Exit Property
-
-eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Property
+Public Function BooleanAsString(ByVal b As Boolean) As String
+    If b Then BooleanAsString = "TRUE" Else BooleanAsString = "FALSE"
+End Function
 
 Public Function CollectionAsArray(ByVal c_coll As Collection) As Variant
 ' ----------------------------------------------------------------------------
@@ -642,6 +676,41 @@ Public Function FileAsDictionary(ByVal f_file As Variant) As Dictionary
     
 End Function
 
+Public Function FileAsFile(ByVal f_file_in As File, _
+                           ByVal f_file_out As String, _
+                  Optional ByVal f_append As Boolean = False, _
+                  Optional ByVal f_rename As Boolean = False) As File
+' ----------------------------------------------------------------------------
+' Returns a file (f_file_in) as a file with another full name.
+' ----------------------------------------------------------------------------
+    Const PROC = "FileAsFile"
+    
+    On Error GoTo eh
+    Dim sSplit As String
+    
+    With FSo
+        Select Case True
+            Case f_rename And Not f_append:     If f_file_in.Path = .GetParentFolderName(f_file_out) _
+                                                Then f_file_in.Name = .GetFileName(f_file_out) _
+                                                Else Err.Raise AppErr(1), ErrSrc(PROC), "File cannot be renamed when the provided file and the new file's name " & _
+                                                                                        "do not point to the same location!"
+            Case Not f_rename And Not f_append: .CopyFile f_file_in.Path, f_file_out
+            Case Not f_rename And f_append:     StringAsFile FileAsString(f_file_in, sSplit), f_file_out, True
+            Case Else:                          Err.Raise AppErr(2), ErrSrc(PROC), "Rename  a n d  append is not supported!"
+        End Select
+    
+        Set FileAsFile = .GetFile(f_file_out)
+    End With
+    
+    
+xt: Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
 Public Function FileAsString(ByVal f_file As Variant, _
                     Optional ByRef f_split As String = vbCrLf, _
                     Optional ByVal f_exclude_empty As Boolean = False) As String
@@ -761,7 +830,7 @@ Private Function KeySort(ByRef k_dct As Dictionary) As Dictionary
     Dim dct     As New Dictionary
     Dim vKey    As Variant
     Dim arr()   As Variant
-    Dim Temp    As Variant
+    Dim temp    As Variant
     Dim i       As Long
     Dim j       As Long
     Dim sName   As String
@@ -782,9 +851,9 @@ Private Function KeySort(ByRef k_dct As Dictionary) As Dictionary
     For i = LBound(arr) To UBound(arr) - 1
         For j = i + 1 To UBound(arr)
             If arr(i) > arr(j) Then
-                Temp = arr(j)
+                temp = arr(j)
                 arr(j) = arr(i)
-                arr(i) = Temp
+                arr(i) = temp
             End If
         Next j
     Next i
@@ -804,6 +873,27 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
         Case Else:      GoTo xt
     End Select
+End Function
+
+Public Function RangeAsArray(ByVal r_rng As Range) As Variant
+' ------------------------------------------------------------------------------
+' Transferes a range into an array.
+' ------------------------------------------------------------------------------
+    Const PROC = "RangeAsArray"
+    
+    Dim arr As Variant
+    
+    Select Case True
+        Case r_rng.Cells.Count = 1:     arr = Array(r_rng.Value)                                            ' single cell
+        Case r_rng.Columns.Count = 1:   arr = Application.Transpose(r_rng.Value)                            ' single column
+        Case r_rng.Rows.Count = 1:      arr = Application.Transpose(Application.Transpose(r_rng.Value))     ' single row
+        Case r_rng.Rows.Count = 2:      arr = r_rng.Value                                                   ' two dimensional array
+        Case r_rng.Columns.Count = 2:   arr = r_rng.Value                                                   ' two dimensional array
+        Case Else
+            Err.Raise AppErr(1), ErrSrc(PROC), "Range cannot be transferred/transposed into an aray!"
+    End Select
+    RangeAsArray = arr
+    
 End Function
 
 Public Function SplitIndctr(ByVal s_strng As String, _
@@ -1008,10 +1098,6 @@ Public Function VarAsArray(ByVal v_items As Variant) As Variant
     
 End Function
 
-Public Function BooleanAsString(ByVal b As Boolean) As String
-    If b Then BooleanAsString = "TRUE" Else BooleanAsString = "FALSE"
-End Function
-
 Public Function VarAsCollection(ByVal v_items As Variant) As Collection
 ' ----------------------------------------------------------------------------
 '
@@ -1030,63 +1116,6 @@ Public Function VarAsCollection(ByVal v_items As Variant) As Collection
         Case Else:                              cll.Add v_items
                                                 Set VarAsCollection = cll
 
-    End Select
-    
-End Function
-
-Public Function FileAsFile(ByVal f_file_in As File, _
-                           ByVal f_file_out As String, _
-                  Optional ByVal f_append As Boolean = False, _
-                  Optional ByVal f_rename As Boolean = False) As File
-' ----------------------------------------------------------------------------
-' Returns a file (f_file_in) as a file with another full name.
-' ----------------------------------------------------------------------------
-    Const PROC = "FileAsFile"
-    
-    On Error GoTo eh
-    Dim sSplit As String
-    
-    With FSo
-        Select Case True
-            Case f_rename And Not f_append:     If f_file_in.Path = .GetParentFolderName(f_file_out) _
-                                                Then f_file_in.Name = .GetFileName(f_file_out) _
-                                                Else Err.Raise AppErr(1), ErrSrc(PROC), "File cannot be renamed when the provided file and the new file's name " & _
-                                                                                        "do not point to the same location!"
-            Case Not f_rename And Not f_append: .CopyFile f_file_in.Path, f_file_out
-            Case Not f_rename And f_append:     StringAsFile FileAsString(f_file_in, sSplit), f_file_out, True
-            Case Else:                          Err.Raise AppErr(2), ErrSrc(PROC), "Rename  a n d  append is not supported!"
-        End Select
-    
-        Set FileAsFile = .GetFile(f_file_out)
-    End With
-    
-    
-xt: Exit Function
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Function
-
-Public Function VarAsFile(ByVal v_items As Variant, _
-                  Optional ByVal v_file As String, _
-                  Optional ByVal v_append As Boolean = False) As File
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Const PROC = "VarAsFile"
-    
-    Select Case True
-        Case TypeName(v_items) = "Collection":  Set VarAsFile = CollectionAsFile(v_items, v_file, v_append)
-        Case TypeName(v_items) = "File"
-        Case TypeName(v_items) = "Dictionary":  Set VarAsFile = DictionaryAsFile(v_items, v_file, v_append)
-        Case TypeName(v_items) Like "*()":      Set VarAsFile = ArrayAsFile(v_items, v_file, v_append)
-        Case VarType(v_items) = vbArray:        Set VarAsFile = ArrayAsFile(v_items, v_file, v_append)
-        Case VarType(v_items) = vbString:       Set VarAsFile = StringAsFile(v_items, v_file, v_append)
-        Case Else:                              Err.Raise AppErr(1), ErrSrc(PROC), _
-                                                "The provided v_items argument is of a TypeName """ & TypeName(v_items) & _
-                                                """ which is not supported for being transformed into an array!"
     End Select
     
 End Function
@@ -1111,6 +1140,28 @@ Public Function VarAsDictionary(ByVal v_items As Variant) As Dictionary
     
 End Function
 
+Public Function VarAsFile(ByVal v_items As Variant, _
+                  Optional ByVal v_file As String, _
+                  Optional ByVal v_append As Boolean = False) As File
+' ----------------------------------------------------------------------------
+'
+' ----------------------------------------------------------------------------
+    Const PROC = "VarAsFile"
+    
+    Select Case True
+        Case TypeName(v_items) = "Collection":  Set VarAsFile = CollectionAsFile(v_items, v_file, v_append)
+        Case TypeName(v_items) = "File"
+        Case TypeName(v_items) = "Dictionary":  Set VarAsFile = DictionaryAsFile(v_items, v_file, v_append)
+        Case TypeName(v_items) Like "*()":      Set VarAsFile = ArrayAsFile(v_items, v_file, v_append)
+        Case VarType(v_items) = vbArray:        Set VarAsFile = ArrayAsFile(v_items, v_file, v_append)
+        Case VarType(v_items) = vbString:       Set VarAsFile = StringAsFile(v_items, v_file, v_append)
+        Case Else:                              Err.Raise AppErr(1), ErrSrc(PROC), _
+                                                "The provided v_items argument is of a TypeName """ & TypeName(v_items) & _
+                                                """ which is not supported for being transformed into an array!"
+    End Select
+    
+End Function
+
 Public Function VarAsString(ByVal v_items As Variant, _
                    Optional ByRef v_split As String) As String
 ' ----------------------------------------------------------------------------
@@ -1130,5 +1181,4 @@ Public Function VarAsString(ByVal v_items As Variant, _
     End Select
     
 End Function
-
 

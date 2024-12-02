@@ -1,19 +1,25 @@
 Attribute VB_Name = "mCodingGuidelines"
 Option Explicit
 ' ------------------------------------------------------------------------
-' Standard-Module mCodingGuidelines:
-' ===================================
+' Standard-Module mCodingGuidelines: Guidelines followed in all components
+' ================================== in the CompMan VBProject including
+' all Common Coponents used.
 '
-' W. Rauschenberger, Berlin Jan 2024
-' See also
-' https://github.com/warbe-maker/VBA-Component-Management/blob/master/CODING_RULES.md
+' The guidelines address:
+' - the fact that VBA is case insensitive
+' - While Common Components are designed to work as autonomous as possible
+'   they are fully integrated in the CompMan VBProject regarding execution
+'   trace, logging, error handling, and message display.
+'
+' W. Rauschenberger, Berlin Nov 2024
 ' ------------------------------------------------------------------------
 
 Private Sub Arguments(ByVal a_any1 As String, _
                       ByVal a_any2 As Variant)
 ' ------------------------------------------------------------------------
-' Arguments have a prefix followed by an underline. Because this notation
-' is not used anywhere else it clearly indicates where an argument is used.
+' Arguments have a single character prefix followed by an underline.
+' Because this notation is not used anywhere else it clearly indicates
+' a used argument in the code.
 ' Additionally this notation avoids any conflicts with system arguments of
 ' which the case may change from upper- to lower-case or vice versa.
 ' Because VBA is case insensitive, constants must not use a single

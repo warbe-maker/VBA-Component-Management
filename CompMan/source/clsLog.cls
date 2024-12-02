@@ -49,19 +49,24 @@ Option Base 1 ' ensures the index conforms with the column number
 '
 ' Properties:
 ' -----------
-' - FileFullName r/w Specifies the full name of the log-file. The location defaults
-'                    to the ActiveWorkbook's parent folder, the name defaults to the
-'                    ActiveWorkbook's BaseName with a .log file extention.
-' - FileBaseName       w Specifies the log-file's name, defaults to the ActiveWorkbook's
-'                    BaseName with a .log file extention.
-' - KeepLogs       w Specifies the number of logs, i.e. a set of log entries, is
-'                    kept when the log file is reorganized.
-'                    before it is deleted and re-created, defaults to 1.
-' - LogFile      r   The log-file as file object
-' - Path           w Sepcifies the log-file's location/folder, defaults to the
-'                    ActiveWorkbook's parent folder
+' - FileBaseName  r/w The log-file's base name, defaults to the
+'                     ActiveWorkbook's BaseName.
+' - FileExtension r/w The Log-file's file extension
+' - FileFullName  r/w w: Specifies the full name of the log-file, thereby providing
+'                        the FileBaseName and the FileExtension.
+'                     r: When no FileFullName ever has been provided, the default
+'                        log-file's full name is assemled from FileLocation,
+'                        FileBaseName and FileExtension.
+'                     the ActiveWorkbook's BaseName with a .log file extention.
+' - FileLocation  r/w Defaults to the ActiveWorkbook's Path
+' - KeepLogs        w Specifies the number of logs, i.e. a set of log entries, is
+'                     kept when the log file is reorganized.
+'                     before it is deleted and re-created, defaults to 1.
+' - LogFile       r   The log-file as file object
+' - Path            w Sepcifies the log-file's location/folder, defaults to the
+'                     ActiveWorkbook's parent folder
 '
-' W. Rauschenberger, Berlin May 2024
+' W. Rauschenberger, Berlin Nov 2024
 ' See: https://github.com/warbe-maker/VBA-Log-Service
 ' -----------------------------------------------------------------------------------
 Private aColsAlign              As Variant
@@ -112,7 +117,7 @@ End Enum
 
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
-    (ByVal hWnd As Long, _
+    (ByVal hwnd As Long, _
     ByVal lpOperation As String, _
     ByVal lpFile As String, _
     ByVal lpParameters As String, _
@@ -417,6 +422,10 @@ Public Property Let ColWidth(Optional ByVal c_col As Long, _
     
 End Property
 
+Friend Property Get FileBaseName() As String:           FileBaseName = sFileBaseName:   End Property
+
+Friend Property Let FileBaseName(ByVal s As String):    sFileBaseName = s:              End Property
+
 Friend Property Get FileExtension() As String:          FileExtension = sFileExtension: End Property
 
 Friend Property Let FileExtension(ByVal s As String):   sFileExtension = s:             End Property
@@ -446,9 +455,9 @@ Friend Property Let FileFullName(ByVal s As String)
     
 End Property
 
-Friend Property Get FileBaseName() As String:           FileBaseName = sFileBaseName:   End Property
+Friend Property Get FileLocation() As String:           FileLocation = sFileLocation:   End Property
 
-Friend Property Let FileBaseName(ByVal s As String):    sFileBaseName = s:              End Property
+Friend Property Let FileLocation(ByVal s As String):    sFileLocation = s:              End Property
 
 Friend Property Let KeepLogs(ByVal l As Long):          lKeepLogs = l:                  End Property
 
