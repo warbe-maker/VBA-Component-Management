@@ -28,9 +28,9 @@ Private sEventsLvl                      As String
 Private bWbkExecChange                  As Boolean
 
 Private Declare PtrSafe Function FindWindowEx Lib "user32" Alias "FindWindowExA" (ByVal hWnd1 As LongPtr, ByVal hWnd2 As LongPtr, ByVal lpsz1 As String, ByVal lpsz2 As String) As LongPtr
-Private Declare PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameA" (ByVal hWnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As LongPtr) As LongPtr
+Private Declare PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameA" (ByVal hwnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As LongPtr) As LongPtr
 Private Declare PtrSafe Function IIDFromString Lib "ole32" (ByVal lpsz As LongPtr, ByRef lpiid As UUID) As LongPtr
-Private Declare PtrSafe Function AccessibleObjectFromWindow Lib "oleacc" (ByVal hWnd As LongPtr, ByVal dwId As LongPtr, ByRef riid As UUID, ByRef ppvObject As Object) As LongPtr
+Private Declare PtrSafe Function AccessibleObjectFromWindow Lib "oleacc" (ByVal hwnd As LongPtr, ByVal dwId As LongPtr, ByRef riid As UUID, ByRef ppvObject As Object) As LongPtr
 
 Type UUID 'GUID
     Data1 As Long
@@ -140,9 +140,7 @@ Public Sub CompManService(ByVal c_service_proc As String, _
         Progress p_service_name:=ServiceName(c_service_proc) _
                , p_serviced_wbk_name:=ThisWorkbook.Name _
                , p_by_servicing_wbk_name:=sServicingWbkName
-        If c_service_proc = mCompManClient.SRVC_SYNCHRONIZE _
-        Then Application.Run sServicingWbkName & "!mCompMan." & mCompManClient.SRVC_SYNCHRONIZE, ThisWorkbook _
-        Else Application.Run sServicingWbkName & "!mCompMan." & c_service_proc, ThisWorkbook, c_hosted_common_components, c_public_procedure_copies
+        Application.Run sServicingWbkName & "!mCompMan." & c_service_proc, ThisWorkbook, c_hosted_common_components, c_public_procedure_copies
     Else
         Progress p_service_name:=ServiceName(c_service_proc) _
                , p_serviced_wbk_name:=ThisWorkbook.Name _
@@ -348,7 +346,7 @@ End Sub
 '
 '#If Win64 Then
     Dim hWndDesk As LongPtr
-    Dim hWnd As LongPtr
+    Dim hwnd As LongPtr
 '#Else
 '    Dim hWndDesk As Long
 '    Dim hWnd As Long
@@ -364,19 +362,19 @@ End Sub
     hWndDesk = FindWindowEx(hWndMain, 0&, "XLDESK", vbNullString)
 
     If hWndDesk <> 0 Then
-        hWnd = FindWindowEx(hWndDesk, 0, vbNullString, vbNullString)
+        hwnd = FindWindowEx(hWndDesk, 0, vbNullString, vbNullString)
 
-        Do While hWnd <> 0
+        Do While hwnd <> 0
             sText = String$(100, Chr$(0))
-            lRet = CLng(GetClassName(hWnd, sText, 100))
+            lRet = CLng(GetClassName(hwnd, sText, 100))
             If Left$(sText, lRet) = "EXCEL7" Then
                 Call IIDFromString(StrPtr(IID_IDispatch), iid)
-                If AccessibleObjectFromWindow(hWnd, OBJID_NATIVEOM, iid, ob) = 0 Then 'S_OK
+                If AccessibleObjectFromWindow(hwnd, OBJID_NATIVEOM, iid, ob) = 0 Then 'S_OK
                     Set GetExcelObjectFromHwnd = ob.Application
                     GoTo xt
                 End If
             End If
-            hWnd = FindWindowEx(hWndDesk, hWnd, vbNullString, vbNullString)
+            hwnd = FindWindowEx(hWndDesk, hwnd, vbNullString, vbNullString)
         Loop
         
     End If
