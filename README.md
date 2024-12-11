@@ -5,6 +5,10 @@
 
 <a id="raw-url" href="https://raw.githubusercontent.com/warbe-maker/VBA-Component-Management/master/CompMan/source/mCompManClient.bas">Download mCompManClient.bas</a>
 
+
+https://raw.github.com/warbe-maker/VBA-Component-Management/master/CompMan/source/mCompManClient.bas
+
+
 ## Provision
 Services are provided with an absolute minimum intervention in the serviced Workbook:
 1. A <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan/source/mCompManClient.bas?raw=true" download>mCompManClient</a> Standard Module imported as an interface to CompMan's services
