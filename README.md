@@ -5,7 +5,7 @@
 
 ## Provision
 Services are provided with an absolute minimum intervention in the serviced Workbook:
-1. A <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan/source/mCompManClient?raw=true" download>mCompManClient</a> Standard Module imported as an interface to CompMan's services
+1. A <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan/source/mCompManClient.bas?raw=true" download>mCompManClient</a> Standard Module imported as an interface to CompMan's services
 2. One code line in the _Workbook\_Open_ event procedure for the update service
 3. One code line in the _WorkBook\_After\_Save_ event procedure initiates the service provided the required conditions are meet (see [Serviced or not serviced Workbooks](#serviced-or-not-serviced)).> The services only require one component installed/imported, a single code line for each service, preventing that productive Workbooks are bothered by a configured service (see [serviced or not serviced][10]).
 
