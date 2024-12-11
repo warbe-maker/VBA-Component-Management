@@ -3,6 +3,8 @@
 - **Exports** any _Component_ the code has changed along with each Workbook save. 
 - **Updates** any outdated _[Common Component][5]_. 
 
+<a id="raw-url" href="https://raw.githubusercontent.com/warbe-maker/VBA-Component-Management/master/CompMan/source/mCompManClient.bas">Download mCompManClient.bas</a>
+
 ## Provision
 Services are provided with an absolute minimum intervention in the serviced Workbook:
 1. A <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan/source/mCompManClient.bas?raw=true" download>mCompManClient</a> Standard Module imported as an interface to CompMan's services
