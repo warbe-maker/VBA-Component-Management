@@ -16,12 +16,9 @@ Used with the _Workbook\_AfterSave_ event. Exports all _VB-Components_ of which 
 Used with the _Workbook\_Open_ event all _used or [hosted][7]_  _[Common Component][5]_ are checked for being up-to-date and updated if not. This is supported by a dialog which allows to display the code difference (by means of ([WinMerge English][2], [WinMerge German][3], etc.), perform the update, or skip it. The update uses the  _Export&nbsp;File_ of the public _[Common Component][5]_ in the _[Common-Components folder][9]_.  
 >The _Update_ service is performed only when the Workbook is opened from within the configured [_CompManServiced_ folder][4] and all the [preconditions][10]) are meet.
 
-## Installation
-### Provision of CompMan as a servicing Workbook instance
-> When [CompMan.xlsb][1] is downloaded to whichever location and opened it will setup its [default files and folder structure](#compmans-default-files-and-folders-environment) at the download location (don't worry, it may be moved afterwards). The setup completes with saving the Workbook to its dedicated parent folder and the downloaded Workbook is removed. The setup environment, i.e. the _CompManServiced_ folder may subsequently be moved to any location and even renamed.
-
-1. <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan.xlsb?raw=true" download>Download</a>  CompMan.xlsb
-2. Move the downloaded Workbook into a folder you will regard as the serviced root folder and open the Workbook. It will perform a dialog based self-setup. Note: When opened an explicit activation of the macros will be required, except when macros are unconditionally enabled - though not recommended by Microsoft  
+## Installation of CompMan as a Workbook/VBProject servicing instance
+1. <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan.xlsb?raw=true" download>Download the `CompMan.xlsb` Workbook</a>
+2. Move the downloaded Workbook into a folder you will regard as the serviced root folder and open the Workbook. It will display a self-setup dialog which results in a [default files and folder structure][12] when confirmed [^1]. 
 3. When WinMerge is not available/installed a corresponding message is displayed. The provided link may be used to download and install it. When continued without having it installed the message will be re-displayed whenever the [CompMan.xlsb][1] Workbook is opened.  
 4. Confirm CompMan's self-setup _default environment_ at the location the Workbook is opened.
 
@@ -31,7 +28,7 @@ Used with the _Workbook\_Open_ event all _used or [hosted][7]_  _[Common Compone
 A Workbook will only be serviced by CompMan provided:
 1. A ***servicing CompMan instance*** (see [how to provide](#installation)) is open
 2. The ***to-be-serviced Workbook*** Workbook has one or more of the below services enabled (see below)
-3. The ***to-be-serviced Workbook*** is opened from within a sub-folder of the configured [_CompManServiced_ folder](#compmans-default-files-and-folders-environment), Note: In case of the _Synchronization service_ from within a sub-folder of the configured _Sync-Target-Folder_.
+3. The ***to-be-serviced Workbook*** is opened from within a sub-folder of the configured [_CompManServiced_ folder][4].
 4. The ***to-be-serviced Workbook*** is the only Workbook in its parent folder (the parent folder may have sub-folders with Workbooks however)
 5. WinMerge ([WinMerge English][2], [WinMerge German][3] or any other language version is installed to display the difference for any components when about to be updated by the [_Update_ service](#enabling-the-update-service)
 
@@ -43,8 +40,11 @@ A Workbook will only be serviced by CompMan provided:
 The _Export_ service is performed whenever the Workbook is saved from within the configured _[CompMan serviced root folder][4] and all the [preconditions][10] are met.
 1. Install: From the Common Components folder import the _mCompManClient.bas_ (available after CompMan has been setup) which serves as the link to the CompMan services.
 2. Prepare: Into the Workbook module copy the following:  
- ```vba
- Private Const COMMON_COMPONENTS_HOSTED = vbNullstring<br>Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)<br>
+ ```vb
+Option Explicit
+Private Const COMMON_COMPONENTS_HOSTED = vbNullstring
+
+Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     mCompManClient.CompManService mCompManClient.SRVC_EXPORT_CHANGED, COMMON_COMPONENTS_HOSTED
 End Sub
 ```
@@ -53,14 +53,16 @@ End Sub
 1. Install: From the Common Components folder import the _mCompManClient.bas_ (available after CompMan has been setup) which serves as the link to the CompMan services
 2. Prepare: Into the Workbook module copy the following:
 ```vb
-Private Const HOSTED_RAWS = vbNullstring
+Option Explicit
+Private Const COMMON_COMPONENTS_HOSTED = vbNullstring
+
 Private Sub Workbook_Open()
-    mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, HOSTED_RAWS
+    mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, COMMON_COMPONENTS_HOSTED
 End Sub
 ```
 Despite the import of the _mCompManClient_ this is the only required modification in a VB-Project for this service.
 
-3. Hosted _Common Components_: In case the Workbook hosts one or more _[Common Components](#common-components]_ copy into the Workbook module:  
+3. [Hosted _Common Components_][11]: In case the Workbook hosts one or more _Common Components_, copy into the Workbook module:  
 ```vb
 Private Const COMMON_COMPONENTS_HOSTED = <component-name>[,<component-name]...
 ```
@@ -73,6 +75,7 @@ It may appear pretty strange when downloading first from a public GitHub repo bu
 ## Contribution
 Contribution of any kind is welcome, raising issues specifically.
 
+[^1]:When opened, an explicit activation of the macros may be required. My proposal is to sign the VBProject and adjust the Macro security correspondingly (unconditional enabling is not recommended by Microsoft)
 
 [1]:https://github.com/warbe-maker/VBA-Components-Management-Services/blob/master/CompMan.xlsb?raw=true
 [2]:https://winmerge.org/downloads/?lang=en
@@ -84,5 +87,6 @@ Contribution of any kind is welcome, raising issues specifically.
 [8]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#export-folder
 [9]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#common-components-folder
 [10]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#serviced-or-not-serviced
-
+[11]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#hosted-versus-used-common-components
+[12]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#compmans-environment
 

@@ -12,6 +12,7 @@ CompMan provides services for professional and semi-professional Excel VBProject
 | _Serviced&nbsp;Workbook_ | The `ActiveWorkbook` prepared for being [serviced](#enabling-the-services-serviced-or-not-serviced) (ActiveWorkbook).
 |_VB&#8209;Project_    | Used synonymous with Workbook |
 | _Workbook&nbsp;parent&nbsp;folder_ | A folder dedicated to a _Workbook/VB-Project_. Note that an enabled Workbook is only [serviced](#enabling-the-services-serviced-or-not-serviced) when it is **exclusive** in its parent folder. Other Workbooks may be located in sub-folders however.|
+
 ## Services
 ### _Export service_
 Exports **modified** components into a serviced Workbook's dedicated folder (`...\CompMan\source`). Modifies used/[hosted](#the-concept-of-hosted-common-components) _Common Components_ are (re)registered a _pending release_ considering that the modifications are not final yet.
@@ -43,7 +44,7 @@ Public _Common Components_ are maintained (as _Export-Files_) in a `Common-Compo
 Careful testing of a _Common Component_ is crucial for their performance boosting impact on VBProject development. Such a careful testing (in a best practice including regression testing) can only be achieved in a dedicated Workbook/VBProject. This dedication is expressed and documented by the fact that a Workbook/VBProject claims the _Common Component_ being _hosted_ in it. In contrast, it will be regarded _used_ in all other Workbooks. However, although the hosting Workbook is dedicated for testing a _Common Component_ may (ad-hoc) be modified in any Workbook using it.
 
 ### Pending releases
-When a _Common Component_ is modified in a Workbook/VBProject using or hosting it the modification may remain incomplete/not finalized for some time. When the Workbook is saved (early and often hopefully) the _Common Component_ will become "pending release". I.e. a copy of the Export-File is copied to the `PendingReleases` folder in the `Common-Components` folder, waiting for being released to public (moved into the `Common-Components` folder).
+When a _Common Component_ is modified in a Workbook/VBProject using or hosting it the modification may not be completed immediately and thus the modified _Common Component_ will become "pending release" when the Workbook is saved (early and often hopefully). I.e. a copy of the Export-File is copied to the `PendingReleases` folder in the `Common-Components` folder, waiting for being released to public (either moved into the `Common-Components` folder or by means of the CompMan menu in the VBE).
 
 ### Release to public
 When the modification of a Common-Component had been finalized it will be released to public.Manually by copying the Export-File to the `Common-Components` folder or via the `CompMan` menu int the VBE (only available when there's at least one _Common Component_ pending release. The menu provides the chance to finally check which modifications had been done by having the pending release code compared with the public code.
@@ -63,10 +64,16 @@ The below properties are maintained for _Common Components_ in Private Profile f
 |***LastModIn***           |The Workbook/VBProject in which the _Common Component_ had last been modified.|
 |***LastModOn***           |The Computer's name on which the used/hosted Common Component had last been modified.|
 
-## Other
-### Manual interventions
+### Manual interventions for Common Components
 Developers using Common Components likely have established a routine for their management and also a routine for frequently exporting all components. Any of them likely will become obsolete when CompMan services are established and used. Considering the first said, CompMan integrates manual intervention by a [housekeeping](#housekeeping) routine performed before the _[Export-](#export-service)_ and the _[Update service](#update-service)_. Typical manual interventions may bee manually copying the _Export-File_ of a modified _Common Component_ into the `Common-Components` folder or manually importing/re-importing a public _Common Component_ from the folder.
 
+### Service gaps for Common Components
+When a Workbook is used outside the [serviced root-folder](#compman-serviced-root-folder) folder it will no longer be serviced even when it is configured to be. When the Workbook is copied back into its dedicated folder within the [serviced root-folder](#compman-serviced-root-folder) folder the following will be considered a service gap:
+- A used/hosted Common Component's code (CodeModule) is no longer identical with the current public version (Export-File in the `Common-Components` folder)
+
+this will be considered a service gap when the Workbook is copied back into its dedicated folder within the [serviced root-folder](#compman-serviced-root-folder) folder.  
+
+## Other
 ### Housekeeping
 Housekeeping is an effort prior the _Export-Service_ and the _Update_Service which provides up-to-date and consistent data.
 #### Housekeeping public _Common Components_
@@ -176,7 +183,7 @@ CompMan, when opened, displays a _Config_ Worksheet which allows several configu
 | auto-open setup    | With setup/renew the auto-open has implicitly setup/established. |
 | auto&#8209;open&nbsp;not&nbsp;setup| When the [_Add-in folder_](#compmans-default-files-and-folders-environment) is de-configured (no folder is selected when with 'Configure') a setup auto-open is removed |
 
-#### Pending Release Management
+### Pending Release Management
 When a used or hosted Common Component's code is modified and exported the component is registered as _Pending Release_, which is the release of the modification pending to become publicly available in the Common-Components folder. Any _Pending Release_ component is available in the Add-Ins menu from where the modification can be release to public one by one once the modification had become final.
 
 ## Appendix
