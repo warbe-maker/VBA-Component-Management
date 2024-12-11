@@ -14,15 +14,18 @@ CompMan provides services for professional and semi-professional Excel VBProject
 | _Workbook&nbsp;parent&nbsp;folder_ | A folder dedicated to a _Workbook/VB-Project_. Note that an enabled Workbook is only [serviced](#enabling-the-services-serviced-or-not-serviced) when it is **exclusive** in its parent folder. Other Workbooks may be located in sub-folders however.|
 
 ## Services
+### Provision
+Services are provided with an absolute minimum intervention:
+1. An additional component is used as an interface to CompMan's services
+2. One code line in the _Workbook\_Open_ event procedure for the update service
+3. One code line in the _WorkBook\_After\_Save_ event procedure initiates the service provided the required conditions are meet (see [Serviced or not serviced Workbooks](#serviced-or-not-serviced)).
+
 ### _Export service_
 Exports **modified** components into a serviced Workbook's dedicated folder (`...\CompMan\source`). Modifies used/[hosted](#the-concept-of-hosted-common-components) _Common Components_ are (re)registered a _pending release_ considering that the modifications are not final yet.
 > When combined with a cloud synchronization service like [sync.com][2] the _Export service_ thereby provided a full versioning of modification on a component base (instead of one on the VBProject as a whole).
 
 ### _Update Service_
 Updates any component in a [serviced Workbook's](#serviced-or-not-serviced) VBProject of which the code is not/no longer identical with the current public _Common Component's_ code whereby the proposed update may be postponed or denied. In the latter case the component's registration state is turned into _private_, i.e. excluded from future updates. See the [concept of Common Components](#concept)
-
-## Serviced Workbooks/VBPprojects
-The services are provided with a minimum intervention in VBProjects. An additional component is used as an interface to CompMan's services, one code line in the _Workbook\_Open_ and one in the _WorkBook\_Before\_Close_ event procedure initiates the service provided the required conditions are meet (see [Serviced or not serviced Workbooks](#serviced-or-not-serviced)).
 
 ## _Common Components_
 ### Concept

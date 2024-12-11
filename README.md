@@ -1,8 +1,13 @@
-## Component Management Services focusing on Excel VB-Projects
+## <u>Comp</u>onent <u>Man</u>agement Services for Excel VB-Projects
 
 - **Exports** any _Component_ the code has changed along with each Workbook save. 
 - **Updates** any outdated _[Common Component][5]_. 
-> The services only require one component installed/imported, a single code line for each service, preventing that productive Workbooks are bothered by a configured service (see [serviced or not serviced][10]).
+
+## Provision
+Services are provided with an absolute minimum intervention in the serviced Workbook:
+1. A <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan/source/mCompManClient?raw=true" download>mCompManClient</a> Standard Module imported as an interface to CompMan's services
+2. One code line in the _Workbook\_Open_ event procedure for the update service
+3. One code line in the _WorkBook\_After\_Save_ event procedure initiates the service provided the required conditions are meet (see [Serviced or not serviced Workbooks](#serviced-or-not-serviced)).> The services only require one component installed/imported, a single code line for each service, preventing that productive Workbooks are bothered by a configured service (see [serviced or not serviced][10]).
 
 ## The services
 ### At a glance
@@ -17,12 +22,12 @@ Used with the _Workbook\_Open_ event all _used or [hosted][7]_  _[Common Compone
 >The _Update_ service is performed only when the Workbook is opened from within the configured [_CompManServiced_ folder][4] and all the [preconditions][10]) are meet.
 
 ## Installation of CompMan as a Workbook/VBProject servicing instance
-1. <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan.xlsb?raw=true" download>Download the `CompMan.xlsb` Workbook</a>
-2. Move the downloaded Workbook into a folder you will regard as the serviced root folder and open the Workbook. It will display a self-setup dialog which results in a [default files and folder structure][12] when confirmed [^1]. 
-3. When WinMerge is not available/installed a corresponding message is displayed. The provided link may be used to download and install it. When continued without having it installed the message will be re-displayed whenever the [CompMan.xlsb][1] Workbook is opened.  
-4. Confirm CompMan's self-setup _default environment_ at the location the Workbook is opened.
+1. Download the <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan.xlsb?raw=true" download>`CompMan.xlsb` Workbook</a>
+2. Move the downloaded Workbook into a folder you will regard as the serviced root folder and open the Workbook.[^1] 
+3. When WinMerge is not available/installed a corresponding message is displayed. The provided link may be used to download and install it. When continued without having installed it the message will be re-displayed whenever the <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan.xlsb?raw=true" download>`CompMan.xlsb` Workbook</a> is opened.  
+4. Confirm CompMan's self-setup. It will setup the [default files and folder environment][12].
 
-> The CompMan services are now ready for being used by Workbooks which have the service(s) enabled (see below.
+> CompMan's services are now ready for being used by Workbooks which have the service(s) enabled (see below).
 
 ## Usage
 A Workbook will only be serviced by CompMan provided:
@@ -32,9 +37,7 @@ A Workbook will only be serviced by CompMan provided:
 4. The ***to-be-serviced Workbook*** is the only Workbook in its parent folder (the parent folder may have sub-folders with Workbooks however)
 5. WinMerge ([WinMerge English][2], [WinMerge German][3] or any other language version is installed to display the difference for any components when about to be updated by the [_Update_ service](#enabling-the-update-service)
 
->Note: As a consequence from the above, a productive Workbook must not be used from within the configured [_CompManServiced_ folder][4]. When a Workbook with any enabled/prepared service is opened when located elsewhere the user will not be bothered by any means, i.e. will not even recognize CompMan at all - even when open/available.
-
->Note: Even when a Workbook has the export an/or the update service [enabled](#usage), the service will be denied without notice when the above (pre)conditions are not met.
+> As a consequence from the above it may not be appropriate to use a Workbook productively from within the [_CompManServiced_ folder][4] but have it copied elsewhere outside for using it. The Workbook may be copied back at any time for developing/maintaining its VBProject. By the way: When a Workbook is opened outside the [_CompManServiced_ folder][4] the execution of enabled/prepared services will be denied without notice.
 
 ### Enabling the _Export_ service
 The _Export_ service is performed whenever the Workbook is saved from within the configured _[CompMan serviced root folder][4] and all the [preconditions][10] are met.
