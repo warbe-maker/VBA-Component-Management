@@ -65,49 +65,6 @@ Private Const GITHUB_REPO_URL   As String = "https://github.com/warbe-maker/VBA-
 
 Private Const DQUOTE     As String = """" ' one " character
 
-Private Declare PtrSafe Function WritePrivateProfileString _
-                Lib "kernel32" Alias "WritePrivateProfileStringA" _
-               (ByVal lpw_ApplicationName As String, _
-                ByVal lpw_KeyName As String, _
-                ByVal lpw_String As String, _
-                ByVal lpw_FileName As String) As Long
-                
-Private Declare PtrSafe Function GetPrivateProfileString _
-                Lib "kernel32" Alias "GetPrivateProfileStringA" _
-               (ByVal lpg_ApplicationName As String, _
-                ByVal lpg_KeyName As String, _
-                ByVal lpg_Default As String, _
-                ByVal lpg_ReturnedString As String, _
-                ByVal nSize As Long, _
-                ByVal lpg_FileName As String) As Long
-
-Private Declare PtrSafe Function DeletePrivateProfileSection _
-                Lib "kernel32" Alias "WritePrivateProfileStringA" _
-               (ByVal Section As String, _
-                ByVal NoKey As Long, _
-                ByVal NoSetting As Long, _
-                ByVal Name As String) As Long
-
-Private Declare PtrSafe Function DeletePrivateProfileKey _
-                Lib "kernel32" Alias "WritePrivateProfileStringA" _
-               (ByVal Section As String, _
-                ByVal Key As String, _
-                ByVal Setting As Long, _
-                ByVal Name As String) As Long
-                 
-Private Declare PtrSafe Function GetPrivateProfileSectionNames _
-                Lib "kernel32.dll" Alias "GetPrivateProfileSectionNamesA" _
-               (ByVal lpszReturnBuffer As String, _
-                ByVal nSize As Long, _
-                ByVal lpName As String) As Long
-                 
-'Private Declare PtrSafe Function GetPrivateProfileSection _
-'                Lib "kernel32" Alias "GetPrivateProfileSectionA" _
-'               (ByVal Section As String, _
-'                ByVal Buffer As String, _
-'                ByVal Size As Long, _
-'                ByVal Name As String) As Long
-
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
     (ByVal hWnd As Long, _
@@ -1293,7 +1250,7 @@ Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
     Dim dct     As New Dictionary
     Dim vKey    As Variant
     Dim arr()   As Variant
-    Dim Temp    As Variant
+    Dim temp    As Variant
     Dim i       As Long
     Dim j       As Long
     
@@ -1311,9 +1268,9 @@ Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
     For i = LBound(arr) To UBound(arr) - 1
         For j = i + 1 To UBound(arr)
             If arr(i) > arr(j) Then
-                Temp = arr(j)
+                temp = arr(j)
                 arr(j) = arr(i)
-                arr(i) = Temp
+                arr(i) = temp
             End If
         Next j
     Next i

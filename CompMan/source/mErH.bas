@@ -43,7 +43,7 @@ Public Const CONCAT As String = "||"
 ' Begin of ShellRun declarations ---------------------------------------------
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
-    (ByVal hWnd As Long, _
+    (ByVal hwnd As Long, _
     ByVal lpOperation As String, _
     ByVal lpFile As String, _
     ByVal lpParameters As String, _

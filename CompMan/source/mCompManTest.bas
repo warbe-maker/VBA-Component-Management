@@ -51,7 +51,7 @@ Private Sub Regression()
     
     mErH.Regression = True
     Prepare
-    TestAid.TestHeadLineRegression = "Test of the CompMan services update and export"
+    TestAid.Title = "Test of the CompMan services update and export"
     TestAid.CleanUp "Result*"
     mBasic.BoP ErrSrc(PROC)
     
@@ -102,7 +102,7 @@ Public Sub Test_0100_FirstTimeServiced()
     
     With TestAid
         .TestId = "0100" ' basic test number for the environment setup
-        .TestHeadLine = "First time serviced Workbook/VBProject"
+        .Title = "First time serviced Workbook/VBProject"
         
         mCompMan.ServiceInitiate wbkServiced, PROC
         
@@ -110,14 +110,14 @@ Public Sub Test_0100_FirstTimeServiced()
         .TestId = "0100-1"
         .TestedComp = "mHskpng"
         .TestedProc = "CommCompsServicedKindOf"
-        .TestedType = "Sub"
+        .TestedProcType = "Sub"
         
         '~~ Assert precondition
         .Verification = "Precondition: 0 Common Components registered in CommComps.dat"
         .ResultExpected = 0
         .Result = CommonServiced.Components.Count
         '-------------------------------------
-        .RequiredInteraction = "Confirm ""mBasic"" as  u s e d  Common Component!"
+        .Instructions "Confirm ""mBasic"" as  u s e d  Common Component!"
         mHskpng.CommCompsServicedKindOf
         '-------------------------------------
         .Verification = "Verification: Houskeeping resulted in ""mBasic"" registered as ""used"" Common Component"
@@ -128,14 +128,14 @@ Public Sub Test_0100_FirstTimeServiced()
         .TestId = "0100-2"
         .TestedComp = "mCommComps"
         .TestedProc = "Update"
-        .TestedType = "Sub"
+        .TestedProcType = "Sub"
         
         .Verification = "Precondition: Common Component ""mBasic"" is outdated"
         .ResultExpected = True
         Comp.CompName = "mBasic"
         .Result = Not Comp.CodeCrrent.Meets(Comp.CodePublic)
         '----------------
-        .RequiredInteraction = "Confirm update of the outdated Common Component ""mBasic""!"
+        .Instructions "Confirm update of the outdated Common Component ""mBasic""!"
         mCommComps.Update
         '----------------
         .Verification = "Verification: Common Component ""mBasic"" is up-to-date (code current meets code public)"
@@ -151,7 +151,7 @@ Public Sub Test_0100_FirstTimeServiced()
         .TestId = "0100-3"
         .TestedComp = "clsServices"
         .TestedProc = "ExportChangedComponents"
-        .TestedType = "Method"
+        .TestedProcType = "Method"
         
         .Verification = "Precondition: ""mBasic.bas"" is the only export file in the export folder"
         .ResultExpected = True ' from the above update test
@@ -232,14 +232,14 @@ Private Sub Test_0200_1SetUp()
     Const PROC = "Test_0200_1SetUp"
             
     With TestAid
-        .TestHeadLine = "Conflicts detected and handled by the Export service"
+        .Title = "Conflicts detected and handled by the Export service"
 '        .FolderZip "0200" ' !!! only when preparation had been changed !!!
         .FolderUnZip "Test_0200.zip", sTestFolder:                      .TempTestItem = sTestFolder ' indicate the result folder as a temporary test resuurce
         sTestFolder = sTestFolder & "\Test_0200a"
         Set wbkServiced = Workbooks.Open(TestWorkbook(sTestFolder)):    .TempTestItem = wbkServiced ' indicate the Workbook as a temporary test resuource closed with CleanUp
 
         mCompMan.ServiceInitiate s_serviced_wbk:=wbkServiced _
-                               , s_service:=TestAid.TestHeadLine _
+                               , s_service:=TestAid.Title _
                                , s_hosted:=sTestComp
         mExport.ChangedComponents
         .TempTestItem = CommonPending.LastModExpFile(sTestComp)
@@ -255,7 +255,7 @@ Private Sub Test_0300_1SetUp_1()
     
     With TestAid
         mCompMan.ServiceInitiate s_serviced_wbk:=ThisWorkbook _
-                               , s_service:=TestAid.TestHeadLine
+                               , s_service:=TestAid.Title
         With New clsComp
             .CompName = sTestComp
             FSo.CopyFile .ExpFileFullName, mEnvironment.CommCompsPath & "\" & sTestComp & ".cls"
@@ -273,7 +273,7 @@ Private Sub Test_0300_1SetUp_2()
     sTestComp = "clsCode"
     
     mCompMan.ServiceInitiate s_serviced_wbk:=ThisWorkbook _
-                           , s_service:=TestAid.TestHeadLine
+                           , s_service:=TestAid.Title
     FSo.DeleteFile mEnvironment.CommCompsPath & "\" & sTestComp & ".cls"
         
 End Sub
@@ -316,7 +316,7 @@ Public Sub Test_0200_ConflictingExport()
         
     With TestAid
         .TestId = "0200" ' basic test number for the environment setup
-        .TestHeadLine = "Conflicts detected and handled by the Export service"
+        .Title = "Conflicts detected and handled by the Export service"
         Test_0200_1SetUp
         '~~ Assert precondition 1
         .Verification = "Precondition 1: The test component " & sTestComp & " is pending release"
@@ -329,9 +329,9 @@ Public Sub Test_0200_ConflictingExport()
         ServicedWrkbk = Workbooks.Open(TestWorkbook(sTestFolder)):    .TempTestItem = ServicedWrkbk ' indicate the Workbook as a temporary test resuource closed with CleanUp
 
         mCompMan.ServiceInitiate s_serviced_wbk:=ServicedWrkbk _
-                               , s_service:=TestAid.TestHeadLine _
+                               , s_service:=TestAid.Title _
                                , s_hosted:=sTestComp
-        .RequiredInteraction = "Reply with ...."
+        .Instructions "Reply with ...."
         mExport.ChangedComponents sTestComp
         .ResultExpected = True
         .Result = True
@@ -379,30 +379,36 @@ Public Sub Test_0300_CommCompManuallyCopiedRemoved()
     
     With TestAid
         .TestId = "0300-1" ' basic test number for the environment setup
-        .TestHeadLine = "Common Component manually copied/removed in/from Common-Components folder"
+        .Title = "Common Component manually copied/removed in/from Common-Components folder"
+        
         .Verification = "Precondition 1: The test component " & sTestComp & " does not exist in the Common-Components folder"
         .ResultExpected = True
         With New clsCommonPublic
             TestAid.Result = Not FSo.FileExists(mEnvironment.CommCompsPath & "\" & sTestComp & ".cls")
         End With
+        
         .Verification = "Precondition 2: The test component " & sTestComp & " does not exist in the serviced Workbooks CommComps.dat file"
         .ResultExpected = True
         With New clsCommonServiced
             TestAid.Result = Not .Components.Exists(sTestComp)
         End With
         Test_0300_1SetUp_1  ' copy Export-File into Common-Components folder and run housekeeping
+        
         .Verification = "Precondition: The test component " & sTestComp & " exist in the Common-Components folder"
         .ResultExpected = True
         With New clsCommonPublic
             TestAid.Result = FSo.FileExists(mEnvironment.CommCompsPath & "\" & sTestComp & ".cls")
         End With
-        mHskpng.CommComps
+        
         .Verification = "Test result 1: Test component " & sTestComp & " registered as new Common Component"
+        mHskpng.FocusOnSave
         .ResultExpected = True
         .Result = CommonPublic.Exists(sTestComp)
+        
         .Verification = "Test result 2: Test component " & sTestComp & " registered as ""used"" in CommComps.dat file"
         .ResultExpected = True
         .Result = CommonServiced.KindOfComponent(sTestComp) = enCompCommonUsed
+        
         .Verification = "Test result 3: Test component " & sTestComp & " properties serviced equal public"
         .ResultExpected = True
         With New clsComp
@@ -413,8 +419,9 @@ Public Sub Test_0300_CommCompManuallyCopiedRemoved()
         '==========================================================================
         .TestId = "0300-2"
         Test_0300_1SetUp_1  ' remove the test component from the Common-Components folder
-        mHskpng.CommComps
+        
         .Verification = "Test result 1: Test component " & sTestComp & " removed from CommComps.dat file"
+        mHskpng.FocusOnSave
         .ResultExpected = True
         .Result = Not CommonPublic.Components.Exists(sTestComp)
              

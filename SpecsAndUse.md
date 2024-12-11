@@ -71,18 +71,15 @@ The below properties are maintained for _Common Components_ in Private Profile f
 Developers using Common Components likely have established a routine for their management and also a routine for frequently exporting all components. Any of them likely will become obsolete when CompMan services are established and used. Considering the first said, CompMan integrates manual intervention by a [housekeeping](#housekeeping) routine performed before the _[Export-](#export-service)_ and the _[Update service](#update-service)_. Typical manual interventions may bee manually copying the _Export-File_ of a modified _Common Component_ into the `Common-Components` folder or manually importing/re-importing a public _Common Component_ from the folder.
 
 ### Service gaps for Common Components
-When a Workbook is used outside the [serviced root-folder](#compman-serviced-root-folder) folder it will no longer be serviced even when it is configured to be. When the Workbook is copied back into its dedicated folder within the [serviced root-folder](#compman-serviced-root-folder) folder the following will be considered a service gap:
-- A used/hosted Common Component's code (CodeModule) is no longer identical with the current public version (Export-File in the `Common-Components` folder)
-
-this will be considered a service gap when the Workbook is copied back into its dedicated folder within the [serviced root-folder](#compman-serviced-root-folder) folder.  
+When a Workbook is used outside the [serviced root-folder](#compman-serviced-root-folder) it will no longer be serviced even when it is configured to be. When the Workbook is copied back into its dedicated folder within the [serviced root-folder](#compman-serviced-root-folder) and opened, any used/hosted _Common Component's_ code (CodeModule) is not identical with the current public version (Export-File in the `Common-Components` folder) is regarded a "service gap" since it must have been modified while not serviced. Because CompMan cannot assure the modification had been made on an up-to-date version the modification will be undone by the subsequent update service. A corresponding dialog however allows to display the made code modifications (see Housekeeping). 
 
 ## Other
 ### Housekeeping
 Housekeeping is an effort prior the _Export-Service_ and the _Update_Service which provides up-to-date and consistent data.
 #### Housekeeping public _Common Components_
-Maintains the properties for each known _Common Component_ in the Private Profile file `Common-Components\CommComps.dat`.  
+Maintains the properties for each known _Common&nbsp;Component_ in the `Common-Components\CommComps.dat` Private Profile file:  
 - **Removes** component representing sections of which the corresponding _Export-File_ not/no longer exists in the `Common-Components` folder  
-- **Adds** missing component representing sections for new _Export-Files_ in the `Common-Components` folder which likely will have been copied manually. Therefore, when the _Serviced Workbook's_ corresponding _Export-File_ is identical, this one is regarded the origin (***LastModExpFileOrigin***). If not, the origin is regarded unknown and set identical with the _Export-File_ in the `Common-Components` folder.
+- **Adds** sections representing _Common Components_ for new _Export-Files_ in the `Common-Components` folder which may have been copied manually. By the way: When the _Serviced Workbook's_ corresponding _Export-File_ is identical, it is regarded the origin (***LastModExpFileOrigin***). If not, the origin is regarded unknown and set identical with the _Export-File_ in the `Common-Components` folder.
 
 #### Housekeeping serviced public _Common Components_
 To be aware of: In the _Serviced Workbook_ a component is regarded public when a corresponding section exists in the `Common-Components\CommComps.dat` file or when it is indicated _hosted_ in the _Serviced Workbook's_  `CompMan\CommComps.dat` Private Profile file_ (may yet not be public however).

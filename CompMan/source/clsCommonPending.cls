@@ -190,16 +190,8 @@ Private Function BtoS(ByVal b As Boolean) As String
     If b Then BtoS = "True" Else BtoS = "False"
 End Function
 
-Private Function BttnIgnore() As String
-    BttnIgnore = "Ignore/suspend this issue"
-End Function
-
 Private Function BttnIgnoreTheseModifications() As String
     BttnIgnoreTheseModifications = "Ignore the modifications" & vbLf & "made in Workbook" & vbLf & Services.ServicedWbk.Name
-End Function
-
-Private Function BttnUndoThisModifications() As String
-    BttnUndoThisModifications = "Undo these modifications"
 End Function
 
 Private Function CommCompPendingModified(ByVal c_comp As clsComp) As Boolean
@@ -247,7 +239,12 @@ Public Sub ConflictResolve(ByVal c_comp As clsComp)
     Dim Msg         As mMsg.udtMsg
     Dim cllBttns    As Collection
     Dim sComp       As String
+    Dim sBttnUndo   As String
+    Dim sBttnIgnore As String
     
+    sBttnUndo = "Undo these modifications"
+    sBttnIgnore = "Ignore this issue"
+
     sComp = c_comp.CompName
     Set cllBttns = mMsg.Buttons(mDiff.PublicVersusPendingReleaseBttn(sComp) _
                               , mDiff.PendingVersusServicedExportBttn(sComp) _
@@ -288,25 +285,26 @@ Public Sub ConflictResolve(ByVal c_comp As clsComp)
         End With
         If c_comp.IsCommCompPublic Then
             With .Section(6)
-                .Label.Text = BttnUndoThisModifications & ":"
+                .Label.Text = sBttnUndo & ":"
                 .Label.FontColor = rgbBlue
                 .Text.Text = "This is the only choice! The Common Component may only be modified is this Workbook when it is based on an up-to-date " & _
                              "version and unless there's not already a modification pending release made in another Workbook."
             End With
-            Set cllBttns = mMsg.Buttons(cllBttns, vbLf, BttnUndoThisModifications)
+            Set cllBttns = mMsg.Buttons(cllBttns, vbLf, sBttnUndo)
         Else
             With .Section(6)
-                .Label.Text = BttnIgnore & ":"
+                .Label.Text = sBttnIgnore & ":"
                 .Label.FontColor = rgbBlue
                 .Text.Text = "This is in fact the only only choice! The pending release Common Component should be released to public asap. " & _
                              "The component had been recognized as a used Common Component due to a known pendig release. However, the component " & _
                              "is yet not ready for being used since this requires an available public code version. In case the component's code " & _
                              "is modified this dialog will popup again when the Workbook is saved!"
             End With
-            Set cllBttns = mMsg.Buttons(cllBttns, vbLf, BttnIgnore)
 
         End If
     End With
+    Set cllBttns = mMsg.Buttons(cllBttns, vbLf, sBttnIgnore)
+    
     Do
         Select Case mMsg.Dsply(dsply_title:="Severe conflict with an already made code modification in another Workbook!" _
                              , dsply_msg:=Msg _
@@ -317,7 +315,7 @@ Public Sub ConflictResolve(ByVal c_comp As clsComp)
             Case mDiff.PublicVersusPendingReleaseBttn(sComp):   mDiff.PublicVersusPendingReleaseDsply c_comp
             Case mDiff.PendingVersusServicedExportBttn(sComp):  mDiff.PendingVersusServicedExport c_comp
             Case mDiff.PublicVersusServicedExportBttn(sComp):   mDiff.PendingVersusServicedExportDsply c_comp
-            Case BttnUndoThisModifications
+            Case sBttnUndo
                 Stop
                 mUpdate.ByReImport sComp, CommonPublic.LastModExpFile(sComp)
                 Serviced.Wrkbk.VBProject.VBComponents(sComp).Export c_comp.ExpFileFullName
@@ -325,7 +323,7 @@ Public Sub ConflictResolve(ByVal c_comp As clsComp)
                 Services.Log(sComp) = "Serviced Common Component's code modifications discarded by re-intantiating the " & _
                                       "current public version (update by re-import)"
                 Exit Do
-            Case BttnIgnore
+            Case sBttnIgnore
                 '~~ The component is exported but not registered pending since another one is already pending
                 '~~ This dialog will popup again only when the component's code is modified
                 Serviced.Wrkbk.VBProject.VBComponents(sComp).Export c_comp.ExpFileFullName
@@ -350,6 +348,8 @@ Public Function Conflicts(ByVal c_comp As clsComp)
 ' pending release.
 ' Note: The conflict check may be made before or after the export of a code change.
 ' -----------------------------------------------------------------------------------
+    Const PROC = "Conflicts"
+    
     Dim sIn     As String
     Dim sOn     As String
     Dim sComp   As String
@@ -357,11 +357,9 @@ Public Function Conflicts(ByVal c_comp As clsComp)
     With c_comp
         sComp = .CompName
         Select Case True
-            Case Not .IsCommCompPending
-                '~~ Not modification is yet pending releaseYet
-            Case .CodeCrrent.Meets(.CodePnding)
-                '~~ The current pending release code modification is identical with the
-                '~~ code of the service Common Component
+            Case Not .IsCommCompPending             ' Not modification is yet pending releaseYet
+            Case .CodeCrrent.Meets(.CodePnding)     ' The current pending release code modification is identical
+                                                    ' with the code of the service Common Component
             Case CommonPending.LastModInWrkbkFullName(sComp) = CommonServiced.LastModInWrkbkFullName(sComp) _
              And CommonPending.LastModOn(sComp) = CommonServiced.LastModOn(sComp)
                 '~~ The current code differs from the already pending release but its the same
@@ -370,6 +368,12 @@ Public Function Conflicts(ByVal c_comp As clsComp)
                 '~~ The current code differs from the already pending release code.
                 '~~ When the pending release properties (in Workbook or on Computer)
                 '~~ differ this indicates a conflicting code modification
+                Debug.Print ErrSrc(PROC) & " Comp                                 : " & sComp
+                Debug.Print ErrSrc(PROC) & " CommonPending.LastModInWrkbkFullName : " & CommonPending.LastModInWrkbkFullName(sComp)
+                Debug.Print ErrSrc(PROC) & " CommonServiced.LastModInWrkbkFullName: " & CommonServiced.LastModInWrkbkFullName(sComp)
+                Debug.Print ErrSrc(PROC) & " CommonPending.LastModOn              : " & CommonPending.LastModOn(sComp)
+                Debug.Print ErrSrc(PROC) & " CommonServiced.LastModOn             : " & CommonServiced.LastModOn(sComp)
+                Stop
                 Conflicts = True
         End Select
     End With

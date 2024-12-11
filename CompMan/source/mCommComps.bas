@@ -213,21 +213,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Sub UpdateCompManDat(ByVal u_comp As String)
-' ------------------------------------------------------------------------------
-' Update the properties in the CommComps.dat Private Profile file with the
-' properties from the CommComp.dat Private Profile file.
-' ------------------------------------------------------------------------------
-
-    With CommonServiced
-        .LastModAt(u_comp) = CommonPublic.LastModAt(u_comp)
-        .LastModBy(u_comp) = CommonPublic.LastModBy(u_comp)
-        .LastModInWrkbkFullName(u_comp) = CommonPublic.LastModInWrkbkFullName(u_comp)
-        .LastModOn(u_comp) = CommonPublic.LastModOn(u_comp)
-    End With
-
-End Sub
-
 Private Sub ChoiceUpdate(ByVal o_comp As String)
 ' ------------------------------------------------------------------------------
 '
@@ -240,7 +225,6 @@ Private Sub ChoiceUpdate(ByVal o_comp As String)
     mUpdate.ByReImport b_comp_name:=o_comp _
                      , b_export_file:=CommonPublic.LastModExpFile(o_comp) _
                      , b_monitor:=False
-    UpdateCompManDat o_comp
     
     '~~ Update the properties in the CommComps.dat file with those from the CommComps.dat file
     With New clsComp
@@ -320,29 +304,28 @@ Public Sub CollectOutdated(Optional ByRef c_outdated As clsQ)
         With Comp
             .CompName = sComp
             Services.LogItem = Serviced.Wrkbk.VBProject.VBComponents(.CompName)
-            Select Case CommonServiced.KindOfComponent(sComp)
-                Case enCompCommonHosted, enCompCommonUsed
-                    If .CodeCrrent.Meets(.CodePublic) = False _
-                    And Not .CommCompIsPendingByServicedWorkbook Then ' outdated
-                        Qoutdated.EnQueue Comp
-                        Prgrss.ItemDone = sComp
-                        With Services
-                            .NoOfItemsServicedNames = sComp
-                            .NoOfItemsOutdated = Qoutdated.Size
-                        End With
-                    Else
-                        UpdateCompManDat sComp
-                        Prgrss.ItemSkipped
-                        If .ServicedLastModAt < .PublicLastModAt Then
-                            .ServicedLastModAt = .PublicLastModAt
-                        End If
-                        With Services
-                            .NoOfItemsSkipped = .NoOfItemsSkipped + 1
-                            .Log(sComp) = "Serviced Common Component used is up-to-date"
-                        End With
-                    End If
-                Case Else
+            Select Case True
+                Case CommonServiced.KindOfComponent(sComp) = enCompInternal, CommonServiced.KindOfComponent(sComp) = enCompCommonPrivate
+                    '~~ Ignored
+                Case .CommCompIsPendingByServicedWorkbook
+                    '~~ Ignored while pending release
                     Prgrss.ItemSkipped
+                Case mDiff.ServicedCodeVersusPublic(Comp) = False
+                    '~~ Used or hosted, not pending release, not outdated
+                    '~~ Just make sure the origin is correctly documented
+                    .SetServicedEqualPublic
+                    With Services
+                        .NoOfItemsSkipped = .NoOfItemsSkipped + 1
+                        .Log(sComp) = "Serviced Common Component used is up-to-date"
+                    End With
+                    Prgrss.ItemSkipped
+                Case Else
+                    Qoutdated.EnQueue Comp
+                    Prgrss.ItemDone = sComp
+                    With Services
+                        .NoOfItemsServicedNames = sComp
+                        .NoOfItemsOutdated = Qoutdated.Size
+                    End With
             End Select
         End With
         Set Comp = Nothing

@@ -1,8 +1,11 @@
 Attribute VB_Name = "mHskpng"
 Option Explicit
 ' ------------------------------------------------------------------------------
-' Standard Module clsHskpng: Provides all means for the provision of a
-' ========================== consistent, up-to-date, and valid environment.
+' Standard Module mHskpng: Provides a consistent, up-to-date, and valid data
+' ======================== base regarding Common Components, specifically by
+' considering possible manual interventions by the developer such as manually
+' copying an Export-File to the Common-Components folder to make it public for
+' instance.
 ' Addresses:
 ' - History environment file/folder names forwarded to the current names
 '   specified
@@ -26,62 +29,105 @@ Option Explicit
 '
 ' Public services:
 ' ----------------
-' CommComps                 Maintains an up-to-date data base regarding Common
-'                           Components.
-' EnvSrvcdWorkbook Maintains and provides the current CompMan services
-'                           means environment
+' FocusOnOpen               Maintains an up-to-date data base regarding Common
+'                           Components when the serviced Workbook is opened.
+' FocusOnSave               Maintains an up-to-date data base regarding Common
+'                           Components when the serviced Workbook is saved.
 ' RemoveServiceRemains      Removes any temporary export files created by the
 '                           update service and any components renamed by the
 '                           update service.
 '
 ' ------------------------------------------------------------------------------
-Public Sub CommComps()
+
+Private Function CommCompHasServiceGap(ByVal c_comp As clsComp, _
+                                       ByRef c_used_hosted As String) As Boolean
 ' ------------------------------------------------------------------------------
-' Maintains an up-to-date data base regarding Common Components.
+' Returns TRUE when a component (c_comp) is a used or hosted Common Component
+' which either has no corresponding Export-File or its code (CodeModule) is
+' outdated compared with the current public (Export-File) in the Common-
+' Components folder.
 ' ------------------------------------------------------------------------------
-    Const PROC = "CommComps"
+    Dim sComp   As String
     
-    On Error GoTo eh
-    Dim dctFiles    As Dictionary
-    Dim dctComps    As Dictionary
-    Dim lTotalItems As Long
-    
-    mBasic.BoP ErrSrc(PROC)
-    '~~ Housekeeping Common Components public
-    If CommonPublic Is Nothing Then Set CommonPublic = New clsCommonPublic
-    If CommonServiced Is Nothing Then Set CommonServiced = New clsCommonServiced
-    Set dctFiles = CommonPublic.ExportFiles
-    Set dctComps = CommonPublic.Components
-    
-    '~~ Calculate number of progress dots
-    lTotalItems = dctFiles.Count                                                    ' CommCompsPublicObsolete
-    lTotalItems = lTotalItems + dctComps.Count                                      ' CommCompsPublicNew
-    lTotalItems = lTotalItems + Serviced.Hosted.Count                               ' CommCompsServiced
-    lTotalItems = lTotalItems + CommonServiced.Components.Count                     ' CommCompsServicedNotHosted
-    lTotalItems = lTotalItems + Serviced.CompsCommon.Count                          ' CommCompsServicedKindOf
-    lTotalItems = lTotalItems + CommonServiced.Components.Count                     ' CommCompsServicedObsolete
-    If CommonPending.Components.Count <> 0 _
-    Then lTotalItems = lTotalItems + Serviced.Wrkbk.VBProject.VBComponents.Count    ' CommCompsServicedPendingRelease
-    lTotalItems = lTotalItems + Serviced.CompsCommon.Count                          ' CommCompsServicedPendingReleaseOutstanding
-    lTotalItems = lTotalItems + CommonPublic.Components.Count                       ' CommCompsServicedProperties
-    
-    With Prgrss
-        .Operation = "Housekeeping"
-        .ItemsTotal = lTotalItems
+    With c_comp
+        sComp = .CompName
+        c_used_hosted = CommonServiced.KindOfComponent(sComp)
+        Select Case True
+            Case Not .IsCommComp
+            Case c_used_hosted = enCompCommonPrivate _
+              Or c_used_hosted = enCompInternal
+            
+            '~~ Its a used or hosted Common Component
+            Case .IsCommCompPending
+                If .IsThePendingSource Then
+                    '~~ If it is the source of the pending release the component may have been
+                    '~~ modified while the Workbook was "out of service". The new code version
+                    '~~ will be re-registered when the Workbook is saved
+                ElseIf mDiff.PublicVersusServicedCode(c_comp) = True Then
+                    '~~ When it is not the source of the current pending release
+                    '~~ and it not up-to-date
+                    CommCompHasServiceGap = True
+                End If
+            Case mDiff.PublicVersusServicedCode(c_comp) = True
+                '~~ The used/hosted Common Component is not "pending release"
+                '~~ and its code is not identical with the current public version,
+                '~~ i.e. it must have been modified while out of service
+                CommCompHasServiceGap = True
+            Case mDiff.ServicedCodeVersusServicedExport(c_comp) = False
+                '~~ When the used/hosted Common Component's Export-File
+                '~~ is up-to-date, all is ok because this means that the
+                '~~ component has not been modified while the Workbook was "out of service".
+            Case Else
+                CommCompHasServiceGap = True
+        End Select
     End With
     
-    CommCompsPublicObsolete dctFiles, dctComps
-    CommCompsPublicNew dctFiles, dctComps
+End Function
+
+Private Sub CommCompsModifiedWhileNotServiced()
+' ------------------------------------------------------------------------------
+' The issue: What is the difference between a simply outdated Common Component
+' and one which had been modified while the VBProject was not serviced and thus
+' must not become a modification registered as "pending release"?
+' 1. Its code differs from the code in the Export-File (i.e. there is an
+'    export-modified service outstanding
+' 2. Its code differs from the current public Common Component (i.e. it will
+'    be updated by the update-outdated-Common-Component service thereby
+'    undoing the modification
+'
+' - it is not pending release and
+' - its code differs from the current public code
+' - its LastModAt attribute is greater than the public's LastModAt attribute.
+' ------------------------------------------------------------------------------
+    Const PROC = "CommCompsModifiedWhileNotServiced"
     
-    '~~ Housekeeping Common Components serviced
-    CommCompsServicedHosted
-    CommCompsServicedNotHosted
-    CommCompsServicedKindOf
-    CommCompsServicedObsolete
-    CommCompsServicedPendingRelease
-    CommCompsServicedPendingReleaseOutstanding
-    CommCompsServicedProperties
+    On Error GoTo eh
+    Dim v As Variant
+    Dim Comp As clsComp
     
+    mBasic.BoP ErrSrc(PROC)
+    For Each v In mBasic.KeySort(Serviced.CompsCommon)
+        Set Comp = New clsComp
+        With Comp
+            .CompName = v
+'            If Not .IsCommCompPending Then
+'                If .ServicedLastModAt > .PublicLastModAt Then
+'                    If .CodeCrrent.DiffersFrom(.CodePublic) Then
+'                        CommonPending.Register Comp
+'                        .SetPendingEqualServiced
+'
+'                        With Services
+'                            .Log(v) = "Serviced Common Component modified (code differs from public and LastModAt > LastmodAt public): Registered pending release"
+'                            .Log(v) = "Serviced Common Component modified: Properties pending set equal serviced"
+'                        End With
+'                    End If
+'                End If
+'            End If
+        End With
+        Prgrss.ItemDone = v
+    Next v
+    mCompManMenuVBE.Setup
+
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
@@ -232,7 +278,6 @@ Private Sub CommCompsServicedHosted()
     Set wbk = Serviced.Wrkbk
     
     With CommonServiced
-        '~~ 1. Hosted
         For Each v In Serviced.Hosted
             If Serviced.CompExists(v) Then
                 .KindOfComponent(v) = enCompCommonHosted
@@ -338,7 +383,7 @@ Public Sub CommCompsServicedKindOf()
                                         Case BttnUsed:  CommonServiced.KindOfComponent(.CompName) = enCompCommonUsed
                                                         CommonServiced.LastModAt(.CompName) = vbNullString ' yet unknown will force update when outdated
                                                         If .IsCommCompUpToDate Then
-                                                            .Wrkbk.VBProject.VBComponents(.CompName).Export .ExpFileFullName
+                                                            .Export
                                                             .SetServicedEqualPublic
                                                         End If
                                         Case BttnPrivate:  CommonServiced.KindOfComponent(.CompName) = enCompCommonPrivate
@@ -346,7 +391,7 @@ Public Sub CommCompsServicedKindOf()
                             End Select
                         End With
                     End If
-                    Prgrss.ItemDone = v
+                    Prgrss.ItemDone = sComp
             End Select
         End If
     Next v
@@ -374,14 +419,16 @@ Private Sub CommCompsServicedNotHosted()
     
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Services.ServicedWbk
-    For Each v In CommonServiced.Components
-        If Not Serviced.Hosted.Exists(v) Then
-            If mComp.Exists(v, wbk) Then
-                CommonServiced.KindOfComponent(v) = enCompCommonUsed
+    With CommonServiced
+        For Each v In .Components
+            If Not Serviced.Hosted.Exists(v) Then
+                If mComp.Exists(v, wbk) Then
+                    .KindOfComponent(v) = enCompCommonUsed
+                End If
             End If
-        End If
-        Prgrss.ItemDone = v
-    Next v
+            Prgrss.ItemDone = v
+        Next v
+    End With
 
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -531,7 +578,7 @@ Private Sub CommCompsServicedPendingRelease()
                 .CompName = sComp
                 Select Case True
                     Case .CodePnding.Meets(.CodeCrrent)
-                        Serviced.Wrkbk.VBProject.VBComponents(v).Export .ExpFileFullName
+                        .Export
                         .SetPendingEqualServiced
                     Case FSo.FileExists(.ExpFileFullName)
                         If .CodePnding.Meets(.CodeExprtd) Then
@@ -558,6 +605,315 @@ Private Sub CommCompsServicedPendingRelease()
             End If
         End With
     Next v
+    
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Sub CommCompsServicedProperties()
+' ------------------------------------------------------------------------------
+' Maintains for all serviced Common Components the properties in the serviced
+' workbook's CommComps.dat file - specifically when different from the public
+' versions properties differ from the serviced component's properties although
+' the code is identical with the public version.
+' ------------------------------------------------------------------------------
+    Const PROC = "CommCompsServicedProperties"
+    
+    On Error GoTo eh
+    Dim Comp    As clsComp
+    Dim sComp   As String
+    Dim v       As Variant
+    
+    mBasic.BoP ErrSrc(PROC)
+    '~~ Loop through all components in the serviced Workbook considered a Commom Component
+    For Each v In CommonPublic.Components
+        sComp = v
+        If sComp = "clsCode" Then Stop
+        If Serviced.CompExists(sComp) Then
+            With New clsComp
+                .CompName = sComp
+                '~~ For the Common Component exists a public version in the Common-Components folder
+                If Not .ServicedMeetPublicProperties Then
+                    '~~ Just in case the "local" serviced component's properties
+                    '~~ in the CommComps.dat file differ from those public
+                    If .CodeCrrent.Meets(.CodePublic) Then
+                        '~~ The public version (Export-File in th Common-Components folder) has obviously been manually imported
+                        .SetServicedEqualPublic
+                        If Not FSo.FileExists(.ExpFileFullName) Then
+                            '~~ Apparently the public Common Component's Export-File has been imported by the VBE
+                            .Export
+                            With Services
+                                .Log(sComp) = "Serviced Common Component properties housekeeping:"
+                                .Log(sComp) = "Serviced Common Component (public assumed imported manually): e x p o r t e d !"
+                                .Log(sComp) = "Serviced Common Component (public assumed imported manually): Properties set equal public"
+                            End With
+                        End If
+                    ElseIf FSo.FileExists(.ExpFileFullName) Then
+                        '~~ The current code may have already been modified
+                        If .CodeExprtd.Meets(.CodePublic) Then
+                            .SetServicedEqualPublic
+                            With Services
+                                .Log(sComp) = "Serviced Common Component properties housekeeping:"
+                                .Log(sComp) = "Serviced Common Component's Export-File meets public: Properties set equal public"
+                            End With
+                        End If
+                    End If
+                End If
+            End With
+        End If
+        Prgrss.ItemDone = v
+    Next v
+    
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Sub CommCompsWithServiceGap()
+' ------------------------------------------------------------------------------
+' Displays a dialog requesting Confirmed for any used or hosted Common Component
+' which has been detected having a service gap.
+' ------------------------------------------------------------------------------
+    Const PROC = "CommCompsWithServiceGap"
+    
+    On Error GoTo eh
+    Dim Comp        As clsComp
+    Dim sComp       As String
+    Dim v           As Variant
+    Dim Msg         As udtMsg
+    Dim sBttnConf   As String
+    Dim sUsedHosted As String
+    Dim sTitle      As String
+    
+    mBasic.BoP ErrSrc(PROC)
+    sBttnConf = "Confirmed"
+    '~~ Loop through all components in the serviced Workbook considered a Commom Component
+    For Each v In CommonPublic.Components
+        sComp = v
+        Set Comp = New clsComp
+        Comp.CompName = sComp
+        Select Case True
+            Case Not Serviced.CompExists(sComp)
+            Case Not CommCompHasServiceGap(Comp, sUsedHosted)
+            Case Else
+                ' 1. Is a Common Component in the serviced Workbook
+                ' 2. Has a detected service gap
+                ' 3. Is used or hosted
+                ' 4. Has a code (CodeModule) which differs from the current public Common Component (Export-File)
+                ' 5. Requires a confirmation since the code will be updated to conform with the current public code
+                sTitle = "Service gap detected for Common Component  " & mBasic.Spaced(sComp) & "  !"
+                With Msg.Section(1)
+                    .Text.Text = "The concerned " & sUsedHosted & " Common Component's code differs from the current public code in the Common-Components folder. " & _
+                                 "This modification had yet not been exported which means it must have been modified while the Workbook was " & _
+                                 "not serviced by CompMan. This concludes to a service gap which cannot be handled other than subsequently " & _
+                                 "updating the ""outdated"" code. I.e. the made modification will get lost."
+                End With
+                With Msg.Section(2)
+                    .Label.Text = mCompMan.BttnAsLabel(sBttnConf)
+                    .Label.FontColor = rgbBlue
+                    .Text.Text = "Confirmation is the only choice because it cannot be guaranteed that the modification is based on an up-to-date " & _
+                                 "code. Displaying the code difference before confirmation may allow to re-do the modification based on an up-to-date " & _
+                                 "code while the Workbook is serviced."
+                End With
+                Do
+                    Select Case mMsg.Dsply(dsply_title:=sTitle _
+                                         , dsply_msg:=Msg _
+                                         , dsply_Label_spec:="L80" _
+                                         , dsply_buttons:=mMsg.Buttons(mDiff.PublicVersusServicedCodeBttn(sComp), vbLf, sBttnConf) _
+                                         , dsply_width_min:=350)
+                        Case mDiff.PublicVersusServicedCodeBttn(sComp): mDiff.PublicVersusServicedCodeDsply Comp
+                        Case sBttnConf:                                 Exit Do
+                    End Select
+                Loop
+        End Select
+    Next v
+
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Sub EnvironmentExportServiceFolderFiles(ByVal e_folder As String)
+' ---------------------------------------------------------------------------
+' Removes all  Export-Files in the serviced Workbooks's Export-Folder which
+' do not correspond with an existing component.
+' ---------------------------------------------------------------------------
+    Const PROC = "EnvironmentExportServiceFolderFiles"
+    
+    On Error GoTo eh
+    Dim fl                  As File
+    Dim sExpFileCorrespComp As String
+    Dim sExpFileExtension   As String
+    Dim sExpFileName        As String
+    Dim sPath               As String
+    Dim wbk                 As Workbook
+    
+    With Serviced
+        Set wbk = .Wrkbk
+        sPath = e_folder
+    End With
+    
+    With FSo
+        For Each fl In .GetFolder(sPath).Files
+            sExpFileCorrespComp = .GetBaseName(fl)
+            Select Case .GetExtensionName(fl.Path)
+                Case "bas", "cls", "frm", "frx"
+                    If Not mComp.Exists(sExpFileCorrespComp, wbk) Then
+                        sExpFileName = .GetFileName(fl.Path)
+                        .DeleteFile fl
+'                        LogServiced.Entry "Obsolete Export-File """ & sExpFileName & """ deleted (a VBComponent named """ & sExpFileCorrespComp & """ no longer exists)"
+                    End If
+            End Select
+        Next fl
+    End With
+        
+xt: Set fl = Nothing
+    Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "mHskpng." & sProc
+End Function
+
+Public Sub FocusOnOpen()
+' ------------------------------------------------------------------------------
+' Focus on what may have happened concerning any used/hosted Common Component
+' between the last CompMan-serviced-export (Workbook_AfterSave event) and this
+' Workbook_Open event:
+' - Any new public version of a used/hosted Common Component needs to be
+'   updated by the corresponding service and thus is not a housekeeping issue.
+' - Any yet not registered "pending release" of a used/hosted Common Component
+'   indicates a modification which must have been made while the VBProject was
+'   not serviced by CompMan. Because it cannot be assured that this modification
+'   was based on an up-to-date public version a warning that this modification
+'   will be undone by the update service (with an option to display of the
+'   difference.
+' - All other actions which are also possible between two Workbook_AfterSave
+'   events (FocusOnSave)
+' ------------------------------------------------------------------------------
+    Const PROC = "FocusOnOpen"
+    
+    On Error GoTo eh
+    Dim dctFiles    As Dictionary
+    Dim dctComps    As Dictionary
+    Dim lTotalItems As Long
+    
+    mBasic.BoP ErrSrc(PROC)
+    '~~ Housekeeping Common Components public
+    If CommonPublic Is Nothing Then Set CommonPublic = New clsCommonPublic
+    If CommonServiced Is Nothing Then Set CommonServiced = New clsCommonServiced
+    Set dctFiles = CommonPublic.ExportFiles
+    Set dctComps = CommonPublic.Components
+    
+    '~~ Calculate number of progress dots
+    lTotalItems = dctFiles.Count                                                    ' CommCompsPublicObsolete
+    lTotalItems = lTotalItems + dctComps.Count                                      ' CommCompsPublicNew
+    lTotalItems = lTotalItems + Serviced.Hosted.Count                               ' CommCompsServiced
+    lTotalItems = lTotalItems + CommonServiced.Components.Count                     ' CommCompsServicedNotHosted
+    lTotalItems = lTotalItems + Serviced.CompsCommon.Count                          ' CommCompsServicedKindOf
+    lTotalItems = lTotalItems + CommonServiced.Components.Count                     ' CommCompsServicedObsolete
+    If CommonPending.Components.Count <> 0 _
+    Then lTotalItems = lTotalItems + Serviced.Wrkbk.VBProject.VBComponents.Count    ' CommCompsServicedPendingRelease
+    lTotalItems = lTotalItems + Serviced.CompsCommon.Count                          ' CommCompsModifiedWhileNotServiced
+    lTotalItems = lTotalItems + CommonPublic.Components.Count                       ' CommCompsServicedProperties
+    
+    With Prgrss
+        .Operation = "Housekeeping"
+        .ItemsTotal = lTotalItems
+    End With
+    
+    CommCompsPublicObsolete dctFiles, dctComps
+    CommCompsPublicNew dctFiles, dctComps
+    
+    '~~ Housekeeping Common Components serviced
+    CommCompsServicedHosted
+    CommCompsServicedNotHosted
+    CommCompsServicedKindOf
+    CommCompsServicedObsolete
+    
+    CommCompsWithServiceGap
+    CommCompsServicedPendingRelease
+    CommCompsServicedProperties
+        
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Sub FocusOnSave()
+' ------------------------------------------------------------------------------
+' Manual interactions (to be) covered which may have taken place between two
+' Workbook_AfterSave events:
+' - Manual copy of a modified Common Component's Export-File to the Common-
+'   Components folder
+' - Installation/import of a new used Common Component
+' - Removal/rename of a used Common Component
+' - Common Component no longer hosted but still used
+' ------------------------------------------------------------------------------
+    Const PROC = "FocusOnSave"
+    
+    On Error GoTo eh
+    Dim dctFiles    As Dictionary
+    Dim dctComps    As Dictionary
+    Dim lTotalItems As Long
+    
+    mBasic.BoP ErrSrc(PROC)
+    '~~ Housekeeping Common Components public
+    If CommonPublic Is Nothing Then Set CommonPublic = New clsCommonPublic
+    If CommonServiced Is Nothing Then Set CommonServiced = New clsCommonServiced
+    Set dctFiles = CommonPublic.ExportFiles
+    Set dctComps = CommonPublic.Components
+    
+    '~~ Calculate number of progress dots
+    lTotalItems = dctFiles.Count                                                    ' CommCompsPublicObsolete
+    lTotalItems = lTotalItems + dctComps.Count                                      ' CommCompsPublicNew
+    lTotalItems = lTotalItems + Serviced.Hosted.Count                               ' CommCompsServiced
+    lTotalItems = lTotalItems + CommonServiced.Components.Count                     ' CommCompsServicedNotHosted
+    lTotalItems = lTotalItems + Serviced.CompsCommon.Count                          ' CommCompsServicedKindOf
+    lTotalItems = lTotalItems + CommonServiced.Components.Count                     ' CommCompsServicedObsolete
+    If CommonPending.Components.Count <> 0 _
+    Then lTotalItems = lTotalItems + Serviced.Wrkbk.VBProject.VBComponents.Count    ' CommCompsServicedPendingRelease
+'    lTotalItems = lTotalItems + Serviced.CompsCommon.Count                          ' CommCompsModifiedWhileNotServiced
+    lTotalItems = lTotalItems + CommonPublic.Components.Count                       ' CommCompsServicedProperties
+    
+    With Prgrss
+        .Operation = "Housekeeping"
+        .ItemsTotal = lTotalItems
+    End With
+    
+    CommCompsPublicObsolete dctFiles, dctComps
+    CommCompsPublicNew dctFiles, dctComps
+    
+    '~~ Housekeeping Common Components serviced
+    CommCompsServicedHosted
+    CommCompsServicedNotHosted
+    CommCompsServicedKindOf
+    CommCompsServicedObsolete
+    CommCompsServicedPendingRelease
+'    CommCompsModifiedWhileNotServiced
+    CommCompsServicedProperties
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -670,161 +1026,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub CommCompsServicedPendingReleaseOutstanding()
-' ------------------------------------------------------------------------------
-' Regard a serviced Common Component pendig release when:
-' - it is not pending release and
-' - its code differs from the current public code
-' - its LastModAt attribute is greater than the public's LastModAt attribute.
-' ------------------------------------------------------------------------------
-    Const PROC = "CommCompsServicedPendingReleaseOutstanding"
-    
-    On Error GoTo eh
-    Dim v As Variant
-    Dim Comp As clsComp
-    
-    mBasic.BoP ErrSrc(PROC)
-    For Each v In mBasic.KeySort(Serviced.CompsCommon)
-        Set Comp = New clsComp
-        With Comp
-            .CompName = v
-            If Not .IsCommCompPending Then
-                If .ServicedLastModAt > .PublicLastModAt Then
-                    If .CodeCrrent.DiffersFrom(.CodePublic) Then
-                        CommonPending.Register Comp
-                        .SetPendingEqualServiced
-                        
-                        With Services
-                            .Log(v) = "Serviced Common Component modified (code differs from public and LastModAt > LastmodAt public): Registered pending release"
-                            .Log(v) = "Serviced Common Component modified: Properties pending set equal serviced"
-                        End With
-                    End If
-                End If
-            End If
-        End With
-        Prgrss.ItemDone = v
-    Next v
-    mCompManMenuVBE.Setup
-
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub CommCompsServicedProperties()
-' ------------------------------------------------------------------------------
-' Maintains for all serviced Common Components the properties in the serviced
-' workbook's CommComps.dat file - specifically when different from the public
-' versions properties differ from the serviced component's properties although
-' the code is identical with the public version.
-' ------------------------------------------------------------------------------
-    Const PROC = "CommCompsServicedProperties"
-    
-    On Error GoTo eh
-    Dim Comp    As clsComp
-    Dim sComp   As String
-    Dim v       As Variant
-    
-    mBasic.BoP ErrSrc(PROC)
-    '~~ Loop through all components in the serviced Workbook considered a Commom Component
-    For Each v In CommonPublic.Components
-        sComp = v
-        If sComp = "clsCode" Then Stop
-        If Serviced.CompExists(sComp) Then
-            With New clsComp
-                .CompName = sComp
-                '~~ For the Common Component exists a public version in the Common-Components folder
-                If Not .ServicedMeetPublicProperties Then
-                    '~~ Just in case the "local" serviced component's properties
-                    '~~ in the CommComps.dat file differ from those public
-                    If .CodeCrrent.Meets(.CodePublic) Then
-                        '~~ The public version (Export-File in th Common-Components folder) has obviously been manually imported
-                        .SetServicedEqualPublic
-                        If Not FSo.FileExists(.ExpFileFullName) Then
-                            '~~ Apparently the public Common Component's Export-File has been imported by the VBE
-                            Serviced.Wrkbk.VBProject.VBComponents(v).Export .ExpFileFullName
-                            With Services
-                                .Log(sComp) = "Serviced Common Component properties housekeeping:"
-                                .Log(sComp) = "Serviced Common Component (public assumed imported manually): e x p o r t e d !"
-                                .Log(sComp) = "Serviced Common Component (public assumed imported manually): Properties set equal public"
-                            End With
-                        End If
-                    ElseIf FSo.FileExists(.ExpFileFullName) Then
-                        '~~ The current code may have already been modified
-                        If .CodeExprtd.Meets(.CodePublic) Then
-                            .SetServicedEqualPublic
-                            With Services
-                                .Log(sComp) = "Serviced Common Component properties housekeeping:"
-                                .Log(sComp) = "Serviced Common Component's Export-File meets public: Properties set equal public"
-                            End With
-                        End If
-                    End If
-                End If
-            End With
-        End If
-        Prgrss.ItemDone = v
-    Next v
-    
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Sub EnvironmentExportServiceFolderFiles(ByVal e_folder As String)
-' ---------------------------------------------------------------------------
-' Removes all  Export-Files in the serviced Workbooks's Export-Folder which
-' do not correspond with an existing component.
-' ---------------------------------------------------------------------------
-    Const PROC = "EnvironmentExportServiceFolderFiles"
-    
-    On Error GoTo eh
-    Dim fl                  As File
-    Dim sExpFileCorrespComp As String
-    Dim sExpFileExtension   As String
-    Dim sExpFileName        As String
-    Dim sPath               As String
-    Dim wbk                 As Workbook
-    
-    With Serviced
-        Set wbk = .Wrkbk
-        sPath = e_folder
-    End With
-    
-    With FSo
-        For Each fl In .GetFolder(sPath).Files
-            sExpFileCorrespComp = .GetBaseName(fl)
-            Select Case .GetExtensionName(fl.Path)
-                Case "bas", "cls", "frm", "frx"
-                    If Not mComp.Exists(sExpFileCorrespComp, wbk) Then
-                        sExpFileName = .GetFileName(fl.Path)
-                        .DeleteFile fl
-'                        LogServiced.Entry "Obsolete Export-File """ & sExpFileName & """ deleted (a VBComponent named """ & sExpFileCorrespComp & """ no longer exists)"
-                    End If
-            End Select
-        Next fl
-    End With
-        
-xt: Set fl = Nothing
-    Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mHskpng." & sProc
-End Function
-
 Public Sub RemoveServiceRemains()
 ' ------------------------------------------------------------------------------
 ' 1. Removes any temporary export files created by the update service.
@@ -851,5 +1052,4 @@ Private Sub RemoveTempExportFolders()
     End With
     
 End Sub
-
 

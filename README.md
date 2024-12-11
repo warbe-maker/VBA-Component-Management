@@ -3,31 +3,25 @@
 - **Exports** any _Component_ the code has changed along with each Workbook save. 
 - **Updates** any outdated _[Common Component][5]_. 
 
-<a id="raw-url" href="https://raw.githubusercontent.com/warbe-maker/VBA-Component-Management/master/CompMan/source/mCompManClient.bas">Download mCompManClient.bas</a>
-
-
-https://raw.github.com/warbe-maker/VBA-Component-Management/master/CompMan/source/mCompManClient.bas
-
-
-## Provision
+## Enabling a Workbook/VBProject for being serviced by CompMan
 Services are provided with an absolute minimum intervention in the serviced Workbook:
-1. A <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan/source/mCompManClient.bas?raw=true" download>mCompManClient</a> Standard Module imported as an interface to CompMan's services
+1. [Download mCompManClient.bas](#download-from-public-github-repo) from [GitHub][13] which is the Standard Module to be imported as interface to the services provided by the <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan.xlsb?raw=true" download>`CompMan.xlsb` Workbook</a>
 2. One code line in the _Workbook\_Open_ event procedure for the update service
 3. One code line in the _WorkBook\_After\_Save_ event procedure initiates the service provided the required conditions are meet (see [Serviced or not serviced Workbooks](#serviced-or-not-serviced)).> The services only require one component installed/imported, a single code line for each service, preventing that productive Workbooks are bothered by a configured service (see [serviced or not serviced][10]).
 
 ## The services
 ### At a glance
-CompMan's initial intention was to keep _Common&nbspComponents_ up-to-date in all VB-Projects using them. To achieve this the _Export Service_ saves the Export-File of a modified used or [hosted][7] _[Common Component][5]_ to a _Common Components Folder_ thereby maintaining properties about the origin. Subsequently the _Update outdated Common-Components_ service (with the `Workbook_Open` event) checks for any outdated used or [hosted][7] _Common&nbsp;Components_ and offers an update in a dedicated dialog which allows to check the code difference by means of WinMerge ([WinMerge English][2], [WinMerge German][3].
+CompMan's services first and foremost intend to keep _[Common&nbsp;Components][5]_ up-to-date in all VB-Projects using them. To achieve this the _Export Service_ saves the Export-File of a modified [used or hosted _Common Component_][7] to a `Common-Components` folder thereby maintaining properties about the origin. Subsequently the _Update outdated Common&nbsp;Components_ service (with the `Workbook_Open` event) checks for any outdated [used or hosted _Common Component_][7] and offers an update in a dedicated dialog which allows to check the code difference by means of WinMerge ([WinMerge English][2], [WinMerge German][3].
 
-### _Export Changed Components_ service
-Used with the _Workbook\_AfterSave_ event. Exports all _VB-Components_ of which the code differs from the recent export's Export-File to the configured _[Export Folder][8]_.
+### _Export  Changed Components_ service
+Performed by the _Workbook\_AfterSave_ event. Exports all _VB-Components_ of which the code differs from the recent export's Export-File to the configured _[Export Folder][8]_.
 >The _Export&nbsp;Files_ not only function as a code backup in case Excel ends leaving a destroyed/unreadable VB-Project behind. In combination with a synchronization service (e.g. [sync.com][6]) it also substantially supports versioning.
 
 ### Update outdated _Common Components_ service
-Used with the _Workbook\_Open_ event all _used or [hosted][7]_  _[Common Component][5]_ are checked for being up-to-date and updated if not. This is supported by a dialog which allows to display the code difference (by means of ([WinMerge English][2], [WinMerge German][3], etc.), perform the update, or skip it. The update uses the  _Export&nbsp;File_ of the public _[Common Component][5]_ in the _[Common-Components folder][9]_.  
->The _Update_ service is performed only when the Workbook is opened from within the configured [_CompManServiced_ folder][4] and all the [preconditions][10]) are meet.
+Performed by the _Workbook\_Open_ event [used or hosted _Common Component_][7] outdated are proposed to be updated. The dialog supports a code difference displayed (by means of ([WinMerge English][2], [WinMerge German][3], etc.) and allows to update, or skip the update. The update uses the  _Export&nbsp;File_ in the  _[Common-Components folder][9]_.  
+>The _Update_ service is performed only when the Workbook is opened from within the configured [_CompManServiced_ folder][4] and only when all the [preconditions][10]) are meet.
 
-## Installation of CompMan as a Workbook/VBProject servicing instance
+## Providing CompMan as a Workbook/VBProject servicing instance
 1. Download the <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan.xlsb?raw=true" download>`CompMan.xlsb` Workbook</a>
 2. Move the downloaded Workbook into a folder you will regard as the serviced root folder and open the Workbook.[^1] 
 3. When WinMerge is not available/installed a corresponding message is displayed. The provided link may be used to download and install it. When continued without having installed it the message will be re-displayed whenever the <a href="https://github.com/warbe-maker/VBA-Component-Management/raw/refs/heads/master/CompMan.xlsb?raw=true" download>`CompMan.xlsb` Workbook</a> is opened.  
@@ -38,7 +32,7 @@ Used with the _Workbook\_Open_ event all _used or [hosted][7]_  _[Common Compone
 ## Usage
 A Workbook will only be serviced by CompMan provided:
 1. A ***servicing CompMan instance*** (see [how to provide](#installation)) is open
-2. The ***to-be-serviced Workbook*** Workbook has one or more of the below services enabled (see below)
+2. The ***to-be-serviced Workbook*** has the services enabled (see below)
 3. The ***to-be-serviced Workbook*** is opened from within a sub-folder of the configured [_CompManServiced_ folder][4].
 4. The ***to-be-serviced Workbook*** is the only Workbook in its parent folder (the parent folder may have sub-folders with Workbooks however)
 5. WinMerge ([WinMerge English][2], [WinMerge German][3] or any other language version is installed to display the difference for any components when about to be updated by the [_Update_ service](#enabling-the-update-service)
@@ -78,7 +72,7 @@ Private Const COMMON_COMPONENTS_HOSTED = <component-name>[,<component-name]...
 
 ## Other
 ### Download from public GitHub repo
-It may appear pretty strange when downloading first from a public GitHub repo but its quite straight forward as the below image shows.  
+It may appear a bit strange when downloading first from a public GitHub repo but its quite straight forward as the below image shows.  
 ![](assets/DownloadFromGitHubRepo.png)
 
 ## Contribution
@@ -98,4 +92,5 @@ Contribution of any kind is welcome, raising issues specifically.
 [10]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#serviced-or-not-serviced
 [11]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#hosted-versus-used-common-components
 [12]:https://github.com/warbe-maker/VBA-Component-Management/blob/master/SpecsAndUse.md#compmans-environment
+[13]:https://github.com/warbe-maker/VBA-Component-Management/
 

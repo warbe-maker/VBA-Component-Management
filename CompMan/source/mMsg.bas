@@ -149,35 +149,55 @@ Private Const ERROR_SUCCESS = 32&
 Private Const GITHUB_REPO_URL       As String = "https://github.com/warbe-maker/VBA-Message"
 Private Const TWIPSPERINCH          As Long = 1440      ' -------------
 
-Private Declare PtrSafe Function CreateDC Lib "gdi32" Alias "CreateDCA" (ByVal lpDriverName As String, ByVal lpDeviceName As String, ByVal lpOutput As String, lpInitData As LongPtr) As LongPtr
-Private Declare PtrSafe Function DeleteDC Lib "gdi32" (ByVal hDC As LongPtr) As Long
-Private Declare PtrSafe Function GetActiveWindow Lib "user32" () As LongPtr
-Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hwnd As LongPtr) As LongPtr
-Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As LongPtr, ByVal nIndex As Long) As Long
-Private Declare PtrSafe Function getFrequency Lib "kernel32" Alias "QueryPerformanceFrequency" (TimerSystemFrequency As Currency) As Long
-Private Declare PtrSafe Function GetMonitorInfo Lib "user32" Alias "GetMonitorInfoA" (ByVal hMonitor As LongPtr, ByRef lpMI As MONITORINFOEX) As Boolean
-Private Declare PtrSafe Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As Long
-Private Declare PtrSafe Function getTickCount Lib "kernel32" Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
-Private Declare PtrSafe Function MonitorFromWindow Lib "user32" (ByVal hwnd As LongPtr, ByVal dwFlags As Long) As LongPtr
-Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hwnd As LongPtr, ByVal hDC As LongPtr) As Long
-
-#If VBA7 Then
+#If Win64 Or VBA7 Then
+    Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
+        Alias "ShellExecuteA" _
+        (ByVal hWnd As Long, _
+        ByVal lpOperation As String, _
+        ByVal lpFile As String, _
+        ByVal lpParameters As String, _
+        ByVal lpDirectory As String, _
+        ByVal nShowCmd As Long) _
+        As Long
+    Private Declare PtrSafe Function CreateDC Lib "gdi32" Alias "CreateDCA" (ByVal lpDriverName As String, ByVal lpDeviceName As String, ByVal lpOutput As String, lpInitData As LongPtr) As LongPtr
+    Private Declare PtrSafe Function DeleteDC Lib "gdi32" (ByVal hDC As LongPtr) As Long
+    Private Declare PtrSafe Function GetActiveWindow Lib "user32" () As LongPtr
+    Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As LongPtr) As LongPtr
+    Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As LongPtr, ByVal nIndex As Long) As Long
+    Private Declare PtrSafe Function getFrequency Lib "kernel32" Alias "QueryPerformanceFrequency" (TimerSystemFrequency As Currency) As Long
+    Private Declare PtrSafe Function GetMonitorInfo Lib "user32" Alias "GetMonitorInfoA" (ByVal hMonitor As LongPtr, ByRef lpMI As MONITORINFOEX) As Boolean
+    Private Declare PtrSafe Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As Long
+    Private Declare PtrSafe Function getTickCount Lib "kernel32" Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
+    Private Declare PtrSafe Function MonitorFromWindow Lib "user32" (ByVal hWnd As LongPtr, ByVal dwFlags As Long) As LongPtr
+    Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As LongPtr, ByVal hDC As LongPtr) As Long
     Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal ms As LongPtr)
 #Else
-    Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal ms As Long)
+    Private Declare Function apiShellExecute Lib "shell32.dll" _
+        (ByVal hWnd As Long, _
+        Alias "ShellExecuteA" _
+        As Long
+        ByVal lpDirectory As String, _
+        ByVal lpFile As String, _
+        ByVal lpOperation As String, _
+        ByVal lpParameters As String, _
+        ByVal nShowCmd As Long) _
+    Private Declare Function CreateDC Lib "gdi32" Alias "CreateDCA" (ByVal lpDriverName As String, ByVal lpDeviceName As String, ByVal lpOutput As String, lpInitData As Long) As Long
+    Private Declare Function DeleteDC Lib "gdi32" (ByVal hDC As Long) As Long
+    Private Declare Function GetActiveWindow Lib "user32" () As Long
+    Private Declare Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
+    Private Declare Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
+    Private Declare Function getFrequency Lib "kernel32" Alias "QueryPerformanceFrequency" (TimerSystemFrequency As Currency) As Long
+    Private Declare Function GetMonitorInfo Lib "user32" Alias "GetMonitorInfoA" (ByVal hMonitor As Long, ByRef lpMI As MONITORINFOEX) As Boolean
+    Private Declare Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As Long
+    Private Declare Function getTickCount Lib "kernel32" Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
+    Private Declare Function MonitorFromWindow Lib "user32" (ByVal hWnd As Long, ByVal dwFlags As Long) As Long
+    Private Declare Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
+    Private Declare Sub Sleep Lib "kernel32" (ByVal ms As Long)
+    Private Declare Sub Sleep Lib "kernel32" (ByVal ms As Long)
 #End If
-Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
-    Alias "ShellExecuteA" _
-    (ByVal hwnd As Long, _
-    ByVal lpOperation As String, _
-    ByVal lpFile As String, _
-    ByVal lpParameters As String, _
-    ByVal lpDirectory As String, _
-    ByVal nShowCmd As Long) _
-    As Long
-'***App Window Constants***
+
 Private Const WIN_NORMAL = 1         'Open Normal
-'***Error Codes***
+
 Private bModeLess        As Boolean
 Private fMonitor         As fMsg
 Private FSo              As New FileSystemObject
@@ -1163,7 +1183,7 @@ Public Function Screen(ByVal Item As enScreen) As Variant
     Dim xVSizeSq        As Double
     Dim xPix            As Double
     Dim xDot            As Double
-    Dim hwnd            As LongPtr
+    Dim hWnd            As LongPtr
     Dim hDC             As LongPtr
     Dim hMonitor        As LongPtr
     Dim tMonitorInfo    As MONITORINFOEX
@@ -1174,29 +1194,29 @@ Public Function Screen(ByVal Item As enScreen) As Variant
     nMonitors = GetSystemMetrics(SM_CMONITORS)
     If nMonitors < 2 Then
         nMonitors = 1                                       ' in case GetSystemMetrics failed
-        hwnd = 0
+        hWnd = 0
     Else
-        hwnd = GetActiveWindow()
-        hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONULL)
+        hWnd = GetActiveWindow()
+        hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONULL)
         If hMonitor = 0 Then
             Debug.Print ErrSrc(PROC) & ": " & "ActiveWindow does not intersect a monitor"
-            hwnd = 0
+            hWnd = 0
         Else
             tMonitorInfo.cbSize = Len(tMonitorInfo)
             If GetMonitorInfo(hMonitor, tMonitorInfo) = False Then
                 Debug.Print ErrSrc(PROC) & ": " & "GetMonitorInfo failed"
-                hwnd = 0
+                hWnd = 0
             Else
                 hDC = CreateDC(tMonitorInfo.szDevice, 0, 0, 0)
                 If hDC = 0 Then
                     Debug.Print ErrSrc(PROC) & ": " & "CreateDC failed"
-                    hwnd = 0
+                    hWnd = 0
                 End If
             End If
         End If
     End If
-    If hwnd = 0 Then
-        hDC = GetDC(hwnd)
+    If hWnd = 0 Then
+        hDC = GetDC(hWnd)
         tMonitorInfo.dwFlags = MONITOR_PRIMARY
         tMonitorInfo.szDevice = "PRIMARY" & vbNullChar
     End If
@@ -1235,8 +1255,8 @@ Public Function Screen(ByVal Item As enScreen) As Variant
         Case Else:                  vResult = CVErr(xlErrValue)                         ' return #VALUE! error (2015)
     End Select
     
-    If hwnd = 0 _
-    Then ReleaseDC hwnd, hDC _
+    If hWnd = 0 _
+    Then ReleaseDC hWnd, hDC _
     Else DeleteDC hDC
     Screen = vResult
     
@@ -1345,19 +1365,19 @@ xt: Exit Function
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Function
 
-Private Function TempFile(Optional ByVal f_path As String = vbNullString, _
+Private Function TempFileFullName(Optional ByVal f_path As String = vbNullString, _
                           Optional ByVal f_extension As String = ".txt") As String
 ' ------------------------------------------------------------------------------
 ' Returns the full file name of a temporary randomly named file. When a path
 ' (f_path) is omitted in the CurDir path, else in at the provided folder.
 ' ------------------------------------------------------------------------------
-    Dim sTemp   As String
+    Dim s   As String
     
     If VBA.Left$(f_extension, 1) <> "." Then f_extension = "." & f_extension
-    sTemp = Replace(FSo.GetTempName, ".tmp", f_extension)
+    s = Replace(FSo.GetTempName, ".tmp", f_extension)
     If f_path = vbNullString Then f_path = CurDir
-    sTemp = VBA.Replace(f_path & "\" & sTemp, "\\", "\")
-    TempFile = sTemp
+    s = VBA.Replace(f_path & "\" & s, "\\", "\")
+    TempFileFullName = s
     
 End Function
 
@@ -1368,7 +1388,7 @@ Private Function CollectionAsFile(ByVal v_items As Collection, _
 '
 ' ----------------------------------------------------------------------------
 
-    If v_file_name = vbNullString Then v_file_name = TempFile
+    If v_file_name = vbNullString Then v_file_name = TempFileFullName
     StringAsFile CollectionAsString(v_items), v_file_name, v_file_append
     Set CollectionAsFile = FSo.GetFile(v_file_name)
 
@@ -1390,7 +1410,7 @@ Private Function StringAsFile(ByVal s_strng As String, _
 ' ----------------------------------------------------------------------------
     
     Select Case True
-        Case s_file = vbNullString: s_file = TempFile
+        Case s_file = vbNullString: s_file = TempFileFullName
         Case TypeName(s_file) = "File": s_file = s_file.Path
     End Select
     
@@ -1519,7 +1539,7 @@ Private Sub StckPush(ByRef stck As Collection, _
                            "Yes: Display stack" & vbLf & _
                            "No: Continue" & vbLf & _
                            "Cancel: Terminate process", vbYesNoCancel, "Loop warning!")
-            Case vbYes:     ShellRun CollectionAsFile(stck, TempFile).Path, WIN_NORMAL
+            Case vbYes:     ShellRun CollectionAsFile(stck, TempFileFullName).Path, WIN_NORMAL
             Case vbNo:
             Case vbCancel: Stop
         End Select

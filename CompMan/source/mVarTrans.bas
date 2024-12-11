@@ -290,7 +290,7 @@ End Function
 
 Private Function ArrayIsAllocated(ByVal a_arry As Variant) As Boolean
 ' ----------------------------------------------------------------------------
-' Retunrs TRUE when an array (a_array) is allocated.
+' Returns TRUE when an array (a_array) is allocated.
 ' ----------------------------------------------------------------------------
     
     On Error Resume Next

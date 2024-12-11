@@ -231,15 +231,15 @@ Public Function Components() As Dictionary
 ' ---------------------------------------------------------------------------
 ' Returns a Dictionary with all sections representing a component.
 ' ---------------------------------------------------------------------------
-    Dim dct As Dictionary
-    Dim v   As Variant
+    Dim Comp    As clsComp
+    Dim dct     As New Dictionary
+    Dim v       As Variant
     
-    Set dct = PPFile.SectionNames
     With dct
-        For Each v In dct
-            If v = "clsCode" Then Stop
-            If v Like "_*" Then .Remove v
-            If v Like "@*" Then .Remove v
+        For Each v In PPFile.SectionNames
+            If Not v Like "_*" _
+            And Not v Like "@*" _
+            Then dct.Add v, vbNullString
         Next v
     End With
     Set Components = dct

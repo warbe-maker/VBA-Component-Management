@@ -3,19 +3,34 @@ Option Explicit
 ' ----------------------------------------------------------------------------
 ' Standard Module mDiff: Provides titles, buttons, difference checks and
 ' ====================== display for Common Component code differences,
-' thereby unifying WinMerge titles and button captions.
+' thereby unifying code difference detection, disply via WinMerge and
+' corresponding dialogs.
 '
 ' PendingVersusServicedCode        Returns TRUE when the code differs.
 ' PendingVersusServicedCodeBttn    Button caption
+' PendingVersusServicedCodeDsply   Displays the difference between the current
+'                                  pending release code and the serviced
+'                                  component's CodeModule.
 ' PendingVersusServicedExport      Returns TRUE when the code differs.
 ' PendingVersusServicedExportBttn  Button caption
 ' PendingVersusServicedExportDsply Displays the difference between the current
 '                                  pending release code and the serviced
 '                                  component's Export-File
-' PublicVersusPendingRelease       Retunrs TRUE when the code differs
+' PublicVersusPendingRelease       Returns TRUE when the code differs
 ' PublicVersusPendingReleaseBttn   Button caption
 ' PublicVersusPendingReleaseDsply  Displays the difference between the current
 '                                  public code and the pending release code.
+' PublicVersusServicedCode         Returns TRUE when the code differs.
+' PublicVersusServicedCodeBttn     Button caption
+' PublicVersusServicedCodeDsply    Displays the difference between the current
+'                                  public code versus the serviced component's
+'                                  CodeModule.
+' ServicedCodeVersusPublic         Returns TRUE when the code differs
+' ServicedCodeVersusPublicBttn     Button  caption
+' ServicedCodeVersusPublicDsply    Displays the difference between the current
+'                                  public code and the serviced component's
+'                                  code in the CodeModule
+' ServicedExportVersusPublic       Returns TRUE when the code differs
 ' ServicedExportVersusPublicBttn   Button  caption
 ' ServicedExportVersusPublicDsply  Displays the difference between the current
 '                                  public code and the serviced component's
@@ -31,19 +46,8 @@ Public Function PendingVersusServicedCode(ByVal p_comp As clsComp) As Boolean
 ' Returns TRUE when the pending code differs from the serviced component's
 ' (p_comp) code in the CodeModule.
 ' ----------------------------------------------------------------------------
-    
-    Dim sComp As String
-    
+        
     With p_comp
-        sComp = .CompName
-        If .CodePnding Is Nothing Then
-            Set .CodePnding = New clsCode
-            .CodePnding.Source = CommonPending.LastModExpFile(sComp)
-        End If
-        If .CodeLines Is Nothing Then
-            Set .CodeCrrent = New clsCode
-            .CodeCrrent.Source = .VBComp.CodeModule
-        End If
         PendingVersusServicedCode = .CodePnding.DiffersFrom(.CodeExprtd)
     End With
     
@@ -56,32 +60,38 @@ Public Function PendingVersusServicedCodeBttn(ByVal p_comp As String) As String
                                     "(VBComponent.CodeModule)"
 End Function
 
-Private Function PendingVersusServicedCodeTitleLeft(ByVal p_comp As String) As String
-    PendingVersusServicedCodeTitleLeft = "Pending  " & mBasic.Spaced(p_comp) & "  (Common-Components/PendingReleases folder)"
-End Function
+Public Sub PendingVersusServicedCodeDsply(ByVal p_comp As clsComp)
+' ----------------------------------------------------------------------------
+' Displays the code difference between the pending release code and the
+' current serviced component's (p_comp) Export-File.
+' ----------------------------------------------------------------------------
+    Const PROC = "PendingVersusServicedCodeDsply"
+    
+    On Error GoTo eh
+    
+    With p_comp
+        .CodePnding.DsplyDiffs d_left_this_file_name:="CodePending" _
+                             , d_left_this_file_title:=mDiff.SourcePending(.CompName) _
+                             , d_rght_vrss_code:=.CodeCrrent _
+                             , d_rght_vrss_file_name:="CurrentCodeModule" _
+                             , d_rght_vrss_file_title:=mDiff.SourceServicedCode(.CompName)
+    End With
 
-Private Function PendingVersusServicedCodeTitleRight(ByVal p_comp As String) As String
-    PendingVersusServicedCodeTitleRight = "Current serviced  " & mBasic.Spaced(p_comp) & "  (VBComponent.CodeModule)"
-End Function
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
 
 Public Function PendingVersusServicedExport(ByVal p_comp As clsComp) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the pending code differs from the serviced Export-File's
 ' code.
 ' ----------------------------------------------------------------------------
-    
-    Dim sComp As String
-    
+        
     With p_comp
-        sComp = .CompName
-        If .CodePnding Is Nothing Then
-            Set .CodePnding = New clsCode
-            .CodePnding.Source = CommonPending.LastModExpFile(sComp)
-        End If
-        If .CodeExprtd Is Nothing Then
-            Set .CodeExprtd = New clsCode
-            .CodeExprtd.Source = .ExpFileFullName
-        End If
         PendingVersusServicedExport = .CodePnding.DiffersFrom(.CodeExprtd)
     End With
     
@@ -102,23 +112,13 @@ Public Sub PendingVersusServicedExportDsply(ByVal p_comp As clsComp)
     Const PROC = "PendingVersusServicedExportDsply"
     
     On Error GoTo eh
-    Dim sComp As String
     
     With p_comp
-        sComp = .CompName
-        If .CodePnding Is Nothing Then
-            Set .CodePnding = New clsCode
-            .CodePnding.Source = CommonPending.LastModExpFile(sComp)
-        End If
-        If .CodeExprtd Is Nothing Then
-            Set .CodeExprtd = New clsCode
-            .CodeExprtd.Source = .ExpFileFullName
-        End If
         .CodePnding.DsplyDiffs d_left_this_file_name:="PendingRelease" _
-                             , d_left_this_file_title:=mDiff.PendingVersusServicedExportTitleLeft(p_comp) _
-                             , d_right_versus_code:=.CodeExprtd _
-                             , d_right_versus_file_name:="LastModExport" _
-                             , d_right_versus_file_title:=mDiff.PendingVersusServicedExportTitleRight(p_comp)
+                             , d_left_this_file_title:=mDiff.SourcePending(.CompName) _
+                             , d_rght_vrss_code:=.CodeExprtd _
+                             , d_rght_vrss_file_name:="LastModExport" _
+                             , d_rght_vrss_file_title:=mDiff.SourceServicedExport(.CompName)
     End With
 
 xt: Exit Sub
@@ -129,31 +129,12 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function PendingVersusServicedExportTitleLeft(ByVal p_comp As String) As String
-    PendingVersusServicedExportTitleLeft = "Pending release  " & mBasic.Spaced(p_comp) & "  (Common-Components/PendingReleases folder)"
-End Function
-
-Private Function PendingVersusServicedExportTitleRight(ByVal p_comp As String) As String
-    PendingVersusServicedExportTitleRight = "Current serviced  " & mBasic.Spaced(p_comp) & "  (Export-File)"
-End Function
-
 Public Function PublicVersusPendingRelease(ByVal p_comp As clsComp) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the public code differs from the pending code.
 ' ----------------------------------------------------------------------------
     
-    Dim sComp As String
-    
     With p_comp
-        sComp = .CompName
-        If .CodePublic Is Nothing Then
-            Set .CodePublic = New clsCode
-            .CodePublic.Source = CommonPublic.LastModExpFile(sComp)
-        End If
-        If .CodePnding Is Nothing Then
-            Set .CodePnding = New clsCode
-            .CodePnding.Source = CommonPending.LastModExpFile(sComp)
-        End If
         PublicVersusPendingRelease = .CodePublic.DiffersFrom(.CodePnding)
     End With
     
@@ -169,17 +150,15 @@ Public Sub PublicVersusPendingReleaseDsply(ByVal p_comp As clsComp)
     Const PROC = "PublicVersusPendingReleaseDsply"
     
     On Error GoTo eh
-    Dim sComp As String
     
     With p_comp
-        sComp = .CompName
-        .CodePublic.Source = CommonPublic.LastModExpFile(sComp)
-        .CodePnding.Source = CommonPending.LastModExpFile(sComp)
+        .CodePublic.Source = CommonPublic.LastModExpFile(.CompName)
+        .CodePnding.Source = CommonPending.LastModExpFile(.CompName)
         .CodePublic.DsplyDiffs d_left_this_file_name:="PublicLastModExpFile" _
-                             , d_left_this_file_title:=mDiff.PublicVersusPendingReleaseTitleLeft(sComp) _
-                             , d_right_versus_code:=.CodePnding _
-                             , d_right_versus_file_name:="CodePending" _
-                             , d_right_versus_file_title:=mDiff.PublicVersusPendingReleaseTitleRight(sComp)
+                             , d_left_this_file_title:=mDiff.SourcePublic(.CompName) _
+                             , d_rght_vrss_code:=.CodePnding _
+                             , d_rght_vrss_file_name:="CodePending" _
+                             , d_rght_vrss_file_title:=mDiff.SourcePending(.CompName)
     End With
 
 xt: Exit Sub
@@ -190,17 +169,97 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function PublicVersusPendingReleaseTitleLeft(ByVal p_comp As String) As String
-    PublicVersusPendingReleaseTitleLeft = "Public  " & mBasic.Spaced(p_comp) & "  (Common-Components folder)"
+Public Function PublicVersusServicedCodeBttn(ByVal p_comp As String) As String
+    PublicVersusServicedCodeBttn = "Display difference" & vbLf & _
+                                   mBasic.Spaced(p_comp) & vbLf & _
+                                   "Public versus current" & vbLf & _
+                                   "(CodeModule)"
 End Function
 
-Private Function PublicVersusPendingReleaseTitleRight(ByVal p_comp As String) As String
-    PublicVersusPendingReleaseTitleRight = "Pending release " & mBasic.Spaced(p_comp) & " (Common-Components\PendingReleases folder)"
+Public Function PublicVersusServicedCode(ByVal p_comp As clsComp) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the serviced component's code (CodeModule) differs from
+' the current public Common Component's code (Export-File).
+' ----------------------------------------------------------------------------
+    
+    With p_comp
+        PublicVersusServicedCode = .CodePublic.DiffersFrom(.CodeCrrent)
+    End With
+    
 End Function
+
+Public Sub PublicVersusServicedCodeDsply(ByVal p_comp As clsComp)
+' ----------------------------------------------------------------------------
+' Displays the code difference between the pending release code and the
+' current serviced component's (p_comp) Export-File.
+' ----------------------------------------------------------------------------
+    Const PROC = "PublicVersusServicedCodeDsply"
+    
+    On Error GoTo eh
+    
+    With p_comp
+        .CodePublic.DsplyDiffs d_left_this_file_name:="PublicExpFile" _
+                             , d_left_this_file_title:=mDiff.SourcePublic(.CompName) _
+                             , d_rght_vrss_code:=.CodeCrrent _
+                             , d_rght_vrss_file_name:="ServicedCodeModule" _
+                             , d_rght_vrss_file_title:=mDiff.SourceServicedCode(.CompName)
+    End With
+
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Function PublicVersusServicedExport(ByVal p_comp As clsComp) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the pending code differs from the serviced Export-File's
+' code.
+' ----------------------------------------------------------------------------
+    
+    With p_comp
+        PublicVersusServicedExport = .CodePnding.DiffersFrom(.CodeExprtd)
+    End With
+    
+End Function
+
+Public Function PublicVersusServicedExportBttn(ByVal p_comp As String) As String
+    PublicVersusServicedExportBttn = "Display difference" & vbLf & _
+                                      mBasic.Spaced(p_comp) & vbLf & _
+                                      "Public versus current" & vbLf & _
+                                      "(Export-File)"
+End Function
+
+Public Sub PublicVersusServicedExportDsply(ByVal p_comp As clsComp)
+' ----------------------------------------------------------------------------
+' Displays the code difference between the pending release code and the
+' current serviced component's (p_comp) Export-File.
+' ----------------------------------------------------------------------------
+    Const PROC = "PublicVersusServicedExportDsply"
+    
+    On Error GoTo eh
+    
+    With p_comp
+        .CodePublic.DsplyDiffs d_left_this_file_name:="PublicExpFile" _
+                             , d_left_this_file_title:=mDiff.SourcePublic(.CompName) _
+                             , d_rght_vrss_code:=.CodeExprtd _
+                             , d_rght_vrss_file_name:="ServicedExport" _
+                             , d_rght_vrss_file_title:=mDiff.SourceServicedExport(.CompName)
+    End With
+
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
 
 Public Function ServicedExportVersusPublic(ByVal p_comp As clsComp) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns TRUE when the serviced compoent's (p_comp) Export-File differs from
+' Returns TRUE when the serviced component's (p_comp) Export-File differs from
 ' the public one in the Common-Components folder.
 ' ----------------------------------------------------------------------------
     
@@ -210,12 +269,56 @@ Public Function ServicedExportVersusPublic(ByVal p_comp As clsComp) As Boolean
     
     With p_comp
         sComp = .CompName
-        If .CodePublic Is Nothing Then
-            Set .CodePublic = New clsCode
-            .CodePublic.Source = CommonPublic.LastModExpFile(sComp)
-        End If
         If .CodeExprtd.DiffersFrom(.CodePublic, , arrDiff) Then
             ServicedExportVersusPublic = True
+            With Services
+                For Each v In arrDiff
+                    .Log(sComp) = "Code change: " & v
+                Next v
+            End With
+        End If
+    End With
+    
+End Function
+
+Public Function ServicedCodeVersusServicedExport(ByVal p_comp As clsComp) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the serviced component's (p_comp) code in the CodeModule
+' differs from the public one in the Common-Components folder.
+' ----------------------------------------------------------------------------
+    
+    Dim sComp   As String
+    Dim arrDiff As Variant
+    Dim v       As Variant
+    
+    With p_comp
+        sComp = .CompName
+        If .CodeCrrent.DiffersFrom(.CodeExprtd, , arrDiff) Then
+            ServicedCodeVersusServicedExport = True
+            With Services
+                For Each v In arrDiff
+                    .Log(sComp) = "Code change: " & v
+                Next v
+            End With
+        End If
+    End With
+    
+End Function
+
+Public Function ServicedCodeVersusPublic(ByVal p_comp As clsComp) As Boolean
+' ----------------------------------------------------------------------------
+' Returns TRUE when the serviced component's (p_comp) code in the CodeModule
+' differs from the public one in the Common-Components folder.
+' ----------------------------------------------------------------------------
+    
+    Dim sComp   As String
+    Dim arrDiff As Variant
+    Dim v       As Variant
+    
+    With p_comp
+        sComp = .CompName
+        If .CodeCrrent.DiffersFrom(.CodePublic, , arrDiff) Then
+            ServicedCodeVersusPublic = True
             With Services
                 For Each v In arrDiff
                     .Log(sComp) = "Code change: " & v
@@ -239,15 +342,13 @@ Public Sub ServicedExportVersusPublicDsply(ByVal p_comp As clsComp)
     Const PROC = "ServicedExportVersusPublicDsply"
     
     On Error GoTo eh
-    Dim sComp As String
     
     With p_comp
-        sComp = .CompName
         .CodeExprtd.DsplyDiffs d_left_this_file_name:="CommonComponentServiced" _
-                             , d_left_this_file_title:=mDiff.ServicedExportVersusPublicTitleLeft(sComp) _
-                             , d_right_versus_code:=.CodePublic _
-                             , d_right_versus_file_name:="CommonComponentPublic" _
-                             , d_right_versus_file_title:=mDiff.ServicedExportVersusPublicTitleRight(sComp)
+                             , d_left_this_file_title:=mDiff.SourceServicedExport(.CompName) _
+                             , d_rght_vrss_code:=.CodePublic _
+                             , d_rght_vrss_file_name:="CommonComponentPublic" _
+                             , d_rght_vrss_file_title:=mDiff.SourcePublic(.CompName)
     End With
 
 xt: Exit Sub
@@ -258,13 +359,9 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function ServicedExportVersusPublicTitleLeft(ByVal p_comp As String) As String
-    ServicedExportVersusPublicTitleLeft = "Serviced  " & mBasic.Spaced(p_comp) & "  (Export-File)"
-End Function
-
 Public Function ServicedExportVersusServicedCode(ByVal p_comp As clsComp) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns TRUE when the serviced compoent's (p_comp) Export-File differs from
+' Returns TRUE when the serviced component's (p_comp) Export-File differs from
 ' the public one in the Common-Components folder.
 ' ----------------------------------------------------------------------------
     
@@ -289,82 +386,28 @@ Public Function ServicedExportVersusServicedCode(ByVal p_comp As clsComp) As Boo
     
 End Function
 
-Private Function ServicedExportVersusPublicTitleRight(ByVal p_comp As String) As String
-    ServicedExportVersusPublicTitleRight = "Public " & p_comp & " (Common-Components folder)"
+Private Function Source(ByVal s_str As String, _
+               Optional ByVal s_comp As String = vbNullString) As String
+    
+    Source = s_str
+    If s_comp <> vbNullString _
+    Then Source = Source & " of  " & mBasic.Spaced(s_comp)
+                                 
 End Function
 
-Public Function PublicVersusServicedExport(ByVal p_comp As clsComp) As Boolean
-' ----------------------------------------------------------------------------
-' Returns TRUE when the pending code differs from the serviced Export-File's
-' code.
-' ----------------------------------------------------------------------------
-    
-    Dim sComp As String
-    
-    With p_comp
-        sComp = .CompName
-        If .CodePublic Is Nothing Then
-            Set .CodePublic = New clsCode
-            .CodePublic.Source = CommonPublic.LastModExpFile(sComp)
-        End If
-        If .CodeExprtd Is Nothing Then
-            Set .CodeExprtd = New clsCode
-            .CodeExprtd.Source = .ExpFileFullName
-        End If
-        PublicVersusServicedExport = .CodePnding.DiffersFrom(.CodeExprtd)
-    End With
-    
+Public Function SourcePublic(Optional ByVal p_comp As String = vbNullString) As String
+    SourcePublic = Source("Public (Export-File)", p_comp)
 End Function
 
-Public Function PublicVersusServicedExportBttn(ByVal p_comp As String) As String
-    PublicVersusServicedExportBttn = "Display difference" & vbLf & _
-                                      mBasic.Spaced(p_comp) & vbLf & _
-                                      "Public versus current" & vbLf & _
-                                      "(Export-File)"
+Public Function SourcePending(Optional ByVal p_comp As String = vbNullString) As String
+    SourcePending = Source("Pending (Export-File)", p_comp)
 End Function
 
-Public Sub PublicVersusServicedExportDsply(ByVal p_comp As clsComp)
-' ----------------------------------------------------------------------------
-' Displays the code difference between the pending release code and the
-' current serviced component's (p_comp) Export-File.
-' ----------------------------------------------------------------------------
-    Const PROC = "PublicVersusServicedExportDsply"
-    
-    On Error GoTo eh
-    Dim sComp As String
-    
-    With p_comp
-        sComp = .CompName
-        If .CodePublic Is Nothing Then
-            Set .CodePublic = New clsCode
-            .CodePublic.Source = CommonPublic.LastModExpFile(sComp)
-        End If
-        If .CodeExprtd Is Nothing Then
-            Set .CodeExprtd = New clsCode
-            .CodeExprtd.Source = .ExpFileFullName
-        End If
-        .CodePublic.DsplyDiffs d_left_this_file_name:="LastModExpFile" _
-                             , d_left_this_file_title:=mDiff.PublicVersusServicedExportTitleLeft(p_comp) _
-                             , d_right_versus_code:=.CodeExprtd _
-                             , d_right_versus_file_name:="CurrentExportedModifications" _
-                             , d_right_versus_file_title:=mDiff.PublicVersusServicedExportTitleRight(p_comp)
-    End With
-
-xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Private Function PublicVersusServicedExportTitleLeft(ByVal p_comp As String) As String
-    PublicVersusServicedExportTitleLeft = "Public  " & mBasic.Spaced(p_comp) & "  (Common-Components folder)"
+Public Function SourceServicedCode(Optional ByVal s_comp As String = vbNullString) As String
+    SourceServicedCode = Source("Serviced (CodeModule)", s_comp)
 End Function
 
-Private Function PublicVersusServicedExportTitleRight(ByVal p_comp As String) As String
-    PublicVersusServicedExportTitleRight = "Current serviced  " & mBasic.Spaced(p_comp) & "  (Export-File)"
+Public Function SourceServicedExport(Optional ByVal s_comp As String = vbNullString) As String
+    SourceServicedExport = Source("Serviced (Export-File)", s_comp)
 End Function
-
-
 

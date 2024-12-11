@@ -21,7 +21,7 @@ Option Explicit
 ' - Changed             True when the current code differs from the last exported code
 '                       or when the component has yet not/never been exported.
 ' - CodeName
-' - IsCompCommonPending True when the compoent is represented as an Export-File in the
+' - IsCompCommonPending True when the component is represented as an Export-File in the
 '                       CommonPending folder
 ' - IsCommCompPublic  True when the component is represented as an an Export-File in the
 '                       Common-Components folder.
@@ -172,14 +172,16 @@ Friend Property Let CompName(ByVal s_comp As String)
         '~~ Provide all local info for the serviced component
         If FSo.FileExists(sExpFileFullName) Then
             With CodeExprtd
-                .Source = sExpFileFullName
                 .CompName = sCompName
+                .Source = sExpFileFullName
+                .SourceDesc = mDiff.SourceServicedExport
             End With
         End If
             
         With CodeCrrent
-            .Source = Me.VBComp
             .CompName = sCompName
+            .Source = Me.VBComp
+            .SourceDesc = mDiff.SourceServicedCode
             If .IsNone Then Stop
         End With
         CleanUpTemps
@@ -188,15 +190,17 @@ Friend Property Let CompName(ByVal s_comp As String)
             '~~ The component is known/existing public or - in case of a new hosted component -
             '~~ has already been registered as a pending release component
             With CodePublic
-                .Source = dctPublicExpFiles(sCompName)
                 .CompName = sCompName
+                .Source = dctPublicExpFiles(sCompName)
+                .SourceDesc = mDiff.SourcePublic
             End With
         End If
             
         If FSo.FileExists(CommonPending.ExportFiles(sCompName)) Then
             With CodePnding
-                .Source = CommonPending.ExportFiles(sCompName)
                 .CompName = sCompName
+                .Source = CommonPending.ExportFiles(sCompName)
+                .SourceDesc = mDiff.SourcePending
             End With
         End If
     End If
@@ -503,6 +507,25 @@ Public Function IsCommCompUpToDate() As Boolean
             IsCommCompUpToDate = CodeCrrent.Meets(CodePublic)
         End If
     End If
+    
+End Function
+
+Public Function IsThePendingSource() As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when a Common Component (sCompName) is considered being the source
+' of the current "pending release" by the fact that the user, the computer and
+' the Workbook are identical with the registered "pending release".
+' ------------------------------------------------------------------------------
+    
+    With CommonPending
+        Select Case True
+            Case .LastModBy(sCompName) <> mEnvironment.ThisComputersUser
+            Case .LastModInWrkbkFullName(sCompName) <> Serviced.Wrkbk.FullName
+            Case .LastModOn(sCompName) <> mEnvironment.ThisComputersName
+            Case Else
+                IsThePendingSource = True
+        End Select
+    End With
     
 End Function
 

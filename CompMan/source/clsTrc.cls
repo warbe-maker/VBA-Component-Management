@@ -97,31 +97,39 @@ Private Enum enTraceInfo
     enItmArgs
 End Enum
 
-Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
-    Alias "ShellExecuteA" _
-    (ByVal hWnd As Long, _
-    ByVal lpOperation As String, _
-    ByVal lpFile As String, _
-    ByVal lpParameters As String, _
-    ByVal lpDirectory As String, _
-    ByVal nShowCmd As Long) _
-    As Long
-'***App Window Constants***
-Private Const WIN_NORMAL = 1         'Open Normal
+#If Win64 Or VBA7 Then
+    Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
+        Alias "ShellExecuteA" _
+        (ByVal hWnd As Long, _
+        ByVal lpOperation As String, _
+        ByVal lpFile As String, _
+        ByVal lpParameters As String, _
+        ByVal lpDirectory As String, _
+        ByVal nShowCmd As Long) _
+        As Long
+    Private Declare PtrSafe Function getFrequency Lib "kernel32" Alias "QueryPerformanceFrequency" (cySysFrequency As Currency) As Long
+    Private Declare PtrSafe Function getTickCount Lib "kernel32" Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
+#Else
+    Private Declare Function apiShellExecute Lib "shell32.dll" _
+        Alias "ShellExecuteA" _
+        (ByVal hWnd As Long, _
+        ByVal lpOperation As String, _
+        ByVal lpFile As String, _
+        ByVal lpParameters As String, _
+        ByVal lpDirectory As String, _
+        ByVal nShowCmd As Long) _
+        As Long
+    Private Declare Function getFrequency Lib "kernel32" Alias "QueryPerformanceFrequency" (cySysFrequency As Currency) As Long
+    Private Declare Function getTickCount Lib "kernel32" Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
+#End If
 
-'***Error Codes***
+Private Const WIN_NORMAL = 1         'Open Normal
 Private Const ERROR_SUCCESS = 32&
 Private Const ERROR_NO_ASSOC = 31&
 Private Const ERROR_OUT_OF_MEM = 0&
 Private Const ERROR_FILE_NOT_FOUND = 2&
 Private Const ERROR_PATH_NOT_FOUND = 3&
 Private Const ERROR_BAD_FORMAT = 11&
-
-Private Declare PtrSafe Function getFrequency Lib "kernel32" _
-Alias "QueryPerformanceFrequency" (cySysFrequency As Currency) As Long
-Private Declare PtrSafe Function getTickCount Lib "kernel32" _
-Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
-
 Private Const DIR_BEGIN_ID      As String = ">"     ' Begin procedure or code trace indicator
 Private Const DIR_END_ID        As String = "<"     ' End procedure or code trace indicator
 Private Const TRC_LOG_SEC_FRMT  As String = "00.0000 "
@@ -385,7 +393,7 @@ End Function
 
 Private Function ArryIsAllocated(ByVal a_arr As Variant) As Boolean
 ' ----------------------------------------------------------------------------
-' Retunrs TRUE when the array (a_arr) is allocated, i.e. has at least one item.
+' Returns TRUE when the array (a_arr) is allocated, i.e. has at least one item.
 ' ----------------------------------------------------------------------------
     On Error Resume Next
     ArryIsAllocated = UBound(a_arr) >= LBound(a_arr)

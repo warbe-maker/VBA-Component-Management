@@ -259,7 +259,7 @@ End Sub
 Private Function QidenticalItems(ByVal q_1 As Variant, _
                                  ByVal q_2 As Variant) As Boolean
 ' ----------------------------------------------------------------------------
-' Retunrs TRUE when item 1 is identical with item 2.
+' Returns TRUE when item 1 is identical with item 2.
 ' ----------------------------------------------------------------------------
     Select Case True
         Case VarType(q_1) = vbObject And VarType(q_2) = vbObject:   QidenticalItems = q_1 Is q_2

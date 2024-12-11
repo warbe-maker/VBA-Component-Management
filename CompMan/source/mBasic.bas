@@ -163,60 +163,59 @@ Public Enum enDctOpt
     enCollectSorted
 End Enum
 
-' Basic declarations potentially uesefull in any VB-Project
-Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-Public Declare PtrSafe Function GetSystemMetrics32 Lib "user32" Alias "GetSystemMetrics" (ByVal nIndex As Long) As Long
+#If Win64 Then
+    Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+    Public Declare PtrSafe Function GetSystemMetrics32 Lib "user32" Alias "GetSystemMetrics" (ByVal nIndex As Long) As Long
+    Private Declare PtrSafe Function getFrequency Lib "kernel32" Alias "QueryPerformanceFrequency" (TimerSystemFrequency As Currency) As Long
+    Private Declare PtrSafe Function getTickCount Lib "kernel32" Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
+    Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
+    Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
+    Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
+    Private Declare PtrSafe Function GetForegroundWindow Lib "User32.dll" () As Long
+    Private Declare PtrSafe Function GetWindowLongPtr Lib "User32.dll" Alias "GetWindowLongA" (ByVal hWnd As LongPtr, ByVal nIndex As Long) As LongPtr
+    Private Declare PtrSafe Function SetWindowLongPtr Lib "User32.dll" Alias "SetWindowLongA" (ByVal hWnd As LongPtr, ByVal nIndex As LongPtr, ByVal dwNewLong As LongPtr) As LongPtr
+    Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
+        Alias "ShellExecuteA" _
+        (ByVal hWnd As Long, _
+        ByVal lpOperation As String, _
+        ByVal lpFile As String, _
+        ByVal lpParameters As String, _
+        ByVal lpDirectory As String, _
+        ByVal nShowCmd As Long) _
+        As Long
+#Else
+    Public Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+    Public Declare Function GetSystemMetrics32 Lib "user32" Alias "GetSystemMetrics" (ByVal nIndex As Long) As Long
+    Private Declare Function getFrequency Lib "kernel32" Alias "QueryPerformanceFrequency" (TimerSystemFrequency As Currency) As Long
+    Private Declare Function getTickCount Lib "kernel32" Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
+    Private Declare Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
+    Private Declare Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
+    Private Declare Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
+    Private Declare Function GetForegroundWindow Lib "User32.dll" () As Long
+    Private Declare Function GetWindowLong Lib "User32.dll" Alias "GetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long) As Long
+    Private Declare Function SetWindowLong Lib "User32.dll" Alias "SetWindowLongA" (ByVal hWnd As Long, ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+    Private Declare Function apiShellExecute Lib "shell32.dll" _
+        Alias "ShellExecuteA" _
+        (ByVal hWnd As Long, _
+        ByVal lpOperation As String, _
+        ByVal lpFile As String, _
+        ByVal lpParameters As String, _
+        ByVal lpDirectory As String, _
+        ByVal nShowCmd As Long) _
+        As Long
+#End If
 
-' Timer means
-Private Declare PtrSafe Function getFrequency Lib "kernel32" _
-Alias "QueryPerformanceFrequency" (TimerSystemFrequency As Currency) As Long
-Private Declare PtrSafe Function getTickCount Lib "kernel32" _
-Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
-
-'Functions to get DPI
-Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hwnd As Long) As Long
-Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
-Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hwnd As Long, ByVal hDC As Long) As Long
-Private Const LOGPIXELSX = 88               ' Pixels/inch in X
-Private Const POINTS_PER_INCH As Long = 72  ' A point is defined as 1/72 inches
-Private Declare PtrSafe Function GetForegroundWindow _
-  Lib "User32.dll" () As Long
-
-Private Declare PtrSafe Function GetWindowLongPtr _
-  Lib "User32.dll" Alias "GetWindowLongA" _
-    (ByVal hwnd As LongPtr, _
-     ByVal nIndex As Long) _
-  As LongPtr
-
-Private Declare PtrSafe Function SetWindowLongPtr _
-  Lib "User32.dll" Alias "SetWindowLongA" _
-    (ByVal hwnd As LongPtr, _
-     ByVal nIndex As LongPtr, _
-     ByVal dwNewLong As LongPtr) _
-  As LongPtr
-
-Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
-    Alias "ShellExecuteA" _
-    (ByVal hwnd As Long, _
-    ByVal lpOperation As String, _
-    ByVal lpFile As String, _
-    ByVal lpParameters As String, _
-    ByVal lpDirectory As String, _
-    ByVal nShowCmd As Long) _
-    As Long
-
-'***App Window Constants***
-Private Const WIN_NORMAL = 1         'Open Normal
-
-'***Error Codes***
-Private Const ERROR_SUCCESS = 32&
+Private Const ERROR_BAD_FORMAT = 11&
+Private Const ERROR_FILE_NOT_FOUND = 2&
 Private Const ERROR_NO_ASSOC = 31&
 Private Const ERROR_OUT_OF_MEM = 0&
-Private Const ERROR_FILE_NOT_FOUND = 2&
 Private Const ERROR_PATH_NOT_FOUND = 3&
-Private Const ERROR_BAD_FORMAT = 11&
-Private Const WS_THICKFRAME As Long = &H40000
+Private Const ERROR_SUCCESS = 32&
 Private Const GWL_STYLE As Long = -16
+Private Const LOGPIXELSX = 88               ' Pixels/inch in X
+Private Const POINTS_PER_INCH As Long = 72  ' A point is defined as 1/72 inches
+Private Const WIN_NORMAL = 1         'Open Normal
+Private Const WS_THICKFRAME As Long = &H40000
 
 Private cyTimerTicksBegin       As Currency
 Private cyTimerTicksEnd         As Currency
@@ -1032,7 +1031,7 @@ End Function
 
 Public Function ArryIsAllocated(ByVal a_arr As Variant) As Boolean
 ' ----------------------------------------------------------------------------
-' Retunrs TRUE when the array (a_arr) is allocated, i.e. has at least one item.
+' Returns TRUE when the array (a_arr) is allocated, i.e. has at least one item.
 ' ----------------------------------------------------------------------------
     
     On Error Resume Next
@@ -1568,13 +1567,13 @@ Public Sub MakeFormResizable()
     Const GWL_STYLE As Long = (-16)
     
     Dim lStyle As LongPtr
-    Dim hwnd As LongPtr
+    Dim hWnd As LongPtr
     Dim RetVal
 
-    hwnd = GetForegroundWindow
+    hWnd = GetForegroundWindow
     
-    lStyle = GetWindowLongPtr(hwnd, GWL_STYLE Or WS_THICKFRAME)
-    RetVal = SetWindowLongPtr(hwnd, GWL_STYLE, lStyle)
+    lStyle = GetWindowLongPtr(hWnd, GWL_STYLE Or WS_THICKFRAME)
+    RetVal = SetWindowLongPtr(hWnd, GWL_STYLE, lStyle)
 
 End Sub
 

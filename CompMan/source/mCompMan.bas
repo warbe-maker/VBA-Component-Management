@@ -504,8 +504,12 @@ Public Sub ServiceInitiate(ByVal s_serviced_wbk As Workbook, _
     mEnvironment.EstablishServicedServicesLog lMaxLenType, lMaxLenItem
     mEnvironment.EstablishServicesSummaryLog lMaxLenType, lMaxLenItem
     
-    If s_do_housekeeping Then mHskpng.CommComps
-    
+    If s_do_housekeeping Then
+        Select Case s_service
+            Case SRVC_UPDATE_OUTDATED:  mHskpng.FocusOnOpen
+            Case SRVC_EXPORT_CHANGED:   mHskpng.FocusOnSave
+        End Select
+    End If
 
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub

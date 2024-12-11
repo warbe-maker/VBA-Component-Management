@@ -45,14 +45,14 @@ Private Const ERR_NO_SOURCE = "Obtaining the code as array or string when the so
                               "The Property 'IsNone' may be used to avoid this. The Property is TRUE when " & _
                               "there are no known code lines for whichever reason, no source ever provided, " & _
                               "the source does not contain any code lines, or just empty code lines)."
-Private sAsTrimmedString                As String   ' Code as a single trimmed string (without leading and trailing empty code lines)
-'Private sAsTrimmedStringEmptyExcluded   As String   ' Code as a single trimmed string (without leading and trailing empty code lines)
-Private vSource                         As Variant
-Private sSourceName                     As String
-Private sCompName                       As String
-Private bSourceIsNone                   As Boolean
-Private dctTempFiles                    As New Dictionary
-Private sCodeAsString                   As String
+Private sAsTrimmedString    As String   ' Code as a single trimmed string (without leading and trailing empty code lines)
+Private vSource             As Variant
+Private sSourceName         As String
+Private sCompName           As String
+Private sSourceDesc         As String
+Private bSourceIsNone       As Boolean
+Private dctTempFiles        As New Dictionary
+Private sCodeAsString       As String
 
 Private Sub Class_Initialize()
     bSourceIsNone = True
@@ -158,42 +158,6 @@ End Function
 
 Public Property Get IsNone() As Boolean:            IsNone = bSourceIsNone: End Property
 
-Public Function CodeAsString() As String
-' ----------------------------------------------------------------------------
-' Returns the code of the provided source, which is an Export-File, a
-' VBComponent or a CodeModule.
-' ----------------------------------------------------------------------------
-    Dim fl      As File
-    Dim vbcm    As CodeModule
-    
-    If sCodeAsString = vbNullString Then
-        Select Case TypeName(vSource)
-            Case "String"
-                If vSource <> vbNullString Then
-                    With FSo
-                        If .FileExists(vSource) Then
-                            Set fl = .GetFile(vSource)
-                            sCodeAsString = StringTrimmed(StringFromExpFile(fl))
-                        End If
-                    End With
-                End If
-            Case "VBComponent": Set vbcm = vSource.CodeModule
-                                If vbcm.CountOfLines > 0 Then sCodeAsString = StringFromComp(vbcm)
-            Case "CodeModule":  Set vbcm = vSource
-                                If vbcm.CountOfLines > 0 Then sCodeAsString = StringFromComp(vbcm)
-            Case "File":        Set fl = vSource
-                                sCodeAsString = StringTrimmed(StringFromExpFile(vSource))
-        End Select
-        If sCodeAsString <> vbNullString Then
-            sCodeAsString = StringEmptyExcluded(sCodeAsString)
-        End If
-    End If
-    CodeAsString = sCodeAsString
-    
-End Function
-
-Public Property Get SourceName() As String: SourceName = sSourceName:   End Property
-
 Public Property Let Source(ByVal s_src As Variant)
 ' ----------------------------------------------------------------------------
 ' Depending on the provided argument's (s_src) type the code is saved as an
@@ -232,6 +196,12 @@ Public Property Let Source(ByVal s_src As Variant)
     If Not bSourceIsNone Then sCodeAsString = vbNullString
     
 End Property
+
+Public Property Get SourceDesc() As String:         SourceDesc = sSourceDesc:   End Property
+
+Public Property Let SourceDesc(ByVal s As String):  sSourceDesc = s:            End Property
+
+Public Property Get SourceName() As String:         SourceName = sSourceName:   End Property
 
 Private Function ArrayIsAllocated(a_v As Variant) As Boolean
     On Error Resume Next
@@ -333,6 +303,40 @@ Public Function AsTrimmedString(Optional ByVal a_empty_excluded As Boolean = Fal
     
 End Function
 
+Public Function CodeAsString() As String
+' ----------------------------------------------------------------------------
+' Returns the code of the provided source, which is an Export-File, a
+' VBComponent or a CodeModule.
+' ----------------------------------------------------------------------------
+    Dim fl      As File
+    Dim vbcm    As CodeModule
+    
+    If sCodeAsString = vbNullString Then
+        Select Case TypeName(vSource)
+            Case "String"
+                If vSource <> vbNullString Then
+                    With FSo
+                        If .FileExists(vSource) Then
+                            Set fl = .GetFile(vSource)
+                            sCodeAsString = StringTrimmed(StringFromExpFile(fl))
+                        End If
+                    End With
+                End If
+            Case "VBComponent": Set vbcm = vSource.CodeModule
+                                If vbcm.CountOfLines > 0 Then sCodeAsString = StringFromComp(vbcm)
+            Case "CodeModule":  Set vbcm = vSource
+                                If vbcm.CountOfLines > 0 Then sCodeAsString = StringFromComp(vbcm)
+            Case "File":        Set fl = vSource
+                                sCodeAsString = StringTrimmed(StringFromExpFile(vSource))
+        End Select
+        If sCodeAsString <> vbNullString Then
+            sCodeAsString = StringEmptyExcluded(sCodeAsString)
+        End If
+    End If
+    CodeAsString = sCodeAsString
+    
+End Function
+
 Public Function DiffersFrom(ByVal d_from_code As clsCode, _
                    Optional ByVal d_empty_excluded As Boolean = False, _
                    Optional ByRef d_diffs As Variant) As Boolean
@@ -354,8 +358,9 @@ Public Function DiffersFrom(ByVal d_from_code As clsCode, _
             DiffersFrom = StrComp(CodeAsString _
                                 , d_from_code.CodeAsString _
                                 , vbTextCompare) <> 0
-            If DiffersFrom _
-            Then DiffersFromDiffs d_from_code, d_empty_excluded, d_diffs
+            If DiffersFrom Then
+                DiffersFromDiffs d_from_code, d_empty_excluded, d_diffs
+            End If
             
         Case Not Me.IsNone And d_from_code.IsNone:   DiffersFrom = True
         Case Me.IsNone And Not d_from_code.IsNone:   DiffersFrom = True
@@ -375,8 +380,9 @@ Public Sub DiffersFromDiffs(ByVal d_from_code As clsCode, _
                    Optional ByRef d_diffs As Variant = Nothing, _
                    Optional ByVal d_diffs_limit As Long = 1)
 ' ----------------------------------------------------------------------------
+' Provides an array (d_diffs) with n (d_diffs_limit) code differences, each
+' as a pair of different lines.
 ' ----------------------------------------------------------------------------
-                   
     Const PROC = "DiffersFromDiffs"
     
     On Error GoTo eh
@@ -387,13 +393,13 @@ Public Sub DiffersFromDiffs(ByVal d_from_code As clsCode, _
     Dim j       As Long
     Dim lMaxSrc As Long
     
-    lMaxSrc = Max(Len(sSourceName), Len(d_from_code.SourceName)) + 4
+    lMaxSrc = Max(Len(sSourceDesc), Len(d_from_code.SourceDesc)) + 4
     arrThis = Split(CodeAsString, vbCrLf)
     arrFrom = Split(d_from_code.CodeAsString, vbCrLf)
     For i = 1 To Min(UBound(arrThis), UBound(arrFrom))
         If StrComp(arrThis(i), arrFrom(i), vbTextCompare) <> 0 Then
-            Arry(arrDiff) = mBasic.AlignLeft("Line " & Format(i, "0000") & " " & sSourceName, lMaxSrc, ".:") & arrThis(i)
-            Arry(arrDiff) = mBasic.AlignLeft("Line " & Format(i, "0000") & " " & d_from_code.SourceName, lMaxSrc, ".:") & arrFrom(i)
+            Arry(arrDiff) = "Line " & Format(i, "0000") & " " & mBasic.AlignLeft(sSourceDesc, lMaxSrc, ".:") & " " & arrThis(i)
+            Arry(arrDiff) = "Line " & Format(i, "0000") & " " & mBasic.AlignLeft(d_from_code.SourceDesc, lMaxSrc, ".:") & " " & arrFrom(i)
             j = j + 1
             If j = d_diffs_limit Or i >= Min(UBound(arrThis), UBound(arrFrom)) Then Exit For
         End If
@@ -410,9 +416,9 @@ End Sub
 
 Public Sub DsplyDiffs(ByVal d_left_this_file_name As String, _
                       ByVal d_left_this_file_title As String, _
-                      ByVal d_right_versus_code As clsCode, _
-                      ByVal d_right_versus_file_name As String, _
-                      ByVal d_right_versus_file_title As String)
+                      ByVal d_rght_vrss_code As clsCode, _
+                      ByVal d_rght_vrss_file_name As String, _
+                      ByVal d_rght_vrss_file_title As String)
 ' ----------------------------------------------------------------------------
 ' Left is the current code, Right is the changed code
 ' ----------------------------------------------------------------------------
@@ -423,15 +429,15 @@ Public Sub DsplyDiffs(ByVal d_left_this_file_name As String, _
     Dim sFileFrom   As String
     
     sFileThis = TempFile(d_left_this_file_name)
-    sFileFrom = TempFile(d_right_versus_file_name)
+    sFileFrom = TempFile(d_rght_vrss_file_name)
     
-    StringAsFile d_right_versus_code.CodeAsString, sFileFrom
+    StringAsFile d_rght_vrss_code.CodeAsString, sFileFrom
     StringAsFile CodeAsString, sFileThis
     
     DsplyFilesDiff d_file_left_full_name:=sFileThis _
                  , d_file_right_full_name:=sFileFrom _
                  , d_file_left_title:=d_left_this_file_title _
-                 , d_file_right_title:=d_right_versus_file_title
+                 , d_file_right_title:=d_rght_vrss_file_title
     
 xt: Exit Sub
 
@@ -538,7 +544,6 @@ Public Function Meets(ByVal d_other_code As clsCode) As Boolean
                  , vbTextCompare) = 0 Then
             Meets = True
         Else
-'            Debug.Print ErrSrc(PROC) & ": " & sCompName & " differs!"
 '            DiffersFromDiffs d_other_code, d_empty_excluded
         End If
     Else
