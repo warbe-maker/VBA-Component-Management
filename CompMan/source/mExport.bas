@@ -30,23 +30,17 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
     Const PROC = "ChangedComponents"
     
     On Error GoTo eh
-    Dim dct                     As Dictionary
     Dim Comp                    As clsComp
     Dim sComp                   As String
-    Dim sInfo                   As String
-    Dim sLastModDateTimeOld     As String
-    Dim sStatus                 As String
-    Dim v                       As Variant
     Dim wbk                     As Workbook
-    Dim sPendingInfo            As String
     Dim vbc                     As VBComponent
     Dim bChanged                As Boolean
     
     mBasic.BoP ErrSrc(PROC)
     '~~ Prevent any action when the required preconditins are not met
-    If Services.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
+    If Servicing.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
     
-    Set wbk = Services.ServicedWbk
+    Set wbk = Servicing.ServicedWbk
     With Prgrss
         .Operation = "exported"
         .ItemsTotal = Serviced.Wrkbk.VBProject.VBComponents.Count
@@ -54,122 +48,121 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
         .DoneItemsInfo = True
     End With
     
-    For Each vbc In Serviced.Wrkbk.VBProject.VBComponents
-        sComp = vbc.Name
-        If c_comp <> vbNullString And sComp = c_comp _
-        Or c_comp = vbNullString Then
-            Set Comp = New clsComp
-            With Comp
-                .CompName = sComp
-                bChanged = .Changed
-                
-                Select Case True
-                    ' =====================================
-                    '                         --- Rules ---
-                    '                         1 2 3 4 5 6 7
-                    ' ----------------------- -------------
-                    ' Conditions:
-                    ' C1 Changed  *)          N Y Y Y Y Y Y
-                    ' C2 Common Component     - N Y Y Y Y Y
-                    ' C3 Export exists        - - N
-                    ' C3 Up-to-date **)       - - Y - - - -
-                    ' C4 Public               - - N Y Y Y Y
-                    ' C5 Pending              - - N Y Y N Y
-                    ' C6 Conflict             - - N N Y
-                    ' ----------------------- -------------
-                    ' Actions:
-                    ' A1 None, skip           x
-                    ' A2 Export                 x x x
-                    ' A3 Update CompMan dat       x x
-                    ' A4 Register Pending           x
-                    ' A5 Update Pending.dat         x
-                    ' A6 Resolve Conflict ***)         x
-                    ' ==================================
-                    '   *) Diff or no exp. file
-                    '  **) Current code is up-to-date or last export indicates an up-to-date modification base
-                    ' ***) Backout modification
+    With Serviced
+        For Each vbc In .Wrkbk.VBProject.VBComponents
+            sComp = vbc.Name
+            If c_comp <> vbNullString And sComp = c_comp _
+            Or c_comp = vbNullString Then
+                .Comp.CompName = vbc.Name
+                With .Comp
+                    bChanged = .Changed
                     
-                    Case Not bChanged And .IsCommComp
-                        '~~ Common Component which not has changed
-                        .SetServicedProperties
-                        Prgrss.ItemSkipped
-    
-                    Case Not bChanged
-                        '~~ Any other component which not has changed
-                        Prgrss.ItemSkipped
-                    
-                    Case Not .IsCommComp
-                        '~~ Any other but a Common Component the code has changed
-                        .Export
-                        Services.Log(sComp) = "Modified VBComponent e x p o r t e d !"
-                        Prgrss.ItemDone = sComp
-                    
-                    Case Not .IsCommCompPublic And Not .IsCommCompPending
-                        '~~ Common Component the code has changed, yet no public version, not yet pending
-                        .Export
-                        .SetServicedProperties
-                        .CodeExprtd.Source = .ExpFileFullName
-                        CommonPending.Register Comp
-                        With Services
-                            .Log(sComp) = "Serviced Common Component modified: E x p o r t e d !"
-                            .Log(sComp) = "Serviced Common Component modified: Registered pending release"
-                        End With
-                        Prgrss.ItemDone = sComp
+                    Select Case True
+                        ' =====================================
+                        '                         --- Rules ---
+                        '                         1 2 3 4 5 6 7
+                        ' ----------------------- -------------
+                        ' Conditions:
+                        ' C1 Changed  *)          N Y Y Y Y Y Y
+                        ' C2 Common Component     - N Y Y Y Y Y
+                        ' C3 Export exists        - - N
+                        ' C3 Up-to-date **)       - - Y - - - -
+                        ' C4 Public               - - N Y Y Y Y
+                        ' C5 Pending              - - N Y Y N Y
+                        ' C6 Conflict             - - N N Y
+                        ' ----------------------- -------------
+                        ' Actions:
+                        ' A1 None, skip           x
+                        ' A2 Export                 x x x
+                        ' A3 Update CompMan dat       x x
+                        ' A4 Register Pending           x
+                        ' A5 Update Pending.dat         x
+                        ' A6 Resolve Conflict ***)         x
+                        ' ==================================
+                        '   *) Diff or no exp. file
+                        '  **) Current code is up-to-date or last export indicates an up-to-date modification base
+                        ' ***) Backout modification
                         
-                    Case .IsCommCompPublic And Not .IsCommCompPending
-                        '~~ Common Component the code has changed, already public, yet not pending release
-                        '~~ (may as well be up-to-date but never exported)
-                        .Export
-                        .SetServicedProperties
-                        If Not .IsCommCompUpToDate Then
-                            '~~ This indicates that the exported Common Component is not the result of
-                            '~~ a manually imported public Common Component's Export File
+                        Case Not bChanged And .IsCommon
+                            '~~ Common Component which not has changed
+                            .SetServicedProperties
+                            Prgrss.ItemSkipped
+        
+                        Case Not bChanged
+                            '~~ Any other component which not has changed
+                            Prgrss.ItemSkipped
+                        
+                        Case Not .IsCommon
+                            '~~ Any other but a Common Component the code has changed
+                            .Export
+                            Servicing.Log(sComp) = "Modified VBComponent e x p o r t e d !"
+                            Prgrss.ItemDone = sComp
+                        
+                        Case Not .IsCommCompPublic And Not .IsCommCompPending
+                            '~~ Common Component the code has changed, yet no public version, not yet pending
+                            .Export
+                            .SetServicedProperties
+                            .CodeExprtd.Source = .ExpFileFullName
                             CommonPending.Register Comp
-                            .CodePnding.Source = CommonPending.LastModExpFile(sComp)
-                            With Services
+                            With Servicing
                                 .Log(sComp) = "Serviced Common Component modified: E x p o r t e d !"
-                                .Log(sComp) = "Serviced Common Component modified: Properties in CommComps.dat updated"
                                 .Log(sComp) = "Serviced Common Component modified: Registered pending release"
                             End With
-                        End If
-                        Prgrss.ItemDone = sComp
-                    
-                    Case .IsCommCompPublic And Not .IsCommCompPending And Not .IsCommCompUpToDate
-                        '~~ When the Common Component is not up-to-date it must not be changed/modified!
-                        '~~ Choices are:
-                        ' ~~ - When there's yet no public version, export without registration pending release
-                        '~~  - When there's a public version, discarding any changes by re-importing the public version.
-                        ResolveExportConflict Comp
-                        Prgrss.ItemDone = sComp
-                    
-                    Case .IsCommCompPublic And Not CommonPending.Conflicts(Comp)
-                        '~~ Changed, common public component, pending, not conflicting
-                        .Export
-                        .SetServicedProperties
-                        CommonPending.Register Comp
-                        .CodePnding.Source = CommonPending.LastModExpFile(sComp)
-                        With Services
-                            .Log(sComp) = "Serviced Common Component modified: E x p o r t e d !"
-                            .Log(sComp) = "Serviced Common Component modified: Re-registered pending release"
-                        End With
-                        Prgrss.ItemDone = sComp
-                    
-                    Case Else
-                        '~~ Common Component the code has changed, already pending release, possibly conflicting
-                        CommonPending.ConflictResolve Comp
-                        Services.Log(sComp) = "Modification conflicting with pending release resolved by update with public common component!"
-                        Prgrss.ItemDone = sComp
-                End Select
-            End With
-        
-nxt:        Prgrss.Dsply
-            Set Comp = Nothing
-        End If
-    Next vbc
+                            Prgrss.ItemDone = sComp
+                            
+                        Case .IsCommCompPublic And Not .IsCommCompPending
+                            '~~ Common Component the code has changed, already public, yet not pending release
+                            '~~ (may as well be up-to-date but never exported)
+                            .Export
+                            .SetServicedProperties
+                            If Not .IsCommCompUpToDate Then
+                                '~~ This indicates that the exported Common Component is not the result of
+                                '~~ a manually imported public Common Component's Export File
+                                CommonPending.Register Serviced.Comp
+                                .CodePnding.Source = CommonPending.LastModExpFile(sComp)
+                                With Servicing
+                                    .Log(sComp) = "Serviced Common Component modified: E x p o r t e d !"
+                                    .Log(sComp) = "Serviced Common Component modified: Properties in CommComps.dat updated"
+                                    .Log(sComp) = "Serviced Common Component modified: Registered pending release"
+                                End With
+                            End If
+                            Prgrss.ItemDone = sComp
+                        
+                        Case .IsCommCompPublic And Not .IsCommCompPending And Not .IsCommCompUpToDate
+                            '~~ When the Common Component is not up-to-date it must not be changed/modified!
+                            '~~ Choices are:
+                            ' ~~ - When there's yet no public version, export without registration pending release
+                            '~~  - When there's a public version, discarding any changes by re-importing the public version.
+                            ResolveExportConflict Comp
+                            Prgrss.ItemDone = sComp
+                        
+                        Case .IsCommCompPublic And Not CommonPending.Conflicts(Serviced.Comp)
+                            '~~ Changed, common public component, pending, not conflicting
+                            .Export
+                            .SetServicedProperties
+                            CommonPending.Register Serviced.Comp
+                            .CodePnding.Source = CommonPending.LastModExpFile(sComp)
+                            With Servicing
+                                .Log(sComp) = "Serviced Common Component modified: E x p o r t e d !"
+                                .Log(sComp) = "Serviced Common Component modified: Re-registered pending release"
+                            End With
+                            Prgrss.ItemDone = sComp
+                        
+                        Case Else
+                            '~~ Common Component the code has changed, already pending release, possibly conflicting
+                            CommonPending.ConflictResolve Serviced.Comp
+                            Servicing.Log(sComp) = "Modification conflicting with pending release resolved by update with public common component!"
+                            Prgrss.ItemDone = sComp
+                    End Select
+                End With
+nxt:            Prgrss.Dsply
+                Set Comp = Nothing
+            End If
+        Next vbc
+    End With
     
     CommonPending.Info
     
-    Set Comps = Nothing
     Set Prgrss = Nothing
     mHskpng.RemoveServiceRemains ' remove Temp folder, remove renamed components
     mCompManMenuVBE.Setup
@@ -229,13 +222,13 @@ Public Sub ResolveExportConflict(ByVal c_comp As clsComp)
     On Error GoTo eh
     Dim Msg                                     As mMsg.udtMsg
     Dim sBttnIgnore                             As String
-    Dim sBttnUnDo                               As String
+    Dim sBttnUndo                               As String
     Dim sBttnUpdate                             As String
     Dim sComp                                   As String
     Dim sTitle                                  As String
     
     sBttnIgnore = "Ignore the incident"
-    sBttnUnDo = "Undo the modifications"
+    sBttnUndo = "Undo the modifications"
     sBttnUpdate = "Update to current" & vbLf & "public version"
     
     sComp = c_comp.CompName
@@ -275,7 +268,7 @@ Public Sub ResolveExportConflict(ByVal c_comp As clsComp)
                          "Note: Code modifications on a non up-to-date code version or will never become public and thus are a potentially lost effort."
         End With
         With .Section(5)
-            .Label.Text = sBttnUnDo & ":"
+            .Label.Text = sBttnUndo & ":"
             .Label.FontColor = rgbRed
             .Text.Text = "Discards the recent modifications by re-importing the last Export-File. " & _
                          "This will really solve the conflict since the component will be exported but not registered pending release! " & vbLf & _
@@ -292,26 +285,26 @@ Public Sub ResolveExportConflict(ByVal c_comp As clsComp)
     End With
     
     Do
-        Select Case mMsg.Dsply(dsply_title:=sTitle _
-                             , dsply_msg:=Msg _
-                             , dsply_Label_spec:="R130" _
-                             , dsply_width_min:=40 _
-                             , dsply_buttons:=mMsg.Buttons(mDiff.PublicVersusPendingReleaseBttn(sComp), _
+        Select Case mMsg.Dsply(d_title:=sTitle _
+                             , d_msg:=Msg _
+                             , d_label_spec:="R130" _
+                             , d_width_min:=40 _
+                             , d_buttons:=mMsg.Buttons(mDiff.PublicVersusPendingReleaseBttn(sComp), _
                                                            mDiff.ServicedExportVersusPublicBttn, _
-                                                           vbLf, sBttnIgnore, sBttnUnDo, sBttnUpdate))
+                                                           vbLf, sBttnIgnore, sBttnUndo, sBttnUpdate))
             Case mDiff.PublicVersusPendingReleaseBttn(sComp):   mDiff.PublicVersusPendingReleaseDsply c_comp
             Case mDiff.ServicedExportVersusPublicBttn:          mDiff.ServicedExportVersusPublicDsply c_comp
             Case sBttnUpdate
                 '~~ Reset the component to its current public code version
                 mUpdate.ByReImport sComp, CommonPublic.LastModExpFile(sComp)
-                Services.Log(sComp) = "Serviced Common Component's code modifications discarded by re-importing the " & _
+                Servicing.Log(sComp) = "Serviced Common Component's code modifications discarded by re-importing the " & _
                                       "current public version's Export-File from the Common-Components folder"
                 Exit Do
-            Case sBttnUnDo
+            Case sBttnUndo
                 '~~ Reset the component to its content before the modification, i.e.
                 '~~ the last regular exported code version - which is outdated however.
                 mUpdate.ByReImport sComp, c_comp.ExpFileFullName
-                Services.Log(sComp) = "Serviced Common Component's code modifications reset by re-importing the " & _
+                Servicing.Log(sComp) = "Serviced Common Component's code modifications reset by re-importing the " & _
                                       "last Export-File (component remains outdated however)"
                 Exit Do
             Case sBttnIgnore
@@ -319,7 +312,7 @@ Public Sub ResolveExportConflict(ByVal c_comp As clsComp)
                     .VBComp.Export .ExpFileFullName
                     .SetServicedProperties
                 End With
-                Services.Log(sComp) = "Serviced Common Component exported but not registered pending release!"
+                Servicing.Log(sComp) = "Serviced Common Component exported but not registered pending release!"
 
                 Exit Do
         End Select

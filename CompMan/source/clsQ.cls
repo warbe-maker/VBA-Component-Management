@@ -17,25 +17,28 @@ Option Explicit
 '
 ' Public services:
 ' ----------------
-' - DeQueue   Returns the first (first added) item from the queue and removes
-'             it
-' - EnQueue   Queues (adds) an item
-' - First     Returns the first item in the queue without dequeuing it.
-' - IsEmpty   Returns TRUE when the queue is empty
-' - IsInQueue Returns TRUE for a provided and found queue item, the number
-'             of items found identical with the provided, and the position of
-'             the last one found.
-' - Item      Returns an item on a provided position in the queue
-' - Last      Returns the last item enqueued
-' - Size      Returns the current queue's size
+' Clear     Removes all entires from the queue.
+' ----------------------------------------------------------------------------
+' DeQueue   Returns the first (first added) item from the queue and removes it.
+' EnQueue   Queues (adds) an item
+' First     Returns the first item in the queue without dequeuing it.
+' IsEmpty   Returns TRUE when the queue is empty
+' IsInQueue Returns TRUE for a provided and found queue item, the number of
+'           items found identical with the provided, and the position of the
+'           last one found.
+' Item      Returns an item on a provided position in the queue
+' Last      Returns the last item enqueued
+' Size      Returns the current queue's size
 '
-' W. Rauschenberger, Berlin Feb 2023
+' W. Rauschenberger, Berlin Dec 2024
 ' ----------------------------------------------------------------------------
 Private cllQueue As Collection
 
 Private Sub Class_Initialize():                         Set cllQueue = New Collection:          End Sub
 
 Private Sub Class_Terminate():                          Set cllQueue = Nothing:                 End Sub
+
+Public Property Get Size() As Long:                         Size = Qsize(cllQueue):             End Property
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ------------------------------------------------------------------------------
@@ -48,10 +51,11 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
     If app_err_no > 0 Then AppErr = app_err_no + vbObjectError Else AppErr = app_err_no - vbObjectError
 End Function
 
-                
-Public Sub DeQueue(Optional ByRef d_item_returned As Variant, _
-                   Optional ByVal d_item_to_be_dequeued As Variant = Nothing, _
-                   Optional ByVal d_item_pos_to_be_dequeued As Long = 0)
+Public Sub Clear(): Qclear cllQueue: End Sub
+
+Public Function DeQueue(Optional ByRef d_item_returned As Variant, _
+                        Optional ByVal d_item_to_be_dequeued As Variant = Nothing, _
+                        Optional ByVal d_item_pos_to_be_dequeued As Long = 0) As Variant
 ' ----------------------------------------------------------------------------
 ' - When neither a specific item to be dequeued (q_item_to_be_dequeued) nor a
 '   specific to be dequeied item by its position (q_item_pos_to_be_dequeued)
@@ -68,8 +72,10 @@ Public Sub DeQueue(Optional ByRef d_item_returned As Variant, _
 ' !! When an item to be dequeued (q_item_dequeue) is provided an additionally
 ' !! specific to be dequeued item by its position (q_item_pos) is ignored.
 ' ----------------------------------------------------------------------------
-        Qdequeue cllQueue, d_item_returned, d_item_to_be_dequeued, d_item_pos_to_be_dequeued
-End Sub
+    Qdequeue cllQueue, d_item_returned, d_item_to_be_dequeued, d_item_pos_to_be_dequeued
+    If VarType(d_item_returned) = vbObject Then Set DeQueue = d_item_returned Else DeQueue = d_item_returned
+    
+End Function
 
 Public Sub EnQueue(ByVal e_item As Variant):            Qenqueue cllQueue, e_item:          End Sub
 
@@ -163,9 +169,12 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsQ." & sProc
 End Function
 
-Public Sub First(ByRef t_item)
-    Qfirst cllQueue, t_item
-End Sub
+Public Function First(Optional ByRef f_item As Variant) As Variant
+    
+    Qfirst cllQueue, f_item
+    If IsObject(f_item) Then Set First = f_item Else First = f_item
+    
+End Function
 
 Public Function IsEmpty() As Boolean:                   IsEmpty = QisEmpty(cllQueue):       End Function
 
@@ -175,12 +184,26 @@ Public Function IsQueued(ByVal i_item As Variant, _
     IsQueued = QisQueued(cllQueue, i_item, i_pos, i_no_found)
 End Function
 
-Public Sub Item(ByVal i_pos As Long, _
-                ByRef i_item As Variant)
+Public Function Item(ByVal i_pos As Long, _
+            Optional ByRef i_item As Variant) As Variant
+    
     Qitem cllQueue, i_pos, i_item
-End Sub
+    If IsObject(i_item) Then Set Item = i_item Else Item = i_item
 
-Public Sub Last(ByRef b_item As Variant):               Qlast cllQueue, b_item:             End Sub
+End Function
+
+Public Function Last(Optional ByRef l_item As Variant) As Variant
+    
+    Qlast cllQueue, l_item
+    If IsObject(l_item) Then Set Last = l_item Else Last = l_item
+
+End Function
+
+Private Sub Qclear(ByRef q_queue As Collection)
+    Dim i As Long
+    For i = q_queue.Count To 1 Step -1: q_queue.Remove i: Next i
+    
+End Sub
 
 Private Sub Qdequeue(ByRef q_queue As Collection, _
             Optional ByRef q_item_returned As Variant = Nothing, _
@@ -242,8 +265,8 @@ Private Sub Qenqueue(ByRef q_queue As Collection, _
     q_queue.Add q_item
 End Sub
 
-Private Sub Qfirst(ByVal q_queue As Collection, _
-                   ByRef q_item_returned As Variant)
+Private Function Qfirst(ByVal q_queue As Collection, _
+               Optional ByRef q_item_returned As Variant) As Variant
 ' ----------------------------------------------------------------------------
 ' Returns the current first item in the queue, i.e. the one added (enqueued)
 ' first. When the queue is empty Nothing is returned
@@ -253,8 +276,9 @@ Private Sub Qfirst(ByVal q_queue As Collection, _
     Else
         Set q_item_returned = Nothing
     End If
-
-End Sub
+    If VarType(q_item_returned) = vbObject Then Set Qfirst = q_item_returned Else Qfirst = q_item_returned
+    
+End Function
 
 Private Function QidenticalItems(ByVal q_1 As Variant, _
                                  ByVal q_2 As Variant) As Boolean
@@ -303,11 +327,11 @@ Private Function QisQueued(ByVal i_queue As Collection, _
 
 End Function
 
-Private Sub Qitem(ByVal q_queue As Collection, _
-                  ByVal q_pos As Long, _
-         Optional ByRef q_item As Variant)
+Private Function Qitem(ByVal q_queue As Collection, _
+                       ByVal q_pos As Long, _
+              Optional ByRef q_item As Variant) As Variant
 ' ----------------------------------------------------------------------------
-' Returns the item (q_item) at the position (q_pos) in the queue (q_queue),
+' Returns from the queue (q_queue) the item (q_item) at the position (q_pos),
 ' provided the queue is not empty and the position is within the queue's size.
 ' ----------------------------------------------------------------------------
     
@@ -315,19 +339,21 @@ Private Sub Qitem(ByVal q_queue As Collection, _
         If q_pos <= Qsize(q_queue) Then
             If VarType(q_queue(q_pos)) = vbObject Then
                 Set q_item = q_queue(q_pos)
+                Set Qitem = q_item
             Else
                 q_item = q_queue(q_pos)
+                Qitem = q_item
             End If
         End If
     End If
     
-End Sub
+End Function
 
-Private Sub Qlast(ByVal q_queue As Collection, _
-                  ByRef q_item As Variant)
+Private Function Qlast(ByVal q_queue As Collection, _
+              Optional ByRef q_item As Variant) As Variant
 ' ----------------------------------------------------------------------------
-' Returns the item (q_item) in the queue which had been enqueued last in the
-' queue (q_queue), provided the queue is not empty.
+' The function returns the item (q_item) in the queue (q_queue) which had been
+' enqueued last, provided the queue is not empty.
 ' ----------------------------------------------------------------------------
     Dim lSize As Long
     
@@ -335,11 +361,13 @@ Private Sub Qlast(ByVal q_queue As Collection, _
         lSize = q_queue.Count
         If VarType(q_queue(lSize)) = vbObject Then
             Set q_item = q_queue(lSize)
+            Set Qlast = q_item
         Else
             q_item = q_queue(lSize)
+            Qlast = q_item
         End If
     End If
-End Sub
+End Function
 
 Private Function Qsize(ByVal q_queue As Collection) As Long
     If Not QisEmpty(q_queue) Then Qsize = q_queue.Count
@@ -356,6 +384,4 @@ Private Sub QvarType(ByVal q_item As Variant, _
         q_item_result = q_item
     End If
 End Sub
-
-Public Function Size() As Long:                         Size = Qsize(cllQueue):             End Function
 

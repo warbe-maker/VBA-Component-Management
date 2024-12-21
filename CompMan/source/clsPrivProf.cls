@@ -86,6 +86,9 @@ Option Compare Text
 '                 When the section is omitted, the value is removed from all
 '                 sections. When the file name is omitted it defaults to the
 '                 file specified by the FileName property.
+' Values          Writes a series of values to the current specified Private
+'                 Profile file's current section, whereby the arguments
+'                 are pairs of vaule-name, value.
 '
 ' *) The Private Profile file may contain a "names housekeeping section"
 '    which is not regarded a "user" but a "system" section. I.e. when it is
@@ -111,7 +114,6 @@ Private Const ERROR_OUT_OF_MEM = 0&
 Private Const ERROR_FILE_NOT_FOUND = 2&
 Private Const ERROR_PATH_NOT_FOUND = 3&
 Private Const ERROR_BAD_FORMAT = 11&
-Private Const NAMES_HSKPNG_DONE_DELIM   As String = ";"
 Private Const NAMES_HSKPNG_SECT_NAME    As String = "@NamesHousekeeping"
 Private Const NAMES_HSKPNG_VALUE_NAME   As String = "DoneNamesHskpng"
 Private Const VALUE_TRUE                As String = "TRUE"
@@ -135,7 +137,7 @@ Private Const VALUE_FALSE               As String = "FALSE"
 
 Private Declare PtrSafe Function apiShellExecute _
                 Lib "shell32.dll" Alias "ShellExecuteA" _
-               (ByVal hwnd As Long, _
+               (ByVal hWnd As Long, _
                 ByVal lpOperation As String, _
                 ByVal lpFile As String, _
                 ByVal lpParameters As String, _
@@ -232,7 +234,6 @@ Private Property Let Arry(Optional ByRef c_arr As Variant, _
     Const PROC = "Arry-Let"
     
     Dim bIsAllocated As Boolean
-    Dim s            As String
     
     If IsArray(c_arr) Then
         On Error GoTo -1
@@ -283,7 +284,7 @@ End Property
 
 Public Property Let BooleanAsTrueFalseString(ByVal b As Boolean):   bBooleanAsTrueFalseString = b:  End Property
 
-Public Property Get FileFooter(Optional ByVal name_file As String = vbNullString) As String
+Public Property Get FileFooter(Optional ByVal v_file_name As String = vbNullString) As String
 ' ------------------------------------------------------------------------------
 ' Returns the header of a file as a strings delimited by vbCrLf, ",", ", ", ";",
 ' or "; ".
@@ -293,9 +294,9 @@ Public Property Get FileFooter(Optional ByVal name_file As String = vbNullString
     Dim cll As New Collection
     Dim v   As Variant
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
     
-    For Each v In PPtwinFileFooter(name_file)
+    For Each v In PPtwinFileFooter(v_file_name)
         If Not IsDelimiterFileFooter(v) Then
             cll.Add Replace(v, "; ", vbNullString, , 1)
         End If
@@ -306,7 +307,7 @@ Public Property Get FileFooter(Optional ByVal name_file As String = vbNullString
 
 End Property
 
-Public Property Let FileFooter(Optional ByVal name_file As String = vbNullString, _
+Public Property Let FileFooter(Optional ByVal v_file_name As String = vbNullString, _
                                         ByVal file_footer As String)
 ' ------------------------------------------------------------------------------
 ' Write a header for a file (name_fiel) provided as a strings delimited by
@@ -319,26 +320,26 @@ Public Property Let FileFooter(Optional ByVal name_file As String = vbNullString
     '~~ Make sure the provided footer lines are delimeted by vbCrLf
     sFooter = Replace(Replace(file_footer, vbLf, vbCrLf), vbCr & vbCrLf, vbCrLf)
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If Not FileIsActive(name_file) Then
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If Not FileIsActive(v_file_name) Then
         '~~ File footer needs to be postponed until file has become active,
         '~~ i.e. has got at least one user section
-        If dctFileFooterPostponed.Exists(name_file) Then dctFileFooterPostponed.Remove name_file
-        dctFileFooterPostponed.Add name_file, sFooter
+        If dctFileFooterPostponed.Exists(v_file_name) Then dctFileFooterPostponed.Remove v_file_name
+        dctFileFooterPostponed.Add v_file_name, sFooter
         GoTo xt
     End If
      
     If sFileFooter <> sFooter Then
-        PPtwinFileFooter(name_file) = FileFooterDelimiterAdd(StringAsCollection(sFooter))
-        PPmanage name_file ' in case no value is changed or new
+        PPtwinFileFooter(v_file_name) = FileFooterDelimiterAdd(StringAsCollection(sFooter))
+        PPmanage v_file_name ' in case no value is changed or new
         sFileFooter = sFooter ' will be set when the file has become active
-        If dctFileFooterPostponed.Exists(name_file) Then dctFileFooterPostponed.Remove name_file
+        If dctFileFooterPostponed.Exists(v_file_name) Then dctFileFooterPostponed.Remove v_file_name
     End If
     
 xt: Exit Property
 End Property
 
-Public Property Get FileHeader(Optional ByVal name_file As String = vbNullString) As String
+Public Property Get FileHeader(Optional ByVal v_file_name As String = vbNullString) As String
 ' ------------------------------------------------------------------------------
 ' Returns the header of a file as a strings delimited by vbCrLf, ",", ", ", ";",
 ' or "; " without a header delimiter.
@@ -349,9 +350,9 @@ Public Property Get FileHeader(Optional ByVal name_file As String = vbNullString
     Dim cll As New Collection
     Dim v   As Variant
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
     
-    For Each v In PPtwinFileHeader(name_file)
+    For Each v In PPtwinFileHeader(v_file_name)
         If Not IsDelimiterFileHeader(v) Then
             cll.Add Replace(v, "; ", vbNullString, , 1)
         End If
@@ -368,20 +369,20 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Private Function FileIsActive(ByVal name_file As String) As Boolean
+Private Function FileIsActive(ByVal v_file_name As String) As Boolean
 ' ------------------------------------------------------------------------------
-' The function returns TRUE when the file (name_file) is regarded active in the
+' The function returns TRUE when the file (v_file_name) is regarded active in the
 ' sense it has at least one user section (names housekeeping section excluded).
 ' ------------------------------------------------------------------------------
     Dim dctSects As Dictionary
     
-    If Not FSo.FileExists(name_file) Then Exit Function
-    PPmanage name_file
-    Set dctSects = SectionNames(name_file)
+    If Not FSo.FileExists(v_file_name) Then Exit Function
+    PPmanage v_file_name
+    Set dctSects = SectionNames(v_file_name)
     Select Case True
         Case dctSects.Count = 0
         Case dctSects.Count = 1 And dctSects.Keys(0) = NAMES_HSKPNG_SECT_NAME
-            ValueRemove NAMES_HSKPNG_VALUE_NAME, NAMES_HSKPNG_SECT_NAME, name_file ' without any user section history is obsolete
+            ValueRemove NAMES_HSKPNG_VALUE_NAME, NAMES_HSKPNG_SECT_NAME, v_file_name ' without any user section history is obsolete
         Case Else
             FileIsActive = True
     End Select
@@ -389,7 +390,7 @@ Private Function FileIsActive(ByVal name_file As String) As Boolean
     
 End Function
 
-Public Property Let FileHeader(Optional ByVal name_file As String, _
+Public Property Let FileHeader(Optional ByVal v_file_name As String, _
                                         ByVal file_header As String)
 ' ------------------------------------------------------------------------------
 ' Write a header for a file (name_fiel) provided as a strings delimited by
@@ -398,26 +399,25 @@ Public Property Let FileHeader(Optional ByVal name_file As String, _
 ' ------------------------------------------------------------------------------
     Const PROC = "FileHeader-Let"
     
-    Dim i       As Long
     Dim sHeader As String
     
     '~~ Make sure the provided header lines are delimeted by vbCrLf
     sHeader = Replace(Replace(file_header, vbLf, vbCrLf), vbCr & vbCrLf, vbCrLf)
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If Not FileIsActive(name_file) Then
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If Not FileIsActive(v_file_name) Then
         '~~ File header needs to be postponed until file has become active,
         '~~ i.e. has got at least one user section
-        If dctFileHeaderPostponed.Exists(name_file) Then dctFileHeaderPostponed.Remove name_file
-        dctFileHeaderPostponed.Add name_file, sHeader
+        If dctFileHeaderPostponed.Exists(v_file_name) Then dctFileHeaderPostponed.Remove v_file_name
+        dctFileHeaderPostponed.Add v_file_name, sHeader
         GoTo xt
     End If
       
     If sFileHeader <> sHeader Then
-        PPtwinFileHeader(name_file) = FileHeaderDelimiterAdd(StringAsCollection(sHeader))
-        PPmanage name_file ' in case no value is changed or new
+        PPtwinFileHeader(v_file_name) = FileHeaderDelimiterAdd(StringAsCollection(sHeader))
+        PPmanage v_file_name ' in case no value is changed or new
         sFileHeader = sHeader ' will be set when the file has become active
-        If dctFileHeaderPostponed.Exists(name_file) Then dctFileHeaderPostponed.Remove name_file
+        If dctFileHeaderPostponed.Exists(v_file_name) Then dctFileHeaderPostponed.Remove v_file_name
     End If
     
 xt: Exit Property
@@ -455,32 +455,32 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get Footer(Optional ByVal name_file As String = vbNullString) As Variant
+Public Property Get Footer(Optional ByVal v_file_name As String = vbNullString) As Variant
 ' ----------------------------------------------------------------------------
 ' When the file has no footer an empty Collection is returned. A footer is
 ' at least one comment line with a footer delimiter lin above.
 ' ----------------------------------------------------------------------------
     
-    If PPtwinExists(name_file) Then ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
+    If PPtwinExists(v_file_name) Then ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
         Set Footer = cllPPtwinFooter
     End If
     
 End Property
 
-Public Property Let Footer(Optional ByVal name_file As String = vbNullString, _
+Public Property Let Footer(Optional ByVal v_file_name As String = vbNullString, _
                                     ByVal file_footer As Variant)
 ' ----------------------------------------------------------------------------
-' Replaces an old footer in file (name_file) - if any - with the new footer
+' Replaces an old footer in file (v_file_name) - if any - with the new footer
 ' (file_footer) - which may be a series of strings delimited by vbCrLf, vbLf,
 ' "|" or "||".
 ' ----------------------------------------------------------------------------
     Const PROC = "Footer-Let"
         
     On Error GoTo eh
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If PPtwinExists(name_file) Then         ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
-        PPtwinFileFooter(name_file) = file_footer
-        PPmanage name_file
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If PPtwinExists(v_file_name) Then         ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
+        PPtwinFileFooter(v_file_name) = file_footer
+        PPmanage v_file_name
     Else
         Err.Raise AppErr(1), ErrSrc(PROC), "Writing a file footer into a yet not existing file is not supported! " & _
                                            "A footer may be written with any Value Property or explicitely once " & _
@@ -619,7 +619,7 @@ End Property
 Private Property Let PPtwinValue(Optional ByVal p_name As String, _
                                  Optional ByVal p_sect As String, _
                                  Optional ByVal p_file As String, _
-                                 Optional ByVal p_default As Variant, _
+                                 Optional ByVal p_default As Variant = vbNullString, _
                                           ByVal p_valu As Variant)
 ' ----------------------------------------------------------------------------
 ' Modifies or adds a value (p_name=p_value) in a section (p_sect) in a
@@ -629,6 +629,7 @@ Private Property Let PPtwinValue(Optional ByVal p_name As String, _
     Const PROC = "PPtwinValue-Let"
     
     On Error GoTo eh
+    p_default = p_default ' only used wuíth Get
     If PPtwinExists(p_file) Then                    ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
         If dctPPtwinSections.Exists(p_sect) Then
             PPtwinSectionSet p_sect                 ' cllPPtwinSection, cllPPtwinSectionComments, dctPPtwinValues
@@ -731,71 +732,99 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get SectionComment(Optional ByVal name_section As String = vbNullString, _
-                                   Optional ByVal name_file As String = vbNullString) As String
+Public Property Get SectionComment(Optional ByVal v_section_name As String = vbNullString, _
+                                   Optional ByVal v_file_name As String = vbNullString) As String
 ' ------------------------------------------------------------------------------
 ' Returns the comments of a section as a strings delimited by
 ' vbCrLf, ",", ", ", ";", "; ".
 ' ------------------------------------------------------------------------------
     Const PROC = "SectionComment-Get"
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If Not IsValidNameSection(name_section) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(name_section)
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If Not IsValidNameSection(v_section_name) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(v_section_name)
                                      
-    SectionComment = CommentsGet(PPtwinSectionComments(name_section, name_file))
+    SectionComment = CommentsGet(PPtwinSectionComments(v_section_name, v_file_name))
 
 End Property
 
-Public Property Let SectionComment(Optional ByVal name_section As String = vbNullString, _
-                                   Optional ByVal name_file As String = vbNullString, _
-                                            ByVal value_comment As String)
+Public Property Let SectionComment(Optional ByVal v_section_name As String = vbNullString, _
+                                   Optional ByVal v_file_name As String = vbNullString, _
+                                            ByVal v_value_comment As String)
 ' ------------------------------------------------------------------------------
 ' Returns the comments of a section as a vbCrLf delimited string.
 ' ------------------------------------------------------------------------------
     Const PROC = "SectionComment-Let"
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If Not IsValidNameSection(name_section) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(name_section)
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If Not IsValidNameSection(v_section_name) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(v_section_name)
                                      
-    PPtwinSectionComments(name_section, name_file) = StringAsCollection(value_comment)
-    PPmanage name_file
+    PPtwinSectionComments(v_section_name, v_file_name) = StringAsCollection(v_value_comment)
+    PPmanage v_file_name
     
 End Property
 
 Public Property Let SectionsSeparated(ByVal b As Boolean):          bSectionsSeparated = b:         End Property
 
-Public Property Get Value(Optional ByVal name_value As String = vbNullString, _
-                          Optional ByVal name_section As String = vbNullString, _
-                          Optional ByVal name_file As String = vbNullString, _
-                          Optional ByVal value_default As Variant) As Variant
+Public Property Get Value(Optional ByVal v_value_name As String = vbNullString, _
+                          Optional ByVal v_section_name As String = vbNullString, _
+                          Optional ByVal v_file_name As String = vbNullString, _
+                          Optional ByVal v_value_default As Variant) As Variant
 ' ----------------------------------------------------------------------------
-' Returns value name's (name_value) value from a section (name_section) in a
-' Private Profile file (name_file) - plus its comment (it any) as a string of
+' Returns value name's (v_value_name) value from a section (v_section_name) in a
+' Private Profile file (v_file_name) - plus its comment (it any) as a string of
 ' comment lines delimited with a "||".
-' When no file (name_file) is provided it defaults to the file name specified
-' by the property FileName, when no section (name_section) is provided, the
+' When no file (v_file_name) is provided it defaults to the file name specified
+' by the property FileName, when no section (v_section_name) is provided, the
 ' section defaults to the section name provided by the property Section.
 ' ----------------------------------------------------------------------------
     Const PROC  As String = "Value-Get"
            
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If Not IsValidNameSection(name_section) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(name_section)
-    If Not IsValidNameValue(name_value) Then Err.Raise AppErr(3), ErrSrc(PROC), ErrInvalidValuName(name_value)
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If Not IsValidNameSection(v_section_name) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(v_section_name)
+    If Not IsValidNameValue(v_value_name) Then Err.Raise AppErr(3), ErrSrc(PROC), ErrInvalidValuName(v_value_name)
     
-    Value = PPtwinValue(name_value, name_section, name_file, value_default)
+    Value = PPtwinValue(v_value_name, v_section_name, v_file_name, v_value_default)
     
 End Property
 
-Public Property Let Value(Optional ByVal name_value As String = vbNullString, _
-                          Optional ByVal name_section As String = vbNullString, _
-                          Optional ByVal name_file As String = vbNullString, _
-                          Optional ByVal value_default As Variant, _
+Public Sub Values(ByVal v_done As Boolean, ParamArray v_values() As Variant)
+' ----------------------------------------------------------------------------
+' Writes a series of values (v_values) to the current specified Private
+' Profile file's (FileName) current section (Section), whereby the arguments
+' are pairs of vaule-name, value.
+' ----------------------------------------------------------------------------
+    Dim v           As Variant
+    Dim sName       As String
+    Dim sValue      As String
+    
+    If Not ArrayIsAllocated(v_values) Then GoTo xt
+    
+    For Each v In v_values
+        If sName = vbNullString Then
+            sName = v
+        Else
+            sValue = v
+            PPtwinValue(sName, Section, FileName) = sValue
+            sName = vbNullString
+        End If
+    Next v
+    If v_done Then
+        PPmanage FileName ' re-setup the Private Profile file's twin
+    End If
+    
+xt: Exit Sub
+End Sub
+
+Public Property Let Value(Optional ByVal v_value_name As String = vbNullString, _
+                          Optional ByVal v_section_name As String = vbNullString, _
+                          Optional ByVal v_file_name As String = vbNullString, _
+                          Optional ByVal v_value_default As Variant = vbNullString, _
                                    ByVal v_value As Variant)
 ' ----------------------------------------------------------------------------
-' Writes a value (v_value) under a given name (name_value) into a section
-' (name_section) in a Private Profile file (name_file).
-' When no file (name_file) is provided it defaults to the file name specified
-' by the property FileName, when no section (name_section) is provided, the
+' Writes a value (v_value) under a given name (v_value_name) into a section
+' (v_section_name) in a Private Profile file (v_file_name).
+' When no file (v_file_name) is provided it defaults to the file name specified
+' by the property FileName, when no section (v_section_name) is provided, the
 ' section defaults to the section name provided by the property Section.
 ' ----------------------------------------------------------------------------
     Const PROC = "Value-Let"
@@ -803,25 +832,26 @@ Public Property Let Value(Optional ByVal name_value As String = vbNullString, _
     On Error GoTo eh
     Dim s   As String
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If Not IsValidNameSection(name_section) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(name_section)
-    If Not IsValidNameValue(name_value) Then Err.Raise AppErr(3), ErrSrc(PROC), ErrInvalidValuName(name_value)
+    v_value_default = v_value_default ' used only with Get
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If Not IsValidNameSection(v_section_name) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(v_section_name)
+    If Not IsValidNameValue(v_value_name) Then Err.Raise AppErr(3), ErrSrc(PROC), ErrInvalidValuName(v_value_name)
     
-    PPtwinValue(name_value, name_section, name_file) = v_value
-    PPmanage name_file ' re-setup the Private Profile file's twin
+    PPtwinValue(v_value_name, v_section_name, v_file_name) = v_value
+    PPmanage v_file_name ' re-setup the Private Profile file's twin
     
-    If FileIsActive(name_file) Then
-        If dctFileHeaderPostponed.Exists(name_file) Then
+    If FileIsActive(v_file_name) Then
+        If dctFileHeaderPostponed.Exists(v_file_name) Then
             '~~ There's still a header to be added which had to be postponed while the file was yet not active
-            s = dctFileHeaderPostponed(name_file)
-            FileHeader(name_file) = s
+            s = dctFileHeaderPostponed(v_file_name)
+            FileHeader(v_file_name) = s
         End If
-        If dctFileFooterPostponed.Exists(name_file) Then
+        If dctFileFooterPostponed.Exists(v_file_name) Then
             '~~ There's still a foter to be added which had to be postponed while the file was yet not active
-            s = dctFileFooterPostponed(name_file)
-            FileFooter(name_file) = s
+            s = dctFileFooterPostponed(v_file_name)
+            FileFooter(v_file_name) = s
         End If
-        PPmanage name_file ' re-setup the Private Profile file's twin
+        PPmanage v_file_name ' re-setup the Private Profile file's twin
     End If
     
 xt: Exit Property
@@ -832,38 +862,38 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get ValueComment(Optional ByVal name_value As String = vbNullString, _
-                                 Optional ByVal name_section As String = vbNullString, _
-                                 Optional ByVal name_file As String = vbNullString) As String
+Public Property Get ValueComment(Optional ByVal v_value_name As String = vbNullString, _
+                                 Optional ByVal v_section_name As String = vbNullString, _
+                                 Optional ByVal v_file_name As String = vbNullString) As String
 ' ------------------------------------------------------------------------------
 ' Returns the comments of a value as a vbCrLf delimited string.
 ' ------------------------------------------------------------------------------
     Const PROC = "ValueComment-Get"
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If Not IsValidNameSection(name_section) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(name_section)
-    If Not IsValidNameValue(name_value) Then Err.Raise AppErr(3), ErrSrc(PROC), ErrInvalidValuName(name_value)
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If Not IsValidNameSection(v_section_name) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(v_section_name)
+    If Not IsValidNameValue(v_value_name) Then Err.Raise AppErr(3), ErrSrc(PROC), ErrInvalidValuName(v_value_name)
                                      
-    ValueComment = CommentsGet(PPtwinValueComments(name_value, name_section, name_file))
+    ValueComment = CommentsGet(PPtwinValueComments(v_value_name, v_section_name, v_file_name))
 
 End Property
 
-Public Property Let ValueComment(Optional ByVal name_value As String = vbNullString, _
-                                 Optional ByVal name_section As String = vbNullString, _
-                                 Optional ByVal name_file As String = vbNullString, _
-                                          ByVal value_comment As String)
+Public Property Let ValueComment(Optional ByVal v_value_name As String = vbNullString, _
+                                 Optional ByVal v_section_name As String = vbNullString, _
+                                 Optional ByVal v_file_name As String = vbNullString, _
+                                          ByVal v_value_comment As String)
 ' ------------------------------------------------------------------------------
 ' Writes comments for a value provided as strings delimited by
 ' vbCrLf, ",", ", ", ";", "; ".
 ' ------------------------------------------------------------------------------
     Const PROC = "ValueComment-Let"
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If Not IsValidNameSection(name_section) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(name_section)
-    If Not IsValidNameValue(name_value) Then Err.Raise AppErr(3), ErrSrc(PROC), ErrInvalidValuName(name_value)
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If Not IsValidNameSection(v_section_name) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(v_section_name)
+    If Not IsValidNameValue(v_value_name) Then Err.Raise AppErr(3), ErrSrc(PROC), ErrInvalidValuName(v_value_name)
                                      
-    PPtwinValueComments(name_value, name_section, name_file) = StringAsCollection(value_comment)
-    PPmanage name_file
+    PPtwinValueComments(v_value_name, v_section_name, v_file_name) = StringAsCollection(v_value_comment)
+    PPmanage v_file_name
     
 End Property
 
@@ -1374,12 +1404,12 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsPrivProf." & sProc
 End Function
 
-Public Function Exists(ByVal name_file As String, _
-              Optional ByVal name_section As String = vbNullString, _
-              Optional ByVal name_value As String = vbNullString) As Boolean
+Public Function Exists(ByVal v_file_name As String, _
+              Optional ByVal v_section_name As String = vbNullString, _
+              Optional ByVal v_value_name As String = vbNullString) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the provided value name, section name, file name exists.
-' When the provided (section (name_section
+' When the provided (section (v_section_name
 ' ----------------------------------------------------------------------------
     Const PROC = "Exists"
     
@@ -1387,12 +1417,12 @@ Public Function Exists(ByVal name_file As String, _
     Dim arr     As Variant
     Dim bActive As Boolean
     
-    If Not IsValidFile(name_file, arr, bActive) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
+    If Not IsValidFile(v_file_name, arr, bActive) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
     If Not bActive Then GoTo xt
         
     Select Case True
-        Case name_section <> vbNullString And name_value = vbNullString:    Exists = PPtwinSectionExists(name_section, name_file)
-        Case name_section <> vbNullString And name_value <> vbNullString:   Exists = PPtwinValueExists(name_value, name_section, name_file)
+        Case v_section_name <> vbNullString And v_value_name = vbNullString:    Exists = PPtwinSectionExists(v_section_name, v_file_name)
+        Case v_section_name <> vbNullString And v_value_name <> vbNullString:   Exists = PPtwinValueExists(v_value_name, v_section_name, v_file_name)
     End Select
     
 xt: Exit Function
@@ -1643,8 +1673,6 @@ xt: Exit Function
 End Function
 
 Private Function FileFooterDelimiterRemove(ByRef f_cll As Collection) As Collection
-    Dim l As Long
-    Dim v As Variant
     
     If f_cll Is Nothing Then GoTo xt
     If f_cll.Count <= 1 Then GoTo xt
@@ -1682,8 +1710,6 @@ xt: Exit Function
 End Function
 
 Private Function FileHeaderDelimiterRemove(ByRef f_cll As Collection) As Collection
-    Dim l As Long
-    Dim v As Variant
     
     If f_cll Is Nothing Then GoTo xt
     If f_cll.Count <= 1 Then GoTo xt
@@ -1765,7 +1791,6 @@ Public Sub HskpngNames(ByVal h_file As String, _
     Dim v           As Variant
     Dim dctHist     As Dictionary
     Dim dctValsInv  As Dictionary
-    Dim dctSects    As Dictionary
     
     If Not IsValidFile(h_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(h_file)
     If Not FileIsActive(h_file) Then GoTo xt
@@ -2646,7 +2671,6 @@ Private Sub PPtwinAsStringComments(ByRef p_arr As Variant, _
     Dim v As Variant
     Dim s As String
     Dim l As Long
-    Dim a As Variant
     
     If p_cll.Count > 0 Then
         If p_footer And Not IsDelimiterFileFooter(p_cll(1)) Then
@@ -2738,7 +2762,6 @@ Private Function PPtwinHskpngNamesIsDone(ByVal h_file As String, _
 ' Note: Each h_hist when done is registered under a NAMES_HSKPNG_VALUE_NAME
 '       with a sequence number suffix.
 ' ----------------------------------------------------------------------------
-    Dim s   As String
     Dim v   As Variant
     Dim dct As Dictionary
     Dim cll As Collection
@@ -3320,11 +3343,11 @@ Private Function RevertOrder(ByVal r_cll As Collection) As Collection
     
 End Function
 
-Public Function SectionNames(Optional ByVal name_file As String, _
+Public Function SectionNames(Optional ByVal v_file_name As String, _
                              Optional ByRef names_cll As Collection, _
                              Optional ByRef names_dct As Dictionary) As Dictionary
 ' ----------------------------------------------------------------------------
-' Returns all section names in a Private Profile file (name_file) as
+' Returns all section names in a Private Profile file (v_file_name) as
 ' Dictionary and optionally as Collection (names_cll) with all Section names
 ' in ascending order.
 ' ----------------------------------------------------------------------------
@@ -3335,9 +3358,9 @@ Public Function SectionNames(Optional ByVal name_file As String, _
     Dim cll As New Collection
     Dim v   As Variant
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
     
-    If PPtwinExists(name_file) Then     ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
+    If PPtwinExists(v_file_name) Then     ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
         For Each v In dctPPtwinSections
             dct.Add v, vbNullString
             cll.Add v
@@ -3357,11 +3380,11 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub SectionRemove(ByVal name_section As String, _
-                Optional ByVal name_file As String = vbNullString)
+Public Sub SectionRemove(ByVal v_section_name As String, _
+                Optional ByVal v_file_name As String = vbNullString)
 ' ----------------------------------------------------------------------------
-' Removes one or more sections (name_section) in a Private Profile file
-' (name_file) whereby several sections may be provided as a comma sepearated
+' Removes one or more sections (v_section_name) in a Private Profile file
+' (v_file_name) whereby several sections may be provided as a comma sepearated
 ' string.
 ' ----------------------------------------------------------------------------
     Const PROC = "SectionRemove"
@@ -3369,14 +3392,14 @@ Public Sub SectionRemove(ByVal name_section As String, _
     On Error GoTo eh
     Dim v As Variant
     
-    If name_section = vbNullString Then GoTo xt
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If Not IsValidNameSection(name_section) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(name_section)
+    If v_section_name = vbNullString Then GoTo xt
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If Not IsValidNameSection(v_section_name) Then Err.Raise AppErr(2), ErrSrc(PROC), ErrInvalidSectName(v_section_name)
     
-    For Each v In StringAsArray(name_section)
-        PPtwinSectionRemove name_file, v
+    For Each v In StringAsArray(v_section_name)
+        PPtwinSectionRemove v_file_name, v
     Next v
-    PPmanage name_file
+    PPmanage v_file_name
     
 xt: Exit Sub
 
@@ -3386,9 +3409,9 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function Sections(Optional ByVal name_file As String = vbNullString) As Dictionary
+Public Function Sections(Optional ByVal v_file_name As String = vbNullString) As Dictionary
 ' ----------------------------------------------------------------------------
-' Returns a Dictionary with all sections in a Private Profile file (name_file)
+' Returns a Dictionary with all sections in a Private Profile file (v_file_name)
 ' with the section name as the key.
 ' Note: In order to cover section comments the item is a Collection with two
 '       items: 1. Collection of section comments
@@ -3398,8 +3421,8 @@ Public Function Sections(Optional ByVal name_file As String = vbNullString) As D
     
     Dim dct As New Dictionary
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If PPtwinExists(name_file) Then         ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If PPtwinExists(v_file_name) Then         ' cllPPtwin, cllPPtwinHeader, dctPPtwinSections, cllPPtwinFooter
         Set dct = dctPPtwinSections
     End If
     Set Sections = dct
@@ -3624,13 +3647,13 @@ Private Function TempFile(Optional ByVal f_path As String = vbNullString, _
 
 End Function
 
-Public Function ValueNameRename(ByVal name_value_old As String, _
-                                ByVal name_value_new As String, _
+Public Function ValueNameRename(ByVal v_value_name_old As String, _
+                                ByVal v_value_name_new As String, _
                        Optional ByVal name_sections As Variant = vbNullString, _
-                       Optional ByVal name_file As String = vbNullString) As Boolean
+                       Optional ByVal v_file_name As String = vbNullString) As Boolean
 ' ----------------------------------------------------------------------------
-' Renames in a Private Profile file (name_file) a given value name
-' (name_value_old) by a new name (name_value_new) in all provided
+' Renames in a Private Profile file (v_file_name) a given value name
+' (v_value_name_old) by a new name (v_value_name_new) in all provided
 ' sections (name_sections), when none are providedd, in all sections.
 ' ----------------------------------------------------------------------------
     Const PROC = "ValueNameRename"
@@ -3639,15 +3662,15 @@ Public Function ValueNameRename(ByVal name_value_old As String, _
     Dim arr         As Variant
     Dim sSections   As Variant
     
-    If name_value_old = vbNullString Or name_value_new = vbNullString Then GoTo xt
-    If Not IsValidFile(name_file, arr) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
+    If v_value_name_old = vbNullString Or v_value_name_new = vbNullString Then GoTo xt
+    If Not IsValidFile(v_file_name, arr) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
         
     If name_sections <> vbNullString _
     Then sSections = VarAsString(name_sections, ",") _
-    Else sSections = DictionaryAsString(SectionNames(name_file), ",")
+    Else sSections = DictionaryAsString(SectionNames(v_file_name), ",")
     
-    If PPtwinValueRename(name_file, sSections, name_value_old, name_value_new) _
-    Then PPmanage name_file
+    If PPtwinValueRename(v_file_name, sSections, v_value_name_old, v_value_name_new) _
+    Then PPmanage v_file_name
         
 xt: Exit Function
     
@@ -3657,14 +3680,14 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function ValueNames(Optional ByVal name_file As String = vbNullString, _
+Public Function ValueNames(Optional ByVal v_file_name As String = vbNullString, _
                            Optional ByVal name_sections As String = vbNullString) As Dictionary
 ' ----------------------------------------------------------------------------
-' Returns a Dictionary with all value names a Private Profile file (name_file)
+' Returns a Dictionary with all value names a Private Profile file (v_file_name)
 ' with the value name as the key and the value as the item.
 ' When no section (name_sections) is specified the result is all value names in
 ' any section, if a section name is provided, only the value names is that
-' section. When the file name (name_file) is ommitted it defaults to the name
+' section. When the file name (v_file_name) is ommitted it defaults to the name
 ' specified by the FileName property.
 ' Note: The returned value-names are distinct names! I.e. when a value exists
 '       in more than one section it is still one distinct value-name.
@@ -3673,8 +3696,8 @@ Public Function ValueNames(Optional ByVal name_file As String = vbNullString, _
     
     On Error GoTo eh
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    Set ValueNames = PPtwinValues(name_file, name_sections)
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    Set ValueNames = PPtwinValues(v_file_name, name_sections)
     
 xt: Exit Function
     
@@ -3684,32 +3707,32 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub ValueRemove(ByVal name_value As String, _
-              Optional ByVal name_section As String = vbNullString, _
-              Optional ByVal name_file As String = vbNullString)
+Public Sub ValueRemove(ByVal v_value_name As String, _
+              Optional ByVal v_section_name As String = vbNullString, _
+              Optional ByVal v_file_name As String = vbNullString)
 ' ----------------------------------------------------------------------------
 ' Removes one or more values including a possible value comment by value-names
-' (name_value) from a section (name_section) in a Private Profile file
-' (name_file), whereby value-names may be provided as a comma separated string
-' and section-names (name_section) may be provided as a comma separated string.
+' (v_value_name) from a section (v_section_name) in a Private Profile file
+' (v_file_name), whereby value-names may be provided as a comma separated string
+' and section-names (v_section_name) may be provided as a comma separated string.
 ' Attention! When no section is provided, the value/value-name is removed in
 ' all sections it is used.
-' When no file (name_file) is provided it defaults to the file name specified
-' by the property FileName, when no section (name_section) is provided, the
+' When no file (v_file_name) is provided it defaults to the file name specified
+' by the property FileName, when no section (v_section_name) is provided, the
 ' section defaults to the section name provided by the Section property.
 ' ----------------------------------------------------------------------------
     Const PROC = "ValueRemove"
     
     Dim sSections As String
     
-    If Not IsValidFile(name_file) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(name_file)
-    If name_section = vbNullString _
-    Then sSections = DictionaryAsString(SectionNames(name_file), ",") _
-    Else sSections = VarAsString(name_section, ",")
+    If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
+    If v_section_name = vbNullString _
+    Then sSections = DictionaryAsString(SectionNames(v_file_name), ",") _
+    Else sSections = VarAsString(v_section_name, ",")
     
-    If PPtwinExists(name_file) Then
-        If PPtwinValueRemove(name_file, sSections, name_value) _
-        Then PPmanage name_file
+    If PPtwinExists(v_file_name) Then
+        If PPtwinValueRemove(v_file_name, sSections, v_value_name) _
+        Then PPmanage v_file_name
     End If
 xt:
 End Sub

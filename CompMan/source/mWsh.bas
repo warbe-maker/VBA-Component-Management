@@ -1,7 +1,7 @@
 Attribute VB_Name = "mWsh"
 Option Explicit
 ' ------------------------------------------------------------------------------
-' Standard Module mWsh: Common Worksheet services
+' Standard Module mWsh: Common Worksheet services.
 ' =====================
 '
 ' Public services:
@@ -12,12 +12,18 @@ Option Explicit
 ' - Delete          Provides a 'clean' deletion of a Worksheet by removing all
 '                   relevant Name objects beforehand in order th prevent invalid
 '                   Name object reulting from the deletion.
-' - Exists
-' - HasUrl
-' - Url
-' - Value Let/Get   ..
+' - Exists          Returns TRUE when in the Workbook a given Worksheet exists
+'                   whereby the Worksheet argument may be its name or code-name.
+' - HasUrl          Returns TRUE when a range has an url.
+' - Url             Adds or modifies a Worksheet ranges url with formatting
+'                   options.
+' - Value Let/Get   Returns from/write to a Worksheet's range a variant value
+'                   whereby the range argument may be a range name or a range
+'                   object.
+' - README          Displays the component's README in the corresponding
+'                   public GitHub repository.
 '
-' W. Rauschenberger, Berlin Jun 2023
+' W. Rauschenberger, Berlin Dec 2024
 ' See: https://github.com/warbe-maker/VBA-Excel-Worksheet
 ' ------------------------------------------------------------------------------
 Private Const GITHUB_REPO_URL = "GITHUB_REPO_URL"
@@ -173,13 +179,14 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Property Let Url(Optional ByVal su_wsh As Worksheet, _
-                        Optional ByVal su_rng As Range, _
-                        Optional ByVal url_underline As XlUnderlineStyle = xlUnderlineStyleSingle, _
-                        Optional ByVal url_font_size As Long = 11, _
-                                 ByVal su_url As String)
+Public Property Let Url(Optional ByVal u_wsh As Worksheet, _
+                        Optional ByVal u_rng As Range, _
+                        Optional ByVal u_underline As XlUnderlineStyle = xlUnderlineStyleSingle, _
+                        Optional ByVal u_font_size As Long = 11, _
+                                 ByVal u_url As String)
 ' ----------------------------------------------------------------------------
-'
+' Adds or modifies in a Worksheet (u_wsh) a ranges (u_rng) url (s_url) with
+' fomt options (u_underline, u_font).
 ' ----------------------------------------------------------------------------
     Const PROC = "Url"
     
@@ -189,37 +196,37 @@ Public Property Let Url(Optional ByVal su_wsh As Worksheet, _
     Dim bProtected  As Boolean
     
     Application.ScreenUpdating = False
-    bProtected = su_wsh.ProtectContents
-    If bProtected Then su_wsh.Unprotect
+    bProtected = u_wsh.ProtectContents
+    If bProtected Then u_wsh.Unprotect
     
-    sAddress = Split(su_url, "#")(0)
-    sSubAddress = Split(su_url, "#")(1)
+    sAddress = Split(u_url, "#")(0)
+    sSubAddress = Split(u_url, "#")(1)
     
-    If Not HasUrl(su_rng) Then
-        ActiveSheet.Hyperlinks.Add Anchor:=su_rng _
+    If Not HasUrl(u_rng) Then
+        ActiveSheet.Hyperlinks.Add Anchor:=u_rng _
                                  , Address:=sAddress _
                                  , SubAddress:=sSubAddress
     Else
-        With su_rng.Hyperlinks(1)
+        With u_rng.Hyperlinks(1)
             .Address = sAddress
             .SubAddress = sSubAddress
         End With
     End If
     
-    With su_rng.Font
+    With u_rng.Font
         .Name = "Calibri"
-        .Size = url_font_size
+        .Size = u_font_size
         .Strikethrough = False
         .Superscript = False
         .Subscript = False
         .OutlineFont = False
         .Shadow = False
-        .Underline = url_underline
+        .Underline = u_underline
         .ThemeColor = xlThemeColorHyperlink
         .TintAndShade = 0
         .ThemeFont = xlThemeFontMinor
     End With
-    If bProtected Then su_wsh.Protect
+    If bProtected Then u_wsh.Protect
     
 xt: Exit Property
     
@@ -229,12 +236,12 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
+' ----------------------------------------------------------------------------
+' Returns/writes a value from/to a Worksheet (v_wsh) identified by (v_name)
+' which may be a ranges name or a range object.
+' ----------------------------------------------------------------------------
 Public Property Get Value(Optional ByVal v_wsh As Worksheet, _
                           Optional ByVal v_name As Variant) As Variant
-' ----------------------------------------------------------------------------
-' Returns a Value from a Worksheet (v_wsh) identified by (v_name) which may be
-' a Range-Name or a Range.
-' ----------------------------------------------------------------------------
     Const PROC = "Value-Get"
     
     On Error Resume Next
@@ -257,10 +264,6 @@ End Property
 Public Property Let Value(Optional ByVal v_wsh As Worksheet, _
                           Optional ByVal v_name As Variant, _
                                    ByVal v_value As Variant)
-' ----------------------------------------------------------------------------
-' Saves a variant value (v_value) to a Worksheet (v_wsh) whereby the target
-' range (v_name) may be a range name or a Range object.
-' ----------------------------------------------------------------------------
     Const PROC = "Value-Let"
     
     Dim rng         As Range
@@ -495,7 +498,10 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function HasUrl(ByVal hu_rng As Range) As Boolean
-    HasUrl = hu_rng.Hyperlinks.Count <> 0
+Public Function HasUrl(ByVal h_rng As Range) As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when a range (h_rng) has an url.
+' ------------------------------------------------------------------------------
+    HasUrl = h_rng.Hyperlinks.Count <> 0
 End Function
 

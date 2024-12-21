@@ -5,14 +5,14 @@ Option Explicit
 ' ===================== values to and read values from the Registry within a
 ' VB-Project. For a maximum simplicity all services use the following named
 ' arguments:
-' reg_key           String expression, obligatory, starts with
+' ._reg_key           String expression, obligatory, starts with
 '                   "HKEY_CURRENT_USER" or "HKEY_LOCAL_MACHINE" followed by
 '                   sub-keys. The reg_key may well function as the base-key
 '                   for a VB-Project. It sjhould be noticed that writing to
 '                   "HKEY_LOCAL_MACHINE" requires elevated permissions which
 '                   are not recommendable at all.
-' reg_value_name    may be prefixed by sub-keys
-' reg_value         any format and any length. Values unable to be stored in
+' ._reg_value_name  may be prefixed by sub-keys
+' ._reg_value       any format and any length. Values unable to be stored in
 '                   the registry raise an error
 '
 ' Note: Because the services aim for ease of use they are not at all as
@@ -93,22 +93,21 @@ Private Sub BoP(ByVal b_proc As String, _
 #End If
 End Sub
                         
-Public Property Get Value( _
-                 Optional ByVal reg_key As String, _
-                 Optional ByVal reg_value_name As String) As Variant
+Public Property Get Value(Optional ByVal v_reg_key As String, _
+                          Optional ByVal v_reg_value_name As String) As Variant
 ' ----------------------------------------------------------------------------
-' Returns the value of the registry key's (reg_key) value identified by its
-' name (reg_value_name).
+' Returns the value of the registry key's (v_reg_key) value identified by its
+' name (v_reg_value_name).
 ' ----------------------------------------------------------------------------
     Const PROC = "Value-Get"
     
     On Error GoTo eh
     Dim rString As String
     
-    rString = RegString(reg_key, reg_value_name)
+    rString = RegString(v_reg_key, v_reg_value_name)
     If Not IsValidKey(rString) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided reg_key | reg_value_name ('" & rString & "') lenght exceeds the maximum length of '" & REG_KEY_MAX_LENGTH & "'!"
-    If Not HasAccess(reg_key, KEY_READ) Then
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided v_reg_key | v_reg_value_name ('" & rString & "') lenght exceeds the maximum length of '" & REG_KEY_MAX_LENGTH & "'!"
+    If Not HasAccess(v_reg_key, KEY_READ) Then
         ' Err.Raise AppErr(2), ErrSrc(PROC), "No access right to read '" & rString & "'!"
         ' Debug.Print ErrSrc(PROC) & ": " &  "KEY_READ denied for '" & rString & "'"
     End If
@@ -144,33 +143,25 @@ Private Sub EoP(ByVal e_proc As String, _
 #End If
 End Sub
 
-Public Property Let Value( _
-                 Optional ByVal reg_key As String, _
-                 Optional ByVal reg_value_name As String, _
-                          ByVal reg_value As Variant)
+Public Property Let Value(Optional ByVal v_reg_key As String, _
+                          Optional ByVal v_reg_value_name As String, _
+                                   ByVal v_reg_value As Variant)
 ' ----------------------------------------------------------------------------
-' Writes the value (re_value) to the key (reg_key) value name (reg_value_name)
+' Writes the value (re_value) to the key (v_reg_key) value name (v_reg_value_name)
 ' ----------------------------------------------------------------------------
     Const PROC = "Value-Let"
     
-    On Error GoTo eh
     Dim rString As String
     
-    rString = RegString(reg_key, reg_value_name)
+    rString = RegString(v_reg_key, v_reg_value_name)
     If Not IsValidKey(rString) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The argument reg_key (" & reg_key & _
-                                            ") and the argument reg_value_name (" & reg_value_name & _
-                                            ") resulted in '" & rString & "' which is not a valid key string!"
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The argument for the parameter ""v_reg_key"" is an invalid key string!"
+    If Not IsValidValue(v_reg_value) _
+    Then Err.Raise AppErr(2), ErrSrc(PROC), "The the provided argument for the parameter ""v_reg_value"" is invalid! " & _
+                                            "It exceeds the maximum allowed value (if numeric) or length if a string)"
 
-    
-    CreateObject("WScript.Shell").RegWrite rString, reg_value, RegType(reg_value)
+    CreateObject("WScript.Shell").RegWrite rString, v_reg_value, RegType(v_reg_value)
 
-xt: Exit Property
-
-eh: Select Case ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
 End Property
 
 Private Function AppErr(ByVal app_err_no As Long) As Long
@@ -339,31 +330,31 @@ Private Function DctAddOrderValue(ByVal dctkey As Variant) As Variant
     Else DctAddOrderValue = dctkey
 End Function
 
-Public Function Delete(ByVal reg_key As String, _
-              Optional ByVal reg_value_name As String = vbNullString) As Boolean
+Public Function Delete(ByVal d_reg_key As String, _
+              Optional ByVal d_reg_value_name As String = vbNullString) As Boolean
 ' ----------------------------------------------------------------------------
-' When no value name (reg_value_name) is provided the provided key is deleted
-' else only the name. A possibly missing \ ate the end of the key (reg_key)
+' When no value name (d_reg_value_name) is provided the provided key is deleted
+' else only the name. A possibly missing \ ate the end of the key (d_reg_key)
 ' ----------------------------------------------------------------------------
     Const PROC = "Delete"
     
     On Error GoTo eh
     Dim rString As String
     
-    If reg_value_name <> vbNullString Then
-        rString = RegString(reg_key, reg_value_name)
+    If d_reg_value_name <> vbNullString Then
+        rString = RegString(d_reg_key, d_reg_value_name)
         If Not IsValidKey(rString) _
-        Then Err.Raise AppErr(1), ErrSrc(PROC), "The argument reg_key (" & reg_key & _
-                                                ") and the argument reg_value_name (" & reg_value_name & _
+        Then Err.Raise AppErr(1), ErrSrc(PROC), "The argument d_reg_key (" & d_reg_key & _
+                                                ") and the argument d_reg_value_name (" & d_reg_value_name & _
                                                 ") resulted in '" & rString & "' which is not a valid key string!"
         
         
         If Right(rString, 1) = "\" _
         Then rString = Left(rString, Len(rString) - 1)
-        CreateObject("WScript.Shell").RegDelete rString ' reg_key & reg_value_name
+        CreateObject("WScript.Shell").RegDelete rString ' d_reg_key & d_reg_value_name
         Delete = True
     Else
-        mReg.DeleteSubKeys reg_key:=reg_key
+        mReg.DeleteSubKeys d_reg_key:=d_reg_key
     End If
     
 xt: Exit Function
@@ -374,7 +365,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub DeleteSubKeys(ByVal reg_key As String)
+Public Sub DeleteSubKeys(ByVal d_reg_key As String)
 ' ----------------------------------------------------------------------------
 '
 ' ----------------------------------------------------------------------------
@@ -386,17 +377,17 @@ Public Sub DeleteSubKeys(ByVal reg_key As String)
     Dim oReg        As Object
     Static HKey     As Long
     
-    RegHKey reg_key, HKey   ' Extract and transform hKey and unstrip it frrom reg_key
-    If Right(reg_key, 1) = "\" Then reg_key = Left(reg_key, Len(reg_key) - 1)
+    RegHKey d_reg_key, HKey   ' Extract and transform hKey and unstrip it frrom d_reg_key
+    If Right(d_reg_key, 1) = "\" Then d_reg_key = Left(d_reg_key, Len(d_reg_key) - 1)
     
     Set oReg = GetObject("winmgmts:\\" & "." & "\root\default:StdRegProv")
-    oReg.EnumKey HKey, reg_key, SubKeys
+    oReg.EnumKey HKey, d_reg_key, SubKeys
     If ArrayIsAllocated(SubKeys) Then
         For Each SubKey In SubKeys
-            DeleteSubKeys reg_key & "\" & SubKey
+            DeleteSubKeys d_reg_key & "\" & SubKey
         Next
     End If
-    oReg.DeleteKey HKey, reg_key
+    oReg.DeleteKey HKey, d_reg_key
 
 xt: Set oReg = Nothing
     Exit Sub
@@ -548,10 +539,10 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mReg." & sProc
 End Function
 
-Public Function Exists(ByVal reg_key As String, _
-         Optional ByVal reg_value_name As String = vbNullString) As Boolean
+Public Function Exists(ByVal e_reg_key As String, _
+         Optional ByVal e_reg_value_name As String = vbNullString) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns TRUE when the key (reg_key) exists and when a name (reg_value_name)
+' Returns TRUE when the key (e_reg_key) exists and when a name (e_reg_value_name)
 ' is provided when the name exists. No worry about \! Missing ones are added.
 ' ----------------------------------------------------------------------------
     Const PROC = "Exists"
@@ -559,20 +550,20 @@ Public Function Exists(ByVal reg_key As String, _
     On Error GoTo eh
     Dim rString As String
     
-    rString = RegString(reg_key, reg_value_name)
+    rString = RegString(e_reg_key, e_reg_value_name)
     If Not IsValidKey(rString) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "The argument reg_key (" & reg_key & _
-                                            ") and the argument reg_value_name (" & reg_value_name & _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The argument e_reg_key (" & e_reg_key & _
+                                            ") and the argument e_reg_value_name (" & e_reg_value_name & _
                                             ") resulted in '" & rString & "' which is not a valid key string!"
     
-    If reg_value_name <> vbNullString Then
-        If Right(reg_value_name, 1) = "\" _
-        Then reg_value_name = Left(reg_value_name, Len(reg_value_name) - 1)
+    If e_reg_value_name <> vbNullString Then
+        If Right(e_reg_value_name, 1) = "\" _
+        Then e_reg_value_name = Left(e_reg_value_name, Len(e_reg_value_name) - 1)
     End If
     Exists = False
     On Error GoTo xt
-    '~~ To have reg_key interpreted as key it has to end with a \.
-    CreateObject("WScript.Shell").RegRead rString ' reg_key & reg_value_name
+    '~~ To have e_reg_key interpreted as key it has to end with a \.
+    CreateObject("WScript.Shell").RegRead rString ' e_reg_key & e_reg_value_name
     Exists = True
 
 xt: Exit Function
@@ -583,11 +574,11 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function Export(ByVal reg_key As String) As String
+Public Function Export(ByVal e_reg_key As String) As String
 ' ----------------------------------------------------------------------------
 ' Returns a string in the form [section]
 '                              name=value
-' When the key (reg_key) contains sub-keys the returned string will have as
+' When the key (e_reg_key) contains sub-keys the returned string will have as
 ' many [section] lines. The result of the function written to a file is a
 ' typical .ini, .dat, .cfg file.
 ' ----------------------------------------------------------------------------
@@ -596,14 +587,14 @@ Public Function Export(ByVal reg_key As String) As String
     Dim ValueName   As Variant
     Dim Values      As Dictionary
     
-    Set Keys = mReg.Keys(reg_key)
+    Set Keys = mReg.Keys(e_reg_key)
     If Keys.Count = 0 Then
-        Set Values = mReg.Values(reg_key)
+        Set Values = mReg.Values(e_reg_key)
         If Values.Count > 0 Then
-            If Right(reg_key, 1) = "\" Then
-                Export = "[" & Split(reg_key, "\")(UBound(Split(reg_key, "\")) - 1) & "]"
+            If Right(e_reg_key, 1) = "\" Then
+                Export = "[" & Split(e_reg_key, "\")(UBound(Split(e_reg_key, "\")) - 1) & "]"
             Else
-                Export = "[" & Split(reg_key, "\")(UBound(Split(reg_key, "\"))) & "]"
+                Export = "[" & Split(e_reg_key, "\")(UBound(Split(e_reg_key, "\"))) & "]"
             End If
             For Each ValueName In Values
                 Export = Export & vbLf & ValueName & "=" & Values(ValueName)
@@ -611,7 +602,7 @@ Public Function Export(ByVal reg_key As String) As String
         End If
     Else
         For Each Key In Keys
-            Set Values = mReg.Values(reg_key & "\" & Key)
+            Set Values = mReg.Values(e_reg_key & "\" & Key)
             If Values.Count > 0 Then
                 If Len(Export) = 0 _
                 Then Export = "[" & Key & "]" _
@@ -625,9 +616,9 @@ Public Function Export(ByVal reg_key As String) As String
     
 End Function
 
-Private Function HasAccess(ByVal reg_key As String, ByVal reg_access As Long)
+Private Function HasAccess(ByVal h_reg_key As String, ByVal h_reg_access As Long)
 ' ------------------------------------------------------------------------------
-' Returns TRUE when access right (reg_access) is granted for the key (reg_key).
+' Returns TRUE when access right (h_reg_access) is granted for the key (h_reg_key).
 ' ------------------------------------------------------------------------------
     Dim sComputer   As String
     Dim sMethod     As String
@@ -639,7 +630,7 @@ Private Function HasAccess(ByVal reg_key As String, ByVal reg_access As Long)
     
     sComputer = "."
     sMethod = "CheckAccess"
-    RegHKey reg_key, HKey ' extract and unstrip the hKey from the reg_key
+    RegHKey h_reg_key, HKey ' extract and unstrip the hKey from the h_reg_key
     
     Set oRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}//" & _
             sComputer & "/root/default:StdRegProv")
@@ -648,57 +639,38 @@ Private Function HasAccess(ByVal reg_key As String, ByVal reg_access As Long)
     Set oInParam = oMethod.inParameters.SpawnInstance_()
     
     oInParam.hDefKey = HKey
-    oInParam.sSubKeyName = reg_key
-    oInParam.uRequired = reg_access
+    oInParam.sSubKeyName = h_reg_key
+    oInParam.uRequired = h_reg_access
     Set oOutParam = oRegistry.ExecMethod_(sMethod, oInParam)
     
     HasAccess = oOutParam.Properties_("bGranted") = 0
 End Function
 
-Private Function IsValidDataType(ByVal vdt_var As Variant) As Boolean
-' ----------------------------------------------------------------------------
-' Returns TRUE when the data type of the variable (vdt_var) is valid for
-' a registry entry.
-' ----------------------------------------------------------------------------
-    IsValidDataType = False
-    If VarType(vdt_var) >= vbArray Then GoTo xt
-    If IsArray(vdt_var) Then GoTo xt
-    If IsObject(vdt_var) Then GoTo xt
-
-    Select Case VarType(vdt_var)
-        Case vbBoolean, vbByte, vbCurrency, vbDate, vbDouble, vbInteger, vbLong, vbSingle, vbString
-            IsValidDataType = True
-        Case Else
-            GoTo xt
-    End Select
-xt:
-End Function
-
-Private Function IsValidKey(ByVal reg_key As String) As Boolean
+Private Function IsValidKey(ByVal i_reg_key As String) As Boolean
 ' ------------------------------------------------------------------------------
-' Returns TRUE when the length of the key (reg_key) is LE REG_MAX_KEYLENGTH and
+' Returns TRUE when the length of the key (i_reg_key) is LE REG_MAX_KEYLENGTH and
 ' all spaces unstripped longer 0.
 ' ------------------------------------------------------------------------------
-    IsValidKey = (Len(reg_key) <= REG_KEY_MAX_LENGTH) And (Len(Trim(reg_key)) > 0)
-    If IsValidKey Then IsValidKey = Split(reg_key, "\")(0) Like "HK*"
+    IsValidKey = (Len(i_reg_key) <= REG_KEY_MAX_LENGTH) And (Len(Trim(i_reg_key)) > 0)
+    If IsValidKey Then IsValidKey = Split(i_reg_key, "\")(0) Like "HK*"
 End Function
 
-Private Function IsValidValue(Optional ByVal reg_value As Variant) As Boolean
+Private Function IsValidValue(Optional ByVal i_reg_value As Variant) As Boolean
 ' ------------------------------------------------------------------------------
-' Returns TRUE when a numeric value (reg_value) ranges
+' Returns TRUE when a numeric value (i_reg_value) ranges
 ' from -2,147,483,648 to 2,147,483,647 or a string - which is the maximum
 ' because a Registry-Type REG_DWORD stores a Long type value.
 ' ------------------------------------------------------------------------------
-    If IsNumeric(reg_value) Then
-        IsValidValue = reg_value >= REG_VALUE_MIN_VALUE And reg_value <= REG_VALUE_MAX_VALUE
-    ElseIf VarType(reg_value) = vbString Then
-        IsValidValue = Len(reg_value) <= REG_VALUE_MAX_LENGTH And Len(Trim(reg_value)) > 0
+    If IsNumeric(i_reg_value) Then
+        IsValidValue = i_reg_value >= REG_VALUE_MIN_VALUE And i_reg_value <= REG_VALUE_MAX_VALUE
+    ElseIf VarType(i_reg_value) = vbString Then
+        IsValidValue = Len(i_reg_value) <= REG_VALUE_MAX_LENGTH And Len(Trim(i_reg_value)) > 0
     End If
 End Function
 
-Public Function Keys(ByVal reg_key As String) As Dictionary
+Public Function Keys(ByVal k_reg_key As String) As Dictionary
 ' ----------------------------------------------------------------------------
-' Returns a Dictionary with all sub-keys under the key (reg_key). The returned
+' Returns a Dictionary with all sub-keys under the key (k_reg_key). The returned
 ' Dictionary contains an item for each sub-key under the key with the sub-key
 ' as the key and a Dictionary of all values with the Value-Name as the key.
 ' ----------------------------------------------------------------------------
@@ -708,13 +680,13 @@ Public Function Keys(ByVal reg_key As String) As Dictionary
     Dim HKey        As Long
     Dim oReg        As Object
     
-    If Not mReg.Exists(reg_key) Then GoTo xt
-    RegHKey reg_key, HKey ' extract/transform HKey and unstrip it from re_key
-    If Right(reg_key, 1) = "\" Then reg_key = Left(reg_key, Len(reg_key) - 1)
+    If Not mReg.Exists(k_reg_key) Then GoTo xt
+    RegHKey k_reg_key, HKey ' extract/transform HKey and unstrip it from re_key
+    If Right(k_reg_key, 1) = "\" Then k_reg_key = Left(k_reg_key, Len(k_reg_key) - 1)
     Computer = "."
 
     Set oReg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & Computer & "\root\default:StdRegProv")
-    oReg.EnumKey HKey, reg_key, SubKeys
+    oReg.EnumKey HKey, k_reg_key, SubKeys
     If ArrayIsAllocated(SubKeys) Then
         For Each SubKey In SubKeys
             DctAddAscByKey add_dct:=Keys, add_key:=SubKey, add_item:=mReg.Values(SubKey)
@@ -723,10 +695,10 @@ Public Function Keys(ByVal reg_key As String) As Dictionary
 xt:
 End Function
 
-Private Sub RegHKey(ByRef reg_key As String, _
-                    ByRef reg_hkey As Long)
+Private Sub RegHKey(ByRef r_reg_key As String, _
+                    ByRef r_reg_hkey As Long)
 ' ----------------------------------------------------------------------------
-' When the key (reg_key) begins with a HKEY it is extracted/unstripped and
+' When the key (r_reg_key) begins with a HKEY it is extracted/unstripped and
 ' transformed to Long.
 ' The procedure is used wherever the HKey value is required rather than the
 ' full key as a string. However, any other HKey but HKEY_CURRENT_USER (HKCU)
@@ -736,13 +708,13 @@ Private Sub RegHKey(ByRef reg_key As String, _
     
     On Error GoTo eh
     
-    Select Case Split(reg_key, "\")(0)
-        Case "HKEY_CURRENT_USER":       reg_hkey = HKEY_CURRENT_USER:       reg_key = Replace(reg_key, "HKEY_CURRENT_USER\", vbNullString)
-        Case "HKCU":                    reg_hkey = HKEY_CURRENT_USER:       reg_key = Replace(reg_key, "HKCU\", vbNullString)
-        Case "HKEY_LOCAL_MACHINE":      reg_hkey = HKEY_LOCAL_MACHINE:      reg_key = Replace(reg_key, "HKEY_LOCAL_MACHINE\", vbNullString)
-        Case "HKLM":                    reg_hkey = HKEY_LOCAL_MACHINE:      reg_key = Replace(reg_key, "HKLM\", vbNullString)
+    Select Case Split(r_reg_key, "\")(0)
+        Case "HKEY_CURRENT_USER":       r_reg_hkey = HKEY_CURRENT_USER:       r_reg_key = Replace(r_reg_key, "HKEY_CURRENT_USER\", vbNullString)
+        Case "HKCU":                    r_reg_hkey = HKEY_CURRENT_USER:       r_reg_key = Replace(r_reg_key, "HKCU\", vbNullString)
+        Case "HKEY_LOCAL_MACHINE":      r_reg_hkey = HKEY_LOCAL_MACHINE:      r_reg_key = Replace(r_reg_key, "HKEY_LOCAL_MACHINE\", vbNullString)
+        Case "HKLM":                    r_reg_hkey = HKEY_LOCAL_MACHINE:      r_reg_key = Replace(r_reg_key, "HKLM\", vbNullString)
         Case Else
-'            Err.Raise AppErr(1), ErrSrc(PROC), "The provided key '" & reg_key & "' does not begin with " & _
+'            Err.Raise AppErr(1), ErrSrc(PROC), "The provided key '" & r_reg_key & "' does not begin with " & _
 '                                               "HKEY_CURRENT_USER (or HKCU) or HKEY_LOCAL_MACHINE (or HKLM)!"
     End Select
 
@@ -754,26 +726,26 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function RegString(ByRef reg_key As String, ByVal reg_value_name As String) As String
-    RegString = VBA.Replace(reg_key & "\" & reg_value_name, "\\", "\")
+Private Function RegString(ByRef r_reg_key As String, ByVal r_reg_value_name As String) As String
+    RegString = VBA.Replace(r_reg_key & "\" & r_reg_value_name, "\\", "\")
     RegString = VBA.Replace(RegString, "HKCU", "HKEY_CURRENT_USER")
     RegString = VBA.Replace(RegString, "HKLM", "HKEY_LOCAL_MACHINE")
 End Function
 
-Private Function RegType(ByVal reg_value As Variant) As String
+Private Function RegType(ByVal r_reg_value As Variant) As String
 ' ----------------------------------------------------------------------------
-' Returns the Registration Type for the value (reg_value).
+' Returns the Registration Type for the value (r_reg_value).
 ' ----------------------------------------------------------------------------
     Const PROC = "RegType"
     
     On Error GoTo eh
-    Select Case VarType(reg_value)
+    Select Case VarType(r_reg_value)
         ' Type      To store
         ' --------- --------------------------------
         ' REG_SZ    A string
         ' REG_DWORD A 32-bit number (4 Bytes = Long)
         ' ------------------------------------------
-        Case vbBoolean:     RegType = "REG_SZ":     reg_value = CStr(Abs(CInt(reg_value))) ' reads as 0 or 1
+        Case vbBoolean:     RegType = "REG_SZ":     r_reg_value = CStr(Abs(CInt(r_reg_value))) ' reads as 0 or 1
         Case vbByte:        RegType = "REG_DWORD"
         Case vbCurrency:    RegType = "REG_DWORD"
         Case vbDate:        RegType = "REG_SZ"
@@ -795,9 +767,9 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function Values(ByVal reg_key As String) As Dictionary
+Public Function Values(ByVal v_reg_key As String) As Dictionary
 ' ----------------------------------------------------------------------------
-' Returns a Dictionary of all values under a given registry key (reg_key)
+' Returns a Dictionary of all values under a given registry key (v_reg_key)
 ' where each entry's key is the value name and the item is the value. All
 ' value-names are sorted in ascending order.
 ' ----------------------------------------------------------------------------
@@ -817,10 +789,10 @@ Public Function Values(ByVal reg_key As String) As Dictionary
     Set Values = New Dictionary
        
     '~~ Open the key, exit if not found.
-    RegHKey reg_key, HKey
-    If Len(reg_key) Then
-        If RegOpenKeyEx(HKey, reg_key, 0, KEY_READ, handle) Then Exit Function
-        HKey = handle   ' subsequent functions use reg_hkey
+    RegHKey v_reg_key, HKey
+    If Len(v_reg_key) Then
+        If RegOpenKeyEx(HKey, v_reg_key, 0, KEY_READ, handle) Then Exit Function
+        HKey = handle   ' subsequent functions use v_reg_hkey
     End If
     
     Do

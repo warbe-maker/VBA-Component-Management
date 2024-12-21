@@ -10,11 +10,12 @@ Attribute VB_Exposed = False
 Option Explicit
 ' -----------------------------------------------------------------------------------
 ' Class Module clsComp: Provides specific CompMan services for a VB-Project's
-' ===================== component - by default of the serviced Workbook. The module
-' provides instances of the class modult clsCode for: the current component'a code,
-' an existing public code (when a public Common Component exists), a pending release
-' code (when the component has a modification pending release), and the exported code
-' (when the component's export file exists).
+' ===================== component of the serviced ActiveWorkbook. The module
+' provides the following instances of the class module clsCode:
+' - CodeCrrent: The current component'a code,
+' - CodePublic: An existing public code, when it exists as a a public Common Component
+' - CodePnding: When it exists "pending release"
+' - CodeExprtd: The exported code (when the component's export file exists).
 '
 ' Public (Friend) Properties:
 ' ---------------------------
@@ -65,14 +66,10 @@ Private lKindOfComp         As enKindOfComp
 Private sCompName           As String       ' The class module's global component name
 Private sExpFileExt         As String
 Private sExpFileFullName    As String       ' Full filespec for the Export-File of CompName
-Private sExpFilePath        As String       ' Folder for the Export-File of CompName
 Private sTmpFolder          As String       ' Folder for a temporary Export File
-Private sWrkbkBaseName      As String       ' Common Component host Workbook's base name
 Private sWrkbkFullName      As String       ' Common Component host Workbook's full name
 Private vbc                 As VBComponent  ' VBComponent managed by this Class Module
 Private wbk                 As Workbook     ' The class' Workbook
-Private sService            As String       ' Name of the 'Service' folder, i.e. the folder of the serviced Workbook
-Private dctType             As Dictionary
 Private lMaxLenComp         As Long
 Private wsh                 As Worksheet
 
@@ -82,14 +79,8 @@ Public CodePublic           As clsCode
 Public CodePnding           As clsCode
 
 Private Sub Class_Initialize()
-    If dctType Is Nothing Then Set dctType = New Dictionary Else dctType.RemoveAll
-    dctType.Add vbext_ct_ActiveXDesigner, "ActiveX Designer"
-    dctType.Add vbext_ct_ClassModule, "Class Module"
-    dctType.Add vbext_ct_Document, "Document Module"
-    dctType.Add vbext_ct_MSForm, "UserForm"
-    dctType.Add vbext_ct_StdModule, "Standard Module"
-    Wrkbk = ActiveWorkbook
-    sWrkbkFullName = ActiveWorkbook.FullName
+    Set wbk = ActiveWorkbook
+    sWrkbkFullName = wbk.FullName
 End Sub
 
 Private Sub Class_Terminate()
@@ -145,7 +136,6 @@ Friend Property Let CompName(ByVal s_comp As String)
 ' ------------------------------------------------------------------------------
     Const PROC = "CompName-Let"
     
-    Dim sTempExport         As String
     Dim dctPublicExpFiles   As Dictionary
     
     Set CodeCrrent = Nothing:   Set CodeCrrent = New clsCode
@@ -228,7 +218,11 @@ Friend Property Get ExpFileExt() As String:                 ExpFileExt = sExpFil
 
 Friend Property Let KindOfComp(ByVal en As enKindOfComp):   lKindOfComp = en:                                                   End Property
 
+Friend Property Get KindOfComp() As enKindOfComp:           KindOfComp = lKindOfComp:                                           End Property
+
 Friend Property Get MaxLenComp() As Long:                   MaxLenComp = lMaxLenComp:                                           End Property
+
+Friend Property Get PendingKindOfComp() As String:          PendingKindOfComp = CommonPending.LastModKindOfComp(sCompName):     End Property
 
 Friend Property Get PendingLastModAt() As String:           PendingLastModAt = CommonPending.LastModAt(sCompName):              End Property
 
@@ -240,8 +234,6 @@ Friend Property Get PendingLastModOn() As String:           PendingLastModOn = C
 
 Friend Property Let PendingLastModOn(ByVal s As String):    CommonPending.LastModOn(sCompName) = s:                             End Property
 
-Friend Property Get PendingKindOfComp() As String:          PendingKindOfComp = CommonPending.LastModKindOfComp(sCompName):     End Property
-
 Friend Property Get PublicLastModAt() As String:            PublicLastModAt = CommonPublic.LastModAt(sCompName):                End Property
 
 Friend Property Get PublicLastModBy() As String:            PublicLastModBy = CommonPublic.LastModBy(sCompName):                End Property
@@ -249,13 +241,6 @@ Friend Property Get PublicLastModBy() As String:            PublicLastModBy = Co
 Friend Property Get PublicLastModIn() As String:            PublicLastModIn = CommonPublic.LastModInWrkbkFullName(sCompName):   End Property
 
 Friend Property Get PublicLastModOn() As String:            PublicLastModOn = CommonPublic.LastModOn(sCompName):                End Property
-
-Friend Property Get Service() As String
-    If sService = vbNullString Then
-        sService = FSo.GetFileName(Me.Wrkbk.Path)
-    End If
-    Service = sService
-End Property
 
                          
 Friend Property Get ServicedLastModAt(Optional ByVal l_comp As String = vbNullString) As String
@@ -277,40 +262,25 @@ Friend Property Get ServicedLastModExpFile() As String:         ServicedLastModE
 
 Friend Property Let ServicedLastModExpFile(ByVal s As String):  CommonServiced.LastModExpFileOrigin(sCompName) = s:                         End Property
 
-Friend Property Get ServicedLastModKindOfComp() As String:      ServicedLastModKindOfComp = CommonServiced.KindOfComponent(sCompName):      End Property
-
 Friend Property Get ServicedLastModIn() As String:              ServicedLastModIn = CommonServiced.LastModInWrkbkFullName(sCompName):       End Property
 
 Friend Property Let ServicedLastModIn(ByVal s As String):       CommonServiced.LastModInWrkbkFullName(sCompName) = s:                       End Property
 
+Friend Property Get ServicedLastModKindOfComp() As String:      ServicedLastModKindOfComp = CommonServiced.KindOfComponent(sCompName):      End Property
+
 Friend Property Get ServicedLastModOn() As String:              ServicedLastModOn = CommonServiced.LastModOn(sCompName):                    End Property
 
-Friend Property Let ServicedLastModOn(ByVal s As String):    CommonServiced.LastModOn(sCompName) = s:                               End Property
+Friend Property Let ServicedLastModOn(ByVal s As String):       CommonServiced.LastModOn(sCompName) = s:                                    End Property
 
-Friend Property Get Sheet() As Worksheet:                    Set Sheet = wsh:                                                   End Property
+Friend Property Get Sheet() As Worksheet:                       Set Sheet = wsh:                                                            End Property
 
-Friend Property Let Sheet(ByRef s_wsh As Worksheet):         wsh = s_wsh:                                                       End Property
+Friend Property Let Sheet(ByRef s_wsh As Worksheet):            wsh = s_wsh:                                                                End Property
 
-Friend Property Get VBComp() As VBComponent:                 Set VBComp = wbk.VBProject.VBComponents(sCompName):                End Property
+Friend Property Get VBComp() As VBComponent:                    Set VBComp = wbk.VBProject.VBComponents(sCompName):                         End Property
 
-Friend Property Get Wrkbk() As Workbook:                     Set Wrkbk = wbk:                                                   End Property
+'Friend Property Get Wrkbk() As Workbook:                        Set Wrkbk = wbk:                                                            End Property
 
-Friend Property Let Wrkbk(ByVal w_wbk As Workbook)
-' ------------------------------------------------------------------------------
-' By default a class instance is initialized with the Serviced.W
-' ------------------------------------------------------------------------------
-    If Not w_wbk Is wbk Then
-        '~~ The Workbook is not the one the class instance has been initialized with
-        If Not sCompName = vbNullString Then
-            '~~ A component's name has already been provided
-            CompName = sCompName ' re-instantiates all class clsCode instances
-        End If
-    End If
-    Set wbk = w_wbk
-    
-End Property
-
-Friend Property Get WrkbkFullName() As String:                  WrkbkFullName = sWrkbkFullName:                                     End Property
+Friend Property Get WrkbkFullName() As String:                  WrkbkFullName = sWrkbkFullName:                                             End Property
 
 Public Function Changed() As Boolean
 ' ------------------------------------------------------------------------------
@@ -345,77 +315,17 @@ Private Sub CleanUpTemps()
     
 End Sub
 
-Private Sub CommCompFacts(ByVal c_sect As Long, _
-                          ByVal c_rev_no_Used As String, _
-                          ByVal c_rev_no_raw As String)
-
-    With Msg
-        c_sect = c_sect + 1
-        With .Section(c_sect)
-            .Label.Text = c_rev_no_Used & " ="
-            .Label.FontColor = rgbBlack
-            .Label.FontBold = True
-            .Label.MonoSpaced = True
-            .Text.Text = "Revision Number of the used Common Component."
-        End With
-        c_sect = c_sect + 1
-        With .Section(c_sect)
-            .Label.Text = c_rev_no_raw & " ="
-            .Label.FontColor = rgbBlack
-            .Label.FontBold = True
-            .Label.MonoSpaced = True
-            .Text.Text = "Revision Number of the Common Component in the Common-Components folder."
-        End With
-        c_sect = c_sect + 1
-        With .Section(c_sect)
-            .Label.Text = CommonPublic.LastModInWrkbkFullName(sCompName) & " ="
-            .Label.FontColor = rgbBlack
-            .Label.FontBold = True
-            .Label.MonoSpaced = True
-            .Text.Text = "Workbook which last modified the Common Component - and saved the Export-file to the Common components folder."
-        End With
-    End With
-                          
-End Sub
-
-Public Function CommCompHasBeenModifiedinTheServicedWorkbook(Optional ByRef c_mod_at_datetime_utc As String, _
-                                                             Optional ByRef c_mod_in_wbk_fullname As String, _
-                                                             Optional ByRef c_mod_on_machine As String) As Boolean
-        
-    If IsCommCompPublic Then
-        If FSo.FileExists(ExpFileFullName) Then
-            CommCompHasBeenModifiedinTheServicedWorkbook = Not CodeExprtd.Meets(CodePublic)
-            c_mod_at_datetime_utc = ServicedLastModAt
-            c_mod_in_wbk_fullname = Me.ServicedLastModIn
-        End If
-    End If
-
-End Function
-
-Public Function CommCompHasModificationPendingRelease(Optional ByRef p_last_mod_at_datetime_utc As String, _
-                                                      Optional ByRef p_last_mod_export_filename As String, _
-                                                      Optional ByRef p_last_mod_in_wbk_fullname As String, _
-                                                      Optional ByRef p_last_mod_in_wbk_name As String, _
-                                                      Optional ByRef p_last_mod_on_machine As String) As Boolean
+Public Function CommCompHasModificationPendingRelease(Optional ByRef c_last_mod_at_datetime_utc As String, _
+                                                      Optional ByRef c_last_mod_export_filename As String, _
+                                                      Optional ByRef c_last_mod_in_wbk_fullname As String, _
+                                                      Optional ByRef c_last_mod_on_machine As String) As Boolean
     
-    If IsCommComp Then
+    If IsCommon Then
         CommCompHasModificationPendingRelease = CommonPending.Exists(sCompName _
-                                                                   , p_last_mod_at_datetime_utc _
-                                                                   , p_last_mod_export_filename _
-                                                                   , p_last_mod_in_wbk_fullname _
-                                                                   , p_last_mod_in_wbk_name _
-                                                                   , p_last_mod_on_machine)
-    End If
-    
-End Function
-
-Public Function CommCompIsPendingByServicedWorkbook()
-    
-    Dim sLastModInWbkFullName As String
-    
-    If CommCompHasModificationPendingRelease(, , sLastModInWbkFullName) Then
-        CommCompIsPendingByServicedWorkbook = sLastModInWbkFullName = WrkbkFullName _
-                                              And CodeExprtd.Meets(CodePnding)
+                                                                   , c_last_mod_at_datetime_utc _
+                                                                   , c_last_mod_export_filename _
+                                                                   , c_last_mod_in_wbk_fullname _
+                                                                   , c_last_mod_on_machine)
     End If
     
 End Function
@@ -451,7 +361,7 @@ Private Function ExpFileTempFullName() As String
     If Not wbk Is Nothing Then
         With FSo
             If sTmpFolder = vbNullString Then
-                sTmpFolder = Services.TempExportFolder
+                sTmpFolder = Servicing.TempExportFolder
             End If
             If Not .FolderExists(sTmpFolder) Then
                 mBasic.TimedDoEvents ErrSrc(PROC)
@@ -472,18 +382,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function IsCommComp() As Boolean
-    IsCommComp = Serviced.CompsCommon.Exists(sCompName)
-End Function
-
-Public Function IsCommCompPublic() As Boolean
-    IsCommCompPublic = CommonPublic.Exists(sCompName)
-End Function
-
-Public Function IsCommCompPending() As Boolean
-    IsCommCompPending = CommonPending.Exists(sCompName)
-End Function
-
 Public Sub Export()
 ' ------------------------------------------------------------------------------
 ' ! This clsComp service is essential. It ensures the update of the CodeExprtd !
@@ -493,10 +391,20 @@ Public Sub Export()
     VBComp.Export ExpFileFullName
     Set CodeExprtd = Nothing
     Set CodeExprtd = New clsCode
-    CodeExprtd.Source = ExpFileFullName
-    CodeExprtd.CompName = sCompName
+    With CodeExprtd
+        .CompName = sCompName
+        .Source = ExpFileFullName
+    End With
     
 End Sub
+
+Public Function IsCommCompPending() As Boolean
+    IsCommCompPending = CommonPending.Exists(sCompName)
+End Function
+
+Public Function IsCommCompPublic() As Boolean
+    IsCommCompPublic = CommonPublic.Exists(sCompName)
+End Function
 
 Public Function IsCommCompUpToDate() As Boolean
 
@@ -507,6 +415,29 @@ Public Function IsCommCompUpToDate() As Boolean
             IsCommCompUpToDate = CodeCrrent.Meets(CodePublic)
         End If
     End If
+    
+End Function
+
+Public Function IsCommon() As Boolean
+' ----------------------------------------------------------------------------
+' Returns True when the component (c_comp) is either known as a public Common
+' Component (in the Common-Components folder) or a hosted Common Component
+' (which yet has ever been released to public).
+' ----------------------------------------------------------------------------
+    IsCommon = CommonPublic.Exists(sCompName) _
+              Or Serviced.Hosted.Exists(sCompName)
+    
+End Function
+
+Public Function IsCommonUsedOrHosted() As Boolean
+' ----------------------------------------------------------------------------
+' Returns True when the component (c_comp) is either known as a public Common
+' Component (in the Common-Components folder) or a hosted Common Component
+' (which yet has ever been released to public).
+' ----------------------------------------------------------------------------
+    IsCommonUsedOrHosted = CommonPublic.Exists(sCompName) _
+                        And (KindOfComp = enCompCommonHosted _
+                          Or KindOfComp = enCompCommonUsed)
     
 End Function
 
@@ -529,44 +460,9 @@ Public Function IsThePendingSource() As Boolean
     
 End Function
 
-Private Function IsWrkbk() As Boolean
-    
-    Dim bSigned As Boolean
-    On Error Resume Next
-    bSigned = vbc.Properties("VBASigned").Value
-    IsWrkbk = Err.Number = 0
-    
-End Function
-
-Public Function ServicedMeetPublicProperties() As Boolean
-    Const PROC = "ServicedMeetPublicProperties"
-    
-    Dim sAt As String
-    Dim sBy As String
-    Dim sIn As String
-    Dim sOn As String
-    Dim sXf As String
-    
-    With CommonPublic
-        sAt = .LastModAt(sCompName)
-        sBy = .LastModBy(sCompName)
-        sIn = .LastModInWrkbkFullName(sCompName)
-        sOn = .LastModOn(sCompName)
-        sXf = .LastModExpFileOrigin(sCompName)
-    End With
-    
-    With CommonServiced
-        Select Case True
-            Case sAt <> .LastModAt(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModAt differs"
-            Case sBy <> .LastModBy(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModBy differs"
-            Case sXf <> .LastModExpFileOrigin(sCompName):   ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModXf differs"
-            Case sIn <> .LastModInWrkbkFullName(sCompName): ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModIn differs"
-            Case sOn <> .LastModOn(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModOn differs"
-            Case Else:  ServicedMeetPublicProperties = True
-        End Select
-    End With
-    
-End Function
+Public Sub RegisterPending()
+    CommonPending.Register Me
+End Sub
 
 Private Sub RemoveLeadingTrailingEmptyLines(ByRef dct As Dictionary)
 ' ------------------------------------------------------------------------------
@@ -615,6 +511,41 @@ Private Sub RemoveModuleInfo(ByRef dct As Dictionary)
     Next j
     
 End Sub
+
+Public Function ServicedMeetsPublicProperties() As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when the current serviced Common Component's (sCompName)
+' properties are identical with the public Common Component's properties.
+' ------------------------------------------------------------------------------
+    Const PROC = "ServicedMeetsPublicProperties"
+    
+    Dim sAt As String
+    Dim sBy As String
+    Dim sIn As String
+    Dim sOn As String
+    Dim sXf As String
+    
+    With CommonPublic
+        sAt = .LastModAt(sCompName)
+        sBy = .LastModBy(sCompName)
+        sIn = .LastModInWrkbkFullName(sCompName)
+        sOn = .LastModOn(sCompName)
+        sXf = .LastModExpFileOrigin(sCompName)
+    End With
+    
+    With CommonServiced
+        Select Case True
+            Case sAt <> .LastModAt(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModAt differs"
+            Case sBy <> .LastModBy(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModBy differs"
+            Case sXf <> .LastModExpFileOrigin(sCompName):   ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModXf differs"
+            Case sIn <> .LastModInWrkbkFullName(sCompName): ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModIn differs"
+            Case sOn <> .LastModOn(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModOn differs"
+            Case Else
+                ServicedMeetsPublicProperties = True
+        End Select
+    End With
+    
+End Function
 
 Public Sub SetPendingEqualServiced()
 ' ------------------------------------------------------------------------------
@@ -712,7 +643,7 @@ Public Sub SetPublicEqualServiced()
     
 End Sub
 
-Public Sub SetServicedEqualPublic()
+Public Sub SetServicedEqualPublic(Optional ByVal s_done As Boolean = True)
 ' ------------------------------------------------------------------------------
 ' Set the serviced Common Component's properties in the CommComps.dat file
 ' equal to those of the public Common Component's properties in the CommComp.dat
@@ -732,13 +663,13 @@ Public Sub SetServicedEqualPublic()
         sOn = .LastModOn(sCompName)
         sXf = .LastModExpFileOrigin(sCompName)
     End With
-    With CommonServiced
-        .LastModAt(sCompName) = sAt
-        .LastModBy(sCompName) = sBy
-        .LastModExpFileOrigin(sCompName) = sXf
-        .LastModInWrkbkFullName(sCompName) = sIn
-        .LastModOn(sCompName) = sOn
-    End With
+    CommonServiced.Values s_done, _
+                          sCompName, _
+                          mCompMan.VALUE_NAME_LAST_MOD_AT, sAt, _
+                          mCompMan.VALUE_NAME_LAST_MOD_BY, sBy, _
+                          mCompMan.VALUE_NAME_LAST_MOD_EXP_FILE_ORIG, sXf, _
+                          mCompMan.VALUE_NAME_LAST_MOD_IN, sIn, _
+                          mCompMan.VALUE_NAME_LAST_MOD_ON, sOn
     
 End Sub
 
@@ -767,17 +698,6 @@ Public Sub SetServicedProperties()
     End With
     
 End Sub
-
-Public Function TypeString() As String
-' ------------------------------------------------------------------------------
-' Returns the component's type as String.
-' ------------------------------------------------------------------------------
-    If Not vbc Is Nothing Then
-        On Error Resume Next
-        TypeString = dctType(vbc.Type)
-        If TypeString = vbNullString Then TypeString = "unknown"
-    End If
-End Function
 
 Public Function WrkbkBaseName() As String
     WrkbkBaseName = FSo.GetBaseName(sWrkbkFullName)

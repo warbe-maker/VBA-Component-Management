@@ -59,7 +59,6 @@ Private Const GITHUB_REPO_URL   As String = "https://github.com/warbe-maker/VBA-
     ' 1) See https://github.com/warbe-maker/Common-VBA-Message-Service for
     '    how to install an use.
     ' ------------------------------------------------------------------------
-    Private Const vbResumeOk As Long = 7 ' Buttons value in mMsg.ErrMsg (pass on not supported)
     Private Const vbResume   As Long = 6 ' return value (equates to vbYes)
 #End If
 
@@ -85,39 +84,6 @@ Private Const ERROR_OUT_OF_MEM = 0&
 Private Const ERROR_FILE_NOT_FOUND = 2&
 Private Const ERROR_PATH_NOT_FOUND = 3&
 Private Const ERROR_BAD_FORMAT = 11&
-
-Public Property Get FileArry(Optional ByVal f_file_full_name As String, _
-                             Optional ByVal f_exclude_empty As Boolean = False) As Variant
-' ----------------------------------------------------------------------------
-' Returns the content of a file (f_file) as array. When the file
-' (f_file_full_name) does not exist, an error is passed on to the caller.
-' ----------------------------------------------------------------------------
-    Const PROC  As String = "FileArry"
-    
-    Dim sSplit  As String
-    Dim sFile   As String
-    
-    If Not FSo.FileExists(f_file_full_name) _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named '" & f_file_full_name & "' does not exist!"
-    
-    sFile = FileString(f_file_full_name)    '~~ Obtain (and return) the used line terminating string (vbCrLf) or character
-    sSplit = SplitString(sFile)
-    FileArry = Split(sFile, sSplit)
-
-End Property
-
-Public Property Let FileArry(Optional ByVal f_file_full_name As String, _
-                             Optional ByVal f_exclude_empty As Boolean = False, _
-                                      ByVal f_ar As Variant)
-' ----------------------------------------------------------------------------
-' Writes array (f_ar) to file (f_file) whereby the array is joined to a text
-' string using vbCrLf as line break string.
-' ----------------------------------------------------------------------------
-    
-    f_exclude_empty = f_exclude_empty
-    mFso.FileString(f_file_full_name) = Join(f_ar, vbCrLf)
-             
-End Property
 
 Public Property Get FileDict(ByVal f_file As Variant) As Dictionary
 ' ----------------------------------------------------------------------------
@@ -147,7 +113,7 @@ Public Property Get FileDict(ByVal f_file As Variant) As Dictionary
     End Select
     
     '~~ Unload file into a test stream
-    sFile = FileString(flo.Path)
+    sFile = FileAsString(flo.Path)
     If sFile = vbNullString Then GoTo xt
     sSplit = SplitString(sFile)
     
@@ -170,59 +136,64 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
-Public Property Get FileString(Optional ByVal f_file_full_name As String, _
-                               Optional ByVal f_append As Boolean = False, _
-                               Optional ByVal f_exclude_empty As Boolean = False) As String
+Private Function FileAsString(ByVal f_file As Variant, _
+                     Optional ByRef f_split As String = vbCrLf, _
+                     Optional ByVal f_exclude_empty As Boolean = False) As String
 ' ----------------------------------------------------------------------------
-' Returns the content of a file (f_file_full_name) as a single string with
-' a vbCrLf as line terminating string - disregarding the optional split string
-' (sSplit) which may be vbCrLf, vbCr, or vbLf.
+' Returns a file's (f_file) - provided as full name or object - records/lines
+' as a single string with the records/lines delimited (f_split).
+' Note when copied: Originates in mVarTrans
+'                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
 ' ----------------------------------------------------------------------------
-    Dim sSplit  As String
-    Dim sFile   As String
+    Const PROC = "FileAsString"
     
-    Open f_file_full_name For Input As #1
-    sFile = Input$(lOf(1), 1)
+    On Error GoTo eh
+    Dim s       As String
+    
+    If TypeName(f_file) = "File" Then f_file = f_file.Path
+    '~~ An error is passed on to the caller
+    If Not FSo.FileExists(f_file) Then Err.Raise AppErr(1), ErrSrc(PROC), _
+                                       "The file, provided by a full name, does not exist!"
+    
+    Open f_file For Input As #1
+    s = Input$(lOf(1), 1)
     Close #1
     
-    sSplit = SplitString(sFile)
-    
-    '~~ Eliminate a trailing eof if any
-    If Right(sFile, 1) = VBA.Chr(26) Then
-        sFile = Left(sFile, Len(sFile) - 1)
-    End If
+    f_split = SplitIndctr(s) ' may be vbCrLf or vbLf (when file is a download)
     
     '~~ Eliminate any trailing split string
-    Do While Right(sFile, Len(sSplit)) = sSplit
-        DoEvents
-        sFile = Left(sFile, Len(sFile) - Len(sSplit))
+    Do While Right(s, Len(f_split)) = f_split
+        s = Left(s, Len(s) - Len(f_split))
+        If Len(s) <= Len(f_split) Then Exit Do
     Loop
     
     If f_exclude_empty Then
-        '~~ Eliminate empty lines
-        FileString = StringEmptyExcluded(sFile)
-    Else
-        FileString = sFile
+        s = FileAsStringEmptyExcluded(s)
     End If
-        
-End Property
+    FileAsString = s
 
-Public Property Let FileString(Optional ByVal f_file_full_name As String, _
-                               Optional ByVal f_append As Boolean = False, _
-                               Optional ByVal f_exclude_empty As Boolean = False, _
-                                        ByVal f_s As String)
+xt: Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Function
+
+Private Function FileAsStringEmptyExcluded(ByVal f_s As String) As String
 ' ----------------------------------------------------------------------------
-' Writes a string (f_s) with multiple records/lines delimited by a vbCrLf to
-' a file (f_file_full_name).
+' Returns a string (f_s) with any empty elements excluded. I.e. the string
+' returned begins and ends with a non vbNullString character and has no
+' Note when copied: Originates in mVarTrans
+'                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
 ' ----------------------------------------------------------------------------
     
-    If f_append _
-    Then Open f_file_full_name For Append As #1 _
-    Else Open f_file_full_name For Output As #1
-    Print #1, f_s
-    Close #1
-        
-End Property
+    Do While InStr(f_s, vbCrLf & vbCrLf) <> 0
+        f_s = Replace(f_s, vbCrLf & vbCrLf, vbCrLf)
+    Loop
+    FileAsStringEmptyExcluded = f_s
+    
+End Function
 
 Public Property Get FileTemp(Optional ByVal f_path As String = vbNullString, _
                              Optional ByVal f_extension As String = ".tmp") As String
@@ -512,30 +483,6 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-Private Function DiffItem(ByVal d_line As Long, _
-                          ByVal d_file_left As String, _
-                          ByVal d_file_right As String, _
-                 Optional ByVal d_line_left As String = vbNullString, _
-                 Optional ByVal d_line_right As String = vbNullString) As String
-' --------------------------------------------------------------------
-'
-' --------------------------------------------------------------------
-    Dim sFileLeft   As String
-    Dim sFileRight  As String
-    Dim i           As Long
-    
-    For i = 1 To Min(Len(d_file_left), Len(d_file_right))
-        If VBA.Mid$(d_file_left, i, 1) <> VBA.Mid$(d_file_right, i, 1) _
-        Then Exit For
-    Next i
-    i = i - 2
-    sFileLeft = "..." & VBA.Right$(d_file_left, Len(d_file_left) - i) & "Line " & Format(d_line, "0000") & ": "
-    sFileRight = "..." & VBA.Right$(d_file_right, Len(d_file_right) - i) & "Line " & Format(d_line, "0000") & ": "
-    
-    DiffItem = sFileLeft & "'" & d_line_left & "'" & vbLf & sFileRight & "'" & d_line_right & "'"
-
-End Function
 
 Private Function ElementOfIndex(ByVal a As Variant, _
                                 ByVal i As Long) As Long
@@ -858,36 +805,8 @@ Public Function FileDiffersFromFile(ByVal f_file_this As String, _
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when this code lines differ from those (d_from_code) code lines
 ' ----------------------------------------------------------------------------
-    FileDiffersFromFile = StrComp(FileString(f_file_this), FileString(f_file_from), f_compare)
+    FileDiffersFromFile = StrComp(FileAsString(f_file_this, , f_exclude_empty), FileAsString(f_file_from, , f_exclude_empty), f_compare)
 End Function
-
-Public Sub FileDiffersFromFileDebug(ByVal f_file_this As String, _
-                                    ByVal f_file_from As String, _
-                           Optional ByVal f_exclude_empty As Boolean = False)
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Const PROC = "FileDiffersFromFileDebug"
-    
-    Dim i       As Long
-    Dim arr     As Variant
-    Dim arrFrom As Variant
-    
-    If f_exclude_empty _
-    Then Debug.Print ErrSrc(PROC) & ": " & "changed (empty excluded)   : " & f_file_this _
-    Else Debug.Print ErrSrc(PROC) & ": " & "changed (empty included)   : " & f_file_this
-    arr = Split(StringTrimmed(f_exclude_empty), vbCrLf)
-    arrFrom = Split(StringTrimmed(f_exclude_empty), vbCrLf)
-    For i = 1 To Min(UBound(arr), UBound(arrFrom))
-        If StrComp(arr(i), arrFrom(i), vbTextCompare) <> 0 Then
-            Debug.Print ErrSrc(PROC) & ": " & "                             The first difference has been detected in line " & i & ":"
-            Debug.Print ErrSrc(PROC) & ": " & "                             Line " & i & " """ & arr(i) & """"
-            Debug.Print ErrSrc(PROC) & ": " & "                             Line " & i & " """ & arrFrom(i) & """"
-            Exit For
-        End If
-    Next i
-
-End Sub
 
 Public Function FileExtension(ByVal fe_file As Variant)
 
@@ -999,8 +918,7 @@ End Function
 
 Public Function FilesSearch(ByVal f_root As String, _
                    Optional ByVal f_mask As String = "*", _
-                   Optional ByVal f_in_subfolders As Boolean = True, _
-                   Optional ByVal f_stop_after As Long = 0) As Collection
+                   Optional ByVal f_in_subfolders As Boolean = True) As Collection
 ' ---------------------------------------------------------------------
 ' Returns a collection of all file names which meet the criteria:
 ' - in any subfolder of the root (f_root)

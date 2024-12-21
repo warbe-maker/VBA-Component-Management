@@ -15,11 +15,14 @@ Option Explicit
 '
 ' [<component-name>]
 ' KindOfComponent=used|hosted
-' LastModAtDateTime=YYYY-MM-DD-hh-mm-ss (UTC)
+' LastModAt=2024-12-16 14:55:20 (UTC)
+' LastModBy=<user>
+' LastModExpFileOrigin=<export-file-full-name>
+' LastModIn=<workbook-full-name>
+' LastModOn=<computer-name>
 '
 ' The entries (sections) are maintained along with the Workbook_BeforeSave
-' event via the ExportChangedComponents service. The revision number is
-' increased whith each saved modification of a hosted Common Component.
+' event via the ExportChangedComponents service.
 '
 ' Public Methods:
 ' ---------------
@@ -47,8 +50,6 @@ Option Explicit
 ' W. Rauschenberger Berlin, Jul. 2023
 ' ---------------------------------------------------------------------------
 Private Const SECTION_NAME_RECENT_EXPORT        As String = "_MostRecentExport"    ' _ avoids conflict with an existing VBComponent
-Private Const VALUE_NAME_USED_EXPORT_FOLDER     As String = "UsedExportFolder"
-
 Public PPFile                                   As New clsPrivProf
 
 Private Sub Class_Initialize()
@@ -101,6 +102,14 @@ Friend Property Let KindOfComponent(Optional ByVal comp_name As String = vbNullS
     Value(comp_name, VALUE_NAME_REG_STAT_COMP) = mCompMan.RegState(comp_reg_state)
 End Property
 
+Public Function KindOfComponentString(ByVal k_comp As String) As String
+    Select Case KindOfComponent(k_comp)
+        Case enCompCommonHosted:    KindOfComponentString = "hosted"
+        Case enCompCommonPrivate:   KindOfComponentString = "private"
+        Case enCompCommonUsed:      KindOfComponentString = "used"
+        Case enCompInternal:        KindOfComponentString = "internal"
+    End Select
+End Function
 Friend Property Get KindOfComponent(Optional ByVal comp_name As String) As enKindOfComp
     KindOfComponent = mCompMan.RegState(Value(comp_name, VALUE_NAME_REG_STAT_COMP))
 End Property
@@ -166,6 +175,42 @@ Private Property Get Value(Optional ByVal v_section_name As String = vbNullStrin
 
 End Property
 
+Public Sub Values(ByVal v_done As Boolean, _
+                  ByVal v_section As String, _
+                  ParamArray v_values() As Variant)
+    Const PROC = "Valuse"
+    
+    If Not ArryIsAllocated(v_values) Then Exit Sub
+    PPFile.Section = v_section
+    Select Case UBound(v_values)
+        Case LBound(v_values) + 1: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1)
+        
+        Case LBound(v_values) + 3: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1), _
+                                                         v_values(LBound(v_values) + 2), v_values(LBound(v_values) + 3)
+        Case LBound(v_values) + 5: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1), _
+                                                         v_values(LBound(v_values) + 2), v_values(LBound(v_values) + 3), _
+                                                         v_values(LBound(v_values) + 4), v_values(LBound(v_values) + 5)
+        Case LBound(v_values) + 7: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1), _
+                                                         v_values(LBound(v_values) + 2), v_values(LBound(v_values) + 3), _
+                                                         v_values(LBound(v_values) + 4), v_values(LBound(v_values) + 5), _
+                                                         v_values(LBound(v_values) + 6), v_values(LBound(v_values) + 7)
+        Case LBound(v_values) + 9: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1), _
+                                                         v_values(LBound(v_values) + 2), v_values(LBound(v_values) + 3), _
+                                                         v_values(LBound(v_values) + 4), v_values(LBound(v_values) + 5), _
+                                                         v_values(LBound(v_values) + 6), v_values(LBound(v_values) + 7), _
+                                                         v_values(LBound(v_values) + 8), v_values(LBound(v_values) + 9)
+        Case LBound(v_values) + 11: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1), _
+                                                          v_values(LBound(v_values) + 2), v_values(LBound(v_values) + 3), _
+                                                          v_values(LBound(v_values) + 4), v_values(LBound(v_values) + 5), _
+                                                          v_values(LBound(v_values) + 6), v_values(LBound(v_values) + 7), _
+                                                          v_values(LBound(v_values) + 8), v_values(LBound(v_values) + 9), _
+                                                          v_values(LBound(v_values) + 10), v_values(LBound(v_values) + 11)
+        Case Else
+            Err.Raise AppErr(1), ErrSrc(PROC), "The number of arguments is not an even pair of value-name, value or exceeds the maximum number of 6 pairs!"
+    End Select
+    
+End Sub
+
 Private Property Let Value(Optional ByVal v_section_name As String = vbNullString, _
                            Optional ByVal v_value_name As String = vbNullString, _
                                     ByVal v_value As String)
@@ -225,6 +270,27 @@ Public Function IsSystemSection(ByVal i_sect As String) As Boolean
     IsSystemSection = i_sect = SECTION_NAME_RECENT_EXPORT _
     Or PPFile.IsSystemSection(i_sect)
     
+End Function
+
+Public Function IsPublic(ByVal i_comp As String, _
+                Optional ByRef i_last_mod_atdatetime_utc As String, _
+                Optional ByRef i_last_mod_expfile_fullname_origin As String, _
+                Optional ByRef i_last_mod_inwbk_fullname As String, _
+                Optional ByRef i_last_mod_inwbk_name As String, _
+                Optional ByRef i_last_mod_on_machine As String) As Boolean
+' ----------------------------------------------------------------------------
+' When the component (i_comp) exists in the CommComps.dat Private Profile File
+' the function returns TRUE inxluding all relevant values.
+' ----------------------------------------------------------------------------
+
+    If CommonPublic Is Nothing Then Set CommonPublic = New clsCommonPublic
+    IsPublic = CommonPublic.Exists(i_comp _
+                                 , i_last_mod_atdatetime_utc _
+                                 , i_last_mod_expfile_fullname_origin _
+                                 , i_last_mod_inwbk_fullname _
+                                 , i_last_mod_inwbk_name _
+                                 , i_last_mod_on_machine)
+                        
 End Function
 
 Public Function IsUsedCommComp(ByVal i_comp As String, _

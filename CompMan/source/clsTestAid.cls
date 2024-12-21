@@ -162,27 +162,13 @@ Private Const RESULT_FAILED As String = " F a i l e d ! "
     Private Declare Function SetForegroundWindow Lib "user32" (ByVal hWnd As Long) As Long
 #End If
 
-Private Const WM_SETTEXT = &HC
-Private Const BM_CLICK = &HF5
-
-' --- Begin of declarations to get all Workbooks of all running Excel instances
-
-'***App Window Constants***
 Private Const WIN_NORMAL = 1         'Open Normal
-
-'***Error Codes***
 Private Const ERROR_SUCCESS = 32&
 Private Const ERROR_NO_ASSOC = 31&
 Private Const ERROR_OUT_OF_MEM = 0&
 Private Const ERROR_FILE_NOT_FOUND = 2&
 Private Const ERROR_PATH_NOT_FOUND = 3&
 Private Const ERROR_BAD_FORMAT = 11&
-
-Private Enum enAlign
-    enAlignLeft = 1
-    enAlignRight = 2
-    enAlignCentered = 3
-End Enum
 
 Private aLogColAligns               As Variant
 Private aLogColFills                As Variant
@@ -199,7 +185,6 @@ Private dctResult                   As New Dictionary
 Private dctResultExpected           As New Dictionary
 Private dctTestSummary              As New Dictionary
 Private lCols                       As Long
-Private lMaxLenTestProc             As Long
 Private lVerificationNumber         As Long
 Private sDelim                      As String
 Private sLogColsDelim               As String
@@ -246,9 +231,7 @@ Private Sub Class_Initialize()
     Const lLoop As Long = 1000
     
     Dim i               As Long
-    Dim c               As Currency
     Dim cTicksAtStart   As Currency
-    Dim cElapsedTime    As Double
     
     Set cllTempTestItems = New Collection
     TestFolder = ThisWorkbook.Path & "\Test"                             ' default test folder
@@ -333,7 +316,6 @@ Private Property Let Arry(Optional ByRef c_arr As Variant, _
     Const PROC = "Arry-Let"
     
     Dim bIsAllocated As Boolean
-    Dim s            As String
     
     If IsArray(c_arr) Then
         On Error GoTo -1
@@ -437,21 +419,6 @@ End Property
 
 Private Property Let LogCols(ByVal c_cols As Long):    lCols = c_cols: End Property
 
-Private Property Get LogColsArrangedHeader(Optional ByVal c_line As Long) As Variant
-' -----------------------------------------------------------------------------------
-' Returns a single line's (c_line) column headers
-' -----------------------------------------------------------------------------------
-    LogColsArrangedHeader = Arry(aLogColsArrangedHeaders, c_line)
-End Property
-
-Private Property Get LogColsArrangedHeaders() As Variant
-' ----------------------------------------------------------------------------
-' Returns all columns arranged header lines, whereby each line is an array
-' of column headers.
-' ----------------------------------------------------------------------------
-    LogColsArrangedHeaders = aLogColsArrangedHeaders
-End Property
-
 Private Property Get LogColsDelim() As String:                  LogColsDelim = sLogColsDelim:           End Property
 
 Private Property Let LogColsDelim(ByVal s As String):           sLogColsDelim = s:                      End Property
@@ -468,7 +435,6 @@ Private Property Let LogColsHeader(Optional ByVal c_line As Long, _
 ' arranged in columns, considering a maximized column width (in order to adapt any
 ' already specified width to the effective header's width), to the aColHeaders array.
 ' -----------------------------------------------------------------------------------
-    Dim v           As Variant
     Dim s           As String
     Dim i           As Long
     Dim iCol        As Long
@@ -477,9 +443,6 @@ Private Property Let LogColsHeader(Optional ByVal c_line As Long, _
     Dim sItem       As String
     Dim aHeaders    As Variant
     Dim sDelim      As String
-    Dim sItemPrev   As String
-    Dim sHeaderSpan As String
-    Dim lWidth      As Long
     
     c_line = c_line
     aHeaders = VarAsArray(c_cols_header)
@@ -639,8 +602,6 @@ Friend Property Let TempTestItem(Optional ByVal t_test_no As String = vbNullStri
 '   file or folder becomes the current test item.
 ' ------------------------------------------------------------------------------
     Const PROC = "TempTestItem-Let"
-    
-    Dim wbk As Workbook
         
     If t_test_no = vbNullString Then
         '~~ Keep a record of the test item
@@ -1232,11 +1193,8 @@ Public Sub CleanUp(ParamArray t_names() As Variant)
     
     On Error GoTo eh
     Dim i   As Long
-    Dim s   As String
     Dim fle As File
-    Dim fld As Folder
     Dim v   As Variant
-    Dim wbk As Workbook
     
     With FSo
         For Each fle In .GetFolder(sTestFolder).Files
@@ -1359,8 +1317,6 @@ Private Function CollectionAsString(ByVal c_coll As Collection, _
 ' Note when copied: Originates in mVarTrans
 '                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
 ' ----------------------------------------------------------------------------
-    Const PROC = "CollectionAsString"
-    
     Dim s       As String
     Dim sName   As String
     Dim sSplit  As String
@@ -1705,21 +1661,6 @@ Private Function ExcludeSubstring(ByVal r_main As String, _
     
 End Function
 
-Private Function fctLngGetHandle(strClass As String, lngHParent As Long, _
-    Optional Nth As Integer = 1) As Long
-    Dim lngHandle As Long
-    Dim i As Integer
-
-    lngHandle = FindWindowEx(lngHParent, ByVal 0&, strClass, vbNullString)
-    If Nth = 1 Then GoTo Finalize
-
-    For i = 2 To Nth
-        lngHandle = FindWindowEx(lngHParent, lngHandle, strClass, vbNullString)
-    Next
-Finalize:
-    fctLngGetHandle = lngHandle
-End Function
-
 Private Function FileAsArray(ByVal f_file As Variant, _
                     Optional ByVal f_empty_excluded) As Variant
 ' ----------------------------------------------------------------------------
@@ -2031,7 +1972,6 @@ Public Sub Instructions(ByVal i_instruction As String)
 ' instructions non-modal, else the instruction is provided in the
 ' Application.StatusBar.
 ' ------------------------------------------------------------------------------
-    Const PROC = "Instructions"
     Const INST_TITLE = "Required manual interaction for test "
     
     siInstructionsTitle = INST_TITLE & sTestId
@@ -2210,7 +2150,6 @@ End Function
 
 Private Sub LogColsHeaderWrite(ByVal l_file As String, _
                       Optional ByRef l_title As String = vbNullString, _
-                      Optional ByVal l_title_fill As String = " =", _
                       Optional ByVal l_with_header_underline As Boolean = False, _
                       Optional ByVal l_width As Long)
 ' ------------------------------------------------------------------------------
@@ -2230,9 +2169,6 @@ Private Sub LogColsHeaderWrite(ByVal l_file As String, _
     Dim sColDelimUl As String
     Dim sHeaderUl   As String
     Dim v           As Variant
-    Dim vLine       As Variant
-    Dim i           As Long
-    Dim s           As String
     
     If l_title <> vbNullString Then
         StringAsFile AlignCntr(l_title, l_width, " ="), l_file, True
@@ -2525,7 +2461,6 @@ Private Sub ResultFailedLog(Optional ByVal r_result As Collection = Nothing, _
         sLine = LogColsArrangedItems(sVerification, sPassedFailed, """" & Trim(cllResult(i)) & """", """" & Trim(cllResultExpected(i)) & """")
         LogColsHeaderWrite l_file:=sLogFile _
                          , l_title:=sTitle _
-                         , l_title_fill:=" =" _
                          , l_with_header_underline:=True _
                          , l_width:=Len(sLine)
         StringAsFile sLine, sLogFile, True
@@ -2561,13 +2496,11 @@ Public Sub ResultSummaryLog()
     Dim lComp   As Long
     Dim lDesc   As Long
     Dim lTtId   As Long
-    Dim lMax    As Long
     Dim lProc   As Long
     Dim lRslt   As Long
     Dim lTtle   As Long
     Dim lType   As Long
     Dim lMsec   As Long
-    Dim s       As String
     Dim sComp   As String
     Dim sSpec   As String
     Dim sTtId   As String
@@ -2620,7 +2553,6 @@ Public Sub ResultSummaryLog()
         sLine = LogColsArrangedItems(sTtle, sTtId, sComp, sType, sProc, sSpec, sRslt, sMsec)
         LogColsHeaderWrite l_file:=sTestResultSummaryLogFile _
                          , l_title:=sTitleRegression _
-                         , l_title_fill:=" =" _
                          , l_with_header_underline:=True _
                          , l_width:=Len(sLine)
 
@@ -2873,7 +2805,7 @@ Public Function TestFile(Optional ByVal t_name As String = vbNullString, _
 ' ------------------------------------------------------------------------------
     Const PROC = "TestFile"
     
-    If FSo.FileExists(TestFileFullName) _
+    If FSo.FileExists(TestFileFullName(t_name, t_ext)) _
     Then Set TestFile = FSo.GetFile(TestFileFullName) _
     Else Err.Raise AppErr(1), ErrSrc(PROC), "A file named """ & TestFileFullName & """ does not exist!"
 
@@ -3103,8 +3035,7 @@ Private Function VerificationId() As String
     VerificationId = sTestId & "." & lVerificationNumber
 End Function
 
-Private Function WbkExists(ByVal ex_wbk As Variant, _
-                  Optional ByRef ex_result_wbk As Workbook) As Boolean
+Private Function WbkExists(ByVal ex_wbk As Variant) As Boolean
 ' ----------------------------------------------------------------------------
 ' Universal existence check for Workbook, Worksheet, and Range Name.
 ' Returns TRUE when the Workbook - which may be a Workbook's name or FullName
@@ -3125,13 +3056,6 @@ Private Function WbkExists(ByVal ex_wbk As Variant, _
     Const PROC = "WbkExists"
     
     On Error GoTo eh
-'    Dim sTest       As String
-    Dim wbk         As Workbook
-'    Dim wsh         As Worksheet
-'    Dim FSo         As New FileSystemObject
-'    Dim nme         As Name
-'    Dim sWsName     As String
-'    Dim sWsCodeName As String
     
     WbkExists = FSo.FileExists(ex_wbk)
     If Not WbkExists Then
@@ -3153,8 +3077,6 @@ Private Function WbkIsOpen(ByVal w_wbk As String, _
 ' Returns TRUE when a Workbook (w_wbk) is open.
 ' ----------------------------------------------------------------------------
     Const PROC  As String = "WbkIsOpen"
-    
-    Dim wbk As Workbook
     
     On Error Resume Next
     Set w_open_wbk = Application.Workbooks(w_wbk)

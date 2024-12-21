@@ -52,7 +52,7 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mWinMergeIni." & sProc
 End Function
 
-Public Sub Setup(ByVal s_ini_file As String)
+Public Sub Setup()
 ' ----------------------------------------------------------------------------
 ' CompMan only writes the required options. When WinMerge is executed for the
 ' first time it will write all the remaining properties.

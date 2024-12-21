@@ -14,8 +14,8 @@ Option Explicit
 ' W. Rauschenberger, Berlin Nov 2024
 ' ------------------------------------------------------------------------
 
-Private Sub Arguments(ByVal a_any1 As String, _
-                      ByVal a_any2 As Variant)
+Public Sub Arguments(ByVal a_any1 As String, _
+            Optional ByVal a_any2 As Variant = vbNullString)
 ' ------------------------------------------------------------------------
 ' Arguments have a single character prefix followed by an underline.
 ' Because this notation is not used anywhere else it clearly indicates
@@ -25,18 +25,24 @@ Private Sub Arguments(ByVal a_any1 As String, _
 ' Because VBA is case insensitive, constants must not use a single
 ' character prefix
 ' ------------------------------------------------------------------------
+    a_any1 = a_any1 ' just to avoid dead code unused parameter
+    a_any2 = a_any2 ' just to avoid dead code unused parameter
 End Sub
 
-Private Sub Constants()
+Public Sub Constants()
 ' ------------------------------------------------------------------------
-' Constants are
+' Constants are:
 ' - written in upper case letters
 ' - use _ (underlines) last but not least for better readability
-' - Begin with more than one character in order to clearly differ them
-'   from arguments.
+' - Begin with more than one character in order to clearly distinguish
+'   them from parameters.
 ' ------------------------------------------------------------------------
     Const ERR_ANY_1 = "any1"
     Const ERR_ANY_2 = "any2"
+    
+    Debug.Print ERR_ANY_1 ' just to prevent any dead code
+    Debug.Print ERR_ANY_2 ' just to prevent any dead code
+
 End Sub
 
 Private Function ErrMsg(ByVal err_source As String, _

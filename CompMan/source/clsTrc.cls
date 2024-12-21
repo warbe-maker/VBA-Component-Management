@@ -85,7 +85,6 @@ Private FSo                     As New FileSystemObject
     ' 1) See https://github.com/warbe-maker/Common-VBA-Message-Service for
     '    how to install an use.
     ' ------------------------------------------------------------------------
-    Private Const vbResumeOk As Long = 7 ' Buttons value in mMsg.ErrMsg (pass on not supported)
     Private Const vbResume   As Long = 6 ' return value (equates to vbYes)
 #End If
 
@@ -134,7 +133,6 @@ Private Const DIR_BEGIN_ID      As String = ">"     ' Begin procedure or code tr
 Private Const DIR_END_ID        As String = "<"     ' End procedure or code trace indicator
 Private Const TRC_LOG_SEC_FRMT  As String = "00.0000 "
 
-Private bNewFile            As Boolean          ' default to False
 Private cyTcksAtStart       As Currency         ' Trace log to file
 Private LastNtry            As Collection       '
 Private cySysFrequency      As Currency         ' Execution Trace SysFrequency (initialized with init)
@@ -201,7 +199,6 @@ Private Property Let Arry(Optional ByRef c_arr As Variant, _
     Const PROC = "Arry-Let"
     
     Dim bIsAllocated As Boolean
-    Dim s            As String
     
     If IsArray(c_arr) Then
         On Error GoTo -1
@@ -693,7 +690,6 @@ Private Function FileAsArray(ByVal f_file As Variant, _
     Const PROC = "FileAsArray"
     
     On Error GoTo eh
-    Dim arr     As Variant
     Dim sSplit  As String
     Dim s       As String
     
@@ -1091,12 +1087,10 @@ Private Sub Reorg(ByVal r_file_full_name As String, _
     On Error GoTo eh
     Dim aFile   As Variant
     Dim aLog    As Variant
-    Dim bAppend As Boolean
     Dim cllLog  As New Collection
     Dim cllLogs As New Collection
     Dim i       As Long
     Dim lLen    As Long
-    Dim s       As String
     Dim v       As Variant
     Dim bTop    As Boolean: bTop = True
     

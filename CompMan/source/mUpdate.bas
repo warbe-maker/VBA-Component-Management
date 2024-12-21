@@ -56,8 +56,8 @@ Public Sub ByCodeReplace(ByVal b_source As clsComp, _
     
     With b_target
         Select Case CommonServiced.KindOfComponent(b_source.CompName)
-            Case enCompCommonHosted:  Services.Log(sComp) = "Serviced Common Component  h o s t e d  updated by code replace"
-            Case enCompCommonUsed:    Services.Log(sComp) = "Serviced Common Component  u s e d  updated by code replace"
+            Case enCompCommonHosted:  Servicing.Log(sComp) = "Serviced Common Component  h o s t e d  updated by code replace"
+            Case enCompCommonUsed:    Servicing.Log(sComp) = "Serviced Common Component  u s e d  updated by code replace"
         End Select
     End With
         
@@ -88,65 +88,57 @@ Public Sub ByReImport(ByVal b_comp_name As String, _
     Dim Comp        As clsComp
     Dim TmpWbk      As Workbook
     Dim lStep       As Long
-    Dim wbk         As Workbook
     
     mBasic.BoP ErrSrc(PROC)
     MonitorInitiate "Update an outdated component", b_monitor
-    Set wbk = Serviced.Wrkbk
     
-    Set Comp = New clsComp
-    Comp.CompName = b_comp_name
-    
-    '~~ Create and activate a hidden Workbook
-    '~~ Because this may not be the first step the monitor initialization values are provided.
-    '~~ They are ignored by the service when the monitor window is already initialized
-    MonitorFirstStep m_step:=lStep _
-                   , m_step_txt:="Activate a hidden temporary Workbook." _
-                   , m_title:=sMonitorTitle _
-                   , m_monitor:=b_monitor
-    Set TmpWbk = TempWbkHidden()
-    TmpWbk.Activate
-              
-    With wbk.VBProject
-        '~~ Rename an already existing component
-        sTempName = mComp.TempName(tn_wbk:=wbk, tn_vbc_name:=b_comp_name)
-        MonitorStep lStep, "Rename the component '" & b_comp_name & "' to '" & sTempName & "'.", b_monitor
-        .VBComponents(b_comp_name).Name = sTempName
+    With Serviced
+        .Comp.CompName = b_comp_name
         
-        '~~ Outcomment the renamed component's code
+        '~~ Create and activate a hidden Workbook
+        '~~ Because this may not be the first step the monitor initialization values are provided.
+        '~~ They are ignored by the service when the monitor window is already initialized
+        MonitorFirstStep m_step:=lStep _
+                       , m_step_txt:="Activate a hidden temporary Workbook." _
+                       , m_title:=sMonitorTitle _
+                       , m_monitor:=b_monitor
+        Set TmpWbk = TempWbkHidden()
+        TmpWbk.Activate
+                  
+        sTempName = mComp.TempName(tn_wbk:=.Wrkbk, tn_vbc_name:=b_comp_name)
+        
+        MonitorStep lStep, "Rename the component '" & b_comp_name & "' to '" & sTempName & "'.", b_monitor
+        '~~ Rename the already existing component
+        .Wrkbk.VBProject.VBComponents(b_comp_name).Name = sTempName
+        
+        '~~ Outcomment the renamed component's code in order to avoid any compile conflict with
+        '~~ the new imported component
         MonitorStep lStep, "Outcomment all code lines in the renamed component.", b_monitor
-        OutCommentCode wbk, sTempName ' this had made it much less "reliablele"
+        OutCommentCode .Wrkbk, sTempName ' this had made it much less "reliablle"
         mBasic.TimedDoEvents ErrSrc(PROC)
         
-        '~~ Remove the renamed component (postponed thought)
-        MonitorStep lStep, "Remove the renamed component.", b_monitor
-        .VBComponents.Remove .VBComponents(sTempName) ' will not take place until process has ended!
+        With .Wrkbk.VBProject
+            '~~ Remove the renamed component.
+            '~~ Note! The removal will in fact be done by the system when all runing procedured had finished.
+            MonitorStep lStep, "Remove the renamed component.", b_monitor
+            .VBComponents.Remove .VBComponents(sTempName)
                 
-        '~~ (Re-)import the component
-        MonitorStep lStep, "(Re-) import the Export File of the up-to-date version of the component.", b_monitor
-        .VBComponents.Import b_export_file
+            '~~ (Re-)import the public component's Export-File from the Common-Components folder
+            MonitorStep lStep, "(Re-) import the Export File of the up-to-date version of the component.", b_monitor
+            .VBComponents.Import b_export_file
                         
-        '~~ Remove the activated hidden Workbook and re-activate the serviced Workbook
-        MonitorStep lStep, "Remove the temporary activated and re-activate the serviced Workbook.", b_monitor
-        TempWbkHiddenRemove TmpWbk
-        wbk.Activate
-          
+            '~~ Remove the activated hidden Workbook and re-activate the serviced Workbook
+            MonitorStep lStep, "Remove the temporary activated and re-activate the serviced Workbook.", b_monitor
+            TempWbkHiddenRemove TmpWbk
+        End With
+        .Wrkbk.Activate
         MonitorFooter "Successfully updated! (process monitor closes in 2 seconds)", b_monitor
-    End With
-    
-    Set Comp = Nothing
-    Set Comp = New clsComp
-    With Comp
-        .CompName = b_comp_name
-        '~~ Export the re-imported component to ensure an up-to-date Export-File
-        FSo.CopyFile b_export_file, .ExpFileFullName, True
-        '~~ Update the Revision-Number
-        Select Case CommonServiced.KindOfComponent(.CompName)
-            Case enCompCommonUsed, enCompCommonHosted
-                If .ServicedLastModAt <> .PublicLastModAt Then
-                    .ServicedLastModAt = .PublicLastModAt
-                End If
-        End Select
+        
+        With .Comp
+            .CompName = b_comp_name
+            '~~ Copy the imported also as Export-File (do not export since this will crash)
+            FSo.CopyFile b_export_file, .ExpFileFullName
+        End With
     End With
     
 xt: mBasic.EoP ErrSrc(PROC)

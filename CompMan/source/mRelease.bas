@@ -18,8 +18,10 @@ Public Sub ReleaseCommComps(Optional ByVal r_verbose As Boolean = True)
 ' Release any pending Common Component modification to public by moving the
 ' Export-File from the CommonPending folder into the Common-Components folder.
 ' ------------------------------------------------------------------------------
+    Const PROC = "ReleaseCommComps"
     
-    mEnvironment.Provide ActiveWorkbook, True
+    mBasic.BoP ErrSrc(PROC)
+    mEnvironment.Provide False
     mCompMan.ServiceInitiate s_serviced_wbk:=ActiveWorkbook _
                            , s_service:="Release Modified Common Components"
         
@@ -29,9 +31,11 @@ Public Sub ReleaseCommComps(Optional ByVal r_verbose As Boolean = True)
     Else
         If r_verbose Then
             VBA.MsgBox Prompt:="No Common Component pending release for the active Workbook (" & Serviced.Wrkbk.Name & ")" _
-                     , Title:="CompMan Common Component Release Service"
+                     , Title:="CompMan's ""Release Common Components to public"" service"
         End If
     End If
+    mBasic.EoP ErrSrc(PROC)
+    
 End Sub
 
 Public Sub ReleaseService()
@@ -57,7 +61,6 @@ Public Sub ReleaseService()
     Dim CodePnding      As clsCode
     Dim CodePublic      As clsCode
     Dim Comp            As clsComp
-    Dim i               As Long
     Dim lOtherPending   As Long
     Dim Msg             As mMsg.udtMsg
     Dim qPending        As New clsQ
@@ -68,16 +71,19 @@ Public Sub ReleaseService()
     
     mCompMan.CurrentServiceName = "Release pending Common Compoents"
     mCompMan.ServicedWrkbk = ActiveWorkbook
-    mEnvironment.Provide ActiveWorkbook, True
+    mEnvironment.Provide True
 
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=ActiveWorkbook _
                            , s_service:=PROC _
                            , s_do_housekeeping:=False
-    For Each v In CommonPending.CommonComponentsPendingReadyForRelease
-        Set Comp = New clsComp
-        Comp.CompName = v
-        qPending.EnQueue Comp
+    For Each v In CommonPending.ReadyForRelease
+        With Serviced
+            .Comp.CompName = v
+'            Set Comp = New clsComp
+'            Comp.CompName = v
+            qPending.EnQueue .Comp
+        End With
     Next v
     
     lOtherPending = CommCompsPendingRelease.Count - qPending.Size
@@ -149,11 +155,11 @@ Public Sub ReleaseService()
         If Not Comp.CodePublic.IsNone Then Set cllButtons = mMsg.Buttons(cllButtons, mDiff.PublicVersusPendingReleaseBttn(sComp))
         Set cllButtons = mMsg.Buttons(cllButtons, vbLf, BTTN_SKIP_FOR_NOW, BTTN_SKIP_FOREVER, vbLf, BTTN_TERMINATE)
         
-        Select Case mMsg.Dsply(dsply_title:=sTitle _
-                             , dsply_msg:=Msg _
-                             , dsply_Label_spec:="R100" _
-                             , dsply_buttons:=cllButtons _
-                             , dsply_width_min:=40)
+        Select Case mMsg.Dsply(d_title:=sTitle _
+                             , d_msg:=Msg _
+                             , d_label_spec:="R100" _
+                             , d_buttons:=cllButtons _
+                             , d_width_min:=40)
             Case sBttnRelease:      CommonPending.ReleaseComp sComp, True
                                     CommonPending.Remove sComp
                                     qPending.DeQueue
@@ -185,29 +191,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
-
-Private Function IsPendingModificationByThisServicedWorkbook(ByVal i_comp_name As String, _
-                                                             ByRef i_comp As clsComp) As Boolean
-    Dim Comp As clsComp
-    
-    With CommonPending
-        If .LastModInWrkbkFullName(i_comp_name) = Serviced.Wrkbk.FullName Then
-            Set Comp = New clsComp
-            With Comp
-                .CompName = i_comp_name
-                If .CodeCrrent.Meets(.CodePnding) Then
-                    IsPendingModificationByThisServicedWorkbook = True
-                    Set i_comp = Comp
-                    Set Comp = Nothing
-                    GoTo xt
-                End If
-            End With
-        End If
-    End With
-    
-xt: Exit Function
-    
-End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mRelease." & sProc

@@ -269,11 +269,11 @@ Public Function ServicedExportVersusPublic(ByVal p_comp As clsComp) As Boolean
     
     With p_comp
         sComp = .CompName
-        If .CodeExprtd.DiffersFrom(.CodePublic, , arrDiff) Then
+        If .CodeExprtd.DiffersFrom(.CodePublic, arrDiff) Then
             ServicedExportVersusPublic = True
-            With Services
+            With Servicing
                 For Each v In arrDiff
-                    .Log(sComp) = "Code change: " & v
+                    .Log(sComp) = "Code difference " & v
                 Next v
             End With
         End If
@@ -293,11 +293,11 @@ Public Function ServicedCodeVersusServicedExport(ByVal p_comp As clsComp) As Boo
     
     With p_comp
         sComp = .CompName
-        If .CodeCrrent.DiffersFrom(.CodeExprtd, , arrDiff) Then
+        If .CodeCrrent.DiffersFrom(.CodeExprtd, arrDiff) Then
             ServicedCodeVersusServicedExport = True
-            With Services
+            With Servicing
                 For Each v In arrDiff
-                    .Log(sComp) = "Code change: " & v
+                    .Log(sComp) = "Code difference " & v
                 Next v
             End With
         End If
@@ -317,11 +317,11 @@ Public Function ServicedCodeVersusPublic(ByVal p_comp As clsComp) As Boolean
     
     With p_comp
         sComp = .CompName
-        If .CodeCrrent.DiffersFrom(.CodePublic, , arrDiff) Then
+        If .CodeCrrent.DiffersFrom(.CodePublic, arrDiff) Then
             ServicedCodeVersusPublic = True
-            With Services
+            With Servicing
                 For Each v In arrDiff
-                    .Log(sComp) = "Code change: " & v
+                    .Log(sComp) = "Code difference " & v
                 Next v
             End With
         End If
@@ -371,10 +371,10 @@ Public Function ServicedExportVersusServicedCode(ByVal p_comp As clsComp) As Boo
     
     With p_comp
         sComp = .CompName
-        If .CodeCrrent.DiffersFrom(.CodeExprtd, , arrDiff) Then
+        If .CodeCrrent.DiffersFrom(.CodeExprtd, arrDiff) Then
             ServicedExportVersusServicedCode = True
-            If .IsCommComp Then
-                With Services
+            If .IsCommon Then
+                With Servicing
                     .Log(sComp) = "Common Component code change: " & v
                     For Each v In arrDiff
                         .Log(sComp) = v

@@ -40,10 +40,8 @@ Public Sub Setup()
 ' ----------------------------------------------------------------------------
     Const PROC = "Setup"
     
-    Dim v       As Variant
-    
     MenuRemove
-    If CommonPending.CommonComponentsPendingReadyForRelease.Count = 0 Then Exit Sub
+    If CommonPending.ReadyForRelease.Count = 0 Then Exit Sub
     MenuCreate
     
     On Error GoTo om
@@ -99,10 +97,7 @@ Public Sub MenuItemsAddWithVBECommandBarEvents()
 ' ----------------------------------------------------------------------------
 ' Adds CommandButtons to the CompMan menu in the VBE (a_cmb_popup).
 ' ----------------------------------------------------------------------------
-    Const PROC = "MenuItemsAddWithVBECommandBarEvents"
-    
     Dim cbb     As CommandBarButton
-    Dim i       As Long
     Dim lFaceId As Long
     Dim v       As Variant
     
@@ -118,7 +113,7 @@ Public Sub MenuItemsAddWithVBECommandBarEvents()
         
     '~~ Direkt release without dialog.
     '~~ Note: This works only when the to-be-released component is a component in the current serviced Workbook
-    For Each v In CommonPending.CommonComponentsPendingReadyForRelease
+    For Each v In CommonPending.ReadyForRelease
         Select Case Serviced.Wrkbk.VBProject.VBComponents(v).Type
             Case vbext_ct_ClassModule:  lFaceId = 229
             Case vbext_ct_MSForm:       lFaceId = 230
@@ -139,8 +134,6 @@ Public Sub MenuItemsAddWithOfficeEvents()
 ' ----------------------------------------------------------------------------
 ' Add CommandButtons to the CommandBarPopup (a_cmb_popup).
 ' ----------------------------------------------------------------------------
-    Const PROC = "MenuItemsAddWithOfficeEvents"
-    
     Dim cbb     As CommandBarButton
     Dim lFaceId As Long
     Dim v       As Variant
@@ -156,7 +149,7 @@ Public Sub MenuItemsAddWithOfficeEvents()
     Set cbbOffice = Nothing
     
     '~~ Direkt release without dialog
-    For Each v In CommonPending.CommonComponentsPendingReadyForRelease
+    For Each v In CommonPending.ReadyForRelease
         Select Case Serviced.Wrkbk.VBProject.VBComponents(v).Type
             Case vbext_ct_ClassModule:  lFaceId = 229
             Case vbext_ct_MSForm:       lFaceId = 230

@@ -28,7 +28,6 @@ Private sCommCompsPendingPrivProfFileFullName   As String
 Private sCommCompsPublicPrivProfFileFullName    As String
 Private sCommCompsServicedPrivProfFileFullName  As String
 Private sCompManServiceFolderPath               As String
-Private sExecTraceLogFileFullName               As String
 Private sExportServiceFolderPath                As String
 Private sServicedExecTraceLogFileFullName       As String
 Private sServicesLogFileFullName                As String
@@ -69,19 +68,6 @@ Public Function ThisComputersName() As String:                          ThisComp
 
 Public Function ThisComputersUser() As String:                          ThisComputersUser = Environ("USERNAME"):                                        End Function
 
-Private Function CommCompsServicedPrivProfFileHeader() As String
-    CommCompsServicedPrivProfFileHeader = _
-    "Used or hosted Common Components in the corresponding serviced Workbook """ & Serviced.Wrkbk.Name & """." & vbLf & _
-    "The values are provided when a Common Component's code has been modified in the serviced Workbook or" & vbLf & _
-    "when a used or hosted Common Component has been updated with code modified elsewhere." & vbLf & _
-    "- LastModAt           : Date/time of the last modification date/time (the export file's creation date repectively)" & vbLf & _
-    "- LastModBy           : User, which had made the last modification" & vbLf & _
-    "- LastModExpFileOrigin: Indicates the 'origin'! of the export file (may point to an export file not available on or not accessable by the used compunter)" & vbLf & _
-    "- LastModIn           : The Workbook/VB-Project in which the last code modification had been made (may point to a Workbook om another computer)" & vbLf & _
-    "- LastModOn           : The computer on which the last modification had been made in the above Workbook."
-
-End Function
-
 Public Function PrivateProfileFileFooter() As String
 ' --------------------------------------------------------------------------
 ' Returns the footer written into any Private Profile file maintained by
@@ -110,7 +96,7 @@ Private Sub EstablishServicedExecTraceLogFile()
 #If mTrc = 1 Then
     mTrc.FileFullName = mEnvironment.ServicedExecTraceLogFileFullName
     mTrc.KeepLogs = 5
-    mTrc.Title = Services.CurrentServiceStatusBar
+    mTrc.Title = Servicing.CurrentServiceStatusBar
     If sCurrentServiceName = mCompManClient.SRVC_UPDATE_OUTDATED_DSPLY _
     Then mTrc.NewFile
     sExecTraceFile = mTrc.FileFullName
@@ -255,8 +241,7 @@ Private Function ItemHistory(ByVal e_hist As String) As Collection
 
 End Function
 
-Public Sub Provide(ByVal p_wbk_serviced As Workbook, _
-          Optional ByVal p_create As Boolean = False)
+Public Sub Provide(Optional ByVal p_create As Boolean = False)
 ' ------------------------------------------------------------------------------
 ' Maintains and provides an up-to-date CompMan environment for CompMan itself
 ' and the serviced Workbook.
@@ -384,8 +369,7 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub RenameMove(ByVal e_path_old As String, _
-                                 ByVal e_path_new As String, _
-                        Optional ByVal e_folder As Boolean = True)
+                      ByVal e_path_new As String)
 ' ------------------------------------------------------------------------------
 ' Note: Does nothing when the old item (e_path_old) neither identifies an
 '       existing folder nor an existing file.

@@ -16,7 +16,7 @@ DoneNamesHskpng_6=UsedExportFolder>
 
 [clsLog]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:51 (UTC)
+LastModAt=2024-12-20 21:38:55 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\clsLog.cls
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -24,7 +24,7 @@ LastModOn=THINKPAD-YOGA
 
 [clsPrivProf]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:51 (UTC)
+LastModAt=2024-12-20 21:38:55 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\clsPrivProf.cls
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -32,7 +32,7 @@ LastModOn=THINKPAD-YOGA
 
 [clsQ]
 KindOfComponent=used
-LastModAt=2024-12-11 17:01:08 (UTC)
+LastModAt=2024-12-20 22:26:34 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\clsQ.cls
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -40,7 +40,7 @@ LastModOn=THINKPAD-YOGA
 
 [clsTestAid]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:52 (UTC)
+LastModAt=2024-12-20 21:38:56 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\clsTestAid.cls
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -48,7 +48,7 @@ LastModOn=THINKPAD-YOGA
 
 [clsTrc]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:47 (UTC)
+LastModAt=2024-12-20 21:38:56 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\clsTrc.cls
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -56,7 +56,7 @@ LastModOn=THINKPAD-YOGA
 
 [fMsg]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:51 (UTC)
+LastModAt=2024-12-20 21:38:56 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\fMsg.frm
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -64,7 +64,7 @@ LastModOn=THINKPAD-YOGA
 
 [mBasic]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:51 (UTC)
+LastModAt=2024-12-20 21:38:56 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mBasic.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -72,7 +72,7 @@ LastModOn=THINKPAD-YOGA
 
 [mCodingGuidelines]
 KindOfComponent=hosted
-LastModAt=2024-12-11 16:23:50 (UTC)
+LastModAt=2024-12-20 21:38:56 (UTC)
 LastModBy=warbe
 LastModExpFile=E:\Sync\Excel VBA\DevAndTest\CompMan\source\mCodingGuidelines.bas
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mCodingGuidelines.bas
@@ -81,7 +81,7 @@ LastModOn=THINKPAD-YOGA
 
 [mCodingRules]
 KindOfComponent=hosted
-LastModAt=2024-12-11 16:23:50 (UTC)
+LastModAt=2024-12-20 21:38:57 (UTC)
 LastModBy=warbe
 LastModExpFile=E:\Sync\Excel VBA\DevAndTest\CompMan\source\mCodingRules.bas
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mCodingRules.bas
@@ -90,7 +90,7 @@ LastModOn=THINKPAD-YOGA
 
 [mCompManClient]
 KindOfComponent=hosted
-LastModAt=2024-12-11 16:23:50 (UTC)
+LastModAt=2024-12-20 21:38:57 (UTC)
 LastModBy=warbe
 LastModExpFile=E:\Sync\Excel VBA\DevAndTest\CompMan\source\mCompManClient.bas
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mCompManClient.bas
@@ -99,7 +99,7 @@ LastModOn=THINKPAD-YOGA
 
 [mDct]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:50 (UTC)
+LastModAt=2024-12-20 21:38:57 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mDct.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -107,7 +107,7 @@ LastModOn=THINKPAD-YOGA
 
 [mErH]
 KindOfComponent=used
-LastModAt=2024-12-11 17:01:08 (UTC)
+LastModAt=2024-12-20 21:38:57 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mErH.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -115,7 +115,7 @@ LastModOn=THINKPAD-YOGA
 
 [mFso]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:48 (UTC)
+LastModAt=2024-12-20 21:38:57 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mFso.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -123,7 +123,7 @@ LastModOn=THINKPAD-YOGA
 
 [mMsg]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:51 (UTC)
+LastModAt=2024-12-20 21:38:58 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mMsg.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -131,7 +131,7 @@ LastModOn=THINKPAD-YOGA
 
 [mNme]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:49 (UTC)
+LastModAt=2024-12-20 21:38:58 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mNme.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -139,7 +139,7 @@ LastModOn=THINKPAD-YOGA
 
 [mReg]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:49 (UTC)
+LastModAt=2024-12-20 21:38:58 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mReg.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -147,7 +147,7 @@ LastModOn=THINKPAD-YOGA
 
 [mRng]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:48 (UTC)
+LastModAt=2024-12-20 21:38:58 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mRng.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -155,7 +155,7 @@ LastModOn=THINKPAD-YOGA
 
 [mTrc]
 KindOfComponent=used
-LastModAt=2024-12-11 17:01:08 (UTC)
+LastModAt=2024-12-20 21:38:59 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mTrc.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -163,7 +163,7 @@ LastModOn=THINKPAD-YOGA
 
 [mVarTrans]
 KindOfComponent=used
-LastModAt=2024-12-11 17:01:08 (UTC)
+LastModAt=2024-12-20 21:38:59 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mVarTrans.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -171,7 +171,7 @@ LastModOn=THINKPAD-YOGA
 
 [mWbk]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:48 (UTC)
+LastModAt=2024-12-20 21:38:59 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mWbk.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb
@@ -179,7 +179,7 @@ LastModOn=THINKPAD-YOGA
 
 [mWsh]
 KindOfComponent=used
-LastModAt=2024-12-11 16:23:49 (UTC)
+LastModAt=2024-12-20 21:38:59 (UTC)
 LastModBy=warbe
 LastModExpFileOrigin=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan\source\mWsh.bas
 LastModIn=E:\Sync\Excel VBA\DevAndTest\CompMan\CompMan.xlsb

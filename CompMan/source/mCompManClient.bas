@@ -6,7 +6,7 @@ Option Explicit
 ' or the Synchronize VB-Projects). To be imported into any VBProject for
 ' making use of one or more services.
 '
-' W. Rauschenberger, Berlin Jul 2024
+' W. Rauschenberger, Berlin Dec 2024
 ' See https://github.com/warbe-maker/VB-Components-Management
 ' ----------------------------------------------------------------------------
 Public Const COMPMAN_DEVLP              As String = "CompMan.xlsb"
@@ -387,7 +387,8 @@ Public Sub Progress(ByVal p_service_name As String, _
            Optional ByVal p_no_comps_outdated As Long = 0, _
            Optional ByVal p_no_comps_total As Long = 0, _
            Optional ByVal p_no_comps_skipped As Long = 0, _
-           Optional ByVal p_service_info As String = vbNullString)
+           Optional ByVal p_service_info As String = vbNullString, _
+           Optional ByVal p_sequ_no As Long = 0)
 ' --------------------------------------------------------------------------
 ' Progress display in the Application.StatusBar for CompMan services.
 ' Form: <service> (by <by>) for <serviced>: <n> of <m> <o> [<c> [, <c>] ..]
@@ -424,7 +425,9 @@ Public Sub Progress(ByVal p_service_name As String, _
     End If
     
     If p_service_op <> vbNullString Then
-        sMsg = Replace(sMsg, "<op>", p_service_op)
+        If p_sequ_no = 0 _
+        Then sMsg = Replace(sMsg, "<op>", p_service_op) _
+        Else sMsg = Replace(sMsg, "<op>", p_service_op & " " & p_sequ_no & " ")
     Else
         sMsg = Replace(sMsg, "<op>", "Service initiating")
     End If

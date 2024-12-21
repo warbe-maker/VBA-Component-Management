@@ -152,8 +152,6 @@ Friend Property Let LastModOn(Optional ByVal m_comp As String = vbNullString, _
     Value(m_comp, VALUE_NAME_LAST_MOD_ON) = p_mod_at
 End Property
 
-Public Property Get Releases() As Collection:                           Set Releases = Components:                                       End Property
-
 Private Property Get Value(Optional ByVal v_section_name As String = vbNullString, _
                            Optional ByVal v_value_name As String = vbNullString) As String
     Const PROC = "Value/Get"
@@ -188,41 +186,6 @@ End Function
 
 Private Function BtoS(ByVal b As Boolean) As String
     If b Then BtoS = "True" Else BtoS = "False"
-End Function
-
-Private Function BttnIgnoreTheseModifications() As String
-    BttnIgnoreTheseModifications = "Ignore the modifications" & vbLf & "made in Workbook" & vbLf & Services.ServicedWbk.Name
-End Function
-
-Private Function CommCompPendingModified(ByVal c_comp As clsComp) As Boolean
-
-    With c_comp
-        If mFact.CommCompHasModificationPendingRelease(.CompName) Then
-            CommCompPendingModified = .CodeCrrent.Meets(.CodePnding) = False
-        End If
-    End With
-        
-End Function
-
-Public Function CommonComponentsPendingReadyForRelease() As Collection
-' ------------------------------------------------------------------------------
-' Returns a collection of all pending release Common Components which are ready
-' for being release. The fact that only the PendingReleases folder and the
-' PendingReleases.dat file, both in the Common-Components folder, are involved
-' in the release process, all pending components which are a component of the
-' current serviced Workbook are regarded ready for release.
-' However, when the logged in user differs from the user who registered the
-' pending release the release has to be explicitely confirmed.
-' ------------------------------------------------------------------------------
-    Dim cll As New Collection
-    Dim v   As Variant
-    
-    For Each v In Components
-        If Serviced.CompExists(v) Then cll.Add v
-    Next v
-    Set CommonComponentsPendingReadyForRelease = cll
-    Set cll = Nothing
-    
 End Function
 
 Public Sub ConflictResolve(ByVal c_comp As clsComp)
@@ -306,11 +269,11 @@ Public Sub ConflictResolve(ByVal c_comp As clsComp)
     Set cllBttns = mMsg.Buttons(cllBttns, vbLf, sBttnIgnore)
     
     Do
-        Select Case mMsg.Dsply(dsply_title:="Severe conflict with an already made code modification in another Workbook!" _
-                             , dsply_msg:=Msg _
-                             , dsply_Label_spec:="R130" _
-                             , dsply_width_min:=40 _
-                             , dsply_buttons:=cllBttns)
+        Select Case mMsg.Dsply(d_title:="Severe conflict with an already made code modification in another Workbook!" _
+                             , d_msg:=Msg _
+                             , d_label_spec:="R130" _
+                             , d_width_min:=40 _
+                             , d_buttons:=cllBttns)
             Case mDiff.ServicedExportVersusPublicBttn:          mDiff.ServicedExportVersusPublicDsply c_comp
             Case mDiff.PublicVersusPendingReleaseBttn(sComp):   mDiff.PublicVersusPendingReleaseDsply c_comp
             Case mDiff.PendingVersusServicedExportBttn(sComp):  mDiff.PendingVersusServicedExport c_comp
@@ -320,7 +283,7 @@ Public Sub ConflictResolve(ByVal c_comp As clsComp)
                 mUpdate.ByReImport sComp, CommonPublic.LastModExpFile(sComp)
                 Serviced.Wrkbk.VBProject.VBComponents(sComp).Export c_comp.ExpFileFullName
                 CommonServiced.LastModAt(sComp) = CommonPublic.LastModAt(sComp)
-                Services.Log(sComp) = "Serviced Common Component's code modifications discarded by re-intantiating the " & _
+                Servicing.Log(sComp) = "Serviced Common Component's code modifications discarded by re-intantiating the " & _
                                       "current public version (update by re-import)"
                 Exit Do
             Case sBttnIgnore
@@ -350,8 +313,6 @@ Public Function Conflicts(ByVal c_comp As clsComp)
 ' -----------------------------------------------------------------------------------
     Const PROC = "Conflicts"
     
-    Dim sIn     As String
-    Dim sOn     As String
     Dim sComp   As String
     
     With c_comp
@@ -388,7 +349,6 @@ Public Function Exists(ByVal e_comp As String, _
               Optional ByRef e_mod_at_datetime As String, _
               Optional ByRef e_mod_export_file_name As String, _
               Optional ByRef e_mod_in_wbk_full_name As String, _
-              Optional ByRef e_mod_in_wbk_name As String, _
               Optional ByRef e_mod_on_machine As String) As Boolean
 ' ------------------------------------------------------------------------------
 ' Returns TRUE when the component (e_comp) is pending release.
@@ -451,7 +411,7 @@ End Function
 Public Sub Info()
 
     Dim s As String
-    Select Case CommonComponentsPendingReadyForRelease.Count
+    Select Case ReadyForRelease.Count
         Case 0:    s = vbNullString
         Case 1:    s = "     See the VBE CompMan menu for 1 Common Component is pending release!"
         Case Else: s = "     See the VBE CompMan menu for " & CommonPending.Components.Count & " Common Components pending release!"
@@ -515,13 +475,13 @@ Public Sub Manage(ByVal m_comp As clsComp)
 '    mBasic.BoP ErrSrc(PROC), m_comp.CompName
     With m_comp
         sComp = .CompName
-        If Not .IsCommComp Then GoTo xt
+        If Not .IsCommon Then GoTo xt
         
         '~~ Gather facts for decision
-        bCommCompHasBeenModifiedInTheServicedWorkbook = mFact.CommCompHasBeenModifiedinTheServicedWorkbook(m_comp, sModAtDateTimeUTC, sModInWbkFullName)
-        bCommCompHasModificationPendingRelease = mFact.CommCompHasModificationPendingRelease(sComp, sPendingModAtDateTimeUTC, , sPendingModInWbkFullName, , sPendingModOnMachine)
+        bCommCompHasBeenModifiedInTheServicedWorkbook = mFact.CommCompHasBeenModifiedInTheServicedWorkbook(m_comp, sModAtDateTimeUTC, sModInWbkFullName)
+        bCommCompHasModificationPendingRelease = mCommComps.HasModificationPendingRelease(sComp, sPendingModAtDateTimeUTC, , , sPendingModOnMachine)
         If bCommCompHasModificationPendingRelease Then
-            bCommCompPendingModified = CommCompPendingModified(m_comp)
+            bCommCompPendingModified = Modified(m_comp)
             bModifiedInAnotherWorkbookAndOrAnotherMachine = sPendingModInWbkFullName <> .WrkbkFullName _
                                         Or sPendingModOnMachine <> mEnvironment.ThisComputersName
             bPendingIsOutdated = sPendingModAtDateTimeUTC <> .ServicedLastModAt
@@ -544,7 +504,7 @@ Public Sub Manage(ByVal m_comp As clsComp)
              And bCommCompPendingModified = False _
              And bModifiedInAnotherWorkbookAndOrAnotherMachine = False _
              And bPendingIsOutdated = False
-                Services.Log(sComp) = "Serviced Common Component's code modification still pending release"
+                Servicing.Log(sComp) = "Serviced Common Component's code modification still pending release"
                          
             '~~ True, False
             Case bCommCompHasBeenModifiedInTheServicedWorkbook = True _
@@ -552,7 +512,7 @@ Public Sub Manage(ByVal m_comp As clsComp)
                 '~~ The code had been modified, i.e. it differs from the current public Common Component,
                 '~~ and has yet not been registered pending release.
                 Register m_comp
-                Services.Log(m_comp) = "Serviced Common Component's code modification registered pending release"
+                Servicing.Log(m_comp) = "Serviced Common Component's code modification registered pending release"
                             
             '~~ False, True, False, True
             Case bCommCompHasBeenModifiedInTheServicedWorkbook = False _
@@ -566,7 +526,7 @@ Public Sub Manage(ByVal m_comp As clsComp)
                 '~~    modified in another Workbook and/or on another machine
                 '~~ 4. The pending release has another Workbook and or another machine registered
                 '~~ Conclusion: This is a normal situation which does not require any interaction
-                Services.Log(sComp) = "Pending Release Common Component (modified in another Workbook and/or another machine)"
+                Servicing.Log(sComp) = "Pending Release Common Component (modified in another Workbook and/or another machine)"
             
             '~~ False, True, False, False
             Case bCommCompHasBeenModifiedInTheServicedWorkbook = False _
@@ -581,7 +541,7 @@ Public Sub Manage(ByVal m_comp As clsComp)
                 '~~ Conclusion: This should never be the case, because the pending registration is removed once
                 '~~             the pending modification is released
                 Remove sComp
-                Services.Log(sComp) = "Obsolete Pending Release Common Component removed!"
+                Servicing.Log(sComp) = "Obsolete Pending Release Common Component removed!"
                             
             '~~ True, True, True, False, True
             Case bCommCompHasBeenModifiedInTheServicedWorkbook = True _
@@ -597,7 +557,7 @@ Public Sub Manage(ByVal m_comp As clsComp)
                 '~~ Conclusion: This should have already been registered along with the most recent Export!
                 Stop
                 Register m_comp ' re-register a consequtive modification
-                Services.Log(sComp) = "Serviced Common Component's code modification re-registered pending release."
+                Servicing.Log(sComp) = "Serviced Common Component's code modification re-registered pending release."
                             
             Case Else
                 Debug.Print ErrSrc(PROC) & ": " & Aligned(sComp) & " " & BtoS(bCommCompHasBeenModifiedInTheServicedWorkbook) _
@@ -617,6 +577,37 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Private Function Modified(ByVal c_comp As clsComp) As Boolean
+
+    With c_comp
+        If mCommComps.HasModificationPendingRelease(.CompName) Then
+            Modified = .CodeCrrent.Meets(.CodePnding) = False
+        End If
+    End With
+        
+End Function
+
+Public Function ReadyForRelease() As Collection
+' ------------------------------------------------------------------------------
+' Returns a collection of all pending release Common Components which are ready
+' for being release. The fact that only the PendingReleases folder and the
+' PendingReleases.dat file, both in the Common-Components folder, are involved
+' in the release process, all pending components which are a component of the
+' current serviced Workbook are regarded ready for release.
+' However, when the logged in user differs from the user who registered the
+' pending release the release has to be explicitely confirmed.
+' ------------------------------------------------------------------------------
+    Dim cll As New Collection
+    Dim v   As Variant
+    
+    For Each v In Components
+        If Serviced.CompExists(v) Then cll.Add v
+    Next v
+    Set ReadyForRelease = cll
+    Set cll = Nothing
+    
+End Function
+
 Public Sub Register(ByVal r_comp As clsComp)
 ' -----------------------------------------------------------------------------------
 ' Registers a Common Component's (r_comp) Export-File as "pending release" by copying
@@ -625,8 +616,6 @@ Public Sub Register(ByVal r_comp As clsComp)
 ' Note: The PendingReleases folder exists only while there is at least one pending
 '       release component.
 ' -----------------------------------------------------------------------------------
-    Const PROC = "Register"
-    
     Dim sSource As String
     Dim sTarget As String
     Dim sFolder As String
@@ -645,7 +634,7 @@ Public Sub Register(ByVal r_comp As clsComp)
             End If
         End With
         .SetPendingEqualServiced
-        Services.Log(.CompName) = "Modified Common Component: Release registered pending"
+        Servicing.Log(.CompName) = "Modified Common Component: Release registered pending"
     End With
 
     mCompManMenuVBE.Setup
@@ -700,8 +689,11 @@ Public Sub ReleaseComp(ByVal r_comp As String, _
     
     If FSo.FileExists(mEnvironment.CommCompsPendingPrivProfFileFullName) _
     Then Remove r_comp ' in case the file still exists
-    Prgrss.ItemDone = r_comp
-
+    With Prgrss
+        .DoneItemsInfo = True
+        .ItemDone = r_comp
+    End With
+    
 xt: Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -709,6 +701,10 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case Else:      GoTo xt
     End Select
 End Sub
+
+Public Function Releases() As Collection
+    Set Releases = Components
+End Function
 
 Public Sub Remove(ByVal r_comp As String)
 ' -----------------------------------------------------------------------------------

@@ -57,7 +57,6 @@ Private bSucceeded                      As Boolean
 Private dctAddInRefs                    As Dictionary
 Private Extension                       As String
 Private lRenewStep                      As Long
-Private ServicingEnabled                As Boolean
 Private sRenewAction                    As String
 Private wbDevlp                         As Workbook
 Private wbkSource                       As Workbook                     ' This development instance as the renew source
@@ -80,7 +79,7 @@ Public Function AssertedServicingEnabled(ByVal a_hosted As String) As Boolean
     If Trc Is Nothing Then Set Trc = New clsTrc
     BaseName = FSo.GetBaseName(ThisWorkbook.Name)
     Extension = FSo.GetExtensionName(ThisWorkbook.Name)
-    mEnvironment.Provide ThisWorkbook
+    mEnvironment.Provide False
 
     Select Case True
         Case mMe.IsAddinInstnc
@@ -103,14 +102,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Function CurrentName(ByVal c_names As String) As String
-    Dim a As Variant
-    
-    a = Split(c_names, ">")
-    CurrentName = a(UBound(a))
-
-End Function
-
 Private Function AssertedFilesAndFldrsStructure(ByVal a_hosted As String) As Boolean
 ' ---------------------------------------------------------------------------
 ' Performed with each open. Ensures that the Workbook is running from within
@@ -125,7 +116,7 @@ Private Function AssertedFilesAndFldrsStructure(ByVal a_hosted As String) As Boo
     Dim sCompManFldr As String
     
     Application.EnableEvents = False
-    Set Services = New clsServices
+    Set Servicing = New clsServicing
         
     If Not FSo.FolderExists(mEnvironment.CommCompsPath) Then
         '~~ The CompMan Workbook has been opened the very first time at this location.
@@ -140,11 +131,11 @@ Private Function AssertedFilesAndFldrsStructure(ByVal a_hosted As String) As Boo
             '~~ Save the Workbook to its dedicated folder withing the servicing environment
             sWrkbkOpnd = ThisWorkbook.FullName
             ThisWorkbook.SaveAs sCompManFldr & "\" & ThisWorkbook.Name
-            mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
+            mWinMergeIni.Setup
             AssertedFilesAndFldrsStructure = True
             DoEvents
             On Error Resume Next
-            mEnvironment.Provide ThisWorkbook, True
+            mEnvironment.Provide True
             Set ConfigLocal = New clsConfigLocal
             mConfig.SelfSetupPublishHostedCommonComponents (a_hosted)
             mConfig.SetupConfirmed
@@ -166,7 +157,7 @@ Private Function AssertedFilesAndFldrsStructure(ByVal a_hosted As String) As Boo
         wsConfig.Activate
     End If
                         
-xt: Set Services = Nothing
+xt: Set Servicing = Nothing
     Application.EnableEvents = True
     Exit Function
 
@@ -232,7 +223,7 @@ Private Function AssertedWinMerge() As Boolean
         AssertedWinMerge = mCompMan.WinMergeIsInstalled     ' May have been downloaded and installed along with the displayed message
         If AssertedWinMerge Then
             If Not FSo.FileExists(mWinMergeIni.WinMergeIniFullName) Then
-                mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName ' ensures that the required options are established
+                mWinMergeIni.Setup ' ensures that the required options are established
             End If
         End If
     End If
@@ -687,7 +678,7 @@ Private Sub Renew_120_SetupWinMergeIni()
     
     On Error GoTo eh
     mBasic.BoP ErrSrc(PROC)
-    mWinMergeIni.Setup WinMergeIniFullName
+    mWinMergeIni.Setup
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -793,7 +784,7 @@ Public Sub Renew___AddIn()
     
 xt: RenewFinalResult bSucceeded
     Application.ScreenUpdating = False
-    Services.ServicedWbk.Activate
+    Servicing.ServicedWbk.Activate
     wsService.Activate
     wsConfig.CurrentStatus
     wsConfig.Activate

@@ -12,13 +12,6 @@ Private wbkServiced As Workbook
 Private sTestComp   As String
 Private sTestFolder As String
 
-Private Function CompSelected(ByVal c_msg As String, _
-                     Optional ByRef c_comp As String) As String
-    c_comp = InputBox(c_msg, "Test Component precondition")
-    CompSelected = c_comp
-    
-End Function
-
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mCompManTest" & "." & sProc
 End Function
@@ -149,7 +142,7 @@ Public Sub Test_0100_FirstTimeServiced()
           
         '==========================================================================
         .TestId = "0100-3"
-        .TestedComp = "clsServices"
+        .TestedComp = "clsServicing"
         .TestedProc = "ExportChangedComponents"
         .TestedProcType = "Method"
         
@@ -157,7 +150,7 @@ Public Sub Test_0100_FirstTimeServiced()
         .ResultExpected = True ' from the above update test
         .Result = FSo.GetFolder(mEnvironment.ExportServiceFolderPath).Files.Count = 1 And FSo.GetFolder(mEnvironment.ExportServiceFolderPath).Files("mBasic.bas").Name = "mBasic.bas"
         '-------------------------------
-        Services.ExportChangedComponents
+        Servicing.ExportChangedComponents
         '-------------------------------
         .Verification = "Verification: Exported number of components corresponds with the VBProject components"
         .ResultExpected = VBProjectExportFiles
@@ -180,20 +173,6 @@ Private Sub Test_0100_2CleanUp()
     
     TestAid.CleanUp
 
-End Sub
-
-Private Sub Test_Timer()
-    With New clsTestAid
-        Debug.Print .TimerOverhead
-    End With
-End Sub
-
-Private Sub Test_0010_Message()
-    Dim Msg As mMsg.udtMsg
-    
-    Msg.Section(1).Text.Text = "Message test"
-    mMsg.Dsply "Message test", Msg, , mMsg.Buttons("Ok", "Not Ok")
-    
 End Sub
 
 Private Sub Test_0100_1SetUp()
@@ -228,8 +207,6 @@ Private Sub Test_0200_2CleanUp()
 End Sub
 
 Private Sub Test_0200_1SetUp()
-
-    Const PROC = "Test_0200_1SetUp"
             
     With TestAid
         .Title = "Conflicts detected and handled by the Export service"
@@ -251,8 +228,6 @@ Private Sub Test_0300_1SetUp_1()
 ' ------------------------------------------------------------------------------
 ' Note: this test is performed with ThisWorkbook directly.
 ' ------------------------------------------------------------------------------
-    Const PROC = "Test_0300_1SetUp_1"
-    
     With TestAid
         mCompMan.ServiceInitiate s_serviced_wbk:=ThisWorkbook _
                                , s_service:=TestAid.Title
@@ -261,20 +236,6 @@ Private Sub Test_0300_1SetUp_1()
             FSo.CopyFile .ExpFileFullName, mEnvironment.CommCompsPath & "\" & sTestComp & ".cls"
         End With
     End With
-        
-End Sub
-
-Private Sub Test_0300_1SetUp_2()
-' ------------------------------------------------------------------------------
-' Note: this test is performed with ThisWorkbook directly.
-' ------------------------------------------------------------------------------
-    Const PROC      As String = "Test_0300_1SetUp"
-    
-    sTestComp = "clsCode"
-    
-    mCompMan.ServiceInitiate s_serviced_wbk:=ThisWorkbook _
-                           , s_service:=TestAid.Title
-    FSo.DeleteFile mEnvironment.CommCompsPath & "\" & sTestComp & ".cls"
         
 End Sub
 
@@ -305,10 +266,6 @@ Public Sub Test_0200_ConflictingExport()
 '                             with pending in Test0200a.xlsb
 ' -----------------------------------------------------------------
     Const PROC = "Test_0200_ConflictingExport"
-    
-    On Error GoTo eh
-    Dim Comp As New clsComp
-    Dim q    As clsQ
     
     On Error GoTo eh
     Prepare
@@ -370,10 +327,6 @@ Public Sub Test_0300_CommCompManuallyCopiedRemoved()
     Const PROC = "Test_0300_CommCompManuallyCopiedRemoved"
     
     On Error GoTo eh
-    Dim Comp As New clsComp
-    Dim q    As clsQ
-    
-    On Error GoTo eh
     Prepare
     sTestComp = "clsCode"
     
@@ -413,7 +366,7 @@ Public Sub Test_0300_CommCompManuallyCopiedRemoved()
         .ResultExpected = True
         With New clsComp
             .CompName = sTestComp
-            TestAid.Result = .ServicedMeetPublicProperties
+            TestAid.Result = .ServicedMeetsPublicProperties
         End With
         
         '==========================================================================
@@ -445,7 +398,7 @@ Public Sub Test_0500_UpdateOutdatedCommonComponents()
     If Trc Is Nothing Then Set Trc = New clsTrc ' if not within regression-test
     mBasic.BoP ErrSrc(PROC)
     If Trc Is Nothing Then Set Trc = New clsTrc ' if not within regression-test
-    If Services.Denied(mCompManClient.SRVC_UPDATE_OUTDATED) Then GoTo xt
+    If Servicing.Denied(mCompManClient.SRVC_UPDATE_OUTDATED) Then GoTo xt
 
     AddinService = mAddin.WbkName & "!mCompMan.UpdateOutdatedCommonComponents"
     If mAddin.IsOpen Then
@@ -462,7 +415,7 @@ Public Sub Test_0500_UpdateOutdatedCommonComponents()
                       , ThisWorkbook
         
         If Err.Number = 1004 Then
-            MsgBox Title:="CompMan Add-in not open (required for test: " & PROC & "!" _
+            MsgBox Title:="The CompMan AddIn is not open but required for the test: " & PROC & "!" _
                  , Prompt:="Application.Run " & vbLf & vbLf & AddinService & vbLf & vbLf & "failed because the 'CompMan Add-in' is not open!" _
                  , Buttons:=vbExclamation
         End If

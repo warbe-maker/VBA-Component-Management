@@ -20,8 +20,6 @@ Option Explicit
 ' W. Rauschenberger Berlin, Nov 2024
 ' ---------------------------------------------------------------------------
 Private Const VALUE_NAME_EXPORT_FOLDER_NAME         As String = "ExportFolderName"
-Private Const VALUE_NAME_SERVICED_ROOT_FOLDER_NAME  As String = "CompManServicedRootFolder"
-
 Private sSectionName                                As String
 
 Public PPFile                                       As New clsPrivProf

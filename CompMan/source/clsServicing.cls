@@ -2,14 +2,14 @@ VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
-Attribute VB_Name = "clsServices"
+Attribute VB_Name = "clsServicing"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 ' ------------------------------------------------------------------------------------
-' Class Module clsServices: Common services used throughout this VB-Project.
+' Class Module clsServicing: Common services used throughout this VB-Project.
 ' =========================
 
 ' Public services:
@@ -32,7 +32,6 @@ Option Explicit
 '
 ' Public Properties:
 ' - NonBreakingSpace        Global non-breaking space character
-' - NoOfItemsTotal      r/w The total number of items relevant for the service
 ' - noOfObjectsOutdated
 ' - NoOfCommonComponents
 ' - NoOfItemsServicedIncrement The number of items Exported, Updated, Synchronized
@@ -47,9 +46,10 @@ Private lNoOfCommonComponents   As Long
 Private lNoOfItemsOutdated      As Long
 Private lNoOfItemsSkipped       As Long
 Private lNoOfItemsServiced      As Long
-Private lNoOfItemsTotal         As Long
+Private lTotalComps             As Long
 Private sNoOfItemsServicedNames As String
-Private sServicedItemLoged      As String
+Private sInstanceName           As String
+Private sServicedItemLogged      As String
 Private sServicedItemName       As String
 Private sServicedItemType       As String
 Private wbkServiced             As Workbook
@@ -57,7 +57,9 @@ Private vCurrentService         As Variant
 
 Private Sub Class_Initialize()
     sNoOfItemsServicedNames = vbNullString
+    sInstanceName = ThisWorkbook.Name
     Set LogServiced = New clsLog
+    lTotalComps = Serviced.Wrkbk.VBProject.VBComponents.Count
 End Sub
 
 Private Sub Class_Terminate()
@@ -66,32 +68,36 @@ Private Sub Class_Terminate()
     Set CommonServiced = Nothing
 End Sub
 
-Friend Property Get CurrentService() As Variant:           CurrentService = vCurrentService:                   End Property
+Friend Property Get InstanceName() As String:               InstanceName = sInstanceName:                       End Property
 
-Friend Property Let CurrentService(ByVal v As Variant):    vCurrentService = v:                                End Property
+Friend Property Get CurrentService() As Variant:            CurrentService = vCurrentService:                   End Property
+
+Friend Property Let CurrentService(ByVal v As Variant):     vCurrentService = v:                                End Property
 
 Public Property Let Log(Optional ByVal s_item As Variant, _
                                  ByVal s_log As String)
 ' ----------------------------------------------------------------------------
 ' Writes an entry to the Services.log file concerning an item (s_item) by
-' means of clsLog services. Supresses repetition of already loged items.
+' using clsLog services. Supresses repetition of already loged items.
 ' When the item (s_item) is of type string it is regarded a VBProject
 ' component's name, else a VBProject component object.
 ' ----------------------------------------------------------------------------
+    Static lMaxLenItems As Long
     
     If LogServicesSummary Is Nothing Then Set LogServicesSummary = New clsLog
     If TypeName(s_item) = "String" _
     Then LogItem = Serviced.Wrkbk.VBProject.VBComponents(s_item) _
     Else LogItem = s_item
-
+    If lMaxLenItems = 0 Then lMaxLenItems = Serviced.MaxLenItem
+    
     With LogServicesSummary
-        If sServicedItemName = sServicedItemLoged Then
+        If sServicedItemName = sServicedItemLogged Then
             .ColsItems " ", " ", s_log
             LogServiced.ColsItems " ", " ", s_log
         Else
             .ColsItems sServicedItemType, sServicedItemName, s_log
             LogServiced.ColsItems sServicedItemType, sServicedItemName, s_log
-            sServicedItemLoged = sServicedItemName
+            sServicedItemLogged = sServicedItemName
         End If
     End With
         
@@ -155,10 +161,6 @@ End Property
 Friend Property Get NoOfItemsSkipped() As Long:             NoOfItemsSkipped = lNoOfItemsSkipped:                       End Property
 
 Friend Property Let NoOfItemsSkipped(ByVal l As Long):      lNoOfItemsSkipped = l:                                      End Property
-
-Friend Property Get NoOfItemsTotal() As Long:               NoOfItemsTotal = lNoOfItemsTotal:                           End Property
-
-Friend Property Let NoOfItemsTotal(ByVal l As Long):        lNoOfItemsTotal = l:                                        End Property
 
 Friend Property Get ServicedItemName() As String:           ServicedItemName = sServicedItemName:                       End Property
 
@@ -250,7 +252,7 @@ End Function
 'End Function
 
 Private Function ErrSrc(ByVal s As String) As String
-    ErrSrc = "clsServices." & s
+    ErrSrc = "clsServicing." & s
 End Function
 
 Public Sub ExportChangedComponents()
@@ -349,18 +351,17 @@ Public Function Progress(ByVal p_operation_performed As String) As String
 ' of dots indication the items already serviced.
 '
 ' Example:
-' Export ... (by CompMan....) for ......: 1 of 50 exported (clsServices)
+' Export ... (by CompMan....) for ......: 1 of 50 exported (clsServicing)
 ' --------------------------------------------------------------------------
     Const PROC = "Progress"
     
     On Error GoTo eh
-    Dim lTotalComps As Long
+    Dim l As Long
     
-    If lNoOfItemsOutdated <> 0 Then
-        lTotalComps = lNoOfItemsOutdated
-    Else
-        lTotalComps = lNoOfItemsTotal
-    End If
+    If lNoOfItemsOutdated <> 0 _
+    Then l = lNoOfItemsOutdated _
+    Else l = lTotalComps
+    
     mCompManClient.Progress p_service_name:=CurrentService _
                           , p_serviced_wbk_name:=ServicedWbk.Name _
                           , p_by_servicing_wbk_name:=ThisWorkbook.Name _

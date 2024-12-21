@@ -95,7 +95,6 @@ Private Property Let Arry(Optional ByRef c_arr As Variant, _
     Const PROC = "Arry-Let"
     
     Dim bIsAllocated As Boolean
-    Dim s            As String
     
     If IsArray(c_arr) Then
         On Error GoTo -1
@@ -148,14 +147,6 @@ Public Property Get CompName() As String:           CompName = sCompName:   End 
 
 Public Property Let CompName(ByVal s As String):    sCompName = s:          End Property
 
-Private Property Get FileString(Optional ByVal f_file_path As String) As String
-
-    Open f_file_path For Input As #1
-    FileString = Input$(lOf(1), 1)
-    Close #1
-
-End Function
-
 Public Property Get IsNone() As Boolean:            IsNone = bSourceIsNone: End Property
 
 Public Property Let Source(ByVal s_src As Variant)
@@ -169,8 +160,6 @@ Public Property Let Source(ByVal s_src As Variant)
 ' Note: The module is initialized with IsNone = TRUE and this is only set to
 '       FALSE when a Source had been provided.
 ' ----------------------------------------------------------------------------
-    Dim fl      As File
-    Dim vbcm    As CodeModule
     
     Select Case TypeName(s_src)
         Case "String"
@@ -206,49 +195,6 @@ Public Property Get SourceName() As String:         SourceName = sSourceName:   
 Private Function ArrayIsAllocated(a_v As Variant) As Boolean
     On Error Resume Next
     ArrayIsAllocated = Not IsError(UBound(a_v))
-End Function
-
-Private Function ArrayTrimmed(ByVal t_v As Variant) As Variant
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Dim i   As Long
-    Dim k   As Long
-    Dim arr As Variant
-    
-    If Not ArrayIsAllocated(t_v) Then
-        bSourceIsNone = True
-        Exit Function
-    End If
-    
-    '~~ Get first code line not empty
-    For i = LBound(t_v) To UBound(t_v)
-        If Len(Trim(t_v(i))) > 0 Then Exit For
-    Next i
-    
-    If i < 0 Then
-        bSourceIsNone = True
-    Else
-        '~~ Mode all items up
-        For i = i To UBound(t_v)
-            t_v(k) = t_v(i)
-            k = k + 1
-        Next i
-        arr = t_v
-        '~~ Eliminate trailing empty items
-        Do While Trim(arr(UBound(arr))) = vbNullString And UBound(arr) > 0
-            If UBound(arr) > 0 _
-            Then ReDim Preserve arr(UBound(arr) - 1) _
-            Else Exit Do
-        Loop
-        If Not Trim(arr(UBound(arr))) = vbNullString Then
-            ArrayTrimmed = arr
-            bSourceIsNone = False
-        Else
-            bSourceIsNone = True
-        End If
-    End If
-    
 End Function
 
 Public Function AsFile(ByVal a_name As String, _
@@ -338,7 +284,6 @@ Public Function CodeAsString() As String
 End Function
 
 Public Function DiffersFrom(ByVal d_from_code As clsCode, _
-                   Optional ByVal d_empty_excluded As Boolean = False, _
                    Optional ByRef d_diffs As Variant) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when this class instance's code (AsTrimmedString) differs from
@@ -347,11 +292,8 @@ Public Function DiffersFrom(ByVal d_from_code As clsCode, _
 ' i.e each difference is returnes as two items.
 ' ----------------------------------------------------------------------------
     Const PROC          As String = "DiffersFrom"
-    Const DIFF_LIMIT    As Long = 5
     
     On Error GoTo eh
-    Dim i       As Long
-    Dim lDiffs  As Long
     
     Select Case True
         Case Not IsNone And Not d_from_code.IsNone
@@ -359,7 +301,7 @@ Public Function DiffersFrom(ByVal d_from_code As clsCode, _
                                 , d_from_code.CodeAsString _
                                 , vbTextCompare) <> 0
             If DiffersFrom Then
-                DiffersFromDiffs d_from_code, d_empty_excluded, d_diffs
+                DiffersFromDiffs d_from_code, d_diffs
             End If
             
         Case Not Me.IsNone And d_from_code.IsNone:   DiffersFrom = True
@@ -376,7 +318,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub DiffersFromDiffs(ByVal d_from_code As clsCode, _
-                   Optional ByVal d_empty_excluded As Boolean = False, _
                    Optional ByRef d_diffs As Variant = Nothing, _
                    Optional ByVal d_diffs_limit As Long = 1)
 ' ----------------------------------------------------------------------------
@@ -486,7 +427,7 @@ Private Function DsplyFilesDiff(ByVal d_file_left_full_name As String, _
     '~~ Guarantee an ini-File which meets CompMan's specifics
     With FSo
         If .FileExists(mWinMergeIni.WinMergeIniFullName) Then .DeleteFile (mWinMergeIni.WinMergeIniFullName)
-        mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
+        mWinMergeIni.Setup
     End With
     
     '~~ Prepare command line
@@ -544,7 +485,7 @@ Public Function Meets(ByVal d_other_code As clsCode) As Boolean
                  , vbTextCompare) = 0 Then
             Meets = True
         Else
-'            DiffersFromDiffs d_other_code, d_empty_excluded
+'            DiffersFromDiffs d_other_code
         End If
     Else
         Err.Raise AppErr(1), ErrSrc(PROC), "One of the sources for being compared are none!"

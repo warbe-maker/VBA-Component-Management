@@ -79,14 +79,13 @@ Public CommCompsPendingRelease                  As Dictionary
 Public CommonPending                            As clsCommonPending
 Public CommonPublic                             As clsCommonPublic
 Public CommonServiced                           As clsCommonServiced    ' Serviced Workbook's Common Components Private Profile file
-Public Comps                                    As clsComps
 Public ConfigLocal                              As clsConfigLocal
 Public LogServiced                              As clsLog               ' log writen for the serviced Workbook
 Public LogServicesSummary                       As clsLog               ' the servicing Workbooks own log
 Public Msg                                      As udtMsg
 Public Prgrss                                   As clsProgress
 Public Serviced                                 As New clsServiced
-Public Services                                 As clsServices
+Public Servicing                                As clsServicing
 #If clsTrc = 1 Then
     Public Trc                                  As clsTrc
 #End If
@@ -140,7 +139,6 @@ Private Declare PtrSafe Function TzSpecificLocalTimeToSystemTime Lib "kernel32" 
 
 Private sLogFileService         As String
 Private sLogFileServicedSummary As String
-Private sExecTraceFile          As String
 Private sCurrentServiceName     As String
 Private wbkServiced             As Workbook
 Private sCommCompsServicedPrivProfFileFullName  As String
@@ -242,7 +240,6 @@ Public Function HistoryItems(ByVal h_str As String, _
     
     Dim cll As New Collection
     Dim i As Long
-    Dim sSplit As String
     Dim a As Variant
     
     Select Case True
@@ -296,7 +293,7 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     
     mCompMan.CurrentServiceName = mCompManClient.SRVC_EXPORT_CHANGED_DSPLY
     mCompMan.ServicedWrkbk = e_wbk_serviced
-    mEnvironment.Provide e_wbk_serviced, True
+    mEnvironment.Provide True
     
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=e_wbk_serviced _
@@ -304,15 +301,15 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
                            , s_hosted:=e_hosted _
                            , s_public_proc_copies:=e_public_proc_copies
         
-    Services.Initiate mCompManClient.SRVC_EXPORT_CHANGED, e_wbk_serviced, e_hosted
-    If Services.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
+    Servicing.Initiate e_wbk_serviced
+    If Servicing.Denied(mCompManClient.SRVC_EXPORT_CHANGED) Then GoTo xt
         
-    Services.ExportChangedComponents
+    Servicing.ExportChangedComponents
     ExportChangedComponents = True
     ExportChangedComponents = Application.StatusBar
     
 xt: mBasic.EoP ErrSrc(PROC)   ' End of Procedure (error call stack and execution trace)
-    Services.LogEntrySummary Application.StatusBar
+    Servicing.LogEntrySummary Application.StatusBar
     CompMan.ServiceTerminate
     Exit Function
     
@@ -412,18 +409,6 @@ Public Function RunTest(ByVal r_service_proc As String, _
                             Debug.Print ErrSrc(PROC) & ": " & ErrSrc(PROC) & ": Service denied because the Addin is paused"
                     End Select
             End Select
-        
-        Case mCompManClient.SRVC_SYNCHRONIZE
-            If wsConfig.FolderSyncTarget = vbNullString Or wsConfig.FolderSyncArchive = vbNullString Then
-                RunTest = mBasic.AppErr(1) ' Not configured
-                Debug.Print ErrSrc(PROC) & ": " & ErrSrc(PROC) & ": Service denied because not configured"
-            ElseIf Not r_serviced_wbk.FullName Like wsConfig.FolderSyncTarget & "*" Then
-                RunTest = mBasic.AppErr(2) ' Denied because not opened from within the configured 'Sync-Target' folder
-                Debug.Print ErrSrc(PROC) & ": " & ErrSrc(PROC) & ": Service denied because not opened from within the serviced folder"
-            ElseIf Not mMe.IsDevInstnc Then
-                RunTest = mBasic.AppErr(3)
-                Debug.Print ErrSrc(PROC) & ": " & ErrSrc(PROC) & ": Service denied because not applied by Dev instance"
-            End If
     End Select
 
 xt: Exit Function
@@ -479,22 +464,18 @@ Public Sub ServiceInitiate(ByVal s_serviced_wbk As Workbook, _
     Dim lMaxLenItem As Long
     
     mBasic.BoP ErrSrc(PROC)
-    Set Services = New clsServices
-    With Services
+    Set Servicing = New clsServicing
+    With Servicing
         .CurrentService = mCompMan.Service(s_service)
         .ServicedWbk = s_serviced_wbk
     End With
     
     Set Serviced = New clsServiced
-    Serviced.Wrkbk = s_serviced_wbk
-             
     With Serviced
         .HostedCommComps = s_hosted
         .ServiceName = s_service
         .PublProcCpys = s_public_proc_copies
     End With
-    
-    Set Prgrss = New clsProgress
     
     Set CommCompsPendingRelease = CommonPending.Components
     
@@ -503,6 +484,8 @@ Public Sub ServiceInitiate(ByVal s_serviced_wbk As Workbook, _
     lMaxLenItem = Serviced.MaxLenItem
     mEnvironment.EstablishServicedServicesLog lMaxLenType, lMaxLenItem
     mEnvironment.EstablishServicesSummaryLog lMaxLenType, lMaxLenItem
+    
+    Set Prgrss = New clsProgress
     
     If s_do_housekeeping Then
         Select Case s_service
@@ -541,11 +524,10 @@ Public Sub ServiceTerminate()
     Set CommonPending = Nothing
     Set CommonPublic = Nothing
     Set CommonServiced = Nothing
-    Set Comps = Nothing
     Set LogServiced = Nothing
     Set LogServicesSummary = Nothing
     Set Serviced = Nothing
-    Set Services = Nothing
+    Set Servicing = Nothing
     Set Prgrss = Nothing
     
     s = Application.StatusBar
@@ -578,7 +560,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
 ' Presents the serviced Workbook's outdated components in a modeless dialog with
 ' two buttons for each component. One button executes Application.Run mRenew.Run
 ' for a component to update it, the other executes Application.Run
-' Services.ExpFilesDiffDisplay to display the code changes.
+' Servicing.ExpFilesDiffDisplay to display the code changes.
 ' Note: u_unused is for backwards compatibility only.
 '
 ' Precondition: The service has been checked by the client to be able to run.
@@ -589,7 +571,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     
     CurrentServiceName = mCompManClient.SRVC_UPDATE_OUTDATED_DSPLY
     mCompMan.ServicedWrkbk = u_wbk_serviced
-    mEnvironment.Provide u_wbk_serviced, True
+    mEnvironment.Provide True
 
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=u_wbk_serviced _
@@ -598,7 +580,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
                            , s_public_proc_copies:=u_public_proc_copies
     
     mBasic.BoP ErrSrc(PROC)
-    Services.Initiate mCompManClient.SRVC_UPDATE_OUTDATED, u_wbk_serviced, u_hosted
+    Servicing.Initiate u_wbk_serviced
     With Prgrss
         .Operation = "Update outdated Common Components"
         .Figures = True

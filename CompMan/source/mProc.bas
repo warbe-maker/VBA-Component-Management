@@ -64,7 +64,7 @@ Private Function KeySort(ByRef k_dct As Dictionary) As Dictionary
     Dim dct     As New Dictionary
     Dim vKey    As Variant
     Dim arr()   As Variant
-    Dim Temp    As Variant
+    Dim temp    As Variant
     Dim i       As Long
     Dim j       As Long
     
@@ -82,9 +82,9 @@ Private Function KeySort(ByRef k_dct As Dictionary) As Dictionary
     For i = LBound(arr) To UBound(arr) - 1
         For j = i + 1 To UBound(arr)
             If arr(i) > arr(j) Then
-                Temp = arr(j)
+                temp = arr(j)
                 arr(j) = arr(i)
-                arr(i) = Temp
+                arr(i) = temp
             End If
         Next j
     Next i
@@ -239,7 +239,7 @@ Public Sub PublicProcCopyManagement(Optional ByVal c_wbk As Workbook = Nothing)
         sCpyProc = Split(Split(v, ":")(0), ".")(1)
         sCpyComp = Split(Split(v, ":")(0), ".")(0)
         
-        If Not mFact.PublicCommonComponent(sCommComp) _
+        If Not CommonServiced.IsPublic(sCommComp) _
         Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided origin Common Component """ & sCommComp & """ is not a known public Common Component!"
         If Not mFact.ProcInComp(c_wbk, sCpyComp, sCpyProc, vbcm) _
         Then Err.Raise AppErr(2), ErrSrc(PROC), "The procedure """ & sCpyProc & """ is not known in "
@@ -288,9 +288,9 @@ Private Function DsplyDiffOptions(ByVal d_proc As String, _
         End With
     End With
     
-    DsplyDiffOptions = mMsg.Dsply(dsply_title:="Code of Public Procedure copy """ & d_proc & """ outdated!" _
-                                , dsply_msg:=Msg _
-                                , dsply_buttons:=mMsg.Buttons(BttnDsplyCodeDiff, Bttn2, Bttn3))
+    DsplyDiffOptions = mMsg.Dsply(d_title:="Code of Public Procedure copy """ & d_proc & """ outdated!" _
+                                , d_msg:=Msg _
+                                , d_buttons:=mMsg.Buttons(BttnDsplyCodeDiff, Bttn2, Bttn3))
                                 
 End Function
 

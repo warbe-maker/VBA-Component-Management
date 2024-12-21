@@ -53,7 +53,6 @@ Private dctTempFiles                    As New Dictionary
 Private sCode                           As String
 Private sCompName                       As String
 Private sProcName                       As String
-Private sKind                           As String
 Private sScope                          As String
 Private aCode                           As Variant
 Private sKindOfProc                     As String
@@ -147,54 +146,6 @@ Public Property Let Source(ByVal f_v As Variant)
     
 End Property
 
-Private Function ArrayIsAllocated(a_v As Variant) As Boolean
-    On Error Resume Next
-    ArrayIsAllocated = Not IsError(UBound(a_v))
-End Function
-
-Private Function ArrayTrimmed(ByVal t_v As Variant) As Variant
-' ----------------------------------------------------------------------------
-'
-' ----------------------------------------------------------------------------
-    Dim i   As Long
-    Dim k   As Long
-    Dim arr As Variant
-    
-    If Not ArrayIsAllocated(t_v) Then
-        bSourceIsNone = True
-        Exit Function
-    End If
-    
-    '~~ Get first code line not empty
-    For i = LBound(t_v) To UBound(t_v)
-        If Len(Trim(t_v(i))) > 0 Then Exit For
-    Next i
-    
-    If i < 0 Then
-        bSourceIsNone = True
-    Else
-        '~~ Mode all items up
-        For i = i To UBound(t_v)
-            t_v(k) = t_v(i)
-            k = k + 1
-        Next i
-        arr = t_v
-        '~~ Eliminate trailing empty items
-        Do While Trim(arr(UBound(arr))) = vbNullString And UBound(arr) > 0
-            If UBound(arr) > 0 _
-            Then ReDim Preserve arr(UBound(arr) - 1) _
-            Else Exit Do
-        Loop
-        If Not Trim(arr(UBound(arr))) = vbNullString Then
-            ArrayTrimmed = arr
-            bSourceIsNone = False
-        Else
-            bSourceIsNone = True
-        End If
-    End If
-    
-End Function
-
 Public Function CodeAsFile(ByVal a_name As String) As File
 ' ----------------------------------------------------------------------------
 ' Returns the procedure's code lines (derived from a source) as temporary file
@@ -208,17 +159,6 @@ Public Function CodeAsFile(ByVal a_name As String) As File
         Then .DeleteFile sTempFile
     End With
     StringAsFile sCode, sTempFile
-    
-End Function
-
-Private Function CodeFromTempCodeMod(ByVal p_fl As File, _
-                                     ByVal p_comp As String, _
-                                     ByVal p_proc As String) As String
-    Dim vbcm As CodeModule
-    Dim wbk     As Workbook
-    
-    Set vbcm = TempCodeMod(p_fl.Path, wbk)
-    CodeFromTempCodeMod = CodeLinesFromCodeModule(vbcm, p_proc)
     
 End Function
 
@@ -370,7 +310,7 @@ Private Function DsplyFilesDiff(ByVal d_file_left_full_name As String, _
     '~~ Guarantee an ini-File which meets CompMan's specifics
     With FSo
         If .FileExists(mWinMergeIni.WinMergeIniFullName) Then .DeleteFile (mWinMergeIni.WinMergeIniFullName)
-        mWinMergeIni.Setup mWinMergeIni.WinMergeIniFullName
+        mWinMergeIni.Setup
     End With
     
     '~~ Prepare command line

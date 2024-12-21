@@ -57,10 +57,6 @@ Public Sub Adjust()
     
 End Sub
 
-Private Function DefaultConfig() As Variant
-
-End Function
-
 Public Function DefaultEnvDisplay(ByVal d_bttn_goahead As String, _
                                   ByVal d_bttn_abort As String) As Variant
 ' ----------------------------------------------------------------------------
@@ -145,10 +141,10 @@ Public Function DefaultEnvDisplay(ByVal d_bttn_goahead As String, _
         End With
     End With
     
-    DefaultEnvDisplay = mMsg.Dsply(dsply_title:="CompMan's self setup (when opened for the very first time after download)" _
-                                 , dsply_msg:=Msg _
-                                 , dsply_buttons:=mMsg.Buttons(d_bttn_goahead, vbLf, d_bttn_abort) _
-                                 , dsply_Label_spec:="R90")
+    DefaultEnvDisplay = mMsg.Dsply(d_title:="CompMan's self setup (when opened for the very first time after download)" _
+                                 , d_msg:=Msg _
+                                 , d_buttons:=mMsg.Buttons(d_bttn_goahead, vbLf, d_bttn_abort) _
+                                 , d_label_spec:="R90")
 
 xt: Exit Function
 
@@ -220,10 +216,10 @@ Public Sub SetupConfirmed()
             .FontSize = 9
         End With
     End With
-    mMsg.Dsply dsply_title:="Setup of CompMan's default environment completed!" _
-             , dsply_msg:=Msg _
-             , dsply_buttons:=vbOKOnly _
-             , dsply_Label_spec:="R90"
+    mMsg.Dsply d_title:="Setup of CompMan's default environment completed!" _
+             , d_msg:=Msg _
+             , d_buttons:=vbOKOnly _
+             , d_label_spec:="R90"
              
     
 End Sub
@@ -235,13 +231,12 @@ Public Sub SelfSetupPublishHostedCommonComponents(ByVal s_hosted As String)
 ' ----------------------------------------------------------------------------
 
     Dim Comp    As clsComp
-    Dim vbc     As VBComponent
     Dim sComp   As String
     Dim sTarget As String
     Dim sName   As String
     Dim v       As Variant
     
-    mEnvironment.Provide ThisWorkbook, True
+    mEnvironment.Provide True
     Set CommonServiced = New clsCommonServiced
     Set CommonPublic = New clsCommonPublic
     
@@ -274,7 +269,6 @@ Public Sub SelfSetupDefaultEnvironment(ByRef s_compman_fldr As String)
     On Error GoTo eh
     Dim sRoot       As String
     Dim sCommComps  As String
-    Dim sCompMan    As String
     
     sRoot = ThisWorkbook.Path
     sCommComps = sRoot & "\" & mEnvironment.FLDR_NAME_COMMON_COMPONENTS

@@ -35,11 +35,9 @@ Option Explicit
 '                            Component are registered 'pending release'.
 '
 ' ---------------------------------------------------------------------------
-Private PPFile                              As New clsPrivProf
-Public CodePublic                           As clsCode
-    
-Private dctAll                              As Dictionary
-Private dctFiles                            As New Dictionary ' Files in the Common Components folder
+Public CodePublic As clsCode
+Private PPFile    As New clsPrivProf
+Private dctAll    As Dictionary
 
 Private Sub Class_Initialize()
     Const PROC = "Class_Initialize"
@@ -185,30 +183,30 @@ Friend Property Let LastModOn(Optional ByVal l_comp_name As String = vbNullStrin
 End Property
 
 
-Private Property Get Value(Optional ByVal v_name_value As String = vbNullString, _
-                           Optional ByVal v_name_section As String = vbNullString) As String
+Private Property Get Value(Optional ByVal v_value_name As String = vbNullString, _
+                           Optional ByVal v_v_section_name As String = vbNullString) As String
     Const PROC = "Value/Get"
     
-    If v_name_value = vbNullString _
+    If v_value_name = vbNullString _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "No value-name provided!"
-    If v_name_section = vbNullString _
+    If v_v_section_name = vbNullString _
     Then Err.Raise AppErr(2), ErrSrc(PROC), "No component name provided, section name is missing!"
     
-    Value = PPFile.Value(v_name_value, v_name_section)
+    Value = PPFile.Value(v_value_name, v_v_section_name)
 
 End Property
 
-Private Property Let Value(Optional ByVal v_name_value As String, _
-                           Optional ByVal v_name_section As String = vbNullString, _
+Private Property Let Value(Optional ByVal v_value_name As String, _
+                           Optional ByVal v_v_section_name As String = vbNullString, _
                                     ByVal v_value As String)
     Const PROC = "Value/Let"
     
-    If v_name_value = vbNullString _
+    If v_value_name = vbNullString _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "No value-name provided!"
-    If v_name_section = vbNullString _
+    If v_v_section_name = vbNullString _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "No component/section name provided, section name is missing!"
     
-    PPFile.Value(v_name_value, v_name_section) = v_value
+    PPFile.Value(v_value_name, v_v_section_name) = v_value
                                     
 End Property
 
@@ -231,9 +229,8 @@ Public Function Components() As Dictionary
 ' ---------------------------------------------------------------------------
 ' Returns a Dictionary with all sections representing a component.
 ' ---------------------------------------------------------------------------
-    Dim Comp    As clsComp
-    Dim dct     As New Dictionary
-    Dim v       As Variant
+    Dim dct As New Dictionary
+    Dim v   As Variant
     
     With dct
         For Each v In PPFile.SectionNames
@@ -310,15 +307,5 @@ Public Function ExportFiles() As Dictionary
     Set ExportFiles = mBasic.KeySort(dct)
     Set dct = Nothing
     
-End Function
-
-Private Function MaxRawLenght() As Long
-' -----------------------------------------------
-' Returns the max length of a raw componen's name
-' -----------------------------------------------
-    Dim v As Variant
-    For Each v In PPFile.SectionNames
-        MaxRawLenght = Max(MaxRawLenght, Len(v))
-    Next v
 End Function
 

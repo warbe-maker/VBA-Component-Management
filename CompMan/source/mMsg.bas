@@ -673,42 +673,42 @@ Sub DisplayMonitorInfo()
 End Sub
 
                
-Public Function Dsply(ByVal dsply_title As String, _
-                      ByRef dsply_msg As udtMsg, _
-             Optional ByVal dsply_Label_spec As String = vbNullString, _
-             Optional ByVal dsply_buttons As Variant = vbOKOnly, _
-             Optional ByVal dsply_buttons_app_run As Dictionary = Nothing, _
-             Optional ByVal dsply_button_default = 1, _
-             Optional ByVal dsply_button_reply_with_index As Boolean = False, _
-             Optional ByVal dsply_modeless As Boolean = False, _
-             Optional ByVal dsply_width_min As Long = 250, _
-             Optional ByVal dsply_width_max As Long = 85, _
-             Optional ByVal dsply_height_min As Long = 25, _
-             Optional ByVal dsply_height_max As Long = 85, _
-             Optional ByVal dsply_pos As Variant = 3) As Variant
+Public Function Dsply(ByVal d_title As String, _
+                      ByRef d_msg As udtMsg, _
+             Optional ByVal d_label_spec As String = vbNullString, _
+             Optional ByVal d_buttons As Variant = vbOKOnly, _
+             Optional ByVal d_buttons_app_run As Dictionary = Nothing, _
+             Optional ByVal d_button_default = 1, _
+             Optional ByVal d_button_reply_with_index As Boolean = False, _
+             Optional ByVal d_modeless As Boolean = False, _
+             Optional ByVal d_width_min As Long = 250, _
+             Optional ByVal d_width_max As Long = 85, _
+             Optional ByVal d_height_min As Long = 25, _
+             Optional ByVal d_height_max As Long = 85, _
+             Optional ByVal d_pos As Variant = 3) As Variant
 ' ------------------------------------------------------------------------------
 ' Common VBA Message Display: A service using the Common VBA Message Form as an
 ' alternative to the VBA.MsgBox.
 '
-' Argument                      | Description
-' ----------------------------- + ----------------------------------------------
-' dsply_title                   | String, Title
-' dsply_msg                     | UDT, Message
-' dsply_Label_spec              | Label width and position
-' dsply_buttons                 | Button captions as Collection
-' dsply_button_default          | Default button, either the index or the
-'                               | caption, defaults to 1 (= the first displayed
-'                               | button)
-' dsply_button_reply_with_index | Defaults to False, when True the index of the
-'                               | of the pressed button is returned else the
-'                               | caption or the VBA.MsgBox button value
-'                               | respectively
-' dsply_modeless                | The message is displayed modeless, defaults
-'                               | to False = vbModal
-' dsply_width_min               | Overwrites the default when not 0
-' dsply_width_max               | Overwrites the default when not 0
-' dsply_height_max              | Overwrites the default when not 0
-' dsply_button_width_min       | Overwrites the default when not 0
+' Parameter                 | Description
+' ------------------------- + ----------------------------------------------
+' d_title                   | String, Title
+' d_msg                     | UDT, Message
+' d_Label_spec              | Label width and position
+' d_buttons                 | Button captions as Collection
+' d_button_default          | Default button, either the index or the
+'                           | caption, defaults to 1 (= the first displayed
+'                           | button)
+' d_button_reply_with_index | Defaults to False, when True the index of the
+'                           | of the pressed button is returned else the
+'                           | caption or the VBA.MsgBox button value
+'                           | respectively
+' d_modeless                | The message is displayed modeless, defaults
+'                           | to False = vbModal
+' d_width_min               | Overwrites the default when not 0
+' d_width_max               | Overwrites the default when not 0
+' d_height_max              | Overwrites the default when not 0
+' d_button_width_min        | Overwrites the default when not 0
 '
 ' See: https://github.com/warbe-maker/Common-VBA-Message-Service
 '
@@ -726,7 +726,7 @@ Public Function Dsply(ByVal dsply_title As String, _
     Trc.Pause
 #End If
     
-    If Not BttnArgsAreValid(dsply_buttons) _
+    If Not BttnArgsAreValid(d_buttons) _
     Then Err.Raise AppErr(1), ErrSrc(PROC), _
                    "The provided buttons argument is neither empty (defaults to vbOkOnly), a string " & _
                    "(optionally comma separated), a valid VBA.MsgBox value (vbYesNo, vbRetryCancel, " & _
@@ -734,49 +734,49 @@ Public Function Dsply(ByVal dsply_title As String, _
                    "Collection, or a Dictionary! When an Array, Collection, or Dictionary at least " & _
                    "one of its items in incorrect!"
     
-    AssertWidthAndHeight dsply_width_min _
-                       , dsply_width_max _
-                       , dsply_height_min _
-                       , dsply_height_max
+    AssertWidthAndHeight d_width_min _
+                       , d_width_max _
+                       , d_height_min _
+                       , d_height_max
     
-    Set MsgForm = mMsg.Instance(dsply_title)
+    Set MsgForm = mMsg.Instance(d_title)
     
     With MsgForm
-        .LabelAllSpec = dsply_Label_spec    ' !!! has to be provided first
-        .ReplyWithIndex = dsply_button_reply_with_index
+        .LabelAllSpec = d_label_spec    ' !!! has to be provided first
+        .ReplyWithIndex = d_button_reply_with_index
         
         '~~ All width and height specifications by the user are "outside" dimensions !
-        If dsply_height_max > 0 Then .FormHeightOutsideMax = dsply_height_max   ' percentage of screen height in pt
-        If dsply_width_max > 0 Then .FormWidthOutsideMax = dsply_width_max     ' percentage of screen width in pt
-        If dsply_width_min > 0 Then .FormWidthOutsideMin = dsply_width_min      ' percentage of screen width in pt
+        If d_height_max > 0 Then .FormHeightOutsideMax = d_height_max   ' percentage of screen height in pt
+        If d_width_max > 0 Then .FormWidthOutsideMax = d_width_max     ' percentage of screen width in pt
+        If d_width_min > 0 Then .FormWidthOutsideMin = d_width_min      ' percentage of screen width in pt
         
-        .MsgTitle = dsply_title
+        .MsgTitle = d_title
         For i = 1 To NoOfMsgSects
             '~~ Save the Label and the text udt into a Dictionary by transfering it into an array
-            .MsgLabel(i) = dsply_msg.Section(i).Label
-            .MsgText(enSectText, i) = dsply_msg.Section(i).Text
+            .MsgLabel(i) = d_msg.Section(i).Label
+            .MsgText(enSectText, i) = d_msg.Section(i).Text
         Next i
         
-        If TypeName(dsply_buttons) = "Collection" _
-        Then .MsgBttns = dsply_buttons _
-        Else .MsgBttns = mMsg.Buttons(dsply_buttons)
+        If TypeName(d_buttons) = "Collection" _
+        Then .MsgBttns = d_buttons _
+        Else .MsgBttns = mMsg.Buttons(d_buttons)
         
-        .MsgButtonDefault = dsply_button_default
-        .ModeLess = dsply_modeless
-        If dsply_buttons_app_run Is Nothing Then Set dsply_buttons_app_run = New Dictionary
-        .ApplicationRunArgs = dsply_buttons_app_run
+        .MsgButtonDefault = d_button_default
+        .ModeLess = d_modeless
+        If d_buttons_app_run Is Nothing Then Set d_buttons_app_run = New Dictionary
+        .ApplicationRunArgs = d_buttons_app_run
 
         '+------------------------------------------------------------------------+
         '|| Setup prior showing the form is much faster and avoids flickering.   ||
         '|| For testing - indicated by VisualizerControls = True and             ||
-        '|| dsply_modeless = True - prior Setup is suspended.                    ||
+        '|| d_modeless = True - prior Setup is suspended.                    ||
         '+------------------------------------------------------------------------+
         If Not .VisualizeForTest Then .Setup
-        If dsply_modeless Then
-            .PositionOnScreen dsply_pos
+        If d_modeless Then
+            .PositionOnScreen d_pos
             .Show vbModeless
         Else
-            .PositionOnScreen dsply_pos
+            .PositionOnScreen d_pos
             .Show vbModal
         End If
     End With
@@ -852,7 +852,7 @@ Public Function ErrMsg(ByVal err_source As String, _
     ErrTitle = ErrType & " " & ErrNo & " in: '" & err_source & "'" & ErrAtLine
     
     '~~ Prepare the Error Reply Buttons
-    Set ErrButtons = mMsg.Buttons(vbResumeOk)
+    Set ErrButtons = err_buttons
         
     '~~ Display the error message by means of the mMsg's Dsply function
     iSect = 1
@@ -899,12 +899,12 @@ Public Function ErrMsg(ByVal err_source As String, _
                      "Cond. Comp. Argument 'Debugging = 1'. Pressing this button " & _
                      "and twice F8 leads straight to the code line which raised the error."
     End With
-    mMsg.Dsply dsply_title:=ErrTitle _
-             , dsply_msg:=ErrMsgText _
-             , dsply_Label_spec:="R40" _
-             , dsply_buttons:=ErrButtons _
-             , dsply_pos:=err_pos _
-             , dsply_width_min:=15
+    mMsg.Dsply d_title:=ErrTitle _
+             , d_msg:=ErrMsgText _
+             , d_label_spec:="R40" _
+             , d_buttons:=ErrButtons _
+             , d_pos:=err_pos _
+             , d_width_min:=15
     ErrMsg = mMsg.RepliedWith
     
 End Function
@@ -1495,8 +1495,6 @@ Private Function CollectionAsString(ByVal c_coll As Collection, _
 ' Note when copied: Originates in mVarTrans
 '                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
 ' ----------------------------------------------------------------------------
-    Const PROC = "CollectionAsString"
-    
     Dim s       As String
     Dim sName   As String
     Dim sSplit  As String

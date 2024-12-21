@@ -30,11 +30,12 @@ Public Property Let DoneItemsInfo(ByVal d_b As Boolean):            bDoneItemsIn
 
 Public Property Let Figures(ByVal f_b As Boolean):                  bFigures = f_b:                 End Property
 
-Public Property Let ItemDone(ByVal i_name As String)
+Public Property Let ItemDone(Optional ByVal i_sequ_no As Long = 0, _
+                                      ByVal i_name As String)
 
     mBasic.Arry(aDone) = i_name
     lItemsDone = UBound(aDone) + 1
-    Dsply
+    Dsply i_sequ_no
     
 End Property
 
@@ -70,7 +71,7 @@ Public Sub ClearDone():
     lItemsTotal = 0
 End Sub
 
-Public Sub Dsply()
+Public Sub Dsply(Optional ByVal d_sequ_no As Long)
     mCompManClient.Progress p_service_name:=sServiceName _
                           , p_serviced_wbk_name:=sWbkServiced _
                           , p_by_servicing_wbk_name:=sWbkServicing _
@@ -79,12 +80,9 @@ Public Sub Dsply()
                           , p_no_comps_total:=lItemsTotal _
                           , p_no_comps_serviced:=lItemsDone _
                           , p_no_comps_skipped:=lItemsSkipped _
-                          , p_service_info:=ItemsDoneInfo
+                          , p_service_info:=ItemsDoneInfo _
+                          , p_sequ_no:=d_sequ_no
 End Sub
-
-Private Function ErrSrc(ByVal s As String) As String
-    ErrSrc = "clsProgress." & s
-End Function
 
 Private Function ItemsDoneInfo() As String
     If bDoneItemsInfo Then

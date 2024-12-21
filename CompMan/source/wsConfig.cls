@@ -86,22 +86,6 @@ Private Property Let FolderExportInfo(ByVal s As String):           MaintainMinR
 
 Private Property Let FolderExportUrl(ByVal s As String):            UrlLabel(Me.Range("FolderExportUrl")) = s:                              End Property
 
-Public Property Get FolderSyncArchive() As String:                  FolderSyncArchive = mWsh.Value(Me, "FolderSyncArchive"):                End Property
-
-Public Property Let FolderSyncArchive(ByVal s As String):           mWsh.Value(Me, "FolderSyncArchive") = s:                                End Property
-
-Private Property Let FolderSyncArchiveInfo(ByVal s As String):      MaintainMinRowHeight Me.Range("FolderSyncArchiveInfo"), s:              End Property
-
-Private Property Let FolderSyncArchiveUrl(ByVal s As String):       UrlLabel(Me.Range("FolderSyncArchiveUrl")) = s:                         End Property
-
-Public Property Get FolderSyncTarget() As String:                   FolderSyncTarget = mWsh.Value(Me, "FolderSyncTarget"):                  End Property
-
-Public Property Let FolderSyncTarget(ByVal s As String):            mWsh.Value(Me, "FolderSyncTarget") = s:                                 End Property
-
-Private Property Let FolderSyncTargetInfo(ByVal s As String):       MaintainMinRowHeight Me.Range("FolderSyncTargetInfo"), s:               End Property
-
-Private Property Let FolderSyncTargetUrl(ByVal s As String):        UrlLabel(Me.Range("FolderSyncTargetUrl")) = s:                          End Property
-
 Private Property Get MonitorAnchor() As Range:                      Set MonitorAnchor = Me.Range("ConfigInfo"):                             End Property
 
 Private Property Let UrlButton(ByVal url_rng As Range, _
@@ -495,7 +479,7 @@ Public Sub MonitorRenewStep(Optional ByVal rn_result As String = vbNullString, _
                         mMsg.MonitorFooter Title, Footer
                         mBasic.DelayedAction 1
                     Next lSecs
-                    Services.MessageUnload Title
+                    Servicing.MessageUnload Title
                 Else
                     With Footer
                         .Text = "Renew process  " & mBasic.Spaced("failed") & "  Close window and " & vbLf & _
@@ -582,7 +566,6 @@ xt: mCompManClient.Events ErrSrc(PROC), True
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    Dim a As Variant
     
     With Me
         Select Case Target.Address

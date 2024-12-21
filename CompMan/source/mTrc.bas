@@ -83,7 +83,7 @@ End Enum
 
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
-    (ByVal hwnd As Long, _
+    (ByVal hWnd As Long, _
     ByVal lpOperation As String, _
     ByVal lpFile As String, _
     ByVal lpParameters As String, _
@@ -128,7 +128,6 @@ Private sFileLocation       As String
 Private sFileBaseName       As String
 Private sFirstTraceItem     As String
 Private sTitle              As String
-Private sPath               As String
 Private TraceStack          As Collection       ' Trace stack for the trace log written to a file
 
 ' ----------------------------------------------------------------------------
@@ -162,7 +161,6 @@ Private Property Let Arry(Optional ByRef c_arr As Variant, _
     Const PROC = "Arry-Let"
     
     Dim bIsAllocated As Boolean
-    Dim s            As String
     
     If IsArray(c_arr) Then
         On Error GoTo -1
@@ -662,8 +660,6 @@ Private Function FileAsArray(ByVal f_file As Variant, _
 ' Note when copied: Originates in mVarTrans
 '                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
 ' ----------------------------------------------------------------------------
-    Dim arr     As Variant
-    Dim sSplit  As String
     Dim s       As String
     
     If TypeName(f_file) = "String" Then f_file = FSo.GetFile(f_file)
@@ -1070,12 +1066,10 @@ Private Sub Reorg(ByVal r_file_full_name As String, _
     On Error GoTo eh
     Dim aFile   As Variant
     Dim aLog    As Variant
-    Dim bAppend As Boolean
     Dim cllLog  As New Collection
     Dim cllLogs As New Collection
     Dim i       As Long
     Dim lLen    As Long
-    Dim s       As String
     Dim v       As Variant
     Dim bTop    As Boolean: bTop = True
     
@@ -1355,35 +1349,6 @@ Private Function StringAsArray(ByVal v_strng As String, _
     End If
     StringAsArray = arr
 
-End Function
-
-Private Function StringAsFile(ByVal s_strng As String, _
-                     Optional ByRef s_file As Variant = vbNullString, _
-                     Optional ByVal s_file_new As Boolean = False) As File
-' ----------------------------------------------------------------------------
-' Writes a string (s_strng) to a file (s_file) which might be a file object or
-' a file's full name. When no file (s_file) is provided, a temporary file is
-' returned.
-' Note 1: Only when the string has sub-strings delimited by vbCrLf the string
-'         is written a records/lines.
-' Note 2: When the string has the alternate split indicator "|&|" this one is
-'         replaced by vbCrLf.
-' Note when copied: Originates in mVarTrans
-'                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
-' ----------------------------------------------------------------------------
-    
-    Select Case True
-        Case s_file = vbNullString: s_file = TempFile(, ".trc")
-        Case TypeName(s_file) = "File": s_file = s_file.Path
-    End Select
-    
-    If s_file_new _
-    Then Open s_file For Output As #1 _
-    Else Open s_file For Append As #1
-    Print #1, s_strng
-    Close #1
-    Set StringAsFile = FSo.GetFile(s_file)
-    
 End Function
 
 Private Function TempFile(Optional ByVal f_path As String = vbNullString, _

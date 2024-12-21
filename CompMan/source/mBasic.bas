@@ -232,7 +232,6 @@ Private TimerSystemFrequency    As Currency
     ' be indicated by the Conditional Compile Argument mMsg = 1.
     ' See https://github.com/warbe-maker/Common-VBA-Message-Service
     ' -------------------------------------------------------------------------------
-    Private Const vbResumeOk As Long = 7 ' Buttons value in mMsg.ErrMsg (pass on not supported)
     Private Const vbResume   As Long = 6 ' return value (equates to vbYes)
 #End If
 
@@ -282,8 +281,8 @@ Public Property Let Arry(Optional ByRef a_arr As Variant, _
     Const PROC = "Arry-Let"
     
     Dim bIsAllocated As Boolean
-    Dim s            As String
     
+    a_default = a_default ' used with Get only
     If IsArray(a_arr) Then
         On Error GoTo -1
         On Error Resume Next
@@ -1074,26 +1073,6 @@ Public Function ArryItems(ByVal a_arr As Variant) As Long
     
 End Function
 
-Private Sub ArryItemsTest()
-        
-    Dim arr1 As Variant
-    Dim arr2 As Variant
-    Dim arr3 As Variant
-    
-    Arry(arr1, 3) = "X"
-    Arry(arr1, 5) = "Y"
-    Arry(arr1, 9) = "Z"
-    Arry(arr2) = arr1
-    
-    Debug.Assert ArryDims(arr1) = 1
-    Debug.Assert ArryItems(arr1) = 10
-    
-    Debug.Assert ArryDims(arr2) = 1
-    Debug.Assert ArryItems(arr2) = 11
-    Debug.Assert ArryItems(arr3) = 0
-
-End Sub
-
 Public Sub ArryRemoveItems(ByRef a_va As Variant, _
                   Optional ByVal a_element As Variant, _
                   Optional ByVal a_index As Variant, _
@@ -1348,7 +1327,7 @@ Public Sub DelayedTest2(ByVal arg1 As String, _
     Debug.Print "DelayedTest2 with args " & arg1 & " and " & arg2
 End Sub
 
-Private Sub DictTest()
+Public Sub DictTest()
 
     Dim dct As Dictionary
     
@@ -1759,18 +1738,19 @@ Public Function StackEd(ByVal s_stck As Collection, _
                Optional ByRef s_item As Variant = -999999999, _
                Optional ByRef s_lvl As Long = 0) As Variant
 ' ----------------------------------------------------------------------------
-' Returns TRUE when an item (s_item) is stacked at a given level (s_lvl) or
-' when no level is provided, when it is stacked at any level. In the latter
-' case the level (s_lvl) is returned.
-' Returns the stacked item when none is provided and but a level is.
+' Returns:
+' - TRUE when an item (s_item) is stacked at a given level (s_lvl) or
+'   when no level is provided, when it is stacked at any level. In the latter
+'   case the level (s_lvl) is returned.
+' - The stacked item when none is provided and but a level is.
+'
 ' Restriction: The function works with any kind of object an an item which is
 '              not -999999999, which is regarded no item is provided.
 ' ----------------------------------------------------------------------------
     Const PROC = "StckEd"
     
     On Error GoTo eh
-    Dim v       As Variant
-    Dim i       As Long
+    Dim i As Long
     
     If s_stck Is Nothing Then Set s_stck = New Collection
     

@@ -35,7 +35,3 @@ Private Function Changed() As Dictionary
     
 End Function
 
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "clsComps" & "." & sProc
-End Function
-

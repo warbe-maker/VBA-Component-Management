@@ -43,7 +43,7 @@ Public Const CONCAT As String = "||"
 ' Begin of ShellRun declarations ---------------------------------------------
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
-    (ByVal hwnd As Long, _
+    (ByVal hWnd As Long, _
     ByVal lpOperation As String, _
     ByVal lpFile As String, _
     ByVal lpParameters As String, _
@@ -307,7 +307,7 @@ Private Function ErrHndlrFailed(ByVal err_number As Long, _
         Select Case err_buttons
             Case vbOKOnly, vbOKCancel, vbYesNo, vbRetryCancel, vbYesNoCancel, vbAbortRetryIgnore
             Case Else
-                MsgBox "When the err_buttons argument is a numeric value  o n l y  the valid VBA.MsgBox vaulues are supported. " & _
+                MsgBox "When the argument for the ""err_buttons"" parameter is a numeric value  o n l y  the valid VBA.MsgBox vaulues are supported. " & _
                        "For valid values please refer to:" & vbLf & _
                        "https://docs.microsoft.com/en-us/office/vba/Language/Reference/User-Interface-Help/msgbox-function" _
                        , vbOKOnly, "Only the valid VBA MsgBox vaulues are supported!"
@@ -585,11 +585,11 @@ Private Function ErrMsgDsply(ByVal err_source As String, _
 
     Application.EnableEvents = True ' set to TRUE in case FALSE
 #If mMsg = 1 Then
-    ErrMsgDsply = mMsg.Dsply(dsply_title:=sTitle _
-                           , dsply_msg:=ErrMsgText _
-                           , dsply_width_max:=60 _
-                           , dsply_Label_spec:="R50" _
-                           , dsply_buttons:=mMsg.Buttons(err_buttons))
+    ErrMsgDsply = mMsg.Dsply(d_title:=sTitle _
+                           , d_msg:=ErrMsgText _
+                           , d_width_max:=60 _
+                           , d_label_spec:="R50" _
+                           , d_buttons:=mMsg.Buttons(err_buttons))
 #Else
     lBttns = vbYesNo
     sMsg = sMsg & vbLf & vbLf & "Debugging:" & vbLf & "Yes    = Resume Error Line" & vbLf & "No     = Terminate"

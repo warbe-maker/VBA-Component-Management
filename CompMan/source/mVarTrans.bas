@@ -70,12 +70,8 @@ Option Explicit
 '
 ' W. Rauschenberger, Berlin Jul 2024
 ' ----------------------------------------------------------------
-Private Const DQUOTE                As String = """"    ' one " character
-Private Const ERR_SPLIT_AMBIGOUS    As String = "The string argument has ambigous delimitiers!"
-
 Private cll          As Collection
 Private dct          As Dictionary
-Private sDelim       As String
 Private FSo          As New FileSystemObject
 Private v            As Variant
 
@@ -112,7 +108,6 @@ Public Property Let Arry(Optional ByRef c_arr As Variant, _
     Const PROC = "Arry-Let"
     
     Dim bIsAllocated As Boolean
-    Dim s            As String
     
     If IsArray(c_arr) Then
         On Error GoTo -1
@@ -378,8 +373,6 @@ Public Function CollectionAsString(ByVal c_coll As Collection, _
 ' Note when copied: Originates in mVarTrans
 '                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
 ' ----------------------------------------------------------------------------
-    Const PROC = "CollectionAsString"
-    
     Dim s       As String
     Dim sName   As String
     Dim sSplit  As String
@@ -603,7 +596,6 @@ Public Function FileAsArray(ByVal f_file As Variant, _
 ' Note when copied: Originates in mVarTrans
 '                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
 ' ----------------------------------------------------------------------------
-    Dim arr     As Variant
     Dim sSplit  As String
     Dim s       As String
     
@@ -767,34 +759,6 @@ Private Function FileAsStringEmptyExcluded(ByVal f_s As String) As String
         f_s = Replace(f_s, vbCrLf & vbCrLf, vbCrLf)
     Loop
     FileAsStringEmptyExcluded = f_s
-    
-End Function
-
-Private Function FileAsStringTrimmed(ByVal s_s As String) As String
-' ----------------------------------------------------------------------------
-' Returns a file as string (s_s) with any leading and trailing empty items,
-' i.e. record, lines, excluded. When a Dictionary is provided
-' the string is additionally returned as items with the line number as key.
-' Note when copied: Originates in mVarTrans
-'                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
-' ----------------------------------------------------------------------------
-    Dim s As String
-    Dim i As Long
-    
-    s = s_s
-    '~~ Eliminate any leading empty items
-    Do While Left(s, 2) = vbCrLf
-        s = Right(s, Len(s) - 2)
-    Loop
-    '~~ Eliminate a trailing eof if any
-    If Right(s, 1) = VBA.Chr(26) Then
-        s = Left(s, Len(s) - 1)
-    End If
-    '~~ Eliminate any trailing empty items
-    Do While Right(s, 2) = vbCrLf
-        s = Left(s, Len(s) - 2)
-    Loop
-    FileAsStringTrimmed = s
     
 End Function
 
@@ -1061,8 +1025,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Function
 
 Private Function TempFile(Optional ByVal f_path As String = vbNullString, _
-                          Optional ByVal f_extension As String = ".txt", _
-                          Optional ByVal f_create_as_textstream As Boolean = True) As String
+                          Optional ByVal f_extension As String = ".txt") As String
 ' ------------------------------------------------------------------------------
 ' Returns the full file name of a temporary randomly named file. When a path
 ' (f_path) is omitted in the CurDir path, else in at the provided folder.
