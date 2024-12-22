@@ -617,7 +617,7 @@ Private Function ServiceOutstandingAtOpen(Optional ByVal s_sequ_no As Long = 0) 
                             Else
                                 '~~ The modification is based on an up-to-date version but it conflicts
                                 '~~ with another one made meanwhile in another Workbook/VB-Project
-                                '~~ This requires a user communication and confirmation
+                                '~~ This requires a user communication and confirmation.
                                 ServiceOutstandingAtOpenCase1 Serviced.Comp
                             End If
                         End If
@@ -634,11 +634,15 @@ Private Sub ServiceOutstandingAtOpenCase1(ByVal s_comp As clsComp, _
 ' ------------------------------------------------------------------------------
 ' Displays a dialog requesting Confirmed for any used or hosted Common Component
 ' which has been detected having a service gap.
+' A modification made while the Workbook/VB-Project was not serviced by CompMan,
+' though based on an up-to-date version, conflicts with another one made
+' meanwhile in another Workbook/VB-Project. This requires a confirmation since
+' the modification will have to be made undone.
 ' ------------------------------------------------------------------------------
     Const PROC = "ServiceOutstandingAtOpens"
     
     On Error GoTo eh
-    Dim Comp        As clsComp
+'    Dim Comp        As clsComp
     Dim sComp       As String
     Dim v           As Variant
     Dim Msg         As udtMsg
@@ -647,19 +651,27 @@ Private Sub ServiceOutstandingAtOpenCase1(ByVal s_comp As clsComp, _
     Dim sTitle      As String
     
     mBasic.BoP ErrSrc(PROC)
+    sComp = s_comp.CompName
     sBttnConf = "Confirmed"
     With Msg.Section(1)
-        .Text.Text = "The concerned " & sUsedHosted & " Common Component's code differs from the current public code in the Common-Components folder. " & _
-                     "This modification had yet not been exported which means it must have been modified while the Workbook was " & _
-                     "not serviced by CompMan. This concludes to a service gap which cannot be handled other than subsequently " & _
-                     "updating the ""outdated"" code. I.e. the made modification will get lost."
+        .Text.Text = "The Common Component  " & mBasic.Spaced(sComp) & "  had been modified while the " & _
+                     "Workbook/VB-Project was not serviced by CompMan. Although based on an up-to-date " & _
+                     "version, conflicts with another one made meanwhile in another Workbook/VB-Project. " & _
+                     "This requires a confirmation since the modification will have to be made undone."
     End With
     With Msg.Section(2)
+        .Text.Text = "The " & CommonServiced.KindOfComponentString(sComp) & " Common Component's current " & _
+                     "code (CodeModule) differs from the current public code in the Common-Components folder. " & _
+                     "The fact that this code is not identical with the Export-File indicates that the " & _
+                     "modification must have been made while not serviced by CompMan. This service gap " & _
+                     "cannot be handled other than subsequently updating the ""outdated"" code back to " & _
+                     "current public version."
+    End With
+    With Msg.Section(3)
         .Label.Text = mCompMan.BttnAsLabel(sBttnConf)
         .Label.FontColor = rgbBlue
-        .Text.Text = "Confirmation is the only choice because it cannot be guaranteed that the modification is based on an up-to-date " & _
-                     "code. Displaying the code difference before confirmation may allow to re-do the modification based on an up-to-date " & _
-                     "code while the Workbook is serviced."
+        .Text.Text = "Confirmation is the only choice! Displaying the code difference before confirmation " & _
+                     "may allow to re-do the modification based on an up-to-date code while the Workbook is serviced."
     End With
     Do
         Select Case mMsg.Dsply(d_title:=sTitle _
@@ -667,7 +679,7 @@ Private Sub ServiceOutstandingAtOpenCase1(ByVal s_comp As clsComp, _
                              , d_label_spec:="L80" _
                              , d_buttons:=mMsg.Buttons(mDiff.PublicVersusServicedCodeBttn(sComp), vbLf, sBttnConf) _
                              , d_width_min:=350)
-            Case mDiff.PublicVersusServicedCodeBttn(sComp): mDiff.PublicVersusServicedCodeDsply Comp
+            Case mDiff.PublicVersusServicedCodeBttn(sComp): mDiff.PublicVersusServicedCodeDsply s_comp
             Case sBttnConf:                                 Exit Do
         End Select
     Loop

@@ -180,16 +180,25 @@ Public Function IsEmpty() As Boolean:                   IsEmpty = QisEmpty(cllQu
 
 Public Function IsQueued(ByVal i_item As Variant, _
                 Optional ByRef i_pos As Long, _
-                Optional ByRef i_no_found As Long) As Boolean
-    IsQueued = QisQueued(cllQueue, i_item, i_pos, i_no_found)
+                Optional ByRef i_number As Long) As Boolean
+    IsQueued = QisQueued(cllQueue, i_item, i_pos, i_number)
 End Function
 
 Public Function Item(ByVal i_pos As Long, _
-            Optional ByRef i_item As Variant) As Variant
+            Optional ByRef i_item As Variant = Nothing) As Variant
+' ----------------------------------------------------------------------------
+' Returns from a queue (cllQueue) the item at position (i_pos) provided the
+' position is within the number of items in the queue, else returns Nothing.
+' ----------------------------------------------------------------------------
+    Set Item = Nothing
     
     Qitem cllQueue, i_pos, i_item
-    If IsObject(i_item) Then Set Item = i_item Else Item = i_item
-
+    If IsObject(i_item) Then
+        Set Item = i_item
+    Else
+        Item = i_item
+    End If
+    
 End Function
 
 Public Function Last(Optional ByRef l_item As Variant) As Variant
@@ -286,8 +295,8 @@ Private Function QidenticalItems(ByVal q_1 As Variant, _
 ' Returns TRUE when item 1 is identical with item 2.
 ' ----------------------------------------------------------------------------
     Select Case True
-        Case VarType(q_1) = vbObject And VarType(q_2) = vbObject:   QidenticalItems = q_1 Is q_2
-        Case VarType(q_1) <> vbObject And VarType(q_2) <> vbObject: QidenticalItems = q_1 = q_2
+        Case VBA.IsObject(q_1) And VBA.IsObject(q_2):           QidenticalItems = q_1 Is q_2
+        Case Not VBA.IsObject(q_1) And Not VBA.IsObject(q_2):   QidenticalItems = q_1 = q_2
     End Select
 End Function
 
@@ -309,19 +318,23 @@ End Function
 Private Function QisQueued(ByVal i_queue As Collection, _
                            ByVal i_item As Variant, _
                   Optional ByRef i_pos As Long, _
-                  Optional ByRef i_no_found As Long) As Boolean
+                  Optional ByRef i_number As Long) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns TRUE and the index (i_pos) when the item (i_item) is found in the
-' queue (i_queue).
+' Returns
+' - TRUE and the index (i_pos) when the item (i_item) is found in the
+'   queue (i_queue)
+' - The position of the first one found - if the returned number (i_number)
+'   is > 0.
 ' ----------------------------------------------------------------------------
     Dim i As Long
     
-    i_no_found = 0
+    i_number = 0
+    i_pos = 0
     For i = 1 To i_queue.Count
         If QidenticalItems(i_queue(i), i_item) Then
-            i_no_found = i_no_found + 1
+            i_number = i_number + 1
             QisQueued = True
-            i_pos = i
+            If i_pos = 0 Then i_pos = i
         End If
     Next i
 
@@ -329,15 +342,16 @@ End Function
 
 Private Function Qitem(ByVal q_queue As Collection, _
                        ByVal q_pos As Long, _
-              Optional ByRef q_item As Variant) As Variant
+              Optional ByRef q_item As Variant = Nothing) As Variant
 ' ----------------------------------------------------------------------------
 ' Returns from the queue (q_queue) the item (q_item) at the position (q_pos),
 ' provided the queue is not empty and the position is within the queue's size.
 ' ----------------------------------------------------------------------------
+    Set Qitem = Nothing
     
     If Not QisEmpty(q_queue) Then
         If q_pos <= Qsize(q_queue) Then
-            If VarType(q_queue(q_pos)) = vbObject Then
+            If VBA.IsObject(q_queue(q_pos)) Then
                 Set q_item = q_queue(q_pos)
                 Set Qitem = q_item
             Else

@@ -716,9 +716,9 @@ Friend Property Let Verification(ByVal s As String)
     
     sVerification = s
     lVerificationNumber = lVerificationNumber + 1
-    sNameTestFile = sTestFolder & "\Test-" & sTestId & "-" & lVerificationNumber & sTestFileExtension
-    sNameTestResultFile = sTestFolder & "\Test-" & sTestId & "-Result-" & lVerificationNumber & sTestFileExtension
-    sNameTestResultExpectedFile = sTestFolder & "\Test-" & sTestId & "-Result-Expected-" & lVerificationNumber & sTestFileExtension
+    sNameTestFile = Replace(sTestFolder & "\Test-" & sTestId & "-" & lVerificationNumber & "." & sTestFileExtension, "..", ".")
+    sNameTestResultFile = Replace(sTestFolder & "\Test-" & sTestId & "-Result-" & lVerificationNumber & "." & sTestFileExtension, "..", ".")
+    sNameTestResultExpectedFile = Replace(sTestFolder & "\Test-" & sTestId & "-Result-Expected-" & lVerificationNumber & "." & sTestFileExtension, "..", ".")
 
 End Property
 
@@ -744,9 +744,7 @@ Private Function AlignCntr(ByVal a_string As String, _
     Dim sFill       As String
     Dim lWidth      As Long
 
-    If a_length = 0 _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "A zero length is nor supported by alignment centered!"
-
+    If a_length = 0 Then a_length = 1
     Select Case a_fill
         Case " ":        sFill = " ": sLeft = " ":          sRight = " "
         Case "-":        sFill = "-": sLeft = vbNullString: sRight = vbNullString
@@ -2320,24 +2318,33 @@ Private Sub ResultEvaluated(Optional ByVal r_result As Collection = Nothing, _
     
     On Error GoTo eh
     Dim i               As Long
-    Dim sResult         As String
-    Dim sResultExpected As String
+    Dim vResult         As Variant
+    Dim vResultExpected As Variant
     
     sResultEvaluated = RESULT_PASSED ' the default
     If r_result Is Nothing And r_result_expected Is Nothing Then
-        sResult = Exclude(VarAsString(dctResult(r_test_id)))
-        sResultExpected = Exclude(VarAsString(dctResultExpected(r_test_id)))
-        If StrComp(sResult _
-                 , sResultExpected _
-                 , vbBinaryCompare) <> 0 _
-        Then sResultEvaluated = RESULT_FAILED
+        If VBA.IsObject(dctResult(r_test_id)) Then
+            Set vResult = dctResult(r_test_id)
+        Else
+            vResult = Exclude(VarAsString(dctResult(r_test_id)))
+        End If
+        
+        If VBA.IsObject(dctResultExpected(r_test_id)) Then
+            Set vResultExpected = dctResultExpected(r_test_id)
+        Else
+            vResultExpected = Exclude(VarAsString(dctResultExpected(r_test_id)))
+        End If
+        
+        If VarsDiffer(vResult, vResultExpected) Then
+            sResultEvaluated = RESULT_FAILED
+        End If
     Else
         If r_result.Count <> r_result_expected.Count Then
             sResultEvaluated = RESULT_FAILED
             GoTo xt
         Else
             For i = 1 To r_result.Count
-                If StrComp(CStr(r_result(i)), CStr(r_result_expected(i)), vbBinaryCompare) <> 0 Then
+                If VarsDiffer(r_result(i), r_result_expected(i)) Then
                     sResultEvaluated = RESULT_FAILED
                     GoTo xt
                 End If
@@ -2429,6 +2436,7 @@ Private Sub ResultFailedLog(Optional ByVal r_result As Collection = Nothing, _
     Dim lMaxResult          As Long
     Dim lMaxResultExpected  As Long
     Dim v                   As Variant
+    Dim s                   As String
     Dim sLine               As String
     Dim sPassedFailed       As String
     
@@ -2441,10 +2449,10 @@ Private Sub ResultFailedLog(Optional ByVal r_result As Collection = Nothing, _
     End If
     
     For Each v In cllResult
-        lMaxResult = Max(lMaxResult, Len(v) + 2)
+        lMaxResult = Max(1, lMaxResult, VarLen(v) + 2)
     Next v
     For Each v In cllResultExpected
-        lMaxResultExpected = Max(lMaxResultExpected, Len(v) + 2)
+        lMaxResultExpected = Max(1, lMaxResultExpected, VarLen(v) + 2)
     Next v
 
     sLogFile = NameTestResultFile
@@ -2455,10 +2463,10 @@ Private Sub ResultFailedLog(Optional ByVal r_result As Collection = Nothing, _
     LogColsHeader = "Verification, P/F, Result, Result Expected"
                   
     For i = 1 To Min(cllResult.Count, cllResultExpected.Count)
-        If StrComp(CStr(cllResult(i)), CStr(cllResultExpected(i)), vbBinaryCompare) = 0 _
-        Then sPassedFailed = "Passed" _
-        Else sPassedFailed = "Failed"
-        sLine = LogColsArrangedItems(sVerification, sPassedFailed, """" & Trim(cllResult(i)) & """", """" & Trim(cllResultExpected(i)) & """")
+        If VarsDiffer(cllResult(i), cllResultExpected(i)) _
+        Then sPassedFailed = "Failed" _
+        Else sPassedFailed = "Passed"
+        sLine = LogColsArrangedItems(sVerification, sPassedFailed, """" & Trim(VarAsString(cllResult(i))) & """", """" & Trim(VarAsString(cllResultExpected(i))) & """")
         LogColsHeaderWrite l_file:=sLogFile _
                          , l_title:=sTitle _
                          , l_with_header_underline:=True _
@@ -2467,11 +2475,13 @@ Private Sub ResultFailedLog(Optional ByVal r_result As Collection = Nothing, _
     Next i
     If cllResult.Count > cllResultExpected.Count Then
         For i = i To cllResult.Count
-            StringAsFile LogColsArrangedItems(sVerification, "Failed", """" & Trim(CStr(cllResult(i))) & """", """" & vbNullString & """"), sLogFile, True
+            s = LogColsArrangedItems(sVerification, "Failed", """" & Trim(VarAsString(cllResult(i))) & """", """" & vbNullString & """")
+            StringAsFile s, sLogFile, True
         Next i
     ElseIf cllResultExpected.Count > cllResult.Count Then
         For i = i To cllResultExpected.Count
-            StringAsFile LogColsArrangedItems(sVerification, "Failed", """" & vbNullString & """", """" & Trim(CStr(cllResultExpected(i)))) & """", sLogFile, True
+            s = LogColsArrangedItems(sVerification, "Failed", """" & vbNullString & """", """" & Trim(VarAsString(cllResultExpected(i)))) & """"
+            StringAsFile s, sLogFile, True
         Next i
     End If
     ShellRun sLogFile ' display log
@@ -3026,8 +3036,35 @@ Private Function VarAsString(ByVal v_items As Variant) As String
         Case VarType(v_items) = vbArray:        VarAsString = ArrayAsString(v_items)
         Case VarType(v_items) = vbBoolean:      VarAsString = BooleanAsString(v_items)
         Case VarType(v_items) = vbString:       VarAsString = StringAsString(v_items)
+        Case VBA.IsObject(v_items):             VarAsString = ObjectAsString(v_items)
         Case Else:                              VarAsString = CStr(v_items)
     End Select
+    
+End Function
+
+Private Function VarLen(ByVal v_var As Variant) As Long
+    If VBA.IsObject(v_var) Then
+        If Not v_var Is Nothing Then
+            On Error Resume Next
+            VarLen = v_var.Name
+            On Error GoTo -1
+        End If
+    Else
+        VarLen = Len(CStr(v_var))
+    End If
+    
+End Function
+
+Private Function VarsDiffer(ByVal v_var1 As Variant, _
+                            ByVal v_var2 As Variant) As Boolean
+                            
+    If VBA.IsObject(v_var1) And VBA.IsObject(v_var1) Then
+         VarsDiffer = Not v_var1 Is v_var2
+    Else
+        VarsDiffer = StrComp(CStr(v_var1) _
+                           , CStr(v_var2) _
+                           , vbBinaryCompare) <> 0
+    End If
     
 End Function
 
