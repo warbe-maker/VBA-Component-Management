@@ -85,7 +85,6 @@ Public Sub ChangedComponents(Optional ByVal c_comp As String = vbNullString)
                         
                         Case Not bChanged And .IsCommon
                             '~~ Common Component which not has changed
-                            .SetServicedProperties
                             Prgrss.ItemSkipped
         
                         Case Not bChanged
@@ -192,9 +191,9 @@ Private Function AnExportFolderExists(ByVal oef_path As String, _
     Dim fld As Folder
     Dim fle As File
     
-    For Each fld In FSo.GetFolder(oef_path).SubFolders
+    For Each fld In fso.GetFolder(oef_path).SubFolders
         For Each fle In fld.Files
-            Select Case FSo.GetExtensionName(fle.Path)
+            Select Case fso.GetExtensionName(fle.Path)
                 Case "bas", "cls", "frm"
                     Set oef_fld = fld
                     AnExportFolderExists = True

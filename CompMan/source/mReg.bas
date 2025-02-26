@@ -175,12 +175,12 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
     If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function
 
-Private Function ArrayIsAllocated(arr As Variant) As Boolean
+Private Function ArrayIsAllocated(a_arr As Variant) As Boolean
     
     On Error Resume Next
-    ArrayIsAllocated = IsArray(arr) _
-                       And Not IsError(LBound(arr, 1)) _
-                       And LBound(arr, 1) <= UBound(arr, 1)
+    ArrayIsAllocated = UBound(a_arr) >= LBound(a_arr, 1)
+    On Error GoTo 0
+    Err.Clear
     
 End Function
 
@@ -583,7 +583,7 @@ Public Function Export(ByVal e_reg_key As String) As String
 ' typical .ini, .dat, .cfg file.
 ' ----------------------------------------------------------------------------
     Dim Keys        As Collection
-    Dim Key         As Variant
+    Dim key         As Variant
     Dim ValueName   As Variant
     Dim Values      As Dictionary
     
@@ -601,17 +601,17 @@ Public Function Export(ByVal e_reg_key As String) As String
             Next ValueName
         End If
     Else
-        For Each Key In Keys
-            Set Values = mReg.Values(e_reg_key & "\" & Key)
+        For Each key In Keys
+            Set Values = mReg.Values(e_reg_key & "\" & key)
             If Values.Count > 0 Then
                 If Len(Export) = 0 _
-                Then Export = "[" & Key & "]" _
-                Else Export = Export & vbLf & "[" & Key & "]"
+                Then Export = "[" & key & "]" _
+                Else Export = Export & vbLf & "[" & key & "]"
                 For Each ValueName In Values
                     Export = Export & vbLf & ValueName & "=" & Values(ValueName)
                 Next ValueName
             End If
-        Next Key
+        Next key
     End If
     
 End Function
@@ -780,7 +780,7 @@ Public Function Values(ByVal v_reg_key As String) As Dictionary
     Dim ValueNameLength As Long
     Dim resLong         As Long
     Dim resString       As String
-    Dim RetVal          As Long
+    Dim retVal          As Long
     Dim valueType       As Long
     Dim HKey            As Long
     Dim ValueName       As String
@@ -803,15 +803,15 @@ Public Function Values(ByVal v_reg_key As String) As Dictionary
         ReDim resBinary(0 To dataLen - 1) As Byte
         
         '~~ Read the value's name and data
-        RetVal = RegEnumValue(HKey, Index, sName, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
+        retVal = RegEnumValue(HKey, Index, sName, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
         
         '~~ Enlarge the buffer if more space is required
-        If RetVal = ERROR_MORE_DATA Then
+        If retVal = ERROR_MORE_DATA Then
             ReDim resBinary(0 To dataLen - 1) As Byte
-            RetVal = RegEnumValue(HKey, Index, sName, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
+            retVal = RegEnumValue(HKey, Index, sName, ValueNameLength, ByVal 0&, valueType, resBinary(0), dataLen)
         End If
         
-        If RetVal Then Exit Do                      ' exit the loop if any other error (typically, no more values)
+        If retVal Then Exit Do                      ' exit the loop if any other error (typically, no more values)
         ValueName = Left$(sName, ValueNameLength)    ' retrieve the value's name
         
         '~~ Return a value corresponding to the value type

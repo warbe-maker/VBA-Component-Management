@@ -43,7 +43,7 @@ Public Const CONCAT As String = "||"
 ' Begin of ShellRun declarations ---------------------------------------------
 Private Declare PtrSafe Function apiShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" _
-    (ByVal hWnd As Long, _
+    (ByVal hwnd As Long, _
     ByVal lpOperation As String, _
     ByVal lpFile As String, _
     ByVal lpParameters As String, _
@@ -164,15 +164,6 @@ Public Function ShellRun(ByVal sr_string As String, _
 
 End Function
 
-Private Function ArrayIsAllocated(arr As Variant) As Boolean
-    
-    On Error Resume Next
-    ArrayIsAllocated = VBA.IsArray(arr) _
-                   And Not VBA.IsError(LBound(arr, 1)) _
-                   And LBound(arr, 1) <= UBound(arr, 1)
-    
-End Function
-
 Public Sub Asserted(ParamArray botp_errs_asserted() As Variant)
     vErrsAsserted = botp_errs_asserted
 End Sub
@@ -230,16 +221,13 @@ Private Property Get BoPArguments() As String
 ' Returns a string with the arguments which had been passed with the BoP
 ' statement in the procedure which raised the error. Any argument string
 ' ending with a ":" or "=" is an arguments name with its value in the
-' subsequent item.
+' subsequent Item.
 ' ----------------------------------------------------------------------------
-    Const PROC = "BoPArguments-Get"
-    
-    On Error GoTo eh
-    Dim s As String
-    
-    If ArrayIsAllocated(vArguments) Then
-        s = Join(vArguments, ", ")
-        BoPArguments = "(" & Replace(s, "=, ", " = ") & ")"
+    Const PROC = "BoPArguments(Get)"
+        
+    On Error GoTo xt
+    If UBound(vArguments) >= LBound(vArguments) Then
+        BoPArguments = "(" & Replace(Join(vArguments, ", "), "=, ", " = ") & ")"
     End If
 
 xt: Exit Property
@@ -654,7 +642,7 @@ Private Sub ErrPathAdd(ByVal s As String)
     If cllErrPath Is Nothing Then Set cllErrPath = New Collection
     If Not ErrPathItemExists(s) Then
 '        Debug.Print ErrSrc(PROC) & ": " &  "Add to ErrPath: " & s
-        cllErrPath.Add s ' avoid duplicate recording of the same procedure/item
+        cllErrPath.Add s ' avoid duplicate recording of the same procedure/Item
     End If
 End Sub
 
@@ -759,8 +747,8 @@ End Function
 Public Function StackPop(ByVal stck As Collection, _
                 Optional ByVal id As Variant = vbNullString) As Variant
 ' ----------------------------------------------------------------------------
-' Common Stack Pop service. Returns the last item pushed on the stack (stck)
-' and removes the item from the stack. When the stack (stck) is empty a
+' Common Stack Pop service. Returns the last Item pushed on the stack (stck)
+' and removes the Item from the stack. When the stack (stck) is empty a
 ' vbNullString is returned.
 ' ----------------------------------------------------------------------------
     Const PROC = "StckPop"
@@ -789,7 +777,7 @@ End Function
 Public Sub StackPush(ByRef stck As Collection, _
                      ByVal stck_item As Variant)
 ' ----------------------------------------------------------------------------
-' Common Stack Push service. Pushes (adds) an item (stck_item) to the stack
+' Common Stack Push service. Pushes (adds) an Item (stck_Item) to the stack
 ' (stck). When the provided stack (stck) is Nothing the stack is created.
 ' ----------------------------------------------------------------------------
     Const PROC = "StckPush"

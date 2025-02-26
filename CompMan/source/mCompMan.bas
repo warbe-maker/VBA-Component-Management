@@ -242,28 +242,30 @@ Public Function HistoryItems(ByVal h_str As String, _
     Dim i As Long
     Dim a As Variant
     
-    Select Case True
-        Case InStr(h_str, "<") <> 0 _
-         And InStr(h_str, ">") <> 0
-            Err.Raise AppErr(1), ErrSrc(PROC), "Contradictory history direction character detected!" & vbLf & _
-                                               "The character may either be "">"" indicating that the " & _
-                                               "item of the right is the one replacing the item to the " & _
-                                               "left or or ""<"" indicating the the item to the left is " & _
-                                               "replacing the one to the right. When either of the two is " & _
-                                               "not followed by a string means that the item has become obsolete!"
-        Case InStr(h_str, ">") <> 0
-            a = Split(h_str, ">")
-            For i = LBound(a) To UBound(a)
-                cll.Add a(i)
-            Next i
-        Case InStr(h_str, "<") <> 0
-            a = Split(h_str, "<")
-            For i = UBound(a) To LBound(a) Step -1
-                cll.Add a(i)
-            Next i
-    End Select
-    h_current = cll(cll.Count)
-    cll.Remove cll.Count
+    With cll
+        Select Case True
+            Case InStr(h_str, "<") <> 0 _
+             And InStr(h_str, ">") <> 0
+                Err.Raise AppErr(1), ErrSrc(PROC), "Contradictory history direction character detected!" & vbLf & _
+                                                   "The character may either be "">"" indicating that the " & _
+                                                   "item of the right is the one replacing the item to the " & _
+                                                   "left or or ""<"" indicating the the item to the left is " & _
+                                                   "replacing the one to the right. When either of the two is " & _
+                                                   "not followed by a string means that the item has become obsolete!"
+            Case InStr(h_str, ">") <> 0
+                a = Split(h_str, ">")
+                For i = LBound(a) To UBound(a)
+                    .Add a(i)
+                Next i
+            Case InStr(h_str, "<") <> 0
+                a = Split(h_str, "<")
+                For i = UBound(a) To LBound(a) Step -1
+                    .Add a(i)
+                Next i
+        End Select
+        h_current = cll(.Count)
+        .Remove .Count
+    End With
     Set HistoryItems = cll
     
 End Function
@@ -463,7 +465,7 @@ Public Sub ServiceInitiate(ByVal s_serviced_wbk As Workbook, _
     Dim lMaxLenType As Long
     Dim lMaxLenItem As Long
     
-    mBasic.BoP ErrSrc(PROC)
+'    mBasic.BoP ErrSrc(PROC)
     Set Servicing = New clsServicing
     With Servicing
         .CurrentService = mCompMan.Service(s_service)
@@ -477,6 +479,7 @@ Public Sub ServiceInitiate(ByVal s_serviced_wbk As Workbook, _
         .PublProcCpys = s_public_proc_copies
     End With
     
+    If CommonPending Is Nothing Then Set CommonPending = New clsCommonPending
     Set CommCompsPendingRelease = CommonPending.Components
     
     Serviced.MaxLengths
@@ -494,7 +497,7 @@ Public Sub ServiceInitiate(ByVal s_serviced_wbk As Workbook, _
         End Select
     End If
 
-xt: mBasic.EoP ErrSrc(PROC)
+xt: ' mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -510,7 +513,7 @@ Public Function ServicesFolder() As String
     
     If Serviced Is Nothing Then Err.Raise AppErr(1), ErrSrc(PROC), "The ServicesFolder requires the known serviced Workbook, which is not the case yet!"
     s = ActiveWorkbook.Path & "\CompMan"
-    If Not FSo.FolderExists(s) Then FSo.CreateFolder s
+    If Not fso.FolderExists(s) Then fso.CreateFolder s
     ServicesFolder = s
     
 End Function
@@ -637,7 +640,7 @@ Public Function WbkGetOpen(ByVal go_wbk_full_name As String) As Workbook
     
     On Error GoTo eh
     
-    If FSo.FileExists(go_wbk_full_name) Then
+    If fso.FileExists(go_wbk_full_name) Then
         If mCompMan.WbkIsOpen(io_name:=go_wbk_full_name) _
         Then Set WbkGetOpen = Application.Workbooks(go_wbk_full_name) _
         Else Set WbkGetOpen = Application.Workbooks.Open(go_wbk_full_name)
@@ -666,8 +669,8 @@ Private Function WbkIsOpen(Optional ByVal io_name As String = vbNullString, _
     
     If io_full_name <> vbNullString Then
         '~~ With the full name the open test spans all application instances
-        If Not FSo.FileExists(io_full_name) Then GoTo xt
-        If io_name = vbNullString Then io_name = FSo.GetFileName(io_full_name)
+        If Not fso.FileExists(io_full_name) Then GoTo xt
+        If io_name = vbNullString Then io_name = fso.GetFileName(io_full_name)
         On Error Resume Next
         Set xlApp = GetObject(io_full_name).Application
         WbkIsOpen = Err.Number = 0

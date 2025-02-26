@@ -75,13 +75,13 @@ Private Sub CommCompsPublicNew(ByVal c_files As Dictionary, _
                     If .CodeExprtd.Meets(.CodePublic) Then
                         .SetServicedProperties
                         CommonServiced.KindOfComponent(sCompName) = enCompCommonUsed
-                        .SetPublicEqualServiced
+                        CommonPublic.SetPropertiesEqualServiced (sCompName)
                     Else
                         CommonPublic.LastModExpFileOrigin(sCompName) = sExpFile
                     End If
                 End With
             Else
-                If FSo.GetFileName(CommonPublic.LastModExpFileOrigin(sCompName)) = vbNullString Then
+                If fso.GetFileName(CommonPublic.LastModExpFileOrigin(sCompName)) = vbNullString Then
                     CommonPublic.LastModExpFileOrigin(sCompName) = sExpFile
                 End If
             End If
@@ -212,6 +212,7 @@ Public Sub CommCompsServicedKindOf(Optional ByVal c_sequ_no As Long = 0)
     Const PROC = "CommCompsServicedKindOf"
     
     On Error GoTo eh
+    Dim bDone       As Boolean
     Dim BttnPrivate As String
     Dim BttnUsed    As String
     Dim sComp       As String
@@ -286,7 +287,7 @@ Public Sub CommCompsServicedKindOf(Optional ByVal c_sequ_no As Long = 0)
                                                         CommonServiced.LastModAt(.CompName) = vbNullString ' yet unknown will force update when outdated
                                                         If .IsCommCompUpToDate Then
                                                             .Export
-                                                            .SetServicedEqualPublic
+                                                            CommonServiced.SetPropertiesEqualPublic .CompName
                                                         End If
                                         Case BttnPrivate:  CommonServiced.KindOfComponent(.CompName) = enCompCommonPrivate
                                     End Select
@@ -298,7 +299,8 @@ Public Sub CommCompsServicedKindOf(Optional ByVal c_sequ_no As Long = 0)
         Prgrss.ItemDone(c_sequ_no) = sComp
     Next v
 
-xt: mBasic.EoP ErrSrc(PROC)
+xt:
+    mBasic.EoP ErrSrc(PROC)
     Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
@@ -324,7 +326,7 @@ Private Sub CommCompsServicedNotHosted(Optional ByVal c_sequ_no As Long = 0)
     With CommonServiced
         For Each v In .Components
             If Not Serviced.Hosted.Exists(v) Then
-                If mComp.Exists(v, wbk) Then
+                If Serviced.CompExists(v) Then
                     .KindOfComponent(v) = enCompCommonUsed
                 End If
             End If
@@ -418,7 +420,7 @@ Private Sub CommCompsServicedPendingRelease(Optional ByVal c_sequ_no As Long = 0
                                 '~~ When the public code is identical with the pending release code the pending is obsolete.
                                 '~~ A likely reason is that the export file had been copied manually. The properties
                                 '~~ are updated anyway.
-                                .SetPublicEqualPending
+                                CommonPublic.SetPropertiesEqualPending sComp
                                 CommonPending.Remove sComp
                             End If
                         End If
@@ -434,12 +436,12 @@ Private Sub CommCompsServicedPendingRelease(Optional ByVal c_sequ_no As Long = 0
         Set dctPendingExpFiles = .ExportFiles
         For Each v In dctPendingExpFiles
             If Not .Exists(v) Then
-                FSo.DeleteFile dctPendingExpFiles(v)
+                fso.DeleteFile dctPendingExpFiles(v)
             End If
             Prgrss.ItemDone(c_sequ_no) = v
         Next v
-        If dctPendingExpFiles.Count = 0 And FSo.FolderExists(mEnvironment.CommCompsPendingPath) _
-        Then FSo.DeleteFolder mEnvironment.CommCompsPendingPath
+        If dctPendingExpFiles.Count = 0 And fso.FolderExists(mEnvironment.CommCompsPendingPath) _
+        Then fso.DeleteFolder mEnvironment.CommCompsPendingPath
     
         '~~ 3. Remove entries in the Pending.dat file without a corresponding Export-
         '~~    File in the Common-Components\Pending folder - may have been moved manually to
@@ -449,7 +451,7 @@ Private Sub CommCompsServicedPendingRelease(Optional ByVal c_sequ_no As Long = 0
             If Not dctPendingExpFiles.Exists(sComp) Then
                 With New clsComp
                     .CompName = v
-                    .SetPublicEqualPending
+                    CommonPublic.SetPropertiesEqualPending sComp
                 End With
                 CommonPending.Remove sComp
             End If
@@ -469,10 +471,10 @@ Private Sub CommCompsServicedPendingRelease(Optional ByVal c_sequ_no As Long = 0
                 Select Case True
                     Case .CodePnding.Meets(.CodeCrrent)
                         .Export
-                        .SetPendingEqualServiced
-                    Case FSo.FileExists(.ExpFileFullName)
+                        CommonPending.SetPropertiesEqualServiced sComp
+                    Case fso.FileExists(.ExpFileFullName)
                         If .CodePnding.Meets(.CodeExprtd) Then
-                            .SetPendingEqualServiced
+                            CommonPending.SetPropertiesEqualServiced sComp
                         End If
                 End Select
             End With
@@ -516,6 +518,7 @@ Private Sub CommCompsServicedProperties(Optional ByVal c_sequ_no As Long = 0)
     Const PROC = "CommCompsServicedProperties"
     
     On Error GoTo eh
+    Dim bDone   As Boolean
     Dim sComp   As String
     Dim v       As Variant
     
@@ -524,17 +527,14 @@ Private Sub CommCompsServicedProperties(Optional ByVal c_sequ_no As Long = 0)
     With Serviced
         For Each v In CommonPublic.Components
             sComp = v
-            If Not .CompExists(sComp) Then GoTo nx
-            .Comp.CompName = sComp
-            With .Comp
-                '~~ For the Common Component exists a public version in the Common-Components folder
-                If .CodeCrrent.Meets(.CodePublic) Then
-                    '~~ In case the serviced component's code is identical with the public
-                    If Not .ServicedMeetsPublicProperties Then
-                        '~~ The when the code is equal the properties need to be equal too
-                        .SetServicedEqualPublic False
-                        If Not FSo.FileExists(.ExpFileFullName) Then
+            If .CompExists(sComp) Then
+                .Comp.CompName = sComp
+                With .Comp
+                    If .CodeCrrent.Meets(.CodePublic) Then
+                        '~~ A uses Common Component's code is identical with the public version
+                        If Not .CodeCrrent.Meets(.CodeExprtd) Then
                             '~~ Apparently the public Common Component's Export-File has been imported by the VBE
+                            '~~ and either has yet not exported or the export file is outdated
                             .Export
                             With Servicing
                                 .Log(sComp) = "Serviced Common Component properties housekeeping:"
@@ -542,21 +542,18 @@ Private Sub CommCompsServicedProperties(Optional ByVal c_sequ_no As Long = 0)
                                 .Log(sComp) = "Serviced Common Component (public assumed imported manually): Properties set equal public"
                             End With
                         End If
-                    ElseIf FSo.FileExists(.ExpFileFullName) Then
-                        '~~ The current code may have already been modified
-                        If .CodeExprtd.Meets(.CodePublic) Then
-                            .SetServicedEqualPublic
+                        CommonServiced.SetPropertiesEqualPublic sComp, bDone
+                        If bDone Then
                             With Servicing
                                 .Log(sComp) = "Serviced Common Component properties housekeeping:"
                                 .Log(sComp) = "Serviced Common Component's Export-File meets public: Properties set equal public"
                             End With
                         End If
                     End If
-                End If
-            End With
+                End With
+            End If
 nx:         Prgrss.ItemDone(c_sequ_no) = v
         Next v
-        .Comp.SetServicedEqualPublic True
     End With
     
 xt: mBasic.EoP ErrSrc(PROC)
@@ -575,9 +572,13 @@ Private Function ServiceOutstandingAtOpen(Optional ByVal s_sequ_no As Long = 0) 
 ' 1 A modification had been made on a Common Component while out-of-service but
 '   it conflicts with one meanwhile made in another VB-Project.
 ' ------------------------------------------------------------------------------
+    Const PROC = "ServiceOutstandingAtOpen"
+    
+    On Error GoTo eh
     Dim lKind   As enKindOfComp
     Dim vbc     As VBComponent
     
+    mBasic.BoP ErrSrc(PROC)
     '~~ Loop through all components in the serviced Workbook considered a Commom Component
     With Serviced
         For Each vbc In .Wrkbk.VBProject.VBComponents
@@ -585,7 +586,7 @@ Private Function ServiceOutstandingAtOpen(Optional ByVal s_sequ_no As Long = 0) 
                 .CompName = vbc.Name
                 lKind = CommonServiced.KindOfComponent(.CompName)
                 Select Case True
-                    Case Not FSo.FileExists(.ExpFileFullName) _
+                    Case Not fso.FileExists(.ExpFileFullName) _
                         '~~ Done with export, may be outdated though if a Common Component
                         .Export
                         ServiceOutstandingAtOpen = 0
@@ -617,7 +618,7 @@ Private Function ServiceOutstandingAtOpen(Optional ByVal s_sequ_no As Long = 0) 
                             Else
                                 '~~ The modification is based on an up-to-date version but it conflicts
                                 '~~ with another one made meanwhile in another Workbook/VB-Project
-                                '~~ This requires a user communication and confirmation.
+                                '~~ This requires a user communication and confirmation
                                 ServiceOutstandingAtOpenCase1 Serviced.Comp
                             End If
                         End If
@@ -627,6 +628,13 @@ Private Function ServiceOutstandingAtOpen(Optional ByVal s_sequ_no As Long = 0) 
         Next vbc
     End With
     
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Private Sub ServiceOutstandingAtOpenCase1(ByVal s_comp As clsComp, _
@@ -634,15 +642,11 @@ Private Sub ServiceOutstandingAtOpenCase1(ByVal s_comp As clsComp, _
 ' ------------------------------------------------------------------------------
 ' Displays a dialog requesting Confirmed for any used or hosted Common Component
 ' which has been detected having a service gap.
-' A modification made while the Workbook/VB-Project was not serviced by CompMan,
-' though based on an up-to-date version, conflicts with another one made
-' meanwhile in another Workbook/VB-Project. This requires a confirmation since
-' the modification will have to be made undone.
 ' ------------------------------------------------------------------------------
     Const PROC = "ServiceOutstandingAtOpens"
     
     On Error GoTo eh
-'    Dim Comp        As clsComp
+    Dim Comp        As clsComp
     Dim sComp       As String
     Dim v           As Variant
     Dim Msg         As udtMsg
@@ -651,27 +655,19 @@ Private Sub ServiceOutstandingAtOpenCase1(ByVal s_comp As clsComp, _
     Dim sTitle      As String
     
     mBasic.BoP ErrSrc(PROC)
-    sComp = s_comp.CompName
     sBttnConf = "Confirmed"
     With Msg.Section(1)
-        .Text.Text = "The Common Component  " & mBasic.Spaced(sComp) & "  had been modified while the " & _
-                     "Workbook/VB-Project was not serviced by CompMan. Although based on an up-to-date " & _
-                     "version, conflicts with another one made meanwhile in another Workbook/VB-Project. " & _
-                     "This requires a confirmation since the modification will have to be made undone."
+        .Text.Text = "The concerned " & sUsedHosted & " Common Component's code differs from the current public code in the Common-Components folder. " & _
+                     "This modification had yet not been exported which means it must have been modified while the Workbook was " & _
+                     "not serviced by CompMan. This concludes to a service gap which cannot be handled other than subsequently " & _
+                     "updating the ""outdated"" code. I.e. the made modification will get lost."
     End With
     With Msg.Section(2)
-        .Text.Text = "The " & CommonServiced.KindOfComponentString(sComp) & " Common Component's current " & _
-                     "code (CodeModule) differs from the current public code in the Common-Components folder. " & _
-                     "The fact that this code is not identical with the Export-File indicates that the " & _
-                     "modification must have been made while not serviced by CompMan. This service gap " & _
-                     "cannot be handled other than subsequently updating the ""outdated"" code back to " & _
-                     "current public version."
-    End With
-    With Msg.Section(3)
         .Label.Text = mCompMan.BttnAsLabel(sBttnConf)
         .Label.FontColor = rgbBlue
-        .Text.Text = "Confirmation is the only choice! Displaying the code difference before confirmation " & _
-                     "may allow to re-do the modification based on an up-to-date code while the Workbook is serviced."
+        .Text.Text = "Confirmation is the only choice because it cannot be guaranteed that the modification is based on an up-to-date " & _
+                     "code. Displaying the code difference before confirmation may allow to re-do the modification based on an up-to-date " & _
+                     "code while the Workbook is serviced."
     End With
     Do
         Select Case mMsg.Dsply(d_title:=sTitle _
@@ -679,7 +675,7 @@ Private Sub ServiceOutstandingAtOpenCase1(ByVal s_comp As clsComp, _
                              , d_label_spec:="L80" _
                              , d_buttons:=mMsg.Buttons(mDiff.PublicVersusServicedCodeBttn(sComp), vbLf, sBttnConf) _
                              , d_width_min:=350)
-            Case mDiff.PublicVersusServicedCodeBttn(sComp): mDiff.PublicVersusServicedCodeDsply s_comp
+            Case mDiff.PublicVersusServicedCodeBttn(sComp): mDiff.PublicVersusServicedCodeDsply Comp
             Case sBttnConf:                                 Exit Do
         End Select
     Loop
@@ -712,12 +708,12 @@ Private Sub EnvironmentExportServiceFolderFiles(ByVal e_folder As String)
         sPath = e_folder
     End With
     
-    With FSo
+    With fso
         For Each fl In .GetFolder(sPath).Files
             sExpFileCorrespComp = .GetBaseName(fl)
             Select Case .GetExtensionName(fl.Path)
                 Case "bas", "cls", "frm", "frx"
-                    If Not mComp.Exists(sExpFileCorrespComp, wbk) Then
+                    If Not Serviced.CompExists(sExpFileCorrespComp) Then
                         sExpFileName = .GetFileName(fl.Path)
                         .DeleteFile fl
 '                        LogServiced.Entry "Obsolete Export-File """ & sExpFileName & """ deleted (a VBComponent named """ & sExpFileCorrespComp & """ no longer exists)"
@@ -868,7 +864,8 @@ End Sub
 
 Private Sub ProposeContinuationOfModificationInThisWorkbook(ByVal p_comp As String)
 ' ------------------------------------------------------------------------------
-'
+' Dialog providing an option to continue modifications of a Common Component
+' started in another Workbook to this Workbook.
 ' ------------------------------------------------------------------------------
     Const PROC = "ProposeContinuationOfModificationInThisWorkbook"
     
@@ -948,15 +945,18 @@ Private Sub ProposeContinuationOfModificationInThisWorkbook(ByVal p_comp As Stri
                 , d_label_spec:="L100" _
                 , d_width_min:=500 _
                 , d_buttons:=mMsg.Buttons(sBttnSwitch, vbLf, sBttnDoNotSwitch)) = sBttnSwitch Then
-        '~~ Switch ongoing modifications to theis Workbook
+        '~~ Switch ongoing modifications to this Workbook by importing the code
+        '~~ from the pennding release Export-File
         mUpdate.ByReImport p_comp, CommonPending.LastModExpFile(p_comp)
+        
         Set Comp = New clsComp
         With Comp
             .CompName = p_comp
             .Export
             .SetServicedProperties
+            CommonPending.SetPropertiesEqualServiced p_comp
         End With
-        CommonPending.Register Comp
+'        CommonPending.Register Comp
     End If
                          
 xt: Exit Sub
@@ -988,7 +988,7 @@ Private Sub RemoveTempExportFolders()
     Dim sFolder As String
     
     sFolder = Servicing.TempExportFolder
-    With FSo
+    With fso
         If .FolderExists(sFolder) Then .DeleteFolder sFolder
     End With
     

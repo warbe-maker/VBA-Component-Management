@@ -105,7 +105,7 @@ Option Compare Text
 ' W. Rauschenberger, Berlin Nov 2024
 ' See also https://github.com/warbe-maker/VBA-Private-Profile.
 ' ----------------------------------------------------------------------------
-Public FSo                      As FileSystemObject
+Public fso                      As FileSystemObject
 
 Private Const WIN_NORMAL = 1         'Open Normal
 Private Const ERROR_SUCCESS = 32&
@@ -137,7 +137,7 @@ Private Const VALUE_FALSE               As String = "FALSE"
 
 Private Declare PtrSafe Function apiShellExecute _
                 Lib "shell32.dll" Alias "ShellExecuteA" _
-               (ByVal hWnd As Long, _
+               (ByVal hwnd As Long, _
                 ByVal lpOperation As String, _
                 ByVal lpFile As String, _
                 ByVal lpParameters As String, _
@@ -175,14 +175,14 @@ Private Sub Class_Initialize()
     Const PROC = "Class_Initialize"
     
     Set Reg = New RegExp
-    Set FSo = New FileSystemObject
+    Set fso = New FileSystemObject
     Set dctPPtwins = New Dictionary
     Set dctPPtwinsAsString = New Dictionary
     
     If sFileName = vbNullString Then
         '~~ Initialize the default Private Profile File name
         Select Case Application.Name
-            Case "Microsoft Excel": sFileName = ThisWorkbook.Path & "\" & FSo.GetBaseName(ThisWorkbook.Name) & ".dat"
+            Case "Microsoft Excel": sFileName = ThisWorkbook.Path & "\" & fso.GetBaseName(ThisWorkbook.Name) & ".dat"
             Case Else:              Err.Raise AppErr(1), ErrSrc(PROC), "Initializing the FileName failed!" & vbLf & _
                                                                        "The current Application.Name is not Excel " & _
                                                                        "and any other application is yet not supported!"
@@ -196,7 +196,7 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    Set FSo = Nothing
+    Set fso = Nothing
     Set dctPPtwins = Nothing
     Set dctFileHeaderPostponed = Nothing
 End Sub
@@ -233,18 +233,7 @@ Private Property Let Arry(Optional ByRef c_arr As Variant, _
 ' ----------------------------------------------------------------------------
     Const PROC = "Arry-Let"
     
-    Dim bIsAllocated As Boolean
-    
-    If IsArray(c_arr) Then
-        On Error GoTo -1
-        On Error Resume Next
-        bIsAllocated = UBound(c_arr) >= LBound(c_arr)
-        On Error GoTo eh
-    ElseIf VarType(c_arr) <> 0 Then
-        Err.Raise AppErr(1), ErrSrc(PROC), "Not a Variant type!"
-    End If
-    
-    If bIsAllocated = True Then
+    If ArryIsAllocated(c_arr) Then
         '~~ The array has at least one item
         If c_index = -99 Then
             '~~ When for an allocated array no index is provided, the item is added
@@ -261,7 +250,7 @@ Private Property Let Arry(Optional ByRef c_arr As Variant, _
             Err.Raise AppErr(2), ErrSrc(PROC), "Index is less than LBound of array!"
         End If
         
-    ElseIf bIsAllocated = False Then
+    Else
         '~~ The array does yet not exist
         If c_index = -99 Then
             '~~ When no index is provided the item is the first of a new array
@@ -296,12 +285,13 @@ Public Property Get FileFooter(Optional ByVal v_file_name As String = vbNullStri
     
     If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
     
-    For Each v In PPtwinFileFooter(v_file_name)
-        If Not IsDelimiterFileFooter(v) Then
-            cll.Add Replace(v, "; ", vbNullString, , 1)
-        End If
-    Next v
-    
+    With cll
+        For Each v In PPtwinFileFooter(v_file_name)
+            If Not IsDelimiterFileFooter(v) Then
+                .Add Replace(v, "; ", vbNullString, , 1)
+            End If
+        Next v
+    End With
     FileFooter = CollectionAsString(cll)
     Set cll = Nothing
 
@@ -352,12 +342,13 @@ Public Property Get FileHeader(Optional ByVal v_file_name As String = vbNullStri
     
     If Not IsValidFile(v_file_name) Then Err.Raise AppErr(1), ErrSrc(PROC), ErrInvalidFileName(v_file_name)
     
-    For Each v In PPtwinFileHeader(v_file_name)
-        If Not IsDelimiterFileHeader(v) Then
-            cll.Add Replace(v, "; ", vbNullString, , 1)
-        End If
-    Next v
-    
+    With cll
+        For Each v In PPtwinFileHeader(v_file_name)
+            If Not IsDelimiterFileHeader(v) Then
+                .Add Replace(v, "; ", vbNullString, , 1)
+            End If
+        Next v
+    End With
     FileHeader = CollectionAsString(cll)
     Set cll = Nothing
     
@@ -376,7 +367,7 @@ Private Function FileIsActive(ByVal v_file_name As String) As Boolean
 ' ------------------------------------------------------------------------------
     Dim dctSects As Dictionary
     
-    If Not FSo.FileExists(v_file_name) Then Exit Function
+    If Not fso.FileExists(v_file_name) Then Exit Function
     PPmanage v_file_name
     Set dctSects = SectionNames(v_file_name)
     Select Case True
@@ -787,29 +778,32 @@ Public Property Get Value(Optional ByVal v_value_name As String = vbNullString, 
     
 End Property
 
-Public Sub Values(ByVal v_done As Boolean, ParamArray v_values() As Variant)
+Public Sub ValuesDone()
+    PPmanage FileName ' re-setup the Private Profile file's twin
+End Sub
+
+Public Sub Values(ParamArray v_values() As Variant)
 ' ----------------------------------------------------------------------------
-' Writes a series of values (v_values) to the current specified Private
-' Profile file's (FileName) current section (Section), whereby the arguments
-' are pairs of vaule-name, value.
+' Provides a series of values (v_values) for the current specified Private
+' Profile file's current section, whereby the arguments are pairs of
+' vaule-name, value.
+' Note: values are finally written to the new file by VauesDone only.
 ' ----------------------------------------------------------------------------
     Dim v           As Variant
     Dim sName       As String
     Dim sValue      As String
     
-    If Not ArrayIsAllocated(v_values) Then GoTo xt
-    
-    For Each v In v_values
-        If sName = vbNullString Then
-            sName = v
-        Else
-            sValue = v
-            PPtwinValue(sName, Section, FileName) = sValue
-            sName = vbNullString
-        End If
-    Next v
-    If v_done Then
-        PPmanage FileName ' re-setup the Private Profile file's twin
+    On Error GoTo xt ' no v_values provided
+    If UBound(v_values) >= LBound(v_values) Then
+        For Each v In v_values
+            If sName = vbNullString Then
+                sName = v
+            Else
+                sValue = v
+                PPtwinValue(sName, Section, FileName) = sValue
+                sName = vbNullString
+            End If
+        Next v
     End If
     
 xt: Exit Sub
@@ -909,9 +903,9 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
 End Function
 
 ' Origin: Common Component "mVarTrans" =======================================
-Private Function ArrayAsCollection(ByVal a_array As Variant) As Collection
+Private Function ArrayAsCollection(ByVal a_arry As Variant) As Collection
 ' ----------------------------------------------------------------------------
-' Return an array's (a_array) items as Collection.
+' Return an array's (a_arry) items as Collection.
 ' Note when copied: Originates in mVarTrans
 '                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
 ' ----------------------------------------------------------------------------
@@ -919,7 +913,7 @@ Private Function ArrayAsCollection(ByVal a_array As Variant) As Collection
     Dim v   As Variant
     
     With cll
-        For Each v In a_array
+        For Each v In a_arry
             .Add v
         Next v
     End With
@@ -929,7 +923,7 @@ Private Function ArrayAsCollection(ByVal a_array As Variant) As Collection
 End Function
 
 ' Origin: Common Component "mVarTrans" =======================================
-Private Function ArrayAsDictionary(ByVal a_array As Variant) As Dictionary
+Private Function ArrayAsDictionary(ByVal a_arry As Variant) As Dictionary
 ' ----------------------------------------------------------------------------
 ' Attention: Because the array's items are returned as Directory keys, the
 '            items will be unified. I e. each item will exist only once. To
@@ -944,7 +938,7 @@ Private Function ArrayAsDictionary(ByVal a_array As Variant) As Dictionary
     Dim v As Variant
     
     With dct
-        For Each v In a_array
+        For Each v In a_arry
             If Not .Exists(v) Then
                 .Add v, 1
             Else
@@ -961,7 +955,7 @@ Private Function ArrayAsDictionary(ByVal a_array As Variant) As Dictionary
 End Function
 
 ' Origin: Common Component "mVarTrans" =======================================
-Private Function ArrayAsFile(ByVal a_array As Variant, _
+Private Function ArrayAsFile(ByVal a_arry As Variant, _
                    Optional ByRef a_file As Variant = vbNullString, _
                    Optional ByVal a_file_append As Boolean = False) As File
 ' ----------------------------------------------------------------------------
@@ -972,38 +966,37 @@ Private Function ArrayAsFile(ByVal a_array As Variant, _
 '                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
 ' ----------------------------------------------------------------------------
       
-    If Not ArrayIsAllocated(a_array) Then Exit Function
+    On Error GoTo xt
+    If UBound(a_arry) >= LBound(a_arry) Then
+        Select Case True
+            Case a_file = vbNullString:     a_file = TempFile
+            Case TypeName(a_file) = "File": a_file = a_file.Path
+        End Select
+        
+        TxtFile(a_file, a_file_append) = Join(a_arry, vbCrLf)
+        Set ArrayAsFile = fso.GetFile(a_file)
+    End If
     
-    Select Case True
-        Case a_file = vbNullString:     a_file = TempFile
-        Case TypeName(a_file) = "File": a_file = a_file.Path
-    End Select
-    
-    If a_file_append _
-    Then Open a_file For Append As #1 _
-    Else Open a_file For Output As #1
-    Print #1, Join(a_array, vbCrLf)
-    Close #1
-    Set ArrayAsFile = FSo.GetFile(a_file)
-    
+xt:
 End Function
 
 ' Origin: Common Component "mVarTrans" =======================================
-Private Function ArrayAsString(ByVal a_array As Variant, _
-                     Optional ByVal a_delim As String = vbCrLf) As String
+Private Function ArrayAsString(ByVal a_arry As Variant, _
+                      Optional ByVal a_delim As String = vbCrLf) As String
 ' ----------------------------------------------------------------------------
-' Returns an array (a_array) as string with the items delimited (a_delim).
+' Returns an array (a_arry) as string with the items delimited (a_delim).
 ' Note when copied: Originates in mVarTrans
 '                   See https://github.com/warbe-maker/Excel_VBA_VarTrans
 ' ----------------------------------------------------------------------------
-    ArrayAsString = Join(a_array, a_delim)
+    ArrayAsString = Join(a_arry, a_delim)
 End Function
 
 Private Function ArrayIsAllocated(ByVal Arry As Variant) As Boolean
     
     On Error Resume Next
     ArrayIsAllocated = UBound(Arry) >= LBound(Arry)
-    On Error GoTo -1
+    On Error GoTo 0
+    Err.Clear
     
 End Function
 
@@ -1103,7 +1096,7 @@ Private Function CollectionAsFile(ByVal c_coll As Collection, _
 
     If c_file = vbNullString Then c_file = TempFile
     StringAsFile CollectionAsString(c_coll, vbCrLf), c_file, c_append
-    Set CollectionAsFile = FSo.GetFile(c_file)
+    Set CollectionAsFile = fso.GetFile(c_file)
 
 End Function
 
@@ -1179,11 +1172,13 @@ Private Function CommentsOfItem(ByVal h_arr As Variant, _
     
     If h_idx = LBound(h_arr) Then GoTo xt
     h_idx = h_idx - 1
-    Do While IsComment(h_arr(h_idx))
-        cll.Add h_arr(h_idx)
-        If h_idx = LBound(h_arr) Then Exit Do
-        h_idx = h_idx - 1
-    Loop
+    With cll
+        Do While IsComment(h_arr(h_idx))
+            .Add h_arr(h_idx)
+            If h_idx = LBound(h_arr) Then Exit Do
+            h_idx = h_idx - 1
+        Loop
+    End With
 
 xt: Set CommentsOfItem = RevertOrder(cll)
     Set cll = Nothing
@@ -1228,9 +1223,11 @@ Private Function DictionaryInverted(ByVal d_dict As Dictionary) As Dictionary
     Dim dct As New Dictionary
     Dim v   As Variant
     
-    For Each v In d_dict
-        If Not dct.Exists(d_dict(v)) Then dct.Add d_dict(v), v
-    Next v
+    With dct
+        For Each v In d_dict
+            If Not .Exists(d_dict(v)) Then .Add d_dict(v), v
+        Next v
+    End With
     Set DictionaryInverted = dct
     Set dct = Nothing
     
@@ -1450,7 +1447,7 @@ Private Function FileAsArray(ByVal f_file As Variant, _
     
     
     If TypeName(f_file) = "File" Then f_file = f_file.Path
-    If Not FSo.FileExists(f_file) _
+    If Not fso.FileExists(f_file) _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named """ & f_file & """ does not exist!"
     
     s = FileAsString(f_file, sSplit)
@@ -1483,7 +1480,7 @@ Private Function FileAsCollection(ByVal f_file As Variant) As Collection
     Dim v   As Variant
     
     If TypeName(f_file) = "File" Then f_file = f_file.Path
-    If Not FSo.FileExists(f_file) _
+    If Not fso.FileExists(f_file) _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named """ & f_file & """ does not exist!"
 
     With cll
@@ -1520,7 +1517,7 @@ Private Function FileAsDictionary(ByVal f_file As Variant) As Dictionary
     Dim v   As Variant
     
     If TypeName(f_file) = "File" Then f_file = f_file.Path
-    If Not FSo.FileExists(f_file) _
+    If Not fso.FileExists(f_file) _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "A file named """ & f_file & """ does not exist!"
     
     With dct
@@ -1557,7 +1554,7 @@ Private Function FileAsFile(ByVal f_file_in As File, _
     Const PROC = "FileAsFile"
     
     On Error GoTo eh
-    With FSo
+    With fso
         Select Case True
             Case f_rename And Not f_append:     If f_file_in.Path = .GetParentFolderName(f_file_out) _
                                                 Then f_file_in.Name = .GetFileName(f_file_out) _
@@ -1591,13 +1588,10 @@ Private Function FileAsString(ByVal f_file As Variant, _
     Dim s   As String
     
     If TypeName(f_file) = "File" Then f_file = f_file.Path
-    If Not FSo.FileExists(f_file) Then Err.Raise AppErr(1), ErrSrc(PROC), _
+    If Not fso.FileExists(f_file) Then Err.Raise AppErr(1), ErrSrc(PROC), _
                                        "The file '" & f_file & "' provided does not exist!"
     
-    Open f_file For Input As #1
-    s = Input$(lOf(1), 1)
-    Close #1
-    
+    s = TxtFile(f_file)
     Select Case True
         '~~ Return the line-break string to the caller enabling the transition of the string into an array
         Case InStr(s, vbCrLf) <> 0: f_split = vbCrLf
@@ -1659,7 +1653,6 @@ Private Function FileFooterDelimiterAdd(ByVal f_cll As Collection) As Collection
     
     For Each v In f_cll
         If Left(v, 2) <> "; " Then v = "; " & v
-'        cll.Add v
         l = Max(l, Len(v))
     Next v
     
@@ -1880,8 +1873,8 @@ Private Function IsEmptyFile(ByVal f_file_name As String, _
 ' otherwise.
 ' ----------------------------------------------------------------------------
     
-    If FSo.FileExists(f_file_name) Then
-        IsEmptyFile = FSo.GetFile(f_file_name).Size <= 2
+    If fso.FileExists(f_file_name) Then
+        IsEmptyFile = fso.GetFile(f_file_name).Size <= 2
     Else
         IsEmptyFile = True
     End If
@@ -1941,7 +1934,7 @@ Private Function IsValidFile(ByRef i_file As String, _
         '~~ The file has already been checked as valid
         i_file = sFileName
         IsValidFile = True
-        If FSo.FileExists(i_file) Then
+        If fso.FileExists(i_file) Then
             i_valid = Not IsEmptyFile(i_file, i_arr)
             PPmanage i_file
             GoTo xt
@@ -1961,7 +1954,7 @@ Private Function IsValidFile(ByRef i_file As String, _
             i_valid = True
             IsValidFile = True
     End Select
-    If Not FSo.FileExists(i_file) Then
+    If Not fso.FileExists(i_file) Then
         PPtwinRemove i_file
     ElseIf IsValidFile = True Then
         PPmanage i_file
@@ -1993,7 +1986,7 @@ Private Function IsValidFileContent(ByVal i_file_name As String, _
     Dim i   As Long
     Dim s   As String
     
-    If Not FSo.FileExists(i_file_name) Then
+    If Not fso.FileExists(i_file_name) Then
         IsValidFileContent = True ' an empty file is valid because it does not contain any invalid line
         GoTo xt
     End If
@@ -2151,10 +2144,12 @@ Private Function KeySort(ByRef k_dct As Dictionary) As Dictionary
     Next i
         
     '~~ Transfer based on sorted keys
-    For i = LBound(arr) To UBound(arr)
-        vKey = arr(i)
-        dct.Add vKey, k_dct.Item(vKey)
-    Next i
+    With dct
+        For i = LBound(arr) To UBound(arr)
+            vKey = arr(i)
+            .Add vKey, k_dct.Item(vKey)
+        Next i
+    End With
     
 xt: Set k_dct = dct
     Set KeySort = dct
@@ -2349,7 +2344,7 @@ Private Function PPfileAsPPtwinPPfileFooter(ByVal p_source As Variant) As Collec
     Set PPfileAsPPtwinPPfileFooter = cll
     Select Case VarType(p_source)
         Case vbArray:   a = p_source
-        Case vbString:  a = FileAsArray(FSo.GetFile(p_source))
+        Case vbString:  a = FileAsArray(fso.GetFile(p_source))
         Case Else:      Err.Raise AppErr(1), ErrSrc(PROC), "The provided source is neither an array nor a string which specifies an existing file!"
     End Select
     i = UBound(a)
@@ -2384,7 +2379,7 @@ Private Function PPfileAsPPtwinPPfileHeader(ByVal p_source As Variant) As Collec
     Set PPfileAsPPtwinPPfileHeader = cll
     Select Case VarType(p_source)
         Case vbArray:   a = p_source
-        Case vbString:  a = FileAsArray(FSo.GetFile(p_source))
+        Case vbString:  a = FileAsArray(fso.GetFile(p_source))
         Case Else:      Err.Raise AppErr(1), ErrSrc(PROC), "The provided source is neither an array nor a string which specifies an existing file!"
     End Select
     If UBound(a) >= 0 Then
@@ -2538,16 +2533,16 @@ Public Sub PPmanage(ByVal p_file As String)
     Dim bPPfileHasChanged As Boolean
     
     Select Case True
-        Case Not FSo.FileExists(p_file) And Not PPtwinExists(p_file)
+        Case Not fso.FileExists(p_file) And Not PPtwinExists(p_file)
             GoTo xt
-        Case Not FSo.FileExists(p_file) And PPtwinExists(p_file)
+        Case Not fso.FileExists(p_file) And PPtwinExists(p_file)
             PPtwinAsPPfile p_file
             PPtwinClear
-        Case Not PPtwinExists(p_file) And FSo.FileExists(p_file)
+        Case Not PPtwinExists(p_file) And fso.FileExists(p_file)
             PPfileAsPPtwin p_file
             PPtwinAsPPfile p_file ' ensure ascending order
             PPtwinClear
-        Case PPtwinExists(p_file) And FSo.FileExists(p_file)
+        Case PPtwinExists(p_file) And fso.FileExists(p_file)
             bPPtwinHasChanged = PPtwinHasChanged(p_file)
             bPPfileHasChanged = PPfileHasChanged(p_file)
             Select Case True
@@ -3015,19 +3010,19 @@ Private Sub PPtwinSectionRemove(ByVal p_file As String, _
             '~~ When there are no sections anymore
             If dctPPtwins.Exists(p_file) Then dctPPtwins.Remove p_file
             If dctPPtwinsAsString.Exists(p_file) Then dctPPtwinsAsString.Remove p_file
-            If FSo.FileExists(p_file) Then FSo.DeleteFile p_file
+            If fso.FileExists(p_file) Then fso.DeleteFile p_file
         Case dctPPtwinSections.Count = 0
             '~~ When all sections had been removed
             '~~ the Private Profile file has become obsolete to and will be removed
             If dctPPtwins.Exists(p_file) Then dctPPtwins.Remove p_file
             If dctPPtwinsAsString.Exists(p_file) Then dctPPtwinsAsString.Remove p_file
-            If FSo.FileExists(p_file) Then FSo.DeleteFile p_file
+            If fso.FileExists(p_file) Then fso.DeleteFile p_file
         Case dctPPtwinSections.Count = 1 And dctPPtwinSections.Keys(0) = NAMES_HSKPNG_SECT_NAME
             '~~ When the only section left is the names housekeepinfg section
             '~~ the Private Profile file has become obsolete to and will be removed
             If dctPPtwins.Exists(p_file) Then dctPPtwins.Remove p_file
             If dctPPtwinsAsString.Exists(p_file) Then dctPPtwinsAsString.Remove p_file
-            If FSo.FileExists(p_file) Then FSo.DeleteFile p_file
+            If fso.FileExists(p_file) Then fso.DeleteFile p_file
         Case Else
             PPtwinReplace p_file            ' Replace the twin in the twins Directory
     End Select
@@ -3134,15 +3129,15 @@ Private Function PPtwinValueRemove(ByVal p_file As String, _
                 Case dctPPtwinSections Is Nothing
                     dctPPtwins.Remove p_file
                     dctPPtwinsAsString.Remove p_file
-                    FSo.DeleteFile p_file
+                    fso.DeleteFile p_file
                 Case dctPPtwinSections.Count = 0
                     dctPPtwins.Remove p_file
                     dctPPtwinsAsString.Remove p_file
-                    FSo.DeleteFile p_file
+                    fso.DeleteFile p_file
                 Case dctPPtwinSections.Count = 1 And dctPPtwinSections.Keys(0) = NAMES_HSKPNG_SECT_NAME
                     dctPPtwins.Remove p_file
                     dctPPtwinsAsString.Remove p_file
-                    FSo.DeleteFile p_file
+                    fso.DeleteFile p_file
                 Case Else
                     PPtwinReplace p_file            ' Replace the twin in the twins Directory
             End Select
@@ -3579,17 +3574,13 @@ Private Function StringAsFile(ByVal s_strng As String, _
         Case TypeName(s_file) = "File"
             s_file = s_file.Path
         Case Else
-            sPath = FSo.GetParentFolderName(s_file)
+            sPath = fso.GetParentFolderName(s_file)
             '~~ Create any missing folder
             CreatePath sPath
     End Select
     
-    If s_file_append _
-    Then Open s_file For Append As #1 _
-    Else Open s_file For Output As #1
-    Print #1, s_strng
-    Close #1
-    Set StringAsFile = FSo.GetFile(s_file)
+    TxtFile(s_file, s_file_append) = s_strng
+    Set StringAsFile = fso.GetFile(s_file)
     
 End Function
 
@@ -3601,13 +3592,13 @@ Private Sub CreatePath(ByVal s_path As String)
 ' ----------------------------------------------------------------------------
     Dim sParent As String
 
-    If Not FSo.FolderExists(s_path) Then
-        sParent = FSo.GetParentFolderName(s_path)
+    If Not fso.FolderExists(s_path) Then
+        sParent = fso.GetParentFolderName(s_path)
         '~~ Create missing parent folder recursively
-        If Not FSo.FolderExists(sParent) _
+        If Not fso.FolderExists(sParent) _
         Then CreatePath sParent
         '~~ Create the current folder
-        FSo.CreateFolder s_path
+        fso.CreateFolder s_path
     End If
 End Sub
 Private Function StringAsString(ByVal s_items As String, _
@@ -3639,11 +3630,11 @@ Private Function TempFile(Optional ByVal f_path As String = vbNullString, _
     Dim sTemp As String
     
     If VBA.Left$(f_extension, 1) <> "." Then f_extension = "." & f_extension
-    sTemp = Replace(FSo.GetTempName, ".tmp", f_extension)
+    sTemp = Replace(fso.GetTempName, ".tmp", f_extension)
     If f_path = vbNullString Then f_path = CurDir
     sTemp = VBA.Replace(f_path & "\" & sTemp, "\\", "\")
     TempFile = sTemp
-    FSo.CreateTextFile sTemp
+    fso.CreateTextFile sTemp
 
 End Function
 

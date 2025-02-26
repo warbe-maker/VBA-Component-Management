@@ -609,7 +609,7 @@ Private Function Differs(ByVal v1 As Variant, _
             Then Differs = StrComp(v1.Name, v2.Name, vbTextCompare) _
             Else Differs = StrComp(v1.Name, v2.Name, vbBinaryCompare)
             If Err.Number <> 0 Then
-                On Error GoTo -1
+                On Error GoTo 0
                 Differs = True
             End If
         Case IsObject(v1) And TypeName(v2) = "String"
@@ -617,7 +617,7 @@ Private Function Differs(ByVal v1 As Variant, _
             Then Differs = StrComp(v1.Name, v2, vbTextCompare) _
             Else Differs = StrComp(v1.Name, v2, vbBinaryCompare)
             If Err.Number <> 0 Then
-                On Error GoTo -1
+                On Error GoTo 0
                 Differs = True
             End If
         Case TypeName(v1) = "String" And IsObject(v2)
@@ -625,7 +625,7 @@ Private Function Differs(ByVal v1 As Variant, _
             Then Differs = StrComp(v1, v2.Name, vbTextCompare) _
             Else Differs = StrComp(v1, v2.Name, vbBinaryCompare)
             If Err.Number <> 0 Then
-                On Error GoTo -1
+                On Error GoTo 0
                 Differs = True
             End If
         Case Else
@@ -680,7 +680,7 @@ Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
     Dim dct     As New Dictionary
     Dim vKey    As Variant
     Dim arr()   As Variant
-    Dim Temp    As Variant
+    Dim temp    As Variant
     Dim i       As Long
     Dim j       As Long
     
@@ -695,18 +695,20 @@ Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
     For i = LBound(arr) To UBound(arr) - 1
         For j = i + 1 To UBound(arr)
             If arr(i) > arr(j) Then
-                Temp = arr(j)
+                temp = arr(j)
                 arr(j) = arr(i)
-                arr(i) = Temp
+                arr(i) = temp
             End If
         Next j
     Next i
         
     '~~ Transfer based on sorted keys
-    For i = LBound(arr) To UBound(arr)
-        vKey = arr(i)
-        dct.Add Key:=vKey, Item:=s_dct.Item(vKey)
-    Next i
+    With dct
+        For i = LBound(arr) To UBound(arr)
+            vKey = arr(i)
+            .Add key:=vKey, Item:=s_dct.Item(vKey)
+        Next i
+    End With
     
 xt: Set s_dct = dct
     Set KeySort = dct

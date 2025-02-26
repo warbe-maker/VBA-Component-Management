@@ -22,6 +22,17 @@ Option Explicit
 ' - Last modified on computer (LastModOn)
 ' - Current Export-file name in the "PendingReleases" folder (ExportFileName)
 '
+' Process note: Involved in the release process is the code/Export-File in the
+'               PendingReleases folder and the corresponding PendingReleases.dat
+'               file. The Export-File in the Common-Components folder is only
+'               involved when the code changes are to be displayed.
+'               This process should thus not depends on whether the to-be-released
+'               component is a component of the current serviced (active) Workbook.
+'               To manage this independancy the clsComp Class Module must not be
+'               involved.
+' Constraint:   When the logged in user differs from the user who has registered
+'               the pending release (i.e last modified it) the release has to be
+'               explicitely confirmed.
 ' Public methods:
 ' ---------------
 ' Manage          Manages registration, conflicting modification, and removal of
@@ -51,6 +62,8 @@ Option Explicit
 '                 - Ignore the former modifications. I.e. this modifications become the
 '                   new pending release ones.
 ' -----------------------------------------------------------------------------------
+Public CodePnding       As clsCode
+Public CodePublic       As clsCode
 Private PPFile          As clsPrivProf
 Private sComp           As String
 Private dctComponents   As Dictionary
@@ -152,6 +165,106 @@ Friend Property Let LastModOn(Optional ByVal m_comp As String = vbNullString, _
     Value(m_comp, VALUE_NAME_LAST_MOD_ON) = p_mod_at
 End Property
 
+Public Property Get Properties(Optional ByVal p_comp As String, _
+                               Optional ByRef p_done As Boolean) As clsProperties
+    Dim Lstm As New clsProperties
+    Dim sAt  As String
+    Dim sBy  As String
+    Dim sIn  As String
+    Dim sOn  As String
+    Dim sKo  As String
+    Dim sXf  As String
+
+    With PPFile
+        sAt = .Value(mCompMan.VALUE_NAME_LAST_MOD_AT, p_comp)
+        sBy = .Value(mCompMan.VALUE_NAME_LAST_MOD_BY, p_comp)
+        sIn = .Value(mCompMan.VALUE_NAME_LAST_MOD_IN, p_comp)
+        sKo = .Value(mCompMan.VALUE_NAME_REG_STAT_COMP, p_comp)
+        sOn = .Value(mCompMan.VALUE_NAME_LAST_MOD_ON, p_comp)
+        sXf = .Value(VALUE_NAME_LAST_MOD_EXP_FILE_ORIG, p_comp)
+    End With
+    With Lstm
+        .LmAt = sAt
+        .LmBy = sBy
+        .LmIn = sIn
+        .LmKo = sKo
+        .LmOn = sOn
+        .LmXf = sXf
+    End With
+    Set Properties = Lstm
+    
+End Property
+
+Public Property Let Properties(Optional ByVal p_comp As String, _
+                               Optional ByRef p_done As Boolean, _
+                                        ByVal p_lstm As clsProperties)
+    Dim sAt   As String
+    Dim sBy   As String
+    Dim sIn   As String
+    Dim sOn   As String
+    Dim sKo   As String
+    Dim sXf   As String
+    Dim s     As String
+    
+    With p_lstm
+        sAt = .LmAt
+        sBy = .LmBy
+        sIn = .LmIn
+        sKo = .LmKo
+        sXf = .LmXf
+    End With
+    p_done = False
+    With PPFile
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_AT, p_comp)
+        If s <> sAt Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_AT, p_comp) = sAt
+                Servicing.Log(p_comp) = "Last modified at date/time      changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sAt
+            p_done = True
+        End If
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_BY, p_comp)
+        If s <> sBy Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_BY, p_comp) = sBy
+                Servicing.Log(p_comp) = "Last modified by user           changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sBy
+            p_done = True
+        End If
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_IN, p_comp)
+        If s <> sIn Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_IN, p_comp) = sIn
+                Servicing.Log(p_comp) = "Last modified in Workbook       changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sIn
+            p_done = True
+        End If
+        If sKo <> vbNullString Then
+            s = .Value(mCompMan.VALUE_NAME_REG_STAT_COMP, p_comp)
+            If s <> sKo Then
+                .Value(mCompMan.VALUE_NAME_REG_STAT_COMP, p_comp) = sKo
+                Servicing.Log(p_comp) = "Last modified kind of component changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sKo
+                p_done = True
+            End If
+        End If
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_ON, p_comp)
+        If s <> sOn Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_ON, p_comp) = sOn
+                Servicing.Log(p_comp) = "Last modified on computer       changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sOn
+            p_done = True
+        End If
+        If sXf <> vbNullString Then
+            s = .Value(VALUE_NAME_LAST_MOD_EXP_FILE_ORIG, p_comp)
+            If s <> sXf Then
+                .Value(VALUE_NAME_LAST_MOD_EXP_FILE_ORIG, p_comp) = sXf
+                Servicing.Log(p_comp) = "Lastr modified Export-File      changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sXf
+                p_done = True
+            End If
+        End If
+        If p_done Then .ValuesDone
+    End With
+
+End Property
 Private Property Get Value(Optional ByVal v_section_name As String = vbNullString, _
                            Optional ByVal v_value_name As String = vbNullString) As String
     Const PROC = "Value/Get"
@@ -190,8 +303,8 @@ End Function
 
 Public Sub ConflictResolve(ByVal c_comp As clsComp)
 ' ------------------------------------------------------------------------------
-' Displays a dialog providing various difference dsiplay options and finally
-' only allow discarding those made in the serviced Workbook.
+' Displays a dialog explaining the conflict and finally only allows to
+' discard those conflictingly made in the serviced Workbook.
 ' Note: The option undo requires a public code version. In case of a pending
 '       release there may not be one and thus the conflict cannot be resolved
 '       with undo.
@@ -378,12 +491,12 @@ Public Function ExportFiles() As Dictionary
     Dim sName   As String
     Dim sExt    As String
     
-    If FSo.FolderExists(mEnvironment.CommCompsPendingPath) Then
-        Set fld = FSo.GetFolder(mEnvironment.CommCompsPendingPath)
+    If fso.FolderExists(mEnvironment.CommCompsPendingPath) Then
+        Set fld = fso.GetFolder(mEnvironment.CommCompsPendingPath)
         With dct
             For Each fle In fld.Files
-                sName = FSo.GetBaseName(fle.Path)
-                sExt = FSo.GetExtensionName(fle.Path)
+                sName = fso.GetBaseName(fle.Path)
+                sExt = fso.GetExtensionName(fle.Path)
                 Select Case sExt
                     Case "bas", "cls", "frm"
                         If Not .Exists(sName) _
@@ -427,12 +540,12 @@ Public Function LastModExpFile(ByVal e_comp As String) As String
 ' File. Note that this file is identical with the LastModExpFileOrigin which
 ' just points to the origin file.
 ' ----------------------------------------------------------------------------
-    LastModExpFile = mEnvironment.CommCompsPendingPath & "\" & FSo.GetFileName(LastModExpFileOrigin(e_comp))
+    LastModExpFile = mEnvironment.CommCompsPendingPath & "\" & fso.GetFileName(LastModExpFileOrigin(e_comp))
 
 End Function
 
 Public Function LastModInWrkbkName(ByVal l_comp As String) As String
-    LastModInWrkbkName = FSo.GetFileName(Value(l_comp, VALUE_NAME_LAST_MOD_IN))
+    LastModInWrkbkName = fso.GetFileName(Value(l_comp, VALUE_NAME_LAST_MOD_IN))
 End Function
 
 Public Sub Manage(ByVal m_comp As clsComp)
@@ -589,20 +702,16 @@ End Function
 
 Public Function ReadyForRelease() As Collection
 ' ------------------------------------------------------------------------------
-' Returns a collection of all pending release Common Components which are ready
-' for being release. The fact that only the PendingReleases folder and the
-' PendingReleases.dat file, both in the Common-Components folder, are involved
-' in the release process, all pending components which are a component of the
-' current serviced Workbook are regarded ready for release.
-' However, when the logged in user differs from the user who registered the
-' pending release the release has to be explicitely confirmed.
+' Returns the names of all pending release Common Components in a Collection.
 ' ------------------------------------------------------------------------------
     Dim cll As New Collection
     Dim v   As Variant
     
-    For Each v In Components
-        If Serviced.CompExists(v) Then cll.Add v
-    Next v
+    With cll
+        For Each v In Components
+            If Serviced.CompExists(v) Then .Add v
+        Next v
+    End With
     Set ReadyForRelease = cll
     Set cll = Nothing
     
@@ -624,8 +733,8 @@ Public Sub Register(ByVal r_comp As clsComp)
     With r_comp
         CompName = .CompName
         sSource = .ExpFileFullName
-        sTarget = sFolder & "\" & FSo.GetFileName(.ExpFileFullName)
-        With FSo
+        sTarget = sFolder & "\" & fso.GetFileName(.ExpFileFullName)
+        With fso
             If Not .FolderExists(sFolder) Then .CreateFolder sFolder
             If .FileExists(sSource) Then
                 .CopyFile sSource, sTarget, True
@@ -633,7 +742,7 @@ Public Sub Register(ByVal r_comp As clsComp)
                 Stop
             End If
         End With
-        .SetPendingEqualServiced
+        CommonPending.SetPropertiesEqualServiced .CompName
         Servicing.Log(.CompName) = "Modified Common Component: Release registered pending"
     End With
 
@@ -669,7 +778,7 @@ Public Sub ReleaseComp(ByVal r_comp As String, _
     End With
     
     '~~ Move export file from PendingReleases folder to the Common-Components folder
-    With FSo
+    With fso
         sName = .GetFileName(LastModExpFileOrigin(r_comp))
         sSource = mEnvironment.CommCompsPendingPath & "\" & sName
         sTarget = mEnvironment.CommCompsPath & "\" & sName ' may yet not exist when first time release !
@@ -677,17 +786,17 @@ Public Sub ReleaseComp(ByVal r_comp As String, _
         .MoveFile sSource, sTarget
     End With
     
-    '~~ Update the public Common Component properties with the pending infos
-    With New clsComp
-        .CompName = r_comp
-        .SetPublicEqualPending
+    With CommonPublic
+        If Not .All.Exists(r_comp) Then
+            '~~ This is obviously the very first release to public
+            .Add r_comp
+        End If
     End With
-    If Not CommonPublic.All.Exists(r_comp) Then
-        '~~ This is obviously the very first release to public
-        CommonPublic.Add r_comp
-    End If
     
-    If FSo.FileExists(mEnvironment.CommCompsPendingPrivProfFileFullName) _
+    '~~ Update the public Common Component properties with the pending infos
+    SetPublicEqualPending r_comp
+    
+    If fso.FileExists(mEnvironment.CommCompsPendingPrivProfFileFullName) _
     Then Remove r_comp ' in case the file still exists
     With Prgrss
         .DoneItemsInfo = True
@@ -715,8 +824,60 @@ Public Sub Remove(ByVal r_comp As String)
 ' -----------------------------------------------------------------------------------
     
     PPFile.SectionRemove r_comp
-    If Not FSo.FileExists(PPFile.FileName) And FSo.FolderExists(mEnvironment.CommCompsPendingPath) _
-    Then FSo.DeleteFolder mEnvironment.CommCompsPendingPath
+    If Not fso.FileExists(PPFile.FileName) And fso.FolderExists(mEnvironment.CommCompsPendingPath) _
+    Then fso.DeleteFolder mEnvironment.CommCompsPendingPath
+    
+End Sub
+
+Public Sub SetPropertiesEqualServiced(ByVal s_comp As String, _
+                             Optional ByRef s_done As Boolean)
+' ------------------------------------------------------------------------------
+' Set the pending release Common Component's properties in the Pending.dat file
+' equal to those in the serviced Common Components CommComps.dat file - when the
+' modified Common Component is registered pending release. When the properties
+' were different and had been made equal done True is returned (s_done).
+' ------------------------------------------------------------------------------
+    Const PROC = "SetPropertiesEqualServiced"
+    
+    Dim prpServcd As clsProperties
+    
+    Set prpServcd = CommonServiced.Properties(s_comp)
+    Properties(s_comp, s_done) = prpServcd
+    If s_done _
+    Then Servicing.Log(s_comp) = "Pending Common Component's properties set equal serviced"
+   
+End Sub
+
+Public Sub SetPublicEqualPending(ByVal s_comp As String)
+' ------------------------------------------------------------------------------
+' Set the public Common Component's properties in the CommComps.date file in
+' the Common-Components folder equal to those in the pending release Common
+' Components PendingReleases.dat file - in the Common-Components folder - when
+' the pending release component is released to public.
+' ------------------------------------------------------------------------------
+    Dim sAt As String
+    Dim sBy As String
+    Dim sIn As String
+    Dim sOn As String
+    Dim sKo As String
+    Dim sXf As String
+    
+    With Me
+        sAt = .LastModAt(s_comp)
+        sBy = .LastModBy(s_comp)
+        sIn = .LastModInWrkbkFullName(s_comp)
+        sOn = .LastModOn(s_comp)
+        sKo = .LastModKindOfComp(s_comp)
+        sXf = .LastModExpFileOrigin(s_comp)
+    End With
+    With CommonPublic
+        .LastModAt(s_comp) = sAt
+        .LastModBy(s_comp) = sBy
+        .LastModExpFileOrigin(s_comp) = sXf
+        .LastModInWrkbkFullName(s_comp) = sIn
+        .LastModKindOfOriginComp(s_comp) = sKo
+        .LastModOn(s_comp) = sOn
+    End With
     
 End Sub
 

@@ -251,7 +251,7 @@ Public Sub SelfSetupPublishHostedCommonComponents(ByVal s_hosted As String)
             sName = FSo.GetFileName(.ExpFileFullName)
             sTarget = mEnvironment.CommCompsPath & "\" & sName
             FSo.CopyFile .ExpFileFullName, sTarget
-            .SetPublicEqualServiced
+            CommonPublic.SetPropertiesEqualServiced sComp
         End With
         Set Comp = Nothing
     Next v

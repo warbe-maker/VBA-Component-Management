@@ -27,14 +27,14 @@ Public Property Let Paused(ByVal b As Boolean): mReg.Value(PAUSED_REG_KEY, PAUSE
 Public Property Get WbkFullName() As String:    WbkFullName = mEnvironment.AddInFolderPath & DBSLASH & WbkName: End Property
 
 Public Property Get WbkName() As String
-    WbkName = FSo.GetBaseName(ThisWorkbook.FullName) & "." & ADDIN_WORKBOOK_EXTENSION
+    WbkName = fso.GetBaseName(ThisWorkbook.FullName) & "." & ADDIN_WORKBOOK_EXTENSION
 End Property
 
 Private Sub AutoOpenShortCutRemove()
     Dim s   As String
     
     s = AutoOpenShortCut
-    With FSo
+    With fso
         If .FileExists(s) Then .DeleteFile s
     End With
     
@@ -118,7 +118,7 @@ Public Sub ReferencesRemove(Optional ByRef rr_dct As Dictionary, _
         For Each v In dct
             Set wbk = dct.Item(v)
             For Each ref In wbk.VBProject.References
-                If InStr(ref.Name, FSo.GetBaseName(mAddin.WbkName)) <> 0 Then
+                If InStr(ref.Name, fso.GetBaseName(mAddin.WbkName)) <> 0 Then
                     rr_dct.Add wbk, ref
                     rr_wbks = wbk.Name & ", " & rr_wbks
                 End If
@@ -146,6 +146,9 @@ Public Sub SetupRenew()
 End Sub
 
 Public Function Set_IsAddin_ToFalse() As Boolean
+    Const PROC = "Set_IsAddin_ToFalse"
+    
+    On Error GoTo eh
     Dim wbk As Workbook
     If mAddin.IsOpen(wbk) Then
         If wbk.IsAddin = True Then
@@ -155,6 +158,13 @@ Public Function Set_IsAddin_ToFalse() As Boolean
     Else
         Set_IsAddin_ToFalse = True
     End If
+
+xt: Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Public Function WbkClose(Optional ByRef wc_err_desc As String) As Boolean
@@ -180,5 +190,26 @@ xt: mCompManClient.Events ErrSrc(PROC), True
 End Function
     
 Public Function WbkRemove(ByVal wr_wbk_full_name As String) As Boolean
-    If FSo.FileExists(wr_wbk_full_name) Then FSo.DeleteFile wr_wbk_full_name
+    If fso.FileExists(wr_wbk_full_name) Then fso.DeleteFile wr_wbk_full_name
 End Function
+
+Private Sub SaveAsNormalWorkbook()
+    
+    Dim wbkAddIn    As Workbook
+    Dim wbkOrigin   As Workbook
+    Dim sFullName   As String
+
+    Application.EnableEvents = False
+    Set wbkAddIn = ThisWorkbook                     ' or specify the name of the add-in workbook
+    sFullName = DevInstncFullName                   ' Specify the path where you want to save the normal workbook
+    Set wbkOrigin = wbkAddIn
+    
+    wbkAddIn.SaveAs FileName:=sFullName _
+                  , FileFormat:=xlExcel12   ' Save the add-in workbook as a normal workbook
+    
+    wbkOrigin.Activate
+    MsgBox "Workbook saved as a normal workbook at: " & sFullName
+    Application.EnableEvents = True
+
+End Sub
+

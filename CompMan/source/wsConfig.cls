@@ -61,7 +61,7 @@ Private Property Let CompManWrkbkStatusUrl(ByVal s As String):      UrlLabel(Me.
 Public Property Let ConfigInfo(ByVal s As String):                  mWsh.Value(Me, "ConfigInfo") = s:                                       End Property
 
 Public Property Get FolderCommonComponentsName() As String
-    FolderCommonComponentsName = FSo.GetFolder(FolderCommonComponentsPath).Name
+    FolderCommonComponentsName = fso.GetFolder(FolderCommonComponentsPath).Name
 End Property
 
 Public Property Get FolderCommonComponentsPath() As String:         FolderCommonComponentsPath = mWsh.Value(Me, "FolderCommonComponents"):  End Property
@@ -128,7 +128,7 @@ Public Sub AutoOpenAddinSetup()
     
     If mMe.IsAddinInstnc Then GoTo xt
     sShortcut = mAddin.AutoOpenShortCut
-    If AutoOpenAddinIsSetup Then FSo.DeleteFile sShortcut
+    If AutoOpenAddinIsSetup Then fso.DeleteFile sShortcut
     Set oShell = CreateObject("Wscript.shell")
     Set oShortcut = oShell.CreateShortcut(sShortcut)
     With oShortcut
@@ -252,7 +252,7 @@ Public Sub CurrentStatus()
     If mMe.IsAddinInstnc Then GoTo xt
     
     '~~ CompMan Add-in setup status
-    If FSo.FileExists(mAddin.WbkFullName) Then
+    If fso.FileExists(mAddin.WbkFullName) Then
         cll.Add "provided"
         
         '~~ CompMan Addin Paused status
@@ -272,7 +272,7 @@ Public Sub CurrentStatus()
 
         '~~ CompMan Addin AutoOpen status
         sShortcut = mAddin.AutoOpenShortCut
-        If FSo.FileExists(sShortcut) Then
+        If fso.FileExists(sShortcut) Then
             '~~ Update the shortcut in case the location of the Add-in Workbook has changed
             If ShortCutTargetPath(sShortcut) <> mAddin.WbkFullName _
             Then ShortCutTargetPath(sShortcut) = mAddin.WbkFullName
@@ -293,7 +293,7 @@ Public Sub CurrentStatus()
     
     '~~ CompMan Workbook AutoOpen status
     sStatus = vbNullString
-    If FSo.FileExists(AutoOpenShortCutCompManWbk) Then
+    If fso.FileExists(AutoOpenShortCutCompManWbk) Then
         '~~ Update the shortcut in case the location of the CompMan Workbook has changed
         If ShortCutTargetPath(AutoOpenShortCutCompManWbk) <> ThisWorkbook.FullName _
         Then ShortCutTargetPath(AutoOpenShortCutCompManWbk) = ThisWorkbook.FullName
@@ -333,7 +333,7 @@ Public Function FolderCompManRootIsValid() As Boolean
     CommonComponentsFolderUrl = "/blob/master/SpecsAndUse.md#public-common-components"
     
     If FolderCompManServicedRoot <> vbNullString Then
-        If FSo.FolderExists(FolderCompManServicedRoot) Then
+        If fso.FolderExists(FolderCompManServicedRoot) Then
             FolderCompManRootInfo = "Folder serviced by CompMan. I.e. CompMan provides its services for any Workbook " & _
                                     "located (opened, saved) in this folder - provided the Workbook has one or more " & _
                                     "services enabled."

@@ -83,6 +83,123 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
+Public Property Get Properties(Optional ByVal p_comp As String, _
+                               Optional ByRef p_done As Boolean) As clsProperties
+    Dim Lstm As New clsProperties
+    Dim sAt  As String
+    Dim sBy  As String
+    Dim sIn  As String
+    Dim sOn  As String
+    Dim sKo  As String
+    Dim sXf  As String
+
+    With PPFile
+        sAt = .Value(mCompMan.VALUE_NAME_LAST_MOD_AT, p_comp)
+        sBy = .Value(mCompMan.VALUE_NAME_LAST_MOD_BY, p_comp)
+        sIn = .Value(mCompMan.VALUE_NAME_LAST_MOD_IN, p_comp)
+        sKo = .Value(mCompMan.VALUE_NAME_REG_STAT_COMP, p_comp)
+        sOn = .Value(mCompMan.VALUE_NAME_LAST_MOD_ON, p_comp)
+        sXf = .Value(VALUE_NAME_LAST_MOD_EXP_FILE_ORIG, p_comp)
+    End With
+    With Lstm
+        .LmAt = sAt
+        .LmBy = sBy
+        .LmIn = sIn
+        .LmKo = sKo
+        .LmOn = sOn
+        .LmXf = sXf
+    End With
+    Set Properties = Lstm
+    
+End Property
+
+Public Property Let Properties(Optional ByVal p_comp As String, _
+                               Optional ByRef p_done As Boolean, _
+                                        ByVal p_lstm As clsProperties)
+    Dim sAt   As String
+    Dim sBy   As String
+    Dim sIn   As String
+    Dim sOn   As String
+    Dim sKo   As String
+    Dim sXf   As String
+    Dim s     As String
+    
+    With p_lstm
+        sAt = .LmAt
+        sBy = .LmBy
+        sIn = .LmIn
+        sKo = .LmKo
+        sXf = .LmXf
+    End With
+    p_done = False
+    With PPFile
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_AT, p_comp)
+        If s <> sAt Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_AT, p_comp) = sAt
+                Servicing.Log(p_comp) = "Last modified at date/time      changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sAt
+            p_done = True
+        End If
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_BY, p_comp)
+        If s <> sBy Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_BY, p_comp) = sBy
+                Servicing.Log(p_comp) = "Last modified by user           changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sBy
+            p_done = True
+        End If
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_IN, p_comp)
+        If s <> sIn Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_IN, p_comp) = sIn
+                Servicing.Log(p_comp) = "Last modified in Workbook       changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sIn
+            p_done = True
+        End If
+        If sKo <> vbNullString Then
+            s = .Value(mCompMan.VALUE_NAME_REG_STAT_COMP, p_comp)
+            If s <> sKo Then
+                .Value(mCompMan.VALUE_NAME_REG_STAT_COMP, p_comp) = sKo
+                Servicing.Log(p_comp) = "Last modified kind of component changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sKo
+                p_done = True
+            End If
+        End If
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_ON, p_comp)
+        If s <> sOn Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_ON, p_comp) = sOn
+                Servicing.Log(p_comp) = "Last modified on computer       changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sOn
+            p_done = True
+        End If
+        If sXf <> vbNullString Then
+            s = .Value(VALUE_NAME_LAST_MOD_EXP_FILE_ORIG, p_comp)
+            If s <> sXf Then
+                .Value(VALUE_NAME_LAST_MOD_EXP_FILE_ORIG, p_comp) = sXf
+                Servicing.Log(p_comp) = "Lastr modified Export-File      changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sXf
+                p_done = True
+            End If
+        End If
+        If p_done Then .ValuesDone
+    End With
+
+End Property
+
+Public Sub SetPropertiesEqualServiced(ByVal s_comp As String, _
+                             Optional ByRef s_done As Boolean)
+' ------------------------------------------------------------------------------
+' Attention: This is an exception for the case a component's Export-File has
+'            manually been copied into the Common-Components folder indicating
+'            it as a new Common Component.
+' ------------------------------------------------------------------------------
+    Dim prpSrvcd As clsProperties
+    
+    Set prpSrvcd = CommonServiced.Properties(s_comp)
+    Properties(s_comp, s_done) = prpSrvcd
+    If s_done _
+    Then Servicing.Log(s_comp) = "Public Common Component's properties set equal serviced (manually published!)"
+
+End Sub
+
 Public Sub Add(ByVal a_comp As String)
 ' ----------------------------------------------------------------------------
 ' Adds a component to the Dictionary of current pubic Common Components.
@@ -170,7 +287,7 @@ Friend Property Get LastModInWrkbkFullName(Optional ByVal l_comp_name As String 
 End Property
 
 Public Function LastModInWrkbkName(ByVal l_comp_name As String)
-    LastModInWrkbkName = FSo.GetFileName(Value(VALUE_NAME_LAST_MOD_IN, l_comp_name))
+    LastModInWrkbkName = fso.GetFileName(Value(VALUE_NAME_LAST_MOD_IN, l_comp_name))
 End Function
 
 Friend Property Get LastModOn(Optional ByVal l_comp_name As String = vbNullString) As String
@@ -236,7 +353,7 @@ Public Function Components() As Dictionary
         For Each v In PPFile.SectionNames
             If Not v Like "_*" _
             And Not v Like "@*" _
-            Then dct.Add v, vbNullString
+            Then .Add v, vbNullString
         Next v
     End With
     Set Components = dct
@@ -244,6 +361,24 @@ Public Function Components() As Dictionary
     
 End Function
 
+Public Sub SetPropertiesEqualPending(ByVal s_comp As String, _
+                            Optional ByRef s_done As Boolean)
+' ------------------------------------------------------------------------------
+' Set the public Common Component's properties in the CommComps.date file in
+' the Common-Components folder equal to those in the pending release Common
+' Components PendingReleases.dat file - in the Common-Components folder - when
+' the pending release component is released to public.
+' ------------------------------------------------------------------------------
+    Const PROC = "SetPropertiesEqualPending"
+    
+    Dim prpPndng As clsProperties
+    
+    Set prpPndng = CommonPending.Properties(s_comp)
+    Properties(s_comp, s_done) = prpPndng
+    If s_done _
+    Then Servicing.Log(s_comp) = "Public Common Component's properties set equal pending"
+    
+End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "clsCommonPublic" & "." & sProc
@@ -276,7 +411,7 @@ Public Function LastModExpFile(ByVal e_comp As String) As String
 ' Provides the full name of a component's (e_comp) last modified Export-File.
 ' Note: This file's origin is the LastModExpFileOrigin.
 ' ----------------------------------------------------------------------------
-    LastModExpFile = mEnvironment.CommCompsPath & "\" & FSo.GetFileName(LastModExpFileOrigin(e_comp))
+    LastModExpFile = mEnvironment.CommCompsPath & "\" & fso.GetFileName(LastModExpFileOrigin(e_comp))
 
 End Function
 
@@ -292,11 +427,11 @@ Public Function ExportFiles() As Dictionary
     Dim sName   As String
     Dim sExt    As String
     
-    Set fld = FSo.GetFolder(mEnvironment.CommCompsPath)
+    Set fld = fso.GetFolder(mEnvironment.CommCompsPath)
     With dct
         For Each fle In fld.Files
-            sName = FSo.GetBaseName(fle.Path)
-            sExt = FSo.GetExtensionName(fle.Path)
+            sName = fso.GetBaseName(fle.Path)
+            sExt = fso.GetExtensionName(fle.Path)
             Select Case sExt
                 Case "bas", "cls", "frm"
                     If Not .Exists(sName) _

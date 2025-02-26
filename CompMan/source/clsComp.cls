@@ -160,7 +160,7 @@ Friend Property Let CompName(ByVal s_comp As String)
         sExpFileFullName = mEnvironment.ExportServiceFolderPath & "\" & sCompName & sExpFileExt
     
         '~~ Provide all local info for the serviced component
-        If FSo.FileExists(sExpFileFullName) Then
+        If fso.FileExists(sExpFileFullName) Then
             With CodeExprtd
                 .CompName = sCompName
                 .Source = sExpFileFullName
@@ -182,15 +182,15 @@ Friend Property Let CompName(ByVal s_comp As String)
             With CodePublic
                 .CompName = sCompName
                 .Source = dctPublicExpFiles(sCompName)
-                .SourceDesc = mDiff.SourcePublic
+                .SourceDesc = mDiff.SourcePublic(sCompName)
             End With
         End If
             
-        If FSo.FileExists(CommonPending.ExportFiles(sCompName)) Then
+        If fso.FileExists(CommonPending.ExportFiles(sCompName)) Then
             With CodePnding
                 .CompName = sCompName
                 .Source = CommonPending.ExportFiles(sCompName)
-                .SourceDesc = mDiff.SourcePending
+                .SourceDesc = mDiff.SourcePending(sCompName)
             End With
         End If
     End If
@@ -200,8 +200,8 @@ End Property
 Friend Property Get ExpFile() As File
        
     If flExpFile Is Nothing Then
-        If FSo.FileExists(ExpFileFullName) Then
-            Set flExpFile = FSo.GetFile(ExpFileFullName)
+        If fso.FileExists(ExpFileFullName) Then
+            Set flExpFile = fso.GetFile(ExpFileFullName)
         Else
             '~~ When the component has yet no never been exported
             '~~ it will be along with the Export changed service
@@ -291,7 +291,7 @@ Public Function Changed() As Boolean
     
     On Error GoTo eh
     Select Case True
-        Case Not FSo.FileExists(Me.ExpFileFullName)     ' first time export
+        Case Not fso.FileExists(Me.ExpFileFullName)     ' first time export
             Changed = True
         Case Else                                       ' export file exists
             If mDiff.ServicedExportVersusServicedCode(Me) Then
@@ -359,7 +359,7 @@ Private Function ExpFileTempFullName() As String
     
     On Error GoTo eh
     If Not wbk Is Nothing Then
-        With FSo
+        With fso
             If sTmpFolder = vbNullString Then
                 sTmpFolder = Servicing.TempExportFolder
             End If
@@ -512,194 +512,23 @@ Private Sub RemoveModuleInfo(ByRef dct As Dictionary)
     
 End Sub
 
-Public Function ServicedMeetsPublicProperties() As Boolean
-' ------------------------------------------------------------------------------
-' Returns TRUE when the current serviced Common Component's (sCompName)
-' properties are identical with the public Common Component's properties.
-' ------------------------------------------------------------------------------
-    Const PROC = "ServicedMeetsPublicProperties"
-    
-    Dim sAt As String
-    Dim sBy As String
-    Dim sIn As String
-    Dim sOn As String
-    Dim sXf As String
-    
-    With CommonPublic
-        sAt = .LastModAt(sCompName)
-        sBy = .LastModBy(sCompName)
-        sIn = .LastModInWrkbkFullName(sCompName)
-        sOn = .LastModOn(sCompName)
-        sXf = .LastModExpFileOrigin(sCompName)
-    End With
-    
-    With CommonServiced
-        Select Case True
-            Case sAt <> .LastModAt(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModAt differs"
-            Case sBy <> .LastModBy(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModBy differs"
-            Case sXf <> .LastModExpFileOrigin(sCompName):   ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModXf differs"
-            Case sIn <> .LastModInWrkbkFullName(sCompName): ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModIn differs"
-            Case sOn <> .LastModOn(sCompName):              ' Debug.Print ErrSrc(PROC) & " " & sCompName & " LastModOn differs"
-            Case Else
-                ServicedMeetsPublicProperties = True
-        End Select
-    End With
-    
-End Function
-
-Public Sub SetPendingEqualServiced()
-' ------------------------------------------------------------------------------
-' Set the pending release Common Component's properties in the Pending.dat file
-' equal to those in the serviced Common Components CommComps.dat file - when the
-' modified Common Component is registered pending release.
-' ------------------------------------------------------------------------------
-    Dim sAt As String
-    Dim sBy As String
-    Dim sIn As String
-    Dim sKo As String
-    Dim sOn As String
-    Dim sXf As String
-    
-    With CommonServiced
-        sAt = .LastModAt(sCompName)
-        sBy = .LastModBy(sCompName)
-        sIn = .LastModInWrkbkFullName(sCompName)
-        sKo = .KindOfComponent(sCompName)
-        sOn = .LastModOn(sCompName)
-        sXf = .LastModExpFileOrigin(sCompName)
-    End With
-    With CommonPending
-        .LastModAt(sCompName) = sAt
-        .LastModBy(sCompName) = sBy
-        .LastModExpFileOrigin(sCompName) = sXf
-        .LastModInWrkbkFullName(sCompName) = sIn
-        .LastModKindOfComp(sCompName) = sKo
-        .LastModOn(sCompName) = sOn
-    End With
-   
-End Sub
-
-Public Sub SetPublicEqualPending()
-' ------------------------------------------------------------------------------
-' Set the public Common Component's properties in the CommComps.date file in
-' the Common-Components folder equal to those in the pending release Common
-' Components PendingReleases.dat file - in the Common-Components folder - when
-' the pending release component is released to public.
-' ------------------------------------------------------------------------------
-    Dim sAt As String
-    Dim sBy As String
-    Dim sIn As String
-    Dim sOn As String
-    Dim sKo As String
-    Dim sXf As String
-    
-    With CommonPending
-        sAt = .LastModAt(sCompName)
-        sBy = .LastModBy(sCompName)
-        sIn = .LastModInWrkbkFullName(sCompName)
-        sOn = .LastModOn(sCompName)
-        sKo = .LastModKindOfComp(sCompName)
-        sXf = .LastModExpFileOrigin(sCompName)
-    End With
-    With CommonPublic
-        .LastModAt(sCompName) = sAt
-        .LastModBy(sCompName) = sBy
-        .LastModExpFileOrigin(sCompName) = sXf
-        .LastModInWrkbkFullName(sCompName) = sIn
-        .LastModKindOfOriginComp(sCompName) = sKo
-        .LastModOn(sCompName) = sOn
-    End With
-    
-End Sub
-
-Public Sub SetPublicEqualServiced()
-' ------------------------------------------------------------------------------
-' Attention: This is an exception for the case a component's Export-File has
-'            manually been copied into the Common-Components folder indicating
-'            it as a new Common Component.
-' ------------------------------------------------------------------------------
-    Dim sAt As String
-    Dim sBy As String
-    Dim sIn As String
-    Dim sOn As String
-    Dim sKo As String
-    Dim sXf As String
-    
-    sAt = ServicedLastModAt
-    sBy = ServicedLastModBy
-    sIn = ServicedLastModIn
-    sOn = ServicedLastModOn
-    sKo = ServicedLastModKindOfComp
-    sXf = ServicedLastModExpFile
-    
-    With CommonPublic
-        .LastModAt(sCompName) = sAt
-        .LastModBy(sCompName) = sBy
-        .LastModExpFileOrigin(sCompName) = sXf
-        .LastModInWrkbkFullName(sCompName) = sIn
-        .LastModKindOfOriginComp(sCompName) = sKo
-        .LastModOn(sCompName) = sOn
-    End With
-    
-End Sub
-
-Public Sub SetServicedEqualPublic(Optional ByVal s_done As Boolean = True)
-' ------------------------------------------------------------------------------
-' Set the serviced Common Component's properties in the CommComps.dat file
-' equal to those of the public Common Component's properties in the CommComp.dat
-' file in the Common-Components folder - when the outdated Common Component had
-' been updated.
-' ------------------------------------------------------------------------------
-    Dim sAt As String
-    Dim sBy As String
-    Dim sIn As String
-    Dim sOn As String
-    Dim sXf As String
-    
-    With CommonPublic
-        sAt = .LastModAt(sCompName)
-        sBy = .LastModBy(sCompName)
-        sIn = .LastModInWrkbkFullName(sCompName)
-        sOn = .LastModOn(sCompName)
-        sXf = .LastModExpFileOrigin(sCompName)
-    End With
-    CommonServiced.Values s_done, _
-                          sCompName, _
-                          mCompMan.VALUE_NAME_LAST_MOD_AT, sAt, _
-                          mCompMan.VALUE_NAME_LAST_MOD_BY, sBy, _
-                          mCompMan.VALUE_NAME_LAST_MOD_EXP_FILE_ORIG, sXf, _
-                          mCompMan.VALUE_NAME_LAST_MOD_IN, sIn, _
-                          mCompMan.VALUE_NAME_LAST_MOD_ON, sOn
-    
-End Sub
-
 Public Sub SetServicedProperties()
 ' ------------------------------------------------------------------------------
 ' Set the serviced Common Component's properties in the CommComps.dat file when
 ' the modified Common Component has been exported.
 ' ------------------------------------------------------------------------------
-    Dim sAt As String
-    Dim sBy As String
-    Dim sIn As String
-    Dim sOn As String
-    Dim sXf As String
-    
-    sAt = mCompMan.UTC(FSo.GetFile(Me.ExpFileFullName).DateLastAccessed)
-    sBy = mEnvironment.ThisComputersUser
-    sIn = Serviced.Wrkbk.FullName
-    sOn = mEnvironment.ThisComputersName
-    sXf = ExpFileFullName
-    With CommonServiced
-        .LastModAt(sCompName) = sAt
-        .LastModBy(sCompName) = sBy
-        .LastModExpFileOrigin(sCompName) = sXf
-        .LastModInWrkbkFullName(sCompName) = sIn
-        .LastModOn(sCompName) = sOn
+    Dim prprts As New clsProperties
+    With prprts
+        .LmAt = mCompMan.UTC(fso.GetFile(Me.ExpFileFullName).DateLastModified)
+        .LmBy = mEnvironment.ThisComputersUser
+        .LmIn = Serviced.Wrkbk.FullName
+        .LmOn = mEnvironment.ThisComputersName
+        .LmXf = ExpFileFullName
     End With
-    
+    CommonServiced.Properties(sCompName) = prprts
 End Sub
 
 Public Function WrkbkBaseName() As String
-    WrkbkBaseName = FSo.GetBaseName(sWrkbkFullName)
+    WrkbkBaseName = fso.GetBaseName(sWrkbkFullName)
 End Function
 

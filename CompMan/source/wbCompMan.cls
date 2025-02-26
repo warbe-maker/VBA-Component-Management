@@ -84,13 +84,13 @@ Private Sub Workbook_Open()
 '    End If
 '    If Not mMe.IsDevInstnc Then GoTo xt
 '
-'    If Not mMe.AssertedServicingEnabled(COMMON_COMPONENTS_HOSTED) Then GoTo xt
-'    '~~ ------------------------------------------------------------------
-'    '~~ CompMan Workbook_Open service 'UpdateOutdatedCommonComponents':
-'    '~~ Executed by the development instance when open or by the Add-in
-'    '~~ when established and automatically available when referenced by
-'    '~~ the VB-Project
-'    mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, COMMON_COMPONENTS_HOSTED, COMMON_COMPONENT_PROC_COPIES
+    If Not mMe.AssertedServicingEnabled(COMMON_COMPONENTS_HOSTED) Then GoTo xt
+    '~~ ------------------------------------------------------------------
+    '~~ CompMan Workbook_Open service 'UpdateOutdatedCommonComponents':
+    '~~ Executed by the development instance when open or by the Add-in
+    '~~ when established and automatically available when referenced by
+    '~~ the VB-Project
+    mCompManClient.CompManService mCompManClient.SRVC_UPDATE_OUTDATED, COMMON_COMPONENTS_HOSTED, COMMON_COMPONENT_PROC_COPIES
 '    '~~ ------------------------------------------------------------------
 '    Application.Wait Now + TimeValue("00:00:01")
 '    '~~ ------------------------------------------------------------------

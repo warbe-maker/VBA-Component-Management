@@ -117,7 +117,7 @@ Public Property Let Source(ByVal f_v As Variant)
     Select Case TypeName(f_v)
         Case "String"
             If f_v <> vbNullString Then
-                With FSo
+                With fso
                     If .FileExists(f_v) And sProcName <> vbNullString Then
                         vSource = f_v
                         Set fl = .GetFile(f_v)
@@ -140,7 +140,7 @@ Public Property Let Source(ByVal f_v As Variant)
         Case "File"
             Set vSource = f_v
             Set fl = f_v
-            sProcId = FSo.GetBaseName(fl.Path)
+            sProcId = fso.GetBaseName(fl.Path)
             sCode = CodeLinesFromExpFile(f_v, sProcName)
     End Select
     
@@ -297,18 +297,18 @@ Private Function DsplyFilesDiff(ByVal d_file_left_full_name As String, _
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
-    If Not FSo.FileExists(d_file_left_full_name) _
+    If Not fso.FileExists(d_file_left_full_name) _
     Then Err.Raise Number:=AppErr(2) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & d_file_left_full_name & """ does not exist!"
     
-    If Not FSo.FileExists(d_file_right_full_name) _
+    If Not fso.FileExists(d_file_right_full_name) _
     Then Err.Raise Number:=AppErr(3) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & d_file_right_full_name & """ does not exist!"
         
     '~~ Guarantee an ini-File which meets CompMan's specifics
-    With FSo
+    With fso
         If .FileExists(mWinMergeIni.WinMergeIniFullName) Then .DeleteFile (mWinMergeIni.WinMergeIniFullName)
         mWinMergeIni.Setup
     End With
@@ -473,7 +473,7 @@ Private Function StringAsFile(ByVal s_strng As String, _
     Else Open s_file For Output As #1
     Print #1, s_strng
     Close #1
-    Set StringAsFile = FSo.GetFile(s_file)
+    Set StringAsFile = fso.GetFile(s_file)
     
 End Function
 
@@ -555,7 +555,7 @@ Private Function TempCodeMod(ByVal t_file As String, _
         .Windows(1).Visible = False
         With .VBProject
             .VBComponents.Import t_file
-            Set vbc = .VBComponents(FSo.GetBaseName(t_file))
+            Set vbc = .VBComponents(fso.GetBaseName(t_file))
         End With
         Set TempCodeMod = vbc.CodeModule
     End With
@@ -575,11 +575,11 @@ Private Function TempFile(Optional ByVal f_name As String = vbNullString, _
     
     If VBA.Left$(f_extension, 1) <> "." Then f_extension = "." & f_extension
     If f_name = vbNullString Then
-        sTemp = Replace(FSo.GetTempName, ".tmp", f_extension)
+        sTemp = Replace(fso.GetTempName, ".tmp", f_extension)
     Else
         sTemp = f_name & f_extension
     End If
-    If f_path = vbNullString Then f_path = FSo.GetSpecialFolder(2)
+    If f_path = vbNullString Then f_path = fso.GetSpecialFolder(2)
     sTemp = VBA.Replace(f_path & "\" & sTemp, "\\", "\")
     TempFile = sTemp
 

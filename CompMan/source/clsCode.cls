@@ -65,11 +65,13 @@ End Sub
 Private Property Get Arry(Optional ByRef c_arr As Variant, _
                           Optional ByVal c_index As Long = -1) As Variant
 ' ----------------------------------------------------------------------------
-' Universal array read procedure. Returns Null when a given array (c_arr) is
-' not allocated or a provided index is beyond/outside current dimensions.
+' Universal 1-dimensional array read procedure. Returns Empty when a given
+' array (c_arr) is not allocated or a provided index is beyond/outside current
+' dimensions.
 ' ----------------------------------------------------------------------------
     Dim i As Long
     
+    Arry = Empty ' the default
     If IsArray(c_arr) Then
         On Error Resume Next
         i = LBound(c_arr)
@@ -85,50 +87,38 @@ Private Property Let Arry(Optional ByRef c_arr As Variant, _
                           Optional ByVal c_index As Long = -99, _
                                    ByVal c_var As Variant)
 ' ----------------------------------------------------------------------------
-' Universal array add/update procedure, avoiding any prior checks whether
-' allocated, empty not yet existing, etc.
+' Universal 1-dimensional array add/update procedure, avoiding any prior
+' checks whether allocated, empty not yet existing, etc.
 ' - Adds an item (c_var) to an array (c_arr) when no index is provided or when
 '   the index lies beyond UBound
 ' - When an index is provided, the item is inserted/updated at the given
 '   index - even when the array yet doesn't exist or is not yet allocated.
 ' ----------------------------------------------------------------------------
-    Const PROC = "Arry-Let"
-    
-    Dim bIsAllocated As Boolean
-    
-    If IsArray(c_arr) Then
-        On Error GoTo -1
-        On Error Resume Next
-        bIsAllocated = UBound(c_arr) >= LBound(c_arr)
-        On Error GoTo eh
-    ElseIf VarType(c_arr) <> 0 Then
-        Err.Raise AppErr(1), ErrSrc(PROC), "Not a Variant type!"
-    End If
-    
-    If bIsAllocated = True Then
-        '~~ The array has at least one item
-        If c_index = -99 Then
-            '~~ When for an allocated array no index is provided, the item is added
-            ReDim Preserve c_arr(UBound(c_arr) + 1)
-            c_arr(UBound(c_arr)) = c_var
-        ElseIf c_index >= 0 And c_index <= UBound(c_arr) Then
-            '~~ Replace an existing item
-            c_arr(c_index) = c_var
-        ElseIf c_index > UBound(c_arr) Then
-            '~~ New item beyond current UBound
-            ReDim Preserve c_arr(c_index)
-            c_arr(c_index) = c_var
-        ElseIf c_index < LBound(c_arr) Then
-            Err.Raise AppErr(2), ErrSrc(PROC), "Index is less than LBound of array!"
-        End If
+    Const PROC = "Arry(Let)"
         
-    ElseIf bIsAllocated = False Then
+    On Error GoTo eh
+    If ArryIsAllocated(c_arr) Then
+        '~~ The array has at least one item
+        Select Case True
+            Case c_index = -99                              ' When for an allocated array no index is provided, the item is added
+                ReDim Preserve c_arr(UBound(c_arr) + 1)
+                c_arr(UBound(c_arr)) = c_var
+            Case c_index >= 0 And c_index <= UBound(c_arr)  ' Replace an existing item
+                c_arr(c_index) = c_var
+            Case c_index > UBound(c_arr)                    ' New item beyond current UBound
+                ReDim Preserve c_arr(c_index)
+                c_arr(c_index) = c_var
+            Case c_index < LBound(c_arr)
+                Err.Raise AppErr(2), ErrSrc(PROC), "Index is less than LBound of array!"
+        End Select
+        
+    Else
         '~~ The array does yet not exist
         If c_index = -99 Then
             '~~ When no index is provided the item is the first of a new array
             c_arr = Array(c_var)
         ElseIf c_index >= 0 Then
-            ReDim c_arr(c_index)
+            ReDim Preserve c_arr(c_index)
             c_arr(c_index) = c_var
         Else
             Err.Raise AppErr(3), ErrSrc(PROC), "the provided index is less than 0!"
@@ -194,7 +184,9 @@ Public Property Get SourceName() As String:         SourceName = sSourceName:   
 
 Private Function ArrayIsAllocated(a_v As Variant) As Boolean
     On Error Resume Next
-    ArrayIsAllocated = Not IsError(UBound(a_v))
+    ArrayIsAllocated = UBound(a_v) >= LBound(a_v)
+    On Error GoTo 0
+    Err.Clear
 End Function
 
 Public Function AsFile(ByVal a_name As String, _
@@ -215,7 +207,7 @@ Public Function AsFile(ByVal a_name As String, _
     Then StringAsFile sAsTrimmedString, sTempFile _
     Else StringAsFile CodeAsString, sTempFile
     
-    Set AsFile = FSo.GetFile(sTempFile)
+    Set AsFile = fso.GetFile(sTempFile)
     
 End Function
 
@@ -261,7 +253,7 @@ Public Function CodeAsString() As String
         Select Case TypeName(vSource)
             Case "String"
                 If vSource <> vbNullString Then
-                    With FSo
+                    With fso
                         If .FileExists(vSource) Then
                             Set fl = .GetFile(vSource)
                             sCodeAsString = StringTrimmed(StringFromExpFile(fl))
@@ -291,7 +283,7 @@ Public Function DiffersFrom(ByVal d_from_code As clsCode, _
 ' 5 different code lines as array in the form <line-number> <source> <line>
 ' i.e each difference is returnes as two items.
 ' ----------------------------------------------------------------------------
-    Const PROC          As String = "DiffersFrom"
+    Const PROC = "DiffersFrom"
     
     On Error GoTo eh
     
@@ -414,18 +406,18 @@ Private Function DsplyFilesDiff(ByVal d_file_left_full_name As String, _
                  , Description:="WinMerge is obligatory for the Compare service of this module but not installed!" & vbLf & vbLf & _
                                 "(See ""https://winmerge.org/downloads/?lang=en"" for download)"
         
-    If Not FSo.FileExists(d_file_left_full_name) _
+    If Not fso.FileExists(d_file_left_full_name) _
     Then Err.Raise Number:=AppErr(2) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & d_file_left_full_name & """ does not exist!"
     
-    If Not FSo.FileExists(d_file_right_full_name) _
+    If Not fso.FileExists(d_file_right_full_name) _
     Then Err.Raise Number:=AppErr(3) _
                  , Source:=ErrSrc(PROC) _
                  , Description:="The file """ & d_file_right_full_name & """ does not exist!"
         
     '~~ Guarantee an ini-File which meets CompMan's specifics
-    With FSo
+    With fso
         If .FileExists(mWinMergeIni.WinMergeIniFullName) Then .DeleteFile (mWinMergeIni.WinMergeIniFullName)
         mWinMergeIni.Setup
     End With
@@ -463,7 +455,7 @@ Private Sub FileTempRemove()
 ' ----------------------------------------------------------------------------
     Dim v As Variant
     
-    With FSo
+    With fso
         For Each v In dctTempFiles
             If .FileExists(v) _
             Then .DeleteFile v
@@ -479,17 +471,21 @@ Public Function Meets(ByVal d_other_code As clsCode) As Boolean
 ' ----------------------------------------------------------------------------
     Const PROC = "Meets"
     
-    If Not IsNone And Not d_other_code.IsNone Then
-        If StrComp(CodeAsString _
-                 , d_other_code.CodeAsString _
-                 , vbTextCompare) = 0 Then
-            Meets = True
+'    mBasic.BoP ErrSrc(PROC)
+    If Not IsNone Then
+        If Not d_other_code.IsNone Then
+            If StrComp(CodeAsString _
+                     , d_other_code.CodeAsString _
+                     , vbTextCompare) = 0 Then
+                Meets = True
+            End If
         Else
-'            DiffersFromDiffs d_other_code
+            '~~ False is returned when the other code is none
         End If
     Else
-        Err.Raise AppErr(1), ErrSrc(PROC), "One of the sources for being compared are none!"
+        Err.Raise AppErr(1), ErrSrc(PROC), "Code meets code failed since this code is none!"
     End If
+'    mBasic.EoP ErrSrc(PROC)
     
 End Function
 
@@ -553,7 +549,7 @@ Private Function StringAsFile(ByVal s_strng As String, _
     Else Open s_file For Output As #1
     Print #1, s_strng
     Close #1
-    Set StringAsFile = FSo.GetFile(s_file)
+    Set StringAsFile = fso.GetFile(s_file)
     
 End Function
 
@@ -622,9 +618,12 @@ Private Function StringFromExpFile(ByVal a_fl As File) As String
     Dim i               As Long
     Dim sLinesExpFile   As String
     Dim sSplit          As String
+    Dim lFirstCodeLine  As Long
+    Dim lCodeLines      As Long
+    Dim j               As Long
     
     Open a_fl For Input As #1
-    sLinesExpFile = Input$(lOf(1), 1)
+    sLinesExpFile = Input$(LOF(1), 1)
     Close #1
     
     '~~ Get line terminating string
@@ -644,15 +643,18 @@ Private Function StringFromExpFile(ByVal a_fl As File) As String
         i = i + 1
     Loop
         
-    '~~ Move all code lines disregarding any empty lines
-    '~~ but excluding any code line beginning "Attribute ".
-    '~~ Note that an "Attribute " code line may appear also "among"
-    '~~ other code lines.
+    '~~ Move all code lines disregarding any empty lines but excluding any code line beginning "Attribute ".
+    '~~ Note! An "Attribute " code line may appear also "among" other code lines.
+    
+    ReDim aLinesMereCode(UBound(aLinesExpFile))
+    j = 0
     For i = i To UBound(aLinesExpFile)
         If Not aLinesExpFile(i) Like "Attribute *" Then
-            Arry(aLinesMereCode) = aLinesExpFile(i)
+            aLinesMereCode(j) = aLinesExpFile(i)
+            j = j + 1
         End If
     Next i
+    ReDim Preserve aLinesMereCode(j - 1)
     
     If ArrayIsAllocated(aLinesMereCode) _
     Then StringFromExpFile = Join(aLinesMereCode, vbCrLf) _
@@ -727,11 +729,11 @@ Private Function TempFile(Optional ByVal f_name As String = vbNullString, _
     
     If VBA.Left$(f_extension, 1) <> "." Then f_extension = "." & f_extension
     If f_name = vbNullString Then
-        sTemp = Replace(FSo.GetTempName, ".tmp", f_extension)
+        sTemp = Replace(fso.GetTempName, ".tmp", f_extension)
     Else
         sTemp = f_name & f_extension
     End If
-    If f_path = vbNullString Then f_path = FSo.GetSpecialFolder(2)
+    If f_path = vbNullString Then f_path = fso.GetSpecialFolder(2)
     sTemp = VBA.Replace(f_path & "\" & sTemp, "\\", "\")
     TempFile = sTemp
 

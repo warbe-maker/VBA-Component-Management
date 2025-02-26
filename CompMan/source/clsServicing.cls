@@ -59,7 +59,7 @@ Private Sub Class_Initialize()
     sNoOfItemsServicedNames = vbNullString
     sInstanceName = ThisWorkbook.Name
     Set LogServiced = New clsLog
-    lTotalComps = Serviced.Wrkbk.VBProject.VBComponents.Count
+    lTotalComps = ActiveWorkbook.VBProject.VBComponents.Count
 End Sub
 
 Private Sub Class_Terminate()
@@ -74,7 +74,7 @@ Friend Property Get CurrentService() As Variant:            CurrentService = vCu
 
 Friend Property Let CurrentService(ByVal v As Variant):     vCurrentService = v:                                End Property
 
-Public Property Let Log(Optional ByVal s_item As Variant, _
+Public Property Let Log(Optional ByVal s_Item As Variant, _
                                  ByVal s_log As String)
 ' ----------------------------------------------------------------------------
 ' Writes an entry to the Services.log file concerning an item (s_item) by
@@ -85,9 +85,9 @@ Public Property Let Log(Optional ByVal s_item As Variant, _
     Static lMaxLenItems As Long
     
     If LogServicesSummary Is Nothing Then Set LogServicesSummary = New clsLog
-    If TypeName(s_item) = "String" _
-    Then LogItem = Serviced.Wrkbk.VBProject.VBComponents(s_item) _
-    Else LogItem = s_item
+    If TypeName(s_Item) = "String" _
+    Then LogItem = Serviced.Wrkbk.VBProject.VBComponents(s_Item) _
+    Else LogItem = s_Item
     If lMaxLenItems = 0 Then lMaxLenItems = Serviced.MaxLenItem
     
     With LogServicesSummary
@@ -286,10 +286,10 @@ Private Function FolderNotVbProjectExclusive() As Boolean
 
     Dim fl  As File
     
-    For Each fl In FSo.GetFolder(Me.ServicedWbk.Path).Files
-        If VBA.Left$(FSo.GetFileName(fl.Path), 2) = "~$" Then GoTo next_fl
+    For Each fl In fso.GetFolder(Me.ServicedWbk.Path).Files
+        If VBA.Left$(fso.GetFileName(fl.Path), 2) = "~$" Then GoTo next_fl
         If VBA.StrComp(fl.Path, Me.ServicedWbk.FullName, vbTextCompare) <> 0 Then
-            Select Case FSo.GetExtensionName(fl.Path)
+            Select Case fso.GetExtensionName(fl.Path)
                 Case "xlsm", "xlam", "xlsb" ' may contain macros, a VB-Project repsectively
                     FolderNotVbProjectExclusive = True
                     Exit For

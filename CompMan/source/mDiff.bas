@@ -129,12 +129,22 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Public Function PublicVersusPendingRelease(ByVal p_comp As clsComp) As Boolean
+Public Function PublicVersusPendingRelease(ByVal p_comp As String) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the public code differs from the pending code.
 ' ----------------------------------------------------------------------------
     
-    With p_comp
+    With CommonPending
+        Set .CodePublic = New clsCode
+        With .CodePublic
+            .CompName = p_comp
+            .Source = CommonPublic.LastModExpFile(p_comp)
+        End With
+        Set .CodePnding = New clsCode
+        With .CodePnding
+            .CompName = p_comp
+            .Source = CommonPending.LastModExpFile(p_comp)
+        End With
         PublicVersusPendingRelease = .CodePublic.DiffersFrom(.CodePnding)
     End With
     
@@ -146,19 +156,27 @@ Public Function PublicVersusPendingReleaseBttn(ByVal p_comp As String) As String
                                      "Public versus Pending"
 End Function
 
-Public Sub PublicVersusPendingReleaseDsply(ByVal p_comp As clsComp)
+Public Sub PublicVersusPendingReleaseDsply(ByVal p_comp As String)
     Const PROC = "PublicVersusPendingReleaseDsply"
     
     On Error GoTo eh
     
-    With p_comp
-        .CodePublic.Source = CommonPublic.LastModExpFile(.CompName)
-        .CodePnding.Source = CommonPending.LastModExpFile(.CompName)
+    With CommonPending
+        Set .CodePublic = New clsCode
+        With .CodePublic
+            .CompName = p_comp
+            .Source = CommonPublic.LastModExpFile(p_comp)
+        End With
+        Set .CodePnding = New clsCode
+        With .CodePnding
+            .CompName = p_comp
+            .Source = CommonPending.LastModExpFile(p_comp)
+        End With
         .CodePublic.DsplyDiffs d_left_this_file_name:="PublicLastModExpFile" _
-                             , d_left_this_file_title:=mDiff.SourcePublic(.CompName) _
+                             , d_left_this_file_title:=mDiff.SourcePublic(p_comp) _
                              , d_rght_vrss_code:=.CodePnding _
                              , d_rght_vrss_file_name:="CodePending" _
-                             , d_rght_vrss_file_title:=mDiff.SourcePending(.CompName)
+                             , d_rght_vrss_file_title:=mDiff.SourcePending(p_comp)
     End With
 
 xt: Exit Sub
@@ -286,7 +304,9 @@ Public Function ServicedCodeVersusServicedExport(ByVal p_comp As clsComp) As Boo
 ' Returns TRUE when the serviced component's (p_comp) code in the CodeModule
 ' differs from the public one in the Common-Components folder.
 ' ----------------------------------------------------------------------------
+    Const PROC = ""
     
+    On Error GoTo eh
     Dim sComp   As String
     Dim arrDiff As Variant
     Dim v       As Variant
@@ -296,13 +316,21 @@ Public Function ServicedCodeVersusServicedExport(ByVal p_comp As clsComp) As Boo
         If .CodeCrrent.DiffersFrom(.CodeExprtd, arrDiff) Then
             ServicedCodeVersusServicedExport = True
             With Servicing
-                For Each v In arrDiff
-                    .Log(sComp) = "Code difference " & v
-                Next v
+                If ArryIsAllocated(arrDiff) Then
+                    For Each v In arrDiff
+                        .Log(sComp) = "Code difference " & v
+                    Next v
+                End If
             End With
         End If
     End With
     
+xt: Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Public Function ServicedCodeVersusPublic(ByVal p_comp As clsComp) As Boolean
@@ -375,7 +403,7 @@ Public Function ServicedExportVersusServicedCode(ByVal p_comp As clsComp) As Boo
             ServicedExportVersusServicedCode = True
             If .IsCommon Then
                 With Servicing
-                    .Log(sComp) = "Common Component code change: " & v
+                    .Log(sComp) = "Common Component modified: " & v
                     For Each v In arrDiff
                         .Log(sComp) = v
                     Next v
@@ -387,7 +415,7 @@ Public Function ServicedExportVersusServicedCode(ByVal p_comp As clsComp) As Boo
 End Function
 
 Private Function Source(ByVal s_str As String, _
-               Optional ByVal s_comp As String = vbNullString) As String
+                        ByVal s_comp As String) As String
     
     Source = s_str
     If s_comp <> vbNullString _
@@ -395,11 +423,11 @@ Private Function Source(ByVal s_str As String, _
                                  
 End Function
 
-Public Function SourcePublic(Optional ByVal p_comp As String = vbNullString) As String
+Public Function SourcePublic(ByVal p_comp As String) As String
     SourcePublic = Source("Public (Export-File)", p_comp)
 End Function
 
-Public Function SourcePending(Optional ByVal p_comp As String = vbNullString) As String
+Public Function SourcePending(ByVal p_comp As String) As String
     SourcePending = Source("Pending (Export-File)", p_comp)
 End Function
 

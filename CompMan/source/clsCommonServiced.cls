@@ -175,41 +175,125 @@ Private Property Get Value(Optional ByVal v_section_name As String = vbNullStrin
 
 End Property
 
-Public Sub Values(ByVal v_done As Boolean, _
-                  ByVal v_section As String, _
-                  ParamArray v_values() As Variant)
-    Const PROC = "Valuse"
+Public Sub SetPropertiesEqualPublic(ByVal s_comp As String, _
+                           Optional ByRef s_done As Boolean)
+' ------------------------------------------------------------------------------
+' When not already equal the serviced Common Component's properties in the
+' CommComps.dat file are set equal to those of the public Common Component's
+' properties in the CommComp.dat file in the Common-Components folder. This
+' is the case for instance when Common Component had been updated.
+' ------------------------------------------------------------------------------
+    Const PROC = "SetPropertiesEqualPublic"
     
-    If Not ArryIsAllocated(v_values) Then Exit Sub
-    PPFile.Section = v_section
-    Select Case UBound(v_values)
-        Case LBound(v_values) + 1: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1)
-        
-        Case LBound(v_values) + 3: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1), _
-                                                         v_values(LBound(v_values) + 2), v_values(LBound(v_values) + 3)
-        Case LBound(v_values) + 5: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1), _
-                                                         v_values(LBound(v_values) + 2), v_values(LBound(v_values) + 3), _
-                                                         v_values(LBound(v_values) + 4), v_values(LBound(v_values) + 5)
-        Case LBound(v_values) + 7: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1), _
-                                                         v_values(LBound(v_values) + 2), v_values(LBound(v_values) + 3), _
-                                                         v_values(LBound(v_values) + 4), v_values(LBound(v_values) + 5), _
-                                                         v_values(LBound(v_values) + 6), v_values(LBound(v_values) + 7)
-        Case LBound(v_values) + 9: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1), _
-                                                         v_values(LBound(v_values) + 2), v_values(LBound(v_values) + 3), _
-                                                         v_values(LBound(v_values) + 4), v_values(LBound(v_values) + 5), _
-                                                         v_values(LBound(v_values) + 6), v_values(LBound(v_values) + 7), _
-                                                         v_values(LBound(v_values) + 8), v_values(LBound(v_values) + 9)
-        Case LBound(v_values) + 11: PPFile.Values v_done, v_values(LBound(v_values)), v_values(LBound(v_values) + 1), _
-                                                          v_values(LBound(v_values) + 2), v_values(LBound(v_values) + 3), _
-                                                          v_values(LBound(v_values) + 4), v_values(LBound(v_values) + 5), _
-                                                          v_values(LBound(v_values) + 6), v_values(LBound(v_values) + 7), _
-                                                          v_values(LBound(v_values) + 8), v_values(LBound(v_values) + 9), _
-                                                          v_values(LBound(v_values) + 10), v_values(LBound(v_values) + 11)
-        Case Else
-            Err.Raise AppErr(1), ErrSrc(PROC), "The number of arguments is not an even pair of value-name, value or exceeds the maximum number of 6 pairs!"
-    End Select
+    Dim prpPublic As clsProperties
+    
+    Set prpPublic = CommonPublic.Properties(s_comp)
+    Properties(s_comp, s_done) = prpPublic
+    If s_done _
+    Then Servicing.Log(s_comp) = "Serviced Common Component's properties set equal public"
     
 End Sub
+
+Public Property Get Properties(Optional ByVal p_comp As String, _
+                               Optional ByRef p_done As Boolean) As clsProperties
+    Dim Lstm As New clsProperties
+    Dim sAt  As String
+    Dim sBy  As String
+    Dim sIn  As String
+    Dim sOn  As String
+    Dim sKo  As String
+    Dim sXf  As String
+
+    With PPFile
+        sAt = .Value(mCompMan.VALUE_NAME_LAST_MOD_AT, p_comp)
+        sBy = .Value(mCompMan.VALUE_NAME_LAST_MOD_BY, p_comp)
+        sIn = .Value(mCompMan.VALUE_NAME_LAST_MOD_IN, p_comp)
+        sKo = .Value(mCompMan.VALUE_NAME_REG_STAT_COMP, p_comp)
+        sOn = .Value(mCompMan.VALUE_NAME_LAST_MOD_ON, p_comp)
+        sXf = .Value(VALUE_NAME_LAST_MOD_EXP_FILE_ORIG, p_comp)
+    End With
+    With Lstm
+        .LmAt = sAt
+        .LmBy = sBy
+        .LmIn = sIn
+        .LmKo = sKo
+        .LmOn = sOn
+        .LmXf = sXf
+    End With
+    Set Properties = Lstm
+    
+End Property
+
+Public Property Let Properties(Optional ByVal p_comp As String, _
+                               Optional ByRef p_done As Boolean, _
+                                        ByVal p_lstm As clsProperties)
+    Dim sAt   As String
+    Dim sBy   As String
+    Dim sIn   As String
+    Dim sOn   As String
+    Dim sKo   As String
+    Dim sXf   As String
+    Dim s     As String
+    
+    With p_lstm
+        sAt = .LmAt
+        sBy = .LmBy
+        sIn = .LmIn
+        sKo = .LmKo
+        sXf = .LmXf
+    End With
+    p_done = False
+    With PPFile
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_AT, p_comp)
+        If s <> sAt Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_AT, p_comp) = sAt
+                Servicing.Log(p_comp) = "Last modified at date/time      changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sAt
+            p_done = True
+        End If
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_BY, p_comp)
+        If s <> sBy Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_BY, p_comp) = sBy
+                Servicing.Log(p_comp) = "Last modified by user           changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sBy
+            p_done = True
+        End If
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_IN, p_comp)
+        If s <> sIn Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_IN, p_comp) = sIn
+                Servicing.Log(p_comp) = "Last modified in Workbook       changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sIn
+            p_done = True
+        End If
+        If sKo <> vbNullString Then
+            s = .Value(mCompMan.VALUE_NAME_REG_STAT_COMP, p_comp)
+            If s <> sKo Then
+                .Value(mCompMan.VALUE_NAME_REG_STAT_COMP, p_comp) = sKo
+                Servicing.Log(p_comp) = "Last modified kind of component changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sKo
+                p_done = True
+            End If
+        End If
+        s = .Value(mCompMan.VALUE_NAME_LAST_MOD_ON, p_comp)
+        If s <> sOn Then
+            .Value(mCompMan.VALUE_NAME_LAST_MOD_ON, p_comp) = sOn
+                Servicing.Log(p_comp) = "Last modified on computer       changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sOn
+            p_done = True
+        End If
+        If sXf <> vbNullString Then
+            s = .Value(VALUE_NAME_LAST_MOD_EXP_FILE_ORIG, p_comp)
+            If s <> sXf Then
+                .Value(VALUE_NAME_LAST_MOD_EXP_FILE_ORIG, p_comp) = sXf
+                Servicing.Log(p_comp) = "Lastr modified Export-File      changed from " & s
+                Servicing.Log(p_comp) = "                                          to " & sXf
+                p_done = True
+            End If
+        End If
+        If p_done Then .ValuesDone
+    End With
+
+End Property
 
 Private Property Let Value(Optional ByVal v_section_name As String = vbNullString, _
                            Optional ByVal v_value_name As String = vbNullString, _
@@ -304,7 +388,7 @@ Public Function IsUsedCommComp(ByVal i_comp As String, _
 End Function
 
 Public Function LastModInWrkbkName(ByVal l_comp As String) As String
-    LastModInWrkbkName = FSo.GetFileName(Value(l_comp, VALUE_NAME_LAST_MOD_IN))
+    LastModInWrkbkName = fso.GetFileName(Value(l_comp, VALUE_NAME_LAST_MOD_IN))
 End Function
 
 Public Sub RemoveComponent(ByVal r_comp As String)

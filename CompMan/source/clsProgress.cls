@@ -61,7 +61,7 @@ End Function
 
 Function ArrayIsAllocated(a_v As Variant) As Boolean
     On Error Resume Next
-    ArrayIsAllocated = Not IsError(UBound(a_v))
+    ArrayIsAllocated = UBound(a_v) >= LBound(a_v)
 End Function
 
 Public Sub ClearDone():

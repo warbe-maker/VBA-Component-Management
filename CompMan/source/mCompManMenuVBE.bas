@@ -3,13 +3,8 @@ Option Explicit
 ' ----------------------------------------------------------------------------
 ' Standard module mMenuVBE: Prepare CompMan menu in VBE.
 ' ----------------------------------------------------------------------------
-Public cllCommandBarEvents As New Collection 'collection to store menu item click event handlers
-Public Const MENU_NAME                         As String = "CompMan"
-'
-'Private Const MENU_ITEM_RELEASE_SERVICE         As String = "Release Common Component changes"
-'Private Const MENU_ITEM_HELP_RELEASE_SERVICE    As String = "Help Release"
-'Private Const README_SERVICED                   As String = "#enabling-the-services-serviced-or-not-serviced"
-'Private Const MENU_ITEM_TAG                     As String = "COMPMAN_MENU_ITEM"
+Public cllCommandBarEvents      As New Collection 'collection to store menu item click event handlers
+Public Const MENU_NAME          As String = "CompMan"
 
 Private Const BTTN_RELEASE      As String = "Release pending modifications by this Workbook ..."
 Private Const BTTN_RELEASE_COMP As String = "Release <comp> modified by Workbook <wbk>" ' generic caption
@@ -64,7 +59,7 @@ End Sub
 Public Sub MenuRemove()
     On Error Resume Next
     Application.VBE.CommandBars(1).Controls(MENU_NAME).Delete
-    On Error GoTo -1
+    On Error GoTo 0
 End Sub
 
 Private Sub MenuAddButton(ByVal a_caption As String, _
@@ -101,7 +96,7 @@ Public Sub MenuItemsAddWithVBECommandBarEvents()
     Dim lFaceId As Long
     Dim v       As Variant
     
-    '~~ Invoke pending release dialog
+    '~~ Invoke the pending release dialog (component by component with display modification option)
     MenuAddButton a_caption:=BTTN_RELEASE _
                 , a_face_id:=806 _
                 , a_cmb_button:=cbb _
@@ -114,12 +109,12 @@ Public Sub MenuItemsAddWithVBECommandBarEvents()
     '~~ Direkt release without dialog.
     '~~ Note: This works only when the to-be-released component is a component in the current serviced Workbook
     For Each v In CommonPending.ReadyForRelease
-        Select Case Serviced.Wrkbk.VBProject.VBComponents(v).Type
-            Case vbext_ct_ClassModule:  lFaceId = 229
-            Case vbext_ct_MSForm:       lFaceId = 230
-            Case vbext_ct_StdModule:    lFaceId = 231
+        Select Case FSo.GetExtensionName(CommonPending.LastModExpFile(v))
+            Case "cls":  lFaceId = 229
+            Case "frm":  lFaceId = 230
+            Case "bas":  lFaceId = 231
         End Select
-        MenuAddButton a_caption:=Replace(Replace(BTTN_RELEASE_COMP, "<comp>", v), "<wbk>", Serviced.Wrkbk.Name) _
+        MenuAddButton a_caption:=Replace(Replace(BTTN_RELEASE_COMP, "<comp>", v), "<wbk>", CommonPending.LastModInWrkbkName(v)) _
                     , a_face_id:=lFaceId _
                     , a_cmb_button:=cbb
         Set cbbVBEVBA = New clsVBEMenuCbbVBEVB6
@@ -138,6 +133,7 @@ Public Sub MenuItemsAddWithOfficeEvents()
     Dim lFaceId As Long
     Dim v       As Variant
               
+    '~~ Invoke the pending release dialog (component by component with display modification option)
     MenuAddButton a_caption:=BTTN_RELEASE _
                 , a_face_id:=806 _
                 , a_cmb_button:=cbb _
@@ -150,12 +146,12 @@ Public Sub MenuItemsAddWithOfficeEvents()
     
     '~~ Direkt release without dialog
     For Each v In CommonPending.ReadyForRelease
-        Select Case Serviced.Wrkbk.VBProject.VBComponents(v).Type
-            Case vbext_ct_ClassModule:  lFaceId = 229
-            Case vbext_ct_MSForm:       lFaceId = 230
-            Case vbext_ct_StdModule:    lFaceId = 231
+        Select Case FSo.GetExtensionName(CommonPending.LastModExpFile(v))
+            Case "cls":  lFaceId = 229
+            Case "frm":  lFaceId = 230
+            Case "bas":  lFaceId = 231
         End Select
-        MenuAddButton a_caption:=Replace(Replace(BTTN_RELEASE_COMP, "<comp>", v), "<wbk>", Serviced.Wrkbk.Name) _
+        MenuAddButton a_caption:=Replace(Replace(BTTN_RELEASE_COMP, "<comp>", v), "<wbk>", CommonPending.LastModInWrkbkName(v)) _
                     , a_face_id:=lFaceId _
                     , a_cmb_button:=cbb
         Set cbbOffice = New clsVBEMenuCbbOffice

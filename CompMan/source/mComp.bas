@@ -6,8 +6,6 @@ Option Explicit
 '
 ' Public services:
 ' ----------------
-' Exists        Returns TRUE when a components name exists in a
-'               Workbook's VBProject
 ' IsSheetDocMod Returns TRUE when a provided VBComponent object is of a
 '               type Document-Module and represents a Worksheet
 ' TempName      Returns a temporary name for a provided VBComponent's
@@ -17,21 +15,6 @@ Option Explicit
 '
 ' ------------------------------------------------------------------------
 Public Const RENAMED_BY_COMPMAN = "_RnmdByCompMan"
-
-Public Function Exists(ByVal x_comp As Variant, _
-                       ByVal x_wbk As Workbook, _
-              Optional ByRef x_vbc As VBComponent) As Boolean
-' ------------------------------------------------------------------------------
-' Returns TRUE and the VBComponent (x_vbc) when the provided VB-
-' Component (x_comp) exists in the Workbook's (x_wbk) VB-Project.
-' ------------------------------------------------------------------------------
-    On Error Resume Next
-    Select Case True
-        Case TypeOf x_comp Is VBComponent:  Set x_vbc = x_wbk.VBProject.VBComponents(x_comp.Name)
-        Case VarType(x_comp) = vbString:    Set x_vbc = x_wbk.VBProject.VBComponents(x_comp)
-    End Select
-    Exists = Err.Number = 0
-End Function
 
 Public Function IsSheetDocMod(ByVal i_vbc As VBComponent, _
                               ByVal i_wbk As Workbook, _

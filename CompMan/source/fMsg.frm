@@ -2,8 +2,8 @@ VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} fMsg 
    ClientHeight    =   14805
    ClientLeft      =   240
-   ClientTop       =   390
-   ClientWidth     =   15150
+   ClientTop       =   396
+   ClientWidth     =   15156
    OleObjectBlob   =   "fMsg.frx":0000
 End
 Attribute VB_Name = "fMsg"
@@ -75,13 +75,13 @@ Private Const VSPACE_BTTN_ROWS              As Single = 5               ' Vertic
 Private Const WIN_NORMAL                    As Long = 1                 ' Shell Open Normal
 
 Private Declare PtrSafe Function GetCursorInfo Lib "user32" (ByRef pci As CursorInfo) As Boolean
-Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
+Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hwnd As Long) As Long
 Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
 Private Declare PtrSafe Function getFrequency Lib "kernel32" Alias "QueryPerformanceFrequency" (TimerSystemFrequency As Currency) As Long
 Private Declare PtrSafe Function GetSystemMetrics32 Lib "user32" Alias "GetSystemMetrics" (ByVal nIndex As Long) As Long
 Private Declare PtrSafe Function getTickCount Lib "kernel32" Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
 Private Declare PtrSafe Function LoadCursor Lib "user32" Alias "LoadCursorA" (ByVal hInstance As Long, ByVal lpCursorName As Long) As Long
-Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
+Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hwnd As Long, ByVal hDC As Long) As Long
 Private Declare PtrSafe Function SetCursor Lib "user32" (ByVal hCursor As Long) As Long
 Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
@@ -1591,7 +1591,7 @@ Private Sub ConvertPixelsToPoints(ByVal x_dpi As Single, _
 ' ------------------------------------------------------------------------------
     
     Dim hDC            As Long
-    Dim RetVal         As Long
+    Dim retVal         As Long
     Dim PixelsPerInchX As Long
     Dim PixelsPerInchY As Long
  
@@ -1599,7 +1599,7 @@ Private Sub ConvertPixelsToPoints(ByVal x_dpi As Single, _
     hDC = GetDC(0)
     PixelsPerInchX = GetDeviceCaps(hDC, LOGPIXELSX)
     PixelsPerInchY = GetDeviceCaps(hDC, LOGPIXELSY)
-    RetVal = ReleaseDC(0, hDC)
+    retVal = ReleaseDC(0, hDC)
     x_pts = x_dpi * TWIPSPERINCH / 20 / PixelsPerInchX
     y_pts = y_dpi * TWIPSPERINCH / 20 / PixelsPerInchY
 

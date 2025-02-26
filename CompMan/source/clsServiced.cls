@@ -21,6 +21,7 @@ Option Explicit
 Public Comp                 As clsComp
 
 Private dctAllCompsCommon   As New Dictionary
+Private dctComps            As New Dictionary
 Private dctHosted           As New Dictionary
 Private dctPublProcCpys     As New Dictionary
 Private dctTypeStrings      As New Dictionary
@@ -34,12 +35,13 @@ Private Sub Class_Initialize()
 
     Set Comp = New clsComp
     Set wbk = ActiveWorkbook
-    dctTypeStrings.Add vbext_ct_ActiveXDesigner, "ActiveX Designer"
-    dctTypeStrings.Add vbext_ct_ClassModule, "Class Module"
-    dctTypeStrings.Add vbext_ct_Document, "Document Module"
-    dctTypeStrings.Add vbext_ct_MSForm, "UserForm"
-    dctTypeStrings.Add vbext_ct_StdModule, "Standard Module"
-
+    With dctTypeStrings
+        .Add vbext_ct_ActiveXDesigner, "ActiveX Designer"
+        .Add vbext_ct_ClassModule, "Class Module"
+        .Add vbext_ct_Document, "Document Module"
+        .Add vbext_ct_MSForm, "UserForm"
+        .Add vbext_ct_StdModule, "Standard Module"
+    End With
 End Sub
 
 Public Property Get Hosted() As Dictionary:                             Set Hosted = dctHosted:                             End Property
@@ -93,10 +95,16 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
 End Function
 
 Public Function CompExists(ByVal e_comp As String) As Boolean
-    Dim s As String
-    On Error Resume Next
-    s = wbk.VBProject.VBComponents(e_comp).Name
-    CompExists = Err.Number = 0
+    
+    Dim vbc As VBComponent
+    If dctComps.Count = 0 Then
+        With dctComps
+            For Each vbc In wbk.VBProject.VBComponents
+                .Add vbc.Name, vbc
+            Next vbc
+        End With
+    End If
+    CompExists = dctComps.Exists(e_comp)
     
 End Function
 
@@ -188,10 +196,12 @@ Private Function KeySort(ByRef k_dct As Dictionary) As Dictionary
     Next i
         
     '~~ Transfer based on sorted keys
-    For i = LBound(arr) To UBound(arr)
-        vKey = arr(i)
-        dct.Add Key:=vKey, Item:=k_dct.Item(vKey)
-    Next i
+    With dct
+        For i = LBound(arr) To UBound(arr)
+            vKey = arr(i)
+            .Add key:=vKey, Item:=k_dct.Item(vKey)
+        Next i
+    End With
     
 xt: Set k_dct = dct
     Set KeySort = dct
@@ -217,7 +227,6 @@ Public Sub MaxLengths()
     If wbk Is Nothing _
     Then Err.Raise AppErr(1), ErrSrc(PROC), "The service cannot be used before a serviced Workbook has been provided!"
     
-    mBasic.BoP ErrSrc(PROC)
     For Each vbc In wbk.VBProject.VBComponents
         With vbc
             If Not HasBeenRenamedByUpdateService(.Name) Then
@@ -227,8 +236,7 @@ Public Sub MaxLengths()
         End With
     Next vbc
     
-xt: mBasic.EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
     
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

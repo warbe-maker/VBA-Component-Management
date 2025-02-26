@@ -27,7 +27,6 @@ Private Sub Prepare()
     If mErH.Regression _
     Then Trc.FileFullName = TestAid.TestFolder & "\RegressionExec.trc" _
     Else Trc.FileFullName = TestAid.TestFolder & "\Exec.trc"
-    TestAid.ModeRegression = mErH.Regression
 
 End Sub
 
@@ -52,7 +51,7 @@ Private Sub Regression()
     
 xt: mBasic.EoP ErrSrc(PROC)
     Trc.Dsply
-    TestAid.ResultSummaryLog
+    TestAid.ResultLogSummary
     Set Trc = Nothing
     Set TestAid = Nothing
     Exit Sub
@@ -66,8 +65,8 @@ End Sub
 Private Function TestWorkbook(ByVal t_folder As String) As String
     Dim fle As File
     
-    For Each fle In FSo.GetFolder(t_folder).Files
-        If FSo.GetExtensionName(fle.Path) Like "xl*" Then
+    For Each fle In fso.GetFolder(t_folder).Files
+        If fso.GetExtensionName(fle.Path) Like "xl*" Then
             TestWorkbook = fle.Path
             Exit For
         End If
@@ -148,13 +147,13 @@ Public Sub Test_0100_FirstTimeServiced()
         
         .Verification = "Precondition: ""mBasic.bas"" is the only export file in the export folder"
         .ResultExpected = True ' from the above update test
-        .Result = FSo.GetFolder(mEnvironment.ExportServiceFolderPath).Files.Count = 1 And FSo.GetFolder(mEnvironment.ExportServiceFolderPath).Files("mBasic.bas").Name = "mBasic.bas"
+        .Result = fso.GetFolder(mEnvironment.ExportServiceFolderPath).Files.Count = 1 And fso.GetFolder(mEnvironment.ExportServiceFolderPath).Files("mBasic.bas").Name = "mBasic.bas"
         '-------------------------------
         Servicing.ExportChangedComponents
         '-------------------------------
         .Verification = "Verification: Exported number of components corresponds with the VBProject components"
         .ResultExpected = VBProjectExportFiles
-        .Result = FSo.GetFolder(mEnvironment.ExportServiceFolderPath).Files.Count
+        .Result = fso.GetFolder(mEnvironment.ExportServiceFolderPath).Files.Count
         
         '==========================================================================
     End With
@@ -233,7 +232,7 @@ Private Sub Test_0300_1SetUp_1()
                                , s_service:=TestAid.Title
         With New clsComp
             .CompName = sTestComp
-            FSo.CopyFile .ExpFileFullName, mEnvironment.CommCompsPath & "\" & sTestComp & ".cls"
+            fso.CopyFile .ExpFileFullName, mEnvironment.CommCompsPath & "\" & sTestComp & ".cls"
         End With
     End With
         
@@ -327,6 +326,7 @@ Public Sub Test_0300_CommCompManuallyCopiedRemoved()
     Const PROC = "Test_0300_CommCompManuallyCopiedRemoved"
     
     On Error GoTo eh
+    Dim bDone   As Boolean
     Prepare
     sTestComp = "clsCode"
     
@@ -335,48 +335,49 @@ Public Sub Test_0300_CommCompManuallyCopiedRemoved()
         .Title = "Common Component manually copied/removed in/from Common-Components folder"
         
         .Verification = "Precondition 1: The test component " & sTestComp & " does not exist in the Common-Components folder"
-        .ResultExpected = True
-        With New clsCommonPublic
-            TestAid.Result = Not FSo.FileExists(mEnvironment.CommCompsPath & "\" & sTestComp & ".cls")
-        End With
+            .ResultExpected = True
+            With New clsCommonPublic
+                TestAid.Result = Not fso.FileExists(mEnvironment.CommCompsPath & "\" & sTestComp & ".cls")
+            End With
         
         .Verification = "Precondition 2: The test component " & sTestComp & " does not exist in the serviced Workbooks CommComps.dat file"
-        .ResultExpected = True
-        With New clsCommonServiced
-            TestAid.Result = Not .Components.Exists(sTestComp)
-        End With
-        Test_0300_1SetUp_1  ' copy Export-File into Common-Components folder and run housekeeping
+            .ResultExpected = True
+            With New clsCommonServiced
+                TestAid.Result = Not .Components.Exists(sTestComp)
+            End With
+            
         
         .Verification = "Precondition: The test component " & sTestComp & " exist in the Common-Components folder"
-        .ResultExpected = True
-        With New clsCommonPublic
-            TestAid.Result = FSo.FileExists(mEnvironment.CommCompsPath & "\" & sTestComp & ".cls")
-        End With
+            Test_0300_1SetUp_1  ' copy Export-File into Common-Components folder and run housekeeping
+            .ResultExpected = True
+            With New clsCommonPublic
+                TestAid.Result = fso.FileExists(mEnvironment.CommCompsPath & "\" & sTestComp & ".cls")
+            End With
         
         .Verification = "Test result 1: Test component " & sTestComp & " registered as new Common Component"
-        mHskpng.FocusOnSave
-        .ResultExpected = True
-        .Result = CommonPublic.Exists(sTestComp)
+            mHskpng.FocusOnSave
+            .ResultExpected = True
+            .Result = CommonPublic.Exists(sTestComp)
         
         .Verification = "Test result 2: Test component " & sTestComp & " registered as ""used"" in CommComps.dat file"
-        .ResultExpected = True
-        .Result = CommonServiced.KindOfComponent(sTestComp) = enCompCommonUsed
+            .ResultExpected = True
+            .Result = CommonServiced.KindOfComponent(sTestComp) = enCompCommonUsed
         
         .Verification = "Test result 3: Test component " & sTestComp & " properties serviced equal public"
-        .ResultExpected = True
-        With New clsComp
-            .CompName = sTestComp
-            TestAid.Result = .ServicedMeetsPublicProperties
-        End With
+            .ResultExpected = True
+            With New clsComp
+                .CompName = sTestComp
+                CommonServiced.SetPropertiesEqualPublic sTestComp
+                TestAid.Result = bDone
+            End With
         
-        '==========================================================================
         .TestId = "0300-2"
         Test_0300_1SetUp_1  ' remove the test component from the Common-Components folder
         
         .Verification = "Test result 1: Test component " & sTestComp & " removed from CommComps.dat file"
-        mHskpng.FocusOnSave
-        .ResultExpected = True
-        .Result = Not CommonPublic.Components.Exists(sTestComp)
+            mHskpng.FocusOnSave
+            .ResultExpected = True
+            .Result = Not CommonPublic.Components.Exists(sTestComp)
              
     End With
 

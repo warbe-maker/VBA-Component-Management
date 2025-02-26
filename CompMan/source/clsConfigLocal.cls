@@ -37,7 +37,7 @@ Private Sub Class_Initialize()
         .FileFooter = mEnvironment.PrivateProfileFileFooter
     End With
     
-    If Not FSo.FileExists(mEnvironment.CompManLocalConfigFileFullName) Then
+    If Not fso.FileExists(mEnvironment.CompManLocalConfigFileFullName) Then
         '~~ A not existing configuration file indicates a very first time setup of CompMan.
         '~~ Thus, values from the wsConfig Worksheet are provided as initial defaults.
         ExportFolderName = wsConfig.FolderExport

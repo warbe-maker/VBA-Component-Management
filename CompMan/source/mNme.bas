@@ -357,16 +357,18 @@ Public Function Corresponding(ByVal cn_nme As Name, _
     Dim bCorrespRange   As Boolean
     Dim nmeCorresp      As Name
     
-    For Each nme In cn_wbk.Names
-        sId = UnifiedId(nme)
-        Set nmeCorresp = nme
-        bCorrespName = mNme.MereName(nme) = mNme.MereName(cn_nme) And InStr(nme.Name, "#") = 0 And InStr(cn_nme.Name, "#") = 0
-        bCorrespRange = nme.RefersTo = cn_nme.RefersTo And InStr(nme.RefersTo, "#") = 0 And InStr(cn_nme.RefersTo, "#") = 0
-        If bCorrespName Or bCorrespRange Then
-            If Not dct.Exists(sId) Then dct.Add sId, nmeCorresp
-        End If
-    Next nme
-    Debug.Print ErrSrc(PROC) & ": " & dct.Count & ". " & dct.Keys()(dct.Count - 1) & ": " & dct.Items()(dct.Count - 1).Name
+    With dct
+        For Each nme In cn_wbk.Names
+            sId = UnifiedId(nme)
+            Set nmeCorresp = nme
+            bCorrespName = mNme.MereName(nme) = mNme.MereName(cn_nme) And InStr(nme.Name, "#") = 0 And InStr(cn_nme.Name, "#") = 0
+            bCorrespRange = nme.RefersTo = cn_nme.RefersTo And InStr(nme.RefersTo, "#") = 0 And InStr(cn_nme.RefersTo, "#") = 0
+            If bCorrespName Or bCorrespRange Then
+                If Not .Exists(sId) Then .Add sId, nmeCorresp
+            End If
+        Next nme
+        Debug.Print ErrSrc(PROC) & ": " & .Count & ". " & .Keys()(.Count - 1) & ": " & .Items()(.Count - 1).Name
+    End With
     
     Set Corresponding = dct
     Set cn_corresponding = dct
@@ -735,16 +737,18 @@ Private Function FoundInFormulas(ByVal fif_str As String, _
         On Error Resume Next
         Set rng = wsh.UsedRange.SpecialCells(xlCellTypeFormulas)
         If Err.Number <> 0 Then GoTo ws
-        For Each cel In rng
-            If InStr(1, cel.Formula, fif_str) > 0 Then
-                FoundInFormulas = True
-                If IsMissing(fif_cll) Then
-                    GoTo xt
-                Else
-                    cll.Add cel
+        With cll
+            For Each cel In rng
+                If InStr(1, cel.Formula, fif_str) > 0 Then
+                    FoundInFormulas = True
+                    If IsMissing(fif_cll) Then
+                        GoTo xt
+                    Else
+                        .Add cel
+                    End If
                 End If
-            End If
-        Next cel
+            Next cel
+        End With
         
 ws: Next wsh
 
@@ -775,8 +779,10 @@ Private Function FoundInCodeLines(ByVal ficl_str As String, _
     Dim i       As Long
     Dim sLine   As String
     Dim vbcm    As CodeModule
+    Dim sComp   As String
     
     For Each vbc In ficl_wbk.VBProject.VBComponents
+        sComp = vbc.Name
         Set vbcm = vbc.CodeModule
         With vbcm
             For i = 1 To .CountOfLines
@@ -787,7 +793,7 @@ Private Function FoundInCodeLines(ByVal ficl_str As String, _
                         If ficl_cll Is Nothing Then
                             Exit Function
                         Else
-                            ficl_cll.Add vbc.Name & ": " & i & ": " & sLine
+                            ficl_cll.Add sComp & ": " & i & ": " & sLine
                         End If
                     End If
                 End If

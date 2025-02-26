@@ -785,6 +785,7 @@ Public Sub Renew___AddIn()
 xt: RenewFinalResult bSucceeded
     Application.ScreenUpdating = False
     Servicing.ServicedWbk.Activate
+    wsService.Activate
     wsConfig.CurrentStatus
     wsConfig.Activate
     DoEvents

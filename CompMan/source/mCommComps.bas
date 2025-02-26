@@ -20,11 +20,6 @@ Private UpdateDialogLeft    As Long
 Private UpdateDialogTop     As Long
 Private UpdateTitle         As String
 
-Private Function NextSect(ByRef n_sect As Long) As Long
-    n_sect = n_sect + 1
-    NextSect = n_sect
-End Function
-
 Private Sub ChoiceLoop()
 ' ------------------------------------------------------------------------------
 ' Loops through enqued outdate Common Component displaying a dialog with the
@@ -221,17 +216,15 @@ Private Sub ChoiceUpdate(ByVal o_comp As String)
     Const PROC = "ChoiceUpdate"
     
     On Error GoTo eh
-    mBasic.BoP ErrSrc(PROC)
+    Dim bDone As Boolean
     
+    mBasic.BoP ErrSrc(PROC)
     mUpdate.ByReImport b_comp_name:=o_comp _
                      , b_export_file:=CommonPublic.LastModExpFile(o_comp) _
                      , b_monitor:=False
     
     '~~ Update the properties in the CommComps.dat file with those from the CommComps.dat file
-    With New clsComp
-        .CompName = o_comp
-        .SetServicedEqualPublic
-    End With
+    CommonServiced.SetPropertiesEqualPublic o_comp
     
     With Servicing
         .NoOfItemsServicedIncrement ' = .NoOfItemsServiced + 1
@@ -239,7 +232,6 @@ Private Sub ChoiceUpdate(ByVal o_comp As String)
         .Progress "Common Components updated"
         .Log(o_comp) = "Serviced Common Component updated by re-import of the public Export-File from the Common-Components folder."
     End With
-    
     
 xt: mBasic.EoP ErrSrc(PROC)
     Exit Sub
@@ -250,65 +242,6 @@ eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Function ErrSrc(ByVal es_proc As String) As String
-    ErrSrc = "mCommComps" & "." & es_proc
-End Function
-
-Public Sub Update()
-' ------------------------------------------------------------------------------
-' Collects all used outdated Common Components when called for the first time
-' and displays the first one queued in Qoutdated. The service is re-called until
-' the queue is empty. The display of the update choices is a mode-less dialog
-' which calls sub-services in accordance with the button pressed.
-' ------------------------------------------------------------------------------
-    Const PROC = "Update"
-    
-    On Error GoTo eh
-    
-    CollectOutdated
-    ChoiceLoop
-    CommonPending.Info
-    
-xt: Exit Sub
-
-eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
-        Case vbResume:  Stop: Resume
-        Case Else:      GoTo xt
-    End Select
-End Sub
-
-Public Function IsPendingByServicedWorkbook(ByVal i_comp As clsComp)
-
-    Dim sLastModInWbkFullName As String
-
-    With i_comp
-        If mCommComps.HasModificationPendingRelease(.CompName, , , sLastModInWbkFullName) Then
-            IsPendingByServicedWorkbook = sLastModInWbkFullName = Serviced.Wrkbk.FullName _
-                                              And .CodeExprtd.Meets(.CodePnding)
-        End If
-    End With
-
-End Function
-
-Public Function HasModificationPendingRelease(ByVal p_comp As String, _
-                                     Optional ByRef p_last_mod_at_datetime_utc As String, _
-                                     Optional ByRef p_last_mod_export_filename As String, _
-                                     Optional ByRef p_last_mod_in_wbk_fullname As String, _
-                                     Optional ByRef p_last_mod_on_machine As String) As Boolean
-    
-    If CommonPending Is Nothing Then
-        Set CommonPending = New clsCommonPending
-    End If
-    HasModificationPendingRelease = CommonPending.Exists(p_comp _
-                                                       , p_last_mod_at_datetime_utc _
-                                                       , p_last_mod_export_filename _
-                                                       , p_last_mod_in_wbk_fullname _
-                                                       , p_last_mod_on_machine)
-    
-End Function
-
-
-
 Public Sub CollectOutdated(Optional ByRef c_outdated As clsQ)
 ' ------------------------------------------------------------------------------
 ' Collects all outdated Used Common Components and enqueues them in Qoutdated.
@@ -318,11 +251,13 @@ Public Sub CollectOutdated(Optional ByRef c_outdated As clsQ)
     Const PROC = "CollectOutdated"
     
     On Error GoTo eh
-    Dim Comp            As clsComp
-    Dim wbk             As Workbook
-    Dim dct             As Dictionary
-    Dim v               As Variant
-    Dim sComp           As String
+    Dim bAny    As Boolean
+    Dim bDone   As Boolean
+    Dim Comp    As clsComp
+    Dim wbk     As Workbook
+    Dim dct     As Dictionary
+    Dim v       As Variant
+    Dim sComp   As String
     
     mBasic.BoP ErrSrc(PROC)
     Set wbk = Servicing.ServicedWbk
@@ -345,7 +280,7 @@ Public Sub CollectOutdated(Optional ByRef c_outdated As clsQ)
                 Case mDiff.ServicedCodeVersusPublic(.Comp) = False
                     '~~ Used or hosted, not pending release, not outdated
                     '~~ Just make sure the origin is correctly documented
-                    .Comp.SetServicedEqualPublic
+                    CommonServiced.SetPropertiesEqualPublic sComp
                     With Servicing
                         .NoOfItemsSkipped = .NoOfItemsSkipped + 1
                         .Log(sComp) = "Serviced Common Component used is up-to-date"
@@ -371,6 +306,112 @@ Public Sub CollectOutdated(Optional ByRef c_outdated As clsQ)
 xt: Set c_outdated = Qoutdated
     mBasic.EoP ErrSrc(PROC)
     Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Private Function ErrSrc(ByVal es_proc As String) As String
+    ErrSrc = "mCommComps" & "." & es_proc
+End Function
+
+Public Function HasModificationPendingRelease(ByVal p_comp As String, _
+                                     Optional ByRef p_last_mod_at_datetime_utc As String, _
+                                     Optional ByRef p_last_mod_export_filename As String, _
+                                     Optional ByRef p_last_mod_in_wbk_fullname As String, _
+                                     Optional ByRef p_last_mod_on_machine As String) As Boolean
+    
+    If CommonPending Is Nothing Then
+        Set CommonPending = New clsCommonPending
+        CommonPending.CompName = p_comp
+    End If
+    HasModificationPendingRelease = CommonPending.Exists(p_comp _
+                                                       , p_last_mod_at_datetime_utc _
+                                                       , p_last_mod_export_filename _
+                                                       , p_last_mod_in_wbk_fullname _
+                                                       , p_last_mod_on_machine)
+    
+End Function
+
+Public Function IsPendingByServicedWorkbook(ByVal i_comp As clsComp)
+
+    Dim sLastModInWbkFullName As String
+
+    With i_comp
+        If mCommComps.HasModificationPendingRelease(.CompName, , , sLastModInWbkFullName) Then
+            IsPendingByServicedWorkbook = sLastModInWbkFullName = Serviced.Wrkbk.FullName _
+                                              And .CodeExprtd.Meets(.CodePnding)
+        End If
+    End With
+
+End Function
+
+Private Function NextSect(ByRef n_sect As Long) As Long
+    n_sect = n_sect + 1
+    NextSect = n_sect
+End Function
+
+Public Sub StatusOfCommComp(ByVal s_comp As String)
+    Const PROC = "StatusOfCommComp"
+    
+    On Error GoTo eh
+    mCompMan.ServiceInitiate s_serviced_wbk:=ActiveWorkbook _
+                           , s_service:="Release Common Components" _
+                           , s_do_housekeeping:=False
+    
+    If CommonServiced Is Nothing Then Set CommonServiced = New clsCommonServiced
+    With CommonServiced
+        If .PPFile.Exists(s_comp) Then
+            Debug.Print "Serviced: Last mod at = .Properties.LmAt"
+        Else
+            Debug.Print "Serviced: n o t  e x i s t s !"
+        End If
+    End With
+    
+    If CommonPending Is Nothing Then Set CommonPending = New clsCommonPending
+    With CommonPending
+        If .Exists(s_comp) Then
+            Debug.Print "Pending : Last mod at = .Properties.LmAt"
+        Else
+            Debug.Print "Pending : n o t  e x i s t s !"
+        End If
+    End With
+    
+    If CommonPublic Is Nothing Then Set CommonPublic = New clsCommonPublic
+    With CommonPublic
+        If .Exists(s_comp) Then
+            Debug.Print "Public  : Last mod at = .Properties.LmAt"
+        Else
+            Debug.Print "Public  : n o t  e x i s t s !"
+        End If
+    End With
+    
+xt: Exit Sub
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
+End Sub
+
+Public Sub Update()
+' ------------------------------------------------------------------------------
+' Collects all used outdated Common Components when called for the first time
+' and displays the first one queued in Qoutdated. The service is re-called until
+' the queue is empty. The display of the update choices is a mode-less dialog
+' which calls sub-services in accordance with the button pressed.
+' ------------------------------------------------------------------------------
+    Const PROC = "Update"
+    
+    On Error GoTo eh
+    
+    CollectOutdated
+    ChoiceLoop
+    CommonPending.Info
+    
+xt: Exit Sub
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume
