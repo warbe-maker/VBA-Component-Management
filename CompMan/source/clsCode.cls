@@ -286,6 +286,7 @@ Public Function DiffersFrom(ByVal d_from_code As clsCode, _
     Const PROC = "DiffersFrom"
     
     On Error GoTo eh
+    Dim arr As Variant
     
     Select Case True
         Case Not IsNone And Not d_from_code.IsNone
@@ -293,7 +294,7 @@ Public Function DiffersFrom(ByVal d_from_code As clsCode, _
                                 , d_from_code.CodeAsString _
                                 , vbTextCompare) <> 0
             If DiffersFrom Then
-                DiffersFromDiffs d_from_code, d_diffs
+                DiffersFromDiffs d_from_code, arr
             End If
             
         Case Not Me.IsNone And d_from_code.IsNone:   DiffersFrom = True
@@ -301,7 +302,8 @@ Public Function DiffersFrom(ByVal d_from_code As clsCode, _
         Case Me.IsNone And d_from_code.IsNone
     End Select
     
-xt: Exit Function
+xt: d_diffs = arr
+    Exit Function
 
 eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
         Case vbResume:  Stop: Resume

@@ -566,7 +566,10 @@ xt: mCompManClient.Events ErrSrc(PROC), True
 End Sub
 
 Private Sub Worksheet_Change(ByVal Target As Range)
+    Const PROC = "Worksheet_Change"
     
+    On Error GoTo eh
+    mBasic.BoP ErrSrc(PROC)
     With Me
         Select Case Target.Address
             Case .Range("FolderCompManRootInfo").Address, _
@@ -586,11 +589,18 @@ Private Sub Worksheet_Change(ByVal Target As Range)
             Case .Range("FolderCompManRoot").Address
             Case .Range("FolderExport").Address
                 If ConfigLocal Is Nothing Then
-                    mEnvironment.Provide ThisWorkbook
+                    mEnvironment.Provide True, ErrSrc(PROC)
                     Set ConfigLocal = New clsConfigLocal
                 End If
                 ConfigLocal.ExportFolderName = ConfigLocal.ExportFolderName & ">" & Target.Value
         End Select
     End With
 
+xt: mBasic.EoP ErrSrc(PROC)
+    Exit Sub
+    
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Sub

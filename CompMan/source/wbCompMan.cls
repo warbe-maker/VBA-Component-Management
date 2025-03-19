@@ -77,13 +77,9 @@ Private Sub Workbook_Open()
     Const PROC = "Workbook_Open"
        
     On Error GoTo eh
+    If Me.IsAddin Then GoTo xt
+    
     mCompMan.OpenWbk
-'    If ThisWorkbook.ReadOnly And mMe.IsDevInstnc Then
-'        Stop
-'        GoTo xt ' under cetain cirumstances Excel may open the Workbook write protected
-'    End If
-'    If Not mMe.IsDevInstnc Then GoTo xt
-'
     If Not mMe.AssertedServicingEnabled(COMMON_COMPONENTS_HOSTED) Then GoTo xt
     '~~ ------------------------------------------------------------------
     '~~ CompMan Workbook_Open service 'UpdateOutdatedCommonComponents':

@@ -77,9 +77,9 @@ Public Function AssertedServicingEnabled(ByVal a_hosted As String) As Boolean
     On Error GoTo eh
     
     If Trc Is Nothing Then Set Trc = New clsTrc
-    BaseName = FSo.GetBaseName(ThisWorkbook.Name)
-    Extension = FSo.GetExtensionName(ThisWorkbook.Name)
-    mEnvironment.Provide False
+    BaseName = fso.GetBaseName(ThisWorkbook.Name)
+    Extension = fso.GetExtensionName(ThisWorkbook.Name)
+    mEnvironment.Provide False, ErrSrc(PROC)
 
     Select Case True
         Case mMe.IsAddinInstnc
@@ -118,7 +118,7 @@ Private Function AssertedFilesAndFldrsStructure(ByVal a_hosted As String) As Boo
     Application.EnableEvents = False
     Set Servicing = New clsServicing
         
-    If Not FSo.FolderExists(mEnvironment.CommCompsPath) Then
+    If Not fso.FolderExists(mEnvironment.CommCompsPath) Then
         '~~ The CompMan Workbook has been opened the very first time at this location.
         '~~ All default folders and files environment is now setup - provided the user confirms it.
         BttnGoAhead = "Ok!" & vbLf & vbLf & _
@@ -135,11 +135,11 @@ Private Function AssertedFilesAndFldrsStructure(ByVal a_hosted As String) As Boo
             AssertedFilesAndFldrsStructure = True
             DoEvents
             On Error Resume Next
-            mEnvironment.Provide True
+            mEnvironment.Provide True, ErrSrc(PROC)
             Set ConfigLocal = New clsConfigLocal
             mConfig.SelfSetupPublishHostedCommonComponents (a_hosted)
             mConfig.SetupConfirmed
-            FSo.DeleteFile sWrkbkOpnd
+            fso.DeleteFile sWrkbkOpnd
         End If
     Else
         '~~  The existing folders indicate that CompMan's default environment is already set up
@@ -222,7 +222,7 @@ Private Function AssertedWinMerge() As Boolean
     
         AssertedWinMerge = mCompMan.WinMergeIsInstalled     ' May have been downloaded and installed along with the displayed message
         If AssertedWinMerge Then
-            If Not FSo.FileExists(mWinMergeIni.WinMergeIniFullName) Then
+            If Not fso.FileExists(mWinMergeIni.WinMergeIniFullName) Then
                 mWinMergeIni.Setup ' ensures that the required options are established
             End If
         End If
@@ -241,7 +241,7 @@ End Property
 Public Property Get DevInstncFullName() As String
     DevInstncFullName = wsConfig.FolderCompManServicedRoot _
                       & DBSLASH _
-                      & FSo.GetBaseName(DevInstncName) & DBSLASH _
+                      & fso.GetBaseName(DevInstncName) & DBSLASH _
                       & DevInstncName
 End Property
 
@@ -362,7 +362,7 @@ Private Sub DevInstncWorkbookDelete()
     
     mMe.RenewAction = "Delete the 'Development-Instance-Workbook' (" & DevInstncName & ")"
     
-    With FSo
+    With fso
         If .FileExists(DevInstncFullName) Then
             On Error Resume Next
             .DeleteFile DevInstncFullName
@@ -584,7 +584,7 @@ Private Function Renew_080_SaveDevInstncWorkbookAsAddin() As Boolean
     mMe.RenewAction = "Save the 'Development-Instance-Workbook' (" & DevInstncName & ") as 'CompMan Add-in' (" & mAddin.WbkName & ")"
     
     With Application
-        If Not FSo.FileExists(mAddin.WbkFullName) Then
+        If Not fso.FileExists(mAddin.WbkFullName) Then
             '~~ At this point the Add-in must no longer exist at its location
             On Error Resume Next
             wbkSource.SaveAs WbkFullName, FileFormat:=ADDIN_FORMAT
@@ -624,7 +624,7 @@ Private Function Renew_090_OpenAddinInstncWorkbook() As Boolean
     
     mBasic.BoP ErrSrc(PROC)
     If Not mAddin.IsOpen Then
-        If FSo.FileExists(mAddin.WbkFullName) Then
+        If fso.FileExists(mAddin.WbkFullName) Then
             mMe.RenewAction = "Re-open the 'CompMan Add-in' (" & mAddin.WbkName & ")"
             On Error Resume Next
             Set wb = Application.Workbooks.Open(mAddin.WbkFullName, False, True)

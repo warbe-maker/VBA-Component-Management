@@ -340,68 +340,6 @@ Private Property Get Arry(Optional ByRef a_arr As Variant, _
 xt:
 End Property
 
-Private Function ArryBounds(ByVal a_arr As Variant, _
-                            ByVal a_indices As Variant, _
-                   Optional ByRef a_out_bounds As Collection, _
-                   Optional ByRef a_in_bounds As Collection, _
-                   Optional ByRef a_out As Long) As Boolean
-' ---------------------------------------------------------------------------
-' Returns:
-' - TRUE when all dimensions addressed by indices (a_indices) are
-'   within the bounds of the respective dimension in array (a_arr)
-' - FALSE when any of the provided indices (a_indices) is out of the bounds
-'   of the provided array (a_arr)
-' - Returns the dimesions which are out of bounds as Collection with items
-'   in-bound empty and out-bound with the new bound
-' - Returns the complete dimension specifics which combine the "from" spec
-'   of the provided array with the new "to" specs in case they are greater
-'   than the present ones
-'
-' Precondition: The indices are provided (a_indices) is either as a single
-'               integer - when the array (a_arr) is a 1-dim array - or an
-'               array of integers, each specifying the index for one
-'               dimension.
-'
-' Uses: Coll
-'
-' W. Rauschenberger, Berlin Jan 2025
-' ---------------------------------------------------------------------------
-    Dim aBounds(1 To 2)     As Variant
-    Dim aBoundsOut(1 To 2)  As Variant
-    Dim cllBoundsIn         As New Collection
-    Dim cllBoundsOut        As New Collection
-    Dim cllSpecNdcs         As Collection
-    Dim i                   As Long
-    Dim lDimsArry           As Long
-    Dim lDimsSpec           As Long
-    
-    lDimsArry = ArryDims(a_arr)
-    Set cllSpecNdcs = ArryIndices(a_indices)
-    lDimsSpec = cllSpecNdcs.Count
-    
-    If lDimsSpec > lDimsArry Then GoTo xt
-    For i = 1 To cllSpecNdcs.Count
-        aBounds(1) = Min(cllSpecNdcs(i), LBound(a_arr, i))
-        aBounds(2) = Max(cllSpecNdcs(i), UBound(a_arr, i))
-        Coll(cllBoundsIn, i) = aBounds
-        If cllSpecNdcs(i) < LBound(a_arr, i) Or cllSpecNdcs(i) > UBound(a_arr, i) Then
-            aBoundsOut(1) = LBound(a_arr, i)
-            aBoundsOut(2) = UBound(a_arr, i)
-            Coll(cllBoundsOut, i) = aBoundsOut
-            a_out = a_out + 1
-        Else
-            Coll(cllBoundsOut, i) = Empty
-        End If
-    Next i
-    
-    Set a_in_bounds = cllBoundsIn
-    Set a_out_bounds = cllBoundsOut
-    ArryBounds = cllBoundsOut.Count > 0
-    Set cllBoundsIn = Nothing
-    Set cllBoundsOut = Nothing
-xt:
-End Function
-
 Private Function AppErr(ByVal app_err_no As Long) As Long
 ' ----------------------------------------------------------------------------
 ' Ensures that a programmed 'Application' error number not conflicts with the
@@ -452,7 +390,7 @@ Public Function ArrayAsDictionary(ByVal a_arry As Variant) As Dictionary
                 .Add v, 1
             Else
                 s = v
-                l = .Item(v) + 1
+                l = .item(v) + 1
                 .Remove v
                 .Add s, l
             End If
@@ -545,6 +483,155 @@ Private Function ArrayIsAllocated(ByVal a_arry As Variant) As Boolean
     
 End Function
 
+Private Function ArryBounds(ByVal a_arr As Variant, _
+                            ByVal a_indices As Variant, _
+                   Optional ByRef a_out_bounds As Collection, _
+                   Optional ByRef a_in_bounds As Collection, _
+                   Optional ByRef a_out As Long) As Boolean
+' ---------------------------------------------------------------------------
+' Returns:
+' - TRUE when all dimensions addressed by indices (a_indices) are
+'   within the bounds of the respective dimension in array (a_arr)
+' - FALSE when any of the provided indices (a_indices) is out of the bounds
+'   of the provided array (a_arr)
+' - Returns the dimesions which are out of bounds as Collection with items
+'   in-bound empty and out-bound with the new bound
+' - Returns the complete dimension specifics which combine the "from" spec
+'   of the provided array with the new "to" specs in case they are greater
+'   than the present ones
+'
+' Precondition: The indices are provided (a_indices) is either as a single
+'               integer - when the array (a_arr) is a 1-dim array - or an
+'               array of integers, each specifying the index for one
+'               dimension.
+'
+' Uses: Coll
+'
+' W. Rauschenberger, Berlin Jan 2025
+' ---------------------------------------------------------------------------
+    Dim aBounds(1 To 2)     As Variant
+    Dim aBoundsOut(1 To 2)  As Variant
+    Dim cllBoundsIn         As New Collection
+    Dim cllBoundsOut        As New Collection
+    Dim cllSpecNdcs         As Collection
+    Dim i                   As Long
+    Dim lDimsArry           As Long
+    Dim lDimsSpec           As Long
+    
+    lDimsArry = ArryDims(a_arr)
+    Set cllSpecNdcs = ArryIndices(a_indices)
+    lDimsSpec = cllSpecNdcs.Count
+    
+    If lDimsSpec > lDimsArry Then GoTo xt
+    For i = 1 To cllSpecNdcs.Count
+        aBounds(1) = Min(cllSpecNdcs(i), LBound(a_arr, i))
+        aBounds(2) = Max(cllSpecNdcs(i), UBound(a_arr, i))
+        Coll(cllBoundsIn, i) = aBounds
+        If cllSpecNdcs(i) < LBound(a_arr, i) Or cllSpecNdcs(i) > UBound(a_arr, i) Then
+            aBoundsOut(1) = LBound(a_arr, i)
+            aBoundsOut(2) = UBound(a_arr, i)
+            Coll(cllBoundsOut, i) = aBoundsOut
+            a_out = a_out + 1
+        Else
+            Coll(cllBoundsOut, i) = Empty
+        End If
+    Next i
+    
+    Set a_in_bounds = cllBoundsIn
+    Set a_out_bounds = cllBoundsOut
+    ArryBounds = cllBoundsOut.Count > 0
+    Set cllBoundsIn = Nothing
+    Set cllBoundsOut = Nothing
+xt:
+End Function
+
+Private Function ArryDims(ByVal a_arr As Variant, _
+                 Optional ByRef a_dim_specs As Collection, _
+                 Optional ByRef a_dims As Long) As Long
+' ----------------------------------------------------------------------------
+' Returns:
+' - the dimensions of an array (a_arr), optionally also as argument (a_dims)
+' - the from to specs (a_dimsfrom, a_dimsto) delimited by kommas for each dim
+' - an arry with the from/to specs, representing th dimensions 1 to n
+' ----------------------------------------------------------------------------
+    Dim arrSpecs(1 To 2) As Variant
+    Dim cll              As New Collection
+    Dim i                As Long
+    
+    With cll
+        For i = 1 To 8
+            On Error Resume Next
+            arrSpecs(1) = LBound(a_arr, i)
+            If Err.Number <> 0 Then
+                Exit For
+            Else
+                arrSpecs(2) = UBound(a_arr, i)
+                .Add arrSpecs
+            End If
+        Next i
+    End With
+        
+xt: ArryDims = cll.Count
+    Set a_dim_specs = cll
+    a_dims = cll.Count
+    Set cll = Nothing
+
+End Function
+
+Private Function ArryIndices(ParamArray a_indices() As Variant) As Collection
+' ----------------------------------------------------------------------------
+' Returns provided indices (a_indices) as Collection whereby the indices may
+' be provided: - as integers (one for each dimension)
+'              - as an array of integers
+'              - as a string of integers delimited by a , (comma).
+' ----------------------------------------------------------------------------
+    Const PROC = "ArryIncides"
+    
+    Dim cll As New Collection
+    Dim i   As Long
+    Dim v   As Variant
+    
+    On Error GoTo xt
+    If UBound(a_indices) >= LBound(a_indices) Then
+        Select Case True
+            Case Not ArryIsAllocated(a_indices)
+                '~~ No indices had been provided
+                Exit Function
+            Case IsArray(a_indices(LBound(a_indices)))
+                '~~ The first item is an array if incides
+                For Each v In a_indices(LBound(a_indices))
+                    If IsInteger(CInt(Trim(v))) _
+                    Then cll.Add v _
+                    Else Err.Raise AppErr(1), ErrSrc(PROC), "At least one of the items provided as array is not an integer value!"
+                Next v
+            Case TypeName(a_indices(LBound(a_indices))) = "Collection"
+                '~~ The first item is a Collection of indices
+                Set cll = a_indices(LBound(a_indices))
+            Case TypeName(a_indices(LBound(a_indices))) = "String"
+                '~~ The first item is a string of incides delimited by a comma
+                For Each v In Split(a_indices(LBound(a_indices)), ",")
+                    If IsNumeric(v) Then
+                        cll.Add CInt(Trim(v))
+                    Else
+                        Err.Raise AppErr(2), ErrSrc(PROC), "At least one of the items provided a string delimited by a comma is not an integer value!"
+                    End If
+                Next v
+            Case a_indices(LBound(a_indices)) = Empty
+            Case Else
+                For Each v In a_indices
+                    If IsInteger(v) _
+                    Then cll.Add v _
+                    Else Err.Raise AppErr(3), ErrSrc(PROC), "Any of the provided indices is not an integer value!"
+                Next v
+        End Select
+    End If
+    
+xt: On Error GoTo 0
+    Set ArryIndices = cll
+    Set cll = Nothing
+    
+End Function
+
 Public Function BooleanAsString(ByVal b As Boolean) As String
     If b Then BooleanAsString = "TRUE" Else BooleanAsString = "FALSE"
 End Function
@@ -587,7 +674,7 @@ Public Function CollectionAsDictionary(ByVal c_coll As Collection) As Dictionary
                 .Add v, 1
             Else
                 s = v
-                l = .Item(v) + 1
+                l = .item(v) + 1
                 .Remove v
                 .Add s, l
             End If
@@ -908,7 +995,7 @@ Public Function FileAsDictionary(ByVal f_file As Variant) As Dictionary
                 .Add v, 1
             Else
                 s = v
-                l = .Item(v) + 1
+                l = .item(v) + 1
                 .Remove v
                 .Add s, l
             End If
@@ -1076,7 +1163,7 @@ Private Function KeySort(ByRef k_dct As Dictionary) As Dictionary
     '~~ Transfer based on sorted keys
     For i = LBound(arr) To UBound(arr)
         vKey = arr(i)
-        dct.Add key:=vKey, Item:=k_dct.Item(vKey)
+        dct.Add key:=vKey, item:=k_dct.item(vKey)
     Next i
     
 xt: Set k_dct = dct

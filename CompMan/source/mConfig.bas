@@ -31,7 +31,7 @@ Private Property Get CommonCompsFolderNameCurrent() As String:      CommonCompsF
 
 Private Property Get CommonCompsFolderNameDefault() As String:      CommonCompsFolderNameDefault = ServicedRootFolderNameDefault & "\" & DEFAULT_FOLDER_COMMON_COMPONENTS:                  End Property
 
-Private Property Get CompManParentFolderNameCurrent() As String:    CompManParentFolderNameCurrent = FSo.GetFile(ThisWorkbook.FullName).ParentFolder:                                       End Property
+Private Property Get CompManParentFolderNameCurrent() As String:    CompManParentFolderNameCurrent = fso.GetFile(ThisWorkbook.FullName).ParentFolder:                                       End Property
 
 Public Property Get CompManParentFolderNameDefault() As String:     CompManParentFolderNameDefault = ServicedRootFolderNameDefault & "\" & DEFAULT_FOLDER_COMPMAN_PARENT:                   End Property
 
@@ -39,9 +39,9 @@ Private Property Get ExportFolderNameCurrent() As String:           ExportFolder
 
 Private Property Get ExportFolderNameDefault() As String:           ExportFolderNameDefault = CompManParentFolderNameDefault & "\" & DEFAULT_FOLDER_EXPORT:                                 End Property
 
-Public Property Get ServicedRootFolderNameCurrent() As String:      ServicedRootFolderNameCurrent = FSo.GetFile(ThisWorkbook.FullName).ParentFolder.ParentFolder:                           End Property
+Public Property Get ServicedRootFolderNameCurrent() As String:      ServicedRootFolderNameCurrent = fso.GetFile(ThisWorkbook.FullName).ParentFolder.ParentFolder:                           End Property
 
-Private Property Get ServicedRootFolderNameDefault() As String:     ServicedRootFolderNameDefault = FSo.GetFile(ThisWorkbook.FullName).ParentFolder & "\" & DEFAULT_FOLDER_COMPMAN_ROOT:    End Property
+Private Property Get ServicedRootFolderNameDefault() As String:     ServicedRootFolderNameDefault = fso.GetFile(ThisWorkbook.FullName).ParentFolder & "\" & DEFAULT_FOLDER_COMPMAN_ROOT:    End Property
 
 Public Sub Adjust()
 ' ----------------------------------------------------------------------------
@@ -69,11 +69,11 @@ Public Function DefaultEnvDisplay(ByVal d_bttn_goahead As String, _
     Dim Msg     As mMsg.udtMsg
     Dim a       As Variant
     
-    mBasic.Arry(a) = FSo.GetFolder(ThisWorkbook.Path).Name
+    mBasic.Arry(a) = fso.GetFolder(ThisWorkbook.Path).Name
     mBasic.Arry(a) = " +--" & DEFAULT_FOLDER_COMMON_COMPONENTS
     mBasic.Arry(a) = " |  +--CompManClient.bas"
     mBasic.Arry(a) = " | "
-    mBasic.Arry(a) = " +--" & FSo.GetBaseName(ThisWorkbook.Name)
+    mBasic.Arry(a) = " +--" & fso.GetBaseName(ThisWorkbook.Name)
     mBasic.Arry(a) = " |   +--" & ThisWorkbook.Name
     mBasic.Arry(a) = " |  +--" & wsConfig.FolderExport
     mBasic.Arry(a) = " |"
@@ -175,7 +175,7 @@ Public Sub SetupConfirmed()
     mBasic.Arry(a) = " |  +--mCodingRules":                         mBasic.Arry(aComment) = "Common Component hosted in CompMan"
     mBasic.Arry(a) = " |  +--mCompManClient.bas":                   mBasic.Arry(aComment) = "Common Component hosted in CompMan"
     mBasic.Arry(a) = " | ":                                         mBasic.Arry(aComment) = ""
-    mBasic.Arry(a) = " +--" & FSo.GetBaseName(ThisWorkbook.Name):   mBasic.Arry(aComment) = "CompMan's own dedicated folder (setup and finally moved into it"
+    mBasic.Arry(a) = " +--" & fso.GetBaseName(ThisWorkbook.Name):   mBasic.Arry(aComment) = "CompMan's own dedicated folder (setup and finally moved into it"
     mBasic.Arry(a) = " |  +--" & mEnvironment.CompManServiceFolder: mBasic.Arry(aComment) = "CompMan's service folder (as for all serviced Workbooks"
     mBasic.Arry(a) = " |  |  +--" & ConfigLocal.ExportFolderName:   mBasic.Arry(aComment) = "default Export-Folder name, may be re-configured 1)"
     mBasic.Arry(a) = " |  |  +--CommComps.dat                  ":   mBasic.Arry(aComment) = "Private Profile file documenting used/hosted Common Components"
@@ -187,7 +187,7 @@ Public Sub SetupConfirmed()
     mBasic.Arry(a) = " +--WinMerge.ini":                            mBasic.Arry(aComment) = "WimMerge configuration used to display code changef"
     lMax = Max(a) + 5
 
-    sSetupLocation = FSo.GetFolder(ServicedRootFolderNameCurrent).ParentFolder.ParentFolder
+    sSetupLocation = fso.GetFolder(ServicedRootFolderNameCurrent).ParentFolder.ParentFolder
     
     With Msg
         .Section(1).Label.Text = "CompMan's self-setup environment." & vbLf & _
@@ -229,14 +229,15 @@ Public Sub SelfSetupPublishHostedCommonComponents(ByVal s_hosted As String)
 ' Publishes all hosted Common Components by copying their Export-File to the
 ' Common-Components folder.
 ' ----------------------------------------------------------------------------
-
+    Const PROC = "SelfSetupPublishHostedCommonComponents"
+    
     Dim Comp    As clsComp
     Dim sComp   As String
     Dim sTarget As String
     Dim sName   As String
     Dim v       As Variant
     
-    mEnvironment.Provide True
+    mEnvironment.Provide True, ErrSrc(PROC)
     Set CommonServiced = New clsCommonServiced
     Set CommonPublic = New clsCommonPublic
     
@@ -248,9 +249,9 @@ Public Sub SelfSetupPublishHostedCommonComponents(ByVal s_hosted As String)
             .KindOfComp = enCompCommonHosted
             .Export
             .SetServicedProperties
-            sName = FSo.GetFileName(.ExpFileFullName)
+            sName = fso.GetFileName(.ExpFileFullName)
             sTarget = mEnvironment.CommCompsPath & "\" & sName
-            FSo.CopyFile .ExpFileFullName, sTarget
+            fso.CopyFile .ExpFileFullName, sTarget
             CommonPublic.SetPropertiesEqualServiced sComp
         End With
         Set Comp = Nothing
@@ -272,10 +273,10 @@ Public Sub SelfSetupDefaultEnvironment(ByRef s_compman_fldr As String)
     
     sRoot = ThisWorkbook.Path
     sCommComps = sRoot & "\" & mEnvironment.FLDR_NAME_COMMON_COMPONENTS
-    If Not FSo.FolderExists(sCommComps) Then FSo.CreateFolder sCommComps
+    If Not fso.FolderExists(sCommComps) Then fso.CreateFolder sCommComps
     
     s_compman_fldr = sRoot & "\CompMan"
-    If Not FSo.FolderExists(s_compman_fldr) Then FSo.CreateFolder s_compman_fldr
+    If Not fso.FolderExists(s_compman_fldr) Then fso.CreateFolder s_compman_fldr
     
     With wsConfig
         .FolderCompManServicedRoot = sRoot

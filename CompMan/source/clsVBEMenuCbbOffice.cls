@@ -27,11 +27,13 @@ Private Sub CmdReleaseComp_Click(ByVal m_item As Office.CommandBarButton, _
 ' ----------------------------------------------------------------------------
 '
 ' ----------------------------------------------------------------------------
+    Const PROC = "CmdReleaseComp_Click"
+    
     Dim cbb     As Office.CommandBarButton
     Dim sComp   As String
     
     mCompMan.ServicedWrkbk = ActiveWorkbook
-    mEnvironment.Provide False
+    mEnvironment.Provide False, ErrSrc(PROC)
     If CommonPending Is Nothing Then
         Set CommonPending = New clsCommonPending
     End If
@@ -43,3 +45,8 @@ Private Sub CmdReleaseComp_Click(ByVal m_item As Office.CommandBarButton, _
     mCompManMenuVBE.Setup
     
 End Sub
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "clsVBEMenuCbbOffice" & "." & sProc
+End Function
+

@@ -1,21 +1,20 @@
 Attribute VB_Name = "mBasic"
 Option Explicit
 ' ----------------------------------------------------------------------------
-' Standard Module mBasic: Common VBA services (declarations, procedures,
-' ======================= functions potentially usefull  in any VB-Project.
-' When not used as a whole parts may optionally just be copied.
+' Standard Module mBasic: Common Component providing basic VBA services
+' ======================= potentially usefull in any VB-Project. When not used
+' as a whole parts may optionally just be copied.
 '
-' Note: This component is supposed to be autonomous. I.e. is does not require
-'       any other installed component. The Common VBA Message Services
-'       (fMsg and mMsg) and the Common VBA Error Services (mErH) are optional
-'       and only used when installed which is indicated by corresponding
-'       Conditional Compile Arguments `mMsg = 1` and `mErH = 1`.
+' As with all (my) Common Components this component is supposed to be
+' autonomous in the sense it does not require any other installed component.
+' The Common Component "VBA Message Services" (fMsg and mMsg) and
+' the Common Component "VBA Error Services" (mErH) are optional by means
+' of Conditional Compile Arguments `mMsg = 1` and `mErH = 1`. I.e. these
+' indicate when the corresponding components are installed and then will
+' automatically be used. When not installed all services, in case of an error
+' display a best possible error message - with a debugging option however.
 '
-' See the Summary of services in the README
-' https://github.com/warbe-maker/VBA-Basics/blob/master/README.md#summary-of-services
-'
-' supplemented by Specifics and use
-' https://github.com/warbe-maker/VBA-Basics/blob/master/SpecsAndUse.md#specifics-and-usage-examples-for-mbasic-vba-services
+' See the Summary of services by README "mBasic"
 '
 ' Requires:
 ' ---------
@@ -132,22 +131,22 @@ Private TimerSystemFrequency    As Currency
 #End If
 
 Public Property Let Arry(Optional ByRef a_arr As Variant, _
-                         Optional ByVal a_indices As Variant = Empty, _
+                         Optional ByVal a_ndcs As Variant, _
                                   ByVal a_var As Variant)
 ' ----------------------------------------------------------------------------
 ' Common WRITE to an array service. The service returns an array (a_arr) with
-' the provided item (a_var) either:
-' - Simply added, when no index/indices (a_indices) are provided
-' - Having added or replaced an item at a given index/indices (a_indices) by
+' the provided Item (a_var) either:
+' - Simply added, when no index/indices (a_ndcs) are provided
+' - Having added or replaced an Item at a given index/indices (a_ndcs) by
 '   concidering that the returned array has new from/to specifics for any of
 '   its dimensions at any level whereby the from specific for any dimension
 '   remains the same
 ' - Having created a 1 to 8 dimensions array regarding the provided indices
-'   (a_indices) with the provided item added or replaced
+'   (a_ndcs) with the provided Item added or replaced
 ' - Having re-dimensioned the provided/input array to the provided indices
-'   (a_indices) with the provided item (a_var) added or updated
+'   (a_ndcs) with the provided Item (a_var) added or updated
 '
-' The index/indices (a_indices) may be provided as:
+' The index/indices (a_ndcs) may be provided as:
 ' - a single integer, indicating that the provided is or the returned will be
 '   a 1-dimensional array
 ' - a string of indices delimited by a comma, indicating that the provided or
@@ -175,161 +174,155 @@ Public Property Let Arry(Optional ByRef a_arr As Variant, _
     Const PROC = "Arry(Let)"
         
     On Error GoTo eh
-    Dim cllSpecNdcs     As New Collection   ' the specified indices as Collection
-    Dim cllDimSpecs     As Collection   ' the provided/input array's dimension from/to specifics
+    Dim aSpecsIn        As Variant              ' the provided array's dimensions specifics/bounds
+    Dim bIsAllocated    As Boolean
+    Dim cllBounds       As New Collection
+    Dim cllBoundsOut    As New Collection
+    Dim arrDimsSpec     As Variant              ' the provided indices, either none or one for each dimension
     Dim lBase           As Long
-    Dim cllBounds       As Collection
-    Dim cllBoundsOut    As Collection
-    Dim lDimsArry       As Long         ' the provided/input array's number of dimensions
-    Dim lDimsSpec       As Long         ' the specifies dimensions derived from the provided indices
-    Dim lDimsOut        As Long
+    Dim lDimsArray      As Long                 ' the provided/input array's number of dimensions - when dimensioned or allocated
+    Dim lDimsSpec       As Long
+    Dim lDimsOutBound   As Long
+    Dim i               As Long
     
-    lBase = LBound(Array(1))
+    '~~ Get the current array's dimension specifics - when available
+    bIsAllocated = ArryIsAllocated(a_arr)
+    lDimsArray = ArryDims(a_arr)
+    If lDimsArray <> 0 _
+    Then aSpecsIn = ArrySpecs(a_arr, lDimsArray) ' The provided array's number of dimesion and their from/to specifics (when dimensioned)
+    arrDimsSpec = ArryNdcs(lDimsSpec, a_ndcs) ' the array is only allocated when lDimsSpec > 0
     
-    '~~ Get the provided array's number of dimesion (lDimsArry) and their from/to specifics (cllDimSpecs)
-    ArryDims a_arr, cllDimSpecs, lDimsArry      ' DimsArray will be 0 when yet not allocated or not an array
-    
-    '~~ Get the provided indices as Collection
-    Set cllSpecNdcs = ArryIndices(a_indices)
-    lDimsSpec = cllSpecNdcs.Count               ' may be 0 when none had been provided
-    
-    If lDimsArry <> 0 Then
-        '~~ The array has at least one Item
-        Select Case True
-            Case lDimsArry > 1 And lDimsSpec <> lDimsArry
-                Err.Raise AppErr(4), ErrSrc(PROC), "For an allocated multidimensional array the provided a_indices are incomplete!"
+    Select Case True
+        '~~ Handling of cases when no indices had been provided
+        Case lDimsSpec = 0 And lDimsArray > 1
+            Err.Raise AppErr(3), ErrSrc(PROC), "For multi-dimensional array indices are obligatory but missing or incomplete!"
             
-            Case lDimsSpec = 0 And lDimsArry > 1
-                '~~ When for an allocated multi-dim array no index has been provided an error is raised
-                Err.Raise AppErr(3), ErrSrc(PROC), "To write to a multi-dimensional array an appropriate index is required!"
-            
-            Case lDimsSpec = 0 And lDimsArry = 1
-                '~~ When for an allocated 1-dim array no index is provided, the Item is added to a 1-dim array
-                ReDim Preserve a_arr(LBound(a_arr) To UBound(a_arr) + 1)
-                a_arr(UBound(a_arr)) = a_var
-                
-            Case lDimsArry = 1 And cllSpecNdcs(1) > UBound(a_arr)
-                '~~ When for an Item in a 1-dim array an index beyond the current specs is provided the array is redimed/epanded accordingly
-                ReDim Preserve a_arr(cllDimSpecs(1)(1) To cllSpecNdcs(1))
-                a_arr(cllSpecNdcs(1)) = a_var
-                
-            Case lDimsArry = 1 And cllSpecNdcs(1) <= UBound(a_arr)
-                a_arr(cllSpecNdcs(1)) = a_var
-            
-            Case lDimsArry > 1 And lDimsArry = lDimsSpec
-                '~~ The dimensions specified are identical with those of the provided array
-                '~~ The dimensios' index may still differ
-                ArryBounds a_arr, cllSpecNdcs, cllBoundsOut, cllBounds, lDimsOut
-                If lDimsOut = 0 Or lDimsOut = 1 And IsArray(cllBoundsOut(cllBoundsOut.Count)) Then
-                    '~~ Either no bounds are out or the out-bound dimension is the last one
-                    '~~ which can be re-dimed by VBA's ReDim.
-                    Select Case lDimsArry
-                        Case 1: ReDim a_arr(cllBounds(1)(1) To cllBounds(1)(2))
-                                a_arr(cllSpecNdcs(1)) = a_var
-                        
-                        Case 2: ReDim a_arr(cllBounds(1)(1) To cllBounds(1)(2), cllBounds(2)(1) To cllBounds(2)(2))
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2)) = a_var
-                        
-                        Case 3: ReDim a_arr(cllBounds(1)(1) To cllBounds(1)(2), cllBounds(2)(1) To cllBounds(2)(2), cllBounds(3)(1) To cllBounds(3)(2))
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3)) = a_var
-                        
-                        Case 4: ReDim a_arr(cllBounds(1)(1) To cllBounds(1)(2), cllBounds(2)(1) To cllBounds(2)(2), cllBounds(3)(1) To cllBounds(3)(2), cllBounds(4)(1) To cllBounds(4)(2))
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4)) = a_var
-                        
-                        Case 5: ReDim a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5))
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5)) = a_var
-                        
-                        Case 6: ReDim a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6))
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6)) = a_var
-                        
-                        Case 7: ReDim a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6), cllSpecNdcs(7))
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6), cllSpecNdcs(7)) = a_var
-                        
-                        Case 8: ReDim a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6), cllSpecNdcs(7), cllSpecNdcs(8))
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6), cllSpecNdcs(7), cllSpecNdcs(8)) = a_var
-                    End Select
-                Else
-                    Select Case lDimsArry
-                        Case 1: ArryReDim a_arr, "1:" & Join(cllBounds(1), ",")
-                                a_arr(cllSpecNdcs(1)) = a_var
-                        
-                        Case 2: ArryReDim a_arr, "1:" & Join(cllBounds(1), ",") _
-                                               , "2:" & Join(cllBounds(2), ",")
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2)) = a_var
-                        
-                        Case 3: ArryReDim a_arr, "1:" & Join(cllBounds(1), ",") _
-                                               , "2:" & Join(cllBounds(2), ",") _
-                                               , "3:" & Join(cllBounds(3), ",")
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3)) = a_var
-                        
-                        Case 4: ArryReDim a_arr, "1:" & Join(cllBounds(1), ",") _
-                                               , "2:" & Join(cllBounds(2), ",") _
-                                               , "3:" & Join(cllBounds(3), ",") _
-                                               , "4:" & Join(cllBounds(4), ",")
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4)) = a_var
-                        
-                        Case 5: ArryReDim a_arr, "1:" & Join(cllBounds(1), ",") _
-                                               , "2:" & Join(cllBounds(2), ",") _
-                                               , "3:" & Join(cllBounds(3), ",") _
-                                               , "4:" & Join(cllBounds(4), ",") _
-                                               , "5:" & Join(cllBounds(5), ",")
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5)) = a_var
-                        
-                        Case 6: ArryReDim a_arr, "1:" & Join(cllBounds(1), ",") _
-                                               , "2:" & Join(cllBounds(2), ",") _
-                                               , "3:" & Join(cllBounds(3), ",") _
-                                               , "4:" & Join(cllBounds(4), ",") _
-                                               , "5:" & Join(cllBounds(5), ",") _
-                                               , "6:" & Join(cllBounds(6), ",")
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6)) = a_var
-                        
-                        Case 7: ArryReDim a_arr, "1:" & Join(cllBounds(1), ",") _
-                                               , "2:" & Join(cllBounds(2), ",") _
-                                               , "3:" & Join(cllBounds(3), ",") _
-                                               , "4:" & Join(cllBounds(4), ",") _
-                                               , "5:" & Join(cllBounds(5), ",") _
-                                               , "6:" & Join(cllBounds(6), ",") _
-                                               , "7:" & Join(cllBounds(7), ",")
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6), cllSpecNdcs(7)) = a_var
-                        
-                        Case 8: ArryReDim a_arr, "1:" & Join(cllBounds(1), ",") _
-                                               , "2:" & Join(cllBounds(2), ",") _
-                                               , "3:" & Join(cllBounds(3), ",") _
-                                               , "4:" & Join(cllBounds(4), ",") _
-                                               , "5:" & Join(cllBounds(5), ",") _
-                                               , "6:" & Join(cllBounds(6), ",") _
-                                               , "7:" & Join(cllBounds(7), ",") _
-                                               , "8:" & Join(cllBounds(8), ",")
-                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6), cllSpecNdcs(7), cllSpecNdcs(8)) = a_var
-                    End Select
-                
-                End If
-            Case Else
-                Err.Raise AppErr(6), ErrSrc(PROC), "This is a case of writing to an allocated array yet not considered/implemented!"
-        End Select
-        
-    Else
-        '~~ The provided array may yet not have been specified of is empty
-        If lDimsSpec = 0 Then
-            '~~ Writing to a yet un-allocated or yet un-specified array with
-            '~~ no index provided the Item is the first of a new 1-dim array
-            ReDim a_arr(lBase To lBase)
+        Case lDimsSpec = 0 And lDimsArray = 0                           ' No index provided for a yet un-dimensioned array
+            lBase = LBound(Array(1))
+            ReDim a_arr(lBase To lBase)                                 ' results in a 1-dim array with one Item
             a_arr(lBase) = a_var
-        Else
-            '~~ For a yet not allocated array an index for a 1- or multi-dimensional array had been provided
-            Select Case lDimsSpec
-                Case 1: ReDim a_arr(cllSpecNdcs(1))
-                        a_arr(cllSpecNdcs(1)) = a_var
-                Case 2: ReDim a_arr(cllSpecNdcs(1), cllSpecNdcs(2)):                                                                                        a_arr(cllSpecNdcs(1), cllSpecNdcs(2)) = a_var
-                Case 3: ReDim a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3)):                                                                          a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3)) = a_var
-                Case 4: ReDim a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4)):                                                            a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4)) = a_var
-                Case 5: ReDim a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5)):                                              a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5)) = a_var
-                Case 6: ReDim a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6)):                                a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6)) = a_var
-                Case 7: ReDim a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6), cllSpecNdcs(7)):                  a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6), cllSpecNdcs(7)) = a_var
-                Case 8: ReDim a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6), cllSpecNdcs(7), cllSpecNdcs(8)):    a_arr(cllSpecNdcs(1), cllSpecNdcs(2), cllSpecNdcs(3), cllSpecNdcs(4), cllSpecNdcs(5), cllSpecNdcs(6), cllSpecNdcs(7), cllSpecNdcs(8)) = a_var
+            
+        Case lDimsSpec = 0 And lDimsArray = 1                           ' No index provided for a 1-dim array
+            ReDim Preserve a_arr(LBound(a_arr) To UBound(a_arr) + 1)    ' upper bound extended on the fly
+            a_arr(UBound(a_arr)) = a_var
+                
+        Case lDimsSpec = 0: Stop ' should all have been considered
+        
+        '~~ Handling cases with provided 1-dim indices
+        Case lDimsArray = 0 And lDimsSpec = 1             ' Array yet not dimensioned with an index provided for a 1-dim array
+            lBase = LBound(Array(1))
+            ReDim a_arr(lBase To arrDimsSpec(1))
+            a_arr(arrDimsSpec(1)) = a_var
+            
+        Case lDimsArray = 0 And lDimsSpec > 1               ' Multi-dim array yet not dimensioned/allocated
+            lBase = LBound(Array(1))
+            Select Case lDimsSpec                           ' dimensioned wit lower bound = Base Option and upper bound = provided indices
+                Case 1: ReDim a_arr(lBase To arrDimsSpec(1))
+                Case 2: ReDim a_arr(lBase To arrDimsSpec(1), lBase To arrDimsSpec(2))
+                Case 3: ReDim a_arr(lBase To arrDimsSpec(1), lBase To arrDimsSpec(2), lBase To arrDimsSpec(3))
+                Case 4: ReDim a_arr(lBase To arrDimsSpec(1), lBase To arrDimsSpec(2), lBase To arrDimsSpec(3), lBase To arrDimsSpec(4))
+                Case 5: ReDim a_arr(lBase To arrDimsSpec(1), lBase To arrDimsSpec(2), lBase To arrDimsSpec(3), lBase To arrDimsSpec(4), lBase To arrDimsSpec(5))
+                Case 6: ReDim a_arr(lBase To arrDimsSpec(1), lBase To arrDimsSpec(2), lBase To arrDimsSpec(3), lBase To arrDimsSpec(4), lBase To arrDimsSpec(5), lBase To arrDimsSpec(6))
+                Case 7: ReDim a_arr(lBase To arrDimsSpec(1), lBase To arrDimsSpec(2), lBase To arrDimsSpec(3), lBase To arrDimsSpec(4), lBase To arrDimsSpec(5), lBase To arrDimsSpec(6), lBase To arrDimsSpec(7))
+                Case 8: ReDim a_arr(lBase To arrDimsSpec(1), lBase To arrDimsSpec(2), lBase To arrDimsSpec(3), lBase To arrDimsSpec(4), lBase To arrDimsSpec(5), lBase To arrDimsSpec(6), lBase To arrDimsSpec(7), lBase To arrDimsSpec(8))
             End Select
-        End If
-    End If
+            ArryItem(a_arr, arrDimsSpec) = a_var
+            
+        Case bIsAllocated And lDimsArray = 1 _
+         And arrDimsSpec(1) >= aSpecsIn(1, 1) _
+         And arrDimsSpec(1) <= aSpecsIn(1, 2)               ' Write to a 1-dim array with an index within specified bounds
+            a_arr(arrDimsSpec(1)) = a_var
+        
+        Case lDimsArray = 1 And lDimsSpec = 1 _
+         And arrDimsSpec(1) >= aSpecsIn(1, 1) _
+         And arrDimsSpec(1) > UBound(a_arr), _
+            Not bIsAllocated And lDimsSpec = 1                    ' An Item in a 1-dim array is addressed beyond the current upper bound
+            ReDim Preserve a_arr(aSpecsIn(1, 1) To arrDimsSpec(1))  ' The array is redimed/expanded on the fly accordingly
+            a_arr(arrDimsSpec(1)) = a_var
+                
+        Case lDimsArray > 1 _
+         And lDimsArray = lDimsSpec           ' The dimensions specified are identical with those of the provided array
+                                                    ' The dimensions' index may still differ
+            ArryBounds a_arr, arrDimsSpec, cllBoundsOut, cllBounds, lDimsOutBound
+            
+            If lDimsOutBound = 0 Then
+                ArryItem(a_arr, arrDimsSpec) = a_var
+                
+            ElseIf lDimsOutBound = 1 And IsArray(cllBoundsOut(cllBoundsOut.count)) Then
+                '~~ Since the out of bounds dimension is the last one it can be re-dimensioned by VBA.ReDim.
+                Select Case lDimsArray
+                    Case 1: ReDim a_arr(aSpecsIn(1, 1) To arrDimsSpec(1))
+                    Case 2: ReDim a_arr(aSpecsIn(1, 1) To aSpecsIn(1, 2), aSpecsIn(2, 1) To arrDimsSpec(2))
+                    Case 3: ReDim a_arr(aSpecsIn(1, 1) To aSpecsIn(1, 2), aSpecsIn(2, 1) To aSpecsIn(2, 2), aSpecsIn(3, 1) To arrDimsSpec(3))
+                    Case 4: ReDim a_arr(aSpecsIn(1, 1) To aSpecsIn(1, 2), aSpecsIn(2, 1) To aSpecsIn(2, 2), aSpecsIn(3, 1) To aSpecsIn(3, 2), aSpecsIn(4, 1) To arrDimsSpec(4))
+                    Case 5: ReDim a_arr(aSpecsIn(1, 1) To aSpecsIn(1, 2), aSpecsIn(2, 1) To aSpecsIn(2, 2), aSpecsIn(3, 1) To aSpecsIn(3, 2), aSpecsIn(4, 1) To aSpecsIn(4, 2), aSpecsIn(5, 1) To arrDimsSpec(5))
+                    Case 6: ReDim a_arr(aSpecsIn(1, 1) To aSpecsIn(1, 2), aSpecsIn(2, 1) To aSpecsIn(2, 2), aSpecsIn(3, 1) To aSpecsIn(3, 2), aSpecsIn(4, 1) To aSpecsIn(4, 2), aSpecsIn(5, 1) To aSpecsIn(5, 2), aSpecsIn(6, 1) To arrDimsSpec(6))
+                    Case 7: ReDim a_arr(aSpecsIn(1, 1) To aSpecsIn(1, 2), aSpecsIn(2, 1) To aSpecsIn(2, 2), aSpecsIn(3, 1) To aSpecsIn(3, 2), aSpecsIn(4, 1) To aSpecsIn(4, 2), aSpecsIn(5, 1) To aSpecsIn(5, 2), aSpecsIn(6, 1) To aSpecsIn(6, 2), aSpecsIn(7, 1) To arrDimsSpec(7))
+                    Case 8: ReDim a_arr(aSpecsIn(1, 1) To aSpecsIn(1, 2), aSpecsIn(2, 1) To aSpecsIn(2, 2), aSpecsIn(3, 1) To aSpecsIn(3, 2), aSpecsIn(4, 1) To aSpecsIn(4, 2), aSpecsIn(5, 1) To aSpecsIn(5, 2), aSpecsIn(6, 1) To aSpecsIn(6, 2), aSpecsIn(7, 1) To aSpecsIn(7, 2), aSpecsIn(8, 1) To arrDimsSpec(8))
+                End Select
+                ArryItem(a_arr, arrDimsSpec) = a_var
+            
+            ElseIf lDimsOutBound >= 1 And Not IsArray(cllBoundsOut(cllBoundsOut.count)) Then
+                '~~ Any other bounds than the last dimension's bounds have changed which means that
+                '~~ the dimensions redim cannot be provided by VBA's ReDim but requires ArryRedim.
+                Select Case cllBounds.count
+                    Case 1: ArryReDim a_arr, "1:" & cllBounds(1) & " to " & cllBounds(1)
+                    Case 2: ArryReDim a_arr, "1:" & Join(cllBounds(1), " to ") _
+                                           , "2:" & Join(cllBounds(2), " to ")
+                    Case 3: ArryReDim a_arr, "1:" & Join(cllBounds(1), " to ") _
+                                           , "2:" & Join(cllBounds(2), " to ") _
+                                           , "3:" & Join(cllBounds(3), " to ")
+                    Case 4: ArryReDim a_arr, "1:" & Join(cllBounds(1), " to ") _
+                                           , "2:" & Join(cllBounds(2), " to ") _
+                                           , "3:" & Join(cllBounds(3), " to ") _
+                                           , "4:" & Join(cllBounds(4), " to ")
+                    Case 5: ArryReDim a_arr, "1:" & Join(cllBounds(1), " to ") _
+                                           , "2:" & Join(cllBounds(2), " to ") _
+                                           , "3:" & Join(cllBounds(3), " to ") _
+                                           , "4:" & Join(cllBounds(4), " to ") _
+                                           , "5:" & Join(cllBounds(5), " to ")
+                    Case 6: ArryReDim a_arr, "1:" & Join(cllBounds(1), " to ") _
+                                           , "2:" & Join(cllBounds(2), " to ") _
+                                           , "3:" & Join(cllBounds(3), " to ") _
+                                           , "4:" & Join(cllBounds(4), " to ") _
+                                           , "5:" & Join(cllBounds(5), " to ") _
+                                           , "6:" & Join(cllBounds(6), " to ")
+                    Case 7: ArryReDim a_arr, "1:" & Join(cllBounds(1), " to ") _
+                                           , "2:" & Join(cllBounds(2), " to ") _
+                                           , "3:" & Join(cllBounds(3), " to ") _
+                                           , "4:" & Join(cllBounds(4), " to ") _
+                                           , "5:" & Join(cllBounds(5), " to ") _
+                                           , "6:" & Join(cllBounds(6), " to ") _
+                                           , "7:" & Join(cllBounds(7), " to ")
+                    Case 8: ArryReDim a_arr, "1:" & Join(cllBounds(1), " to ") _
+                                           , "2:" & Join(cllBounds(2), " to ") _
+                                           , "3:" & Join(cllBounds(3), " to ") _
+                                           , "4:" & Join(cllBounds(4), " to ") _
+                                           , "5:" & Join(cllBounds(5), " to ") _
+                                           , "6:" & Join(cllBounds(6), " to ") _
+                                           , "7:" & Join(cllBounds(7), " to ") _
+                                           , "8:" & Join(cllBounds(8), " to ")
+                End Select
+                ArryItem(a_arr, arrDimsSpec) = a_var
+                            
+            Else
+                Stop
+            End If
+        
+        Case Not bIsAllocated And lDimsArray = 0
+            '~~ For a yet not allocated and not dimensioned array the provided index/indices determine the uper bound
+            Select Case lDimsSpec
+                Case 1: ReDim a_arr(arrDimsSpec(1))
+                Case 2: ReDim a_arr(arrDimsSpec(1), arrDimsSpec(2))
+                Case 3: ReDim a_arr(arrDimsSpec(1), arrDimsSpec(2), arrDimsSpec(3))
+                Case 4: ReDim a_arr(arrDimsSpec(1), arrDimsSpec(2), arrDimsSpec(3), arrDimsSpec(4))
+                Case 5: ReDim a_arr(arrDimsSpec(1), arrDimsSpec(2), arrDimsSpec(3), arrDimsSpec(4), arrDimsSpec(5))
+                Case 6: ReDim a_arr(arrDimsSpec(1), arrDimsSpec(2), arrDimsSpec(3), arrDimsSpec(4), arrDimsSpec(5), arrDimsSpec(6))
+                Case 7: ReDim a_arr(arrDimsSpec(1), arrDimsSpec(2), arrDimsSpec(3), arrDimsSpec(4), arrDimsSpec(5), arrDimsSpec(6), arrDimsSpec(7))
+                Case 8: ReDim a_arr(arrDimsSpec(1), arrDimsSpec(2), arrDimsSpec(3), arrDimsSpec(4), arrDimsSpec(5), arrDimsSpec(6), arrDimsSpec(7), arrDimsSpec(8))
+            End Select
+            ArryItem(a_arr, arrDimsSpec) = a_var
+    End Select
     
 xt: Exit Property
 
@@ -340,22 +333,16 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Property
 
 Public Property Get Arry(Optional ByRef a_arr As Variant, _
-                         Optional ByVal a_indices As Variant = Nothing) As Variant
+                         Optional ByVal a_ndcs As Variant = Nothing) As Variant
 ' ----------------------------------------------------------------------------
 ' Common, universal READ from array service supporting up to 8 dimensions.
-' The service returns:
-' - The Item of a provided array (a_arr) at a given index (a_indices) which
-'   might be a single integer or an array or Collection of integers indicating
-'   the index for each dimension of a multi-dimensional array.
-' - The default (a_default) when
-'   - the provided array (a_arr) has no content
-'   - the provided array isn't one
-'   - the provided index is (indices are) out of the bound/s of any dimension.
+' The service returns the Item of a provided array (a_arr) with given indices
+' (a_ndcs) which might be single integers or an array of indices, a comma
+' delimited string of indices/integers or a Collection of integers. when the
+' item does not exist an array type specific default is returend.
 '
-' W. Rauschenberger Berlin, Jan 2025
+' W. Rauschenberger Berlin, Mar 2025
 ' ----------------------------------------------------------------------------
-    Const PROC = "Arry(Get)"
-    
     Dim lDims  As Long
     Dim bObject As Boolean
     
@@ -374,76 +361,68 @@ Public Property Get Arry(Optional ByRef a_arr As Variant, _
         Case Else:         Arry = Empty
     End Select
     
-    lDims = ArryDims(a_arr) ' This will return 0 for anything not an array or not a specified array
-    
-    If lDims > 0 Then
-        Set a_indices = ArryIndices(a_indices) ' transforms any kind of provided inedx/indices into a Collection (1 to n)
-    End If
+    a_ndcs = ArryNdcs(lDims, a_ndcs) ' return an array 1 to n indices with the indices provided a string, array, integer or Collection
     
     On Error Resume Next
     Select Case lDims
         Case 0:
-        Case 1: If bObject Then Set Arry = a_arr(a_indices(1)) Else Arry = a_arr(a_indices(1))
-        Case 2: If bObject Then Set Arry = a_arr(a_indices(1), a_indices(2)) Else Arry = a_arr(a_indices(1), a_indices(2))
-        Case 3: If bObject Then Set Arry = a_arr(a_indices(1), a_indices(2), a_indices(3)) Else Arry = a_arr(a_indices(1), a_indices(2), a_indices(3))
-        Case 4: If bObject Then Set Arry = a_arr(a_indices(1), a_indices(2), a_indices(3), a_indices(4)) Else Arry = a_arr(a_indices(1), a_indices(2), a_indices(3), a_indices(4))
-        Case 5: If bObject Then Set Arry = a_arr(a_indices(1), a_indices(2), a_indices(3), a_indices(4), a_indices(5)) Else Arry = a_arr(a_indices(1), a_indices(2), a_indices(3), a_indices(4), a_indices(5))
-        Case 6: If bObject Then Set Arry = a_arr(a_indices(1), a_indices(2), a_indices(3), a_indices(4), a_indices(5), a_indices(6)) Else Arry = a_arr(a_indices(1), a_indices(2), a_indices(3), a_indices(4), a_indices(5), a_indices(6))
-        Case 7: If bObject Then Set Arry = a_arr(a_indices(1), a_indices(2), a_indices(3), a_indices(4), a_indices(5), a_indices(6), a_indices(7)) Else Arry = a_arr(a_indices(1), a_indices(2), a_indices(3), a_indices(4), a_indices(5), a_indices(6), a_indices(7))
-        Case 8: If bObject Then Set Arry = a_arr(a_indices(1), a_indices(2), a_indices(3), a_indices(4), a_indices(5), a_indices(6), a_indices(7), a_indices(8)) Else Arry = a_arr(a_indices(1), a_indices(2), a_indices(3), a_indices(4), a_indices(5), a_indices(6), a_indices(7), a_indices(8))
+        Case 1: If bObject Then Set Arry = a_arr(a_ndcs(1)) Else Arry = a_arr(a_ndcs(1))
+        Case 2: If bObject Then Set Arry = a_arr(a_ndcs(1), a_ndcs(2)) Else Arry = a_arr(a_ndcs(1), a_ndcs(2))
+        Case 3: If bObject Then Set Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3)) Else Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3))
+        Case 4: If bObject Then Set Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4)) Else Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4))
+        Case 5: If bObject Then Set Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5)) Else Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5))
+        Case 6: If bObject Then Set Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6)) Else Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6))
+        Case 7: If bObject Then Set Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6), a_ndcs(7)) Else Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6), a_ndcs(7))
+        Case 8: If bObject Then Set Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6), a_ndcs(7), a_ndcs(8)) Else Arry = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6), a_ndcs(7), a_ndcs(8))
     End Select
     
 xt:
 End Property
 
-Property Get ArryItem(Optional ByRef a_arr As Variant, _
-                      Optional ByVal a_indices As Variant = Nothing, _
-                      Optional ByVal a_default As Variant = vbNullString) As Variant
+Private Property Get ArryItem(Optional ByRef a_arr As Variant, _
+                              Optional ByVal a_ndcs As Variant) As Variant
 ' ---------------------------------------------------------------------------
-' Returns from an array (a_arr) the item addressed by indices (a_indices)
+' Returns from an array (a_arr) the Item addressed by indices (a_ndcs)
 ' which might be up to 8 dimensions provided as an array or a string with the
 ' indices delimited by a comma.
 ' ---------------------------------------------------------------------------
-    Dim cllIndices As Collection
-    
-    Set cllIndices = ArryIndices(a_indices)
+    Dim lDims As Long
+    If IsArray(a_ndcs) Then lDims = UBound(a_ndcs) Else lDims = a_ndcs.count
     
     On Error Resume Next
-    Select Case cllIndices.Count
-        Case 1: ArryItem = a_arr(cllIndices(1))
-        Case 2: ArryItem = a_arr(cllIndices(1), cllIndices(2))
-        Case 3: ArryItem = a_arr(cllIndices(1), cllIndices(2), cllIndices(3))
-        Case 4: ArryItem = a_arr(cllIndices(1), cllIndices(2), cllIndices(3), cllIndices(4))
-        Case 5: ArryItem = a_arr(cllIndices(1), cllIndices(2), cllIndices(3), cllIndices(4), cllIndices(5))
-        Case 6: ArryItem = a_arr(cllIndices(1), cllIndices(2), cllIndices(3), cllIndices(4), cllIndices(5), cllIndices(6))
-        Case 7: ArryItem = a_arr(cllIndices(1), cllIndices(2), cllIndices(3), cllIndices(4), cllIndices(5), cllIndices(6), cllIndices(7))
-        Case 8: ArryItem = a_arr(cllIndices(1), cllIndices(2), cllIndices(3), cllIndices(4), cllIndices(5), cllIndices(6), cllIndices(7), cllIndices(8))
+    Select Case lDims
+        Case 1: ArryItem = a_arr(a_ndcs(1))
+        Case 2: ArryItem = a_arr(a_ndcs(1), a_ndcs(2))
+        Case 3: ArryItem = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3))
+        Case 4: ArryItem = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4))
+        Case 5: ArryItem = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5))
+        Case 6: ArryItem = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6))
+        Case 7: ArryItem = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6), a_ndcs(7))
+        Case 8: ArryItem = a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6), a_ndcs(7), a_ndcs(8))
     End Select
 
 End Property
 
-Property Let ArryItem(Optional ByRef a_arr As Variant, _
-                      Optional ByVal a_indices As Variant = Nothing, _
-                      Optional ByVal a_default As Variant = vbNullString, _
-                               ByVal a_item As Variant)
+Private Property Let ArryItem(Optional ByRef a_arr As Variant, _
+                              Optional ByVal a_ndcs As Variant, _
+                                       ByVal a_Item As Variant)
 ' ---------------------------------------------------------------------------
 ' Writes an Item (a_Item) to an array (a_arr) by means of provided indices
-' (a_indices) which covers up to 8 dimensions.
+' (a_ndcs) which covers up to 8 dimensions.
 ' ---------------------------------------------------------------------------
-    Dim cllIndices As Collection
-    
-    Set cllIndices = ArryIndices(a_indices)
+    Dim lDims As Long
+    If IsArray(a_ndcs) Then lDims = UBound(a_ndcs) Else lDims = a_ndcs.count
     
     On Error Resume Next ' not assignable items are ignored
-    Select Case cllIndices.Count
-        Case 1: a_arr(cllIndices(1)) = a_item
-        Case 2: a_arr(cllIndices(1), cllIndices(2)) = a_item
-        Case 3: a_arr(cllIndices(1), cllIndices(2), cllIndices(3)) = a_item
-        Case 4: a_arr(cllIndices(1), cllIndices(2), cllIndices(3), cllIndices(4)) = a_item
-        Case 5: a_arr(cllIndices(1), cllIndices(2), cllIndices(3), cllIndices(4), cllIndices(5)) = a_item
-        Case 6: a_arr(cllIndices(1), cllIndices(2), cllIndices(3), cllIndices(4), cllIndices(5), cllIndices(6)) = a_item
-        Case 7: a_arr(cllIndices(1), cllIndices(2), cllIndices(3), cllIndices(4), cllIndices(5), cllIndices(6), cllIndices(7)) = a_item
-        Case 8: a_arr(cllIndices(1), cllIndices(2), cllIndices(3), cllIndices(4), cllIndices(5), cllIndices(6), cllIndices(7), cllIndices(8)) = a_item
+    Select Case lDims
+        Case 1: a_arr(a_ndcs(1)) = a_Item
+        Case 2: a_arr(a_ndcs(1), a_ndcs(2)) = a_Item
+        Case 3: a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3)) = a_Item
+        Case 4: a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4)) = a_Item
+        Case 5: a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5)) = a_Item
+        Case 6: a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6)) = a_Item
+        Case 7: a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6), a_ndcs(7)) = a_Item
+        Case 8: a_arr(a_ndcs(1), a_ndcs(2), a_ndcs(3), a_ndcs(4), a_ndcs(5), a_ndcs(6), a_ndcs(7), a_ndcs(8)) = a_Item
     End Select
     
 End Property
@@ -462,7 +441,6 @@ End Property
 Public Property Get Coll(Optional ByRef c_coll As Collection, _
                          Optional ByVal c_argmnt As Variant = Empty, _
                          Optional ByVal c_dflt As Variant = Empty) As Variant
-    Const PROC = "Coll(Get)"
     
     Dim i As Long
     
@@ -470,27 +448,27 @@ Public Property Get Coll(Optional ByRef c_coll As Collection, _
     Select Case True
         Case c_argmnt = Empty:           Coll = c_dflt
         Case IsInteger(c_argmnt) _
-            And c_argmnt > c_coll.Count: Coll = c_dflt
+            And c_argmnt > c_coll.count: Coll = c_dflt
         Case IsInteger(c_argmnt) _
             And c_argmnt > 1 _
-            And c_argmnt <= c_coll.Count
+            And c_argmnt <= c_coll.count
             If IsObject(c_coll(c_argmnt)) _
             Then Set Coll = c_coll(c_argmnt) _
             Else Coll = c_coll(c_argmnt)
         Case Else
             '~~ When an argument is provided which is not an integer, the index of
-            '~~ the first item is returned which is identical with the provided argument
+            '~~ the first Item is returned which is identical with the provided argument
             With c_coll
                 If IsObject(c_argmnt) Then
-                    For i = 1 To .Count
-                        If .Item(i) Is c_argmnt Then
+                    For i = 1 To .count
+                        If .item(i) Is c_argmnt Then
                             Coll = i
                             GoTo xt
                         End If
                     Next i
                 Else
-                    For i = 1 To .Count
-                        If .Item(i) = c_argmnt Then
+                    For i = 1 To .count
+                        If .item(i) = c_argmnt Then
                             Coll = i
                             GoTo xt
                         End If
@@ -506,26 +484,26 @@ Public Property Let Coll(Optional ByRef c_coll As Collection, _
                          Optional ByVal c_argmnt As Variant = Empty, _
                          Optional ByVal c_dflt As Variant = Empty, _
                                   ByVal c_var As Variant)
-    Const PROC = "Coll(Let)"
-    
+                                  
+    c_dflt = c_dflt
     If c_coll Is Nothing Then Set c_coll = New Collection
     With c_coll
         Select Case True
             Case c_argmnt = Empty
                 '~~ When no index is provided the Item is simply added
                 .Add c_var
-            Case c_argmnt > .Count
+            Case c_argmnt > .count
                 '~~ For any indey beyond count elements = Empty are added up to the provided index - 1
-                Do While .Count < c_argmnt - 1
+                Do While .count < c_argmnt - 1
                     .Add Empty
                 Loop
                 .Add c_var
-            Case c_argmnt <= .Count _
+            Case c_argmnt <= .count _
               And Not IsObject(c_coll(c_argmnt))
                 '~~ Update!
                 .Remove c_argmnt
                 .Add c_var, c_argmnt
-            Case c_argmnt <= c_coll.Count _
+            Case c_argmnt <= c_coll.count _
               And IsObject(c_coll(c_argmnt))
                 '~~ Replace value in object
               
@@ -534,7 +512,7 @@ Public Property Let Coll(Optional ByRef c_coll As Collection, _
 
 End Property
 
-Public Property Let dict(Optional ByRef d_dct As Dictionary = Nothing, _
+Public Property Let Dict(Optional ByRef d_dct As Dictionary = Nothing, _
                          Optional ByVal d_key As Variant, _
                          Optional ByVal d_arg As Variant = enAdd, _
                                   ByVal d_Item As Variant)
@@ -575,9 +553,9 @@ Public Property Let dict(Optional ByRef d_dct As Dictionary = Nothing, _
                                 
                                 '~~ Sort items by bubble sort
                                 With cll
-                                    ReDim arr(0 To .Count - 1)
-                                    For i = 0 To .Count - 1
-                                        arr(i) = .Item(i + 1)
+                                    ReDim arr(0 To .count - 1)
+                                    For i = 0 To .count - 1
+                                        arr(i) = .item(i + 1)
                                     Next i
                                 End With
                                 For i = LBound(arr) To UBound(arr) - 1
@@ -627,19 +605,19 @@ End Property
 '                   doesnt exist, with write
 ' W. Rauschenberger Berlin, Oct 2024
 ' ----------------------------------------------------------------------------
-Public Property Get dict(Optional ByRef d_dct As Dictionary = Nothing, _
+Public Property Get Dict(Optional ByRef d_dct As Dictionary = Nothing, _
                          Optional ByVal d_key As Variant, _
                          Optional ByVal d_arg As Variant = Nothing) As Variant
                          
     If d_dct Is Nothing Then
-        If VarType(d_arg) = vbObject Then Set dict = d_arg Else dict = d_arg
+        If VarType(d_arg) = vbObject Then Set Dict = d_arg Else Dict = d_arg
     Else
         If d_dct.Exists(d_key) Then
-            If VarType(d_dct(d_key)) = vbObject Then Set dict = d_dct(d_key) Else dict = d_dct(d_key)
+            If VarType(d_dct(d_key)) = vbObject Then Set Dict = d_dct(d_key) Else Dict = d_dct(d_key)
         Else
             If VarType(d_arg) = vbObject _
-            Then Set dict = d_arg _
-            Else dict = d_arg
+            Then Set Dict = d_arg _
+            Else Dict = d_arg
         End If
     End If
     
@@ -1041,7 +1019,7 @@ Private Sub ArryAsDictAdd(ByVal a_arr As Variant, _
                           ByRef a_dim As Integer, _
                           ByVal a_dims As Integer)
 ' ------------------------------------------------------------------------------
-' Adds an item of an array (a_arr), addressed by indices - derived from the key
+' Adds an Item of an array (a_arr), addressed by indices - derived from the key
 ' (a_key) - indices delimited by commas - to a Dictionary (a_dct) with the
 ' provided key (a_key). Empty items in the array (a_arr) are ignored.
 ' ------------------------------------------------------------------------------
@@ -1050,8 +1028,8 @@ Private Sub ArryAsDictAdd(ByVal a_arr As Variant, _
     On Error GoTo eh
     Dim i       As Long
     Dim sKey    As String
-    Dim arrNdcs As Variant
     Dim vItem   As Variant
+    Dim l       As Long
     
     With a_dct
         For i = LBound(a_arr, a_dim) To UBound(a_arr, a_dim)
@@ -1062,8 +1040,7 @@ Private Sub ArryAsDictAdd(ByVal a_arr As Variant, _
             If a_dim < a_dims Then
                 ArryAsDictAdd a_arr, a_dct, sKey, a_dim + 1, a_dims
             Else
-                arrNdcs = Split(sKey, ",")
-                vItem = ArryItem(a_arr, arrNdcs)
+                vItem = ArryItem(a_arr, ArryNdcs(l, Split(sKey, ",")))
                 If Not IsError(vItem) And Not IsEmpty(vItem) Then
                     .Add sKey, vItem
                 End If
@@ -1130,15 +1107,15 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Sub
 
 Private Function ArryBounds(ByVal a_arr As Variant, _
-                            ByVal a_indices As Variant, _
-                   Optional ByRef a_out_bounds As Collection, _
-                   Optional ByRef a_in_bounds As Collection, _
+                            ByVal a_ndcs As Variant, _
+                   Optional ByRef a_bnds_out As Collection, _
+                   Optional ByRef a_bnds_in As Collection, _
                    Optional ByRef a_out As Long) As Boolean
 ' ---------------------------------------------------------------------------
 ' Returns:
-' - TRUE when all dimensions addressed by indices (a_indices) are
+' - TRUE when all dimensions addressed by indices (a_ndcs) are
 '   within the bounds of the respective dimension in array (a_arr)
-' - FALSE when any of the provided indices (a_indices) is out of the bounds
+' - FALSE when any of the provided indices (a_ndcs) is out of the bounds
 '   of the provided array (a_arr)
 ' - Returns the dimesions which are out of bounds as Collection with items
 '   in-bound empty and out-bound with the new bound
@@ -1146,7 +1123,7 @@ Private Function ArryBounds(ByVal a_arr As Variant, _
 '   of the provided array with the new "to" specs in case they are greater
 '   than the present ones
 '
-' Precondition: The indices are provided (a_indices) is either as a single
+' Precondition: The indices are provided (a_ndcs) is either as a single
 '               integer - when the array (a_arr) is a 1-dim array - or an
 '               array of integers, each specifying the index for one
 '               dimension.
@@ -1155,40 +1132,48 @@ Private Function ArryBounds(ByVal a_arr As Variant, _
 '
 ' W. Rauschenberger, Berlin Jan 2025
 ' ---------------------------------------------------------------------------
-    Dim aBounds(1 To 2)     As Variant
+    Const PROC = "ArryBounds"
+    
+    On Error GoTo eh
+    Dim aBoundsIn(1 To 2)   As Variant
     Dim aBoundsOut(1 To 2)  As Variant
     Dim cllBoundsIn         As New Collection
     Dim cllBoundsOut        As New Collection
-    Dim cllSpecNdcs         As Collection
     Dim i                   As Long
     Dim lDimsArry           As Long
     Dim lDimsSpec           As Long
     
     lDimsArry = ArryDims(a_arr)
-    Set cllSpecNdcs = ArryIndices(a_indices)
-    lDimsSpec = cllSpecNdcs.Count
+    lDimsSpec = UBound(a_ndcs) - LBound(a_ndcs) + 1
+    a_out = 0
+    If lDimsSpec > lDimsArry Then GoTo xt ' the number of specified dimesnions is greater then the number of dimensions of the array
     
-    If lDimsSpec > lDimsArry Then GoTo xt
-    For i = 1 To cllSpecNdcs.Count
-        aBounds(1) = Min(cllSpecNdcs(i), LBound(a_arr, i))
-        aBounds(2) = Max(cllSpecNdcs(i), UBound(a_arr, i))
-        Coll(cllBoundsIn, i) = aBounds
-        If cllSpecNdcs(i) < LBound(a_arr, i) Or cllSpecNdcs(i) > UBound(a_arr, i) Then
-            aBoundsOut(1) = LBound(a_arr, i)
-            aBoundsOut(2) = UBound(a_arr, i)
-            Coll(cllBoundsOut, i) = aBoundsOut
+    For i = 1 To lDimsSpec
+        aBoundsIn(1) = Min(a_ndcs(i), LBound(a_arr, i))
+        aBoundsIn(2) = Max(a_ndcs(i), UBound(a_arr, i))
+        cllBoundsIn.Add aBoundsIn
+        If a_ndcs(i) < LBound(a_arr, i) Or a_ndcs(i) > UBound(a_arr, i) Then
+            aBoundsOut(1) = Min(a_ndcs(i), LBound(a_arr, i))
+            aBoundsOut(2) = Max(a_ndcs(i), UBound(a_arr, i))
+            cllBoundsOut.Add aBoundsOut
             a_out = a_out + 1
         Else
-            Coll(cllBoundsOut, i) = Empty
+            cllBoundsOut.Add Empty
         End If
     Next i
     
-    Set a_in_bounds = cllBoundsIn
-    Set a_out_bounds = cllBoundsOut
-    ArryBounds = cllBoundsOut.Count > 0
+    Set a_bnds_in = cllBoundsIn
+    Set a_bnds_out = cllBoundsOut
+    ArryBounds = cllBoundsOut.count > 0
     Set cllBoundsIn = Nothing
     Set cllBoundsOut = Nothing
-xt:
+
+xt: Exit Function
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Function
 
 Public Function ArryCompare(ByVal a_v1 As Variant, _
@@ -1281,86 +1266,51 @@ Private Function ArryDefault(ByVal a_arry As Variant) As Variant
         ArryDefault = Empty
     Else
         Select Case TypeName(a_arry)
-            Case "Byte()":     ArryDefault = 0
-            Case "Integer()":  ArryDefault = 0
-            Case "Long()":     ArryDefault = 0
-            Case "Single()":   ArryDefault = 0
-            Case "Double()":   ArryDefault = 0
-            Case "Currency()": ArryDefault = 0
-            Case "Date()":     ArryDefault = #12:00:00 AM#
-            Case "String()":   ArryDefault = vbNullString
-            Case "Boolean()":  ArryDefault = False
-            Case "Variant()":  ArryDefault = Empty
-            Case "Object()":   Set ArryDefault = Nothing
-            Case Else:         ArryDefault = Empty
+            Case "Byte()", "Integer()", "Long()", "Single()", "Double()", "Currency()": ArryDefault = 0
+            Case "Date()":                                                              ArryDefault = #12:00:00 AM#
+            Case "String()":                                                            ArryDefault = vbNullString
+            Case "Boolean()":                                                           ArryDefault = False
+            Case "Variant()":                                                           ArryDefault = Empty
+            Case "Object()":                                                            Set ArryDefault = Nothing
+            Case Else:                                                                  ArryDefault = Empty
         End Select
     End If
     
 End Function
 
-Public Function ArryDiffers(ByVal ad_v1 As Variant, _
-                             ByVal ad_v2 As Variant, _
-                    Optional ByVal ad_ignore_empty_items As Boolean = False, _
-                    Optional ByVal ad_comp_mode As VbCompareMethod = vbTextCompare) As Boolean
+Public Function ArryDiffers(ByVal a_arr1 As Variant, _
+                            ByVal a_arr2 As Variant) As Boolean
 ' ----------------------------------------------------------------------------
-' Returns TRUE when array (ad_v1) differs from array (ad_v2).
+' Returns TRUE when the an array (a_arr1) differs from another (a_arr2).
+' The arrays are compared via an unload to a corresponding Dictionary which
+' keeps all items of a max 8-dimms array each Item with a key equal to the
+' indices delimited by a comma.
 ' ----------------------------------------------------------------------------
-    Const PROC  As String = "ArryDiffers"
-    
-    Dim i       As Long
-    Dim j       As Long
-    Dim va()    As Variant
+    Const PROC = "ArryDiffers"
     
     On Error GoTo eh
+    Dim dctArr1 As Dictionary
+    Dim dctArr2 As Dictionary
+    Dim dctDone As New Dictionary
+    Dim v       As Variant
     
-    If Not mBasic.ArryIsAllocated(ad_v1) And mBasic.ArryIsAllocated(ad_v2) Then
-        va = ad_v2
-    ElseIf mBasic.ArryIsAllocated(ad_v1) And Not mBasic.ArryIsAllocated(ad_v2) Then
-        va = ad_v1
-    ElseIf Not mBasic.ArryIsAllocated(ad_v1) And Not mBasic.ArryIsAllocated(ad_v2) Then
-        GoTo xt
-    End If
+    Set dctArr1 = ArryAsDict(a_arr1)
+    Set dctArr2 = ArryAsDict(a_arr2)
 
-    '~~ Leading and trailing empty items are ignored by default
-    mBasic.ArryTrimm ad_v1
-    mBasic.ArryTrimm ad_v2
+    ArryDiffers = True
+    If dctArr1.count <> dctArr2.count Then GoTo xt
+    For Each v In dctArr1
+        If Not dctArr2.Exists(v) Then GoTo xt
+        If dctArr1(v) <> dctArr2(v) Then GoTo xt
+        If Not dctDone.Exists(v) Then dctDone.Add v, vbNullString
+    Next v
     
-    If Not ad_ignore_empty_items Then
-        On Error Resume Next
-        If Not ad_ignore_empty_items Then
-            On Error Resume Next
-            ArryDiffers = Join(ad_v1) <> Join(ad_v2)
-            If Err.Number = 0 Then GoTo xt
-            '~~ At least one of the joins resulted in a string exeeding the maximum possible lenght
-            For i = LBound(ad_v1) To Min(UBound(ad_v1), UBound(ad_v2))
-                If ad_v1(i) <> ad_v2(i) Then
-                    ArryDiffers = True
-                    Exit Function
-                End If
-            Next i
-        End If
-    Else
-        i = LBound(ad_v1)
-        j = LBound(ad_v2)
-        For i = i To mBasic.Min(UBound(ad_v1), UBound(ad_v2))
-            While Len(ad_v1(i)) = 0 And i + 1 <= UBound(ad_v1)
-                i = i + 1
-            Wend
-            While Len(ad_v2(j)) = 0 And j + 1 <= UBound(ad_v2)
-                j = j + 1
-            Wend
-            If i <= UBound(ad_v1) And j <= UBound(ad_v2) Then
-                If StrComp(ad_v1(i), ad_v2(j), ad_comp_mode) <> 0 Then
-                    ArryDiffers = True
-                    GoTo xt
-                End If
-            End If
-            j = j + 1
-        Next i
-        If j < UBound(ad_v2) Then
-            ArryDiffers = True
-        End If
-    End If
+    For Each v In dctArr2
+        If Not dctDone.Exists(v) Then GoTo xt
+    Next v
+    
+    ArryDiffers = False
+    Set dctDone = Nothing
     
 xt: Exit Function
 
@@ -1370,35 +1320,36 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Function ArryDims(ByVal a_arr As Variant, _
-                Optional ByRef a_dim_specs As Collection, _
-                Optional ByRef a_dims As Long) As Long
-' ----------------------------------------------------------------------------
-' Returns:
-' - the dimensions of an array (a_arr), optionally also as argument (a_dims)
-' - the from to specs (a_dimsfrom, a_dimsto) delimited by kommas for each dim
-' - an arry with the from/to specs, representing th dimensions 1 to n
-' ----------------------------------------------------------------------------
-    Dim arrSpecs(1 To 2) As Variant
-    Dim cll              As New Collection
-    Dim i                As Long
-    
-    For i = 1 To 8
-        On Error Resume Next
-        arrSpecs(1) = LBound(a_arr, i)
-        If Err.Number <> 0 Then
-            Exit For
-        Else
-            arrSpecs(2) = UBound(a_arr, i)
-            cll.Add arrSpecs
-        End If
-    Next i
-        
-xt: ArryDims = cll.Count
-    Set a_dim_specs = cll
-    a_dims = cll.Count
-    Set cll = Nothing
+Public Function ArryDims(ByVal a_arr As Variant) As Long
 
+    Dim i As Long, j As Long
+    On Error Resume Next
+    Do
+        i = i + 1
+        j = LBound(a_arr, i)
+    Loop While Err.Number = 0
+    
+    ArryDims = i - 1
+    On Error GoTo 0 ' Reset error handling
+
+End Function
+
+Public Function ArrySpecs(ByVal a_arr As Variant, _
+                          ByVal a_dims As Long) As Variant
+
+    Dim aBnds   As Variant
+    Dim i       As Long
+    
+    If a_dims > 0 Then
+        ReDim aBnds(1 To a_dims, 1 To 2)
+        i = 1
+        For i = LBound(aBnds, i) To UBound(aBnds, i)
+            aBnds(i, 1) = LBound(a_arr, i)
+            aBnds(i, 2) = UBound(a_arr, i)
+        Next i
+        ArrySpecs = aBnds
+    End If
+    
 End Function
 
 Public Sub ArryErase(ParamArray a_args() As Variant)
@@ -1422,59 +1373,135 @@ xt: Err.Clear
     On Error GoTo 0
 End Sub
 
-Public Function ArryIndices(ParamArray a_indices() As Variant) As Collection
+Public Function ArryNdcs(ByRef a_dims As Long, _
+                    ParamArray a_ndcs() As Variant) As Variant
 ' ----------------------------------------------------------------------------
-' Returns provided indices (a_indices) as Collection whereby the indices may
-' be provided: - as integers (one for each dimension)
-'              - as an array of integers
-'              - as a string of integers delimited by a , (comma).
+' Returns provided indices (a_ndcs) - if any - as array whereby the indices
+' may be provided: - as integers (one for each dimension)
+'                  - as an array of integers
+'                  - as a string of integers delimited by a , (comma)
+'                  - as a collection of indices
 ' ----------------------------------------------------------------------------
-    Const PROC = "ArryIncides"
+    Const PROC = "ArryNdcs"
     
+    Dim arr As Variant
     Dim cll As New Collection
-    Dim i   As Long
-    Dim v   As Variant
+    Dim v2  As Variant
+    Dim v1  As Variant
+    Dim aTmp    As Variant
+    Dim i       As Long
+    Dim lBase   As Long
+    Dim j       As Long
     
+    lBase = LBound(Array(1))
     On Error GoTo xt
-    If UBound(a_indices) >= LBound(a_indices) Then
-        Select Case True
-            Case Not ArryIsAllocated(a_indices)
-                '~~ No indices had been provided
-                Exit Function
-            Case IsArray(a_indices(LBound(a_indices)))
-                '~~ The first item is an array if incides
-                For Each v In a_indices(LBound(a_indices))
-                    If IsInteger(CInt(Trim(v))) _
-                    Then cll.Add v _
-                    Else Err.Raise AppErr(1), ErrSrc(PROC), "At least one of the items provided as array is not an integer value!"
-                Next v
-            Case TypeName(a_indices(LBound(a_indices))) = "Collection"
-                '~~ The first item is a Collection of indices
-                Set cll = a_indices(LBound(a_indices))
-            Case TypeName(a_indices(LBound(a_indices))) = "String"
-                '~~ The first item is a string of incides delimited by a comma
-                For Each v In Split(a_indices(LBound(a_indices)), ",")
-                    If IsNumeric(v) Then
-                        cll.Add CInt(Trim(v))
+    If UBound(a_ndcs) >= LBound(a_ndcs) Then
+        For Each v1 In a_ndcs
+            Select Case True
+                Case IsEmpty(v1)
+                    GoTo xt
+                Case TypeName(v1) = "Collection"    ' An element in the The first Item is a Collection of incides
+                    Set cll = v1
+                    With cll
+                        ReDim arr(1 To .count)
+                        For i = 1 To .count
+                            If IsInteger(CInt(Trim(.item(i)))) _
+                            Then arr(i) = .item(i) _
+                            Else Err.Raise AppErr(1), ErrSrc(PROC), "At least one of the items provided as array is not an integer value!"
+                        Next i
+                    End With
+                Case TypeName(v1) = "String"        ' The first Item is a string of incides delimited by a comma
+                    aTmp = Split(v1, ",")
+                    ReDim arr(1 To UBound(aTmp) - LBound(aTmp) + 1)
+                    For i = LBound(aTmp) To UBound(aTmp)
+                        If IsNumeric(Trim(aTmp(i))) Then
+                            arr(i + 1 - lBase) = Trim(aTmp(i))
+                        Else
+                            Err.Raise AppErr(2), ErrSrc(PROC), "At least one of the items provided a string delimited by a comma is not an integer value!"
+                        End If
+                    Next i
+                Case IsInteger(v1)                  ' An element of the ParamArray is an integer
+                    i = i + 1
+                    If i = 1 Then
+                        ReDim arr(1 To i)
                     Else
-                        Err.Raise AppErr(2), ErrSrc(PROC), "At least one of the items provided a string delimited by a comma is not an integer value!"
+                        ReDim Preserve arr(1 To i)
                     End If
-                Next v
-            Case a_indices(LBound(a_indices)) = Empty
-            Case Else
-                For Each v In a_indices
-                    If IsInteger(v) _
-                    Then cll.Add v _
-                    Else Err.Raise AppErr(3), ErrSrc(PROC), "Any of the provided indices is not an integer value!"
-                Next v
-        End Select
+                    arr(i) = v1
+                Case IsArray(v1)                    ' The first Item is an array of indices
+                    ReDim arr(1 To UBound(v1) - LBound(v1) + 1)
+                    For i = LBound(v1) To UBound(v1)
+                        If IsNumeric(Trim(v1(i))) Then
+                            j = j + 1
+                            arr(j) = Trim(v1(i))
+                        Else
+                            Err.Raise AppErr(2), ErrSrc(PROC), "At least one of the items provided a string delimited by a comma is not an integer value!"
+                        End If
+                    Next i
+            End Select
+        Next v1
+        ArryNdcs = arr
+        On Error Resume Next
+        a_dims = UBound(arr) - LBound(arr) + 1
     End If
     
 xt: On Error GoTo 0
-    Set ArryIndices = cll
-    Set cll = Nothing
     
 End Function
+
+'Public Function ArryNdcsCll(ParamArray a_ndcs() As Variant) As Collection
+'' ----------------------------------------------------------------------------
+'' Returns provided indices (a_ndcs) as Collection whereby the indices may
+'' be provided: - as integers (one for each dimension)
+''              - as an array of integers
+''              - as a string of integers delimited by a , (comma).
+'' Note: A collection of indices is the preferred type because it eases
+''       handling none.
+'' ----------------------------------------------------------------------------
+'    Const PROC = "ArryIncides"
+'
+'    Dim cll As New Collection
+'
+'    Dim v2  As Variant
+'    Dim v1  As Variant
+'
+'    On Error GoTo xt
+'    If UBound(a_ndcs) >= LBound(a_ndcs) Then
+'        For Each v1 In a_ndcs
+'            Select Case True
+'                Case IsEmpty(v1)
+'                    GoTo xt
+'                Case IsArray(v1)
+'                    '~~ The first Item is an array if incides
+'                    For Each v2 In a_ndcs(LBound(a_ndcs))
+'                        If IsInteger(CInt(Trim(v2))) _
+'                        Then cll.Add v2 _
+'                        Else Err.Raise AppErr(1), ErrSrc(PROC), "At least one of the items provided as array is not an integer value!"
+'                    Next v2
+'                Case TypeName(v1) = "Collection"
+'                    '~~ The first Item is a Collection of indices
+'                    Set cll = a_ndcs(LBound(a_ndcs))
+'
+'                Case TypeName(v1) = "String"
+'                    '~~ The first Item is a string of incides delimited by a comma
+'                    For Each v2 In Split(v1, ",")
+'                        If IsNumeric(v2) Then
+'                            cll.Add CInt(Trim(v2))
+'                        Else
+'                            Err.Raise AppErr(2), ErrSrc(PROC), "At least one of the items provided a string delimited by a comma is not an integer value!"
+'                        End If
+'                    Next v2
+'                Case IsInteger(v1)
+'                    cll.Add v1
+'            End Select
+'        Next v1
+'    End If
+'
+'xt: On Error GoTo 0
+'    Set ArryNdcsCll = cll
+'    Set cll = Nothing
+'
+'End Function
 
 Public Function ArryIsAllocated(ByVal a_arr As Variant) As Boolean
 ' ----------------------------------------------------------------------------
@@ -1491,50 +1518,70 @@ End Function
 Public Function ArryItems(ByVal a_arr As Variant, _
                  Optional ByVal a_default_excluded As Boolean = False) As Long
 ' ----------------------------------------------------------------------------
-' Returns the number of items in a multi-dimensional array or a nested array.
-' The latter is an array of which one or more items are again possibly multi-
-' dimensional arrays. An unallocated array returns 0. When items which return
-' a type specific default are excluded (a_default_excluded = True) only
-' "active= items/elements are counted.
-' ----------------------------------------------------------------------------
-    
-    Dim lDim    As Long
+' Returns the number of items in a multi-dimensional or "jagged" array (i e.
+' an Item which again is an array) by optionally counting only "active"
+' (a_default_excluded) items - i.e. items which do neither return an Error nor
+' the array type specific default.
+'
+' Notes:
+' - Since an unallocated array returns 0 this function is equivalent to the
+'   .Count property of a Collection or Dictionary and also may replace the
+'   ArryIsAllocated function/service
+' - The function also handles type Object arrays where the default
+'   "Is Nothing"
+'
+' Uses: ArryDims    to get rhe number of dimensions
+'       ArryDefault to identify default items when default items are to be
+'                   excluded.
+'
+' W. Rauschenberger, Berlin Mar 2025
+'  ----------------------------------------------------------------------------
     Dim lItems  As Long
     Dim lDims   As Long
     Dim v       As Variant
     Dim i       As Long
     Dim vDflt   As Variant
-    If Not IsArray(a_arr) Then Exit Function
     
-    lDims = ArryDims(a_arr)
-    If Not a_default_excluded Then
-        lItems = 1
-        For i = 1 To lDims
-            lItems = lItems * (UBound(a_arr, i) - LBound(a_arr, i) + 1)
-        Next i
-    Else
-        vDflt = ArryDefault(a_arr)
-        For Each v In a_arr
-            If IsArray(v) Or TypeName(v) Like "*()" Then
+    If Not IsArray(a_arr) Then GoTo xt
+    
+    vDflt = ArryDefault(a_arr)
+    For Each v In a_arr
+        Select Case True
+            Case TypeName(v) = "Error"
+                If Not a_default_excluded Then
+                    lItems = lItems + 1
+                End If
+            Case IsArray(v) ' "jagged" array!
                 lItems = lItems + ArryItems(v, a_default_excluded)
-            ElseIf Not TypeName(v) = "Error" And Not v = vDflt _
-                Then lItems = lItems + 1
-            End If
-        Next v
-    End If
-    ArryItems = lItems
+            Case Else
+                If VarType(vDflt) = vbObject Then
+                    If a_default_excluded Then
+                        If Not v Is vDflt Then lItems = lItems + 1
+                    Else
+                        lItems = lItems + 1
+                    End If
+                Else
+                    If a_default_excluded Then
+                         If v <> vDflt Then lItems = lItems + 1
+                    Else
+                        lItems = lItems + 1
+                    End If
+                End If
+        End Select
+    Next v
+    
+xt: ArryItems = lItems
     
 End Function
-
 Public Function ArryNextIndex(ByVal a_arr As Variant, _
-                              ByRef a_indices() As Long) As Boolean
+                              ByRef a_ndcs() As Long) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns the logical next index for a multidimensional array (a_arr) based
-' on a given index (a_indices) which is an array of indices, one for each
+' on a given index (a_ndcs) which is an array of indices, one for each
 ' dimension in the provided array (a_arr). When the next index would be one
-' above all upper bounds the function returns FALSE, else the indices (a_indices)
+' above all upper bounds the function returns FALSE, else the indices (a_ndcs)
 ' are the logically next one.
-' Precondition: The indices array (a_indices) is specified as 1 to x for each
+' Precondition: The indices array (a_ndcs) is specified as 1 to x for each
 '               dimension.
 ' ----------------------------------------------------------------------------
     Const PROC = "ArryNextIndex"
@@ -1544,18 +1591,18 @@ Public Function ArryNextIndex(ByVal a_arr As Variant, _
     Dim lNext   As Long
 
     On Error GoTo xt
-    If LBound(a_indices) <= LBound(a_indices) Then
+    If LBound(a_ndcs) <= LBound(a_ndcs) Then
         lDims = ArryDims(a_arr)
-        If UBound(a_indices) <> lDims _
+        If UBound(a_ndcs) <> lDims _
         Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided current index does not correctly consider the number of dimensions in the provided array!"
     
         For i = lDims To 1 Step -1
             '~~ Loop through all dimensins from last to first
-            lNext = a_indices(i) + 1
+            lNext = a_ndcs(i) + 1
             If lNext > UBound(a_arr, i) Then
-                a_indices(i) = LBound(a_arr, i)
+                a_ndcs(i) = LBound(a_arr, i)
             Else
-                a_indices(i) = lNext
+                a_ndcs(i) = lNext
                 ArryNextIndex = True
                 GoTo xt
             End If
@@ -1570,13 +1617,14 @@ End Function
 Public Sub ArryReDim(ByRef a_arr As Variant, _
                 ParamArray a_dim() As Variant)
 ' ------------------------------------------------------------------------------
-' Returns a provided multidimensional array (a_arr) with new dimension specifics
-' (a_dim) whereby the new dimension specs (a_dim) are provided as strings
-' following the format: "<dimension>:<from>,<to>" whereby <dimension> is either
-' adressing a dimesion in the current array (a_arr), i.e. before the Redim has
-' taken place, or a + for a new dimension. Since only new or dimensions with
-' changed from/to specs are provided the information will be used to compile the
-' final new target array's dimensions which must not exceed 8.
+' Returns a provided multi-dimensional (max 8) array (a_arr) with new dimension
+' specifics (a_dim) whereby the new dimension specs (a_dim) are provided as
+' strings following the format: <dimension>:<from>" to "<to> whereby
+' <dimension> is either addressing a dimesion in the current array (a_arr),
+' i.e. before the Redim has taken place, or a + for a new dimension. Since only
+' new or dimensions with changed from/to specs are provided the information
+' will be used to compile the final new target array's dimensions - which must
+' not exceed 8!.
 '
 ' Uses: ArryReDimSpecs
 '
@@ -1587,42 +1635,70 @@ Public Sub ArryReDim(ByRef a_arr As Variant, _
     
     Dim arrOut          As Variant
     Dim arrUnloaded     As Variant
-    Dim dct             As New Dictionary
+    Dim dctDimSpecs     As New Dictionary
     Dim i               As Long
     Dim sIndices        As String
     Dim sIndicesPrfx    As String
+    Dim l               As Long
     
     On Error GoTo xt
     If UBound(a_arr) >= LBound(a_arr) Then
         On Error GoTo eh
         
-        ReDim arrUnloaded(1 To ArryItems(a_arr))    ' redim the target array with the total number of items in the input array
         arrUnloaded = ArryUnload(a_arr)             ' unload the input array in a 2-dim array with Item 1 = indices and Item 2 = the input array's Item
-        ArryReDimSpecs a_arr, a_dim, sIndicesPrfx, dct ' obtain the new and or changed dimension specifics
+        sIndicesPrfx = ArryReDimSpecs(a_arr, a_dim, dctDimSpecs) ' obtain the new and or changed dimension specifics
         
         '~~ Get confirmed that the total number of dimensions not exieeds the maximum suported
-        If dct.Count > 8 _
+        If dctDimSpecs.count > 8 _
         Then Err.Raise AppErr(1), ErrSrc(PROC), _
                        "The target array's number of dimensions resulting from the provided " & _
                        "array and the provided dimesion specifics exeeds the maximum number of 8 dimensions!"
             
         '~~ Redim the new target array considering a maximum of 8 possible dimensions
-        Select Case dct.Count
-            Case 1: ReDim arrOut(dct(1)(0) To dct(1)(1))
-            Case 2: ReDim arrOut(dct(1)(0) To dct(1)(1), dct(2)(0) To dct(2)(1))
-            Case 3: ReDim arrOut(dct(1)(0) To dct(1)(1), dct(2)(0) To dct(2)(1), dct(3)(0) To dct(3)(1))
-            Case 4: ReDim arrOut(dct(1)(0) To dct(1)(1), dct(2)(0) To dct(2)(1), dct(3)(0) To dct(3)(1), dct(4)(0) To dct(4)(1))
-            Case 5: ReDim arrOut(dct(1)(0) To dct(1)(1), dct(2)(0) To dct(2)(1), dct(3)(0) To dct(3)(1), dct(4)(0) To dct(4)(1), dct(5)(0) To dct(5)(1))
-            Case 6: ReDim arrOut(dct(1)(0) To dct(1)(1), dct(2)(0) To dct(2)(1), dct(3)(0) To dct(3)(1), dct(4)(0) To dct(4)(1), dct(5)(0) To dct(5)(1), dct(6)(0) To dct(6)(1))
-            Case 7: ReDim arrOut(dct(1)(0) To dct(1)(1), dct(2)(0) To dct(2)(1), dct(3)(0) To dct(3)(1), dct(4)(0) To dct(4)(1), dct(5)(0) To dct(5)(1), dct(6)(0) To dct(6)(1), dct(7)(0) To dct(7)(1))
-            Case 8: ReDim arrOut(dct(1)(0) To dct(1)(1), dct(2)(0) To dct(2)(1), dct(3)(0) To dct(3)(1), dct(4)(0) To dct(4)(1), dct(5)(0) To dct(5)(1), dct(6)(0) To dct(6)(1), dct(7)(0) To dct(7)(1), dct(8)(0) To dct(8)(1))
+        Select Case dctDimSpecs.count
+            Case 1: ReDim arrOut(dctDimSpecs(1)(1) To dctDimSpecs(1)(2))
+            Case 2: ReDim arrOut(dctDimSpecs(1)(1) To dctDimSpecs(1)(2) _
+                               , dctDimSpecs(2)(1) To dctDimSpecs(2)(2))
+            Case 3: ReDim arrOut(dctDimSpecs(1)(1) To dctDimSpecs(1)(2) _
+                               , dctDimSpecs(2)(1) To dctDimSpecs(2)(2) _
+                               , dctDimSpecs(3)(1) To dctDimSpecs(3)(2))
+            Case 4: ReDim arrOut(dctDimSpecs(1)(1) To dctDimSpecs(1)(2) _
+                               , dctDimSpecs(2)(1) To dctDimSpecs(2)(2) _
+                               , dctDimSpecs(3)(1) To dctDimSpecs(3)(2) _
+                               , dctDimSpecs(4)(1) To dctDimSpecs(4)(2))
+            Case 5: ReDim arrOut(dctDimSpecs(1)(1) To dctDimSpecs(1)(2) _
+                               , dctDimSpecs(2)(1) To dctDimSpecs(2)(2) _
+                               , dctDimSpecs(3)(1) To dctDimSpecs(3)(2) _
+                               , dctDimSpecs(4)(1) To dctDimSpecs(4)(2) _
+                               , dctDimSpecs(5)(1) To dctDimSpecs(5)(2))
+            Case 6: ReDim arrOut(dctDimSpecs(1)(1) To dctDimSpecs(1)(2) _
+                               , dctDimSpecs(2)(1) To dctDimSpecs(2)(2) _
+                               , dctDimSpecs(3)(1) To dctDimSpecs(3)(2) _
+                               , dctDimSpecs(4)(1) To dctDimSpecs(4)(2) _
+                               , dctDimSpecs(5)(1) To dctDimSpecs(5)(2) _
+                               , dctDimSpecs(6)(1) To dctDimSpecs(6)(2))
+            Case 7: ReDim arrOut(dctDimSpecs(1)(1) To dctDimSpecs(1)(2) _
+                               , dctDimSpecs(2)(1) To dctDimSpecs(2)(2) _
+                               , dctDimSpecs(3)(1) To dctDimSpecs(3)(2) _
+                               , dctDimSpecs(4)(1) To dctDimSpecs(4)(2) _
+                               , dctDimSpecs(5)(1) To dctDimSpecs(5)(2) _
+                               , dctDimSpecs(6)(1) To dctDimSpecs(6)(2) _
+                               , dctDimSpecs(7)(1) To dctDimSpecs(7)(2))
+            Case 8: ReDim arrOut(dctDimSpecs(1)(1) To dctDimSpecs(1)(2) _
+                               , dctDimSpecs(2)(1) To dctDimSpecs(2)(2) _
+                               , dctDimSpecs(3)(1) To dctDimSpecs(3)(2) _
+                               , dctDimSpecs(4)(1) To dctDimSpecs(4)(2) _
+                               , dctDimSpecs(5)(1) To dctDimSpecs(5)(2) _
+                               , dctDimSpecs(6)(1) To dctDimSpecs(6)(2) _
+                               , dctDimSpecs(7)(1) To dctDimSpecs(7)(2) _
+                               , dctDimSpecs(8)(1) To dctDimSpecs(8)(2))
         End Select
         
-        '~~ Re-load the unloaded array to the new specified re-dimed array and return it replacing the source array
+        '~~ Re-load the unloaded array to the new re-dimed array and return it replacing the source array
         For i = LBound(arrUnloaded) To UBound(arrUnloaded)
             sIndices = sIndicesPrfx & arrUnloaded(i, 1)
             On Error Resume Next
-            ArryItem(arrOut, sIndices) = arrUnloaded(i, 2)
+            ArryItem(arrOut, ArryNdcs(l, sIndices)) = arrUnloaded(i, 2)
         Next i
         a_arr = arrOut
     End If
@@ -1637,14 +1713,27 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub ArryReDimSpecs(ByVal a_arr As Variant, _
-                           ByVal a_specs As Variant, _
-                           ByRef a_prefx As String, _
-                           ByRef a_dims As Dictionary)
-    Const PROC = "ArryReDimSpecs"
+Private Function ArryReDimSpecs(ByVal a_arr As Variant, _
+                                ByVal a_specs As Variant, _
+                                ByRef a_dims As Dictionary) As String
+' ------------------------------------------------------------------------------
+' Returns
+' 1. a Dictionary (a_dims) with the redim specifics by considering the
+'    current array's (a_arr) dimension specs plus those provided new (a_specs).
+'    The syntax of the new dimension specs is: <dimension>:<from>" to "<to>
+'    whereby <dimension> is either "+" for a new one or an integer identifying a
+'    dimension of which the specs will be changed.
+' 2. The prefix for the re-load which is the new specified dimensions lower
+'    bound.
+' ------------------------------------------------------------------------------
+    Const PROC                  As String = "ArryReDimSpecs"
+    '~~ Syntax constants for the a_specs argument
+    Const NEW_DIM_INDICATOR     As String = "+"
+    Const DIM_SPEC_DELIMITER    As String = ":"
+    Const DIM_BOUNDS_DELIMITER  As String = "to"
     
     On Error GoTo eh
-    Dim aItem       As Variant
+    Dim aBounds     As Variant
     Dim lBase       As Long
     Dim lDims       As Long
     Dim lDimsNew    As Long
@@ -1652,98 +1741,94 @@ Private Sub ArryReDimSpecs(ByVal a_arr As Variant, _
     Dim regex       As Object
     Dim sSpec       As String
     Dim v           As Variant
+    Dim lDim        As Long
+    Dim sNewDims    As String
     
     lBase = LBound(Array("x"))
     lDims = ArryDims(a_arr)
     
     Set regex = CreateObject("VBScript.RegExp")
     If Not ArryIsAllocated(a_specs) Then GoTo xt
+    ReDim aBounds(1 To 2)
     
-    '~~ 1. Load a Dictionary with any new specified dimensions (those whihc start with a + sign)
+    '~~ 1. Check wether all dimension specifcation conform with the considered syntax
     For Each v In a_specs
         With regex
-            .Pattern = "^(\+|\d)?\s*:\s*\d+(?:\s*,\s*\d+)?$"
+            ' ------------------------------------------------------------------------------
+            ' Syntax for each element in a_specs:
+            ' Starts with a "+" (NEW_DIM_INDICATOR) or an integer followed by none or mor spaces,
+            ' a ":" (DIM_SPEC_DELIMITER) followed by none or more spaces,
+            ' the LBound integer followed by none or more spaces
+            ' the "to" delimiter (DIM_BOUNDS_DELIMITER), followed by none or more spaces
+            ' the UBound integer
+            ' ------------------------------------------------------------------------------
+'            .Pattern = "^\s*(\+|\d+)\s*:\s*\d+\s*to\s*\d+\s*$"
+            .Pattern = "^\s*(\" & NEW_DIM_INDICATOR & "|\d+)\s*" & DIM_SPEC_DELIMITER & "\s*\d+\s*" & DIM_BOUNDS_DELIMITER & "\s*\d+\s*$"
             .IgnoreCase = False
             .Global = False
             If Not .Test(v) _
-            Then Err.Raise AppErr(1), ErrSrc(PROC), "The provided dimension specification does not conform with expectations!" & vbLf & _
-                                                    "A valid spec starts with a ""+"" (plus) or an integer from 1 to 8 followed " & _
-                                                    "by a "":"" (semicolon), followed by to integers delimited by a "","" (comma)."
+            Then Err.Raise AppErr(1), ErrSrc(PROC), _
+                           "The provided dimension specification does not conform with expectations!" & vbLf & _
+                           "A valid spec starts with a ""+"" (plus) or an integer from 1 to 8 followed " & _
+                           "by a "":"" (semicolon), followed by to integers delimited by a ""to"". Any spaces are optional."
         End With
-        
-        If Trim$(Split(v, ":")(0)) = "+" Then
-            lDimsNew = lDimsNew + 1
-            sSpec = Trim(Split(v, ":")(1))
-            If InStr(sSpec, ",") = 0 Then
-                '~~ The +: is followed by a single integer value.
-                '~~ This is interpreted as the Ubound of the new dimension
-                '~~ while the LBound defaults to the Base Options which is either 0 or 1
-                ReDim aItem(0 To 1)
-                aItem(0) = lBase
-                aItem(1) = CLng(sSpec)
-            Else
-                aItem = Split(sSpec, ",")
-            End If
-            For i = LBound(aItem) To UBound(aItem)
-                aItem(i) = Trim(aItem(i))
-            Next i
-            a_dims.Add lDimsNew, aItem
-        End If
     Next v
-    If a_dims.Count > 0 Then
-        '~~ Assemble the indices prefix from the new specified dimensions
-        For Each v In a_dims
-            a_prefx = a_prefx & a_dims(v)(0) & ","
+    
+    With a_dims
+        '~~ 2. Collect any new dimensions (those indicated by a +)
+        For Each v In a_specs
+            If Trim$(Split(v, DIM_SPEC_DELIMITER)(0)) = NEW_DIM_INDICATOR Then
+                '~~ A new dimension is indicated by the + sign
+                lDimsNew = lDimsNew + 1
+                sSpec = Trim$(Split(v, DIM_SPEC_DELIMITER)(1))
+                aBounds(1) = CInt(Trim$(Split(sSpec, DIM_BOUNDS_DELIMITER)(0))) ' The new dimension's lower bound
+                aBounds(2) = CInt(Trim$(Split(sSpec, DIM_BOUNDS_DELIMITER)(1))) ' The new dimension's upper bound
+                .Add lDimsNew, aBounds
+                sNewDims = sNewDims & aBounds(1) & ","
+            End If
         Next v
-    End If
-    
-    '~~ 2. Add any redims specified - if any - for existing dimensions
-    '~~    with redim specifications when available
-    For Each v In a_specs
-        If Trim$(Split(v, ":")(0)) <> "+" Then
-            lDimsNew = lDimsNew + 1
-            sSpec = Trim(Split(v, ":")(1))
-            If InStr(sSpec, ",") = 0 Then
-                '~~ The dimension indicating digit is followed by a single integer value.
-                '~~ This is interpreted as the Ubound of the new dimension
-                '~~ while the LBound defaults to the Base Options which is either 0 or 1
-                ReDim aItem(0 To 1)
-                aItem(0) = lBase
-                aItem(1) = CLng(sSpec)
-            Else
-                aItem = Split(sSpec, ",")
+            
+        '~~ 3. Add any changed dimension specifics/bounds for existing dimensions (those with an integer preceeding the :)
+        For Each v In a_specs
+            Debug.Print v
+            If IsInteger(Trim$(Split(v, DIM_SPEC_DELIMITER)(0))) Then
+                '~~ The change of an existing dimension is indicated by an integer representing the dimension
+                lDim = Trim$(Split(v, DIM_SPEC_DELIMITER)(0))
+                sSpec = Trim(Split(v, DIM_SPEC_DELIMITER)(1))
+                aBounds(1) = CInt(Trim$(Split(sSpec, DIM_BOUNDS_DELIMITER)(0)))
+                aBounds(2) = CInt(Trim$(Split(sSpec, DIM_BOUNDS_DELIMITER)(1)))
+                .Add lDim + lDimsNew, aBounds
             End If
-            For i = LBound(aItem) To UBound(aItem)
-                aItem(i) = Trim(aItem(i))
-            Next i
-            a_dims.Add lDimsNew, aItem
-        End If
-    Next v
-
-    '~~ 3. Completed the dimensions with those in of the source Array's which not yet are collected
-    For i = 1 To lDims
-        If Not a_dims.Exists(i) Then
-            On Error Resume Next
-            a_dims.Add i + lDimsNew, Split(LBound(a_arr, i) & "," & UBound(a_arr, i), ",")
-            If Err.Number <> 0 Then Exit For ' the previous i was the last dimension of the source array
-        End If
-    Next i
+        Next v
     
-xt: Exit Sub
+        '~~ 4. Collect any yet not considered dimension specifics from the source array
+        For i = 1 To lDims
+            If Not a_dims.Exists(i) Then
+                '~~ The dimensions specifics had yet not been collected
+                aBounds(1) = LBound(a_arr, i)
+                aBounds(2) = UBound(a_arr, i)
+                .Add i + lDimsNew, aBounds 'Note: The 1st dim will become the 2nd dim when 1 new had been specified
+            End If
+        Next i
+    End With
+    Debug.Print sNewDims
+    ArryReDimSpecs = sNewDims
+    
+xt: Exit Function
 
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbYes: Stop: Resume
         Case Else:  GoTo xt
     End Select
-End Sub
+End Function
 
 Public Sub ArryRemoveItems(ByRef a_arry As Variant, _
-                  Optional ByVal a_item As Long = -99999, _
+                  Optional ByVal a_Item As Long = -99999, _
                   Optional ByVal a_indx As Long = -99999, _
                   Optional ByVal a_items As Long = 1)
 ' ------------------------------------------------------------------------------
 ' Returns arr 1-dim array (a_arry) with the number of elements (a_items) removed
-' whereby the start element may be indicated by the item number 1,2,.. (a_item)
+' whereby the start element may be indicated by the Item number 1,2,.. (a_Item)
 ' or the index (a_indx), both must be within the array's bounds. Any
 ' inappropriate provision of arguments raises an application errore. When the
 ' last Item in of an array is removed the returned array appears erased (i.e is
@@ -1771,21 +1856,21 @@ Public Sub ArryRemoveItems(ByRef a_arry As Variant, _
             Case Not ArryDims(a_arry) = 1
                 Err.Raise AppErr(1), ErrSrc(PROC), "Array must not be multidimensional!"
             
-            Case a_item = -99999 And a_indx <> -99999
+            Case a_Item = -99999 And a_indx <> -99999
                 If a_indx < lLbnd Or a_indx > lUbnd _
                 Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided index is out of the array's bounds!"
             
-            Case a_item >= 0 And a_indx = -99999
-                '~~ When an item is provided which is within the number of items in the array
+            Case a_Item >= 0 And a_indx = -99999
+                '~~ When an Item is provided which is within the number of items in the array
                 '~~ it is transformed into an index
-                If a_item < 1 Or a_item > lItems _
-                Then Err.Raise AppErr(3), ErrSrc(PROC), "The provided item number is 0 or exceeds the number of items in the array!"
-                ' lBnd = 1 And item = 4 > index = item
-                ' lBnd = 4 And item = 2 > index = 5
-                a_indx = lLbnd + a_item - 1
+                If a_Item < 1 Or a_Item > lItems _
+                Then Err.Raise AppErr(3), ErrSrc(PROC), "The provided Item number is 0 or exceeds the number of items in the array!"
+                ' lBnd = 1 And Item = 4 > index = Item
+                ' lBnd = 4 And Item = 2 > index = 5
+                a_indx = lLbnd + a_Item - 1
             
             Case Else
-                Err.Raise AppErr(4), ErrSrc(PROC), "Neither an item nor an index had been provided or both which is conflicting!"
+                Err.Raise AppErr(4), ErrSrc(PROC), "Neither an Item nor an index had been provided or both which is conflicting!"
         End Select
         
         For i = a_indx + a_items To lUbnd
@@ -1817,21 +1902,27 @@ Public Sub ArryTrimm(ByRef a_arr As Variant)
 
     On Error GoTo eh
     Dim i   As Long
+    Dim j   As Long
     Dim arr As Variant
     
     On Error GoTo xt
     If UBound(a_arr) >= LBound(a_arr) Then
+        j = LBound(a_arr)
+        ReDim arr(UBound(a_arr))
         For i = LBound(a_arr) To UBound(a_arr)
             Select Case True
                 Case IsError(a_arr(i))
                 Case a_arr(i) = Empty
                 Case Trim$(a_arr(i)) = vbNullString
                 Case Else
-                    If Not Len(Trim(a_arr(i))) = 0 _
-                    Then Arry(arr) = Trim(a_arr(i))
+                    If Not Len(Trim(a_arr(i))) = 0 Then
+                        arr(j) = Trim(a_arr(i))
+                        j = j + 1
+                    End If
             End Select
         Next i
     End If
+    ReDim Preserve arr(j - 1)
     a_arr = arr
     
 xt: On Error GoTo 0
@@ -1848,18 +1939,136 @@ Public Function ArryUnload(ByVal a_arr As Variant) As Variant
 ' Returns an 2-dim array with all items of a multidimensional - max 8 - array
 ' (a_arr) with the indices delimited by a comma as the first Item and the
 ' array's Item as the second one. I.e. that a multidimendional array is unloaded
-' into a "flat" array.
+' into a "flat" array. Any inactive elements/items (IsError or = default) are
+' ignored.
 ' ------------------------------------------------------------------------------
     Const PROC = "ArryUnload"
     
     On Error GoTo eh
+    Dim i           As Long, j As Long, k As Long, l As Long, m As Long, n As Long, o As Long, p As Long, z As Long
     Dim arr         As Variant
-    Dim cllDimSpecs As New Collection
+    Dim vDflt       As Variant
+    Dim lDims       As Long
+    Dim lTmp        As Long
     
-    ReDim arr(1 To ArryItems(a_arr), 1 To 2)
-    ArryDims a_arr, cllDimSpecs
+    lDims = ArryDims(a_arr)
+    vDflt = ArryDefault(a_arr)
+    ReDim arr(1 To ArryItems(a_arr, True), 1 To 2) ' ensure the output array has as many itmes as are active!
     
-    ArryUnloadAdd a_arr, arr, "", 1, cllDimSpecs.Count
+    Select Case lDims
+        Case 1: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                    If ArryItemIsActive(a_arr, vDflt, i) Then
+                        z = z + 1
+                        arr(z, 1) = i
+                        arr(z, 2) = a_arr(i)
+                    End If
+                Next i
+        Case 2: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                    For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                        If ArryItemIsActive(a_arr, vDflt, i, j) Then
+                            z = z + 1
+                            arr(z, 1) = i & "," & j
+                            arr(z, 2) = a_arr(i, j)
+                        End If
+                    Next j
+                Next i
+        Case 3: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                    For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                        For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                            If ArryItemIsActive(a_arr, vDflt, i, j, k) Then
+                                z = z + 1
+                                arr(z, 1) = i & "," & j & "," & k
+                                arr(z, 2) = a_arr(i, j, k)
+                            End If
+                        Next k
+                    Next j
+                Next i
+        Case 4: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                    For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                        For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                            For l = LBound(a_arr, 4) To UBound(a_arr, 4)
+                                If ArryItemIsActive(a_arr, vDflt, i, j, k, l) Then
+                                    z = z + 1
+                                    arr(z, 1) = i & "," & j & "," & k & "," & l
+                                    arr(z, 2) = a_arr(i, j, k, l)
+                                End If
+                            Next l
+                        Next k
+                    Next j
+                Next i
+        Case 5: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                    For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                        For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                            For l = LBound(a_arr, 4) To UBound(a_arr, 4)
+                                For m = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                    If ArryItemIsActive(a_arr, vDflt, i, j, k, l, m) Then
+                                        z = z + 1
+                                        arr(z, 1) = i & "," & j & "," & k & "," & l & "," & m
+                                        arr(z, 2) = a_arr(i, j, k, l, m)
+                                    End If
+                                Next m
+                            Next l
+                        Next k
+                    Next j
+                Next i
+        Case 6: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                    For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                        For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                            For l = LBound(a_arr, 4) To UBound(a_arr, 4)
+                                For m = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                    For n = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                        If ArryItemIsActive(a_arr, vDflt, i, j, k, l, m, n) Then
+                                            z = z + 1
+                                            Arry(arr, ArryNdcs(l, z, 1)) = i & "," & j & "," & k & "," & l & "," & m & "," & n
+                                            Arry(arr, ArryNdcs(l, z, 2)) = a_arr(i, j, k, l, m, n)
+                                        End If
+                                    Next n
+                                Next m
+                            Next l
+                        Next k
+                    Next j
+                Next i
+        Case 7: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                    For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                        For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                            For l = LBound(a_arr, 4) To UBound(a_arr, 4)
+                                For m = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                    For n = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                        For o = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                            If ArryItemIsActive(a_arr, vDflt, i, j, k, l, m, n, o) Then
+                                                z = z + 1
+                                                arr(z, 1) = i & "," & j & "," & k & "," & l & "," & m & "," & n & "," & o
+                                                arr(z, 2) = a_arr(i, j, k, l, m, n, o)
+                                            End If
+                                        Next o
+                                    Next n
+                                Next m
+                            Next l
+                        Next k
+                    Next j
+                Next i
+        Case 8: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                    For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                        For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                            For l = LBound(a_arr, 4) To UBound(a_arr, 4)
+                                For m = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                    For n = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                        For o = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                            For p = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                                If ArryItemIsActive(a_arr, vDflt, i, j, k, l, m, n, o, p) Then
+                                                    z = z + 1
+                                                    arr(z, 1) = i & "," & j & "," & k & "," & l & "," & m & "," & n & "," & o & "," & p
+                                                    arr(z, 2) = a_arr(i, j, k, l, m, n, o, p)
+                                                End If
+                                            Next p
+                                        Next o
+                                    Next n
+                                Next m
+                            Next l
+                        Next k
+                    Next j
+                Next i
+    End Select
     ArryUnload = arr
     
 xt: Exit Function
@@ -1870,70 +2079,180 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Private Sub ArryUnloadAdd(ByVal a_arr As Variant, _
-                          ByRef a_arr_out As Variant, _
-                          ByRef a_indices As String, _
-                          ByRef a_dim As Integer, _
-                          ByVal a_dims As Integer)
+Public Function ArryUnloadToDict(ByVal a_arr As Variant, _
+                        Optional ByRef a_dct As Dictionary) As Dictionary
 ' ------------------------------------------------------------------------------
-' Adds an Item of an array (a_arr), addressed by indices - derived from the key
-' (a_key) which is composed of them delimited by commas - to a Dictionary
-' (a_dct) with the provided kex (a_key).
+' Unloads a multi-dimensional (max 8 dims) array (a_arr) to a Dictionary with
+' the Item's indices delimited by a comma as key.
 ' ------------------------------------------------------------------------------
-    Const PROC = "ArryUnloadAdd"
+    Const PROC = "ArryUnloadToDict"
     
     On Error GoTo eh
-    Dim i       As Long
-    Dim sIndices   As String
-    Dim arrIndices As Variant
-    
-    For i = LBound(a_arr, a_dim) To UBound(a_arr, a_dim)
-        If a_indices = vbNullString _
-        Then sIndices = i _
-        Else sIndices = a_indices & "," & i
-        
-        If a_dim < a_dims Then
-            ArryUnloadAdd a_arr, a_arr_out, sIndices, a_dim + 1, a_dims
-        Else
-            a_arr_out(i + 1, 1) = sIndices                   ' The Item's indices
-            On Error Resume Next
-            a_arr_out(i + 1, 2) = ArryItem(a_arr, sIndices) ' The Item
-        End If
-    Next i
-    
-xt: Exit Sub
+    Dim i       As Long, j As Long, k As Long, l As Long, m As Long, n As Long, o As Long, p As Long
+    Dim sKey    As String
+    Dim lDims   As Long
+    Dim vDflt   As Variant
+
+    If a_dct Is Nothing Then Set a_dct = New Dictionary Else a_dct.RemoveAll
+    lDims = ArryDims(a_arr)
+    vDflt = ArryDefault(a_arr)
+
+    ' Use With...End With for performance
+    With a_dct ' Intentionally for performance, i.e. also no recursive solution by intention
+        Select Case lDims
+            Case 1: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                        If ArryItemIsActive(a_arr, vDflt, i) Then
+                            sKey = i
+                            .Add sKey, a_arr(i)
+                        End If
+                    Next i
+            Case 2: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                        For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                            If ArryItemIsActive(a_arr, vDflt, i, j) Then
+                                sKey = i & "," & j
+                                .Add sKey, a_arr(i, j)
+                            End If
+                        Next j
+                    Next i
+            Case 3: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                        For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                            For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                                If ArryItemIsActive(a_arr, vDflt, i, j, k) Then
+                                     sKey = i & "," & j & "," & k
+                                    .Add sKey, a_arr(i, j, k)
+                                End If
+                            Next k
+                        Next j
+                    Next i
+            Case 4: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                        For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                            For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                                For l = LBound(a_arr, 4) To UBound(a_arr, 4)
+                                    If ArryItemIsActive(a_arr, vDflt, i, j, k, l) Then
+                                        sKey = i & "," & j & "," & k & "," & l
+                                        .Add sKey, a_arr(i, j, k, l)
+                                    End If
+                                Next l
+                            Next k
+                        Next j
+                    Next i
+            Case 5: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                        For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                            For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                                For l = LBound(a_arr, 4) To UBound(a_arr, 4)
+                                    For m = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                        If ArryItemIsActive(a_arr, vDflt, i, j, k, l, m) Then
+                                            sKey = i & "," & j & "," & k & "," & l & "," & m
+                                            .Add sKey, a_arr(i, j, k, l, m)
+                                        End If
+                                    Next m
+                                Next l
+                            Next k
+                        Next j
+                    Next i
+            Case 6: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                        For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                            For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                                For l = LBound(a_arr, 4) To UBound(a_arr, 4)
+                                    For m = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                        For n = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                            If ArryItemIsActive(a_arr, vDflt, i, j, k, l, m, n) Then
+                                                sKey = i & "," & j & "," & k & "," & l & "," & m & "," & n
+                                                .Add sKey, a_arr(i, j, k, l, m, n)
+                                            End If
+                                        Next n
+                                    Next m
+                                Next l
+                            Next k
+                        Next j
+                    Next i
+            Case 7: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                        For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                            For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                                For l = LBound(a_arr, 4) To UBound(a_arr, 4)
+                                    For m = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                        For n = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                            For o = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                                If ArryItemIsActive(a_arr, vDflt, i, j, k, l, m, n, o) Then
+                                                    sKey = i & "," & j & "," & k & "," & l & "," & m & "," & n & "," & o
+                                                    .Add sKey, a_arr(i, j, k, l, m, n, o)
+                                                End If
+                                            Next o
+                                        Next n
+                                    Next m
+                                Next l
+                            Next k
+                        Next j
+                    Next i
+            Case 8: For i = LBound(a_arr, 1) To UBound(a_arr, 1)
+                        For j = LBound(a_arr, 2) To UBound(a_arr, 2)
+                            For k = LBound(a_arr, 3) To UBound(a_arr, 3)
+                                For l = LBound(a_arr, 4) To UBound(a_arr, 4)
+                                    For m = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                        For n = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                            For o = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                                For p = LBound(a_arr, 5) To UBound(a_arr, 5)
+                                                    If ArryItemIsActive(a_arr, vDflt, i, j, k, l, m, n, o, p) Then
+                                                        sKey = i & "," & j & "," & k & "," & l & "," & m & "," & n & "," & o & "," & p
+                                                        .Add sKey, a_arr(i, j, k, l, m, n, o, p)
+                                                    End If
+                                                Next p
+                                            Next o
+                                        Next n
+                                    Next m
+                                Next l
+                            Next k
+                        Next j
+                    Next i
+        End Select
+    End With
+
+xt: Exit Function
 
 eh: Select Case ErrMsg(ErrSrc(PROC))
         Case vbYes: Stop: Resume
         Case Else:  GoTo xt
     End Select
-End Sub
+End Function
 
-Public Sub ArryUnloadToDict(ByVal a_arr As Variant, _
-                            ByRef a_dct As Dictionary, _
-                   Optional ByRef a_ndc As String)
-' ----------------------------------------------------------------------------
-' Returns all items in a multidimensional array (a_arr) as Dictionary (a_dct)
-' with the elements as Item and the indices delimited by a comma as key. The
-' procedure is called recursively for nested arrays.
-' ----------------------------------------------------------------------------
-    Dim i        As Long
-    Dim iCurrent As String
+Public Function ArryItemIsActive(ByVal a_arr As Variant, _
+                                 ByVal a_dflt As Variant, _
+                            ParamArray a_indcs() As Variant) As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when the Item in an array (a_arr) identified by indices (a_indcs)
+' neither is an error nor is it identical with a default (a_dflt).
+' ------------------------------------------------------------------------------
+    Const PROC = "ArryItemIsActive"
     
-    If a_dct Is Nothing Then Set a_dct = New Dictionary
+    On Error GoTo eh
+    Dim vItem   As Variant
+    Dim i       As Long
     
-    If IsArray(a_arr) Then
-        If ArryIsAllocated(a_arr) Then
-            For i = LBound(a_arr) To UBound(a_arr)
-                iCurrent = a_ndc & i
-                ArryUnloadToDict a_arr(i), a_dct, iCurrent & ","
-            Next i
-        End If
-    Else ' is an Item
-        a_dct.Add Left(a_ndc, Len(a_ndc) - 1), a_arr
+    ' Check if the correct number of a_indcs is provided
+    If UBound(a_indcs) + 1 > 8 _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The number of indices exceeds the maximum supported which is 8."
+
+    '~~ Retrieve the vItem using the provided a_indcs
+    On Error GoTo xt ' returns False
+    vItem = a_arr
+    For i = LBound(a_indcs) To UBound(a_indcs)
+        vItem = vItem(a_indcs(i))
+    Next i
+    On Error GoTo eh
+    
+    If VarType(a_dflt) <> vbObject Then
+        If vItem <> a_dflt Then ArryItemIsActive = True
+    Else
+        If Not vItem Is a_dflt Then ArryItemIsActive = True
     End If
+    
+xt: Exit Function
 
-End Sub
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
+End Function
 
 Public Sub BoC(ByVal b_id As String, _
       Optional ByVal b_args As String = vbNullString)
@@ -2058,26 +2377,25 @@ Public Function DictAsArry(ByVal d_dct As Dictionary, _
 ' ----------------------------------------------------------------------------
 '
 ' ----------------------------------------------------------------------------
+    Const PROC = "DictAsArray"
     
-    Dim aResult()   As Variant
-    Dim key         As Variant
-    Dim keyParts()  As String
-    Dim i           As Long
+    On Error GoTo eh
     Dim lDims       As Long
-    Dim arrIndices     As Variant
+    Dim arrIndices  As Variant
     Dim arr         As Variant
     Dim arrFrom     As Variant
     Dim arrTo       As Variant
     Dim v           As Variant
+    Dim l           As Long
     
     If d_dct Is Nothing Then GoTo xt
-    If d_dct.Count = 0 Then GoTo xt
+    If d_dct.count = 0 Then GoTo xt
       
     If d_dimsfrom Is Nothing And d_dimsto Is Nothing Then
         '~~ When no new dimension specs are provided they are retrieved from the dictionar key
         arrFrom = Split(d_dct.Keys()(0), ",")
         lDims = UBound(arrFrom) + 1
-        arrTo = Split(d_dct.Keys(d_dct.Count - 1), ",")
+        arrTo = Split(d_dct.Keys(d_dct.count - 1), ",")
     Else
         arrFrom = d_dimsfrom
         arrTo = d_dimsto
@@ -2096,31 +2414,35 @@ Public Function DictAsArry(ByVal d_dct As Dictionary, _
     
     For Each v In d_dct
         arrIndices = Split(v, ",")
-        ArryItem(arr, arrIndices) = d_dct(v)
+        ArryItem(arr, ArryNdcs(l, arrIndices)) = d_dct(v)
     Next v
     DictAsArry = arr
-xt:
 
+xt: Exit Function
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Public Sub DictTest()
 
     Dim dct As Dictionary
     
-    dict(dct, "X") = 1              ' Add
-    dict(dct, "X") = 2              ' Replace
-    Debug.Assert dict(dct, "X") = 2 ' Assert
+    Dict(dct, "X") = 1              ' Add
+    Dict(dct, "X") = 2              ' Replace
+    Debug.Assert Dict(dct, "X") = 2 ' Assert
     
-    dict(dct, "X") = "+5"           ' Increment
-    Debug.Assert dict(dct, "X") = 7 ' Assert
+    Dict(dct, "X") = "+5"           ' Increment
+    Debug.Assert Dict(dct, "X") = 7 ' Assert
     
-    dict(dct, "X") = "-3"           ' Decrement
-    Debug.Assert dict(dct, "X") = 4 ' Assert
+    Dict(dct, "X") = "-3"           ' Decrement
+    Debug.Assert Dict(dct, "X") = 4 ' Assert
     
     '~~ Assert defaults when not existing
-    Debug.Assert dict(dct, "B", Nothing) Is Nothing
-    Debug.Assert dict(dct, "B", 0) = 0
-    Debug.Assert dict(dct, "B") = vbNullString      ' No default returns default
+    Debug.Assert Dict(dct, "B", Nothing) Is Nothing
+    Debug.Assert Dict(dct, "B", 0) = 0
+    Debug.Assert Dict(dct, "B") = vbNullString      ' No default returns default
     
 End Sub
 
@@ -2147,7 +2469,6 @@ Public Function DynExec(ByVal d_vbp As VBProject, _
     Const PROC = "DynExec"
     
     Dim objTempMod As Object
-    Dim vResult    As Variant
     Dim sCode      As String
     
     sCode = "Function TempFunction() As Variant" & vbCrLf
@@ -2296,10 +2617,15 @@ Public Function IsInteger(ByVal i_value As Variant) As Boolean
 ' ----------------------------------------------------------------------------
 ' Returns TRUE when the provided argument is numeric, and has no decimals.
 ' ----------------------------------------------------------------------------
-    If Not i_value = Empty Then
-        If IsNumeric(i_value) _
-        Then IsInteger = (i_value = Int(i_value))
-    End If
+    On Error GoTo xt
+    Select Case True
+        Case i_value = 0
+            IsInteger = True
+        Case IsNumeric(i_value)
+            IsInteger = (CLng(i_value) = Int(i_value))
+    End Select
+    
+xt: On Error GoTo 0
 End Function
 
 Public Function IsString(ByVal v As Variant, _
@@ -2334,11 +2660,11 @@ Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
     Dim j       As Long
     
     If s_dct Is Nothing Then GoTo xt
-    If s_dct.Count = 0 Then GoTo xt
+    If s_dct.count = 0 Then GoTo xt
     
     With s_dct
-        ReDim arr(0 To .Count - 1)
-        For i = 0 To .Count - 1
+        ReDim arr(0 To .count - 1)
+        For i = 0 To .count - 1
             arr(i) = .Keys(i)
         Next i
     End With
@@ -2358,7 +2684,7 @@ Public Function KeySort(ByRef s_dct As Dictionary) As Dictionary
     With dct
         For i = LBound(arr) To UBound(arr)
             vKey = arr(i)
-            .Add key:=vKey, Item:=s_dct.Item(vKey)
+            .Add key:=vKey, item:=s_dct.item(vKey)
         Next i
     End With
     
@@ -2404,7 +2730,7 @@ Public Function Max(ParamArray m_args() As Variant) As Variant
 ' Collection.
 '
 ' Constraint: When an argument is an Array or a Collection and it contains a
-'             single item which again is an Array or a Collection, an error
+'             single Item which again is an Array or a Collection, an error
 '             is raised. Nested Arrays and/or Collections may again have items
 '             which are an Array or a Collection but only among other numeric
 '             or string items. This constraint is caused by the fact that
@@ -2432,7 +2758,7 @@ Public Function Max(ParamArray m_args() As Variant) As Variant
                         For Each v2 In v1
                             Select Case True
                                 Case IsArray(v2) Or TypeName(v2) = "Collection"
-                                    Err.Raise AppErr(1), ErrSrc(PROC), "Single argument array with single item array (jagged array) not supported!"
+                                    Err.Raise AppErr(1), ErrSrc(PROC), "Single argument array with single Item array (jagged array) not supported!"
                                 Case VarType(v2) = vbString
                                     If Len(v2) > vMax1 Then vMax1 = Len(v2)
                                 Case IsNumeric(v2)
@@ -2444,10 +2770,10 @@ Public Function Max(ParamArray m_args() As Variant) As Variant
                         vMax2 = Max(v1)
                         If vMax2 > vMax1 Then vMax1 = vMax2
                     End If
-                Case VarType(v1) = vbString
-                    If Len(v1) > vMax1 Then vMax1 = Len(v1)
                 Case IsNumeric(v1)
                     If v1 > vMax1 Then vMax1 = v1
+                Case VarType(v1) = vbString
+                    If Len(v1) > vMax1 Then vMax1 = Len(v1)
             End Select
         Next v1
     End If
@@ -2508,9 +2834,24 @@ Public Sub README(Optional ByVal r_base_url As String = "https://github.com/warb
         
 End Sub
 
+Public Function RepeatString(ByVal r_str As String, _
+                             ByVal r_cnt As Integer) As String
+' ----------------------------------------------------------------------------
+' Returns a string (r_str) repeated n (r_cnt) times.
+' ----------------------------------------------------------------------------
+    Dim i As Long
+    Dim s As String
+
+    For i = 1 To r_cnt
+        s = s & r_str
+    Next i
+    RepeatString = s
+    
+End Function
+
 Public Function RngeAsArry(ByVal r_rng As Range) As Variant
 ' ----------------------------------------------------------------------------
-'
+' Returns a range (r_rng) as arry.
 ' ----------------------------------------------------------------------------
     RngeAsArry = r_rng.Value
     
@@ -2589,9 +2930,11 @@ Public Function Spaced(ByVal s As String) As String
     a = StrConv(Trim$(s), vbFromUnicode)
     Spaced = Chr$(a(LBound(a)))
     For i = LBound(a) + 1 To UBound(a)
-        If Chr$(a(i)) = " " _
-        Then Spaced = Spaced & Chr$(160) & Chr$(160) & Chr$(160) _
-        Else Spaced = Spaced & Chr$(160) & Chr$(a(i))
+        If Chr$(a(i)) = " " Then
+            Spaced = Spaced & Chr$(160) & Chr$(160)
+        Else
+            Spaced = Spaced & Chr$(160) & Chr$(a(i))
+        End If
     Next i
 
 End Function
@@ -2617,13 +2960,13 @@ Public Function StackEd(ByVal s_stck As Collection, _
     If s_stck Is Nothing Then Set s_stck = New Collection
     
     Select Case True
-        Case s_lvl <> 0 And s_lvl > s_stck.Count
+        Case s_lvl <> 0 And s_lvl > s_stck.count
             GoTo xt
 
         Case s_lvl = 0 And VarType(s_Item) <> vbObject
             If s_Item = -999999999 Then GoTo xt
             '~~ A specific Item has been provided
-            For i = 1 To s_stck.Count
+            For i = 1 To s_stck.count
                 If s_stck(i) = s_Item Then
                     s_lvl = i
                     StackEd = True
@@ -2632,7 +2975,7 @@ Public Function StackEd(ByVal s_stck As Collection, _
             Next i
         
         Case s_lvl = 0 And VarType(s_Item) = vbObject
-            For i = 1 To s_stck.Count
+            For i = 1 To s_stck.count
                 If s_stck(i) Is s_Item Then
                     s_lvl = i
                     StackEd = True
@@ -2669,7 +3012,7 @@ Public Function StackIsEmpty(ByVal stck As Collection) As Boolean
 ' (stck Is Nothing) or when the stack is empty (items count is 0).
 ' ----------------------------------------------------------------------------
     StackIsEmpty = stck Is Nothing
-    If Not StackIsEmpty Then StackIsEmpty = stck.Count = 0
+    If Not StackIsEmpty Then StackIsEmpty = stck.count = 0
 End Function
 
 Public Function StackPop(ByVal stck As Collection) As Variant
@@ -2683,10 +3026,10 @@ Public Function StackPop(ByVal stck As Collection) As Variant
     On Error GoTo eh
     If StackIsEmpty(stck) Then GoTo xt
     
-    If IsObject(stck(stck.Count)) _
-    Then Set StackPop = stck(stck.Count) _
-    Else StackPop = stck(stck.Count)
-    stck.Remove stck.Count
+    If IsObject(stck(stck.count)) _
+    Then Set StackPop = stck(stck.count) _
+    Else StackPop = stck(stck.count)
+    stck.Remove stck.count
 
 xt: Exit Function
 
@@ -2697,7 +3040,7 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Function
 
 Public Sub StackPush(ByRef stck As Collection, _
-                     ByVal stck_item As Variant)
+                     ByVal stck_Item As Variant)
 ' ----------------------------------------------------------------------------
 ' Common Stack Push service. Pushes (adds) an Item (stck_Item) to the stack
 ' (stck). When the provided stack (stck) is Nothing the stack is created.
@@ -2706,7 +3049,7 @@ Public Sub StackPush(ByRef stck As Collection, _
     
     On Error GoTo eh
     If stck Is Nothing Then Set stck = New Collection
-    stck.Add stck_item
+    stck.Add stck_Item
 
 xt: Exit Sub
 
@@ -2725,9 +3068,9 @@ Public Function StackTop(ByVal stck As Collection) As Variant
     
     On Error GoTo eh
     If StackIsEmpty(stck) Then GoTo xt
-    If IsObject(stck(stck.Count)) _
-    Then Set StackTop = stck(stck.Count) _
-    Else StackTop = stck(stck.Count)
+    If IsObject(stck(stck.count)) _
+    Then Set StackTop = stck(stck.count) _
+    Else StackTop = stck(stck.count)
 
 xt: Exit Function
 

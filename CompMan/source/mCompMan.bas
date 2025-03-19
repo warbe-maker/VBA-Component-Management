@@ -295,7 +295,7 @@ Public Function ExportChangedComponents(ByRef e_wbk_serviced As Workbook, _
     
     mCompMan.CurrentServiceName = mCompManClient.SRVC_EXPORT_CHANGED_DSPLY
     mCompMan.ServicedWrkbk = e_wbk_serviced
-    mEnvironment.Provide True
+    mEnvironment.Provide True, ErrSrc(PROC)
     
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=e_wbk_serviced _
@@ -574,7 +574,7 @@ Public Sub UpdateOutdatedCommonComponents(ByRef u_wbk_serviced As Workbook, _
     
     CurrentServiceName = mCompManClient.SRVC_UPDATE_OUTDATED_DSPLY
     mCompMan.ServicedWrkbk = u_wbk_serviced
-    mEnvironment.Provide True
+    mEnvironment.Provide True, ErrSrc(PROC)
 
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=u_wbk_serviced _

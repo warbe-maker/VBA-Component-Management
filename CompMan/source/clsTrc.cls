@@ -173,16 +173,16 @@ Private Property Let Arry(Optional ByRef a_arr As Variant, _
                                    ByVal a_var As Variant)
 ' ----------------------------------------------------------------------------
 ' Common WRITE to an array service. The service returns an array (a_arr) with
-' the provided item (a_var) either:
+' the provided Item (a_var) either:
 ' - Simply added, when no index/indices (a_indices) are provided
-' - Having added or replaced an item at a given index/indices (a_indices) by
+' - Having added or replaced an Item at a given index/indices (a_indices) by
 '   concidering that the returned array has new from/to specifics for any of
 '   its dimensions at any level whereby the from specific for any dimension
 '   remains the same
 ' - Having created a 1 to 8 dimensions array regarding the provided indices
-'   (a_indices) with the provided item added or replaced
+'   (a_indices) with the provided Item added or replaced
 ' - Having re-dimensioned the provided/input array to the provided indices
-'   (a_indices) with the provided item (a_var) added or updated
+'   (a_indices) with the provided Item (a_var) added or updated
 '
 ' The index/indices (a_indices) may be provided as:
 ' - a single integer, indicating that the provided is or the returned will be
@@ -227,7 +227,7 @@ Private Property Let Arry(Optional ByRef a_arr As Variant, _
     ArryDims a_arr, cllDimSpecs, lDimsArry      ' DimsArray will be 0 when yet not allocated or not an array
     
     '~~ Get the provided indices as Collection
-    Set cllSpecNdcs = ArryIndices(a_indices)
+    Set cllSpecNdcs = ArryNdcsCll(a_indices)
     lDimsSpec = cllSpecNdcs.Count               ' may be 0 when none had been provided
     
     If lDimsArry <> 0 Then
@@ -376,6 +376,60 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Property
 
+Public Function ArryNdcsCll(ParamArray a_indices() As Variant) As Collection
+' ----------------------------------------------------------------------------
+' Returns provided indices (a_indices) as Collection whereby the indices may
+' be provided: - as integers (one for each dimension)
+'              - as an array of integers
+'              - as a string of integers delimited by a , (comma).
+' Note: A collection of indices is the preferred type because it eases
+'       handling none.
+' ----------------------------------------------------------------------------
+    Const PROC = "ArryNdcsCll"
+
+    Dim cll As New Collection
+
+    Dim v2  As Variant
+    Dim v1  As Variant
+
+    On Error GoTo xt
+    If UBound(a_indices) >= LBound(a_indices) Then
+        For Each v1 In a_indices
+            Select Case True
+                Case IsEmpty(v1)
+                    GoTo xt
+                Case IsArray(v1)
+                    '~~ The first Item is an array if incides
+                    For Each v2 In a_indices(LBound(a_indices))
+                        If IsInteger(CInt(Trim(v2))) _
+                        Then cll.Add v2 _
+                        Else Err.Raise AppErr(1), ErrSrc(PROC), "At least one of the items provided as array is not an integer value!"
+                    Next v2
+                Case TypeName(v1) = "Collection"
+                    '~~ The first Item is a Collection of indices
+                    Set cll = a_indices(LBound(a_indices))
+
+                Case TypeName(v1) = "String"
+                    '~~ The first Item is a string of incides delimited by a comma
+                    For Each v2 In Split(v1, ",")
+                        If IsNumeric(v2) Then
+                            cll.Add CInt(Trim(v2))
+                        Else
+                            Err.Raise AppErr(2), ErrSrc(PROC), "At least one of the items provided a string delimited by a comma is not an integer value!"
+                        End If
+                    Next v2
+                Case IsInteger(v1)
+                    cll.Add v1
+            End Select
+        Next v1
+    End If
+
+xt: On Error GoTo 0
+    Set ArryNdcsCll = cll
+    Set cll = Nothing
+
+End Function
+
 Private Property Get Arry(Optional ByRef a_arr As Variant, _
                           Optional ByVal a_indices As Variant = Nothing) As Variant
 ' ----------------------------------------------------------------------------
@@ -391,9 +445,7 @@ Private Property Get Arry(Optional ByRef a_arr As Variant, _
 '
 ' W. Rauschenberger Berlin, Jan 2025
 ' ----------------------------------------------------------------------------
-    Const PROC = "Arry(Get)"
-    
-    Dim lDims  As Long
+    Dim lDims   As Long
     Dim bObject As Boolean
     
     Select Case TypeName(a_arr)
@@ -414,7 +466,7 @@ Private Property Get Arry(Optional ByRef a_arr As Variant, _
     lDims = ArryDims(a_arr) ' This will return 0 for anything not an array or not a specified array
     
     If lDims > 0 Then
-        Set a_indices = ArryIndices(a_indices) ' transforms any kind of provided inedx/indices into a Collection (1 to n)
+        Set a_indices = ArryNdcsCll(a_indices) ' transforms any kind of provided inedx/indices into a Collection (1 to n)
     End If
     
     On Error Resume Next
@@ -469,7 +521,7 @@ Private Function ArryBounds(ByVal a_arr As Variant, _
     Dim lDimsSpec           As Long
     
     lDimsArry = ArryDims(a_arr)
-    Set cllSpecNdcs = ArryIndices(a_indices)
+    Set cllSpecNdcs = ArryNdcsCll(a_indices)
     lDimsSpec = cllSpecNdcs.Count
     
     If lDimsSpec > lDimsArry Then GoTo xt
@@ -667,6 +719,37 @@ End Function
 
 Private Function ArryErase(ByRef c_arr As Variant)
     If IsArray(c_arr) Then Erase c_arr
+End Function
+
+Private Function ArryDims(ByVal a_arr As Variant, _
+                 Optional ByRef a_dim_specs As Collection, _
+                 Optional ByRef a_dims As Long) As Long
+' ----------------------------------------------------------------------------
+' Returns:
+' - the dimensions of an array (a_arr), optionally also as argument (a_dims)
+' - the from to specs (a_dimsfrom, a_dimsto) delimited by kommas for each dim
+' - an arry with the from/to specs, representing th dimensions 1 to n
+' ----------------------------------------------------------------------------
+    Dim arrSpecs(1 To 2) As Variant
+    Dim cll              As New Collection
+    Dim i                As Long
+    
+    For i = 1 To 8
+        On Error Resume Next
+        arrSpecs(1) = LBound(a_arr, i)
+        If Err.Number <> 0 Then
+            Exit For
+        Else
+            arrSpecs(2) = UBound(a_arr, i)
+            cll.Add arrSpecs
+        End If
+    Next i
+        
+xt: ArryDims = cll.Count
+    Set a_dim_specs = cll
+    a_dims = cll.Count
+    Set cll = Nothing
+
 End Function
 
 Public Sub BoC(ByVal b_id As String, _
@@ -1517,7 +1600,7 @@ Private Function StckIsEmpty(ByVal stck As Collection) As Boolean
 End Function
 
 Private Sub StckPop(ByRef stck As Collection, _
-                    ByVal stck_item As Variant, _
+                    ByVal stck_Item As Variant, _
            Optional ByRef stck_ppd As Collection)
 ' ----------------------------------------------------------------------------
 ' Pops the Item (stck_Item) from the stack (stck) when it is the top Item.
@@ -1528,7 +1611,7 @@ Private Sub StckPop(ByRef stck As Collection, _
     
     On Error GoTo eh
     Dim cllTop  As Collection: Set cllTop = StckTop(stck)
-    Dim cll     As Collection: Set cll = stck_item
+    Dim cll     As Collection: Set cll = stck_Item
     
     While ItmId(cll) <> ItmId(cllTop) And Not StckIsEmpty(TraceStack)
         '~~ Finish any unfinished code trace still on the stack which needs to be finished first
@@ -1565,9 +1648,9 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Sub
 
 Private Sub StckPush(ByRef stck As Collection, _
-                     ByVal stck_item As Variant)
+                     ByVal stck_Item As Variant)
     If stck Is Nothing Then Set stck = New Collection
-    stck.Add stck_item
+    stck.Add stck_Item
 End Sub
 
 Private Function StckTop(ByVal stck As Collection) As Collection
@@ -1703,7 +1786,7 @@ Private Sub TrcEnd(ByVal t_id As String, _
            , t_args:=t_args _
            , t_ntry:=t_cll
          
-    StckPop stck:=TraceStack, stck_item:=t_cll, stck_ppd:=Itm
+    StckPop stck:=TraceStack, stck_Item:=t_cll, stck_ppd:=Itm
     iTrcLvl = iTrcLvl - 1
 
 xt: Exit Sub

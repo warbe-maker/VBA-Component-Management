@@ -140,8 +140,9 @@ Public Sub SetupRenew()
 ' ----------------------------------------------------------------------------
 ' Sets up CompMan as Add-in or, when already set up, renews it.
 ' ----------------------------------------------------------------------------
+    Const PROC = "SetupRenew"
     mCompMan.ServicedWrkbk = ThisWorkbook
-    mEnvironment.Provide True
+    mEnvironment.Provide True, ErrSrc(PROC)
     mMe.Renew___AddIn
 End Sub
 

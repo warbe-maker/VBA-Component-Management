@@ -240,6 +240,7 @@ Public Property Let Properties(Optional ByVal p_comp As String, _
         sBy = .LmBy
         sIn = .LmIn
         sKo = .LmKo
+        sOn = .LmOn
         sXf = .LmXf
     End With
     p_done = False
@@ -275,7 +276,7 @@ Public Property Let Properties(Optional ByVal p_comp As String, _
             End If
         End If
         s = .Value(mCompMan.VALUE_NAME_LAST_MOD_ON, p_comp)
-        If s <> sOn Then
+        If sOn <> vbNullString And s <> sOn Then
             .Value(mCompMan.VALUE_NAME_LAST_MOD_ON, p_comp) = sOn
                 Servicing.Log(p_comp) = "Last modified on computer       changed from " & s
                 Servicing.Log(p_comp) = "                                          to " & sOn

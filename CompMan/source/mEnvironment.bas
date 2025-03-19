@@ -161,7 +161,7 @@ Private Function History(ByVal e_lctn As String, _
     Dim vName As Variant
     Dim s     As String
     
-    With FSo
+    With fso
         For Each vLctn In ItemHistory(e_lctn)
             For Each vName In ItemHistory(e_name)
                 '~~ The first location and the first name indicate the current item (folder or file)
@@ -197,7 +197,7 @@ Private Function HistoryForwarded(ByVal e_lctn As String, _
     sCurrent = cll(1)
     HistoryForwarded = sCurrent
     If cll.Count = 2 Then sHistory = cll(2)
-    With FSo
+    With fso
         If .FolderExists(sCurrent) Or .FileExists(sCurrent) Then GoTo xt
         Select Case True
             Case .FolderExists(sHistory)               ' Forward the folder's location and/or name
@@ -208,7 +208,7 @@ Private Function HistoryForwarded(ByVal e_lctn As String, _
                 GoTo xt
             Case Else
                 '~~ There was no history able to be forwarded for vecomin up-to-date
-                If e_folder And e_create Then FSo.CreateFolder sCurrent
+                If e_folder And e_create Then fso.CreateFolder sCurrent
         End Select
     End With
     
@@ -241,7 +241,8 @@ Private Function ItemHistory(ByVal e_hist As String) As Collection
 
 End Function
 
-Public Sub Provide(Optional ByVal p_create As Boolean = False)
+Public Sub Provide(Optional ByVal p_create As Boolean = False, _
+                   Optional ByVal p_proc As String = vbNullString)
 ' ------------------------------------------------------------------------------
 ' Maintains and provides an up-to-date CompMan environment for CompMan itself
 ' and the serviced Workbook.
@@ -285,7 +286,7 @@ Public Sub Provide(Optional ByVal p_create As Boolean = False)
     '~~            the CurrentWorkbook's parent parent folder. I.e. this folder may be renamed
     '~~            or moved to another location at any point in time. Also moving the whole content
     '~~            to another folder is possible.
-    sCompManServicedRoot = FSo.GetFolder(ThisWorkbook.Path).ParentFolder.Path
+    sCompManServicedRoot = fso.GetFolder(ThisWorkbook.Path).ParentFolder.Path
     
     '~~ CompManServicedRoot: AddIn folder
     sLctn = sCompManServicedRoot
@@ -294,7 +295,7 @@ Public Sub Provide(Optional ByVal p_create As Boolean = False)
     
     '~~  CompManServicedRoot: CompMan Workbook's own dedicated folder
     sLctn = sCompManServicedRoot
-    sName = FSo.GetBaseName(ThisWorkbook.Name)
+    sName = fso.GetBaseName(ThisWorkbook.Name)
     sCompManDedicatedFolder = HistoryForwarded(sLctn, sName, p_create)
     
     '~~  CompManServicedRoot: Common Components folder

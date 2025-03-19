@@ -21,7 +21,7 @@ Public Sub ReleaseCommComps(Optional ByVal r_verbose As Boolean = True)
     Const PROC = "ReleaseCommComps"
     
     mBasic.BoP ErrSrc(PROC)
-    mEnvironment.Provide False
+    mEnvironment.Provide False, ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=ActiveWorkbook _
                            , s_service:="Release Modified Common Components"
         
@@ -68,7 +68,7 @@ Public Sub ReleaseService()
     
     mCompMan.CurrentServiceName = "Release pending Common Compoents"
     mCompMan.ServicedWrkbk = ActiveWorkbook
-    mEnvironment.Provide True
+    mEnvironment.Provide True, ErrSrc(PROC)
 
     mBasic.BoP ErrSrc(PROC)
     mCompMan.ServiceInitiate s_serviced_wbk:=ActiveWorkbook _

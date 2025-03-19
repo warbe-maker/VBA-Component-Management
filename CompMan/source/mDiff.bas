@@ -338,7 +338,9 @@ Public Function ServicedCodeVersusPublic(ByVal p_comp As clsComp) As Boolean
 ' Returns TRUE when the serviced component's (p_comp) code in the CodeModule
 ' differs from the public one in the Common-Components folder.
 ' ----------------------------------------------------------------------------
+    Const PROC = "ServicedCodeVersusPublic"
     
+    On Error GoTo eh
     Dim sComp   As String
     Dim arrDiff As Variant
     Dim v       As Variant
@@ -347,14 +349,22 @@ Public Function ServicedCodeVersusPublic(ByVal p_comp As clsComp) As Boolean
         sComp = .CompName
         If .CodeCrrent.DiffersFrom(.CodePublic, arrDiff) Then
             ServicedCodeVersusPublic = True
-            With Servicing
-                For Each v In arrDiff
-                    .Log(sComp) = "Code difference " & v
-                Next v
-            End With
+            If ArryIsAllocated(arrDiff) Then
+                With Servicing
+                    For Each v In arrDiff
+                        .Log(sComp) = "Code difference " & v
+                    Next v
+                End With
+            End If
         End If
     End With
     
+xt: Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Public Function ServicedExportVersusPublicBttn() As String
@@ -392,7 +402,9 @@ Public Function ServicedExportVersusServicedCode(ByVal p_comp As clsComp) As Boo
 ' Returns TRUE when the serviced component's (p_comp) Export-File differs from
 ' the public one in the Common-Components folder.
 ' ----------------------------------------------------------------------------
+    Const PROC = "ServicedExportVersusServicedCode"
     
+    On Error GoTo eh
     Dim sComp   As String
     Dim arrDiff As Variant
     Dim v       As Variant
@@ -404,14 +416,22 @@ Public Function ServicedExportVersusServicedCode(ByVal p_comp As clsComp) As Boo
             If .IsCommon Then
                 With Servicing
                     .Log(sComp) = "Common Component modified: " & v
-                    For Each v In arrDiff
-                        .Log(sComp) = v
-                    Next v
+                    If ArryIsAllocated(arrDiff) Then
+                        For Each v In arrDiff
+                            .Log(sComp) = v
+                        Next v
+                    End If
                 End With
             End If
         End If
     End With
     
+xt: Exit Function
+
+eh: Select Case mBasic.ErrMsg(ErrSrc(PROC))
+        Case vbResume:  Stop: Resume
+        Case Else:      GoTo xt
+    End Select
 End Function
 
 Private Function Source(ByVal s_str As String, _

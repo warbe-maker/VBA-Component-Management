@@ -227,6 +227,7 @@ Private Property Get TxtFile(Optional ByVal t_file As String, _
     On Error GoTo eh
     Dim iFileNumber As Integer
     
+    t_append = t_append
     iFileNumber = FreeFile
     Open t_file For Input As #iFileNumber
     TxtFile = Input$(LOF(iFileNumber), iFileNumber)
@@ -1309,7 +1310,7 @@ Private Function RoundUp(ByVal v As Variant) As Variant
     RoundUp = Int(v) + (v - Int(v) + 0.5) \ 1
 End Function
 
-Public Function Screen(ByVal Item As enScreen) As Variant
+Public Function Screen(ByVal item As enScreen) As Variant
 ' -------------------------------------------------------------------------
 ' Return display screen Item for monitor displaying ActiveWindow
 ' Patterned after Excel's built-in information functions CELL and INFO
@@ -1376,7 +1377,7 @@ Public Function Screen(ByVal Item As enScreen) As Variant
         tMonitorInfo.dwFlags = MONITOR_PRIMARY
         tMonitorInfo.szDevice = "PRIMARY" & vbNullChar
     End If
-    Select Case Item
+    Select Case item
         Case enAdjustmentfactor:    xHSizeSq = GetDeviceCaps(hDC, DevCap.HORZSIZE) ^ 2
                                     xVSizeSq = GetDeviceCaps(hDC, DevCap.VERTSIZE) ^ 2
                                     xPix = GetDeviceCaps(hDC, DevCap.HORZRES) ^ 2 + GetDeviceCaps(hDC, DevCap.VERTRES) ^ 2
